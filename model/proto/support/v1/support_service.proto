@@ -1,0 +1,38 @@
+syntax = "proto3";
+package code.support.v1;
+option go_package = "github.com/code-wallet/code-api/genproto/support/v1;support";
+option java_package = "com.codeinc.gen.support.v1";
+option objc_class_prefix = "CPBSupportV1";
+import "common/v1/model.proto";
+
+service Support {
+    // GetFAQs returns a list of frequently asked questions.
+    rpc GetFAQs (GetFAQsRequest) returns (GetFAQsResponse);
+}
+
+message GetFAQsRequest {
+    // The locale of the user requesting the FAQs.
+    //
+    // If a translation specific to the locale's region is available, it will be returned,
+    // otherwise the service will fall back to a translation in the locale's language.
+    common.v1.Locale locale = 1;
+}
+
+message GetFAQsResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        // FAQs for the requested language are currently unavailable.
+        LANG_UNAVAILABLE = 1;
+    }
+
+    // If result == Result::OK, the returned FAQs are in the requested locale's language.
+    // If result == Result::LANG_UNAVAILABLE, the returned FAQs are in English.
+    repeated FAQ faqs = 2;
+}
+
+message FAQ {
+    string question = 1;
+    string answer = 2;
+}
+

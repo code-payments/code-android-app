@@ -1,0 +1,68 @@
+syntax = "proto3";
+package code.micropayment.v1;
+option go_package = "github.com/code-wallet/code-api/genproto/micropayment/v1;micropayment";
+option java_package = "com.codeinc.gen.micropayment.v1";
+option objc_class_prefix = "APBMicroPaymentV1";
+import "common/v1/model.proto";
+
+service MicroPayment {
+    // Codify adds a trial micro paywall to any url
+    rpc Codify(CodifyRequest) returns (CodifyResponse);
+    // GetPathMetadata gets codified website metadata for a given path
+    //
+    // Important Note: This RPC's current implementation is insecure and
+    // it's sole design is to enable a micro payment PoC.
+    rpc GetPathMetadata(GetPathMetadataRequest) returns (GetPathMetadataResponse);
+}
+
+message CodifyRequest {
+    // The URL to codify
+    string url = 1;
+    // ISO 4217 alpha-3 currency code the payment should be made in
+    string currency = 2;
+    // The amount that should be paid in the native currency
+    double native_amount = 3;
+    // The verified owner account public key
+    common.v1.SolanaAccountId owner_account = 4;
+    // The primary account public key where payment will be sent
+    common.v1.SolanaAccountId primary_account = 5;
+;
+    // The signature is of serialize(CodifyRequest) without this field set using the
+    // private key of the owner account. This provides an authentication mechanism
+    // to the RPC and can be used to validate payment details.
+    common.v1.Signature signature = 6;
+}
+
+message CodifyResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        INVALID_URL = 1;
+        INVALID_ACCOUNT = 2;
+    }
+
+    string codified_url = 2;
+}
+
+message GetPathMetadataRequest {
+    string path = 1;
+}
+
+message GetPathMetadataResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        NOT_FOUND = 1;
+    }
+
+    // The account where the payment should be sent to
+    common.v1.SolanaAccountId destination = 2;
+    
+    // ISO 4217 alpha-3 currency code the payment should be made in
+    string currency = 3;
+    // The amount that should be paid in the native currency
+    double native_amount = 4;
+    // The URL to redirect upon successful payment
+    string redirct_url = 5;
+}
+

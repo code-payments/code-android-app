@@ -1,0 +1,5 @@
+include ':model'
+include ':api'
+include ':app'
+include ':ed25519'
+rootProject.name = "Code"
