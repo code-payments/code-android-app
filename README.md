@@ -1,3 +1,5 @@
+![Code Android App](https://github.com/code-payments/code-android/assets/5760385/b955a5af-04bf-4794-897a-4263f332df87)
+
 [![Release](https://img.shields.io/github/v/release/code-wallet/code-android.svg)](https://github.com/code-wallet/code-android/releases/latest)
 [![GitHub License](https://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat)](https://github.com/code-wallet/code-android/blob/main/LICENSE.md)
 
