@@ -1,4 +1,4 @@
-![Code Android App](https://github.com/code-payments/code-android/assets/5760385/b955a5af-04bf-4794-897a-4263f332df87)
+<img width="1280" alt="Code Android App" src="https://github.com/code-payments/code-android-app/assets/5760385/dccb71f2-b768-48c0-be8e-f70543301ee1">
 
 # Code Android App
 
