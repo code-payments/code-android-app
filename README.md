@@ -2,8 +2,8 @@
 
 # Code Android App
 
-[![Release](https://img.shields.io/github/v/release/code-payments/code-android.svg)](https://github.com/code-payments/code-android/releases/latest)
-[![GitHub License](https://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat)](https://github.com/code-payments/code-android/blob/main/LICENSE.md)
+[![Release](https://img.shields.io/github/v/release/code-payments/code-android-app.svg)](https://github.com/code-payments/code-android-app/releases/latest)
+[![GitHub License](https://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat)](https://github.com/code-payments/code-android-app/blob/main/LICENSE.md)
 
 [Code](https://getcode.com) is a mobile wallet app leveraging self-custodial blockchain technology to deliver an instant, global, and private payments experience. 
 
