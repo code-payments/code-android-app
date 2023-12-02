@@ -230,6 +230,36 @@ fun HomeScan(
         }
     }
 
+    LaunchedEffect(getKinSheetState) {
+        snapshotFlow {
+            getKinSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isGetKinSheetOpen = false
+            }
+        }
+    }
+
+    LaunchedEffect(accountSheetState) {
+        snapshotFlow {
+            accountSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isAccountSheetOpen = false
+            }
+        }
+    }
+
+    LaunchedEffect(balanceSheetState) {
+        snapshotFlow {
+            balanceSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isBalanceSheetOpen = false
+            }
+        }
+    }
+
     LaunchedEffect(accountSheetState) {
         snapshotFlow {
             accountSheetState.isVisible
