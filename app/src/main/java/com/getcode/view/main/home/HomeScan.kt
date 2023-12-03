@@ -47,6 +47,7 @@ import com.getcode.view.main.giveKin.GiveKinSheet
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -218,6 +219,17 @@ fun HomeScan(
             isGiveKinSheetOpen = true
         }
     }
+
+    LaunchedEffect(getKinSheetState) {
+        snapshotFlow {
+            getKinSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isGetKinSheetOpen = false
+            }
+        }
+    }
+
 
     fun hideSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {

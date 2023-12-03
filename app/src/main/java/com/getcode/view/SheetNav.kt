@@ -2,10 +2,8 @@ package com.getcode.view
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.navigation.*
 import com.getcode.R
-import com.getcode.util.AnimationUtils
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.main.account.*
@@ -14,6 +12,7 @@ import com.getcode.view.main.account.AccountFaq
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
+import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.GetKin
 import com.getcode.view.main.getKin.ReferFriend
 import com.getcode.view.main.home.HomeViewModel
@@ -29,6 +28,7 @@ fun NavGraphBuilder.addSheetGraph(
 ) {
     val onAccountHomeNav = { page: AccountPage ->
         when (page) {
+            BUY_AND_SELL_KIN -> navController.navigate(SheetSections.BUY_AND_SELL_KIN.route)
             DEPOSIT -> navController.navigate(SheetSections.DEPOSIT.route)
             WITHDRAW -> navController.navigate(SheetSections.WITHDRAW_AMOUNT.route)
             ACCESS_KEY -> navController.navigate(SheetSections.ACCESS_KEY.route)
@@ -145,6 +145,14 @@ fun NavGraphBuilder.addSheetGraph(
         onBackButtonVisibilityChange(true)
         onTitleChange(R.string.empty)
         ReferFriend(onClose, navController)
+    }
+
+    composableItem(
+        route = SheetSections.BUY_AND_SELL_KIN.route
+    ) {
+        onBackButtonVisibilityChange(true)
+        onTitleChange(R.string.empty)
+        BuyAndSellKin()
     }
 }
 
@@ -297,5 +305,9 @@ enum class SheetSections(
     REFER_FRIEND(
         title = R.string.title_getFriendStartedOnCode,
         route = "sheet/refer-friend"
+    ),
+    BUY_AND_SELL_KIN(
+        title = R.string.title_buyAndSellKin,
+        route = "sheet/buy-and-sell-kin"
     ),
 }
