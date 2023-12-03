@@ -20,6 +20,7 @@ data class AccountMainItem(
 )
 
 enum class AccountPage {
+    BUY_AND_SELL_KIN,
     DEPOSIT,
     WITHDRAW,
     PHONE,
@@ -61,6 +62,7 @@ class AccountSheetViewModel @Inject constructor(
 
     fun onNavigation(page: AccountPage) {
         when (page) {
+            AccountPage.BUY_AND_SELL_KIN -> AnalyticsManager.Screen.BuyAndSellKin
             AccountPage.DEPOSIT -> AnalyticsManager.Screen.Deposit
             AccountPage.WITHDRAW -> AnalyticsManager.Screen.Withdraw
             AccountPage.ACCESS_KEY -> AnalyticsManager.Screen.Backup
