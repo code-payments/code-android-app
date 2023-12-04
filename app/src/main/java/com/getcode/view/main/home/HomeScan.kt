@@ -220,6 +220,16 @@ fun HomeScan(
         }
     }
 
+    LaunchedEffect(giveKinSheetState) {
+        snapshotFlow {
+            giveKinSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isGiveKinSheetOpen = false
+            }
+        }
+    }
+
     LaunchedEffect(getKinSheetState) {
         snapshotFlow {
             getKinSheetState.isVisible
@@ -230,12 +240,32 @@ fun HomeScan(
         }
     }
 
+    LaunchedEffect(accountSheetState) {
+        snapshotFlow {
+            accountSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isAccountSheetOpen = false
+            }
+        }
+    }
+
+    LaunchedEffect(balanceSheetState) {
+        snapshotFlow {
+            balanceSheetState.isVisible
+        }.distinctUntilChanged().collect { isVisible ->
+            if (isVisible.not()) {
+                isBalanceSheetOpen = false
+            }
+        }
+    }
 
     fun hideSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {
             when (bottomSheet) {
                 HomeBottomSheet.GIVE_KIN -> {
                     giveKinSheetState.hide()
+                    isGiveKinSheetOpen = false
                 }
                 HomeBottomSheet.NONE -> {}
                 HomeBottomSheet.ACCOUNT -> {
@@ -243,7 +273,6 @@ fun HomeScan(
                 }
                 HomeBottomSheet.GET_KIN -> {
                     getKinSheetState.hide()
-                    isGiveKinSheetOpen = false
                 }
                 HomeBottomSheet.BALANCE -> {
                     balanceSheetState.hide()
