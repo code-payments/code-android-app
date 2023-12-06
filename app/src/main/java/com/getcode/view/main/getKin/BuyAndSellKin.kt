@@ -124,15 +124,15 @@ private fun VideoThumbnail(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onVideoClick(context, link) }
             .padding(bottom = 10.dp)
+            .clip(MaterialTheme.shapes.small)
+            .clickable { onVideoClick(context, link) }
 
     ) {
         Image(
             modifier = Modifier
                 .aspectRatio(16f / 9f)
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.small)
                 .align(Alignment.CenterStart),
             contentScale = ContentScale.Fit,
             painter = painterResource(id = imageResId),
