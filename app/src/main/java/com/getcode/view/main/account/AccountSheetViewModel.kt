@@ -1,6 +1,7 @@
 package com.getcode.view.main.account
 
 import android.app.Activity
+import androidx.lifecycle.viewModelScope
 import com.getcode.BuildConfig
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
@@ -10,6 +11,7 @@ import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AccountMainItem(
@@ -49,10 +51,10 @@ class AccountSheetViewModel @Inject constructor(
 
     fun reset() {
         uiFlow.tryEmit(uiFlow.value.copy(isPhoneLinked = phoneRepository.phoneLinked))
-        prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
-            .subscribe { value: Boolean ->
-                uiFlow.tryEmit(uiFlow.value.copy(isDebug = value))
-            }
+        viewModelScope.launch {
+            val isDebugActive = prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
+            uiFlow.tryEmit(uiFlow.value.copy(isDebug = isDebugActive))
+        }
     }
 
     fun logout(activity: Activity) {
@@ -75,13 +77,13 @@ class AccountSheetViewModel @Inject constructor(
             logoClickCount = 0
             val isDebug = uiFlow.value.isDebug
 
-            prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
-                .subscribe { isDebugAllowed: Boolean ->
+            viewModelScope.launch {
+            val isDebugAllowed = prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
                 if (isDebug || isDebugAllowed || BuildConfig.DEBUG) {
                     uiFlow.tryEmit(uiFlow.value.copy(isDebug = !isDebug))
                     prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, !isDebug)
                 }
+                }
             }
         }
-    }
 }

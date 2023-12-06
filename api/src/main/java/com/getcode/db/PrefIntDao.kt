@@ -5,17 +5,16 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.getcode.model.PrefInt
-import io.reactivex.rxjava3.core.Flowable
-import io.reactivex.rxjava3.core.Maybe
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PrefIntDao {
     @Query("SELECT * FROM PrefInt WHERE key = :key")
-    fun get(key: String): Flowable<PrefInt>
+    fun get(key: String): Flow<PrefInt>
 
     @Query("SELECT * FROM PrefInt WHERE key = :key")
-    fun getMaybe(key: String): Maybe<PrefInt>
+    suspend fun getMaybe(key: String): PrefInt?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(item: PrefInt)
+    suspend fun insert(item: PrefInt)
 }

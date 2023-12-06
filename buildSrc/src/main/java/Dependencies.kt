@@ -19,7 +19,7 @@ object Versions {
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
     const val androidx_material = "1.5.0"
-    const val androidx_room = "2.4.2"
+    const val androidx_room = "2.5.2"
     const val sqlcipher = "4.5.1@aar"
 
     const val compose = "1.4.3"
@@ -60,6 +60,8 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
+
+    const val ksp = "1.8.21-1.0.11"
 }
 
 object Classpath {
@@ -89,6 +91,7 @@ object Plugins {
     const val firebase_perf = "com.google.firebase.firebase-perf"
     const val bugsnag = "com.bugsnag.android.gradle"
     const val secrets_gradle_plugin = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
+    const val ksp = "com.google.devtools.ksp"
 }
 
 object Libs {
@@ -105,6 +108,7 @@ object Libs {
     const val android_material =
         "com.google.android.material:material:${Versions.androidx_material}"
     const val androidx_room_runtime = "androidx.room:room-runtime:${Versions.androidx_room}"
+    const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
     const val androidx_room_rxjava3 = "androidx.room:room-rxjava3:${Versions.androidx_room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
@@ -119,6 +123,10 @@ object Libs {
         "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinx_coroutines}"
     const val kotlinx_coroutines_test =
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
+
+    // Temporary extension to facilitate the migration from RxJava 3 to Kotlin Flows.
+    const val kotlinx_coroutines_rx3 =
+        "org.jetbrains.kotlinx:kotlinx-coroutines-rx3:${Versions.kotlinx_coroutines}"
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val okhttp_logging_interceptor =

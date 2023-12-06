@@ -3,7 +3,7 @@ buildscript {
         google()
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
-        mavenCentral()
+        gradlePluginPortal()
     }
 
     dependencies {
@@ -17,6 +17,10 @@ buildscript {
         classpath(Classpath.firebase_perf)
         classpath(Classpath.secrets_gradle_plugin)
     }
+}
+
+plugins {
+    id("com.google.devtools.ksp") version "1.9.0-1.0.13" apply false
 }
 
 allprojects {

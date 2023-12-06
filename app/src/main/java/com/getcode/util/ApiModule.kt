@@ -28,13 +28,21 @@ import io.grpc.android.AndroidChannelBuilder
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
+import kotlin.coroutines.CoroutineContext
 
 @Module
 @InstallIn(SingletonComponent::class)
 object ApiModule {
+
+    @Provides
+    @Named("io")
+    @Singleton
+    fun provideIoDispatcherContext(): CoroutineContext = Dispatchers.IO
 
     @Provides
     fun provideNetworkOracle(): NetworkOracle {

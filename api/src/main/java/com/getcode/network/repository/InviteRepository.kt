@@ -3,22 +3,28 @@ package com.getcode.network.repository
 import com.codeinc.gen.invite.v2.InviteService
 import com.getcode.db.InMemoryDao
 import com.getcode.model.PrefsString
-import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.InviteApi
+import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.rx3.asFlowable
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Named
+import kotlin.coroutines.CoroutineContext
 
 class InviteRepository @Inject constructor(
     private val inviteApi: InviteApi,
     private val networkOracle: NetworkOracle,
     private val identityRepository: IdentityRepository,
     private val prefRepository: PrefRepository,
-    private val inMemoryDao: InMemoryDao
+    private val inMemoryDao: InMemoryDao,
+    @Named("io") private val coroutineContext: CoroutineContext,
 ) {
 
     fun getInviteCount(): Flowable<Long> {
-        identityRepository.getUserLocal()
+        identityRepository.getUserLocal().asFlowable()
             .flatMap { response ->
                 InviteService.GetInviteCountRequest.newBuilder()
                     .setUserId(response.userId.toByteArray().toUserId())
@@ -39,39 +45,44 @@ class InviteRepository @Inject constructor(
         return Flowable.empty()
     }
 
-    fun redeem(phoneValue: String, inviteCode: String): Flowable<InviteService.InvitePhoneNumberResponse.Result> {
+    suspend fun redeem(phoneValue: String, inviteCode: String): Flowable<InviteService.InvitePhoneNumberResponse.Result> {
         return whitelist(phoneValue, inviteCode)
     }
 
-    fun whitelist(phoneValue: String): Flowable<InviteService.InvitePhoneNumberResponse.Result> {
+    suspend fun whitelist(phoneValue: String): Flowable<InviteService.InvitePhoneNumberResponse.Result> {
         return whitelist(phoneValue, null)
     }
 
-    private fun whitelist(
+    private suspend fun whitelist(
         phoneValue: String,
         inviteCode: String? = null
     ): Flowable<InviteService.InvitePhoneNumberResponse.Result> {
-        return prefRepository.getFirstOrDefault(PrefsString.KEY_USER_ID, "")
-            .toFlowable()
-            .flatMap { userId ->
-                InviteService.InvitePhoneNumberRequest.newBuilder()
-                    .setReceiver(phoneValue.toPhoneNumber())
-                    .let { b ->
-                        inviteCode?.trim()?.let {
-                            b.setInviteCode(InviteService.InviteCode.newBuilder().setValue(it))
-                        } ?: run {
-                            b.setUser(userId.decodeBase64().toUserId())
-                        }
-                    }
-                    .build()
-                    .let { inviteApi.invitePhoneNumber(it) }
+        val userId = withContext(coroutineContext){
+            prefRepository.getFirstOrDefault(PrefsString.KEY_USER_ID, "")
+        }
+
+        return Single.fromCallable { userId }
+            .flatMapPublisher { userId ->
+                val requestBuilder = InviteService.InvitePhoneNumberRequest.newBuilder().setReceiver(phoneValue.toPhoneNumber())
+
+                val request = if (!inviteCode.isNullOrEmpty()) {
+                    requestBuilder.setInviteCode(InviteService.InviteCode.newBuilder().setValue(inviteCode.trim())).build()
+                } else {
+                    requestBuilder.setUser(userId.decodeBase64().toUserId()).build()
+                }
+
+                inviteApi.invitePhoneNumber(request)
                     .map { it.result }
-                    .let { networkOracle.managedRequest(it) }
+                    .toFlowable()
+            }
+            .flatMap { result ->
+                networkOracle.managedRequest(Flowable.just(result))
             }
             .doOnComplete {
                 getInviteCount().subscribe({}, {})
             }
     }
+
 
     fun getInvitationStatus(userId: ByteArray): Flowable<InvitationStatus> {
         val request =

@@ -12,6 +12,7 @@ plugins {
     id(Plugins.firebase_perf)
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -27,6 +28,10 @@ android {
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
+
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
+        }
 
         val propertiesFile = project.rootProject.file("local.properties")
         val properties = Properties()
@@ -134,6 +139,7 @@ dependencies {
     implementation(Libs.androidx_constraint_layout_compose)
 
     implementation(Libs.rxjava)
+    implementation(Libs.kotlinx_coroutines_rx3)
     implementation(Libs.rxandroid)
 
     implementation(Libs.compose_accompanist)
@@ -164,8 +170,9 @@ dependencies {
     }
     androidTestImplementation(Libs.espresso_intents)
     implementation(Libs.androidx_room_runtime)
+    implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)
-    kapt(Libs.androidx_room_compiler)
+    ksp(Libs.androidx_room_compiler)
 
     implementation(Libs.markwon_core)
     implementation(Libs.markwon_linkify)

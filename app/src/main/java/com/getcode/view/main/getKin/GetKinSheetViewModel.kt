@@ -1,5 +1,6 @@
 package com.getcode.view.main.getKin
 
+import androidx.lifecycle.viewModelScope
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.SessionManager
@@ -19,6 +20,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -37,19 +39,17 @@ class GetKinSheetViewModel @Inject constructor(
     val uiFlow = MutableStateFlow(GetKinSheetUiModel())
 
     fun reset() {
-        prefsRepository.getFirstOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
-            .subscribe { value ->
-                uiFlow.update {
-                    it.copy(isEligibleGetFirstKinAirdrop = value)
-                }
-            }
-        prefsRepository.getFirstOrDefault(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP, false)
-            .subscribe { value ->
-                uiFlow.update {
-                    it.copy(isEligibleGiveFirstKinAirdrop = value)
-                }
-            }
+        viewModelScope.launch {
+            val isEligibleGetFirstKinAirdrop = prefsRepository.getFirstOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
+            uiFlow.update { it.copy(isEligibleGetFirstKinAirdrop = isEligibleGetFirstKinAirdrop) }
+        }
+
+        viewModelScope.launch {
+            val isEligibleGiveFirstKinAirdrop = prefsRepository.getFirstOrDefault(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP, false)
+            uiFlow.update { it.copy(isEligibleGiveFirstKinAirdrop = isEligibleGiveFirstKinAirdrop) }
+        }
     }
+
 
     internal fun requestFirstKinAirdrop(upPress: () -> Unit = {}, homeViewModel: HomeViewModel) {
         if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {

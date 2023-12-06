@@ -7,15 +7,16 @@ import androidx.room.Query
 import com.getcode.model.PrefString
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Maybe
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PrefStringDao {
     @Query("SELECT * FROM PrefString WHERE key = :key")
-    fun get(key: String): Flowable<PrefString>
+    fun get(key: String): Flow<PrefString>
 
     @Query("SELECT * FROM PrefString WHERE key = :key")
-    fun getMaybe(key: String): Maybe<PrefString>
+    suspend fun getMaybe(key: String): PrefString?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(item: PrefString)
+    suspend fun insert(item: PrefString)
 }

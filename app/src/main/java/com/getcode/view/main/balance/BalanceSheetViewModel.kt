@@ -118,13 +118,12 @@ class BalanceSheetViewModel @Inject constructor(
             it.copy(isDebugBucketsVisible = false)
         }
 
-        viewModelScope.launch(Dispatchers.Default) {
-            prefsRepository.get(PrefsBool.IS_DEBUG_BUCKETS)
-                .subscribe { isDebugBuckets ->
-                    uiFlow.update {
-                        it.copy(isDebugBucketsEnabled = isDebugBuckets)
-                    }
+        viewModelScope.launch {
+            prefsRepository.get(PrefsBool.IS_DEBUG_BUCKETS).collect {isDebugBuckets ->
+            uiFlow.update {
+                it.copy(isDebugBucketsEnabled = isDebugBuckets)
                 }
+            }
         }
 
         viewModelScope.launch(Dispatchers.Default) {

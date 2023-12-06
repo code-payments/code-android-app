@@ -2,6 +2,7 @@ plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_kapt)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -48,16 +49,18 @@ dependencies {
     implementation(Libs.rxjava)
     api(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_coroutines_core)
+    implementation(Libs.kotlinx_coroutines_rx3)
     implementation(Libs.inject)
 
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
     implementation(Libs.androidx_room_runtime)
+    implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)
 
-    kapt(Libs.androidx_room_compiler)
+    ksp(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
 
     implementation(Libs.lib_phone_number_google)
