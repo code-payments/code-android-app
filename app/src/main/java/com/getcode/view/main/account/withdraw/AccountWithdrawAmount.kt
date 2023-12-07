@@ -1,10 +1,25 @@
 package com.getcode.view.main.account.withdraw
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.*
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -16,17 +31,74 @@ import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight
 import com.getcode.util.AnimationUtils
+import com.getcode.view.components.BackType
+import com.getcode.view.components.BaseCodeBottomsheet
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.giveKin.CurrencyList
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun AccountWithdrawAmount(navController: NavController) {
     val viewModel = hiltViewModel<AccountWithdrawAmountViewModel>()
     val dataState by viewModel.uiFlow.collectAsState()
+    val scope = rememberCoroutineScope()
+    val currencySheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        skipHalfExpanded = true,
+        animationSpec = remember {
+            Animatable(0f)
+                .run {
+                    TweenSpec(durationMillis = 400, easing = LinearOutSlowInEasing)
+                }
+        }
+    )
 
+    //Show AccountWithdrawAmountSheet
+    AccountWithdrawAmount(
+        viewModel = viewModel,
+        dataState = dataState,
+        onShowCurrencySelector = {
+            viewModel.setCurrencySelectorVisible(false)
+            scope.launch { currencySheetState.hide() }
+        },
+        onSubmit = { viewModel.onSubmit(navController) }
+    )
+
+    //Currency Selector Bottomsheet
+    BaseCodeBottomsheet(
+        state = currencySheetState,
+        title = stringResource(id = R.string.title_selectCurrency),
+        backType = BackType.Back,
+        onBack = {
+            viewModel.setCurrencySelectorVisible(false)
+            scope.launch { currencySheetState.hide() }
+        }
+    ) {
+        CurrencyList(
+            dataState.currencyModel,
+            viewModel::onUpdateCurrencySearchFilter,
+            viewModel::onSelectedCurrencyChanged,
+            viewModel::setCurrencySelectorVisible,
+            viewModel::onRecentCurrencyRemoved,
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.init()
+    }
+}
+
+@Composable
+fun AccountWithdrawAmount(
+    viewModel: AccountWithdrawAmountViewModel,
+    dataState: AccountWithdrawAmountUiModel,
+    onShowCurrencySelector: () -> Unit = {},
+    onSubmit: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -70,7 +142,7 @@ fun AccountWithdrawAmount(navController: NavController) {
                             end.linkTo(parent.end)
                         }
                     ) {
-                        viewModel.setCurrencySelectorVisible(true)
+                        onShowCurrencySelector()
                     }
 
                     CodeKeyPad(
@@ -88,7 +160,6 @@ fun AccountWithdrawAmount(navController: NavController) {
                         onDecimal = viewModel::onDot,
                         isDecimal = true
                     )
-
                     CodeButton(
                         modifier = Modifier
                             .padding(horizontal = 20.dp)
@@ -97,9 +168,7 @@ fun AccountWithdrawAmount(navController: NavController) {
                                 start.linkTo(parent.start)
                                 end.linkTo(parent.end)
                             },
-                        onClick = {
-                           viewModel.onSubmit(navController)
-                        },
+                        onClick = onSubmit,
                         enabled = dataState.continueEnabled,
                         text = stringResource(R.string.action_next),
                         buttonState = ButtonState.Filled,
@@ -107,30 +176,5 @@ fun AccountWithdrawAmount(navController: NavController) {
                 }
             }
         }
-
-        androidx.compose.animation.AnimatedVisibility(
-            visible = dataState.currencySelectorVisible,
-            modifier = Modifier.fillMaxSize(),
-            enter = AnimationUtils.animationFrontEnter,
-            exit = AnimationUtils.animationFrontExit
-        ) {
-            CurrencyList(
-                dataState.currencyModel,
-                viewModel::onUpdateCurrencySearchFilter,
-                viewModel::onSelectedCurrencyChanged,
-                viewModel::setCurrencySelectorVisible,
-                viewModel::onRecentCurrencyRemoved,
-            )
-        }
-    }
-
-    if (dataState.currencySelectorVisible) {
-        BackHandler {
-            viewModel.setCurrencySelectorVisible(false)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.init()
     }
 }
