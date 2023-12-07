@@ -52,7 +52,7 @@ fun BaseCodeBottomsheet(
         }
     }
 
-    //handle back appropriately
+    //handle back appropiately
     if (backType == BackType.Back) {
         BackHandler { onBack() }
     }
