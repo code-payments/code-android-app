@@ -83,22 +83,24 @@ fun GiveKinSheet(
     }
 
     //Currency Selector Bottomsheet
-    BaseCodeBottomsheet(
-        state = currencySheetState,
-        title = stringResource(id = R.string.title_selectCurrency),
-        backType = BackType.Back,
-        onBack = {
-            viewModel.setCurrencySelectorVisible(false)
-            scope.launch { currencySheetState.hide() }
+    if (dataState.currencySelectorVisible) {
+        BaseCodeBottomsheet(
+            state = currencySheetState,
+            title = stringResource(id = R.string.title_selectCurrency),
+            backType = BackType.Back,
+            onBack = {
+                viewModel.setCurrencySelectorVisible(false)
+                scope.launch { currencySheetState.hide() }
+            }
+        ) {
+            CurrencyList(
+                dataState.currencyModel,
+                viewModel::onUpdateCurrencySearchFilter,
+                viewModel::onSelectedCurrencyChanged,
+                viewModel::setCurrencySelectorVisible,
+                viewModel::onRecentCurrencyRemoved,
+            )
         }
-    ) {
-        CurrencyList(
-            dataState.currencyModel,
-            viewModel::onUpdateCurrencySearchFilter,
-            viewModel::onSelectedCurrencyChanged,
-            viewModel::setCurrencySelectorVisible,
-            viewModel::onRecentCurrencyRemoved,
-        )
     }
 }
 
