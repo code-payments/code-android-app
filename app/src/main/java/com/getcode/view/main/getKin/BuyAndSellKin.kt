@@ -29,7 +29,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
-import com.getcode.view.components.NoRippleIndicationWrapper
 import kotlinx.collections.immutable.toImmutableList
 
 @Composable
@@ -42,7 +41,7 @@ fun BuyAndSellKin() {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 20.dp),
     ) {
         val (topSection) = createRefs()
 
@@ -53,20 +52,20 @@ fun BuyAndSellKin() {
                     top.linkTo(parent.top)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                }
+                },
         ) {
             item {
                 Text(
                     text = stringResource(R.string.title_buyAndSellKin),
                     style = MaterialTheme.typography.h1,
-                    modifier = Modifier.padding(vertical = 15.dp)
+                    modifier = Modifier.padding(vertical = 15.dp),
                 )
             }
             item {
                 Text(
                     text = stringResource(R.string.subtitle_buySellDescription),
                     style = MaterialTheme.typography.body1,
-                    modifier = Modifier.padding(vertical = 30.dp)
+                    modifier = Modifier.padding(vertical = 30.dp),
                 )
             }
 
@@ -79,36 +78,34 @@ fun BuyAndSellKin() {
                     onVideoClick = { context, link ->
                         viewModel.openVideo(
                             context = context,
-                            link = link
+                            link = link,
                         )
-                    }
+                    },
                 )
 
                 CodeButton(
                     onClick = {
                         viewModel.openVideo(
                             context = context,
-                            link = item.link
+                            link = item.link,
                         )
                     },
                     text = stringResource(id = item.buttonTextResId),
-                    buttonState = ButtonState.Filled
+                    buttonState = ButtonState.Filled,
                 )
 
-                NoRippleIndicationWrapper {
-                    CodeButton(
-                        modifier = Modifier.padding(bottom = 30.dp),
-                        onClick = {
-                            viewModel.shareVideo(
-                                context = context,
-                                link = item.link
-                            )
-                        },
-                        text = stringResource(id = R.string.action_shareVideo),
-                        buttonState = ButtonState.Subtle,
-                        isPaddedVertical = false
-                    )
-                }
+                CodeButton(
+                    modifier = Modifier.padding(bottom = 30.dp),
+                    onClick = {
+                        viewModel.shareVideo(
+                            context = context,
+                            link = item.link,
+                        )
+                    },
+                    text = stringResource(id = R.string.action_shareVideo),
+                    buttonState = ButtonState.Subtle,
+                    isPaddedVertical = false,
+                )
             }
         }
     }
@@ -119,14 +116,14 @@ private fun VideoThumbnail(
     context: Context,
     imageResId: Int,
     link: Uri,
-    onVideoClick: (Context, Uri) -> Unit
+    onVideoClick: (Context, Uri) -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 10.dp)
             .clip(MaterialTheme.shapes.small)
-            .clickable { onVideoClick(context, link) }
+            .clickable { onVideoClick(context, link) },
 
     ) {
         Image(
@@ -136,7 +133,7 @@ private fun VideoThumbnail(
                 .align(Alignment.CenterStart),
             contentScale = ContentScale.Fit,
             painter = painterResource(id = imageResId),
-            contentDescription = "Video Thumbnail"
+            contentDescription = "Video Thumbnail",
         )
 
         Image(
@@ -144,7 +141,7 @@ private fun VideoThumbnail(
                 .size(70.dp)
                 .align(Alignment.Center),
             painter = painterResource(id = R.drawable.youtube),
-            contentDescription = "Youtube Logo"
+            contentDescription = "Youtube Logo",
         )
     }
 }
