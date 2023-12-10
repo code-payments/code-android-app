@@ -19,7 +19,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.getcode.App
 import com.getcode.R
+import com.getcode.manager.BottomBarManager
 import com.getcode.theme.inputColors
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -27,7 +29,12 @@ import com.getcode.view.components.CodeButton
 @Composable
 fun ConfirmDeleteAccount(navController: NavController) {
     val viewModel = hiltViewModel<DeleteAccountViewModel>()
-    Column(Modifier.padding(20.dp).imePadding(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(
+        Modifier
+            .padding(20.dp)
+            .imePadding(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
         Text(
             text = stringResource(id = R.string.subtitle_deleteAccountDescription),
             style = MaterialTheme.typography.subtitle2
@@ -57,12 +64,23 @@ fun ConfirmDeleteAccount(navController: NavController) {
         )
         Spacer(modifier = Modifier.weight(1f))
         CodeButton(
-            onClick = {
-
-            },
+            onClick = { showConfirmDeletionBanner() },
             text = stringResource(R.string.action_deleteAccount),
             buttonState = ButtonState.Filled,
             enabled = viewModel.isDeletionAllowed()
         )
     }
+}
+
+fun showConfirmDeletionBanner() {
+    BottomBarManager.showMessage(
+        BottomBarManager.BottomBarMessage(
+            title = App.getInstance()
+                .getString(R.string.prompt_title_deleteAccount),
+            positiveText = App.getInstance()
+                .getString(R.string.action_deleteAccount),
+            negativeText = App.getInstance().getString(R.string.action_cancel),
+            onPositive = { },
+            onNegative = { }
+        ))
 }

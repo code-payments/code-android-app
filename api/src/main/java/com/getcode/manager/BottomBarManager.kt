@@ -11,7 +11,7 @@ import kotlin.concurrent.timerTask
 object BottomBarManager {
     data class BottomBarMessage(
         val title: String,
-        val subtitle: String,
+        val subtitle: String = "",
         val positiveText: String,
         val negativeText: String,
         val tertiaryText: String? = null,
