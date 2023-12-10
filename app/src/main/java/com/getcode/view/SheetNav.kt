@@ -257,7 +257,7 @@ enum class SheetSections(
         title = R.string.title_myAccount,
         route = "sheet/accountDetails"
     ),
-    ACCOUNT_DETAILS(
+    DELETE_ACCOUNT(
         title = R.string.title_deleteAccount,
         route = "sheet/deleteAccount"
     ),
