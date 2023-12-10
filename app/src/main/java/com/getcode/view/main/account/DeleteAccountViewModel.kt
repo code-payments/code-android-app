@@ -22,7 +22,6 @@ class DeleteAccountViewModel @Inject constructor(
     fun isDeletionAllowed() = typedText.value.equals(requiredPhrase, ignoreCase = true)
 
     fun onConfirmDelete(activity: Activity) {
-        //todo: delete account
-        authManager.logout(activity)
+        authManager.deleteAndLogout(activity)
     }
 }
