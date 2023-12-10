@@ -32,6 +32,7 @@ fun NavGraphBuilder.addSheetGraph(
             DEPOSIT -> navController.navigate(SheetSections.DEPOSIT.route)
             WITHDRAW -> navController.navigate(SheetSections.WITHDRAW_AMOUNT.route)
             ACCESS_KEY -> navController.navigate(SheetSections.ACCESS_KEY.route)
+            DELETE_ACCOUNT -> navController.navigate(SheetSections.DELETE_ACCOUNT.route)
             FAQ -> navController.navigate(SheetSections.FAQ.route)
             ACCOUNT_DETAILS -> navController.navigate(SheetSections.ACCOUNT_DETAILS.route)
             PHONE -> navController.navigate(
@@ -84,6 +85,13 @@ fun NavGraphBuilder.addSheetGraph(
         onBackButtonVisibilityChange(true)
         onTitleChange(SheetSections.ACCESS_KEY.title)
         AccountAccessKey(navController)
+    }
+    composableItem(
+        route = SheetSections.DELETE_ACCOUNT.route
+    ) {
+        onBackButtonVisibilityChange(true)
+        onTitleChange(SheetSections.DELETE_ACCOUNT.title)
+        DeleteCodeAccount(navController)
     }
     composableItem(
         route = SheetSections.FAQ.route,

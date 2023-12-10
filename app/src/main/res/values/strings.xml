@@ -267,7 +267,7 @@
   <string name="title_withdrewKin">Withdrew</string>
   <string name="title_yourAccessKey">Your Access Key</string>
   <string name="title_myAccount">My Account</string>
-  <string name="title_deleteAccount">Delete Account</string>
+  <string name="title_deleteAccount">Delete Code Account</string>
   <string name="title_buyAndSellKin">Buy &amp; Sell Kin</string>
 
   <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
