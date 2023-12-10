@@ -13,8 +13,10 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,10 +30,12 @@ import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ConfirmDeleteAccount(navController: NavController) {
     val viewModel = hiltViewModel<DeleteAccountViewModel>()
     val context = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         Modifier
             .padding(20.dp)
@@ -68,10 +72,9 @@ fun ConfirmDeleteAccount(navController: NavController) {
         Spacer(modifier = Modifier.weight(1f))
         CodeButton(
             onClick = {
+                keyboardController?.hide()
                 showConfirmDeletionBanner(onConfirm = {
-                    context.getActivity()?.let {
-                        viewModel.onConfirmDelete(it)
-                    }
+                    context.getActivity()?.let { viewModel.onConfirmDelete(it) }
                 })
             },
             text = stringResource(R.string.action_deleteAccount),
