@@ -257,6 +257,10 @@ enum class SheetSections(
         title = R.string.title_myAccount,
         route = "sheet/accountDetails"
     ),
+    ACCOUNT_DETAILS(
+        title = R.string.title_deleteAccount,
+        route = "sheet/deleteAccount"
+    ),
     PHONE_VERIFY(
         title = R.string.title_enterPhoneNumber,
         route = "login/verifyPhone?" +
