@@ -77,7 +77,7 @@ fun NavGraphBuilder.addSheetGraph(
         onBackButtonVisibilityChange(true)
         onTitleChange(SheetSections.WITHDRAW_SUMMARY.title)
         AccountWithdrawSummary(navController, it.arguments, onClose)
-    }
+    } 
     composableItem(
         route = SheetSections.ACCESS_KEY.route
     ) {

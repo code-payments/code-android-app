@@ -29,7 +29,6 @@ import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight
-import com.getcode.theme.sheetHeightFull
 import com.getcode.view.components.BackType
 import com.getcode.view.components.BaseCodeBottomsheet
 import com.getcode.view.components.ButtonState
