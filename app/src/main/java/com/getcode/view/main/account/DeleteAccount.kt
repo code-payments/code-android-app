@@ -10,16 +10,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.view.SheetSections
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.TextSection
 
 @Composable
 fun DeleteCodeAccount(navController: NavController) {
-    val viewModel = hiltViewModel<DeleteAccountViewModel>()
     Column(Modifier.padding(20.dp)) {
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -52,6 +51,7 @@ fun DeleteCodeAccount(navController: NavController) {
         }
         CodeButton(
             onClick = {
+                navController.navigate(SheetSections.CONFIRM_DELETE_ACCOUNT.route)
             },
             text = stringResource(R.string.action_continue),
             buttonState = ButtonState.Filled,

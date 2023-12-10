@@ -28,6 +28,7 @@ import com.getcode.view.main.account.AccountPage.FAQ
 import com.getcode.view.main.account.AccountPage.PHONE
 import com.getcode.view.main.account.AccountPage.WITHDRAW
 import com.getcode.view.main.account.AccountPhone
+import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
@@ -112,6 +113,13 @@ fun NavGraphBuilder.addSheetGraph(
         onBackButtonVisibilityChange(true)
         onTitleChange(SheetSections.DELETE_ACCOUNT.title)
         DeleteCodeAccount(navController)
+    }
+    composableItem(
+        route = SheetSections.CONFIRM_DELETE_ACCOUNT.route
+    ) {
+        onBackButtonVisibilityChange(true)
+        onTitleChange(SheetSections.CONFIRM_DELETE_ACCOUNT.title)
+        ConfirmDeleteAccount(navController)
     }
     composableItem(
         route = SheetSections.FAQ.route,
@@ -288,6 +296,10 @@ enum class SheetSections(
     DELETE_ACCOUNT(
         title = R.string.action_deleteAccount,
         route = "sheet/deleteAccount"
+    ),
+    CONFIRM_DELETE_ACCOUNT(
+        title = R.string.action_deleteAccount,
+        route = "sheet/confirmDeleteAccount"
     ),
     PHONE_VERIFY(
         title = R.string.title_enterPhoneNumber,
