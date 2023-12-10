@@ -60,7 +60,7 @@ fun AccountDetails(
                     isPhoneLinked = dataState.isPhoneLinked,
                 ) { onPage(AccountPage.PHONE) },
                 AccountMainItem(
-                    name = R.string.title_deleteAccount,
+                    name = R.string.action_deleteAccount,
                     icon = R.drawable.ic_delete
                  ) { onPage(AccountPage.DELETE_ACCOUNT) },
             )

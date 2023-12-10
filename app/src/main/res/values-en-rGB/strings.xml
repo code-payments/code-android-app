@@ -13,7 +13,7 @@
   <string name="action_copyAddress">Copy Address</string>
   <string name="action_createAccount">Create an Account</string>
   <string name="action_createNewCodeAccount">Create a New Code Account</string>
-  <string name="action_deleteAccount">Delete Account</string>
+  <string name="action_deleteAccount">Delete Code Account</string>
   <string name="action_enableFaceID">Enable Face ID</string>
   <string name="action_enableTouchID">Enable Touch ID</string>
   <string name="action_exit">Exit</string>

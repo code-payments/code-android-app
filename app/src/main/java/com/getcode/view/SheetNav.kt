@@ -1,14 +1,34 @@
 package com.getcode.view
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.compose.animation.*
 import androidx.navigation.*
 import com.getcode.R
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
-import com.getcode.view.main.account.*
-import com.getcode.view.main.account.AccountPage.*
+import com.getcode.view.main.account.AccountAccessKey
+import com.getcode.view.main.account.AccountDebugOptions
+import com.getcode.view.main.account.AccountDeposit
+import com.getcode.view.main.account.AccountDetails
 import com.getcode.view.main.account.AccountFaq
+import com.getcode.view.main.account.AccountHome
+import com.getcode.view.main.account.AccountPage
+import com.getcode.view.main.account.AccountPage.ACCESS_KEY
+import com.getcode.view.main.account.AccountPage.ACCOUNT_DEBUG_OPTIONS
+import com.getcode.view.main.account.AccountPage.ACCOUNT_DETAILS
+import com.getcode.view.main.account.AccountPage.DELETE_ACCOUNT
+import com.getcode.view.main.account.AccountPage.DEPOSIT
+import com.getcode.view.main.account.AccountPage.FAQ
+import com.getcode.view.main.account.AccountPage.PHONE
+import com.getcode.view.main.account.AccountPage.WITHDRAW
+import com.getcode.view.main.account.AccountPhone
+import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
@@ -266,7 +286,7 @@ enum class SheetSections(
         route = "sheet/accountDetails"
     ),
     DELETE_ACCOUNT(
-        title = R.string.title_deleteAccount,
+        title = R.string.action_deleteAccount,
         route = "sheet/deleteAccount"
     ),
     PHONE_VERIFY(

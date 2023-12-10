@@ -1,22 +1,60 @@
 package com.getcode.view.main.account
 
-import androidx.compose.material.Text
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.getcode.R
+import com.getcode.view.components.ButtonState
+import com.getcode.view.components.CodeButton
+import com.getcode.view.components.TextSection
 
 @Composable
 fun DeleteCodeAccount(navController: NavController) {
-    val viewModel = hiltViewModel<AccountAccessKeyViewModel>()
-    val dataState by viewModel.uiFlow.collectAsState()
-    val context = LocalContext.current
-
-    Text(text = "Hello")
-    SideEffect {
-        viewModel.init()
+    val viewModel = hiltViewModel<DeleteAccountViewModel>()
+    Column(Modifier.padding(20.dp)) {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(30.dp)
+        ) {
+            item {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_delete_bubble),
+                    contentDescription = "Delete"
+                )
+            }
+            item {
+                TextSection(
+                    title = stringResource(id = R.string.deleteAccount_title_willDo),
+                    description = stringResource(id = R.string.deleteAccount_description_willDo)
+                )
+            }
+            item {
+                TextSection(
+                    title = stringResource(id = R.string.deleteAccount_title_wontDo),
+                    description = stringResource(id = R.string.deleteAccount_description_wontDo)
+                )
+            }
+            item {
+                TextSection(
+                    title = stringResource(id = R.string.deleteAccount_title_willHappen),
+                    description = stringResource(id = R.string.deleteAccount_description_willHappen)
+                )
+            }
+        }
+        CodeButton(
+            onClick = {
+            },
+            text = stringResource(R.string.action_continue),
+            buttonState = ButtonState.Filled,
+        )
     }
 }
