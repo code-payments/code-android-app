@@ -190,7 +190,7 @@ fun ListItem(item: AccountMainItem) {
                         imageVector = Icons.Filled.Check,
                         tint = Color.Green,
                         contentDescription = "Linked",
-                        modifier = Modifier.size(12.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
                 Text(
