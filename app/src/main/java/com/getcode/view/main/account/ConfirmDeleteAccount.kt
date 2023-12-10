@@ -14,6 +14,7 @@ import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,12 +24,14 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.inputColors
+import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
 fun ConfirmDeleteAccount(navController: NavController) {
     val viewModel = hiltViewModel<DeleteAccountViewModel>()
+    val context = LocalContext.current
     Column(
         Modifier
             .padding(20.dp)
@@ -64,7 +67,13 @@ fun ConfirmDeleteAccount(navController: NavController) {
         )
         Spacer(modifier = Modifier.weight(1f))
         CodeButton(
-            onClick = { showConfirmDeletionBanner() },
+            onClick = {
+                showConfirmDeletionBanner(onConfirm = {
+                    context.getActivity()?.let {
+                        viewModel.onConfirmDelete(it)
+                    }
+                })
+            },
             text = stringResource(R.string.action_deleteAccount),
             buttonState = ButtonState.Filled,
             enabled = viewModel.isDeletionAllowed()
@@ -72,7 +81,7 @@ fun ConfirmDeleteAccount(navController: NavController) {
     }
 }
 
-fun showConfirmDeletionBanner() {
+fun showConfirmDeletionBanner(onConfirm: () -> Unit) {
     BottomBarManager.showMessage(
         BottomBarManager.BottomBarMessage(
             title = App.getInstance()
@@ -80,7 +89,7 @@ fun showConfirmDeletionBanner() {
             positiveText = App.getInstance()
                 .getString(R.string.action_deleteAccount),
             negativeText = App.getInstance().getString(R.string.action_cancel),
-            onPositive = { },
+            onPositive = onConfirm,
             onNegative = { }
         ))
 }
