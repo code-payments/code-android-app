@@ -6,7 +6,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -15,11 +14,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
-import com.getcode.model.PrefsBool
 import com.getcode.theme.BrandLight
 
 @Composable
-fun AccountDebugOptions() {
+fun AccountDebugOptions(
+    viewModel: AccountDebugOptionsViewModel = hiltViewModel()
+) {
     data class DebugOption(
         val titleResId: Int,
         val subtitleText: String,
@@ -27,25 +27,24 @@ fun AccountDebugOptions() {
         val onChange: (Boolean) -> Unit
     )
 
-    val viewModel = hiltViewModel<AccountDebugOptionsViewModel>()
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.stateFlow.collectAsState()
 
     val options = listOf(
         DebugOption(
             R.string.account_debug_bucket_debugger,
-            "If enabled, you'll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.",
+            stringResource(R.string.settings_bucket_debugger_description),
             dataState.isDebugBuckets
-        ) { viewModel.setBool(PrefsBool.IS_DEBUG_BUCKETS, it) },
+        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.UseDebugBuckets(it)) },
         DebugOption(
             R.string.account_debug_vibrate_on_scan,
-            "If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.",
+            stringResource(R.string.settings_vibrate_on_scan_description),
             dataState.isVibrateOnScan
-        ) { viewModel.setBool(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, it) },
+        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.SetVibrateOnScan(it)) },
         DebugOption(
             R.string.account_debug_display_errors,
             "",
             dataState.isDisplayErrors,
-        ) { viewModel.setIsDisplayErrors(it) }
+        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.ShowErrors(it)) }
 
     )
 
@@ -85,9 +84,5 @@ fun AccountDebugOptions() {
                 )
             }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.reset()
     }
 }

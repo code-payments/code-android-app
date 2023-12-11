@@ -7,10 +7,21 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
-class PrefRepository @Inject constructor() {
+
+
+class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
     fun get(key: PrefsString): Flowable<String> {
         val db = Database.getInstance() ?: return Flowable.empty()
         return db.prefStringDao().get(key.value)
@@ -24,6 +35,38 @@ class PrefRepository @Inject constructor() {
         return db.prefBoolDao().get(key.value)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
+            .distinctUntilChanged()
+    }
+
+    fun observeOrDefault(key: PrefsBool, default: Boolean): Flow<Boolean> {
+        val db = Database.getInstance() ?: return flowOf(default)
+        return db.prefBoolDao().observe(key.value)
+            .flowOn(Dispatchers.IO)
+            .map { it?.value ?: default }
+            .distinctUntilChanged()
+    }
+
+    fun observeOrDefault(key: PrefsString, default: String): Flow<String> {
+        val db = Database.getInstance() ?: return flowOf(default)
+        return db.prefStringDao().observe(key.value)
+            .flowOn(Dispatchers.IO)
+            .map { it?.value ?: default }
+            .distinctUntilChanged()
+    }
+
+    fun observeOrDefault(key: PrefDouble, default: Double): Flow<Double> {
+        val db = Database.getInstance() ?: return flowOf(default)
+        return db.prefDoubleDao().observe(key.key)
+            .flowOn(Dispatchers.IO)
+            .map { it?.value ?: default }
+            .distinctUntilChanged()
+    }
+
+    fun observeOrDefault(key: PrefInt, default: Long): Flow<Long> {
+        val db = Database.getInstance() ?: return flowOf(default)
+        return db.prefIntDao().observe(key.key)
+            .flowOn(Dispatchers.IO)
+            .map { it?.value ?: default }
             .distinctUntilChanged()
     }
 
@@ -60,7 +103,7 @@ class PrefRepository @Inject constructor() {
     }
 
     fun set(vararg list: Pair<PrefsString, String>) {
-        CoroutineScope(Dispatchers.IO).launch {
+        launch {
             list.forEach { pair ->
                 Database.getInstance()?.prefStringDao()?.insert(PrefString(pair.first.value, pair.second))
             }
@@ -74,13 +117,13 @@ class PrefRepository @Inject constructor() {
     fun set(key: String, value: Int) = set(key, value.toLong())
 
     fun set(key: String, value: Long) {
-        CoroutineScope(Dispatchers.IO).launch {
+        launch {
             Database.getInstance()?.prefIntDao()?.insert(PrefInt(key, value))
         }
     }
 
     fun set(key: PrefsBool, value: Boolean) {
-        CoroutineScope(Dispatchers.IO).launch {
+        launch {
             Database.getInstance()?.prefBoolDao()?.insert(PrefBool(key.value, value))
         }
     }
