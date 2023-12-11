@@ -45,6 +45,10 @@ fun AccountHome(
         ) {
             val actions: MutableList<AccountMainItem> = mutableListOf(
                 AccountMainItem(
+                    name = R.string.title_buyAndSellKin,
+                    icon = R.drawable.ic_currency_dollar_active
+                ) { onPage(AccountPage.BUY_AND_SELL_KIN) },
+                AccountMainItem(
                     name = R.string.title_depositKin,
                     icon = R.drawable.ic_menu_deposit
                 ) { onPage(AccountPage.DEPOSIT) },

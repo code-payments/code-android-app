@@ -223,6 +223,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         Balance("Balance Screen"),
         Faq("FAQ Screen"),
         Settings("Settings Screen"),
+        BuyAndSellKin("Buy and Sell Kin Screen"),
         Deposit("Deposit Screen"),
         Backup("Backup Screen"),
         Withdraw("Withdraw Screen"),

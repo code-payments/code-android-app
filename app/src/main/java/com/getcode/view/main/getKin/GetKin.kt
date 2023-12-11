@@ -26,9 +26,9 @@ import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.util.conditionally
 import com.getcode.view.SheetSections
 import com.getcode.view.main.home.HomeViewModel
-
 
 data class GetKinItem(
     val imageResId: Int,
@@ -39,9 +39,8 @@ data class GetKinItem(
     val isActive: Boolean,
     val isLoading: Boolean,
     val isStrikeThrough: Boolean,
-    val onClick: () -> Unit
+    val onClick: () -> Unit,
 )
-
 
 @Composable
 fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel: HomeViewModel) {
@@ -64,7 +63,7 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                 }
 
                 viewModel.requestFirstKinAirdrop(upPress, homeViewModel)
-            }
+            },
         ),
         GetKinItem(
             imageResId = R.drawable.ic_send2,
@@ -81,25 +80,26 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                 }
 
                 navController.navigate(SheetSections.REFER_FRIEND.route)
-            }
+            },
         ),
         GetKinItem(
-            imageResId = R.drawable.ic_currency_dollar_inactive,
+            imageResId = R.drawable.ic_currency_dollar_active,
             inactiveImageResId = R.drawable.ic_currency_dollar_inactive,
-            titleTextResId = R.string.subtitle_buyKin,
-            subtitleTextResId = R.string.subtitle_comingSoon,
+            titleTextResId = R.string.subtitle_buyAndSendKin,
             isVisible = true,
-            isActive = false,
+            isActive = true,
             isLoading = false,
             isStrikeThrough = false,
-            onClick = {}
-        )
+            onClick = {
+                navController.navigate(SheetSections.BUY_AND_SELL_KIN.route)
+            },
+        ),
     )
 
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = 20.dp),
     ) {
         val (topSection, bottomSection) = createRefs()
 
@@ -110,22 +110,22 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                     top.linkTo(parent.top)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                }
+                },
         ) {
             Image(
                 painter = painterResource(R.drawable.ic_graphic_wallet),
                 contentDescription = "",
-                modifier = Modifier.padding(vertical = 10.dp)
+                modifier = Modifier.padding(vertical = 10.dp),
             )
             Text(
                 text = stringResource(R.string.title_getKin),
                 style = MaterialTheme.typography.h1,
-                modifier = Modifier.padding(vertical = 15.dp)
+                modifier = Modifier.padding(vertical = 15.dp),
             )
             Text(
                 text = stringResource(R.string.subtitle_getKin),
                 style = MaterialTheme.typography.body1,
-                modifier = Modifier.padding(vertical = 10.dp)
+                modifier = Modifier.padding(vertical = 10.dp),
             )
         }
 
@@ -137,7 +137,7 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                     bottom.linkTo(parent.bottom)
-                }
+                },
         ) {
             Column {
                 for (item in items) {
@@ -149,31 +149,37 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(White05)
+                            .background(White05),
                     )
 
                     Row(
                         modifier = Modifier
-                            .clickable { item.onClick() }
+                            .conditionally(
+                                condition = item.isStrikeThrough.not(),
+                            ) {
+                                clickable {
+                                    item.onClick()
+                                }
+                            }
                             .padding(vertical = 20.dp, horizontal = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Image(
                             modifier = Modifier.size(25.dp),
-                            painter =  if (item.isActive) painterResource(id = item.imageResId) else painterResource(id = item.inactiveImageResId),
-                            contentDescription = ""
+                            painter = if (item.isActive) painterResource(id = item.imageResId) else painterResource(id = item.inactiveImageResId),
+                            contentDescription = "",
                         )
                         Column(
                             modifier = Modifier
                                 .padding(start = 17.dp)
-                                .weight(1f)
+                                .weight(1f),
                         ) {
                             Text(
                                 text = stringResource(item.titleTextResId),
                                 color = if (item.isActive) Color.White else colorResource(R.color.code_brand_light),
                                 style = MaterialTheme.typography.button.copy(
                                     textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else MaterialTheme.typography.button.textDecoration,
-                                )
+                                ),
                             )
                             item.subtitleTextResId?.let {
                                 Text(
@@ -181,7 +187,7 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                                     text = stringResource(it),
                                     style = MaterialTheme.typography.caption,
                                     fontSize = 13.sp,
-                                    color = colorResource(R.color.code_brand_light)
+                                    color = colorResource(R.color.code_brand_light),
                                 )
                             }
                         }
@@ -192,13 +198,13 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                                 color = White,
                                 modifier = Modifier
                                     .size(20.dp)
-                                    .align(Alignment.CenterVertically)
+                                    .align(Alignment.CenterVertically),
                             )
                         } else if (item.isActive) {
                             Image(
                                 modifier = Modifier.padding(start = 10.dp),
                                 painter = painterResource(R.drawable.ic_chevron_right),
-                                contentDescription = ""
+                                contentDescription = "",
                             )
                         }
                     }
@@ -209,12 +215,12 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(White05)
+                    .background(White05),
             )
 
             // TODO: need a better way to reload model
             AnimatedVisibility(visible = true) {
-               viewModel.reset()
+                viewModel.reset()
             }
         }
     }

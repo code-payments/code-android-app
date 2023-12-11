@@ -50,7 +50,7 @@ fun GetKinSheet(
         )
     }
 
-    //LaunchedEffect(isVisible) {
+    LaunchedEffect(isVisible) {
         val isHome =
             appState.sheetNavController.currentDestination?.route == SheetSections.GET_KIN.route
         if (!isHome) {
@@ -62,5 +62,5 @@ fun GetKinSheet(
                 ).build()
             )
         }
-    //}
+    }
 }
