@@ -2,19 +2,55 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
-import android.os.Debug
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetState
+import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.Text
+import androidx.compose.material.rememberDismissState
+import androidx.compose.material.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
@@ -33,12 +69,18 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.theme.*
+import com.getcode.theme.Black50
+import com.getcode.theme.Brand
+import com.getcode.theme.Gray50
+import com.getcode.theme.White
 import com.getcode.util.AnimationUtils
 import com.getcode.view.camera.KikCodeScannerView
-import com.getcode.view.components.*
+import com.getcode.view.components.ButtonState
+import com.getcode.view.components.CodeButton
+import com.getcode.view.components.OnLifecycleEvent
+import com.getcode.view.components.PermissionCheck
+import com.getcode.view.components.getPermissionLauncher
 import com.getcode.view.main.account.AccountSheet
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.getKin.GetKinSheet
@@ -46,12 +88,11 @@ import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.*
+import java.util.Timer
 import kotlin.concurrent.timerTask
 
 
@@ -208,18 +249,6 @@ fun HomeScan(
         animationSpec = animationSpec
     )
 
-    //delay complex compose operations for faster launch time
-    LaunchedEffect(Unit) {
-        delay(400)
-        if (!balanceSheetState.isVisible) {
-            isBalanceSheetOpen = true
-        }
-        delay(100)
-        if (!giveKinSheetState.isVisible) {
-            isGiveKinSheetOpen = true
-        }
-    }
-
     LaunchedEffect(giveKinSheetState) {
         snapshotFlow {
             giveKinSheetState.isVisible
@@ -320,7 +349,7 @@ fun HomeScan(
                 }
             }
         }
-        homeViewModel.onShowBottomSheet(bottomSheet)
+        homeViewModel.onShowBottomSheet()
     }
 
 
@@ -739,8 +768,9 @@ fun HomeScan(
         Box(modifier = Modifier.padding(vertical = 1.dp)) {}
         val onClose = { hideBottomSheet() }
         val onCloseQuickly = { hideBottomSheet() }
-        GiveKinSheet(isGiveKinSheetOpen, onClose, onCloseQuickly)
-
+        if (isGiveKinSheetOpen) {
+            GiveKinSheet(onClose, onCloseQuickly, homeViewModel = homeViewModel)
+        }
     }
 
     //Balance sheet modal
@@ -749,7 +779,7 @@ fun HomeScan(
     ) {
         Box(modifier = Modifier.padding(vertical = 1.dp)) {}
         val onClose = { hideBottomSheet() }
-        BalanceSheet(isBalanceSheetOpen, onClose) {
+        BalanceSheet(upPress = onClose) {
             isReturnBackToBalance = true
             showBottomSheet(HomeBottomSheet.FAQ)
         }
@@ -762,7 +792,7 @@ fun HomeScan(
         Box(modifier = Modifier.padding(vertical = 1.dp)) {}
         val onCloseQuickly = { hideBottomSheet() }
         if (isAccountSheetOpen) {
-            AccountSheet(isAccountSheetOpen, homeViewModel = homeViewModel, onCloseQuickly)
+            AccountSheet(homeViewModel = homeViewModel, onCloseQuickly)
         }
     }
 
@@ -773,7 +803,7 @@ fun HomeScan(
         Box(modifier = Modifier.padding(vertical = 1.dp)) {}
         val onClose = { hideSheet(HomeBottomSheet.FAQ) }
         if (isFaqSheetOpen) {
-            HomeFaqSheet(isFaqSheetOpen) {
+            HomeFaqSheet {
                 if (isReturnBackToBalance) {
                     showBottomSheet(HomeBottomSheet.BALANCE)
                 }
@@ -789,7 +819,7 @@ fun HomeScan(
         Box(modifier = Modifier.padding(vertical = 1.dp)) {}
         val onClose = { hideBottomSheet() }
         if (isGetKinSheetOpen) {
-            GetKinSheet(isGetKinSheetOpen, homeViewModel, onClose)
+            GetKinSheet(homeViewModel, onClose)
         }
     }
 }
