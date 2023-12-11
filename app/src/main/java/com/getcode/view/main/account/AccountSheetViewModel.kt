@@ -27,6 +27,7 @@ data class AccountMainItem(
 )
 
 enum class AccountPage {
+    BUY_AND_SELL_KIN,
     DEPOSIT,
     WITHDRAW,
     PHONE,
@@ -74,7 +75,7 @@ class AccountSheetViewModel @Inject constructor(
     fun logout(activity: Activity) {
         authManager.logout(activity)
     }
-
+    
     init {
         prefRepository
             .observeOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)

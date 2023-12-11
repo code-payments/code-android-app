@@ -41,6 +41,9 @@
   <string name="action_send">Send</string>
   <string name="action_sendVerificationCode">Send Verification Code</string>
   <string name="action_shareDownloadLink">Share Download Link</string>
+  <string name="action_learnHowToBuyKin">Learn How to Buy Kin</string>
+  <string name="action_learnHowToSellKin">Learn How to Sell Kin</string>
+  <string name="action_shareVideo">Share This Video</string>
   <string name="action_tryDifferentCodeAccount">Try a Different Code Account</string>
   <string name="action_update">Update</string>
   <string name="action_viewAccessKey">View Access Key</string>
@@ -167,6 +170,7 @@
   <string name="subtitle_allowCameraAccess">Code enables you to receive Kin by pointing your camera at the digital bill on another user\'s phone</string>
   <string name="subtitle_allowCameraSettings">You need to allow camera access to be able to receive Kin</string>
   <string name="subtitle_buyKin">Buy Kin</string>
+  <string name="subtitle_buyAndSendKin">Buy &amp; Sell Kin</string>
   <string name="subtitle_buyKinComingSoon">Buy Kin (Coming Soon)</string>
   <string name="subtitle_canOnlyGiveUpTo">You can only give up to %s</string>
   <string name="subtitle_chooseCountry">Choose a country</string>
@@ -182,6 +186,7 @@
   <string name="subtitle_enterUpTo">Enter up to %s</string>
   <string name="subtitle_getFriendStartedOnCode">Get $5 of Kin for free when you get a friend to sign up for Code and you send them their first Kin.</string>
   <string name="subtitle_getKin">Code uses the cryptocurrency Kin for payments. Here are some ways to get more Kin into your Code wallet.</string>
+  <string name="subtitle_buySellDescription">"Buying and selling Kin is currently a complex process. These processes will get simpler over time. If you want to learn how to buy and sell Kin today you can watch the walk through videos below.</string>
   <string name="subtitle_getYourFirstKinFree">Get Your First $1 of Kin for Free</string>
   <string name="subtitle_giveKinFaceID">Verify your identity to give kin.</string>
   <string name="subtitle_howToDeposit">Deposit Kin into your Code wallet by sending Kin to your Deposit Address below. Tap to copy.</string>
@@ -262,6 +267,7 @@
   <string name="title_withdrewKin">Withdrew</string>
   <string name="title_yourAccessKey">Your Access Key</string>
   <string name="title_myAccount">My Account</string>
+  <string name="title_buyAndSellKin">Buy &amp; Sell Kin</string>
 
   <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
   <string name="withdraw_address_invalid_destination">Invalid destination account</string>

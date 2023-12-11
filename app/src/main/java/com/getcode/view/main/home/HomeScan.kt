@@ -260,16 +260,6 @@ fun HomeScan(
         }
     }
 
-    LaunchedEffect(accountSheetState) {
-        snapshotFlow {
-            accountSheetState.isVisible
-        }.distinctUntilChanged().collect { isVisible ->
-            if (isVisible.not()) {
-                isAccountSheetOpen = false
-            }
-        }
-    }
-
     fun hideSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {
             when (bottomSheet) {

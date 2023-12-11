@@ -103,6 +103,7 @@ dependencies {
 
     //standard libraries
     implementation(Libs.kotlin_stdlib)
+    implementation(Libs.kotlinx_collections_immutable)
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)
