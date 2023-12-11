@@ -27,6 +27,7 @@ import com.getcode.view.main.account.AccountPage.DEPOSIT
 import com.getcode.view.main.account.AccountPage.FAQ
 import com.getcode.view.main.account.AccountPage.PHONE
 import com.getcode.view.main.account.AccountPage.WITHDRAW
+import com.getcode.view.main.account.AccountPage.BUY_AND_SELL_KIN
 import com.getcode.view.main.account.AccountPhone
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
