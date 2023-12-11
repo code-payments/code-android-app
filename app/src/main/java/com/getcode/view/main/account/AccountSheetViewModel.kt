@@ -1,15 +1,22 @@
 package com.getcode.view.main.account
 
 import android.app.Activity
-import com.getcode.BuildConfig
+import androidx.lifecycle.viewModelScope
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
-import com.getcode.view.BaseViewModel
+import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 data class AccountMainItem(
@@ -36,51 +43,88 @@ data class AccountSheetUiModel(
     val isDebug: Boolean = false
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val prefRepository: PrefRepository,
     private val phoneRepository: PhoneRepository,
     private val analyticsManager: AnalyticsManager
-) : BaseViewModel() {
+) : BaseViewModel2<AccountSheetViewModel.State, AccountSheetViewModel.Event>(
+    initialState = State(),
+    updateStateForEvent = updateStateForEvent
+) {
 
-    val uiFlow = MutableStateFlow(AccountSheetUiModel())
-    var logoClickCount = 0
+    data class State(
+        val logoClickCount: Int = 0,
+        val isHome: Boolean = true,
+        val page: AccountPage? = null,
+        val isPhoneLinked: Boolean = false,
+        val isDebug: Boolean = false
+    )
 
-    fun reset() {
-        uiFlow.tryEmit(uiFlow.value.copy(isPhoneLinked = phoneRepository.phoneLinked))
-        prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
-            .subscribe { value: Boolean ->
-                uiFlow.tryEmit(uiFlow.value.copy(isDebug = value))
-            }
+    sealed interface Event {
+        data class OnPhoneLinked(val linked: Boolean) : Event
+        data class OnDebugChanged(val isDebug: Boolean): Event
+        data object LogoClicked : Event
+        data class Navigate(val page: AccountPage): Event
     }
 
+    // TODO: handle this differently
     fun logout(activity: Activity) {
         authManager.logout(activity)
     }
 
-    fun onNavigation(page: AccountPage) {
-        when (page) {
-            AccountPage.DEPOSIT -> AnalyticsManager.Screen.Deposit
-            AccountPage.WITHDRAW -> AnalyticsManager.Screen.Withdraw
-            AccountPage.ACCESS_KEY -> AnalyticsManager.Screen.Backup
-            AccountPage.FAQ -> AnalyticsManager.Screen.Faq
-            else -> null
-        }?.let { analyticsManager.open(it) }
+    init {
+        prefRepository
+            .observeOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
+            .onEach {
+                dispatchEvent(Event.OnDebugChanged(it))
+            }.launchIn(viewModelScope)
+
+        phoneRepository
+            .phoneLinked
+            .onEach { dispatchEvent(Event.OnPhoneLinked(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LogoClicked>()
+            .map { stateFlow.value.logoClickCount }
+            .filter { it >= 10 }
+            .map { stateFlow.value.isDebug }
+            .onEach {
+                prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, !it)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.Navigate>()
+            .map { it.page }
+            .mapNotNull { page ->
+                when (page) {
+                    AccountPage.DEPOSIT -> AnalyticsManager.Screen.Deposit
+                    AccountPage.WITHDRAW -> AnalyticsManager.Screen.Withdraw
+                    AccountPage.ACCESS_KEY -> AnalyticsManager.Screen.Backup
+                    AccountPage.FAQ -> AnalyticsManager.Screen.Faq
+                    else -> null
+                }
+            }.onEach {
+                analyticsManager.open(it)
+            }.launchIn(viewModelScope)
     }
 
-    fun onLogoClick() {
-        logoClickCount++
-        if (logoClickCount >= 10) {
-            logoClickCount = 0
-            val isDebug = uiFlow.value.isDebug
-
-            prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
-                .subscribe { isDebugAllowed: Boolean ->
-                if (isDebug || isDebugAllowed || BuildConfig.DEBUG) {
-                    uiFlow.tryEmit(uiFlow.value.copy(isDebug = !isDebug))
-                    prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, !isDebug)
+    companion object {
+        val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            when (event) {
+                is Event.OnPhoneLinked -> { state -> state.copy(isPhoneLinked = event.linked) }
+                Event.LogoClicked -> { state ->
+                    val count = state.logoClickCount + 1
+                    state.copy(logoClickCount = count)
                 }
+                is Event.OnDebugChanged -> { state ->
+                    state.copy(isDebug = event.isDebug, logoClickCount = 0)
+                }
+
+                is Event.Navigate -> { state -> state }
             }
         }
     }

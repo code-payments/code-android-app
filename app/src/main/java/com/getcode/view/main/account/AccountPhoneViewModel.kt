@@ -46,7 +46,7 @@ class AccountPhoneViewModel @Inject constructor(
 
         identityRepository.unlinkAccount(keyPair, phoneNumber).subscribe { result ->
             if (result == IdentityService.UnlinkAccountResponse.Result.OK)
-                phoneRepository.phoneLinked = false
+                phoneRepository.phoneLinked.value = false
             uiFlow.value = AccountPhoneUiModel(false, null)
         }
     }

@@ -10,6 +10,7 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.PhoneApi
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,7 +22,7 @@ class PhoneRepository @Inject constructor(
 ) {
 
     var phoneNumber: String = ""
-    var phoneLinked: Boolean = false
+    var phoneLinked: MutableStateFlow<Boolean> = MutableStateFlow(false)
 
     data class GetAssociatedPhoneNumberResponse(
         val isSuccess: Boolean,
@@ -99,7 +100,7 @@ class PhoneRepository @Inject constructor(
             .flatMap { response -> Database.isInit.map { response } }
             .doOnNext { phone ->
                 phoneNumber = phone.phoneNumber
-                phoneLinked = phone.isLinked
+                phoneLinked.value = phone.isLinked
             }
         //.onErrorResumeNext { getAssociatedPhoneNumberLocal().map { Pair(true, it) } }
     }
@@ -109,7 +110,7 @@ class PhoneRepository @Inject constructor(
             Flowable.just(phoneLinked),
             Flowable.just(phoneNumber)
         ) { v1, v2 ->
-            GetAssociatedPhoneNumberResponse(true, v1, false, v2)
+            GetAssociatedPhoneNumberResponse(true, v1.value, false, v2)
         }
     }
 }

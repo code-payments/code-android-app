@@ -73,7 +73,7 @@ class IdentityRepository @Inject constructor(
                         PrefsString.KEY_DATA_CONTAINER_ID,
                         user.dataContainerId.toByteArray().encodeBase64()
                     )
-                    phoneRepository.phoneLinked = true
+                    phoneRepository.phoneLinked.value = true
                     prefRepository.set(
                         PrefsBool.IS_DEBUG_ALLOWED,
                         user.enableDebugOptions
@@ -111,7 +111,7 @@ class IdentityRepository @Inject constructor(
                 dataContainerId = dataContainerId.decodeBase64().toList(),
                 enableDebugOptions = isDebugAllowed,
                 eligibleAirdrops = eligibleAirdrops,
-                isPhoneNumberLinked = isPhoneNumberLinked
+                isPhoneNumberLinked = isPhoneNumberLinked.value
             )
         }
             .filter { it.userId.isNotEmpty() && it.dataContainerId.isNotEmpty() }
@@ -176,7 +176,7 @@ class IdentityRepository @Inject constructor(
             .let { networkOracle.managedRequest(it) }
             .doOnComplete {
                 phoneRepository.phoneNumber = ""
-                phoneRepository.phoneLinked = false
+                phoneRepository.phoneLinked.value = false
             }
             .firstOrError()
     }
