@@ -1,11 +1,13 @@
 package com.getcode.view.main.account
 
+import androidx.lifecycle.viewModelScope
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.PrefRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -24,15 +26,23 @@ class AccountDebugOptionsViewModel @Inject constructor(
     val uiFlow = MutableStateFlow(AccountDebugOptionsUiModel())
 
     fun reset() {
-        prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_BUCKETS, false)
-            .doOnSuccess { value -> uiFlow.tryEmit(uiFlow.value.copy(isDebugBuckets = value)) }
-            .ignoreElement()
-            .andThen(prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false))
-            .doOnSuccess { value -> uiFlow.tryEmit(uiFlow.value.copy(isVibrateOnScan = value)) }
-            .ignoreElement()
-            .andThen(prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_DISPLAY_ERRORS, false))
-            .doOnSuccess { value -> uiFlow.tryEmit(uiFlow.value.copy(isDisplayErrors = value)) }
-            .subscribe({}, ErrorUtils::handleError)
+        viewModelScope.launch {
+            try {
+                val isDebugBuckets =
+                    prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_BUCKETS, false)
+                uiFlow.tryEmit(uiFlow.value.copy(isDebugBuckets = isDebugBuckets))
+
+                val isVibrateOnScan =
+                    prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
+                uiFlow.tryEmit(uiFlow.value.copy(isVibrateOnScan = isVibrateOnScan))
+
+                val isDisplayErrors =
+                    prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_DISPLAY_ERRORS, false)
+                uiFlow.tryEmit(uiFlow.value.copy(isDisplayErrors = isDisplayErrors))
+            } catch (e: Exception) {
+                ErrorUtils.handleError(e)
+            }
+        }
     }
 
     fun setIsDisplayErrors(isDisplayErrors: Boolean) {

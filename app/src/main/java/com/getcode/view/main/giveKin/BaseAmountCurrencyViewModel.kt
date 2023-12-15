@@ -4,23 +4,29 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.SessionManager
-import com.getcode.model.*
 import com.getcode.model.Currency
+import com.getcode.model.CurrencyCode
+import com.getcode.model.Kin
+import com.getcode.model.PrefsString
+import com.getcode.model.SendLimit
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTransactionLimits
-import com.getcode.network.repository.*
+import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.CurrencyRepository
+import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.NumberInputHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.LocaleUtils
 import com.getcode.view.BaseViewModel
-import io.reactivex.rxjava3.core.Single
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import timber.log.Timber
-import java.lang.StringBuilder
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.rx3.await
 import kotlin.math.min
 
 sealed class CurrencyListItem {
@@ -73,35 +79,32 @@ abstract class BaseAmountCurrencyViewModel(
     open fun init() {
         numberInputHelper.reset()
 
-        viewModelScope.launch (Dispatchers.Default) {
-            launch {
-                 combine (
-                    currencyRepository.getRates(),
-                    balanceRepository.balanceFlow
-                ) { rates, balance ->
-                     setCurrencyUiModel(getCurrenciesUiModelWithRates(getCurrencyUiModel(), rates))
-                     setAmountUiModel(
-                         getAmountUiModel().copy(balanceKin = balance)
-                     )
+        viewModelScope.launch {
+            combine(
+                currencyRepository.getRates(),
+                balanceRepository.balanceFlow
+            ) { rates, balance ->
+                setCurrencyUiModel(getCurrenciesUiModelWithRates(getCurrencyUiModel(), rates))
+                setAmountUiModel(getAmountUiModel().copy(balanceKin = balance))
+            }.collect()
 
-                     SessionManager.getKeyPair()?.let {
-                         client.fetchTransactionLimits(it)
-                             .doOnNext { sendLimitsMap ->
-                                 setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimitsMap))
-                             }
-                             .flatMapSingle {
-                                 getDefaultAndRecentCurrencies()
-                             }
-                             .doOnNext { pair ->
-                                 val (selectedCurrencyCode, recentCurrencyCodes) = pair
-                                 onRecentCurrenciesChanged(recentCurrencyCodes)
-                                 onSelectedCurrencyChanged(selectedCurrencyCode)
-                             }
-                             .subscribe({}, ErrorUtils::handleError)
-                     }
-                 }.collect()
+
+            SessionManager.getKeyPair()?.let { keyPair ->
+                launch {
+                    try {
+                        val sendLimitsMap = client.fetchTransactionLimits(keyPair)
+                            .firstOrError().await()
+                        setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimitsMap))
+
+                        val (selectedCurrencyCode, recentCurrencyCodes) = getDefaultAndRecentCurrencies()
+                        onRecentCurrenciesChanged(recentCurrencyCodes)
+                        onSelectedCurrencyChanged(selectedCurrencyCode)
+                    } catch (e: Exception) {
+                        ErrorUtils.handleError(e)
+                    }
+                }
             }
-        }
+            }
     }
 
     fun onSelectedCurrencyChanged(
@@ -308,18 +311,20 @@ abstract class BaseAmountCurrencyViewModel(
         )
     }
 
-    protected fun getDefaultAndRecentCurrencies(): Single<Pair<String, List<String>>> {
-        return Single.zip(
-            prefsRepository.getFirstOrDefault(
-                PrefsString.KEY_CURRENCY_SELECTED,
-                LocaleUtils.getDefaultCurrency(App.getInstance())
-            ),
-            prefsRepository.getFirstOrDefault(
-                PrefsString.KEY_CURRENCIES_RECENT,
-                ""
-            )
-        ) { a, b -> Pair(a, b.split(",")) }
+    private suspend fun getDefaultAndRecentCurrencies(): Pair<String, List<String>> {
+        val currencySelected = prefsRepository.getFirstOrDefault(
+            PrefsString.KEY_CURRENCY_SELECTED,
+            LocaleUtils.getDefaultCurrency(App.getInstance())
+        )
+
+        val recentCurrencies = prefsRepository.getFirstOrDefault(
+            PrefsString.KEY_CURRENCIES_RECENT,
+            ""
+        )
+
+        return Pair(currencySelected, recentCurrencies.split(","))
     }
+
 
     private fun persistSelectedCurrencyChanged(selectedCurrencyCode: String) {
         prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selectedCurrencyCode)

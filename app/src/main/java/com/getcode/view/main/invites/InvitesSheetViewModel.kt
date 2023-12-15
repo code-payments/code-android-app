@@ -5,6 +5,7 @@ import android.database.Cursor
 import android.provider.ContactsContract
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
+import androidx.lifecycle.viewModelScope
 import com.codeinc.gen.invite.v2.InviteService
 import com.getcode.App
 import com.getcode.R
@@ -25,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject
 
 
@@ -78,7 +80,7 @@ class InvitesSheetViewModel @Inject constructor(
                 return@launch
             }
 
-            identityRepository.getUserLocal()
+            identityRepository.getUserLocal().asFlowable()
                 .flatMap { res ->
                     contactsRepository.uploadContacts(
                         keyPair,
@@ -147,6 +149,7 @@ class InvitesSheetViewModel @Inject constructor(
     }
 
     fun inviteContact(phoneValue: String) {
+        viewModelScope.launch {
         inviteRepository.whitelist(phoneValue)
             .subscribe {
                 if (it == InviteService.InvitePhoneNumberResponse.Result.INVITE_COUNT_EXCEEDED) {
@@ -169,6 +172,7 @@ class InvitesSheetViewModel @Inject constructor(
                     }
                 }
             }
+        }
     }
 
     fun onContactsPermissionChanged(isGranted: Boolean) {

@@ -10,9 +10,13 @@ import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
-import com.google.common.collect.Sets
+import com.getcode.utils.combine
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flowOf
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -90,21 +94,18 @@ class IdentityRepository @Inject constructor(
             }
     }
 
-    fun getUserLocal(): Flowable<GetUserResponse> {
-        return Flowable.zip(
+    fun getUserLocal(): Flow<GetUserResponse> {
+        return combine(
             prefRepository.get(PrefsString.KEY_USER_ID),
             prefRepository.get(PrefsString.KEY_DATA_CONTAINER_ID),
             prefRepository.get(PrefsBool.IS_DEBUG_ALLOWED),
             prefRepository.get(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP),
             prefRepository.get(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP),
-            Flowable.just(phoneRepository.phoneLinked)
+            flowOf(phoneRepository.phoneLinked)
         ) { userId, dataContainerId, isDebugAllowed, isEligibleGetFirstKinAirdrop, isEligibleGiveFirstKinAirdrop, isPhoneNumberLinked ->
-            var eligibleAirdrops = Sets.newHashSet<AirdropType>()
-            if (isEligibleGetFirstKinAirdrop) {
-                eligibleAirdrops.add(AirdropType.GetFirstKin)
-            }
-            if (isEligibleGiveFirstKinAirdrop) {
-                eligibleAirdrops.add(AirdropType.GiveFirstKin)
+            val eligibleAirdrops = mutableSetOf<AirdropType>().apply {
+                if (isEligibleGetFirstKinAirdrop) add(AirdropType.GetFirstKin)
+                if (isEligibleGiveFirstKinAirdrop) add(AirdropType.GiveFirstKin)
             }
             GetUserResponse(
                 userId = userId.decodeBase64().toList(),

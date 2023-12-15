@@ -1,5 +1,6 @@
 package com.getcode.view.login
 
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.codeinc.gen.invite.v2.InviteService
 import com.getcode.R
@@ -60,6 +61,7 @@ class InviteCodeViewModel @Inject constructor(
     }
 
     private fun performVerify(navController: NavController?) {
+        viewModelScope.launch {
         inviteRepository.redeem(uiFlow.value.phoneNumber, uiFlow.value.inviteCode)
             .flatMap {
                 if (
@@ -102,6 +104,7 @@ class InviteCodeViewModel @Inject constructor(
                     ErrorUtils.handleError(it)
                 }
             })
+        }
     }
 
     private fun getNotInvitedError() = TopBarManager.TopBarMessage(

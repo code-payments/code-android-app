@@ -37,6 +37,7 @@ import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.rx3.asFlowable
 import timber.log.Timber
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -88,7 +89,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         Database.isInit
-            .flatMap { prefRepository.get(PrefsBool.IS_DEBUG_DISPLAY_ERRORS) }
+            .flatMap { prefRepository.get(PrefsBool.IS_DEBUG_DISPLAY_ERRORS).asFlowable() }
             .subscribe(ErrorUtils::setDisplayErrors)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
@@ -295,10 +296,10 @@ class HomeViewModel @Inject constructor(
             client.receiveIfNeeded().blockingAwait()
         }
 
-        prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
-            .subscribe { value: Boolean ->
-                if (value) VibrationUtil.vibrate()
-            }
+        viewModelScope.launch {
+            val isVibrationOnScan = prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
+            if (isVibrationOnScan) VibrationUtil.vibrate()
+        }
 
         analyticsManager.grabStart()
         val organizer = SessionManager.getOrganizer() ?: return
