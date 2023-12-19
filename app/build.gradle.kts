@@ -165,6 +165,7 @@ dependencies {
     }
     androidTestImplementation(Libs.espresso_intents)
     implementation(Libs.androidx_room_runtime)
+    implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)
     kapt(Libs.androidx_room_compiler)
 

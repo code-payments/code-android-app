@@ -22,9 +22,10 @@ import com.getcode.view.components.MarkdownText
 
 @Preview
 @Composable
-fun AccountFaq() {
-    val viewModel = hiltViewModel<AccountFaqViewModel>()
-    val dataState by viewModel.uiFlow.collectAsState()
+fun AccountFaq(
+    viewModel: AccountFaqViewModel = hiltViewModel(),
+) {
+    val dataState by viewModel.stateFlow.collectAsState()
 
     Box(
         modifier = Modifier
@@ -56,9 +57,5 @@ fun AccountFaq() {
                 }
             }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.reset()
     }
 }

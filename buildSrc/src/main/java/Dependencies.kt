@@ -107,6 +107,7 @@ object Libs {
     const val androidx_room_runtime = "androidx.room:room-runtime:${Versions.androidx_room}"
     const val androidx_room_rxjava3 = "androidx.room:room-rxjava3:${Versions.androidx_room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
+    const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
 
     const val hilt = "com.google.dagger:hilt-android:${Versions.hilt}"

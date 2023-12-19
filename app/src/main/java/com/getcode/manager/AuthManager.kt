@@ -223,7 +223,7 @@ class AuthManager @Inject constructor(
                 user.dataContainerId.toByteArray().encodeBase64()
             )
         )
-        phoneRepository.phoneLinked = phone.isLinked
+        phoneRepository.phoneLinked.value = phone.isLinked
 
         prefRepository.set(
             PrefsBool.IS_DEBUG_ALLOWED,

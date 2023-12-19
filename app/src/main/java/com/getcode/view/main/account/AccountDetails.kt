@@ -18,15 +18,15 @@ import com.getcode.manager.BottomBarManager
 
 @Composable
 fun AccountDetails(
-    onPageSelected: (AccountPage) -> Unit
+    onPageSelected: (AccountPage) -> Unit,
+    viewModel: AccountSheetViewModel = hiltViewModel(),
 ) {
-    val viewModel = hiltViewModel<AccountSheetViewModel>()
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.stateFlow.collectAsState()
     val context = LocalContext.current
 
     fun onPage(page: AccountPage) {
         onPageSelected(page)
-        viewModel.onNavigation(page)
+        viewModel.dispatchEvent(AccountSheetViewModel.Event.Navigate(page))
     }
 
     Box(modifier = Modifier.fillMaxHeight()) {
@@ -69,9 +69,5 @@ fun AccountDetails(
                 ListItem(action)
             }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.reset()
     }
 }

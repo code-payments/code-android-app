@@ -50,16 +50,16 @@ import com.getcode.util.getActivity
 
 @Composable
 fun AccountHome(
-    onPageSelected: (AccountPage) -> Unit
+    onPageSelected: (AccountPage) -> Unit,
+    viewModel: AccountSheetViewModel = hiltViewModel(),
 ) {
 
-    val viewModel = hiltViewModel<AccountSheetViewModel>()
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.stateFlow.collectAsState()
     val context = LocalContext.current
 
     fun onPage(page: AccountPage) {
         onPageSelected(page)
-        viewModel.onNavigation(page)
+        viewModel.dispatchEvent(AccountSheetViewModel.Event.Navigate(page))
     }
 
     Box(modifier = Modifier.fillMaxHeight()) {
@@ -132,7 +132,7 @@ fun AccountHome(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
                     ) {
-                        viewModel.onLogoClick()
+                        viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked)
                     }
             )
 
@@ -152,10 +152,6 @@ fun AccountHome(
                 ),
             )
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.reset()
     }
 }
 
