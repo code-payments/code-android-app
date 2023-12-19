@@ -18,6 +18,7 @@ import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
 import com.getcode.util.getActivity
@@ -36,6 +37,7 @@ fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null
 
     val viewModel = hiltViewModel<SeedInputViewModel>()
     val dataState by viewModel.uiFlow.collectAsState()
+    val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val authState by SessionManager.authState.collectAsState()
     var isMessageShown by remember { mutableStateOf(false) }
@@ -82,7 +84,7 @@ fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null
                         CoroutineScope(Dispatchers.IO).launch {
                             viewModel.logout(activity) {
                                 arguments?.clear()
-                                viewModel.performLogin(navController, entropyB64)
+                                viewModel.performLogin(navigator, entropyB64)
                             }
 
                         }
@@ -118,7 +120,7 @@ fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null
                 } else {
                     try {
                         arguments.clear()
-                        viewModel.performLogin(navController, entropyB64)
+                        viewModel.performLogin(navigator, entropyB64)
                     } catch (e: Exception) {
                         onError()
                     }

@@ -32,6 +32,8 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.LoginArgs
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
 import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
@@ -41,11 +43,11 @@ import com.getcode.view.components.*
 @Preview
 @Composable
 fun AccessKey(
-    navController: NavController? = null,
+    viewModel: AccessKeyViewModel = hiltViewModel(),
     upPress: () -> Unit = {},
-    arguments: Bundle? = null
+    arguments: LoginArgs = LoginArgs(),
 ) {
-    val viewModel = hiltViewModel<AccessKeyViewModel>()
+    val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -74,7 +76,7 @@ fun AccessKey(
     val launcher = getPermissionLauncher(onPermissionResult)
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navController, true)
+        viewModel.onSubmit(navigator, true)
         isExportSeedRequested = false
     }
 
@@ -95,7 +97,7 @@ fun AccessKey(
 
     }
     val onSkipClick = {
-        viewModel.onSubmit(navController, false)
+        viewModel.onSubmit(navigator, false)
     }
 
     ConstraintLayout(
@@ -202,14 +204,14 @@ fun AccessKey(
                     .getString(R.string.prompt_description_exitAccountCreation),
                 positiveText = App.getInstance().getString(R.string.action_exit),
                 negativeText = App.getInstance().getString(R.string.action_cancel),
-                onPositive = { navController?.navigateUp() },
+                onPositive = { navigator.popAll() },
                 onNegative = {}
             )
         )
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B64)
+        arguments.signInEntropy
             ?.let { viewModel.initWithEntropy(it) }
     }
 

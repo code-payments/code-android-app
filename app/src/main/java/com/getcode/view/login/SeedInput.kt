@@ -29,12 +29,18 @@ import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.LoginArgs
 import com.getcode.view.components.*
 
 @Preview
 @Composable
-fun SeedInput(navController: NavController? = null) {
-    val viewModel = hiltViewModel<SeedInputViewModel>()
+fun SeedInput(
+    viewModel: SeedInputViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs(),
+) {
+    val navigator: CodeNavigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
@@ -132,7 +138,7 @@ fun SeedInput(navController: NavController? = null) {
                 .padding(bottom = 20.dp),
             onClick = {
                 focusManager.clearFocus()
-                viewModel.onSubmit(navController)
+                viewModel.onSubmit(navigator)
             },
             isLoading = dataState.isLoading,
             isSuccess = dataState.isSuccess,

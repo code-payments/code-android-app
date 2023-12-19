@@ -1,7 +1,6 @@
 package com.getcode
 
 import android.content.res.Resources
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
@@ -17,12 +16,17 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
 import androidx.navigation.NavGraph
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.LoginScreen
+import com.getcode.navigation.NamedScreen
 import com.getcode.view.LoginSections
+import com.getcode.view.login.LoginHome
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 object MainDestinations {
@@ -36,13 +40,13 @@ object MainDestinations {
 @Composable
 fun rememberCodeAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
-    navController: NavHostController = rememberNavController(),
+    navigator: CodeNavigator = LocalCodeNavigator.current,
     sheetNavController: NavHostController = rememberNavController(),
     resources: Resources = resources(),
     coroutineScope: CoroutineScope = rememberCoroutineScope()
 ) =
-    remember(scaffoldState, navController, resources, coroutineScope) {
-        CodeAppState(scaffoldState, navController, sheetNavController, resources, coroutineScope)
+    remember(scaffoldState, navigator, resources, coroutineScope) {
+        CodeAppState(scaffoldState, navigator, sheetNavController, resources, coroutineScope)
     }
 
 /**
@@ -51,10 +55,10 @@ fun rememberCodeAppState(
 @Stable
 class CodeAppState(
     val scaffoldState: ScaffoldState,
-    val navController: NavHostController,
+    val navigator: CodeNavigator,
     val sheetNavController: NavHostController,
     private val resources: Resources,
-    coroutineScope: CoroutineScope
+    private val coroutineScope: CoroutineScope
 ) {
     init {
         coroutineScope.launch {
@@ -72,28 +76,18 @@ class CodeAppState(
     // Navigation state source of truth
     // ----------------------------------------------------------
 
-    private val currentRoute: String?
-        get() = navController.currentDestination?.route
-
     val currentTitle: String
-        get() {
-            LoginSections.values().forEach { v ->
-                if (v.route == currentRoute) {
-                    if (v.title == null) return ""
-                    return resources.getString(v.title)
-                }
-            }
-            return ""
-        }
+        @Composable get() = (navigator.lastItem as? NamedScreen)?.name.orEmpty()
 
     @Composable
-    fun getRoute() = navController.currentBackStackEntryAsState().value?.destination?.route
+    fun getScreen() = navigator.lastItem
 
     val isVisibleTopBar: Pair<Boolean, Boolean>
         @Composable get() =
             Pair(
-                getRoute() != LoginSections.LOGIN.route,
-                getRoute() != LoginSections.SEED_VIEW.route && getRoute() != LoginSections.SEED_DEEP_LINK.route
+                getScreen() != LoginScreen,
+                false// TODO:
+                // getScreen() != LoginSections.SEED_VIEW.route && getScreen() != LoginSections.SEED_DEEP_LINK.route
             )
 
     val topBarMessage = MutableLiveData<TopBarManager.TopBarMessage?>()
@@ -101,19 +95,9 @@ class CodeAppState(
 
 
     fun upPress() {
-        if (!sheetNavController.navigateUp()) navController.navigateUp()
-    }
-
-    fun navigateToRoute(route: String) {
-        if (route != currentRoute) {
-            navController.navigate(route) {
-                launchSingleTop = true
-                restoreState = true
-                // Pop up backstack to the first destination and save state. This makes going back
-                // to the start destination when pressing back in any other bottom tab.
-                popUpTo(findStartDestination(navController.graph).id) {
-                    saveState = true
-                }
+        coroutineScope.launch {
+            if (!navigator.hide()) {
+                navigator.pop()
             }
         }
     }

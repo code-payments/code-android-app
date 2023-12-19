@@ -2,7 +2,6 @@ package com.getcode.view.login
 
 import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
-import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,14 +12,40 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.material.Divider
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,14 +64,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.theme.*
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.LoginArgs
+import com.getcode.theme.BrandLight
+import com.getcode.theme.White05
+import com.getcode.theme.White50
+import com.getcode.theme.sheetHeight
 import com.getcode.util.PhoneUtils
 import com.getcode.util.getActivity
-import com.getcode.view.ARG_IS_NEW_ACCOUNT
-import com.getcode.view.ARG_IS_PHONE_LINKING
-import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.SheetTitle
@@ -59,11 +85,11 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterialApi::class)
 @Preview
 @Composable
-fun PhoneVerify(
-    navController: NavController? = null,
-    arguments: Bundle? = null
+internal fun PhoneVerify(
+    viewModel: PhoneVerifyViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs(),
 ) {
-    val viewModel = hiltViewModel<PhoneVerifyViewModel>()
+    val navigator = LocalCodeNavigator.current
     val dataState: PhoneVerifyUiModel by viewModel.uiFlow.collectAsState()
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
@@ -167,7 +193,9 @@ fun PhoneVerify(
                 ),
                 singleLine = true,
                 keyboardActions = KeyboardActions(
-                    onDone = { viewModel.onSubmit(navController, context.getActivity()) }
+                    onDone = {
+                        viewModel.onSubmit(navigator, context.getActivity())
+                    }
                 ),
                 onValueChange = {
                     if (!dataState.isLoading) {
@@ -203,7 +231,7 @@ fun PhoneVerify(
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                viewModel.onSubmit(navController, context.getActivity())
+                viewModel.onSubmit(navigator, context.getActivity())
             },
             enabled = dataState.continueEnabled,
             isLoading = dataState.isLoading,
@@ -237,12 +265,10 @@ fun PhoneVerify(
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B64)
+        arguments.signInEntropy
             ?.let { viewModel.setSignInEntropy(it) }
-        arguments?.getBoolean(ARG_IS_PHONE_LINKING)
-            ?.let { viewModel.setIsPhoneLinking(it) }
-        arguments?.getBoolean(ARG_IS_NEW_ACCOUNT)
-            ?.let { viewModel.setIsNewAccount(it) }
+        viewModel.setIsPhoneLinking(arguments.isPhoneLinking)
+        viewModel.setIsNewAccount(arguments.isNewAccount)
     }
 
     val phoneNumberHintLauncher = rememberLauncherForActivityResult(

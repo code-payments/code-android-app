@@ -13,15 +13,19 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.HomeScreen
+import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.view.MainSections
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun NotificationPermission(navController: NavController? = null) {
+fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
-            navController?.navigate(MainSections.HOME.route)
+            navigator.popAll()
+            navigator.push(HomeScreen())
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })

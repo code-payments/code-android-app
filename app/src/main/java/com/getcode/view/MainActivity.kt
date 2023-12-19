@@ -64,7 +64,7 @@ class MainActivity : FragmentActivity() {
                 return
             }
             Timber.d("Intent " + intent.data)
-            currentNavHostController?.handleDeepLink(intent)
+//            currentNavHostController?.handleDeepLink(intent)
             DeeplinkState.debounceIntent = intent
         }
     }
@@ -76,9 +76,8 @@ class MainActivity : FragmentActivity() {
         authManager.init(this)
         setFullscreen()
         setContent {
-            val appState = rememberCodeAppState()
-            currentNavHostController = appState.navController
-            CodeApp(appState)
+//            currentNavHostController = appState.navController
+            CodeApp()
         }
     }
 

@@ -40,42 +40,42 @@ fun NavGraphBuilder.composableItem(
 
 @OptIn(ExperimentalAnimationApi::class)
 fun NavGraphBuilder.addLoginGraph(navController: NavController, upPress: () -> Unit) {
-    composableItem(
-        route = LoginSections.LOGIN.route,
-        enterTransition = null,
-    ) {
-        LoginHome(navController, upPress)
-    }
-    composableItem(
-        route = LoginSections.PHONE_VERIFY.route,
-        arguments = LoginSections.PHONE_VERIFY.arguments
-    ) { backStackEntry ->
-        PhoneVerify(navController, backStackEntry.arguments)
-    }
-    composableItem(
-        LoginSections.PHONE_CONFIRM.route,
-        LoginSections.PHONE_CONFIRM.arguments,
-    ) { backStackEntry ->
-        PhoneConfirm(navController, backStackEntry.arguments)
-    }
-    composableItem(
-        LoginSections.INVITE_CODE.route,
-        LoginSections.INVITE_CODE.arguments,
-    ) { backStackEntry ->
-        InviteCode(navController, backStackEntry.arguments)
-    }
-    composableItem(
-        route = LoginSections.SEED_INPUT.route,
-        arguments = LoginSections.SEED_INPUT.arguments,
-    ) {
-        SeedInput(navController)
-    }
-    composableItem(
-        route = LoginSections.SEED_VIEW.route,
-        arguments = LoginSections.SEED_VIEW.arguments,
-    ) { backStackEntry ->
-        AccessKey(navController, upPress, backStackEntry.arguments)
-    }
+//    composableItem(
+//        route = LoginSections.LOGIN.route,
+//        enterTransition = null,
+//    ) {
+//        LoginHome(navController, upPress)
+//    }
+//    composableItem(
+//        route = LoginSections.PHONE_VERIFY.route,
+//        arguments = LoginSections.PHONE_VERIFY.arguments
+//    ) { backStackEntry ->
+//        PhoneVerify(navController, backStackEntry.arguments)
+//    }
+//    composableItem(
+//        LoginSections.PHONE_CONFIRM.route,
+//        LoginSections.PHONE_CONFIRM.arguments,
+//    ) { backStackEntry ->
+//        PhoneConfirm(navController, backStackEntry.arguments)
+//    }
+//    composableItem(
+//        LoginSections.INVITE_CODE.route,
+//        LoginSections.INVITE_CODE.arguments,
+//    ) { backStackEntry ->
+//        InviteCode(navController, backStackEntry.arguments)
+//    }
+//    composableItem(
+//        route = LoginSections.SEED_INPUT.route,
+//        arguments = LoginSections.SEED_INPUT.arguments,
+//    ) {
+//        SeedInput(navController)
+//    }
+//    composableItem(
+//        route = LoginSections.SEED_VIEW.route,
+//        arguments = LoginSections.SEED_VIEW.arguments,
+//    ) { backStackEntry ->
+//        AccessKey(navController, upPress, backStackEntry.arguments)
+//    }
     composableItem(
         route = LoginSections.SEED_DEEP_LINK.route,
         arguments = LoginSections.SEED_DEEP_LINK.arguments,
@@ -98,18 +98,18 @@ fun NavGraphBuilder.addLoginGraph(navController: NavController, upPress: () -> U
     ) { backStackEntry ->
         SeedDeepLink(navController, backStackEntry.arguments)
     }
-    composableItem(
-        route = LoginSections.PERMISSION_CAMERA_REQUEST.route,
-        arguments = LoginSections.PERMISSION_CAMERA_REQUEST.arguments,
-    ) {
-        CameraPermission(navController)
-    }
-    composableItem(
-        route = LoginSections.PERMISSION_NOTIFICATION_REQUEST.route,
-        arguments = LoginSections.PERMISSION_NOTIFICATION_REQUEST.arguments,
-    ) {
-        NotificationPermission(navController)
-    }
+//    composableItem(
+//        route = LoginSections.PERMISSION_CAMERA_REQUEST.route,
+//        arguments = LoginSections.PERMISSION_CAMERA_REQUEST.arguments,
+//    ) {
+//        CameraPermission(navController)
+//    }
+//    composableItem(
+//        route = LoginSections.PERMISSION_NOTIFICATION_REQUEST.route,
+//        arguments = LoginSections.PERMISSION_NOTIFICATION_REQUEST.arguments,
+//    ) {
+//        NotificationPermission(navController)
+//    }
 }
 
 enum class LoginSections(
@@ -143,16 +143,16 @@ enum class LoginSections(
             }
         )
     ),
-    INVITE_CODE(
-        title = R.string.subtitle_inviteCode,
-        route = "login/inviteCode?" +
-                "${ARG_PHONE_NUMBER}={${ARG_PHONE_NUMBER}}&",
-        arguments = listOf(
-            navArgument(ARG_PHONE_NUMBER) {
-                type = NavType.StringType
-            }
-        )
-    ),
+//    INVITE_CODE(
+//        title = R.string.subtitle_inviteCode,
+//        route = "login/inviteCode?" +
+//                "${ARG_PHONE_NUMBER}={${ARG_PHONE_NUMBER}}&",
+//        arguments = listOf(
+//            navArgument(ARG_PHONE_NUMBER) {
+//                type = NavType.StringType
+//            }
+//        )
+//    ),
     PHONE_CONFIRM(
         title = R.string.title_verifyPhoneNumber,
         route = "login/confirmPhone?" +
@@ -179,10 +179,10 @@ enum class LoginSections(
             }
         )
     ),
-    SEED_INPUT(
-        title = R.string.title_enterAccessKeyWords,
-        route = "login/inputSeed"
-    ),
+//    SEED_INPUT(
+//        title = R.string.title_enterAccessKeyWords,
+//        route = "login/inputSeed"
+//    ),
     SEED_VIEW(
         title = R.string.title_accessKey,
         route = "login/viewSeed?" +

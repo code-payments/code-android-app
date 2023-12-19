@@ -13,22 +13,28 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.navigation.CodeLoginPermission
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.HomeScreen
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.PermissionRequestScreen
 import com.getcode.view.LoginSections
 import com.getcode.view.MainSections
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun CameraPermission(navController: NavController? = null) {
+fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     var isResultHandled by remember { mutableStateOf(false) }
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (!isResultHandled) {
             isResultHandled = true
 
             if (isGranted) {
-                navController?.navigate(MainSections.HOME.route)
+                navigator.popAll()
+                navigator.push(HomeScreen())
             } else {
-                navController?.navigate(LoginSections.PERMISSION_NOTIFICATION_REQUEST.route)
+                navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
             }
         }
     }

@@ -137,22 +137,22 @@ fun NavGraphBuilder.addSheetGraph(
         onTitleChange(SheetSections.PHONE.title)
         AccountPhone(navController)
     }
-    composableItem(
-        route = SheetSections.PHONE_VERIFY.route,
-        arguments = SheetSections.PHONE_VERIFY.arguments,
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.PHONE_VERIFY.title)
-        PhoneVerify(navController, it.arguments)
-    }
-    composableItem(
-        route = SheetSections.PHONE_CONFIRM.route,
-        arguments = SheetSections.PHONE_CONFIRM.arguments,
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.PHONE_CONFIRM.title)
-        PhoneConfirm(navController, it.arguments)
-    }
+//    composableItem(
+//        route = SheetSections.PHONE_VERIFY.route,
+//        arguments = SheetSections.PHONE_VERIFY.arguments,
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.PHONE_VERIFY.title)
+//        PhoneVerify(navController, it.arguments)
+//    }
+//    composableItem(
+//        route = SheetSections.PHONE_CONFIRM.route,
+//        arguments = SheetSections.PHONE_CONFIRM.arguments,
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.PHONE_CONFIRM.title)
+//        PhoneConfirm(navController, it.arguments)
+//    }
     composableItem(
         route = SheetSections.ACCOUNT_DETAILS.route,
         arguments = SheetSections.ACCOUNT_DETAILS.arguments

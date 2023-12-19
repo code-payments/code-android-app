@@ -3,38 +3,36 @@ package com.getcode.view.components
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.currentCompositionLocalContext
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavController
 import com.getcode.manager.SessionManager
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.InviteCodeScreen
+import com.getcode.navigation.LoginGraph
 import com.getcode.util.DeeplinkState
-import com.getcode.view.LoginSections
-import com.getcode.view.MainSections
 import timber.log.Timber
 
 const val AUTH_NAV = "Authentication Navigation"
 
 @Composable
-fun authCheck(
-    navController: NavController? = null,
+fun AuthCheck(
+    navigator: CodeNavigator,
     onNavigateToLogin:() -> Unit,
     onNavigateToHome:() -> Unit
 ) {
     val dataState by SessionManager.authState.collectAsState()
 
     val isAuthenticated = dataState?.isAuthenticated
-    val currentRoute = navController?.currentDestination?.route
+    val currentRoute = navigator.lastItem
 
     LaunchedEffect(isAuthenticated) {
         isAuthenticated?.let { authenticated ->
             //Allow the seed input screen to complete and avoid
             //premature navigation
-            if (currentRoute == LoginSections.SEED_INPUT.route) {
+            if (currentRoute is InviteCodeScreen) {
                 Timber.tag(AUTH_NAV).d("No navigation within seed input")
                 return@LaunchedEffect
             }
-            if (currentRoute?.contains("login/") == true) {
+            if (currentRoute is LoginGraph) {
                 Timber.tag(AUTH_NAV).d("No navigation within account creation and onboarding")
                 //No Op
             }

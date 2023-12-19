@@ -14,59 +14,59 @@ import com.getcode.view.main.home.HomeScan
 import timber.log.Timber
 
 
-fun NavGraphBuilder.addMainGraph() {
-    composable(
-        route = MainSections.HOME.route,
-        arguments = MainSections.HOME.arguments,
-        exitTransition = { AnimationUtils.getExitTransition(this) },
-        popExitTransition = { AnimationUtils.getPopExitTransition(this) },
-        deepLinks = listOf(
-            navDeepLink {
-                uriPattern =
-                    "${
-                        App.getInstance().getString(R.string.root_url_app)
-                    }/cash/#/e={$ARG_CASH_LINK}"
-                action = Intent.ACTION_VIEW
-            },
-            navDeepLink {
-                uriPattern =
-                    "${
-                        App.getInstance().getString(R.string.root_url_cash)
-                    }/cash/#/e={$ARG_CASH_LINK}"
-                action = Intent.ACTION_VIEW
-            },
-            navDeepLink {
-                uriPattern =
-                    "${App.getInstance().getString(R.string.root_url_app)}/c/#/e={$ARG_CASH_LINK}"
-                action = Intent.ACTION_VIEW
-            },
-            navDeepLink {
-                uriPattern =
-                    "${App.getInstance().getString(R.string.root_url_cash)}/c/#/e={$ARG_CASH_LINK}"
-                action = Intent.ACTION_VIEW
-            },
-            navDeepLink {
-                uriPattern =
-                    "${App.getInstance().getString(R.string.app_url_cash)}/c/#/e={$ARG_CASH_LINK}"
-                action = Intent.ACTION_VIEW
-            },
-        )
-    ) { backStackEntry ->
-        val deepLink = backStackEntry.arguments?.getString(ARG_CASH_LINK).orEmpty()
-        Timber.d("deeplink " + deepLink)
-        HomeScan(deepLink)
-    }
-    composable(
-        route = MainSections.LAUNCH.route,
-        enterTransition = { EnterTransition.None }
-    ) {
-        //This composable awaits the authentication state to be complete before
-        //we navigate to login or main composables.
-        //We can implement an intermediate state here while the app loads if we want
-        //For now lets just use an empty view so there is composition content
-        ConstraintLayout(modifier = Modifier.fillMaxSize()) { }
-    }
-}
+//fun NavGraphBuilder.addMainGraph() {
+//    composable(
+//        route = MainSections.HOME.route,
+//        arguments = MainSections.HOME.arguments,
+//        exitTransition = { AnimationUtils.getExitTransition(this) },
+//        popExitTransition = { AnimationUtils.getPopExitTransition(this) },
+//        deepLinks = listOf(
+//            navDeepLink {
+//                uriPattern =
+//                    "${
+//                        App.getInstance().getString(R.string.root_url_app)
+//                    }/cash/#/e={$ARG_CASH_LINK}"
+//                action = Intent.ACTION_VIEW
+//            },
+//            navDeepLink {
+//                uriPattern =
+//                    "${
+//                        App.getInstance().getString(R.string.root_url_cash)
+//                    }/cash/#/e={$ARG_CASH_LINK}"
+//                action = Intent.ACTION_VIEW
+//            },
+//            navDeepLink {
+//                uriPattern =
+//                    "${App.getInstance().getString(R.string.root_url_app)}/c/#/e={$ARG_CASH_LINK}"
+//                action = Intent.ACTION_VIEW
+//            },
+//            navDeepLink {
+//                uriPattern =
+//                    "${App.getInstance().getString(R.string.root_url_cash)}/c/#/e={$ARG_CASH_LINK}"
+//                action = Intent.ACTION_VIEW
+//            },
+//            navDeepLink {
+//                uriPattern =
+//                    "${App.getInstance().getString(R.string.app_url_cash)}/c/#/e={$ARG_CASH_LINK}"
+//                action = Intent.ACTION_VIEW
+//            },
+//        )
+//    ) { backStackEntry ->
+//        val deepLink = backStackEntry.arguments?.getString(ARG_CASH_LINK).orEmpty()
+//        Timber.d("deeplink " + deepLink)
+//        HomeScan(deepLink)
+//    }
+//    composable(
+//        route = MainSections.LAUNCH.route,
+//        enterTransition = { EnterTransition.None }
+//    ) {
+//        //This composable awaits the authentication state to be complete before
+//        //we navigate to login or main composables.
+//        //We can implement an intermediate state here while the app loads if we want
+//        //For now lets just use an empty view so there is composition content
+//        ConstraintLayout(modifier = Modifier.fillMaxSize()) { }
+//    }
+//}
 
 enum class MainSections(
     val route: String,

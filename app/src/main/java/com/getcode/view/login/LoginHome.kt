@@ -6,7 +6,6 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -23,23 +22,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
+import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.theme.BrandLight
 import com.getcode.util.ChromeTabsUtils
-import com.getcode.view.ARG_IS_NEW_ACCOUNT
-import com.getcode.view.LoginSections
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.R
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.LoginScreen
+import com.getcode.navigation.PhoneVerificationScreen
+import com.getcode.navigation.InviteCodeScreen
 
 
 @Preview
 @Composable
-fun LoginHome(navController: NavController? = null, upPress: () -> Unit = {}) {
-    val viewModel = hiltViewModel<LoginViewModel>()
-
+fun LoginHome(
+    viewModel: LoginViewModel = LoginScreen.getViewModel()
+) {
     val context = LocalContext.current
+    val navigator = LocalCodeNavigator.current
 
     ConstraintLayout(modifier = Modifier.fillMaxSize()) {
         val (bgImage, logo, buttonCreate, buttonLogin, toc) = createRefs()
@@ -81,10 +82,7 @@ fun LoginHome(navController: NavController? = null, upPress: () -> Unit = {}) {
                 }
                 .padding(horizontal = 20.dp),
             onClick = {
-                navController?.navigate(
-                    LoginSections.PHONE_VERIFY.route
-                        .replace("{${ARG_IS_NEW_ACCOUNT}}", true.toString())
-                )
+                navigator.push(PhoneVerificationScreen(isNewAccount = true))
             },
             text = stringResource(R.string.action_createAccount),
             buttonState = ButtonState.Filled,
@@ -96,7 +94,7 @@ fun LoginHome(navController: NavController? = null, upPress: () -> Unit = {}) {
                 }
                 .padding(horizontal = 20.dp),
             onClick = {
-                navController?.navigate(LoginSections.SEED_INPUT.route)
+                navigator.push(InviteCodeScreen())
             },
             text = stringResource(R.string.action_logIn),
             buttonState = ButtonState.Subtle,

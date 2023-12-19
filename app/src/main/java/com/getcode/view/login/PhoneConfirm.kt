@@ -23,6 +23,9 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.topBarHeight
@@ -38,8 +41,8 @@ const val OTP_LENGTH = 6
 @Preview
 @Composable
 fun PhoneConfirm(
-    navController: NavController? = null,
-    arguments: Bundle? = null
+    navigator: CodeNavigator = LocalCodeNavigator.current,
+    arguments: LoginArgs = LoginArgs(),
 ) {
     val viewModel = hiltViewModel<PhoneConfirmViewModel>()
     val dataState by viewModel.uiFlow.collectAsState()
@@ -162,16 +165,14 @@ fun PhoneConfirm(
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        viewModel.reset(navController)
-        val phoneNumber = arguments?.getString(ARG_PHONE_NUMBER).orEmpty()
+        viewModel.reset(navigator)
+        val phoneNumber = arguments.phoneNumber.orEmpty()
 
         viewModel.setPhoneNumber(phoneNumber)
 
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B64)
+        arguments.signInEntropy
             ?.let { viewModel.setSignInEntropy(it) }
-        arguments?.getBoolean(ARG_IS_PHONE_LINKING)
-            ?.let { viewModel.setIsPhoneLinking(it) }
-        arguments?.getBoolean(ARG_IS_NEW_ACCOUNT)
-            ?.let { viewModel.setIsNewAccount(it) }
+        viewModel.setIsPhoneLinking(arguments.isPhoneLinking)
+        viewModel.setIsNewAccount(arguments.isNewAccount)
     }
 }
