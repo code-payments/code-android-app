@@ -1,14 +1,36 @@
 package com.getcode.view
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavController
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.compose.animation.*
 import androidx.navigation.*
 import com.getcode.R
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
-import com.getcode.view.main.account.*
-import com.getcode.view.main.account.AccountPage.*
+import com.getcode.view.main.account.AccountAccessKey
+import com.getcode.view.main.account.AccountDebugOptions
+import com.getcode.view.main.account.AccountDeposit
+import com.getcode.view.main.account.AccountDetails
 import com.getcode.view.main.account.AccountFaq
+import com.getcode.view.main.account.AccountHome
+import com.getcode.view.main.account.AccountPage
+import com.getcode.view.main.account.AccountPage.ACCESS_KEY
+import com.getcode.view.main.account.AccountPage.ACCOUNT_DEBUG_OPTIONS
+import com.getcode.view.main.account.AccountPage.ACCOUNT_DETAILS
+import com.getcode.view.main.account.AccountPage.DELETE_ACCOUNT
+import com.getcode.view.main.account.AccountPage.DEPOSIT
+import com.getcode.view.main.account.AccountPage.FAQ
+import com.getcode.view.main.account.AccountPage.PHONE
+import com.getcode.view.main.account.AccountPage.WITHDRAW
+import com.getcode.view.main.account.AccountPage.BUY_AND_SELL_KIN
+import com.getcode.view.main.account.AccountPhone
+import com.getcode.view.main.account.ConfirmDeleteAccount
+import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
@@ -32,6 +54,7 @@ fun NavGraphBuilder.addSheetGraph(
             DEPOSIT -> navController.navigate(SheetSections.DEPOSIT.route)
             WITHDRAW -> navController.navigate(SheetSections.WITHDRAW_AMOUNT.route)
             ACCESS_KEY -> navController.navigate(SheetSections.ACCESS_KEY.route)
+            DELETE_ACCOUNT -> navController.navigate(SheetSections.DELETE_ACCOUNT.route)
             FAQ -> navController.navigate(SheetSections.FAQ.route)
             ACCOUNT_DETAILS -> navController.navigate(SheetSections.ACCOUNT_DETAILS.route)
             PHONE -> navController.navigate(
@@ -84,6 +107,20 @@ fun NavGraphBuilder.addSheetGraph(
         onBackButtonVisibilityChange(true)
         onTitleChange(SheetSections.ACCESS_KEY.title)
         AccountAccessKey(navController)
+    }
+    composableItem(
+        route = SheetSections.DELETE_ACCOUNT.route
+    ) {
+        onBackButtonVisibilityChange(true)
+        onTitleChange(SheetSections.DELETE_ACCOUNT.title)
+        DeleteCodeAccount(navController)
+    }
+    composableItem(
+        route = SheetSections.CONFIRM_DELETE_ACCOUNT.route
+    ) {
+        onBackButtonVisibilityChange(true)
+        onTitleChange(SheetSections.CONFIRM_DELETE_ACCOUNT.title)
+        ConfirmDeleteAccount(navController)
     }
     composableItem(
         route = SheetSections.FAQ.route,
@@ -256,6 +293,14 @@ enum class SheetSections(
     ACCOUNT_DETAILS(
         title = R.string.title_myAccount,
         route = "sheet/accountDetails"
+    ),
+    DELETE_ACCOUNT(
+        title = R.string.action_deleteAccount,
+        route = "sheet/deleteAccount"
+    ),
+    CONFIRM_DELETE_ACCOUNT(
+        title = R.string.action_deleteAccount,
+        route = "sheet/confirmDeleteAccount"
     ),
     PHONE_VERIFY(
         title = R.string.title_enterPhoneNumber,

@@ -132,6 +132,11 @@ class AuthManager @Inject constructor(
             .ignoreElement()
     }
 
+    fun deleteAndLogout(activity: Activity, onComplete: () -> Unit = {}) {
+        //todo: add account deletion
+        logout(activity, onComplete)
+    }
+
     fun logout(activity: Activity, onComplete: () -> Unit = {}) {
         AccountUtils.removeAccounts(activity)
             .doOnSuccess { res: Boolean ->

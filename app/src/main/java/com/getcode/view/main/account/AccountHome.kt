@@ -1,13 +1,37 @@
 package com.getcode.view.main.account
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -20,8 +44,9 @@ import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.theme.BrandLight
+import com.getcode.theme.White10
 import com.getcode.util.getActivity
-import com.getcode.theme.*
 
 @Composable
 fun AccountHome(
@@ -137,7 +162,8 @@ fun ListItem(item: AccountMainItem) {
             .clickable { item.onClick() }
             .padding(vertical = 25.dp, horizontal = 25.dp)
             .fillMaxWidth()
-            .wrapContentHeight()
+            .wrapContentHeight(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             modifier = Modifier
@@ -161,15 +187,23 @@ fun ListItem(item: AccountMainItem) {
                 verticalAlignment = CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
+                if (isPhoneLinked) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        tint = Color.Green,
+                        contentDescription = "Linked",
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
                 Text(
                     modifier = Modifier
-                        .padding(start = 7.dp, top = 5.dp),
+                        .padding(start = 5.dp),
                     text = if (isPhoneLinked) stringResource(id = R.string.title_linked)
                     else stringResource(id = R.string.title_notLinked),
                     color = BrandLight,
                     style = MaterialTheme.typography.caption.copy(
                         fontSize = 12.sp
-                    )
+                    ),
                 )
             }
         }

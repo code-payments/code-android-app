@@ -22,7 +22,7 @@ object Versions {
     const val androidx_room = "2.4.2"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "1.4.3"
+    const val compose = "1.5.4"
     const val compose_activities: String = "1.4.0"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
