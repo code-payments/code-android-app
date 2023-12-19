@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
@@ -15,12 +14,17 @@ import androidx.navigation.navigation
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.getcode.navigation.AccountModal
 import com.getcode.navigation.BottomSheetNavigator
 import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.HomeScreen
 import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.navigation.LoginScreen
+import com.getcode.navigation.ModalRoot
+import com.getcode.navigation.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.LocalCodeColors
 import com.getcode.view.SheetSections
 import com.getcode.view.addSheetGraph
 import com.getcode.view.components.AuthCheck
@@ -41,18 +45,17 @@ fun CodeApp() {
                 scaffoldState = appState.scaffoldState
             ) { innerPaddingModifier ->
                 Navigator(
-                    screen = LoginScreen,
+                    screen = HomeScreen(),
                 ) { navigator ->
-                    val codeNavigator = LocalCodeNavigator.current
-                    LaunchedEffect(navigator.lastItem) {
-                        // update global navigator for platform access to support push/pop from a single
-                        // navigator current
-                        codeNavigator.screensNavigator = navigator
-                    }
+//                    val codeNavigator = LocalCodeNavigator.current
+//                    LaunchedEffect(navigator.lastItem) {
+//                        // update global navigator for platform access to support push/pop from a single
+//                        // navigator current
+//                        codeNavigator.screensNavigator = navigator
+//                    }
 
                     val onNavigateToLogin = {
-                        appState.navigator.popAll()
-                        appState.navigator.push(LoginScreen)
+                        appState.navigator.replaceAll(LoginScreen)
                     }
                     val onNavigateToHomeScan = {
 //                            appState.navigator.push(MainSections.HOME.route)
@@ -91,10 +94,16 @@ fun CodeApp() {
 private fun AppNavHost(content: @Composable () -> Unit) {
     BottomSheetNavigator(
         modifier = Modifier.fillMaxSize(),
+        sheetBackgroundColor = LocalCodeColors.current.background,
+        sheetContentColor = LocalCodeColors.current.onBackground,
         sheetContent = {
             val navigator = remember(it) { CodeNavigator(it) }
             CompositionLocalProvider(LocalCodeNavigator provides navigator) {
-                CurrentScreen()
+                if (it.isVisible) {
+                    SheetSlideTransition(navigator = navigator.sheetNavigator)
+                } else {
+                    CurrentScreen()
+                }
             }
         }
     ) {

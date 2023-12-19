@@ -66,8 +66,7 @@ class AccessKeyViewModel @Inject constructor(
                     onSubmitError(it)
                     analyticsManager.createAccount(false, null)
                     uiFlow.value = uiFlow.value.copy(isLoading = false)
-                    navigator.popAll()
-                    navigator.push(LoginScreen)
+                    navigator.replaceAll(LoginScreen)
                 }
             )
     }

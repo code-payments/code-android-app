@@ -24,3 +24,5 @@ sealed interface NamedScreen {
         @Composable get() = name.isNotEmpty()
 }
 
+sealed interface ModalRoot
+

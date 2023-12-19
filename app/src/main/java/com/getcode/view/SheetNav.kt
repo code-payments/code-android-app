@@ -66,13 +66,13 @@ fun NavGraphBuilder.addSheetGraph(
     }
 
     composableItem(SheetSections.NONE.route) {}
-    composableItem(
-        route = SheetSections.HOME.route
-    ) {
-        onBackButtonVisibilityChange(false)
-        onTitleChange(null)
-        AccountHome(onAccountHomeNav)
-    }
+//    composableItem(
+//        route = SheetSections.HOME.route
+//    ) {
+//        onBackButtonVisibilityChange(false)
+//        onTitleChange(null)
+//        AccountHome(onAccountHomeNav)
+//    }
     composableItem(
         route = SheetSections.DEPOSIT.route,
     ) {
@@ -122,13 +122,13 @@ fun NavGraphBuilder.addSheetGraph(
         onTitleChange(SheetSections.CONFIRM_DELETE_ACCOUNT.title)
         ConfirmDeleteAccount(navController)
     }
-    composableItem(
-        route = SheetSections.FAQ.route,
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.FAQ.title)
-        AccountFaq()
-    }
+//    composableItem(
+//        route = SheetSections.FAQ.route,
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.FAQ.title)
+//        AccountFaq()
+//    }
 
     composableItem(
         route = SheetSections.PHONE.route,

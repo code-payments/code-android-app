@@ -58,7 +58,7 @@ class CodeAppState(
     val navigator: CodeNavigator,
     val sheetNavController: NavHostController,
     private val resources: Resources,
-    private val coroutineScope: CoroutineScope
+    coroutineScope: CoroutineScope
 ) {
     init {
         coroutineScope.launch {
@@ -95,10 +95,8 @@ class CodeAppState(
 
 
     fun upPress() {
-        coroutineScope.launch {
-            if (!navigator.hide()) {
-                navigator.pop()
-            }
+        if (navigator.pop().not()) {
+            navigator.hide()
         }
     }
 }

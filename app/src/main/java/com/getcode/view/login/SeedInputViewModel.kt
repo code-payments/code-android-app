@@ -99,8 +99,7 @@ class SeedInputViewModel @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
-                    navigator.popAll()
-                    navigator.push(HomeScreen())
+                    navigator.replaceAll(HomeScreen())
                 }, {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(

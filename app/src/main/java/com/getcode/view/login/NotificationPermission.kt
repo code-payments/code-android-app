@@ -24,8 +24,7 @@ import com.getcode.view.components.CodeButton
 fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
-            navigator.popAll()
-            navigator.push(HomeScreen())
+            navigator.replaceAll(HomeScreen())
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.KeyboardArrowLeft
 import androidx.compose.runtime.Composable
@@ -23,7 +24,7 @@ fun SheetTitle(
     title: String? = null,
     backButton: Boolean = false,
     onBackIconClicked: () -> Unit = {},
-    closeButton: Boolean = true,
+    closeButton: Boolean = !backButton,
     onCloseIconClicked: () -> Unit = {},
 ) {
     Surface(
@@ -62,7 +63,7 @@ fun SheetTitle(
                         .align(Alignment.CenterStart)
                 ) {
                     Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowLeft,
+                        imageVector = Icons.Outlined.ArrowBack,
                         contentDescription = "",
                         tint = Color.White,
                         modifier = Modifier

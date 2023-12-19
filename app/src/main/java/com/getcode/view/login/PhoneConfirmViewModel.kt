@@ -326,8 +326,7 @@ class PhoneConfirmViewModel @Inject constructor(
                             navigator?.push(AccessKeyScreen(signInEntropy = seedB64.urlEncode()))
                         }
                         isSeedInput -> {
-                            navigator?.popAll()
-                            navigator?.push(HomeScreen())
+                            navigator?.replace(HomeScreen())
                         }
                     }
                 }, {

@@ -69,6 +69,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
+import com.getcode.navigation.AccountModal
+import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.theme.Black50
 import com.getcode.theme.Brand
 import com.getcode.theme.Gray50
@@ -124,6 +126,7 @@ fun HomeScan(
 ) {
     val dataState by viewModel.uiFlow.collectAsState()
 
+    val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
     val billVisibleState = remember { MutableTransitionState(false) }
     val receiveDialogVisibleState = remember { MutableTransitionState(false) }
@@ -224,17 +227,6 @@ fun HomeScan(
     )
 
     //////////////////////////////////////////////////////////////////////
-    var isAccountSheetOpen by rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    val accountSheetState = rememberModalBottomSheetState(
-        initialValue = ModalBottomSheetValue.Hidden,
-        skipHalfExpanded = true,
-        animationSpec = animationSpec
-    )
-
-    //////////////////////////////////////////////////////////////////////
     var isGetKinSheetOpen by rememberSaveable {
         mutableStateOf(false)
     }
@@ -277,15 +269,15 @@ fun HomeScan(
         }
     }
 
-    LaunchedEffect(accountSheetState) {
-        snapshotFlow {
-            accountSheetState.isVisible
-        }.distinctUntilChanged().collect { isVisible ->
-            if (isVisible.not()) {
-                isAccountSheetOpen = false
-            }
-        }
-    }
+//    LaunchedEffect(accountSheetState) {
+//        snapshotFlow {
+//            accountSheetState.isVisible
+//        }.distinctUntilChanged().collect { isVisible ->
+//            if (isVisible.not()) {
+//                isAccountSheetOpen = false
+//            }
+//        }
+//    }
 
     LaunchedEffect(balanceSheetState) {
         snapshotFlow {
@@ -306,7 +298,7 @@ fun HomeScan(
                 }
                 HomeBottomSheet.NONE -> {}
                 HomeBottomSheet.ACCOUNT -> {
-                    accountSheetState.hide()
+//                    accountSheetState.hide()
                 }
                 HomeBottomSheet.GET_KIN -> {
                     getKinSheetState.hide()
@@ -340,8 +332,9 @@ fun HomeScan(
                 }
                 HomeBottomSheet.NONE -> {}
                 HomeBottomSheet.ACCOUNT -> {
-                    isAccountSheetOpen = true
-                    accountSheetState.show()
+                    navigator.show(AccountModal)
+//                    isAccountSheetOpen = true
+//                    accountSheetState.show()
                 }
                 HomeBottomSheet.GET_KIN -> {
                     isGetKinSheetOpen = true
@@ -372,14 +365,6 @@ fun HomeScan(
         kikCodeScannerView?.stopPreview()
         Timber.i("Stop")
         viewModel.stopScan()
-    }
-
-    BackHandler {
-        if (dataState.isBottomSheetVisible) {
-            hideBottomSheet()
-        } else {
-            context.finish()
-        }
     }
 
     dataState.restrictionType?.let { restrictionType ->

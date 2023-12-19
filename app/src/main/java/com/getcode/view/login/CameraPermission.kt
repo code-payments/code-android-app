@@ -31,8 +31,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
             isResultHandled = true
 
             if (isGranted) {
-                navigator.popAll()
-                navigator.push(HomeScreen())
+                navigator.replaceAll(HomeScreen())
             } else {
                 navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
             }
