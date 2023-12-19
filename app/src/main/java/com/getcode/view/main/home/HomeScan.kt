@@ -733,15 +733,8 @@ fun HomeScan(
 
     //wrap this with the visibility state so it does not re compose all the time
     //TODO enable composition for balance and give kin after launch
-    ModalSheetLayout(
-        giveKinSheetState
-    ) {
-        Box(modifier = Modifier.padding(vertical = 1.dp)) {}
-        val onClose = { hideBottomSheet() }
-        val onCloseQuickly = { hideBottomSheet() }
-        GiveKinSheet(isGiveKinSheetOpen, onClose, onCloseQuickly)
-
-    }
+    val onClose = { hideBottomSheet() }
+    GiveKinSheet(giveKinSheetState, isGiveKinSheetOpen, onClose)
 
     //Balance sheet modal
     ModalSheetLayout(
