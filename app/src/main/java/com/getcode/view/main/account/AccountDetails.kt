@@ -1,15 +1,20 @@
 package com.getcode.view.main.account
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.util.getActivity
 
 @Composable
 fun AccountDetails(
@@ -54,6 +59,10 @@ fun AccountDetails(
                     icon = R.drawable.ic_menu_phone,
                     isPhoneLinked = dataState.isPhoneLinked,
                 ) { onPage(AccountPage.PHONE) },
+                AccountMainItem(
+                    name = R.string.action_deleteAccount,
+                    icon = R.drawable.ic_delete
+                 ) { onPage(AccountPage.DELETE_ACCOUNT) },
             )
 
             for (action in actions) {

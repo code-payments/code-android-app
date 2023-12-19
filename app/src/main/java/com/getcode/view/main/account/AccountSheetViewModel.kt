@@ -24,6 +24,7 @@ enum class AccountPage {
     DEPOSIT,
     WITHDRAW,
     PHONE,
+    DELETE_ACCOUNT,
     ACCESS_KEY,
     FAQ,
     ACCOUNT_DETAILS,
