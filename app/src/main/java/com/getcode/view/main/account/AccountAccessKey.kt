@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
+import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.TopBarManager
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
@@ -75,6 +78,11 @@ fun AccountAccessKey(navController: NavController) {
             )
         }
     }
+
+    AnalyticsScreenWatcher(
+        lifecycleOwner = LocalLifecycleOwner.current,
+        event = AnalyticsManager.Screen.Backup
+    )
 
     ConstraintLayout(
         modifier = Modifier

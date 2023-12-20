@@ -102,16 +102,19 @@ fun BottomSheetNavigator(
 }
 
 @OptIn(ExperimentalMaterialApi::class)
-public class BottomSheetNavigator @InternalVoyagerApi constructor(
+class BottomSheetNavigator @InternalVoyagerApi constructor(
     private val navigator: Navigator,
     private val sheetState: ModalBottomSheetState,
     private val coroutineScope: CoroutineScope
 ) : Stack<Screen> by navigator {
 
-    public val isVisible: Boolean
+    val isVisible: Boolean
         get() = sheetState.isVisible
 
-    public fun show(screen: Screen) {
+    val progress: Float
+        get() = sheetState.progress
+
+    fun show(screen: Screen) {
         coroutineScope.launch {
             replaceAll(screen)
             sheetState.show()

@@ -10,11 +10,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.SessionManager
 import com.getcode.solana.organizer.AccountType
 import com.getcode.theme.*
@@ -31,6 +34,11 @@ fun AccountDeposit() {
 
     val localClipboardManager = LocalClipboardManager.current
     var isCopied by remember { mutableStateOf(false) }
+
+    AnalyticsScreenWatcher(
+        lifecycleOwner = LocalLifecycleOwner.current,
+        event = AnalyticsManager.Screen.Deposit
+    )
 
     Column(
         modifier = Modifier

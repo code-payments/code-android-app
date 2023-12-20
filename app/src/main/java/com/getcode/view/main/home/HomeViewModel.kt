@@ -122,24 +122,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun onShowBottomSheet(bottomSheet: HomeBottomSheet) {
+    fun onShowBottomSheet() {
         uiFlow.value = uiFlow.value.copy(isBottomSheetVisible = true)
-        onShowBottomSheetAnalytics(bottomSheet)
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {
         uiFlow.update { it.copy(isCameraPermissionGranted = isGranted) }
-    }
-
-    fun onShowBottomSheetAnalytics(bottomSheet: HomeBottomSheet) {
-        when (bottomSheet) {
-            HomeBottomSheet.ACCOUNT -> AnalyticsManager.Screen.Settings
-            HomeBottomSheet.GIVE_KIN -> AnalyticsManager.Screen.GiveKin
-            HomeBottomSheet.GET_KIN -> AnalyticsManager.Screen.GetKin
-            HomeBottomSheet.BALANCE -> AnalyticsManager.Screen.Balance
-            HomeBottomSheet.FAQ -> AnalyticsManager.Screen.Faq
-            HomeBottomSheet.NONE -> null
-        }?.let { analyticsManager.open(it) }
     }
 
     fun showBill(

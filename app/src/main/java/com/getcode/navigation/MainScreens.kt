@@ -3,9 +3,14 @@ package com.getcode.navigation
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -41,13 +46,23 @@ data object AccountModal: MainGraph, ModalRoot {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val viewModel = getViewModel<AccountSheetViewModel>()
+
+        val showClose by remember(navigator.progress, navigator.lastItem) {
+            derivedStateOf {
+                // show if navigating open
+                if (navigator.progress > 0f && !navigator.isVisible) return@derivedStateOf true
+                // otherwise only show if actively on screen
+                navigator.lastItem is ModalRoot
+            }
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(sheetHeight)
         ) {
             SheetTitle(
-                closeButton = navigator.lastItem is AccountModal,
+                modifier = Modifier.padding(horizontal = 20.dp),
+                closeButton = showClose,
                 onCloseIconClicked = { navigator.hide() })
             AccountHome(viewModel = viewModel)
         }
@@ -69,6 +84,7 @@ data object FaqScreen: MainGraph, NamedScreen {
                 .fillMaxHeight(sheetHeight)
         ) {
             SheetTitle(
+                modifier = Modifier.padding(horizontal = 20.dp),
                 title = name,
                 // hide while transitioning to/from other destinations
                 backButton = navigator.lastItem is FaqScreen,

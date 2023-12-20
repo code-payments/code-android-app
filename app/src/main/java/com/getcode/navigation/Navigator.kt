@@ -15,6 +15,7 @@ val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
 class NavigatorNull : CodeNavigator {
     override val lastItem: Screen? = null
     override val isVisible: Boolean = false
+    override val progress: Float = 0f
 
     override var screensNavigator: Navigator? = null
 
@@ -43,6 +44,7 @@ class NavigatorNull : CodeNavigator {
 interface CodeNavigator {
     val lastItem: Screen?
     val isVisible: Boolean
+    val progress: Float
     var screensNavigator: Navigator?
     fun show(screen: Screen)
     fun hide()
@@ -68,11 +70,15 @@ class CombinedNavigator(
 ) : CodeNavigator {
     override var screensNavigator: Navigator? = null
 
+
     override val lastItem: Screen?
         get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
 
     override val isVisible: Boolean
         get() = sheetNavigator.isVisible
+
+    override val progress: Float
+        get() = sheetNavigator.progress
 
 
     override fun show(screen: Screen) {

@@ -71,6 +71,7 @@ import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.navigation.AccountModal
 import com.getcode.navigation.LocalCodeNavigator
+
 import com.getcode.theme.Black50
 import com.getcode.theme.Brand
 import com.getcode.theme.Gray50
@@ -85,7 +86,6 @@ import com.getcode.view.components.getPermissionLauncher
 import com.getcode.view.main.giveKin.AmountArea
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -237,18 +237,6 @@ fun HomeScan(
         animationSpec = animationSpec
     )
 
-    //delay complex compose operations for faster launch time
-    LaunchedEffect(Unit) {
-        delay(400)
-        if (!balanceSheetState.isVisible) {
-            isBalanceSheetOpen = true
-        }
-        delay(100)
-        if (!giveKinSheetState.isVisible) {
-            isGiveKinSheetOpen = true
-        }
-    }
-
     LaunchedEffect(giveKinSheetState) {
         snapshotFlow {
             giveKinSheetState.isVisible
@@ -296,17 +284,21 @@ fun HomeScan(
                     giveKinSheetState.hide()
                     isGiveKinSheetOpen = false
                 }
+
                 HomeBottomSheet.NONE -> {}
                 HomeBottomSheet.ACCOUNT -> {
 //                    accountSheetState.hide()
                 }
+
                 HomeBottomSheet.GET_KIN -> {
                     getKinSheetState.hide()
                 }
+
                 HomeBottomSheet.BALANCE -> {
                     balanceSheetState.hide()
                     isBalanceSheetOpen = false
                 }
+
                 HomeBottomSheet.FAQ -> {
                     isFaqSheetCollapsing = true
                     faqSheetState.hide()
@@ -330,27 +322,32 @@ fun HomeScan(
                     isGiveKinSheetOpen = true
                     giveKinSheetState.show()
                 }
+
                 HomeBottomSheet.NONE -> {}
                 HomeBottomSheet.ACCOUNT -> {
                     navigator.show(AccountModal)
 //                    isAccountSheetOpen = true
 //                    accountSheetState.show()
                 }
+
                 HomeBottomSheet.GET_KIN -> {
                     isGetKinSheetOpen = true
                     getKinSheetState.show()
                 }
+
                 HomeBottomSheet.BALANCE -> {
                     isBalanceSheetOpen = true
                     balanceSheetState.show()
                 }
+
                 HomeBottomSheet.FAQ -> {
                     isFaqSheetOpen = true
                     faqSheetState.show()
                 }
             }
         }
-        viewModel.onShowBottomSheet(bottomSheet)
+        viewModel.onShowBottomSheet()
+
     }
 
 
@@ -379,7 +376,7 @@ fun HomeScan(
     val constraintLayoutBgColor =
         if (dataState.isCameraScanEnabled && dataState.isCameraPermissionGranted == true) Color.Black
         else Brand
-    
+
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
@@ -617,9 +614,9 @@ fun HomeScan(
             enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
                     fadeIn(animationSpec = tween(500, 100)),
             exit = if (!isPaused)
-                        slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
+                slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
                         fadeOut(animationSpec = tween(500, 100))
-                    else fadeOut(animationSpec = tween(0)),
+            else fadeOut(animationSpec = tween(0)),
         ) {
             Row(
                 modifier = Modifier
@@ -692,18 +689,22 @@ fun HomeScan(
                 isPaused = false
                 startScanPreview()
             }
+
             Lifecycle.Event.ON_STOP -> {
                 stopScanPreview()
             }
+
             Lifecycle.Event.ON_PAUSE -> {
                 isPaused = true
                 viewModel.startSheetDismissTimer { hideBottomSheet() }
                 balanceChangeToastVisibleState.targetState = false
             }
+
             Lifecycle.Event.ON_RESUME -> {
                 isPaused = false
                 viewModel.stopSheetDismissTimer()
             }
+
             else -> Unit
         }
     }

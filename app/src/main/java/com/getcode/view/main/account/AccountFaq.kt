@@ -1,6 +1,7 @@
 package com.getcode.view.main.account
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
@@ -9,18 +10,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
-import com.getcode.navigation.AccountModal
-import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.manager.AnalyticsManager
 import com.getcode.theme.White
-import com.getcode.theme.sheetHeight
 import com.getcode.view.components.MarkdownText
-import com.getcode.view.components.SheetTitle
 
 @Preview
 @Composable
@@ -29,7 +29,12 @@ fun AccountFaq(
 ) {
     val dataState by viewModel.stateFlow.collectAsState()
 
-    LazyColumn {
+    AnalyticsScreenWatcher(
+        lifecycleOwner = LocalLifecycleOwner.current,
+        event = AnalyticsManager.Screen.Faq
+    )
+
+    LazyColumn(contentPadding = PaddingValues(horizontal = 20.dp)) {
         items(dataState.faqItems) { faqResponse ->
             Text(
                 modifier = Modifier
