@@ -22,13 +22,18 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.WithdrawalArgs
 import com.getcode.theme.*
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
-    val viewModel = hiltViewModel<AccountWithdrawAddressViewModel>()
+fun AccountWithdrawAddress(
+    viewModel: AccountWithdrawAddressViewModel,
+    arguments: WithdrawalArgs,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     ConstraintLayout(
@@ -134,8 +139,7 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                arguments ?: return@CodeButton
-                viewModel.onSubmit(navController, arguments)
+                viewModel.onSubmit(navigator, arguments)
             },
             enabled = dataState.isNextEnabled,
             text = stringResource(R.string.action_next),

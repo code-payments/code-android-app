@@ -1,9 +1,10 @@
 package com.getcode.view.main.account.withdraw
 
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.WithdrawalAddressScreen
 import com.getcode.network.client.Client
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.CurrencyRepository
@@ -43,7 +44,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
         }
     }
 
-    fun onSubmit(navController: NavController) {
+    fun onSubmit(navigator: CodeNavigator) {
         val uiModel = uiFlow.value
         if (uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin) {
             TopBarManager.showMessage(
@@ -59,14 +60,15 @@ class AccountWithdrawAmountViewModel @Inject constructor(
         val currencyCode = uiModel.currencyModel.selectedCurrencyCode ?: return
         val currencyResId = uiModel.currencyModel.selectedCurrencyResId ?: return
 
-        navController.navigate(
-            SheetSections.WITHDRAW_ADDRESS.route
-                .replace("{$ARG_WITHDRAW_AMOUNT_FIAT}", uiModel.amountModel.amountDouble.toString())
-                .replace("{$ARG_WITHDRAW_AMOUNT_KIN}", uiModel.amountModel.amountKin.quarks.toString())
-                .replace("{$ARG_WITHDRAW_AMOUNT_TEXT}", uiModel.amountModel.amountText)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_CODE}", currencyCode)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_RES_ID}", currencyResId.toString())
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_RATE}", uiModel.currencyModel.currenciesMap[currencyCode]?.rate?.toString().orEmpty())
+        navigator.push(
+            WithdrawalAddressScreen(
+                uiModel.amountModel.amountDouble,
+                uiModel.amountModel.amountKin.quarks,
+                uiModel.amountModel.amountText,
+                currencyCode,
+                currencyResId,
+                uiModel.currencyModel.currenciesMap[currencyCode]?.rate
+            )
         )
     }
 

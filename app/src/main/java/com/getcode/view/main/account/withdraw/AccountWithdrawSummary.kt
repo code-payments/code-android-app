@@ -19,6 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.WithdrawalArgs
 import com.getcode.theme.Brand01
 import com.getcode.theme.BrandLight
 import com.getcode.view.components.ButtonState
@@ -26,8 +28,11 @@ import com.getcode.view.components.CodeButton
 import com.getcode.view.main.giveKin.AmountArea
 
 @Composable
-fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onClose: () -> Unit) {
-    val viewModel = hiltViewModel<AccountWithdrawSummaryViewModel>()
+fun AccountWithdrawSummary(
+    viewModel: AccountWithdrawSummaryViewModel,
+    arguments: WithdrawalArgs,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     ConstraintLayout(
@@ -91,8 +96,7 @@ fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onC
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                arguments ?: return@CodeButton
-                viewModel.onSubmit(navController, arguments)
+                viewModel.onSubmit(navigator, arguments)
             },
             enabled = true,
             text = App.getInstance().getString(R.string.action_withdrawKin),
@@ -101,12 +105,12 @@ fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onC
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        viewModel.setArguments(navController, arguments)
+        viewModel.setArguments(navigator, arguments)
     }
 
     LaunchedEffect(dataState.isSuccess) {
         if (dataState.isSuccess == true) {
-            onClose()
+            navigator.hide()
         }
     }
 }

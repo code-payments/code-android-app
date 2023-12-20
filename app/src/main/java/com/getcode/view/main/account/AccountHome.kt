@@ -25,9 +25,12 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -51,15 +54,21 @@ import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.AccountModal
 import com.getcode.navigation.BuySellScreen
+import com.getcode.navigation.DepositKinScreen
 import com.getcode.navigation.FaqScreen
 import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.ModalRoot
+import com.getcode.navigation.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White10
 import com.getcode.util.getActivity
+import com.getcode.view.components.SheetTitle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountHome(
-    viewModel: AccountSheetViewModel = hiltViewModel(),
+    viewModel: AccountSheetViewModel,
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
@@ -70,83 +79,109 @@ fun AccountHome(
         event = AnalyticsManager.Screen.Settings
     )
 
+    val composeScope = rememberCoroutineScope()
     fun handleItemClicked(item: AccountPage) {
-        when (item) {
-            AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
-            AccountPage.DEPOSIT -> Unit
-            AccountPage.WITHDRAW -> Unit
-            AccountPage.FAQ -> navigator.push(FaqScreen)
-            AccountPage.ACCOUNT_DETAILS -> Unit
-            AccountPage.ACCOUNT_DEBUG_OPTIONS -> Unit
-            AccountPage.LOGOUT -> {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = App.getInstance().getString(R.string.prompt_title_logout),
-                        subtitle = App.getInstance()
-                            .getString(R.string.prompt_description_logout),
-                        positiveText = App.getInstance().getString(R.string.action_logout),
-                        negativeText = App.getInstance().getString(R.string.action_cancel),
-                        onPositive = {
-                            context.getActivity()?.let {
-                                viewModel.logout(it)
+        composeScope.launch {
+            delay(25)
+            when (item) {
+                AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
+                AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
+                AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
+                AccountPage.FAQ -> navigator.push(FaqScreen)
+                AccountPage.ACCOUNT_DETAILS -> Unit
+                AccountPage.ACCOUNT_DEBUG_OPTIONS -> Unit
+                AccountPage.LOGOUT -> {
+                    BottomBarManager.showMessage(
+                        BottomBarManager.BottomBarMessage(
+                            title = App.getInstance().getString(R.string.prompt_title_logout),
+                            subtitle = App.getInstance()
+                                .getString(R.string.prompt_description_logout),
+                            positiveText = App.getInstance().getString(R.string.action_logout),
+                            negativeText = App.getInstance().getString(R.string.action_cancel),
+                            onPositive = {
+                                context.getActivity()?.let {
+                                    viewModel.logout(it)
+                                }
+                            },
+                            onNegative = {
                             }
-                        },
-                        onNegative = {
-                        }
+                        )
                     )
-                )
+                }
+
+                AccountPage.PHONE -> Unit
+                AccountPage.DELETE_ACCOUNT -> Unit
+                AccountPage.ACCESS_KEY -> Unit
             }
-            AccountPage.PHONE -> Unit
-            AccountPage.DELETE_ACCOUNT -> Unit
-            AccountPage.ACCESS_KEY -> Unit
         }
     }
 
-    LazyColumn(modifier = Modifier.fillMaxHeight()) {
-        item {
-            Image(
-                painterResource(
-                    R.drawable.ic_code_logo_near_white
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp)
-                    .height(50.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) {
-                        viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked)
-                    }
-            )
+    val showClose by remember(navigator.progress, navigator.lastItem) {
+        derivedStateOf {
+            // show if navigating open
+            if (navigator.progress > 0f && !navigator.isVisible) return@derivedStateOf true
+            // otherwise only show if actively on screen
+            navigator.lastItem is ModalRoot
         }
-        items(dataState.items) { item ->
-            ListItem(item = item) {
-                handleItemClicked(item.type)
-            }
-        }
+    }
 
-        item {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    modifier = Modifier
-                        .padding(top = 35.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.Center),
-                    text = "v${BuildConfig.VERSION_NAME}",
-                    color = BrandLight,
-                    style = MaterialTheme.typography.body2.copy(
-                        textAlign = TextAlign.Center
+    Column {
+        SheetTitle(
+            modifier = Modifier.padding(horizontal = 20.dp),
+            closeButton = showClose,
+            onCloseIconClicked = { navigator.hide() }
+        )
+
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            item {
+                Image(
+                    painterResource(
+                        R.drawable.ic_code_logo_near_white
                     ),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 20.dp)
+                        .height(50.dp)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked)
+                        }
                 )
             }
+            items(dataState.items, key = { it.type }, contentType = { it }) { item ->
+                ListItem(item = item) {
+                    handleItemClicked(item.type)
+                }
+            }
+
+            item {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        modifier = Modifier
+                            .padding(top = 35.dp)
+                            .fillMaxWidth()
+                            .align(Alignment.Center),
+                        text = "v${BuildConfig.VERSION_NAME}",
+                        color = BrandLight,
+                        style = MaterialTheme.typography.body2.copy(
+                            textAlign = TextAlign.Center
+                        ),
+                    )
+                }
+            }
         }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.dispatchEvent(AccountSheetViewModel.Event.Load)
     }
 }
 
 @Composable
-fun ListItem(item: AccountMainItem, onClick: () -> Unit,) {
+fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clickable { onClick() }

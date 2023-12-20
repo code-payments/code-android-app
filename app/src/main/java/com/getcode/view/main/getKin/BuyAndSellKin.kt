@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -39,7 +40,7 @@ import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun BuyAndSellKin(
-    viewModel: BuyAndSellKinViewModel = hiltViewModel()
+    viewModel: BuyAndSellKinViewModel = viewModel()
 ) {
     val context = LocalContext.current
 

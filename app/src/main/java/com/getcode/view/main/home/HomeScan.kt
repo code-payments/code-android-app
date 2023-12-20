@@ -308,13 +308,6 @@ fun HomeScan(
         }
     }
 
-    fun hideBottomSheet() {
-        HomeBottomSheet.values().forEach {
-            hideSheet(it)
-        }
-        viewModel.onHideBottomSheet()
-    }
-
     fun showBottomSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {
             when (bottomSheet) {
@@ -326,8 +319,6 @@ fun HomeScan(
                 HomeBottomSheet.NONE -> {}
                 HomeBottomSheet.ACCOUNT -> {
                     navigator.show(AccountModal)
-//                    isAccountSheetOpen = true
-//                    accountSheetState.show()
                 }
 
                 HomeBottomSheet.GET_KIN -> {
@@ -696,7 +687,7 @@ fun HomeScan(
 
             Lifecycle.Event.ON_PAUSE -> {
                 isPaused = true
-                viewModel.startSheetDismissTimer { hideBottomSheet() }
+                viewModel.startSheetDismissTimer { navigator.hide() }
                 balanceChangeToastVisibleState.targetState = false
             }
 
@@ -716,7 +707,7 @@ fun HomeScan(
             }
         }
         if (dataState.isBillVisible) {
-            hideBottomSheet()
+            navigator.hide()
         }
     }
     LaunchedEffect(dataState.isReceiveDialogVisible) {
@@ -750,69 +741,7 @@ fun HomeScan(
         if (!billVisibleState.currentState) {
             billDismissState.reset()
         } else if (!dataState.isBillVisible) {
-            billVisibleState.targetState = dataState.isBillVisible
+            billVisibleState.targetState = false
         }
     }
-
-//    //wrap this with the visibility state so it does not re compose all the time
-//    //TODO enable composition for balance and give kin after launch
-//    ModalSheetLayout(
-//        giveKinSheetState
-//    ) {
-//        Box(modifier = Modifier.padding(vertical = 1.dp)) {}
-//        val onClose = { hideBottomSheet() }
-//        val onCloseQuickly = { hideBottomSheet() }
-//        GiveKinSheet(isGiveKinSheetOpen, onClose, onCloseQuickly)
-//
-//    }
-//
-//    //Balance sheet modal
-//    ModalSheetLayout(
-//        balanceSheetState
-//    ) {
-//        Box(modifier = Modifier.padding(vertical = 1.dp)) {}
-//        val onClose = { hideBottomSheet() }
-//        BalanceSheet(isBalanceSheetOpen, onClose) {
-//            isReturnBackToBalance = true
-//            showBottomSheet(HomeBottomSheet.FAQ)
-//        }
-//    }
-//
-//    //Account sheet modal
-//    ModalSheetLayout(
-//        accountSheetState
-//    ) {
-//        Box(modifier = Modifier.padding(vertical = 1.dp)) {}
-//        val onCloseQuickly = { hideBottomSheet() }
-//        if (isAccountSheetOpen) {
-//            AccountSheet(isAccountSheetOpen, homeViewModel = viewModel, onCloseQuickly)
-//        }
-//    }
-//
-//    //FAQ sheet modal
-//    ModalSheetLayout(
-//        faqSheetState
-//    ) {
-//        Box(modifier = Modifier.padding(vertical = 1.dp)) {}
-//        val onClose = { hideSheet(HomeBottomSheet.FAQ) }
-//        if (isFaqSheetOpen) {
-//            HomeFaqSheet(isFaqSheetOpen) {
-//                if (isReturnBackToBalance) {
-//                    showBottomSheet(HomeBottomSheet.BALANCE)
-//                }
-//                onClose()
-//            }
-//        }
-//    }
-//
-//    //FAQ sheet modal
-//    ModalSheetLayout(
-//        getKinSheetState
-//    ) {
-//        Box(modifier = Modifier.padding(vertical = 1.dp)) {}
-//        val onClose = { hideBottomSheet() }
-//        if (isGetKinSheetOpen) {
-//            GetKinSheet(isGetKinSheetOpen, viewModel, onClose)
-//        }
-//    }
 }

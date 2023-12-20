@@ -10,13 +10,17 @@ import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.annotation.concurrent.Immutable
 import javax.inject.Inject
 
@@ -62,6 +66,7 @@ class AccountSheetViewModel @Inject constructor(
     )
 
     sealed interface Event {
+        data object Load: Event
         data class OnPhoneLinked(val linked: Boolean) : Event
         data class OnDebugChanged(val isDebug: Boolean) : Event
         data object LogoClicked : Event
@@ -75,15 +80,12 @@ class AccountSheetViewModel @Inject constructor(
     }
 
     init {
-        viewModelScope.launch {
-            dispatchEvent(
-                Event.OnItemsChanged(fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS })
-            )
-        }
         prefRepository
             .observeOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
+            .flowOn(Dispatchers.IO)
+            .distinctUntilChanged()
             .onEach {
-                dispatchEvent(Event.OnDebugChanged(it))
+                dispatchEvent(Dispatchers.Main, Event.OnDebugChanged(it))
             }.launchIn(viewModelScope)
 
         phoneRepository
@@ -156,6 +158,7 @@ class AccountSheetViewModel @Inject constructor(
         )
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            Timber.d("event=$event")
             when (event) {
                 is Event.OnPhoneLinked -> { state -> state.copy(isPhoneLinked = event.linked) }
                 Event.LogoClicked -> { state ->
@@ -164,15 +167,24 @@ class AccountSheetViewModel @Inject constructor(
                 }
 
                 is Event.OnDebugChanged -> { state ->
+                    val items = when {
+                        state.items.isEmpty() -> emptyList()
+                        event.isDebug -> fullItemSet
+                        else -> fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS }
+                    }
+
                     state.copy(
                         isDebug = event.isDebug,
-                        items = if (event.isDebug) fullItemSet else fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS },
+                        items = items,
                         logoClickCount = 0
                     )
                 }
 
                 is Event.OnItemsChanged -> { state -> state.copy(items = event.items) }
 
+                is Event.Load -> { state ->
+                    state.copy(items = if (state.isDebug) fullItemSet else fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS })
+                }
                 is Event.Navigate -> { state -> state }
             }
         }

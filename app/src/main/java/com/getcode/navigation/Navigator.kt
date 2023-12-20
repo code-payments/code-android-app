@@ -29,9 +29,9 @@ class NavigatorNull : CodeNavigator {
 
     override fun replace(item: Screen) = Unit
 
-    override fun replaceAll(item: Screen) = Unit
+    override fun replaceAll(item: Screen, inSheet: Boolean) = Unit
 
-    override fun replaceAll(items: List<Screen>) = Unit
+    override fun replaceAll(items: List<Screen>, inSheet: Boolean) = Unit
 
     override fun pop(): Boolean = false
 
@@ -54,9 +54,9 @@ interface CodeNavigator {
 
     infix fun replace(item: Screen)
 
-    infix fun replaceAll(item: Screen)
+    fun replaceAll(item: Screen, inSheet: Boolean = true)
 
-    infix fun replaceAll(items: List<Screen>)
+    fun replaceAll(items: List<Screen>, inSheet: Boolean = true)
 
     fun pop(): Boolean
 
@@ -109,18 +109,24 @@ class CombinedNavigator(
         sheetNavigator.replace(item)
     }
 
-    override fun replaceAll(item: Screen) {
-        if (isVisible) {
+    override fun replaceAll(item: Screen, inSheet: Boolean) {
+        if (isVisible && inSheet) {
             sheetNavigator.replaceAll(item)
         } else {
+            if (isVisible) {
+                hide()
+            }
             screensNavigator?.replaceAll(item)
         }
     }
 
-    override fun replaceAll(items: List<Screen>) {
-        if (isVisible) {
+    override fun replaceAll(items: List<Screen>, inSheet: Boolean) {
+        if (isVisible && inSheet) {
             sheetNavigator.replaceAll(items)
         } else {
+            if (isVisible) {
+                hide()
+            }
             screensNavigator?.replaceAll(items)
         }
     }

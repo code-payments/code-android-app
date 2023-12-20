@@ -15,6 +15,7 @@ import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight
@@ -26,8 +27,10 @@ import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.giveKin.CurrencyList
 
 @Composable
-fun AccountWithdrawAmount(navController: NavController) {
-    val viewModel = hiltViewModel<AccountWithdrawAmountViewModel>()
+fun AccountWithdrawAmount(
+    viewModel: AccountWithdrawAmountViewModel,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     AnalyticsScreenWatcher(
@@ -106,7 +109,7 @@ fun AccountWithdrawAmount(navController: NavController) {
                                 end.linkTo(parent.end)
                             },
                         onClick = {
-                           viewModel.onSubmit(navController)
+                           viewModel.onSubmit(navigator)
                         },
                         enabled = dataState.continueEnabled,
                         text = stringResource(R.string.action_next),
