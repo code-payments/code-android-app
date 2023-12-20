@@ -1,6 +1,7 @@
 package com.getcode.view.main.getKin
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -14,8 +15,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,13 +32,34 @@ import com.getcode.R
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import kotlinx.collections.immutable.toImmutableList
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun BuyAndSellKin() {
+fun BuyAndSellKin(
+    viewModel: BuyAndSellKinViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
-    val viewModel = hiltViewModel<BuyAndSellKinViewModel>()
 
-    val state by remember { viewModel.state }
+    val state by viewModel.stateFlow.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<BuyAndSellKinViewModel.Event.OpenVideo>()
+            .map { it.link }
+            .onEach { openVideo(context, it) }
+            .launchIn(this)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<BuyAndSellKinViewModel.Event.ShareVideo>()
+            .map { it.link }
+            .onEach { shareVideo(context, it) }
+            .launchIn(this)
+    }
 
     ConstraintLayout(
         modifier = Modifier
@@ -75,20 +98,14 @@ fun BuyAndSellKin() {
                     context = context,
                     imageResId = item.imageResId,
                     link = item.link,
-                    onVideoClick = { context, link ->
-                        viewModel.openVideo(
-                            context = context,
-                            link = link,
-                        )
+                    onVideoClick = { _, link ->
+                        viewModel.dispatchEvent(BuyAndSellKinViewModel.Event.OpenVideo(link))
                     },
                 )
 
                 CodeButton(
                     onClick = {
-                        viewModel.openVideo(
-                            context = context,
-                            link = item.link,
-                        )
+                        viewModel.dispatchEvent(BuyAndSellKinViewModel.Event.OpenVideo(item.link))
                     },
                     text = stringResource(id = item.buttonTextResId),
                     buttonState = ButtonState.Filled,
@@ -97,10 +114,7 @@ fun BuyAndSellKin() {
                 CodeButton(
                     modifier = Modifier.padding(bottom = 30.dp),
                     onClick = {
-                        viewModel.shareVideo(
-                            context = context,
-                            link = item.link,
-                        )
+                        viewModel.dispatchEvent(BuyAndSellKinViewModel.Event.ShareVideo(item.link))
                     },
                     text = stringResource(id = R.string.action_shareVideo),
                     buttonState = ButtonState.Subtle,
@@ -143,5 +157,22 @@ private fun VideoThumbnail(
             painter = painterResource(id = R.drawable.youtube),
             contentDescription = "Youtube Logo",
         )
+    }
+}
+
+private fun shareVideo(context: Context, link: Uri) {
+    val sendIntent = Intent().apply {
+        action = Intent.ACTION_SEND
+        putExtra(Intent.EXTRA_TEXT, link.toString())
+        type = "text/plain"
+    }
+    val shareIntent = Intent.createChooser(sendIntent, null)
+    context.startActivity(shareIntent)
+}
+
+private fun openVideo(context: Context, link: Uri) {
+    val intent = Intent(Intent.ACTION_VIEW, link)
+    if (intent.resolveActivity(context.packageManager) != null) {
+        context.startActivity(intent)
     }
 }

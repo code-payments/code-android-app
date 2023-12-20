@@ -47,6 +47,7 @@ import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.AccountModal
+import com.getcode.navigation.BuySellScreen
 import com.getcode.navigation.FaqScreen
 import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.theme.BrandLight
@@ -77,7 +78,7 @@ fun AccountHome(
                     name = R.string.title_buyAndSellKin,
                     icon = R.drawable.ic_currency_dollar_active
                 ) {
-//                    onPageSelected(AccountPage.BUY_AND_SELL_KIN)
+                  navigator.push(BuySellScreen)
                 },
                 AccountMainItem(
                     name = R.string.title_depositKin,

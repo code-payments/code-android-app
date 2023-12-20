@@ -22,6 +22,8 @@ import com.getcode.view.main.account.AccountFaq
 import com.getcode.view.main.account.AccountFaqViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
+import com.getcode.view.main.getKin.BuyAndSellKin
+import com.getcode.view.main.getKin.BuyAndSellKinViewModel
 import com.getcode.view.main.home.HomeScan
 import com.getcode.view.main.home.HomeViewModel
 
@@ -65,6 +67,27 @@ data object AccountModal: MainGraph, ModalRoot {
                 closeButton = showClose,
                 onCloseIconClicked = { navigator.hide() })
             AccountHome(viewModel = viewModel)
+        }
+    }
+}
+
+data object BuySellScreen: MainGraph {
+    @Composable
+    override fun Content() {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(sheetHeight)
+        ) {
+            val navigator = LocalCodeNavigator.current
+
+            SheetTitle(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                // hide while transitioning to/from other destinations
+                backButton = navigator.lastItem is BuySellScreen,
+                closeButton = false,
+                onBackIconClicked = { navigator.pop() })
+            BuyAndSellKin(getViewModel<BuyAndSellKinViewModel>())
         }
     }
 }
