@@ -2,61 +2,145 @@ package com.getcode.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.navigator.Navigator
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
-    staticCompositionLocalOf { error("CodeNavigator not initialized") }
+    staticCompositionLocalOf { NavigatorNull() }
 
-class CodeNavigator(
-    val sheetNavigator: BottomSheetNavigator
-) {
+class NavigatorNull : CodeNavigator {
+    override val lastItem: Screen? = null
+    override val isVisible: Boolean = false
 
+    override var screensNavigator: Navigator? = null
+
+    override fun show(screen: Screen) = Unit
+
+    override fun hide() = Unit
+
+    override fun push(item: Screen) = Unit
+
+    override fun push(items: List<Screen>) = Unit
+
+    override fun replace(item: Screen) = Unit
+
+    override fun replaceAll(item: Screen) = Unit
+
+    override fun replaceAll(items: List<Screen>) = Unit
+
+    override fun pop(): Boolean = false
+
+    override fun popAll() = Unit
+
+    override fun popUntil(predicate: (Screen) -> Boolean): Boolean = false
+
+}
+
+interface CodeNavigator {
     val lastItem: Screen?
-        get() = sheetNavigator.lastItemOrNull
-
     val isVisible: Boolean
+    var screensNavigator: Navigator?
+    fun show(screen: Screen)
+    fun hide()
+    infix fun push(item: Screen)
+
+    infix fun push(items: List<Screen>)
+
+    infix fun replace(item: Screen)
+
+    infix fun replaceAll(item: Screen)
+
+    infix fun replaceAll(items: List<Screen>)
+
+    fun pop(): Boolean
+
+    fun popAll()
+
+    infix fun popUntil(predicate: (Screen) -> Boolean): Boolean
+}
+
+class CombinedNavigator(
+    val sheetNavigator: BottomSheetNavigator
+) : CodeNavigator {
+    override var screensNavigator: Navigator? = null
+
+    override val lastItem: Screen?
+        get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
+
+    override val isVisible: Boolean
         get() = sheetNavigator.isVisible
 
 
-    suspend fun show(screen: Screen) {
+    override fun show(screen: Screen) {
         sheetNavigator.show(screen)
     }
 
-    fun hide() {
+    override fun hide() {
         sheetNavigator.hide()
     }
 
-    fun push(item: Screen) {
-        sheetNavigator.push(item)
+    override fun push(item: Screen) {
+        if (isVisible) {
+            sheetNavigator.push(item)
+        } else {
+            screensNavigator?.push(item)
+        }
     }
 
-    fun push(items: List<Screen>) {
-        sheetNavigator.push(items)
+    override fun push(items: List<Screen>) {
+        if (isVisible) {
+            sheetNavigator.push(items)
+        } else {
+            screensNavigator?.push(items)
+        }
     }
 
-    fun replace(item: Screen) {
+    override fun replace(item: Screen) {
         sheetNavigator.replace(item)
     }
 
-    fun replaceAll(item: Screen) {
-        sheetNavigator.replaceAll(item)
+    override fun replaceAll(item: Screen) {
+        if (isVisible) {
+            sheetNavigator.replaceAll(item)
+        } else {
+            screensNavigator?.replaceAll(item)
+        }
     }
 
-    fun replaceAll(items: List<Screen>) {
-        sheetNavigator.replaceAll(items)
+    override fun replaceAll(items: List<Screen>) {
+        if (isVisible) {
+            sheetNavigator.replaceAll(items)
+        } else {
+            screensNavigator?.replaceAll(items)
+        }
     }
 
-    fun pop(): Boolean {
-        return sheetNavigator.pop()
+    override fun pop(): Boolean {
+        return if (isVisible) {
+            sheetNavigator.pop()
+        } else {
+            screensNavigator?.pop() ?: false
+        }
     }
 
-    fun popAll() {
-        sheetNavigator.popAll()
+    override fun popAll() {
+        if (isVisible) {
+            sheetNavigator.popAll()
+        } else {
+            screensNavigator?.popAll()
+        }
     }
 
-    fun popUntil(predicate: (Screen) -> Boolean): Boolean {
-        return sheetNavigator.popUntil(predicate) ?: false
+    override fun popUntil(predicate: (Screen) -> Boolean): Boolean {
+        return if (isVisible) {
+            sheetNavigator.popUntil(predicate)
+        } else {
+            screensNavigator?.popUntil(predicate) ?: false
+        }
     }
 
     @Composable
@@ -64,6 +148,15 @@ class CodeNavigator(
         key: String,
         content: @Composable () -> Unit
     ) {
-        sheetNavigator.saveableState(key, content = content)
+        if (isVisible) {
+            sheetNavigator.saveableState(key, content = content)
+        } else {
+            val screen by remember(lastItem) {
+                derivedStateOf {
+                    lastItem ?: error("Navigator has no screen")
+                }
+            }
+            screensNavigator?.saveableState(key = key, screen = screen, content)
+        }
     }
 }

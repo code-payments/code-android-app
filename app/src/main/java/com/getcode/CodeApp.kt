@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
@@ -17,9 +18,11 @@ import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.navigation.AccountModal
 import com.getcode.navigation.BottomSheetNavigator
 import com.getcode.navigation.CodeNavigator
+import com.getcode.navigation.CombinedNavigator
 import com.getcode.navigation.HomeScreen
 import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.navigation.LoginScreen
+import com.getcode.navigation.MainRoot
 import com.getcode.navigation.ModalRoot
 import com.getcode.navigation.SheetSlideTransition
 import com.getcode.theme.Brand
@@ -37,28 +40,27 @@ import com.getcode.view.main.home.HomeViewModel
 @Composable
 fun CodeApp() {
     CodeTheme {
+        val appState = rememberCodeAppState()
         AppNavHost {
-            val appState = rememberCodeAppState()
-
             CodeScaffold(
                 backgroundColor = Brand,
                 scaffoldState = appState.scaffoldState
             ) { innerPaddingModifier ->
                 Navigator(
-                    screen = HomeScreen(),
+                    screen = MainRoot,
                 ) { navigator ->
-//                    val codeNavigator = LocalCodeNavigator.current
-//                    LaunchedEffect(navigator.lastItem) {
-//                        // update global navigator for platform access to support push/pop from a single
-//                        // navigator current
-//                        codeNavigator.screensNavigator = navigator
-//                    }
+                    val codeNavigator = LocalCodeNavigator.current
+                    LaunchedEffect(navigator.lastItem) {
+                        // update global navigator for platform access to support push/pop from a single
+                        // navigator current
+                        codeNavigator.screensNavigator = navigator
+                    }
 
                     val onNavigateToLogin = {
-                        appState.navigator.replaceAll(LoginScreen)
+                        codeNavigator.replaceAll(LoginScreen)
                     }
                     val onNavigateToHomeScan = {
-//                            appState.navigator.push(MainSections.HOME.route)
+                        codeNavigator.replaceAll(HomeScreen())
                     }
 
                     val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
@@ -74,9 +76,6 @@ fun CodeApp() {
                         SlideTransition(navigator = navigator)
                     }
 
-                    TopBarContainer(appState)
-                    BottomBarContainer(appState)
-
                     //Listen for authentication changes here
                     AuthCheck(
                         navigator = appState.navigator,
@@ -86,6 +85,9 @@ fun CodeApp() {
                 }
             }
         }
+
+        TopBarContainer(appState)
+        BottomBarContainer(appState)
     }
 }
 
@@ -97,7 +99,7 @@ private fun AppNavHost(content: @Composable () -> Unit) {
         sheetBackgroundColor = LocalCodeColors.current.background,
         sheetContentColor = LocalCodeColors.current.onBackground,
         sheetContent = {
-            val navigator = remember(it) { CodeNavigator(it) }
+            val navigator = remember(it) { CombinedNavigator(it) }
             CompositionLocalProvider(LocalCodeNavigator provides navigator) {
                 if (it.isVisible) {
                     SheetSlideTransition(navigator = navigator.sheetNavigator)
@@ -107,7 +109,7 @@ private fun AppNavHost(content: @Composable () -> Unit) {
             }
         }
     ) {
-        val navigator = remember(it) { CodeNavigator(it) }
+        val navigator = remember(it) { CombinedNavigator(it) }
         CompositionLocalProvider(LocalCodeNavigator provides navigator) {
             content()
         }

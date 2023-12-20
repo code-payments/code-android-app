@@ -24,46 +24,31 @@ import com.getcode.view.components.SheetTitle
 
 @Preview
 @Composable
-fun AccountModal.Faq.AccountFaq(
+fun AccountFaq(
     viewModel: AccountFaqViewModel = hiltViewModel(),
 ) {
-    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 20.dp)
-            .fillMaxWidth()
-            .fillMaxHeight(sheetHeight),
-    ) {
-        Column {
-            SheetTitle(
-                title = name,
-                // hide while transitioning to/from other destinations
-                backButton = navigator.lastItem is AccountModal.Faq,
-                closeButton = false,
-                onBackIconClicked = { navigator.pop() })
-            LazyColumn {
-                items(dataState.faqItems) { faqResponse ->
-                    Text(
-                        modifier = Modifier
-                            .padding(bottom = 10.dp),
-                        text = faqResponse.question,
-                        color = White,
-                        style = MaterialTheme.typography.h6.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                    MarkdownText(
-                        modifier = Modifier
-                            .padding(bottom = 55.dp),
-                        markdown = faqResponse.answer,
-                        fontResource = R.font.avenir_next_demi,
-                        style = MaterialTheme.typography.body1.copy(
-                            lineHeight = 20.sp,
-                        ),
-                    )
-                }
-            }
+
+    LazyColumn {
+        items(dataState.faqItems) { faqResponse ->
+            Text(
+                modifier = Modifier
+                    .padding(bottom = 10.dp),
+                text = faqResponse.question,
+                color = White,
+                style = MaterialTheme.typography.h6.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+            MarkdownText(
+                modifier = Modifier
+                    .padding(bottom = 55.dp),
+                markdown = faqResponse.answer,
+                fontResource = R.font.avenir_next_demi,
+                style = MaterialTheme.typography.body1.copy(
+                    lineHeight = 20.sp,
+                ),
+            )
         }
     }
 }

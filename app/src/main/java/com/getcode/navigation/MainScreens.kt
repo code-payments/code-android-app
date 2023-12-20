@@ -52,14 +52,28 @@ data object AccountModal: MainGraph, ModalRoot {
             AccountHome(viewModel = viewModel)
         }
     }
+}
 
-    data object Faq: MainGraph, NamedScreen {
+data object FaqScreen: MainGraph, NamedScreen {
 
-        override val name: String
-            @Composable get() = stringResource(id = R.string.title_faq)
-        @Composable
-        override fun Content() {
-            val viewModel = getViewModel<AccountFaqViewModel>()
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_faq)
+    @Composable
+    override fun Content() {
+        val viewModel = getViewModel<AccountFaqViewModel>()
+        val navigator = LocalCodeNavigator.current
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(sheetHeight)
+        ) {
+            SheetTitle(
+                title = name,
+                // hide while transitioning to/from other destinations
+                backButton = navigator.lastItem is FaqScreen,
+                closeButton = false,
+                onBackIconClicked = { navigator.pop() })
             AccountFaq(viewModel)
         }
     }

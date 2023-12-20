@@ -35,9 +35,9 @@ import cafe.adriel.voyager.navigator.compositionUniqueId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-public typealias BottomSheetNavigatorContent = @Composable (bottomSheetNavigator: BottomSheetNavigator) -> Unit
+typealias BottomSheetNavigatorContent = @Composable (bottomSheetNavigator: BottomSheetNavigator) -> Unit
 
-public val LocalBottomSheetNavigator: ProvidableCompositionLocal<BottomSheetNavigator> =
+val LocalBottomSheetNavigator: ProvidableCompositionLocal<BottomSheetNavigator> =
     staticCompositionLocalOf { error("BottomSheetNavigator not initialized") }
 
 @OptIn(InternalVoyagerApi::class)

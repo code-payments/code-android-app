@@ -26,3 +26,13 @@ sealed interface NamedScreen {
 
 sealed interface ModalRoot
 
+data object MainRoot : Screen {
+    private fun readResolve(): Any = this
+
+    @Composable
+    override fun Content() {
+
+    }
+
+}
+

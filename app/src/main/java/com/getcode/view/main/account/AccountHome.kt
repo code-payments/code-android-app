@@ -44,6 +44,7 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.AccountModal
+import com.getcode.navigation.FaqScreen
 import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White10
@@ -90,7 +91,7 @@ fun AccountHome(
                 AccountMainItem(
                     name = R.string.title_faq,
                     icon = R.drawable.ic_faq,
-                ) { navigator.push(AccountModal.Faq) },
+                ) { navigator.push(FaqScreen) },
                 AccountMainItem(
                     name = R.string.action_logout,
                     icon = R.drawable.ic_menu_logout
