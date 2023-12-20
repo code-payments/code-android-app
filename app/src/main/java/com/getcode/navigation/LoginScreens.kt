@@ -1,12 +1,15 @@
 package com.getcode.navigation
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
+import com.getcode.theme.topBarHeight
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
 import com.getcode.view.login.CameraPermission
@@ -79,7 +82,10 @@ data class PhoneConfirmationScreen(
 
     @Composable
     override fun Content() {
-        PhoneConfirm(arguments = arguments)
+        PhoneConfirm(
+            getViewModel(),
+            arguments = arguments,
+        )
     }
 }
 
@@ -106,7 +112,7 @@ data class InviteCodeScreen(
 
 data class AccessKeyScreen(
     val arguments: LoginArgs = LoginArgs()
-): LoginGraph, NamedScreen {
+) : LoginGraph, NamedScreen {
 
     constructor(
         signInEntropy: String? = null,
@@ -126,17 +132,18 @@ data class AccessKeyScreen(
 }
 
 sealed interface CodeLoginPermission {
-    data object Camera: CodeLoginPermission
-    data object Notifications: CodeLoginPermission
+    data object Camera : CodeLoginPermission
+    data object Notifications : CodeLoginPermission
 }
 
-data class PermissionRequestScreen(val permission: CodeLoginPermission): LoginGraph {
+data class PermissionRequestScreen(val permission: CodeLoginPermission) : LoginGraph {
     @Composable
     override fun Content() {
         when (permission) {
             CodeLoginPermission.Camera -> {
                 CameraPermission()
             }
+
             CodeLoginPermission.Notifications -> {
                 NotificationPermission()
             }

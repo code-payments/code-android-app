@@ -6,22 +6,22 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.AccountAccessKeyScreen
+import com.getcode.navigation.DeleteCodeScreen
+import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.PhoneNumberScreen
 
 @Composable
 fun AccountDetails(
-    onPageSelected: (AccountPage) -> Unit,
-    viewModel: AccountSheetViewModel = hiltViewModel(),
+    viewModel: AccountSheetViewModel,
 ) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
 
     fun handleItemClick(item: AccountPage) {
@@ -36,14 +36,14 @@ fun AccountDetails(
                         positiveText = App.getInstance()
                             .getString(R.string.action_viewAccessKey),
                         negativeText = App.getInstance().getString(R.string.action_cancel),
-                        onPositive = { onPageSelected(AccountPage.ACCESS_KEY) },
+                        onPositive = { navigator.push(AccountAccessKeyScreen) },
                         onNegative = {}
                     )
                 )
             }
 
-            AccountPage.PHONE,
-            AccountPage.DELETE_ACCOUNT -> onPageSelected(item)
+            AccountPage.PHONE -> navigator.push(PhoneNumberScreen)
+            AccountPage.DELETE_ACCOUNT -> navigator.push(DeleteCodeScreen)
 
             else -> Unit
         }

@@ -1,12 +1,22 @@
 package com.getcode.view.login
 
-import android.os.Bundle
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -21,16 +31,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.navigation.CodeNavigator
 import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.navigation.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.topBarHeight
 import com.getcode.util.PhoneUtils
-import com.getcode.view.*
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OtpRow
@@ -41,10 +48,11 @@ const val OTP_LENGTH = 6
 @Preview
 @Composable
 fun PhoneConfirm(
-    navigator: CodeNavigator = LocalCodeNavigator.current,
+    viewModel: PhoneConfirmViewModel = hiltViewModel(),
     arguments: LoginArgs = LoginArgs(),
 ) {
-    val viewModel = hiltViewModel<PhoneConfirmViewModel>()
+    val navigator = LocalCodeNavigator.current
+
     val dataState by viewModel.uiFlow.collectAsState()
     val inputService = LocalTextInputService.current
     val keyboardController = LocalSoftwareKeyboardController.current

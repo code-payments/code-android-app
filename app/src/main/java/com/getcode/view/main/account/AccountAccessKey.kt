@@ -19,20 +19,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
 import com.getcode.view.components.*
 
 @Composable
-fun AccountAccessKey(navController: NavController) {
-    val viewModel = hiltViewModel<AccountAccessKeyViewModel>()
+fun AccountAccessKey(
+    viewModel: AccountAccessKeyViewModel,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     val context = LocalContext.current
@@ -59,7 +60,7 @@ fun AccountAccessKey(navController: NavController) {
     val launcher = getPermissionLauncher(onPermissionResult)
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navController)
+        viewModel.onSubmit(navigator)
         isExportSeedRequested = false
     }
 

@@ -1,7 +1,9 @@
 package com.getcode.view.main.account
 
+import android.annotation.SuppressLint
 import androidx.navigation.NavController
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.CodeNavigator
 import com.getcode.network.repository.ApiDeniedException
 import com.getcode.view.login.BaseAccessKeyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AccountAccessKeyViewModel @Inject constructor() : BaseAccessKeyViewModel() {
-    fun onSubmit(navController: NavController?) {
+    @SuppressLint("CheckResult")
+    fun onSubmit(navigator: CodeNavigator) {
         Completable.create {
             val result = saveBitmapToFile()
             if (result) it.onComplete() else it.onError(IllegalStateException())

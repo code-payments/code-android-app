@@ -52,6 +52,8 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.AccountDebugOptionsScreen
+import com.getcode.navigation.AccountDetailsScreen
 import com.getcode.navigation.AccountModal
 import com.getcode.navigation.BuySellScreen
 import com.getcode.navigation.DepositKinScreen
@@ -88,8 +90,8 @@ fun AccountHome(
                 AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
                 AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
                 AccountPage.FAQ -> navigator.push(FaqScreen)
-                AccountPage.ACCOUNT_DETAILS -> Unit
-                AccountPage.ACCOUNT_DEBUG_OPTIONS -> Unit
+                AccountPage.ACCOUNT_DETAILS -> navigator.push(AccountDetailsScreen)
+                AccountPage.ACCOUNT_DEBUG_OPTIONS -> navigator.push(AccountDebugOptionsScreen)
                 AccountPage.LOGOUT -> {
                     BottomBarManager.showMessage(
                         BottomBarManager.BottomBarMessage(
@@ -116,22 +118,7 @@ fun AccountHome(
         }
     }
 
-    val showClose by remember(navigator.progress, navigator.lastItem) {
-        derivedStateOf {
-            // show if navigating open
-            if (navigator.progress > 0f && !navigator.isVisible) return@derivedStateOf true
-            // otherwise only show if actively on screen
-            navigator.lastItem is ModalRoot
-        }
-    }
-
     Column {
-        SheetTitle(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            closeButton = showClose,
-            onCloseIconClicked = { navigator.hide() }
-        )
-
         LazyColumn(modifier = Modifier.weight(1f)) {
             item {
                 Image(

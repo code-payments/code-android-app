@@ -102,27 +102,27 @@ fun NavGraphBuilder.addSheetGraph(
 //        onTitleChange(SheetSections.WITHDRAW_SUMMARY.title)
 //        AccountWithdrawSummary(navController, it.arguments, onClose)
 //    }
-    composableItem(
-        route = SheetSections.ACCESS_KEY.route
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.ACCESS_KEY.title)
-        AccountAccessKey(navController)
-    }
-    composableItem(
-        route = SheetSections.DELETE_ACCOUNT.route
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.DELETE_ACCOUNT.title)
-        DeleteCodeAccount(navController)
-    }
-    composableItem(
-        route = SheetSections.CONFIRM_DELETE_ACCOUNT.route
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.CONFIRM_DELETE_ACCOUNT.title)
-        ConfirmDeleteAccount(navController)
-    }
+//    composableItem(
+//        route = SheetSections.ACCESS_KEY.route
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.ACCESS_KEY.title)
+//        AccountAccessKey(navController)
+//    }
+//    composableItem(
+//        route = SheetSections.DELETE_ACCOUNT.route
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.DELETE_ACCOUNT.title)
+//        DeleteCodeAccount(navController)
+//    }
+//    composableItem(
+//        route = SheetSections.CONFIRM_DELETE_ACCOUNT.route
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.CONFIRM_DELETE_ACCOUNT.title)
+//        ConfirmDeleteAccount(navController)
+//    }
 //    composableItem(
 //        route = SheetSections.FAQ.route,
 //    ) {
@@ -154,21 +154,21 @@ fun NavGraphBuilder.addSheetGraph(
 //        onTitleChange(SheetSections.PHONE_CONFIRM.title)
 //        PhoneConfirm(navController, it.arguments)
 //    }
-    composableItem(
-        route = SheetSections.ACCOUNT_DETAILS.route,
-        arguments = SheetSections.ACCOUNT_DETAILS.arguments
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.ACCOUNT_DETAILS.title)
-        AccountDetails(onAccountHomeNav)
-    }
-    composableItem(
-        route = SheetSections.ACCOUNT_DEBUG_OPTIONS.route
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.ACCOUNT_DEBUG_OPTIONS.title)
-        AccountDebugOptions()
-    }
+//    composableItem(
+//        route = SheetSections.ACCOUNT_DETAILS.route,
+//        arguments = SheetSections.ACCOUNT_DETAILS.arguments
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.ACCOUNT_DETAILS.title)
+//        AccountDetails(onAccountHomeNav)
+//    }
+//    composableItem(
+//        route = SheetSections.ACCOUNT_DEBUG_OPTIONS.route
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.ACCOUNT_DEBUG_OPTIONS.title)
+//        AccountDebugOptions()
+//    }
     composableItem(
         route = SheetSections.GET_KIN.route
     ) {
