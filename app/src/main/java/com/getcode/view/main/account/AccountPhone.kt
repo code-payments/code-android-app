@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -16,14 +19,16 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.App
+import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.repository.urlEncode
 import com.getcode.theme.Brand
-import com.getcode.view.*
+import com.getcode.view.ARG_IS_PHONE_LINKING
+import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
+import com.getcode.view.LoginSections
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
-import com.getcode.R
 
 @Composable
 fun AccountPhone(navController: NavController? = null) {

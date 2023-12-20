@@ -14,20 +14,40 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+interface AnalyticsService {
+    fun open(screen: AnalyticsManager.Screen)
+    fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int)
+    fun logout()
+    fun track(event: AnalyticsManager.Name, vararg properties: Pair<AnalyticsManager.Property, String>)
+}
+
+class AnalyticsServiceNull : AnalyticsService {
+    override fun open(screen: AnalyticsManager.Screen) = Unit
+
+    override fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int) = Unit
+
+    override fun logout() = Unit
+
+    override fun track(
+        event: AnalyticsManager.Name,
+        vararg properties: Pair<AnalyticsManager.Property, String>
+    ) = Unit
+}
+
 @Singleton
-class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI) {
+class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI): AnalyticsService {
     private var grabStartMillis: Long = 0L
     private var cashLinkGrabStartMillis: Long = 0L
 
-    fun open(screen: Screen) {
+    override fun open(screen: Screen) {
         track(Name.Open, Pair(Property.Screen, screen.value))
     }
 
-    fun logout() {
+    override fun logout() {
         track(Name.Logout)
     }
 
-    fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int) {
+    override fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int) {
         track(
             Name.Login,
             Pair(Property.OwnerPublicKey, ownerPublicKey),
@@ -151,8 +171,11 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         Timber.i("Bill scanned. From start: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
     }
 
-    private fun track(event: Name, vararg properties: Pair<Property, String>) {
-        if (BuildConfig.DEBUG) return //no logging in debug
+    override fun track(event: Name, vararg properties: Pair<Property, String>) {
+        if (BuildConfig.DEBUG) {
+            Timber.d("debug track $event, ${properties.map { "${it.first.name}, ${it.second}" }}")
+            return
+        } //no logging in debug
 
         val jsonObject = JSONObject()
         properties.forEach { property ->

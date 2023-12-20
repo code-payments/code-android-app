@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -30,14 +31,18 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import com.getcode.App
 import com.getcode.R
+import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.manager.AnalyticsManager
 import com.getcode.model.AirdropType
 import com.getcode.model.Currency
 import com.getcode.model.HistoricalTransaction
 import com.getcode.model.PaymentType
 import com.getcode.theme.*
 import com.getcode.util.CurrencyUtils
+import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.components.*
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
@@ -47,32 +52,20 @@ import timber.log.Timber
 
 @Composable
 fun BalanceSheet(
-    isOpen: Boolean,
+    viewModel: BalanceSheetViewModel = hiltViewModel(),
     upPress: () -> Unit = {},
-    faqOpen: () -> Unit = {}) {
-
-    val viewModel = hiltViewModel<BalanceSheetViewModel>()
+    faqOpen: () -> Unit = {},
+) {
     val dataState by viewModel.uiFlow.collectAsState()
 
-    //Here we will hold the "has opened" of the balance sheet so one it
-    //enters composition it will remain composed.
-    var hasBalanceSheetOpened by rememberSaveable {
-        mutableStateOf(false)
+    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+        viewModel.reset()
     }
 
-    //We want to refresh the data when the sheet opens
-    LaunchedEffect(isOpen) {
-        if (isOpen) {
-            hasBalanceSheetOpened = isOpen
-            viewModel.reset()
-        }
-    }
-
-    //Skip composition if the sheet has not been set to open
-    //by the sheet controller in HomeScan
-    if (!hasBalanceSheetOpened) {
-        return
-    }
+    AnalyticsScreenWatcher(
+        lifecycleOwner = LocalLifecycleOwner.current,
+        event = AnalyticsManager.Screen.Balance
+    )
 
     Column(
         modifier = Modifier

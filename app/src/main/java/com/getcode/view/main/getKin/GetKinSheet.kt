@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavOptions
 import com.getcode.MainDestinations
 import com.getcode.codeSheetNavGraph
@@ -14,17 +16,24 @@ import com.getcode.view.SheetSections
 import com.getcode.view.components.SheetTitle
 import com.getcode.view.main.home.HomeViewModel
 import androidx.navigation.compose.NavHost
+import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.manager.AnalyticsManager
+import com.getcode.util.RepeatOnLifecycle
 
 
 @Composable
 fun GetKinSheet(
-    isVisible: Boolean = true,
     homeViewModel: HomeViewModel,
     onClose: () -> Unit = {}
 ) {
     var title: Int? by remember { mutableStateOf(null) }
     var isBackButtonVisible: Boolean by remember { mutableStateOf(false) }
     val appState = rememberCodeAppState()
+
+    AnalyticsScreenWatcher(
+        lifecycleOwner = LocalLifecycleOwner.current,
+        event = AnalyticsManager.Screen.GetKin
+    )
 
     SheetTitle(
         title = title?.let { stringResource(id = it) },
@@ -50,7 +59,7 @@ fun GetKinSheet(
         )
     }
 
-    LaunchedEffect(isVisible) {
+    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
         val isHome =
             appState.sheetNavController.currentDestination?.route == SheetSections.GET_KIN.route
         if (!isHome) {

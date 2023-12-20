@@ -22,12 +22,6 @@ fun AccountDetails(
     viewModel: AccountSheetViewModel = hiltViewModel(),
 ) {
     val dataState by viewModel.stateFlow.collectAsState()
-    val context = LocalContext.current
-
-    fun onPage(page: AccountPage) {
-        onPageSelected(page)
-        viewModel.dispatchEvent(AccountSheetViewModel.Event.Navigate(page))
-    }
 
     Box(modifier = Modifier.fillMaxHeight()) {
         Column(
@@ -48,7 +42,7 @@ fun AccountDetails(
                             positiveText = App.getInstance()
                                 .getString(R.string.action_viewAccessKey),
                             negativeText = App.getInstance().getString(R.string.action_cancel),
-                            onPositive = { onPage(AccountPage.ACCESS_KEY) },
+                            onPositive = { onPageSelected(AccountPage.ACCESS_KEY) },
                             onNegative = {}
                         )
                     )
@@ -58,11 +52,11 @@ fun AccountDetails(
                     name = R.string.title_phoneNumber,
                     icon = R.drawable.ic_menu_phone,
                     isPhoneLinked = dataState.isPhoneLinked,
-                ) { onPage(AccountPage.PHONE) },
+                ) { onPageSelected(AccountPage.PHONE) },
                 AccountMainItem(
                     name = R.string.action_deleteAccount,
                     icon = R.drawable.ic_delete
-                 ) { onPage(AccountPage.DELETE_ACCOUNT) },
+                 ) { onPageSelected(AccountPage.DELETE_ACCOUNT) },
             )
 
             for (action in actions) {

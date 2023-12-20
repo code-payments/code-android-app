@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.Debug
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.core.util.Consumer
@@ -15,6 +16,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.findNavController
 import com.getcode.CodeApp
+import com.getcode.LocalAnalytics
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
@@ -78,7 +80,9 @@ class MainActivity : FragmentActivity() {
         setContent {
             val appState = rememberCodeAppState()
             currentNavHostController = appState.navController
-            CodeApp(appState)
+            CompositionLocalProvider(LocalAnalytics provides analyticsManager) {
+                CodeApp(appState)
+            }
         }
     }
 
