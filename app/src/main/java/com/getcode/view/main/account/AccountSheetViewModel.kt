@@ -2,6 +2,7 @@ package com.getcode.view.main.account
 
 import android.app.Activity
 import androidx.lifecycle.viewModelScope
+import com.getcode.R
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
@@ -9,21 +10,21 @@ import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+import javax.annotation.concurrent.Immutable
 import javax.inject.Inject
 
 data class AccountMainItem(
+    val type: AccountPage,
     val name: Int,
     val icon: Int,
     val isPhoneLinked: Boolean? = null,
-    val onClick: () -> Unit
 )
 
 enum class AccountPage {
@@ -35,17 +36,10 @@ enum class AccountPage {
     ACCESS_KEY,
     FAQ,
     ACCOUNT_DETAILS,
-    ACCOUNT_DEBUG_OPTIONS
+    ACCOUNT_DEBUG_OPTIONS,
+    LOGOUT
 }
 
-data class AccountSheetUiModel(
-    val isHome: Boolean = true,
-    val page: AccountPage? = null,
-    val isPhoneLinked: Boolean = false,
-    val isDebug: Boolean = false
-)
-
-@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
@@ -57,8 +51,10 @@ class AccountSheetViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent
 ) {
 
+    @Immutable
     data class State(
         val logoClickCount: Int = 0,
+        val items: List<AccountMainItem> = emptyList(),
         val isHome: Boolean = true,
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
@@ -67,17 +63,23 @@ class AccountSheetViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
-        data class OnDebugChanged(val isDebug: Boolean): Event
+        data class OnDebugChanged(val isDebug: Boolean) : Event
         data object LogoClicked : Event
-        data class Navigate(val page: AccountPage): Event
+        data class Navigate(val page: AccountPage) : Event
+        data class OnItemsChanged(val items: List<AccountMainItem>) : Event
     }
 
     // TODO: handle this differently
     fun logout(activity: Activity) {
         authManager.logout(activity)
     }
-    
+
     init {
+        viewModelScope.launch {
+            dispatchEvent(
+                Event.OnItemsChanged(fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS })
+            )
+        }
         prefRepository
             .observeOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
             .onEach {
@@ -115,6 +117,44 @@ class AccountSheetViewModel @Inject constructor(
     }
 
     companion object {
+        private val fullItemSet = listOf(
+            AccountMainItem(
+                type = AccountPage.BUY_AND_SELL_KIN,
+                name = R.string.title_buyAndSellKin,
+                icon = R.drawable.ic_currency_dollar_active
+            ),
+            AccountMainItem(
+                type = AccountPage.DEPOSIT,
+                name = R.string.title_depositKin,
+                icon = R.drawable.ic_menu_deposit
+            ),
+            AccountMainItem(
+                type = AccountPage.WITHDRAW,
+                name = R.string.title_withdrawKin,
+                icon = R.drawable.ic_menu_withdraw
+            ),
+            AccountMainItem(
+                type = AccountPage.ACCOUNT_DETAILS,
+                name = R.string.title_myAccount,
+                icon = R.drawable.ic_menu_account
+            ),
+            AccountMainItem(
+                type = AccountPage.ACCOUNT_DEBUG_OPTIONS,
+                name = R.string.account_debug_options,
+                icon = R.drawable.ic_bug,
+            ),
+            AccountMainItem(
+                type = AccountPage.FAQ,
+                name = R.string.title_faq,
+                icon = R.drawable.ic_faq,
+            ),
+            AccountMainItem(
+                type = AccountPage.LOGOUT,
+                name = R.string.action_logout,
+                icon = R.drawable.ic_menu_logout
+            )
+        )
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnPhoneLinked -> { state -> state.copy(isPhoneLinked = event.linked) }
@@ -122,9 +162,16 @@ class AccountSheetViewModel @Inject constructor(
                     val count = state.logoClickCount + 1
                     state.copy(logoClickCount = count)
                 }
+
                 is Event.OnDebugChanged -> { state ->
-                    state.copy(isDebug = event.isDebug, logoClickCount = 0)
+                    state.copy(
+                        isDebug = event.isDebug,
+                        items = if (event.isDebug) fullItemSet else fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS },
+                        logoClickCount = 0
+                    )
                 }
+
+                is Event.OnItemsChanged -> { state -> state.copy(items = event.items) }
 
                 is Event.Navigate -> { state -> state }
             }

@@ -115,24 +115,3 @@ private fun AppNavHost(content: @Composable () -> Unit) {
         }
     }
 }
-
-fun NavGraphBuilder.codeSheetNavGraph(
-    navController: NavController,
-    homeViewModel: HomeViewModel,
-    onTitleChange: (Int?) -> Unit,
-    onBackButtonVisibilityChange: (Boolean) -> Unit,
-    onClose: () -> Unit,
-) {
-    navigation(
-        route = MainDestinations.SHEET_GRAPH,
-        startDestination = SheetSections.NONE.route
-    ) {
-        addSheetGraph(
-            navController,
-            homeViewModel,
-            onTitleChange,
-            onBackButtonVisibilityChange,
-            onClose
-        )
-    }
-}

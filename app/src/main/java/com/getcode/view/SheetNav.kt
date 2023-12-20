@@ -62,6 +62,7 @@ fun NavGraphBuilder.addSheetGraph(
                     .replace("{${ARG_IS_PHONE_LINKING}}", true.toString())
             )
             ACCOUNT_DEBUG_OPTIONS -> navController.navigate(SheetSections.ACCOUNT_DEBUG_OPTIONS.route)
+            AccountPage.LOGOUT -> TODO()
         }
     }
 

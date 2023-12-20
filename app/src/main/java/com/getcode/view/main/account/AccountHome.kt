@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
@@ -40,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
@@ -67,73 +70,40 @@ fun AccountHome(
         event = AnalyticsManager.Screen.Settings
     )
 
-
-    Box(modifier = Modifier.fillMaxHeight()) {
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-        ) {
-            val actions: MutableList<AccountMainItem> = mutableListOf(
-                AccountMainItem(
-                    name = R.string.title_buyAndSellKin,
-                    icon = R.drawable.ic_currency_dollar_active
-                ) {
-                  navigator.push(BuySellScreen)
-                },
-                AccountMainItem(
-                    name = R.string.title_depositKin,
-                    icon = R.drawable.ic_menu_deposit
-                ) {
-//                    onPageSelected(AccountPage.DEPOSIT)
-                },
-                AccountMainItem(
-                    name = R.string.title_withdrawKin,
-                    icon = R.drawable.ic_menu_withdraw
-                ) {
-//                    onPageSelected(AccountPage.WITHDRAW)
-                },
-                AccountMainItem(
-                    name = R.string.title_myAccount,
-                    icon = R.drawable.ic_menu_account
-                ) {
-//                    onPageSelected(AccountPage.ACCOUNT_DETAILS)
-                },
-                AccountMainItem(
-                    name = R.string.title_faq,
-                    icon = R.drawable.ic_faq,
-                ) { navigator.push(FaqScreen) },
-                AccountMainItem(
-                    name = R.string.action_logout,
-                    icon = R.drawable.ic_menu_logout
-                ) {
-                    BottomBarManager.showMessage(
-                        BottomBarManager.BottomBarMessage(
-                            title = App.getInstance().getString(R.string.prompt_title_logout),
-                            subtitle = App.getInstance()
-                                .getString(R.string.prompt_description_logout),
-                            positiveText = App.getInstance().getString(R.string.action_logout),
-                            negativeText = App.getInstance().getString(R.string.action_cancel),
-                            onPositive = {
-                                context.getActivity()?.let {
-                                    viewModel.logout(it)
-                                }
-                            },
-                            onNegative = {
+    fun handleItemClicked(item: AccountPage) {
+        when (item) {
+            AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
+            AccountPage.DEPOSIT -> Unit
+            AccountPage.WITHDRAW -> Unit
+            AccountPage.FAQ -> navigator.push(FaqScreen)
+            AccountPage.ACCOUNT_DETAILS -> Unit
+            AccountPage.ACCOUNT_DEBUG_OPTIONS -> Unit
+            AccountPage.LOGOUT -> {
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = App.getInstance().getString(R.string.prompt_title_logout),
+                        subtitle = App.getInstance()
+                            .getString(R.string.prompt_description_logout),
+                        positiveText = App.getInstance().getString(R.string.action_logout),
+                        negativeText = App.getInstance().getString(R.string.action_cancel),
+                        onPositive = {
+                            context.getActivity()?.let {
+                                viewModel.logout(it)
                             }
-                        )
+                        },
+                        onNegative = {
+                        }
                     )
-                }
-            )
-
-            if (dataState.isDebug) {
-                AccountMainItem(
-                    name = R.string.account_debug_options,
-                    icon = R.drawable.ic_bug,
-                ) {
-//                    onPageSelected(AccountPage.ACCOUNT_DEBUG_OPTIONS)
-                }.let { actions.add(4, it) }
+                )
             }
+            AccountPage.PHONE -> Unit
+            AccountPage.DELETE_ACCOUNT -> Unit
+            AccountPage.ACCESS_KEY -> Unit
+        }
+    }
 
+    LazyColumn(modifier = Modifier.fillMaxHeight()) {
+        item {
             Image(
                 painterResource(
                     R.drawable.ic_code_logo_near_white
@@ -150,31 +120,36 @@ fun AccountHome(
                         viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked)
                     }
             )
-
-            for (action in actions) {
-                ListItem(action)
+        }
+        items(dataState.items) { item ->
+            ListItem(item = item) {
+                handleItemClicked(item.type)
             }
+        }
 
-            Text(
-                modifier = Modifier
-                    .padding(top = 35.dp)
-                    .fillMaxWidth()
-                    .align(CenterHorizontally),
-                text = "v${BuildConfig.VERSION_NAME}",
-                color = BrandLight,
-                style = MaterialTheme.typography.body2.copy(
-                    textAlign = TextAlign.Center
-                ),
-            )
+        item {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    modifier = Modifier
+                        .padding(top = 35.dp)
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    color = BrandLight,
+                    style = MaterialTheme.typography.body2.copy(
+                        textAlign = TextAlign.Center
+                    ),
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ListItem(item: AccountMainItem) {
+fun ListItem(item: AccountMainItem, onClick: () -> Unit,) {
     Row(
         modifier = Modifier
-            .clickable { item.onClick() }
+            .clickable { onClick() }
             .padding(vertical = 25.dp, horizontal = 25.dp)
             .fillMaxWidth()
             .wrapContentHeight(),

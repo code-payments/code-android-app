@@ -9,7 +9,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavOptions
 import com.getcode.MainDestinations
-import com.getcode.codeSheetNavGraph
 import com.getcode.rememberCodeAppState
 import com.getcode.theme.sheetHeight
 import com.getcode.view.SheetSections
@@ -50,13 +49,13 @@ fun GetKinSheet(
         navController = appState.sheetNavController,
         startDestination = MainDestinations.SHEET_GRAPH,
     ) {
-        codeSheetNavGraph(
-            navController = appState.sheetNavController,
-            homeViewModel = homeViewModel,
-            onTitleChange = { title = it },
-            onBackButtonVisibilityChange = { isBackButtonVisible = it },
-            onClose = onClose
-        )
+//        codeSheetNavGraph(
+//            navController = appState.sheetNavController,
+//            homeViewModel = homeViewModel,
+//            onTitleChange = { title = it },
+//            onBackButtonVisibilityChange = { isBackButtonVisible = it },
+//            onClose = onClose
+//        )
     }
 
     RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {

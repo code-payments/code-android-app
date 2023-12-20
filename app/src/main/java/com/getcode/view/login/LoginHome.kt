@@ -22,6 +22,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.hilt.navigation.compose.hiltViewModel
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.theme.BrandLight
 import com.getcode.util.ChromeTabsUtils
@@ -37,7 +38,7 @@ import com.getcode.navigation.InviteCodeScreen
 @Preview
 @Composable
 fun LoginHome(
-    viewModel: LoginViewModel = LoginScreen.getViewModel()
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
