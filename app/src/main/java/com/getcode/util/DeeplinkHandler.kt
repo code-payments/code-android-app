@@ -31,6 +31,7 @@ class DeeplinkHandler @Inject constructor() {
             field = value
             intent.value = value
         }
+
     val intent = MutableStateFlow(debounceIntent)
 
     fun checkIntent(intent: Intent): Intent? {
@@ -60,7 +61,7 @@ class DeeplinkHandler @Inject constructor() {
             if (SessionManager.isAuthenticated() == true) {
                 null
             } else {
-                Type.Login(getEntropy())
+                Type.Login(getEntropy().also { Timber.d("entropy=$it") })
             }
         }
         "cash", "c" -> Type.Cash(getEntropy())

@@ -34,6 +34,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         val (image, caption, button, buttonSkip) = createRefs()
 

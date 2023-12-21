@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.CodeApp
@@ -39,11 +40,6 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var deeplinkHandler: DeeplinkHandler
-
-    override fun onPause() {
-        super.onPause()
-        client.stopTimer()
-    }
 
     /**
      * The compose navigation controller does not play nice with single task activities.
@@ -85,13 +81,13 @@ class MainActivity : FragmentActivity() {
         client.startTimer()
     }
 
+    override fun onPause() {
+        super.onPause()
+        client.stopTimer()
+    }
+
     private fun setFullscreen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            /*val controller = (window.decorView).windowInsetsController
-            controller?.systemBarsBehavior = BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller?.hide(WindowInsets.Type.navigationBars())*/
-            //controller?.hide(WindowInsets.Type.ime())
-        }
+        enableEdgeToEdge()
     }
 }
 

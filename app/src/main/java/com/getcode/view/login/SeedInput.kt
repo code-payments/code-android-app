@@ -48,9 +48,9 @@ fun SeedInput(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.systemBars)
             .padding(horizontal = 20.dp)
             .padding(top = topBarHeight)
-            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .imePadding(),
     ) {

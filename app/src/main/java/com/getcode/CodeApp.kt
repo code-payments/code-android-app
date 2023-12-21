@@ -26,6 +26,7 @@ import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
+import com.getcode.util.LocalDeeplinks
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold

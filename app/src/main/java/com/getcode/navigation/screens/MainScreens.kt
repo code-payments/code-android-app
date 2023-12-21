@@ -1,6 +1,11 @@
 package com.getcode.navigation.screens
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -15,10 +20,12 @@ import com.getcode.view.main.account.AccountDeposit
 import com.getcode.view.main.account.AccountDetails
 import com.getcode.view.main.account.AccountFaq
 import com.getcode.view.main.account.AccountHome
+import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.home.HomeScan
+import timber.log.Timber
 
 sealed interface MainGraph : Screen {
     fun readResolve(): Any = this
@@ -39,8 +46,11 @@ data object AccountModal : MainGraph, ModalRoot {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val viewModel = getViewModel<AccountSheetViewModel>()
         ModalContainer(
             backButton = { false },
+            displayLogo = true,
+            onLogoClicked = { viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked) },
             closeButton = {
                 if (navigator.isVisible) {
                     it is AccountModal
@@ -49,7 +59,11 @@ data object AccountModal : MainGraph, ModalRoot {
                 }
             }
         ) {
-            AccountHome(getViewModel())
+            AccountHome(viewModel)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.dispatchEvent(AccountSheetViewModel.Event.Load)
         }
     }
 }

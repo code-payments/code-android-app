@@ -108,24 +108,6 @@ fun AccountHome(
 
     Column {
         LazyColumn(modifier = Modifier.weight(1f)) {
-            item {
-                Image(
-                    painterResource(
-                        R.drawable.ic_code_logo_near_white
-                    ),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 20.dp)
-                        .height(50.dp)
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked)
-                        }
-                )
-            }
             items(dataState.items, key = { it.type }, contentType = { it }) { item ->
                 ListItem(item = item) {
                     handleItemClicked(item.type)
@@ -148,10 +130,6 @@ fun AccountHome(
                 }
             }
         }
-    }
-
-    LaunchedEffect(viewModel) {
-        viewModel.dispatchEvent(AccountSheetViewModel.Event.Load)
     }
 }
 

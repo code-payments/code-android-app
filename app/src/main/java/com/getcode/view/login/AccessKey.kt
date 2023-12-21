@@ -100,6 +100,7 @@ fun AccessKey(
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 20.dp)
             .padding(top = 85.dp)
     ) {

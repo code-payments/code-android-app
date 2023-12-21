@@ -20,12 +20,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -464,6 +467,7 @@ fun HomeScan(
 
                 HomeBottom(
                     modifier = Modifier
+                        .windowInsetsPadding(WindowInsets.navigationBars)
                         .constrainAs(bottomActions) {
                             bottom.linkTo(parent.bottom)
                         }
@@ -492,6 +496,7 @@ fun HomeScan(
         ) {
             HomeBill(
                 modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
                     .constrainAs(billContainer) {
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
@@ -513,6 +518,7 @@ fun HomeScan(
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .constrainAs(billActions) {
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
@@ -596,6 +602,7 @@ fun HomeScan(
         //Balance Changed Toast
         AnimatedVisibility(
             modifier = Modifier
+                .windowInsetsPadding(WindowInsets.navigationBars)
                 .constrainAs(amountToast) {
                     end.linkTo(parent.end, 25.dp)
                     bottom.linkTo(parent.bottom, 105.dp)
@@ -627,7 +634,9 @@ fun HomeScan(
 
     //Bill Received Bottom Dialog
     AnimatedVisibility(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars),
         visibleState = receiveDialogVisibleState,
         enter = slideInVertically(
             initialOffsetY = { it },

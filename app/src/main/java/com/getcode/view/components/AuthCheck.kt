@@ -21,6 +21,7 @@ import com.getcode.util.RepeatOnLifecycle
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
@@ -67,7 +68,7 @@ fun AuthCheck(
     }
 
     deeplinkHandler ?: return
-    RepeatOnLifecycle(key = isAuthenticated, targetState = Lifecycle.State.RESUMED) {
+    LaunchedEffect(isAuthenticated) {
         deeplinkHandler.intent
             .filterNotNull()
             .mapNotNull { deeplinkHandler.handle() }
@@ -77,11 +78,15 @@ fun AuthCheck(
                 }
                 return@filter true
             }
-            .onEach { (type, screens) -> Timber.tag(AUTH_NAV).d("navigating to ${screens.lastOrNull()?.key} (stack size=${screens.count()})") }
+//            .onEach { (type, screens) ->
+//                val screen = screens.lastOrNull()?.javaClass?.simpleName
+//                Timber.tag(AUTH_NAV).d("navigating to $type $screen (stack size=${screens.count()})")
+//            }
             .onEach { (type, screens) ->
                 deeplinkRouted = true
                 onNavigate(screens)
+                deeplinkHandler.debounceIntent = null
             }
-            .collect()
+            .launchIn(this)
     }
 }

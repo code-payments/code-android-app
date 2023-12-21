@@ -28,21 +28,21 @@ import com.getcode.vendor.Base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Preview
 @Composable
 fun SeedDeepLink(
     viewModel: SeedInputViewModel = hiltViewModel(),
-    entropy: String? = null,
+    seed: String? = null,
 ) {
-
     val dataState by viewModel.uiFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val authState by SessionManager.authState.collectAsState()
     var isMessageShown by remember { mutableStateOf(false) }
 
-    fun navigateMain() = navigator.replaceAll(HomeScreen(entropy))
+    fun navigateMain() = navigator.replaceAll(HomeScreen())
     fun navigateLogin() = navigator.replace(LoginScreen())
 
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
@@ -53,10 +53,6 @@ fun SeedDeepLink(
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck { onNotificationResult(it) }
-
-    SideEffect {
-        notificationPermissionCheck(false)
-    }
 
     fun onError() {
         TopBarManager.showMessage(
@@ -95,7 +91,7 @@ fun SeedDeepLink(
     }
 
     LaunchedEffect(authState?.isAuthenticated) {
-        entropy
+        seed
             ?.let { entropyB58 ->
                 val entropy: ByteArray
                 try {
@@ -113,7 +109,7 @@ fun SeedDeepLink(
                 val isAuthenticated = authState?.isAuthenticated ?: return@LaunchedEffect
                 val isSame = entropy.toList() == authState?.entropyB64?.decodeBase64()?.toList()
                 if (isSame) {
-                    navigateMain()
+                    notificationPermissionCheck(false)
                 } else if (isAuthenticated) {
                     showLogoutMessage(entropyB64)
                 } else {

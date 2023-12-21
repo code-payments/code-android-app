@@ -41,7 +41,11 @@ fun LoginHome(
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
 
-    ConstraintLayout(modifier = Modifier.fillMaxSize()) {
+    ConstraintLayout(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars),
+    ) {
         val (bgImage, logo, buttonCreate, buttonLogin, toc) = createRefs()
 
         Image(

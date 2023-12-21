@@ -1,9 +1,15 @@
 package com.getcode.navigation.screens
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -25,8 +31,10 @@ sealed interface NamedScreen {
 sealed interface ModalContent {
     @Composable
     fun ModalContainer(
+        displayLogo: Boolean = false,
         backButton: (Screen?) -> Boolean = { false },
         closeButton: (Screen?) -> Boolean = { false },
+        onLogoClicked: () -> Unit = { },
         screenContent: @Composable () -> Unit
     ) {
         Column(
@@ -41,14 +49,18 @@ sealed interface ModalContent {
 
             SheetTitle(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                title = sheetName,
+                title = sheetName.takeIf { !displayLogo },
+                displayLogo = displayLogo,
+                onLogoClicked = onLogoClicked,
                 // hide while transitioning to/from other destinations
                 backButton = backButton(navigator.lastItem),
                 closeButton = closeButton(navigator.lastItem),
                 onBackIconClicked = { navigator.pop() },
                 onCloseIconClicked = { navigator.hide() }
             )
-            screenContent()
+            Box(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)) {
+                screenContent()
+            }
         }
     }
 }

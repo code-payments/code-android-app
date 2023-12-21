@@ -31,8 +31,7 @@ fun CodeTheme(
     val sysUiController = rememberSystemUiController()
 
     SideEffect {
-        sysUiController.setStatusBarColor(color = Color.Transparent)
-        sysUiController.setSystemBarsColor(color = Color.Transparent)
+        sysUiController.setSystemBarsColor(color = Color(0x01000000))
     }
 
     ProvideCodeColors(colors) {
