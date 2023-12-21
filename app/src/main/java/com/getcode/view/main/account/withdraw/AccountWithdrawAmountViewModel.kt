@@ -74,7 +74,10 @@ class AccountWithdrawAmountViewModel @Inject constructor(
 
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
         super.onAmountChanged(lastPressedBackspace)
-        uiFlow.update { it.copy(continueEnabled = numberInputHelper.amount != 0.0) }
+        uiFlow.update {
+            // only enable if sufficient balance and non-zero
+            it.copy(continueEnabled = !it.amountModel.isInsufficient && numberInputHelper.amount != 0.0)
+        }
     }
 
     override fun setCurrencySelectorVisible(isVisible: Boolean) {
