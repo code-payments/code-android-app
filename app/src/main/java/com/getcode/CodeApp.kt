@@ -7,7 +7,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.navigator.CurrentScreen
@@ -66,11 +69,7 @@ fun CodeApp() {
                     }
 
                     Box(modifier = Modifier.padding(innerPaddingModifier)) {
-                        if (navigator.lastItem !is MainRoot) {
-                            SlideTransition(navigator = navigator)
-                        } else {
-                            CurrentScreen()
-                        }
+                        SlideTransition(navigator = navigator)
                     }
 
                     //Listen for authentication changes here

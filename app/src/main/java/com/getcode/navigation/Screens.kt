@@ -75,6 +75,8 @@ data object MainRoot : Screen {
 
     @Composable
     override fun Content() {
-
+        // TODO: potentially add a loading state here
+        //  so app doesn't appear stuck in a dead state
+        //  while we wait for auth check to complete
     }
 }
