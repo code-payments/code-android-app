@@ -1,9 +1,6 @@
 package com.getcode.view.main.account.withdraw
 
 import android.annotation.SuppressLint
-import android.os.Bundle
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import com.getcode.App
 import com.getcode.R
 import com.getcode.solana.keys.PublicKey
@@ -14,9 +11,9 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.HomeScreen
-import com.getcode.navigation.WithdrawalArgs
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.network.client.*
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58

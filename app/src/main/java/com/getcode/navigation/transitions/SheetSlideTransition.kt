@@ -1,4 +1,4 @@
-package com.getcode.navigation
+package com.getcode.navigation.transitions
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.IntOffset
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
+import com.getcode.navigation.core.BottomSheetNavigator
 
 @Composable
 fun SheetSlideTransition(
@@ -30,7 +31,7 @@ fun SheetSlideTransition(
     ),
     content: ScreenTransitionContent = { it.Content() }
 ) {
-    ScreenTransition(
+    BottomSheetScreenTransition(
         navigator = navigator,
         modifier = modifier,
         content = content,
@@ -53,7 +54,7 @@ fun SheetSlideTransition(
 }
 
 @Composable
-fun ScreenTransition(
+fun BottomSheetScreenTransition(
     navigator: BottomSheetNavigator,
     transition: AnimatedContentTransitionScope<Screen>.() -> ContentTransform,
     modifier: Modifier = Modifier,
@@ -62,7 +63,8 @@ fun ScreenTransition(
     AnimatedContent(
         targetState = navigator.lastItemOrNull!!,
         transitionSpec = transition,
-        modifier = modifier
+        modifier = modifier,
+        label = "screen transition"
     ) { screen ->
         navigator.saveableState("transition", screen = screen) {
             content(screen)

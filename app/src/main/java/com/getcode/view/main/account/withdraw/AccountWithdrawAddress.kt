@@ -1,6 +1,5 @@
 package com.getcode.view.main.account.withdraw
 
-import android.os.Bundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,11 +18,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.WithdrawalArgs
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.*
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton

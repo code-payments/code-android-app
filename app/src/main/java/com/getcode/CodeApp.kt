@@ -1,5 +1,8 @@
 package com.getcode
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -7,38 +10,27 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.transitions.ScreenTransition
+import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import cafe.adriel.voyager.transitions.SlideTransition
-import com.getcode.navigation.BottomSheetNavigator
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.CombinedNavigator
-import com.getcode.navigation.HomeScreen
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginScreen
-import com.getcode.navigation.MainRoot
-import com.getcode.navigation.SheetSlideTransition
+import com.getcode.navigation.core.BottomSheetNavigator
+import com.getcode.navigation.core.CombinedNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.MainRoot
+import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
-import com.getcode.util.LocalDeeplinks
-import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold
 import com.getcode.view.components.TitleBar
 import com.getcode.view.components.TopBarContainer
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun CodeApp() {
@@ -69,14 +61,18 @@ fun CodeApp() {
                     }
 
                     Box(modifier = Modifier.padding(innerPaddingModifier)) {
-                        SlideTransition(navigator = navigator)
+                        if (navigator.lastItem is LoginScreen) {
+                            CrossfadeTransition(navigator = navigator)
+                        } else {
+                            SlideTransition(navigator = navigator)
+                        }
                     }
 
                     //Listen for authentication changes here
                     AuthCheck(
                         navigator = appState.navigator,
                         onNavigate = {
-                            navigator.replaceAll(it)
+                            codeNavigator.replaceAll(it, inSheet = false)
                         }
                     )
                 }
@@ -111,4 +107,18 @@ private fun AppNavHost(content: @Composable () -> Unit) {
             content()
         }
     }
+}
+
+@Composable
+private fun CrossfadeTransition(
+    navigator: Navigator,
+    modifier: Modifier = Modifier,
+    content: ScreenTransitionContent = { it.Content() }
+) {
+    ScreenTransition(
+        navigator = navigator,
+        modifier = modifier,
+        content = content,
+        transition = { fadeIn() togetherWith fadeOut() }
+    )
 }

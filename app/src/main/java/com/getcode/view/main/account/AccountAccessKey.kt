@@ -24,7 +24,7 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
 import com.getcode.view.components.*

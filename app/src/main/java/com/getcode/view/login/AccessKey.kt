@@ -2,7 +2,6 @@ package com.getcode.view.login
 
 import android.Manifest
 import android.os.Build
-import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
@@ -27,16 +26,14 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginArgs
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
-import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
 import com.getcode.view.components.*
 
 @OptIn(ExperimentalComposeUiApi::class)

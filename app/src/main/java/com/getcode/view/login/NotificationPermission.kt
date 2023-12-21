@@ -11,12 +11,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.HomeScreen
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.view.MainSections
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 

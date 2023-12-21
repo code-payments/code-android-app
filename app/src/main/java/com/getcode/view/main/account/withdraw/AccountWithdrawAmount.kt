@@ -10,12 +10,10 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
-import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight

@@ -65,8 +65,8 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginArgs
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White05
 import com.getcode.theme.White50

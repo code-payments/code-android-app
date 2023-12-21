@@ -2,23 +2,18 @@ package com.getcode.view.login
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
-import androidx.navigation.NavController
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.InviteCodeScreen
-import com.getcode.navigation.PhoneConfirmationScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.replaceParam
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
 import com.getcode.view.*

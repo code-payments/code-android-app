@@ -76,28 +76,28 @@ fun NavGraphBuilder.addLoginGraph(navController: NavController, upPress: () -> U
 //    ) { backStackEntry ->
 //        AccessKey(navController, upPress, backStackEntry.arguments)
 //    }
-    composableItem(
-        route = LoginSections.SEED_DEEP_LINK.route,
-        arguments = LoginSections.SEED_DEEP_LINK.arguments,
-        deepLinks = listOf(
-            //New
-            navDeepLink {
-                uriPattern =
-                    "${
-                        App.getInstance().getString(R.string.root_url_app)
-                    }/login/#/e={$ARG_SIGN_IN_ENTROPY_B58}"
-            },
-            //Legacy
-            navDeepLink {
-                uriPattern =
-                    "${
-                        App.getInstance().getString(R.string.root_url_app)
-                    }/login?data={$ARG_SIGN_IN_ENTROPY_B58}"
-            }
-        )
-    ) { backStackEntry ->
-        SeedDeepLink(navController, backStackEntry.arguments)
-    }
+//    composableItem(
+//        route = LoginSections.SEED_DEEP_LINK.route,
+//        arguments = LoginSections.SEED_DEEP_LINK.arguments,
+//        deepLinks = listOf(
+//            //New
+//            navDeepLink {
+//                uriPattern =
+//                    "${
+//                        App.getInstance().getString(R.string.root_url_app)
+//                    }/login/#/e={$ARG_SIGN_IN_ENTROPY_B58}"
+//            },
+//            //Legacy
+//            navDeepLink {
+//                uriPattern =
+//                    "${
+//                        App.getInstance().getString(R.string.root_url_app)
+//                    }/login?data={$ARG_SIGN_IN_ENTROPY_B58}"
+//            }
+//        )
+//    ) { backStackEntry ->
+//        SeedDeepLink(navController, backStackEntry.arguments)
+//    }
 //    composableItem(
 //        route = LoginSections.PERMISSION_CAMERA_REQUEST.route,
 //        arguments = LoginSections.PERMISSION_CAMERA_REQUEST.arguments,

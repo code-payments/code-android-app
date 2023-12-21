@@ -1,6 +1,5 @@
 package com.getcode.view.login
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -32,8 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginArgs
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.topBarHeight

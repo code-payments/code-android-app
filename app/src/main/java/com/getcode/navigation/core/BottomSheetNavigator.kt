@@ -1,4 +1,4 @@
-package com.getcode.navigation
+package com.getcode.navigation.core
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationSpec

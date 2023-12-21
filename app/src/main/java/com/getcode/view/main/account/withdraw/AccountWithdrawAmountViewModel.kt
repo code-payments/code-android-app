@@ -3,13 +3,12 @@ package com.getcode.view.main.account.withdraw
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.WithdrawalAddressScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.WithdrawalAddressScreen
 import com.getcode.network.client.Client
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
-import com.getcode.view.*
 import com.getcode.view.main.giveKin.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

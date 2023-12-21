@@ -3,9 +3,6 @@ package com.getcode.view.login
 import android.annotation.SuppressLint
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.App
@@ -13,9 +10,9 @@ import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.*
-import com.getcode.navigation.AccessKeyScreen
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.HomeScreen
+import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
 import com.getcode.network.repository.*
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
@@ -32,7 +29,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject

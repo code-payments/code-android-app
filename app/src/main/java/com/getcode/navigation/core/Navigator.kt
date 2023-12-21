@@ -1,4 +1,4 @@
-package com.getcode.navigation
+package com.getcode.navigation.core
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal

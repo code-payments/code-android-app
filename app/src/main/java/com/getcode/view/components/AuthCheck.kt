@@ -10,12 +10,11 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.manager.SessionManager
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.HomeScreen
-import com.getcode.navigation.InviteCodeScreen
-import com.getcode.navigation.LoginGraph
-import com.getcode.navigation.LoginScreen
-import com.getcode.navigation.MainRoot
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.LoginGraph
+import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.LocalDeeplinks
 import com.getcode.util.RepeatOnLifecycle
@@ -59,8 +58,10 @@ fun AuthCheck(
                     onNavigate(listOf(HomeScreen()))
                 } else {
                     Timber.tag(AUTH_NAV).d("Navigating to login")
-                    onNavigate(listOf(LoginScreen))
+                    onNavigate(listOf(LoginScreen()))
                 }
+            } else {
+                deeplinkRouted = false
             }
         }
     }

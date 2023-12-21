@@ -23,16 +23,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.theme.BrandLight
 import com.getcode.util.ChromeTabsUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.R
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginScreen
-import com.getcode.navigation.PhoneVerificationScreen
-import com.getcode.navigation.InviteCodeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.PhoneVerificationScreen
+import com.getcode.navigation.screens.InviteCodeScreen
 
 
 @Preview

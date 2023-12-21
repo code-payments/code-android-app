@@ -1,14 +1,12 @@
 package com.getcode.util
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
-import com.getcode.manager.AnalyticsService
-import com.getcode.manager.AnalyticsServiceNull
-import com.getcode.navigation.HomeScreen
-import com.getcode.navigation.MainRoot
+import com.getcode.manager.SessionManager
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.LoginScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
 import javax.inject.Inject
@@ -29,7 +27,8 @@ import javax.inject.Inject
 
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
 
-class DeeplinkHandler @Inject constructor() {
+class DeeplinkHandler @Inject constructor(
+) {
     var debounceIntent: Intent? = null
         set(value) {
             field = value
@@ -46,6 +45,19 @@ class DeeplinkHandler @Inject constructor() {
         val uri = intent?.data ?: return null
 
         val type = when (val segment = uri.lastPathSegment) {
+            "login" -> {
+                if (SessionManager.isAuthenticated() == true) {
+                    null
+                } else {
+                    val fragment = uri.fragment
+                    val separator = "="
+                    val result = Key.entries
+                        .map { key -> "/${key.value}$separator" }
+                        .filter { prefix -> fragment?.startsWith(prefix) == true }
+                        .firstNotNullOfOrNull { prefix -> fragment?.removePrefix(prefix) }
+                    Type.Login(result)
+                }
+            }
             "cash", "c" -> {
                 Timber.d("cashlink in ${uri}")
                 val fragment = uri.fragment
@@ -58,9 +70,12 @@ class DeeplinkHandler @Inject constructor() {
                 Type.Cash(result)
             }
             else -> Type.Unknown(segment)
-        }
+        } ?: return null
 
         return when (type) {
+            is Type.Login -> {
+                type to listOf(LoginScreen(type.link))
+            }
             is Type.Cash -> {
                 Timber.d("cashlink=${type.link}")
                 type to listOf(HomeScreen(cashLink = type.link))
@@ -71,6 +86,7 @@ class DeeplinkHandler @Inject constructor() {
     }
 
     sealed interface Type {
+        data class Login(val link: String?): Type
         data class Cash(val link: String?): Type
         data object Sdk: Type
         data class Unknown(val path: String?): Type

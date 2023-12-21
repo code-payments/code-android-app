@@ -1,10 +1,7 @@
 package com.getcode.view.main.account
 
 import android.annotation.SuppressLint
-import androidx.navigation.NavController
-import com.getcode.manager.TopBarManager
-import com.getcode.navigation.CodeNavigator
-import com.getcode.network.repository.ApiDeniedException
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.view.login.BaseAccessKeyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers

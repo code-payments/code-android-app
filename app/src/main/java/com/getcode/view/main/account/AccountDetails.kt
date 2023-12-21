@@ -12,10 +12,10 @@ import androidx.compose.ui.Modifier
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.navigation.AccountAccessKeyScreen
-import com.getcode.navigation.DeleteCodeScreen
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.PhoneNumberScreen
+import com.getcode.navigation.screens.AccountAccessKeyScreen
+import com.getcode.navigation.screens.DeleteCodeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.PhoneNumberScreen
 
 @Composable
 fun AccountDetails(

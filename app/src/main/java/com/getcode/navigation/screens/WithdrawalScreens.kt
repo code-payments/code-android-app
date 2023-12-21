@@ -1,11 +1,11 @@
-package com.getcode.navigation
+package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.navigation.AccountAccessKeyScreen.ModalContainer
+import com.getcode.navigation.screens.AccountAccessKeyScreen.ModalContainer
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
@@ -41,7 +41,8 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph {
     }
 }
 
-data class WithdrawalAddressScreen(override val arguments: WithdrawalArgs = WithdrawalArgs()) : WithdrawalGraph {
+data class WithdrawalAddressScreen(override val arguments: WithdrawalArgs = WithdrawalArgs()) :
+    WithdrawalGraph {
 
     constructor(
         amountFiat: Double? = null,
@@ -74,7 +75,8 @@ data class WithdrawalAddressScreen(override val arguments: WithdrawalArgs = With
     }
 }
 
-data class WithdrawalSummaryScreen(override val arguments: WithdrawalArgs = WithdrawalArgs()) : WithdrawalGraph {
+data class WithdrawalSummaryScreen(override val arguments: WithdrawalArgs = WithdrawalArgs()) :
+    WithdrawalGraph {
 
     constructor(
         amountFiat: Double? = null,

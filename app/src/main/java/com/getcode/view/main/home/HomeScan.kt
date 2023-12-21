@@ -2,7 +2,6 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -69,8 +68,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
-import com.getcode.navigation.AccountModal
-import com.getcode.navigation.LocalCodeNavigator
+import com.getcode.navigation.screens.AccountModal
+import com.getcode.navigation.core.LocalCodeNavigator
 
 import com.getcode.theme.Black50
 import com.getcode.theme.Brand

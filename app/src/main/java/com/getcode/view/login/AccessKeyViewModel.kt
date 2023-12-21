@@ -6,21 +6,16 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.lifecycle.HiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
-import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
-import com.getcode.manager.TopBarManager
-import com.getcode.navigation.CodeLoginPermission
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.HomeScreen
-import com.getcode.navigation.LoginScreen
-import com.getcode.navigation.PermissionRequestScreen
-import com.getcode.network.repository.ApiDeniedException
+import com.getcode.navigation.screens.CodeLoginPermission
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58
-import com.getcode.view.*
 import javax.inject.Inject
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -66,7 +61,7 @@ class AccessKeyViewModel @Inject constructor(
                     onSubmitError(it)
                     analyticsManager.createAccount(false, null)
                     uiFlow.value = uiFlow.value.copy(isLoading = false)
-                    navigator.replaceAll(LoginScreen)
+                    navigator.replaceAll(LoginScreen())
                 }
             )
     }

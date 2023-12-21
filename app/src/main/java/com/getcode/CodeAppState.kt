@@ -19,14 +19,12 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginScreen
-import com.getcode.navigation.NamedScreen
-import com.getcode.view.LoginSections
-import com.getcode.view.login.LoginHome
+import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.NamedScreen
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 object MainDestinations {
@@ -85,9 +83,8 @@ class CodeAppState(
     val isVisibleTopBar: Pair<Boolean, Boolean>
         @Composable get() =
             Pair(
-                getScreen() != LoginScreen,
-                false// TODO:
-                // getScreen() != LoginSections.SEED_VIEW.route && getScreen() != LoginSections.SEED_DEEP_LINK.route
+                getScreen() !is LoginScreen,
+                getScreen() !is AccessKeyScreen,
             )
 
     val topBarMessage = MutableLiveData<TopBarManager.TopBarMessage?>()

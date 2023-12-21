@@ -3,12 +3,10 @@ package com.getcode.view.main.account.withdraw
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Bundle
-import androidx.navigation.NavController
 import com.getcode.App
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.WithdrawalArgs
-import com.getcode.navigation.WithdrawalSummaryScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.WithdrawalArgs
+import com.getcode.navigation.screens.WithdrawalSummaryScreen
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchDestinationMetadata
 import com.getcode.network.repository.TransactionRepository

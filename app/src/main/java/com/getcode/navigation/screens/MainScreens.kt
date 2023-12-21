@@ -1,15 +1,13 @@
-package com.getcode.navigation
+package com.getcode.navigation.screens
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.theme.topBarHeight
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.main.account.AccountAccessKey
 import com.getcode.view.main.account.AccountDebugOptions
@@ -21,7 +19,6 @@ import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.home.HomeScan
-import timber.log.Timber
 
 sealed interface MainGraph : Screen {
     fun readResolve(): Any = this

@@ -1,24 +1,21 @@
-package com.getcode.navigation
+package com.getcode.navigation.screens
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.theme.topBarHeight
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
 import com.getcode.view.login.CameraPermission
 import com.getcode.view.login.LoginHome
-import com.getcode.view.login.LoginViewModel
 import com.getcode.view.login.NotificationPermission
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
+import com.getcode.view.login.SeedDeepLink
 import com.getcode.view.login.SeedInput
 import com.getcode.view.login.SeedInputViewModel
 
@@ -34,7 +31,7 @@ data class LoginArgs(
 )
 
 
-data object LoginScreen : LoginGraph, NamedScreen {
+data class LoginScreen(val seed: String? = null) : LoginGraph, NamedScreen {
     override val name: String
         @Composable get() = stringResource(id = R.string.action_logIn)
 
@@ -42,8 +39,11 @@ data object LoginScreen : LoginGraph, NamedScreen {
 
     @Composable
     override fun Content() {
-        val viewModel = getViewModel<LoginViewModel>()
-        LoginHome(viewModel)
+        if (seed != null) {
+            SeedDeepLink(getViewModel())
+        } else {
+            LoginHome(getViewModel())
+        }
     }
 }
 

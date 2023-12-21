@@ -1,33 +1,17 @@
-package com.getcode.navigation
+package com.getcode.navigation.screens
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.R
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.sheetHeight
 import com.getcode.view.components.SheetTitle
-import com.getcode.view.login.LoginHome
-import com.getcode.view.login.LoginViewModel
-import com.getcode.view.login.PhoneConfirm
-import com.getcode.view.login.PhoneVerify
-import com.getcode.view.login.PhoneVerifyViewModel
-import com.getcode.view.login.SeedInput
-import com.getcode.view.login.SeedInputViewModel
-import com.getcode.view.main.getKin.BuyAndSellKin
 
 sealed interface NamedScreen {
 

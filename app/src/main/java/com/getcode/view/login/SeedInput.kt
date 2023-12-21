@@ -2,10 +2,8 @@ package com.getcode.view.login
 
 import android.Manifest
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -25,13 +23,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.navigation.CodeNavigator
-import com.getcode.navigation.LocalCodeNavigator
-import com.getcode.navigation.LoginArgs
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.view.components.*
 
 @Preview
