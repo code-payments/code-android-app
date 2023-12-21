@@ -3,18 +3,9 @@ package com.getcode.view
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
-import android.os.Debug
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.core.util.Consumer
 import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
-import androidx.navigation.findNavController
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
 import com.getcode.manager.AnalyticsManager
@@ -22,12 +13,10 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.client.Client
 import com.getcode.network.repository.PrefRepository
-import com.getcode.rememberCodeAppState
-import com.getcode.util.DeeplinkState
+import com.getcode.util.DeeplinkHandler
+import com.getcode.util.LocalDeeplinks
 import com.getcode.util.handleUncaughtException
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -35,16 +24,21 @@ import javax.inject.Inject
 class MainActivity : FragmentActivity() {
     @Inject
     lateinit var authManager: AuthManager
+
     @Inject
     lateinit var sessionManager: SessionManager
+
     @Inject
     lateinit var prefRepository: PrefRepository
+
     @Inject
     lateinit var client: Client
+
     @Inject
     lateinit var analyticsManager: AnalyticsManager
 
-    private var currentNavHostController: NavHostController? = null
+    @Inject
+    lateinit var deeplinkHandler: DeeplinkHandler
 
     override fun onPause() {
         super.onPause()
@@ -59,15 +53,13 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent != null) {
-            val cachedIntent = DeeplinkState.debounceIntent
+            val cachedIntent = deeplinkHandler.debounceIntent
             if (cachedIntent != null && cachedIntent.data == intent.data) {
                 Timber.d("Debouncing Intent " + intent.data)
-                DeeplinkState.debounceIntent = null
+                deeplinkHandler.debounceIntent = null
                 return
             }
-            Timber.d("Intent " + intent.data)
-//            currentNavHostController?.handleDeepLink(intent)
-            DeeplinkState.debounceIntent = intent
+            deeplinkHandler.debounceIntent = intent
         }
     }
 
@@ -77,9 +69,12 @@ class MainActivity : FragmentActivity() {
         handleUncaughtException()
         authManager.init(this)
         setFullscreen()
+        deeplinkHandler.debounceIntent = deeplinkHandler.checkIntent(intent)
         setContent {
-            //            currentNavHostController = appState.navController
-            CompositionLocalProvider(LocalAnalytics provides analyticsManager) {
+            CompositionLocalProvider(
+                LocalAnalytics provides analyticsManager,
+                LocalDeeplinks provides deeplinkHandler
+            ) {
                 CodeApp()
             }
         }

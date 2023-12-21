@@ -9,13 +9,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
-import androidx.navigation.NavGraphBuilder
-import androidx.navigation.navigation
+import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
-import com.getcode.navigation.AccountModal
 import com.getcode.navigation.BottomSheetNavigator
 import com.getcode.navigation.CodeNavigator
 import com.getcode.navigation.CombinedNavigator
@@ -23,19 +20,22 @@ import com.getcode.navigation.HomeScreen
 import com.getcode.navigation.LocalCodeNavigator
 import com.getcode.navigation.LoginScreen
 import com.getcode.navigation.MainRoot
-import com.getcode.navigation.ModalRoot
 import com.getcode.navigation.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
-import com.getcode.view.SheetSections
-import com.getcode.view.addSheetGraph
+import com.getcode.util.LocalDeeplinks
+import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold
 import com.getcode.view.components.TitleBar
 import com.getcode.view.components.TopBarContainer
-import com.getcode.view.main.home.HomeViewModel
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 
 @Composable
 fun CodeApp() {
@@ -56,13 +56,6 @@ fun CodeApp() {
                         codeNavigator.screensNavigator = navigator
                     }
 
-                    val onNavigateToLogin = {
-                        codeNavigator.replaceAll(LoginScreen)
-                    }
-                    val onNavigateToHomeScan = {
-                        codeNavigator.replaceAll(HomeScreen())
-                    }
-
                     val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
                     if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
                         TitleBar(
@@ -73,14 +66,19 @@ fun CodeApp() {
                     }
 
                     Box(modifier = Modifier.padding(innerPaddingModifier)) {
-                        SlideTransition(navigator = navigator)
+                        if (navigator.lastItem !is MainRoot) {
+                            SlideTransition(navigator = navigator)
+                        } else {
+                            CurrentScreen()
+                        }
                     }
 
                     //Listen for authentication changes here
                     AuthCheck(
                         navigator = appState.navigator,
-                        onNavigateToLogin = onNavigateToLogin,
-                        onNavigateToHome = onNavigateToHomeScan
+                        onNavigate = {
+                            navigator.replaceAll(it)
+                        }
                     )
                 }
             }

@@ -21,12 +21,13 @@ import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.home.HomeScan
+import timber.log.Timber
 
 sealed interface MainGraph : Screen {
     fun readResolve(): Any = this
 }
 
-data class HomeScreen(val cashLink: String = "") : MainGraph {
+data class HomeScreen(val cashLink: String? = null) : MainGraph {
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
