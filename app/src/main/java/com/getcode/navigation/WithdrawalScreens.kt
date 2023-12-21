@@ -1,18 +1,11 @@
 package com.getcode.navigation
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.theme.sheetHeight
-import com.getcode.view.components.SheetTitle
+import com.getcode.navigation.AccountAccessKeyScreen.ModalContainer
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
@@ -42,21 +35,7 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph {
 
     @Composable
     override fun Content() {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(sheetHeight)
-        ) {
-            val navigator = LocalCodeNavigator.current
-
-            SheetTitle(
-                title = name,
-                modifier = Modifier.padding(horizontal = 20.dp),
-                // hide while transitioning to/from other destinations
-                backButton = navigator.lastItem is WithdrawalAmountScreen,
-                closeButton = false,
-                onBackIconClicked = { navigator.pop() }
-            )
+        ModalContainer(backButton = { it is WithdrawalAmountScreen }) {
             AccountWithdrawAmount(viewModel = getViewModel())
         }
     }
@@ -89,21 +68,7 @@ data class WithdrawalAddressScreen(override val arguments: WithdrawalArgs = With
 
     @Composable
     override fun Content() {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(sheetHeight)
-        ) {
-            val navigator = LocalCodeNavigator.current
-
-            SheetTitle(
-                title = name,
-                modifier = Modifier.padding(horizontal = 20.dp),
-                // hide while transitioning to/from other destinations
-                backButton = navigator.lastItem is WithdrawalAddressScreen,
-                closeButton = false,
-                onBackIconClicked = { navigator.pop() }
-            )
+        ModalContainer(backButton = { it is WithdrawalAddressScreen }) {
             AccountWithdrawAddress(getViewModel(), arguments)
         }
     }
@@ -136,21 +101,7 @@ data class WithdrawalSummaryScreen(override val arguments: WithdrawalArgs = With
 
     @Composable
     override fun Content() {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(sheetHeight)
-        ) {
-            val navigator = LocalCodeNavigator.current
-
-            SheetTitle(
-                modifier = Modifier.padding(horizontal = 20.dp),
-                title = name,
-                // hide while transitioning to/from other destinations
-                backButton = navigator.lastItem is WithdrawalSummaryScreen,
-                closeButton = false,
-                onBackIconClicked = { navigator.pop() }
-            )
+        ModalContainer(backButton = { it is WithdrawalSummaryScreen }) {
             AccountWithdrawSummary(getViewModel(), arguments)
         }
     }

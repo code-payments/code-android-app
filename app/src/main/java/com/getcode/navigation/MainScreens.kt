@@ -41,9 +41,16 @@ data object AccountModal : MainGraph, ModalRoot {
 
     @Composable
     override fun Content() {
+        val navigator = LocalCodeNavigator.current
         ModalContainer(
             backButton = { false },
-            closeButton = { it is AccountModal }
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is AccountModal
+                } else {
+                    navigator.progress > 0f
+                }
+            }
         ) {
             AccountHome(getViewModel())
         }
