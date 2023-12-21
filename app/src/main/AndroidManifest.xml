@@ -51,6 +51,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
+                // TODO: This intent filter is designed to function exclusively on Android 11 and earlier versions.
+                // Digital app link handling is imperative for this use case.
+                // For detailed guidance and testing of digital app link (DAL) files, please consult the documentation at:
+                // https://developer.android.com/training/app-links/verify-android-applinks#test-dal-files
+
                 <data
                     android:scheme="https"
                     android:host="@string/root_url_app_no_protocol"
