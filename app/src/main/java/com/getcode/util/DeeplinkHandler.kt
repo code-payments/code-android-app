@@ -1,6 +1,7 @@
 package com.getcode.util
 
 import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
@@ -24,11 +25,7 @@ import javax.inject.Inject
  * authentication state is complete and override navigation - dropping the intent
  * in favour of the latest request in the navigation graph.
  */
-
-val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
-
-class DeeplinkHandler @Inject constructor(
-) {
+class DeeplinkHandler @Inject constructor() {
     var debounceIntent: Intent? = null
         set(value) {
             field = value
@@ -43,35 +40,7 @@ class DeeplinkHandler @Inject constructor(
     }
     fun handle(intent: Intent? = debounceIntent): Pair<Type, List<Screen>>? {
         val uri = intent?.data ?: return null
-
-        val type = when (val segment = uri.lastPathSegment) {
-            "login" -> {
-                if (SessionManager.isAuthenticated() == true) {
-                    null
-                } else {
-                    val fragment = uri.fragment
-                    val separator = "="
-                    val result = Key.entries
-                        .map { key -> "/${key.value}$separator" }
-                        .filter { prefix -> fragment?.startsWith(prefix) == true }
-                        .firstNotNullOfOrNull { prefix -> fragment?.removePrefix(prefix) }
-                    Type.Login(result)
-                }
-            }
-            "cash", "c" -> {
-                Timber.d("cashlink in ${uri}")
-                val fragment = uri.fragment
-                val separator = "="
-                val result = Key.entries
-                    .map { key -> "/${key.value}$separator" }
-                    .filter { prefix -> fragment?.startsWith(prefix) == true }
-                    .firstNotNullOfOrNull { prefix -> fragment?.removePrefix(prefix) }
-
-                Type.Cash(result)
-            }
-            else -> Type.Unknown(segment)
-        } ?: return null
-
+        val type = uri.deeplinkType ?: return null
         return when (type) {
             is Type.Login -> {
                 type to listOf(LoginScreen(type.link))
@@ -83,6 +52,28 @@ class DeeplinkHandler @Inject constructor(
             Type.Sdk -> null
             is Type.Unknown -> null
         }
+    }
+
+    private val Uri.deeplinkType: Type?
+        get() = when (val segment = lastPathSegment) {
+        "login" -> {
+            if (SessionManager.isAuthenticated() == true) {
+                null
+            } else {
+                Type.Login(getEntropy())
+            }
+        }
+        "cash", "c" -> Type.Cash(getEntropy())
+        else -> Type.Unknown(path = segment)
+    }
+
+    private fun Uri.getEntropy(): String? {
+        val fragment = fragment ?: return null
+
+        return Key.entries
+            .map { key -> "/${key.value}=" }
+            .filter { prefix -> fragment.startsWith(prefix) }
+            .firstNotNullOfOrNull { prefix -> fragment.removePrefix(prefix) }
     }
 
     sealed interface Type {
@@ -115,3 +106,5 @@ class DeeplinkHandler @Inject constructor(
         }
     }
 }
+
+val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
