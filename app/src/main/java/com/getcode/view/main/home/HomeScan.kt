@@ -73,6 +73,9 @@ import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.BalanceModal
+import com.getcode.navigation.screens.GetKinModal
+import com.getcode.navigation.screens.GiveKinModal
 
 import com.getcode.theme.Black50
 import com.getcode.theme.Brand
@@ -313,30 +316,15 @@ fun HomeScan(
     fun showBottomSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {
             when (bottomSheet) {
-                HomeBottomSheet.GIVE_KIN -> {
-                    isGiveKinSheetOpen = true
-                    giveKinSheetState.show()
-                }
-
-                HomeBottomSheet.NONE -> {}
-                HomeBottomSheet.ACCOUNT -> {
-                    navigator.show(AccountModal)
-                }
-
-                HomeBottomSheet.GET_KIN -> {
-                    isGetKinSheetOpen = true
-                    getKinSheetState.show()
-                }
-
-                HomeBottomSheet.BALANCE -> {
-                    isBalanceSheetOpen = true
-                    balanceSheetState.show()
-                }
-
+                HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
+                HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
+                HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
+                HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
                 HomeBottomSheet.FAQ -> {
                     isFaqSheetOpen = true
                     faqSheetState.show()
                 }
+                else -> Unit
             }
         }
         viewModel.onShowBottomSheet()

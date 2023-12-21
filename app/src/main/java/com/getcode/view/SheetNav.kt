@@ -169,13 +169,13 @@ fun NavGraphBuilder.addSheetGraph(
 //        onTitleChange(SheetSections.ACCOUNT_DEBUG_OPTIONS.title)
 //        AccountDebugOptions()
 //    }
-    composableItem(
-        route = SheetSections.GET_KIN.route
-    ) {
-        onBackButtonVisibilityChange(false)
-        onTitleChange(R.string.empty)
-        GetKin(onClose, navController, homeViewModel)
-    }
+//    composableItem(
+//        route = SheetSections.GET_KIN.route
+//    ) {
+//        onBackButtonVisibilityChange(false)
+//        onTitleChange(R.string.empty)
+//        GetKin(onClose, navController, homeViewModel)
+//    }
     composableItem(
         route = SheetSections.REFER_FRIEND.route
 

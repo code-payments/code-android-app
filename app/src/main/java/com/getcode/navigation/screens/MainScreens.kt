@@ -23,7 +23,11 @@ import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
+import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.getKin.BuyAndSellKin
+import com.getcode.view.main.getKin.GetKin
+import com.getcode.view.main.getKin.GetKinSheet
+import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScan
 import timber.log.Timber
 
@@ -40,6 +44,69 @@ data class HomeScreen(val cashLink: String? = null) : MainGraph {
     }
 }
 
+data object GetKinModal : MainGraph, ModalRoot {
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is GetKinModal
+                } else {
+                    navigator.progress > 0f
+                }
+            },
+        ) {
+            GetKin(getViewModel(), getViewModel())
+        }
+    }
+}
+
+data object GiveKinModal : MainGraph, ModalRoot {
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is GiveKinModal
+                } else {
+                    navigator.progress > 0f
+                }
+            },
+        ) {
+            GiveKinSheet(getViewModel(), getViewModel(), getViewModel())
+        }
+    }
+}
+
+data object BalanceModal : MainGraph, ModalRoot {
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is BalanceModal
+                } else {
+                    navigator.progress > 0f
+                }
+            },
+        ) {
+            BalanceSheet(getViewModel())
+        }
+    }
+}
+
 data object AccountModal : MainGraph, ModalRoot {
     override val key: ScreenKey = uniqueScreenKey
 
@@ -48,7 +115,6 @@ data object AccountModal : MainGraph, ModalRoot {
         val navigator = LocalCodeNavigator.current
         val viewModel = getViewModel<AccountSheetViewModel>()
         ModalContainer(
-            backButton = { false },
             displayLogo = true,
             onLogoClicked = { viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked) },
             closeButton = {
@@ -64,114 +130,6 @@ data object AccountModal : MainGraph, ModalRoot {
 
         LaunchedEffect(viewModel) {
             viewModel.dispatchEvent(AccountSheetViewModel.Event.Load)
-        }
-    }
-}
-
-data object BuySellScreen : MainGraph, ModalContent {
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is BuySellScreen }) {
-            BuyAndSellKin(getViewModel())
-        }
-    }
-}
-
-data object DepositKinScreen : MainGraph, ModalContent, NamedScreen {
-
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_depositKin)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is DepositKinScreen }) {
-            AccountDeposit()
-        }
-    }
-}
-
-data object FaqScreen : MainGraph, NamedScreen, ModalContent {
-
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_faq)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is FaqScreen }) {
-            AccountFaq(getViewModel())
-        }
-    }
-}
-
-data object AccountDebugOptionsScreen : MainGraph, NamedScreen, ModalContent {
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_myAccount)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is AccountDebugOptionsScreen }) {
-            AccountDebugOptions(getViewModel())
-        }
-    }
-}
-
-data object AccountDetailsScreen : MainGraph, NamedScreen, ModalContent {
-
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_myAccount)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is AccountDetailsScreen }) {
-            AccountDetails(getViewModel())
-        }
-    }
-}
-
-data object AccountAccessKeyScreen : MainGraph, NamedScreen, ModalContent {
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_accessKey)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is AccountAccessKeyScreen }) {
-            AccountAccessKey(getViewModel())
-        }
-    }
-}
-
-data object PhoneNumberScreen : MainGraph, NamedScreen, ModalContent {
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_phoneNumber)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is PhoneNumberScreen }) {
-            PhoneConfirm(getViewModel())
-        }
-    }
-}
-
-data object DeleteCodeScreen : MainGraph, NamedScreen, ModalContent {
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_deleteAccount)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is DeleteCodeScreen }) {
-            DeleteCodeAccount()
-        }
-    }
-}
-
-data object DeleteConfirmationScreen : MainGraph, NamedScreen, ModalContent {
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_deleteAccount)
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is DeleteConfirmationScreen }) {
-            ConfirmDeleteAccount()
         }
     }
 }

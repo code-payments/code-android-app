@@ -24,6 +24,8 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.util.conditionally
@@ -43,8 +45,11 @@ data class GetKinItem(
 )
 
 @Composable
-fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel: HomeViewModel) {
-    val viewModel = hiltViewModel<GetKinSheetViewModel>()
+fun GetKin(
+    viewModel: GetKinSheetViewModel,
+    homeViewModel: HomeViewModel
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     val items = listOf(
@@ -62,7 +67,7 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                     return@GetKinItem
                 }
 
-                viewModel.requestFirstKinAirdrop(upPress, homeViewModel)
+                viewModel.requestFirstKinAirdrop({ navigator.hide() }, homeViewModel)
             },
         ),
         GetKinItem(
@@ -79,7 +84,8 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
                     return@GetKinItem
                 }
 
-                navController.navigate(SheetSections.REFER_FRIEND.route)
+//                navigator.push()
+//                navController.navigate(SheetSections.REFER_FRIEND.route)
             },
         ),
         GetKinItem(
@@ -91,7 +97,7 @@ fun GetKin(upPress: () -> Unit = {}, navController: NavController, homeViewModel
             isLoading = false,
             isStrikeThrough = false,
             onClick = {
-                navController.navigate(SheetSections.BUY_AND_SELL_KIN.route)
+                navigator.push(BuySellScreen)
             },
         ),
     )

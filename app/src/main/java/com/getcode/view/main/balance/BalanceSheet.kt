@@ -40,6 +40,8 @@ import com.getcode.model.AirdropType
 import com.getcode.model.Currency
 import com.getcode.model.HistoricalTransaction
 import com.getcode.model.PaymentType
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.*
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.RepeatOnLifecycle
@@ -52,10 +54,9 @@ import timber.log.Timber
 
 @Composable
 fun BalanceSheet(
-    viewModel: BalanceSheetViewModel = hiltViewModel(),
-    upPress: () -> Unit = {},
-    faqOpen: () -> Unit = {},
+    viewModel: BalanceSheetViewModel,
 ) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
@@ -67,24 +68,10 @@ fun BalanceSheet(
         event = AnalyticsManager.Screen.Balance
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(sheetHeight)
-    ) {
-        SheetTitle(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            title = stringResource(R.string.title_balance),
-            onCloseIconClicked = upPress,
-            onBackIconClicked = { viewModel.setDebugBucketsVisible(false) },
-            closeButton = !dataState.isDebugBucketsVisible,
-            backButton = dataState.isDebugBucketsVisible,
-        )
-        if (dataState.isDebugBucketsVisible) {
-            AccountDebugBuckets()
-        } else {
-            BalanceContent(viewModel, dataState, upPress, faqOpen)
-        }
+    if (dataState.isDebugBucketsVisible) {
+        AccountDebugBuckets()
+    } else {
+        BalanceContent(viewModel, dataState, { navigator.hide() }, { navigator.push(FaqScreen) })
     }
 }
 
