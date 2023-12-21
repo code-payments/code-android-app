@@ -15,10 +15,14 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.LocaleUtils
 import com.getcode.view.BaseViewModel
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
 import timber.log.Timber
 import java.lang.StringBuilder
 import kotlin.math.min
@@ -73,34 +77,34 @@ abstract class BaseAmountCurrencyViewModel(
     open fun init() {
         numberInputHelper.reset()
 
-        viewModelScope.launch (Dispatchers.Default) {
-            launch {
-                 combine (
-                    currencyRepository.getRates(),
-                    balanceRepository.balanceFlow
-                ) { rates, balance ->
-                     setCurrencyUiModel(getCurrenciesUiModelWithRates(getCurrencyUiModel(), rates))
-                     setAmountUiModel(
-                         getAmountUiModel().copy(balanceKin = balance)
-                     )
+        combine (
+            currencyRepository.getRates().flowOn(Dispatchers.IO),
+            balanceRepository.balanceFlow,
+        ) { rates, balance ->
+            setCurrencyUiModel(getCurrenciesUiModelWithRates(getCurrencyUiModel(), rates))
+            setAmountUiModel(
+                getAmountUiModel().copy(balanceKin = balance)
+            )
+        }.launchIn(viewModelScope)
 
-                     SessionManager.getKeyPair()?.let {
-                         client.fetchTransactionLimits(it)
-                             .doOnNext { sendLimitsMap ->
-                                 setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimitsMap))
-                             }
-                             .flatMapSingle {
-                                 getDefaultAndRecentCurrencies()
-                             }
-                             .doOnNext { pair ->
-                                 val (selectedCurrencyCode, recentCurrencyCodes) = pair
-                                 onRecentCurrenciesChanged(recentCurrencyCodes)
-                                 onSelectedCurrencyChanged(selectedCurrencyCode)
-                             }
-                             .subscribe({}, ErrorUtils::handleError)
-                     }
-                 }.collect()
-            }
+        SessionManager.getKeyPair()?.let {
+            client.fetchTransactionLimits(it)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext { sendLimitsMap ->
+                    setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimitsMap))
+                }
+                .subscribeOn(Schedulers.io())
+                .flatMapSingle {
+                    getDefaultAndRecentCurrencies()
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext { pair ->
+                    val (selectedCurrencyCode, recentCurrencyCodes) = pair
+                    onRecentCurrenciesChanged(recentCurrencyCodes)
+                    onSelectedCurrencyChanged(selectedCurrencyCode)
+                }
+                .subscribe({}, ErrorUtils::handleError)
         }
     }
 
