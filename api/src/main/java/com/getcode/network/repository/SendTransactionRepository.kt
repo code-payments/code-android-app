@@ -35,7 +35,7 @@ class SendTransactionRepository @Inject constructor(
 
         this.payload = CodePayload(
             kind = Kind.Cash,
-            kin = amount.kin,
+            value = amount.kin,
             nonce = Random.nextBytes(11).toList()
         )
 
