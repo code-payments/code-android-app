@@ -13,6 +13,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.theme.CodeColors
+import com.getcode.theme.CodeTheme
 import com.getcode.util.nonScaledSp
 
 @Composable
@@ -37,7 +39,8 @@ fun BillAmount(modifier: Modifier = Modifier, text: String = "") {
                 text = text,
                 style = MaterialTheme.typography.h1.copy(
                     fontSize = 40.nonScaledSp
-                )
+                ),
+                color = CodeTheme.colors.onBackground
             )
         }
     }

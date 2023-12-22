@@ -3,9 +3,7 @@ package com.getcode.model
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
-import com.getcode.utils.toByteArray
 import org.kin.sdk.base.tools.byteArrayToLong
-import org.kin.sdk.base.tools.intToByteArray
 import org.kin.sdk.base.tools.longToByteArray
 import timber.log.Timber
 import java.nio.ByteBuffer
@@ -13,7 +11,7 @@ import java.nio.ByteBuffer
 data class CodePayload(
     val kind: Kind,
     val value: Value,
-    val nonce: List<Byte>
+    val nonce: List<Byte>,
 ) {
 
     val kin: Kin?

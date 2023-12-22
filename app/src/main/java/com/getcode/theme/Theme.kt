@@ -18,7 +18,8 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 private val DarkColorPalette = CodeColors(
     brand = Brand,
-    brandSecondary = BrandLight,
+    brandLight = BrandLight,
+    brandSubtle = BrandSubtle,
     background = Brand,
     onBackground = White
 )
@@ -53,13 +54,16 @@ object CodeTheme {
 @Stable
 class CodeColors(
     brand: Color,
-    brandSecondary: Color,
+    brandLight: Color,
+    brandSubtle: Color,
     background: Color,
     onBackground: Color,
 ) {
     var brand by mutableStateOf(brand)
         private set
-    var brandSecondary by mutableStateOf(brandSecondary)
+    var brandLight by mutableStateOf(brandLight)
+        private set
+    var brandSubtle by mutableStateOf(brandSubtle)
         private set
     var background by mutableStateOf(background)
         private set
@@ -68,14 +72,15 @@ class CodeColors(
 
     fun update(other: CodeColors) {
         brand = other.brand
-        brandSecondary = other.brandSecondary
+        brandLight = other.brandLight
         background = other.background
         onBackground = other.onBackground
     }
 
     fun copy(): CodeColors = CodeColors(
         brand = brand,
-        brandSecondary = brandSecondary,
+        brandLight = brandLight,
+        brandSubtle = brandSubtle,
         background = background,
         onBackground = onBackground,
     )

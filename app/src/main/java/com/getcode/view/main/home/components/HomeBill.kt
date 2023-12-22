@@ -1,4 +1,4 @@
-package com.getcode.view.main.home
+package com.getcode.view.main.home.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getcode.model.KinAmount
+import com.getcode.model.PaymentRequest
+import com.getcode.network.repository.Request
 import com.getcode.utils.FormatUtils
 import com.getcode.view.components.CustomSwipeToDismiss
 import com.getcode.view.main.bill.Bill
@@ -22,8 +24,8 @@ import timber.log.Timber
 fun HomeBill(
     modifier: Modifier = Modifier,
     dismissState: DismissState,
-    onClose: () -> Unit,
     billAmount: KinAmount?,
+    paymentRequest: Request? = null,
     payloadData: List<Byte> = listOf()
 ) {
     Box(
@@ -36,12 +38,11 @@ fun HomeBill(
             state = dismissState,
             dismissContent = {
                 Bill(
-                    modifier = Modifier.padding(bottom = 70.dp),
-                    onClose = onClose,
                     amount = FormatUtils.formatWholeRoundDown(
                         billAmount?.kin?.toKin()?.toDouble() ?: 0.0
                     ),
-                    payloadData = payloadData
+                    payloadData = payloadData,
+                    paymentRequest = paymentRequest
                 )
             },
             directions = setOf(DismissDirection.EndToStart, DismissDirection.StartToEnd),

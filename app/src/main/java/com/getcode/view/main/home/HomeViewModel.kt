@@ -1,5 +1,6 @@
 package com.getcode.view.main.home
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -19,6 +20,7 @@ import com.getcode.network.BalanceController
 import com.getcode.network.client.*
 import com.getcode.network.repository.*
 import com.getcode.solana.organizer.GiftCardAccount
+import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import com.getcode.util.FormatAmountUtils
 import com.getcode.util.VibrationUtil
@@ -54,6 +56,7 @@ data class HomeUiModel(
     val isBillSlideOutAnimated: Boolean = true,
     val billAmount: KinAmount? = null,
     val billPayloadData: List<Byte>? = null,
+    val paymentRequest: Request? = null,
     val billReceivedAmountText: String? = null,
     val isReceiveDialogVisible: Boolean = false,
     val isBalanceChangeToastVisible: Boolean = false,
@@ -74,6 +77,7 @@ class HomeViewModel @Inject constructor(
     private val client: Client,
     private val sendTransactionRepository: SendTransactionRepository,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
+    private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
     private val prefRepository: PrefRepository,
     private val analyticsManager: AnalyticsManager,
@@ -136,7 +140,6 @@ class HomeViewModel @Inject constructor(
         isVibrate: Boolean = false
     ) {
         val amountFloor = amount.copy(kin = amount.kin.toKinTruncating())
-
         if (amountFloor.fiat == 0.0 || amount.kin.toKinTruncatingLong() == 0L) return
         val owner = SessionManager.getKeyPair() ?: return
 
@@ -159,39 +162,46 @@ class HomeViewModel @Inject constructor(
         // this should not be in the view model
         sendTransactionDisposable?.dispose()
         sendTransactionRepository.init(amount = amountFloor, owner = owner)
-        sendTransactionDisposable = sendTransactionRepository.startTransaction(App.getInstance(), organizer)
-            .doOnNext {
-                hideBill(isSent = true, isVibrate = true)
-                analyticsManager.billHidden(
-                    amountFloor.kin,
-                    amountFloor.rate.currency,
-                    AnalyticsManager.BillPresentationStyle.Pop
-                )
-            }
-            .flatMapCompletable {
-                Completable.concatArray(
-                    balanceController.fetchBalance(),
-                    client.fetchLimits(isForce = true)
-                )
-            }
-            .subscribe({
-            }, {
-                ErrorUtils.handleError(it)
-                hideBill(isSent = false, isVibrate = false)
-            })
+        sendTransactionDisposable =
+            sendTransactionRepository.startTransaction(App.getInstance(), organizer)
+                .doOnNext {
+                    hideBill(isSent = true, isVibrate = true)
+                    analyticsManager.billHidden(
+                        amountFloor.kin,
+                        amountFloor.rate.currency,
+                        AnalyticsManager.BillPresentationStyle.Pop
+                    )
+                }
+                .flatMapCompletable {
+                    Completable.concatArray(
+                        balanceController.fetchBalance(),
+                        client.fetchLimits(isForce = true)
+                    )
+                }
+                .subscribe({
+                }, {
+                    ErrorUtils.handleError(it)
+                    hideBill(isSent = false, isVibrate = false)
+                })
 
-        updateBillState(amountFloor, sendTransactionRepository.payloadData, isReceived, isVibrate)
+        updateBillState(
+            amount = amountFloor,
+            billPayloadData = sendTransactionRepository.payloadData,
+            isReceived = isReceived,
+            isVibrate = isVibrate
+        )
     }
 
     private fun updateBillState(
         amount: KinAmount,
         billPayloadData: List<Byte>,
+        paymentRequest: Request? = null,
         isReceived: Boolean = false,
         isVibrate: Boolean = false
     ) {
         billDismissTimer?.cancel()
         billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
-            hideBill(isVibrate = false)
+            hideBill(isVibrate = false, timeout = true)
             analyticsManager.billTimeoutReached(
                 amount.kin,
                 amount.rate.currency,
@@ -202,8 +212,9 @@ class HomeViewModel @Inject constructor(
         uiFlow.update {
             it.copy(
                 isBillVisible = true,
-                isReceiveDialogVisible = isReceived,
+                isReceiveDialogVisible = isReceived && paymentRequest == null,
                 billPayloadData = billPayloadData,
+                paymentRequest = paymentRequest,
                 billAmount = amount,
                 billReceivedAmountText = FormatAmountUtils.formatAmountString(amount),
                 isBillSlideInAnimated = !isReceived,
@@ -217,28 +228,32 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun hideBill(isSent: Boolean? = null, isVibrate: Boolean = false) {
+    fun hideBill(isSent: Boolean? = null, isVibrate: Boolean = false, timeout: Boolean = false) {
         billDismissTimer?.cancel()
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
-        if (!uiFlow.value.isBillVisible && !uiFlow.value.isReceiveDialogVisible) {
+        if (!uiFlow.value.isBillVisible && !uiFlow.value.isReceiveDialogVisible && uiFlow.value.paymentRequest == null) {
             return
         }
 
         uiFlow.update { uiModel ->
             val amount = uiModel.billAmount
-            if (amount != null && !uiModel.isBalanceChangeToastVisible &&
-                (uiModel.isReceiveDialogVisible || isSent == true)) {
-                showBalanceChangeToast(amount, isNegative = isSent == true)
+            if (!(uiFlow.value.paymentRequest != null && timeout)) {
+                if (amount != null && !uiModel.isBalanceChangeToastVisible &&
+                    !(uiModel.paymentRequest != null && timeout) &&
+                    (uiModel.isReceiveDialogVisible || isSent == true)
+                ) {
+                    showBalanceChangeToast(amount, isNegative = isSent == true)
+                }
             }
 
             uiModel.copy(
                 isBillVisible = false,
-                isReceiveDialogVisible = false
+                isReceiveDialogVisible = false,
             ).let {
                 if (isSent != null) {
-                    it.copy(isBillSlideOutAnimated = !isSent)
+                    it.copy(isBillSlideOutAnimated = !isSent, paymentRequest = null)
                 } else {
                     it
                 }
@@ -249,7 +264,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun showBalanceChangeToast(balanceChangeAmount: KinAmount, isNegative: Boolean = false) {
+    private fun showBalanceChangeToast(
+        balanceChangeAmount: KinAmount,
+        isNegative: Boolean = false
+    ) {
         val amount = balanceChangeAmount.kin.toKinTruncatingLong()
         if (amount == 0L) {
             uiFlow.update {
@@ -291,7 +309,36 @@ class HomeViewModel @Inject constructor(
         analyticsManager.grabStart()
         val organizer = SessionManager.getOrganizer() ?: return
 
-        receiveTransactionRepository.start(organizer, payload.toList())
+        val codePayload = CodePayload.fromList(payload.toList())
+        Timber.d("codePayload=${codePayload.kind.name}")
+        when (codePayload.kind) {
+            Kind.Cash,
+            Kind.GiftCard -> {
+                attemptReceive(organizer, codePayload)
+            }
+
+            Kind.RequestPayment -> {
+                attemptPayment(codePayload)
+            }
+        }
+    }
+
+    private fun attemptPayment(payload: CodePayload) {
+        val request = paymentRepository.attempt(payload) ?: return
+        BottomBarManager.clear()
+
+        updateBillState(
+            amount = request.amount,
+            billPayloadData = request.payload.encode(),
+            isReceived = true,
+            paymentRequest = request,
+            isVibrate = true,
+        )
+    }
+
+    @SuppressLint("CheckResult")
+    private fun attemptReceive(organizer: Organizer, payload: CodePayload) {
+        receiveTransactionRepository.start(organizer, payload.nonce)
             .doOnNext { metadata ->
                 val kinAmount = when (metadata) {
                     is IntentMetadata.SendPrivatePayment -> metadata.metadata.amount
@@ -393,7 +440,7 @@ class HomeViewModel @Inject constructor(
                             )
                         }
                 }
-        }
+        }.filter { !uiFlow.value.isBillVisible }
             .doOnSuccess { code: ScannableKikCode ->
                 if (code is ScannableKikCode.RemoteKikCode) {
                     onCodeScan(code.payloadId)
@@ -537,7 +584,9 @@ class HomeViewModel @Inject constructor(
                                     onRemoteSendError(ex)
                                     removeLinkWithDelay(cashLink)
                                     setDeepLinkHandled(withDelay = 0)
-                                } else -> {
+                                }
+
+                                else -> {
                                     ErrorUtils.handleError(ex)
                                 }
                             }
@@ -560,11 +609,13 @@ class HomeViewModel @Inject constructor(
                     getString(R.string.error_title_alreadyCollected),
                     getString(R.string.error_description_alreadyCollected)
                 )
+
             is RemoteSendException.GiftCardExpiredException ->
                 TopBarManager.showMessage(
                     getString(R.string.error_title_linkExpired),
                     getString(R.string.error_description_linkExpired)
                 )
+
             else -> {
                 ErrorUtils.handleError(throwable)
             }

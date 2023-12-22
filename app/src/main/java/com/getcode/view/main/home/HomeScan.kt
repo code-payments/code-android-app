@@ -52,6 +52,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
@@ -86,6 +87,10 @@ import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.giveKin.GiveKinSheet
+import com.getcode.view.main.home.components.BillManagementOptions
+import com.getcode.view.main.home.components.HomeBill
+import com.getcode.view.main.home.components.HomeBottom
+import com.getcode.view.main.home.components.PaymentConfirmation
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -131,6 +136,7 @@ fun HomeScan(
     val scope = rememberCoroutineScope()
     val billVisibleState = remember { MutableTransitionState(false) }
     val receiveDialogVisibleState = remember { MutableTransitionState(false) }
+    val paymentConfirmationVisibleState = remember { MutableTransitionState(false) }
     val balanceChangeToastVisibleState = remember { MutableTransitionState(false) }
 
     var isInitBottomSheet by remember { mutableStateOf(false) }
@@ -446,54 +452,7 @@ fun HomeScan(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            ConstraintLayout(modifier = Modifier.fillMaxSize()) {
-                val (btnAccount, bottomActions, codeLogo) = createRefs()
-                Image(
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(vertical = 15.dp)
-                        .padding(horizontal = 15.dp)
-                        .constrainAs(codeLogo) {
-                            start.linkTo(parent.start)
-                            top.linkTo(parent.top)
-                        },
-                    painter = painterResource(
-                        R.drawable.ic_code_logo_white
-                    ),
-                    contentDescription = "",
-                )
-
-                Image(
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(vertical = 10.dp)
-                        .padding(horizontal = 15.dp)
-                        .constrainAs(btnAccount) {
-                            end.linkTo(parent.end)
-                            top.linkTo(parent.top)
-                        }
-                        .clip(CircleShape)
-                        .clickable {
-                            showBottomSheet(HomeBottomSheet.ACCOUNT)
-                        },
-                    painter = painterResource(
-                        R.drawable.ic_home_options
-                    ),
-                    contentDescription = "",
-                )
-
-                HomeBottom(
-                    modifier = Modifier
-                        .constrainAs(bottomActions) {
-                            bottom.linkTo(parent.bottom)
-                        }
-                        .padding(bottom = 16.dp),
-                    onPress = {
-                        showBottomSheet(it)
-                    },
-                    viewModel = homeViewModel,
-                )
-            }
+            DecorView { showBottomSheet(it) }
         }
 
         // Home bill composable?
@@ -520,10 +479,8 @@ fun HomeScan(
                     },
                 dismissState = billDismissState,
                 billAmount = dataState.billAmount,
-                payloadData = dataState.billPayloadData ?: listOf(),
-                onClose = {
-                    billVisibleState.targetState = false
-                }
+                payloadData = dataState.billPayloadData.orEmpty(),
+                paymentRequest = dataState.paymentRequest
             )
         }
 
@@ -540,77 +497,18 @@ fun HomeScan(
                     bottom.linkTo(parent.bottom)
                 },
         ) {
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .padding(bottom = 30.dp)
-                        .align(Alignment.BottomCenter)
-                ) {
-                    if (!dataState.isReceiveDialogVisible) {
-                        Row(
-                            modifier = Modifier
-                                .background(Gray50, RoundedCornerShape(30.dp))
-                                .clip(RoundedCornerShape(30.dp))
-                                .clickable {
-                                    if (!dataState.isRemoteSendLoading) homeViewModel.onRemoteSend(
-                                        context
-                                    )
-                                }
-                                .padding(vertical = 15.dp, horizontal = 20.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box {
-                                Row(
-                                    modifier = Modifier.alpha(if (!dataState.isRemoteSendLoading) 1f else 0f)
-                                ) {
-                                    Image(
-                                        painter = painterResource(R.drawable.ic_remote_send),
-                                        contentDescription = "",
-                                        modifier = Modifier.width(22.dp)
-                                    )
-                                    Text(
-                                        modifier = Modifier.padding(start = 10.dp),
-                                        text = stringResource(R.string.action_send)
-                                    )
-                                }
-
-                                if (dataState.isRemoteSendLoading) {
-                                    CircularProgressIndicator(
-                                        strokeWidth = 2.dp,
-                                        color = White,
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .align(Center)
-                                    )
-                                }
-                            }
-
-                        }
-
-                        Spacer(modifier = Modifier.width(16.dp))
-                    }
-                    Row(
-                        modifier = Modifier
-                            .background(Gray50, RoundedCornerShape(30.dp))
-                            .clip(RoundedCornerShape(30.dp))
-                            .clickable { homeViewModel.hideBill(isSent = false, isVibrate = false) }
-                            .padding(vertical = 15.dp, horizontal = 20.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_bill_close),
-                            contentDescription = "",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            modifier = Modifier.padding(start = 10.dp),
-                            text = stringResource(R.string.action_cancel)
-                        )
-                    }
+            BillManagementOptions(
+                showSend = !dataState.isReceiveDialogVisible && dataState.paymentRequest == null,
+                showCancel = dataState.paymentRequest == null,
+                isSending = dataState.isRemoteSendLoading,
+                onSend = { homeViewModel.onRemoteSend(context) },
+                onCancel = {
+                    homeViewModel.hideBill(
+                        isSent = false,
+                        isVibrate = false
+                    )
                 }
-            }
+            )
         }
 
         //Balance Changed Toast
@@ -693,6 +591,25 @@ fun HomeScan(
         }
     }
 
+    // Payment Confirmation container
+    AnimatedVisibility(
+        modifier = Modifier.fillMaxSize(),
+        visibleState = paymentConfirmationVisibleState,
+        enter = slideInVertically(
+            initialOffsetY = { it },
+            animationSpec = tween(durationMillis = 600, delayMillis = 450)
+        ),
+        exit = slideOutVertically(targetOffsetY = { it }),
+    ) {
+        PaymentConfirmation(
+            isSending = dataState.isRemoteSendLoading,
+            onSend = {  },
+            onCancel = {
+                homeViewModel.hideBill(isSent = false, isVibrate = false)
+            }
+        )
+    }
+
     OnLifecycleEvent { _, event ->
         when (event) {
             Lifecycle.Event.ON_START -> {
@@ -730,6 +647,12 @@ fun HomeScan(
             receiveDialogVisibleState.targetState = dataState.isReceiveDialogVisible
         }
     }
+    LaunchedEffect(dataState.paymentRequest) {
+        withContext(Dispatchers.Main) {
+            paymentConfirmationVisibleState.targetState = dataState.paymentRequest != null
+        }
+    }
+
     LaunchedEffect(dataState.isBalanceChangeToastVisible) {
         withContext(Dispatchers.Main) {
             balanceChangeToastVisibleState.targetState = dataState.isBalanceChangeToastVisible
