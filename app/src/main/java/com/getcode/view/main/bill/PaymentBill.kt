@@ -76,7 +76,7 @@ internal fun PaymentBill(
         val size = remember { mW * 0.65f }
 
         val data = remember(request.payload) {
-            request.payload.encode().toByteArray()
+            request.payload.codeData
         }
 
         Image(

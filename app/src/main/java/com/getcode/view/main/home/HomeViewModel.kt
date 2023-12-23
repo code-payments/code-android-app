@@ -329,7 +329,7 @@ class HomeViewModel @Inject constructor(
 
         updateBillState(
             amount = request.amount,
-            billPayloadData = request.payload.encode(),
+            billPayloadData = payload.codeData.toList(),
             isReceived = true,
             paymentRequest = request,
             isVibrate = true,

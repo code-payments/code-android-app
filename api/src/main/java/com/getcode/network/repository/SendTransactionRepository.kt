@@ -40,7 +40,7 @@ class SendTransactionRepository @Inject constructor(
         )
 
         val payloadEncoded = payload.encode().toByteArray()
-        this.payloadData = CodeScanner.Encode(payloadEncoded).toList()
+        this.payloadData = payload.codeData.toList()
         this.rendezvousKey = Ed25519.createKeyPair(Base64.encodeToString(Sha256Hash.hash(payloadEncoded), Base64.DEFAULT))
         this.receivingAccount = null
     }

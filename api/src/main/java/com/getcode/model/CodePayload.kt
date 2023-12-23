@@ -1,5 +1,6 @@
 package com.getcode.model
 
+import com.getcode.codeScanner.CodeScanner
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
@@ -23,6 +24,9 @@ data class CodePayload(
         get() {
             return value as? Fiat ?: return null
         }
+
+    val codeData: ByteArray
+        get() = CodeScanner.encode(encode().toByteArray())
 
     fun encode(): List<Byte> {
         return when (value) {
