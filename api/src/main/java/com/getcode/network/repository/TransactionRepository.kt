@@ -360,7 +360,7 @@ class TransactionRepository @Inject constructor(
 
                     Limits.newInstance(
                         map = map,
-                        maxDeposit = Kin.fromQuarks(it.depositLimits.maxQuarks),
+                        maxDeposit = Kin.fromQuarks(it.depositLimit.maxQuarks),
                     ).let { limits ->
                         Single.just(limits)
                     } ?: Single.error(IllegalStateException())

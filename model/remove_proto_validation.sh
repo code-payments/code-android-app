@@ -14,5 +14,8 @@ find proto/ -name "*.proto" -type f -exec sh -c "awk '{gsub(/}/, \"}\n\"); print
 # 4. strip validate import statement
 find proto/ -name "*.proto" -type f -exec sh -c "awk -v RS='' '{gsub(/import \"validate\/validate.proto\";/, \"\"); print}' {} > tmp && mv tmp {}" \;
 
-# 5. add a newline after all trailing } brackets
+# 5. strip validate required options
+find proto/ -name "*.proto" -type f -exec sh -c "awk -v RS='' '{gsub(/option \(validate.required\) = true;/, \"\"); print}' {} > tmp && mv tmp {}" \;
+
+# 6. add a newline after all trailing } brackets
 find proto/ -name "*.proto" -type f -exec sh -c "awk '{gsub(/}/, \"}\n\"); print}' {} > tmp && mv tmp {}" \;
