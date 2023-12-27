@@ -1,6 +1,6 @@
 package com.getcode.solana
 
-import com.getcode.keys.Hash
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.LENGTH_32
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.chunk

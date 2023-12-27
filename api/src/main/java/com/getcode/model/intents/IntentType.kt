@@ -2,7 +2,7 @@ package com.getcode.model.intents
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Signature
 import com.getcode.model.intents.actions.ActionType
 import com.getcode.model.intents.actions.numberActions
 import com.getcode.network.repository.*

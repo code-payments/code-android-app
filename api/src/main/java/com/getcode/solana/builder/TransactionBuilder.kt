@@ -1,6 +1,6 @@
 package com.getcode.solana.builder
 
-import com.getcode.keys.Hash
+import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType

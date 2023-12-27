@@ -1,6 +1,6 @@
 package com.getcode.model
 
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Signature
 
 data class ClientSignature(
     val transaction: Signature,

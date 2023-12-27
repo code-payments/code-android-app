@@ -1,6 +1,5 @@
 package com.getcode.solana.keys
 
-import com.getcode.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.network.repository.decodeBase58
 import org.junit.Assert.assertEquals

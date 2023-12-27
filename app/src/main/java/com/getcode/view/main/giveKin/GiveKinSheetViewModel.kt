@@ -108,7 +108,7 @@ class GiveKinSheetViewModel @Inject constructor(
         uiFlow.update {
             val minValue = if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
-                continueEnabled = numberInputHelper.amount >= minValue
+                continueEnabled = numberInputHelper.amount >= minValue && !it.amountModel.isInsufficient
             )
         }
     }

@@ -1,7 +1,7 @@
 package com.getcode.model.intents
 
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.getcode.keys.Hash
+import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.network.repository.toHash
 import com.getcode.network.repository.toPublicKey
