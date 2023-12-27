@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.manager.SessionManager
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
+import com.getcode.solana.organizer.SlotType
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandLight
 import com.getcode.view.components.MiddleEllipsisText
@@ -23,12 +24,24 @@ fun AccountDebugBuckets() {
     val accountInfo = SessionManager.getOrganizer()?.getAccountInfo()?.values?.toList() ?: return
 
     val accountList = accountInfo.toList().sortedBy {
-        when (it.accountType) {
+        when (val type = it.accountType) {
             AccountType.Primary -> 0
             AccountType.Incoming -> 1
             AccountType.Outgoing -> 2
-            is AccountType.Bucket -> (it.accountType as AccountType.Bucket).type.ordinal + 3
-            AccountType.RemoteSend -> 100
+            is AccountType.Bucket -> {
+                when (val slotType = type.type) {
+                    SlotType.Bucket1 -> 3
+                    SlotType.Bucket10 -> 4
+                    SlotType.Bucket100 -> 5
+                    SlotType.Bucket1k -> 6
+                    SlotType.Bucket10k -> 7
+                    SlotType.Bucket100k -> 8
+                    SlotType.Bucket1m -> 9
+                }
+            }
+            is AccountType.Relationship -> 10
+            AccountType.RemoteSend -> 11
+
         }
     }
 
@@ -40,6 +53,7 @@ fun AccountDebugBuckets() {
                 AccountType.Outgoing -> "Outgoing ${info.index}"
                 AccountType.Primary -> "Primary"
                 AccountType.RemoteSend -> "Remote Send"
+                is AccountType.Relationship -> "${accountType.domain.relationshipHost}"
             }
 
             Column(

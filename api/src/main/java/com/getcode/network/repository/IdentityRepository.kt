@@ -53,7 +53,7 @@ class IdentityRepository @Inject constructor(
                 GetUserResponse(
                     userId = it.user?.id?.value?.toList() ?: throw Exception("Error: Null data"),
                     dataContainerId = it.dataContainerId?.value?.toList() ?: throw Exception("Error: Null data"),
-                    enableDebugOptions = it.enableBetaFlags,
+                    enableDebugOptions = it.enableInternalFlags,
                     eligibleAirdrops = it.eligibleAirdropsList?.mapNotNull { value -> AirdropType.getInstance(value) }?.toSet() ?: throw Exception("Error: Null data"),
                     isPhoneNumberLinked = it.phone?.isLinked ?: throw Exception("Error: Null data")
                 )

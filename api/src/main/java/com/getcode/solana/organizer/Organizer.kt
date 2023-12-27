@@ -51,6 +51,7 @@ class Organizer(
 
     fun setAccountInfo(infos: Map<PublicKey, AccountInfo>) {
         this.accountInfos = infos
+        tray.createRelationships(context, infos)
         propagateBalances()
     }
 
@@ -84,7 +85,10 @@ class Organizer(
                         }
                         balances[info.accountType] = info.balance
                     }
-                    AccountType.Primary, is AccountType.Bucket, AccountType.RemoteSend -> {
+                    AccountType.Primary,
+                    is AccountType.Bucket,
+                    AccountType.RemoteSend,
+                    is AccountType.Relationship -> {
                         Timber.i("Non-indexed account mismatch. Account doesn't match server-provided account. Something is definitely wrong")
                     }
                 }
