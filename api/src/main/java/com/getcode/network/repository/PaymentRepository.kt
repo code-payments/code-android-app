@@ -21,6 +21,8 @@ import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.core.Maybe
+import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.lang.Exception
@@ -41,9 +43,6 @@ class PaymentRepository @Inject constructor(
     private val analytics: AnalyticsManager,
     private val balanceController: BalanceController,
 ) {
-
-    private var receivingAccount: PublicKey? = null
-
     fun attemptRequest(payload: CodePayload): Request? {
         val fiat = payload.fiat
         if (fiat == null) {
@@ -72,6 +71,7 @@ class PaymentRepository @Inject constructor(
         // 1. ensure we have exchange rates and compute the fees for this transaction
         exchange.fetchRatesIfNeeded()
 
+        var paymentAmount = amount
         return suspendCancellableCoroutine { cont ->
             runCatching {
                 val rateUsd = exchange.rateForUsd() ?: throw PaymentError.NoExchangeData()
@@ -86,7 +86,7 @@ class PaymentRepository @Inject constructor(
                 // current exchange rate
                 val newRate = exchange.rateFor(amount.rate.currency)
                     ?: throw PaymentError.ExchangeForCurrencyNotFound()
-                val paymentAmount = KinAmount.fromFiatAmount(
+                paymentAmount = KinAmount.fromFiatAmount(
                     fiat = amount.fiat,
                     rate = newRate
                 )
@@ -115,7 +115,8 @@ class PaymentRepository @Inject constructor(
                     }
                 }
 
-                client.transferWithResult(
+                // 5. Complete the transfer.
+                val transferResult = client.transferWithResult(
                     context = context,
                     amount = paymentAmount.copy(kin = paymentAmount.kin.toKinTruncating()),
                     fee = fee.kin,
@@ -123,27 +124,26 @@ class PaymentRepository @Inject constructor(
                     rendezvousKey = rendezvousKey.publicKeyBytes.toPublicKey(),
                     destination = receiveRequest.account,
                     isWithdrawal = true
-                ).doOnError { error -> // transfer failure
-                    analytics.transfer(
-                        amount = paymentAmount,
-                        successful = false
-                    )
-                    cont.resumeWithException(error)
-                }.flatMapCompletable {
+                ).blockingGet()
+
+                if (transferResult.isSuccess) {
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true)
-                    )
-                }.doOnComplete {
-                    analytics.transfer(
-                        amount = paymentAmount,
-                        successful = true,
-                    )
-                    cont.resume(Unit)
-                }.subscribe()
-            }.onFailure { error -> // preprocessing failure
+                    ).doOnComplete {
+                        analytics.transfer(
+                            amount = paymentAmount,
+                            successful = true,
+                        )
+                        cont.resume(Unit)
+                    }.subscribe()
+                } else {
+                    // pass exception down to onFailure for isolated handling
+                    throw transferResult.exceptionOrNull() ?: Throwable("Unable to complete payment")
+                }
+            }.onFailure { error ->
                 analytics.transfer(
-                    amount = amount,
+                    amount = paymentAmount,
                     successful = false
                 )
                 cont.resumeWithException(error)

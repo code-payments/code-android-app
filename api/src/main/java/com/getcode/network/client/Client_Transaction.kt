@@ -50,7 +50,13 @@ fun Client.transfer(
         rendezvousKey,
         destination,
         isWithdrawal
-    ).ignoreElement()
+    ).flatMapCompletable {
+        if (it.isSuccess) {
+            Completable.complete()
+        } else {
+            Completable.error(it.exceptionOrNull() ?: Throwable("Failed to complete transfer"))
+        }
+    }
 }
 
 fun Client.transferWithResult(
@@ -74,11 +80,6 @@ fun Client.transferWithResult(
             }
         }.map { Result.success(Unit) }
         .onErrorReturn { Result.failure(it) }
-        .doOnSuccess {
-            Timber.d("transfer completed.")
-        }.doOnError {
-            Timber.e(t = it, message = "transfer failed.")
-        }
 }
 
 fun Client.sendRemotely(
