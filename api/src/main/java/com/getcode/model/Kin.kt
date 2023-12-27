@@ -4,7 +4,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.floor
 
-data class Kin(val quarks: Long) {
+data class Kin(val quarks: Long): Value {
     init {
         if (quarks < 0) {
             throw IllegalStateException()
