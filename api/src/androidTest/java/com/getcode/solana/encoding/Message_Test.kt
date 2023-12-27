@@ -2,8 +2,7 @@ package com.getcode.solana.encoding
 
 
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.Hash
-import com.getcode.network.repository.encodeBase64
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.Message

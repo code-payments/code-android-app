@@ -3,16 +3,14 @@ package com.getcode.network.repository
 import android.util.Base64
 import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.Hash
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.google.protobuf.ByteString
-import com.getcode.utils.PhoneUtils
 import com.getcode.vendor.Base58
 import com.google.protobuf.MessageLite
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
 import java.net.URLEncoder
-import java.util.*
 
 fun isMock() = false
 

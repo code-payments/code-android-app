@@ -1,7 +1,7 @@
 package com.getcode.model
 
 import com.codeinc.gen.messaging.v1.MessagingService
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.PublicKey
 
 data class StreamMessage(val id: List<Byte>, val kind: Kind) {

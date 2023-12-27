@@ -1,8 +1,8 @@
 package com.getcode.model
 
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.getcode.keys.Hash
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Hash
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.instructions.programs.SystemProgram_AdvanceNonce
 import com.getcode.solana.instructions.programs.TimelockProgram_TransferWithAuthority

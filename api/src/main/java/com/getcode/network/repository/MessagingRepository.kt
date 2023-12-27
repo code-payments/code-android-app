@@ -4,7 +4,7 @@ import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
 import com.google.protobuf.ByteString
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Signature
 import com.getcode.model.PaymentRequest
 import com.getcode.solana.keys.PublicKey
 import com.getcode.network.core.NetworkOracle

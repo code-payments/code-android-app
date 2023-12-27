@@ -3,7 +3,7 @@ package com.getcode.models.intents.actions
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.keys.Hash
+import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.model.intents.ServerParameter
 import com.getcode.model.intents.actions.*
