@@ -4,30 +4,28 @@ import android.net.Uri
 import androidx.core.net.toUri
 
 
-data class Domain
-@Throws(java.lang.IllegalArgumentException::class)
-constructor(val uri: Uri) {
+data class Domain(
+    val relationshipHost: String,
+    val urlString: String
+) { companion object {
+        fun from(uri: Uri): Domain? {
+            val url =  if (uri.scheme == null) uri.buildUpon().scheme("https").build() else uri
 
-    @Throws(java.lang.IllegalArgumentException::class)
-    constructor(url: String): this(url.toUri())
+            val hostName = url.host
+            val baseHost = baseDomain(hostName)
 
-    var relationshipHost: String? = null
-        private set
-    var urlString: String? = null
-        private set
+            if (!(hostName != null && baseHost != null)) {
+               return null
+            }
 
-    init {
-        val url =  if (uri.scheme == null) uri.buildUpon().scheme("https").build() else uri
-
-        val hostName = url.host
-        val baseHost = baseDomain(hostName)
-
-        if (!(hostName != null && baseHost != null)) {
-            throw IllegalArgumentException()
+            return Domain(baseHost, uri.toString())
         }
 
-        urlString = uri.toString()
-        relationshipHost = baseHost
+        fun from(url: String?): Domain? {
+            url ?: return null
+            return from(url.toUri())
+        }
+
     }
 }
 

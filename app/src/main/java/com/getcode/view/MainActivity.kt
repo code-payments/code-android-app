@@ -59,6 +59,7 @@ class MainActivity : FragmentActivity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent != null) {
+            Timber.d("onNewIntent=${intent.data}")
             val cachedIntent = DeeplinkState.debounceIntent
             if (cachedIntent != null && cachedIntent.data == intent.data) {
                 Timber.d("Debouncing Intent " + intent.data)

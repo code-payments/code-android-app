@@ -128,7 +128,7 @@ object Libs {
         "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
 
     const val androidx_constraint_layout_compose =
-        "androidx.constraintlayout:constraintlayout-compose:1.0.0"
+        "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     //const val androidx_lifecycle_compose = androidx.lifecycle-viewmodel-compose:${Versions.androidx_lifecycle}"
 
     const val compose_ui = "androidx.compose.ui:ui:1.5.3"

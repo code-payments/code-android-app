@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,9 +17,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.requiredHeightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
@@ -35,12 +40,15 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.getcode.R
 import com.getcode.model.CodePayload
+import com.getcode.model.CurrencyCode
+import com.getcode.model.KinAmount
 import com.getcode.network.repository.Request
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Typography
@@ -49,19 +57,25 @@ import com.getcode.util.FormatAmountUtils
 import com.getcode.util.toAGColor
 import com.getcode.util.toDp
 import com.getcode.utils.FormatUtils
+import com.getcode.view.main.home.components.PriceWithFlag
 import com.kik.kikx.kincodes.KikCodeContentView
 import timber.log.Timber
 
 @Composable
 internal fun PaymentBill(
     modifier: Modifier = Modifier,
-    request: Request,
+    data: List<Byte>,
+    amount: KinAmount,
+    currencyCode: CurrencyCode?,
 ) {
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxHeight(0.62f)
-            .fillMaxWidth(0.88f)
+        modifier = Modifier
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = 20.dp)
+            .requiredHeight(screenHeight * 0.62f)
             .background(CodeTheme.colors.onBackground, shape = RoundedCornerShape(8.dp))
+            .then(modifier)
     ) {
         Image(
             painter = painterResource(
@@ -74,10 +88,6 @@ internal fun PaymentBill(
 
         val mW = maxWidth
         val size = remember { mW * 0.65f }
-
-        val data = remember(request.payload) {
-            request.payload.codeData
-        }
 
         Image(
             modifier = Modifier
@@ -113,7 +123,7 @@ internal fun PaymentBill(
                                         context,
                                         R.drawable.ic_logo_round_white
                                     )
-                                this.encodedKikCode = data
+                                this.encodedKikCode = data.toByteArray()
                             }
                         },
                         update = { }
@@ -121,27 +131,8 @@ internal fun PaymentBill(
                 }
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                val currencyCode = request.payload.fiat?.currency?.name
-                val flagResId = CurrencyUtils.getFlagByCurrency(currencyCode)
-                if (flagResId != null) {
-                    Icon(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .size(20.dp),
-                        painter = painterResource(id = flagResId),
-                        tint = Color.Unspecified,
-                        contentDescription = currencyCode?.let { "$it flag" }
-                    )
-                    Text(
-                        text = FormatAmountUtils.formatAmountString(request.amount),
-                        color = Color.Black,
-                        style = MaterialTheme.typography.body1
-                    )
-                }
+            if (currencyCode != null) {
+                PriceWithFlag(currency = currencyCode, amount = amount)
             }
         }
     }

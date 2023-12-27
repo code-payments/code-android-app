@@ -5,6 +5,7 @@ import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.PrefsBool
+import com.getcode.models.Bill
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.requestFirstKinAirdrop
@@ -69,9 +70,12 @@ class GetKinSheetViewModel @Inject constructor(
             .delay(300, TimeUnit.MILLISECONDS)
             .doOnSuccess {
                 homeViewModel.showBill(
-                    amount = it,
-                    isReceived = true,
-                    isVibrate = true,
+                    Bill.Cash(
+                        kind = Bill.Kind.firstKin,
+                        amount = it,
+                        didReceive = true
+                    ),
+                    vibrate = true,
                 )
 
                 uiFlow.update { model -> model.copy(

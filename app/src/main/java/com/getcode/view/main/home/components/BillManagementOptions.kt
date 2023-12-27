@@ -28,7 +28,7 @@ import com.getcode.theme.White
 @Composable
 internal fun BillManagementOptions(
     modifier: Modifier = Modifier,
-    showSend: Boolean,
+    showSend: Boolean = true,
     isSending: Boolean = false,
     sendEnabled: Boolean = true,
     showCancel: Boolean = true,

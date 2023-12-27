@@ -14,8 +14,16 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.*
 import com.getcode.model.*
+import com.getcode.models.Bill
+import com.getcode.models.BillState
+import com.getcode.models.BillToast
+import com.getcode.models.PaymentConfirmation
+import com.getcode.models.PaymentState
+import com.getcode.models.Valuation
+import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.client.*
 import com.getcode.network.repository.*
@@ -45,22 +53,23 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.concurrent.schedule
 import kotlin.concurrent.timerTask
+import kotlin.time.Duration.Companion.seconds
+
+sealed interface PresentationStyle {
+    data object Hidden : PresentationStyle
+    sealed interface Visible
+
+    data object Pop : PresentationStyle, Visible
+    data object Slide : PresentationStyle, Visible
+}
 
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
     val isCameraScanEnabled: Boolean = true,
     val isBottomSheetVisible: Boolean = false,
     val selectedBottomSheet: HomeBottomSheet? = null,
-    val isBillVisible: Boolean = false,
-    val isBillSlideInAnimated: Boolean = true,
-    val isBillSlideOutAnimated: Boolean = true,
-    val billAmount: KinAmount? = null,
-    val billPayloadData: List<Byte>? = null,
-    val paymentRequest: Request? = null,
-    val billReceivedAmountText: String? = null,
-    val isReceiveDialogVisible: Boolean = false,
-    val isBalanceChangeToastVisible: Boolean = false,
-    val balanceChangeToastText: String? = null,
+    val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
+    val billState: BillState = BillState(null, false, null, null, null, false),
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val isDeepLinkHandled: Boolean = false,
@@ -72,6 +81,7 @@ enum class RestrictionType {
     TIMELOCK_UNLOCKED
 }
 
+@SuppressLint("CheckResult")
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val client: Client,
@@ -135,27 +145,16 @@ class HomeViewModel @Inject constructor(
     }
 
     fun showBill(
-        amount: KinAmount,
-        isReceived: Boolean = false,
-        isVibrate: Boolean = false
+        bill: Bill,
+        vibrate: Boolean = false
     ) {
-        val amountFloor = amount.copy(kin = amount.kin.toKinTruncating())
-        if (amountFloor.fiat == 0.0 || amount.kin.toKinTruncatingLong() == 0L) return
+        val amountFloor = bill.amountFloored
+        if (amountFloor.fiat == 0.0 || bill.amount.kin.toKinTruncatingLong() == 0L) return
         val owner = SessionManager.getKeyPair() ?: return
 
         if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
             return ErrorUtils.showNetworkError()
         }
-
-        analyticsManager.billShown(
-            amountFloor.kin,
-            amountFloor.rate.currency,
-            if (isReceived) {
-                AnalyticsManager.BillPresentationStyle.Pop
-            } else {
-                AnalyticsManager.BillPresentationStyle.Slide
-            }
-        )
 
         val organizer = SessionManager.getOrganizer() ?: return
 
@@ -164,14 +163,6 @@ class HomeViewModel @Inject constructor(
         sendTransactionRepository.init(amount = amountFloor, owner = owner)
         sendTransactionDisposable =
             sendTransactionRepository.startTransaction(App.getInstance(), organizer)
-                .doOnNext {
-                    hideBill(isSent = true, isVibrate = true)
-                    analyticsManager.billHidden(
-                        amountFloor.kin,
-                        amountFloor.rate.currency,
-                        AnalyticsManager.BillPresentationStyle.Pop
-                    )
-                }
                 .flatMapCompletable {
                     Completable.concatArray(
                         balanceController.fetchBalance(),
@@ -179,114 +170,165 @@ class HomeViewModel @Inject constructor(
                     )
                 }
                 .subscribe({
-                }, {
-                    ErrorUtils.handleError(it)
-                    hideBill(isSent = false, isVibrate = false)
-                })
+                }, { ErrorUtils.handleError(it) })
 
-        updateBillState(
-            amount = amountFloor,
-            billPayloadData = sendTransactionRepository.payloadData,
-            isReceived = isReceived,
-            isVibrate = isVibrate
-        )
+        presentSend(sendTransactionRepository.payloadData, bill, vibrate)
     }
 
-    private fun updateBillState(
-        amount: KinAmount,
-        billPayloadData: List<Byte>,
-        paymentRequest: Request? = null,
-        isReceived: Boolean = false,
-        isVibrate: Boolean = false
-    ) {
-        billDismissTimer?.cancel()
-        billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
-            hideBill(isVibrate = false, timeout = true)
-            analyticsManager.billTimeoutReached(
-                amount.kin,
-                amount.rate.currency,
-                AnalyticsManager.BillPresentationStyle.Slide
-            )
+    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) =
+        viewModelScope.launch {
+            billDismissTimer?.cancel()
+            billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
+                cancelSend()
+                analyticsManager.billTimeoutReached(
+                    bill.amount.kin,
+                    bill.amount.rate.currency,
+                    AnalyticsManager.BillPresentationStyle.Slide
+                )
+            }
+
+            if (bill.didReceive) {
+                delay(300)
+                withContext(Dispatchers.Main) {
+                    uiFlow.update {
+                        val billState = it.billState
+                        it.copy(
+                            billState = billState.copy(
+                                valuation = Valuation(
+                                    bill.amount
+                                ),
+                                showToast = bill.didReceive
+                            )
+                        )
+                    }
+                }
+            }
+
+            val style: PresentationStyle =
+                if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
+
+            withContext(Dispatchers.Main) {
+                uiFlow.update {
+                    val billState = it.billState
+                    it.copy(
+                        presentationStyle = style,
+                        billState = billState.copy(
+                            bill = Bill.Cash(
+                                data = data,
+                                amount = bill.amount,
+                                didReceive = bill.didReceive
+                            ),
+                            showToast = bill.didReceive
+                        )
+                    )
+                }
+            }
+
+            if (style is PresentationStyle.Visible) {
+                analyticsManager.billShown(
+                    bill.amountFloored.kin,
+                    bill.amountFloored.rate.currency,
+                    when (style) {
+                        PresentationStyle.Pop -> AnalyticsManager.BillPresentationStyle.Pop
+                        PresentationStyle.Slide -> AnalyticsManager.BillPresentationStyle.Slide
+                    }
+                )
+            }
+
+            if (isVibrate) {
+                Timer().schedule(timerTask {
+                    VibrationUtil.vibrate()
+                }, 150)
+            }
         }
 
-        uiFlow.update {
-            it.copy(
-                isBillVisible = true,
-                isReceiveDialogVisible = isReceived && paymentRequest == null,
-                billPayloadData = billPayloadData,
-                paymentRequest = paymentRequest,
-                billAmount = amount,
-                billReceivedAmountText = FormatAmountUtils.formatAmountString(amount),
-                isBillSlideInAnimated = !isReceived,
-                isBillSlideOutAnimated = true,
-            )
-        }
-        if (isVibrate) {
-            Timer().schedule(timerTask {
-                VibrationUtil.vibrate()
-            }, 150)
-        }
-    }
-
-    fun hideBill(isSent: Boolean? = null, isVibrate: Boolean = false, timeout: Boolean = false) {
+    fun cancelSend(style: PresentationStyle = uiFlow.value.presentationStyle) {
         billDismissTimer?.cancel()
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
-        if (!uiFlow.value.isBillVisible && !uiFlow.value.isReceiveDialogVisible && uiFlow.value.paymentRequest == null) {
-            return
-        }
-
-        uiFlow.update { uiModel ->
-            val amount = uiModel.billAmount
-            if (!(uiFlow.value.paymentRequest != null && timeout)) {
-                if (amount != null && !uiModel.isBalanceChangeToastVisible &&
-                    !(uiModel.paymentRequest != null && timeout) &&
-                    (uiModel.isReceiveDialogVisible || isSent == true)
-                ) {
-                    showBalanceChangeToast(amount, isNegative = isSent == true)
-                }
-            }
-
-            uiModel.copy(
-                isBillVisible = false,
-                isReceiveDialogVisible = false,
-            ).let {
-                if (isSent != null) {
-                    it.copy(isBillSlideOutAnimated = !isSent, paymentRequest = null)
-                } else {
-                    it
-                }
-            }
-        }
-        if (isVibrate) {
-            VibrationUtil.vibrate()
-        }
-    }
-
-    private fun showBalanceChangeToast(
-        balanceChangeAmount: KinAmount,
-        isNegative: Boolean = false
-    ) {
-        val amount = balanceChangeAmount.kin.toKinTruncatingLong()
-        if (amount == 0L) {
-            uiFlow.update {
-                it.copy(isBalanceChangeToastVisible = false)
-            }
-            return
-        }
-
-        val amountText = StringBuilder()
-            .append(if (isNegative) "-" else "+")
-            .append(FormatAmountUtils.formatAmountString(balanceChangeAmount))
-            .toString()
+        val shown = showToastIfNeeded(style)
 
         uiFlow.update {
-            it.copy(isBalanceChangeToastVisible = true, balanceChangeToastText = amountText)
+            it.copy(
+                presentationStyle = PresentationStyle.Hidden,
+                billState = it.billState.copy(
+                    bill = null,
+                    valuation = null,
+                    hideBillButtons = false,
+                )
+            )
         }
-        Timer().schedule(5000) {
-            uiFlow.update {
-                it.copy(isBalanceChangeToastVisible = false)
+
+        viewModelScope.launch {
+            if (shown) {
+                delay(5.seconds.inWholeMilliseconds)
+            }
+            withContext(Dispatchers.Main) {
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(showToast = false)
+                    )
+                }
+            }
+        }
+
+    }
+
+    private fun showToastIfNeeded(style: PresentationStyle = uiFlow.value.presentationStyle): Boolean {
+        val billState = uiFlow.value.billState
+        val bill = billState.bill ?: return false
+
+        if (style is PresentationStyle.Pop || billState.showToast) {
+            showToast(
+                amount = bill.metadata.kinAmount,
+                isDeposit = when (style) {
+                    PresentationStyle.Slide -> true
+                    PresentationStyle.Pop -> false
+                    else -> false
+                }
+            )
+
+            return true
+        }
+
+        return false
+    }
+
+    private fun showToast(
+        amount: KinAmount,
+        isDeposit: Boolean = false
+    ) {
+        if (amount.kin.toKinTruncatingLong() == 0L) {
+            uiFlow.update { uiModel ->
+                val billState = uiModel.billState
+                uiModel.copy(
+                    billState = billState.copy(
+                        toast = null
+                    )
+                )
+            }
+            return
+        }
+
+        uiFlow.update {
+            it.copy(
+                billState = it.billState.copy(
+                    showToast = true,
+                    toast = BillToast(amount = amount, isDeposit = isDeposit)
+                )
+            )
+        }
+
+        Timer().schedule(5.seconds.inWholeMilliseconds) {
+            uiFlow.update { uiModel ->
+                val billState = uiModel.billState
+                uiModel.copy(
+                    billState = billState.copy(
+                        toast = null,
+                        showToast = false
+                    )
+                )
             }
         }
     }
@@ -324,16 +366,140 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun attemptPayment(payload: CodePayload) {
-        val request = paymentRepository.attempt(payload) ?: return
+        val request = paymentRepository.attemptRequest(payload) ?: return
         BottomBarManager.clear()
 
-        updateBillState(
-            amount = request.amount,
-            billPayloadData = payload.codeData.toList(),
-            isReceived = true,
-            paymentRequest = request,
-            isVibrate = true,
-        )
+        presentRequest(request)
+    }
+
+    private fun presentRequest(request: Request) {
+        uiFlow.update {
+            it.copy(
+                presentationStyle = PresentationStyle.Pop,
+                billState = it.billState.copy(
+                    bill = Bill.Payment(request = request),
+                    paymentConfirmation = PaymentConfirmation(
+                        state = PaymentState.AwaitingConfirmation,
+                        request.payload,
+                        requestedAmount = request.amount
+                    ),
+                    hideBillButtons = true
+                )
+            )
+        }
+
+
+        Timer().schedule(timerTask {
+            VibrationUtil.vibrate()
+        }, 150)
+    }
+
+    fun completePayment() = viewModelScope.launch {
+        // keep bill active while sending
+        billDismissTimer?.cancel()
+
+        val paymentConfirmation = uiFlow.value.billState.paymentConfirmation ?: return@launch
+        withContext(Dispatchers.Main) {
+            uiFlow.update {
+                val billState = it.billState
+                it.copy(
+                    billState = billState.copy(
+                        paymentConfirmation = paymentConfirmation.copy(state = PaymentState.Sending)
+                    ),
+                )
+            }
+        }
+
+        runCatching {
+            paymentRepository.completePayment(paymentConfirmation.requestedAmount, paymentConfirmation.payload.rendezvous) }
+            .onSuccess {
+                showToast(paymentConfirmation.requestedAmount, false)
+
+                withContext(Dispatchers.Main) {
+                    uiFlow.update {
+                        val billState = it.billState
+                        val confirmation = it.billState.paymentConfirmation ?: return@update it
+
+                        it.copy(
+                            billState = billState.copy(
+                                paymentConfirmation = confirmation.copy(state = PaymentState.Sent),
+                            ),
+                        )
+                    }
+                }
+
+                delay(500)
+                uiFlow.update {
+                    it.copy(
+                        presentationStyle = PresentationStyle.Hidden,
+                        billState = it.billState.copy(
+                            bill = null,
+                            paymentConfirmation = null,
+                            valuation = null,
+                            hideBillButtons = false,
+                        )
+                    )
+                }
+            }
+            .onFailure { error ->
+                error.printStackTrace()
+                TopBarManager.showMessage(
+                    "Payment Failed",
+                   "This payment request could not be paid at this time. Please try again later."
+                )
+                uiFlow.update { uiModel ->
+                    uiModel.copy(
+                        presentationStyle = PresentationStyle.Hidden,
+                        billState = uiModel.billState.copy(
+                            bill = null,
+                            showToast = false,
+                            paymentConfirmation = null,
+                            toast = null,
+                            valuation = null,
+                            hideBillButtons = false,
+                        )
+                    )
+                }
+            }
+    }
+
+    fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
+        val bill = uiFlow.value.billState.bill as? Bill.Payment ?: return
+        val amount = bill.request.amount
+
+        // TODO: analytics
+
+        if (rejected) {
+            if (!ignoreRedirect) {
+                // TODO: handle cancelURL
+            }
+        } else {
+            showToast(amount, isDeposit = false)
+
+            if (!ignoreRedirect) {
+                // TODO: handle successURL
+            }
+        }
+
+        uiFlow.update {
+            it.copy(
+                presentationStyle = PresentationStyle.Hidden,
+                billState = it.billState.copy(
+                    bill = null,
+                    showToast = false,
+                    paymentConfirmation = null,
+                    toast = null,
+                    valuation = null,
+                    hideBillButtons = false,
+                )
+            )
+        }
+    }
+
+    fun rejectPayment(ignoreRedirect: Boolean = false) {
+        cancelPayment(true, ignoreRedirect)
+        val payload = uiFlow.value.billState.paymentConfirmation?.payload  ?: return
+        paymentRepository.rejectPayment(payload)
     }
 
     @SuppressLint("CheckResult")
@@ -359,9 +525,8 @@ class HomeViewModel @Inject constructor(
                 BottomBarManager.clear()
 
                 showBill(
-                    amount = kinAmount,
-                    isReceived = true,
-                    isVibrate = true,
+                    Bill.Cash(kinAmount, didReceive = true),
+                    vibrate = true
                 )
             }
             .flatMapCompletable {
@@ -440,7 +605,7 @@ class HomeViewModel @Inject constructor(
                             )
                         }
                 }
-        }.filter { !uiFlow.value.isBillVisible }
+        }.filter { uiFlow.value.billState.bill == null }
             .doOnSuccess { code: ScannableKikCode ->
                 if (code is ScannableKikCode.RemoteKikCode) {
                     onCodeScan(code.payloadId)
@@ -462,6 +627,7 @@ class HomeViewModel @Inject constructor(
         authManager.logout(activity)
     }
 
+    @SuppressLint("CheckResult")
     fun onRemoteSend(context: Context) {
         val giftCard = GiftCardAccount.newInstance(context)
         val amount = sendTransactionRepository.getAmount()
@@ -531,15 +697,11 @@ class HomeViewModel @Inject constructor(
                     positiveText = getString(R.string.action_yes),
                     negativeText = getString(R.string.action_noTryAgain),
                     tertiaryText = getString(R.string.action_cancelSend),
-                    onPositive = { },
+                    onPositive = { cancelSend(style = PresentationStyle.Pop) },
                     onNegative = { showRemoteSendDialog(context, giftCard, amount) },
-                    onTertiary = { cancelRemoteSend(giftCard, amount) },
-                    onClose = {
-                        val isPositive = it == BottomBarManager.BottomBarActionType.Positive
-                        val isTertiary = it == BottomBarManager.BottomBarActionType.Tertiary
-                        if (isPositive || isTertiary) {
-                            hideBill(isSent = isPositive, isVibrate = isPositive)
-                        }
+                    onTertiary = {
+                        cancelRemoteSend(giftCard, amount)
+                        cancelSend(style = PresentationStyle.Slide)
                     },
                     type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
                     isDismissible = false,
@@ -573,7 +735,10 @@ class HomeViewModel @Inject constructor(
                             analyticsManager.onBillReceived()
                             viewModelScope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()
-                                showBill(amount, isReceived = true, isVibrate = true)
+                                showBill(
+                                    Bill.Cash(amount = amount, didReceive = true),
+                                    vibrate = true
+                                )
                                 removeLinkWithDelay(cashLink)
                                 setDeepLinkHandled()
                             }

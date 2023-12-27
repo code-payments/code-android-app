@@ -1,9 +1,11 @@
 package com.getcode.model
 
 import com.getcode.codeScanner.CodeScanner
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
+import com.getcode.utils.deriveRendezvousKey
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.longToByteArray
 import timber.log.Timber
@@ -14,6 +16,15 @@ data class CodePayload(
     val value: Value,
     val nonce: List<Byte>,
 ) {
+
+    val rendezvous: KeyPair
+
+    init {
+        rendezvous = when (value) {
+            is Fiat -> deriveRendezvousKey(encode(kind = kind, fiat = value, nonce = nonce).toByteArray())
+            is Kin -> deriveRendezvousKey(encode(kind = kind, kin = value, nonce = nonce).toByteArray())
+        }
+    }
 
     val kin: Kin?
         get() {

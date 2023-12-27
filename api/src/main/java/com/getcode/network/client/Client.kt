@@ -4,6 +4,7 @@ import android.content.Context
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
@@ -32,6 +33,7 @@ class Client @Inject constructor(
     internal val analyticsManager: AnalyticsManager,
     internal val prefRepository: PrefRepository,
     internal val currencyRepository: CurrencyRepository,
+    internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver
 ) {
 
@@ -76,6 +78,7 @@ class Client @Inject constructor(
     private suspend fun poll() {
         balanceController.fetchBalanceSuspend()
         currencyRepository.fetchRates()
+        exchange.fetchRatesIfNeeded()
         fetchLimits()
         fetchPrivacyUpgrades()
     }

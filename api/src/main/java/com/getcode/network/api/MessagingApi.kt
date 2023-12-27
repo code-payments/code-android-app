@@ -5,6 +5,7 @@ import com.codeinc.gen.messaging.v1.MessagingService.AckMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.AckMesssagesResponse
 import com.codeinc.gen.messaging.v1.MessagingService.OpenMessageStreamRequest
 import com.codeinc.gen.messaging.v1.MessagingService.OpenMessageStreamResponse
+import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.SendMessageRequest
 import com.codeinc.gen.messaging.v1.MessagingService.SendMessageResponse
 import com.getcode.network.core.GrpcApi
@@ -35,4 +36,8 @@ class MessagingApi @Inject constructor(
         api::sendMessage
             .callAsSingle(request)
             .subscribeOn(scheduler)
+
+    fun pollMessages(request: PollMessagesRequest) = api::pollMessages
+        .callAsSingle(request)
+        .subscribeOn(scheduler)
 }

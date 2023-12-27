@@ -3,7 +3,9 @@ package com.getcode.model.intents
 import android.content.Context
 import android.util.Log
 import com.codeinc.gen.transaction.v2.TransactionService
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.intents.actions.ActionFeePayment
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
@@ -20,6 +22,7 @@ class IntentPrivateTransfer(
     private val organizer: Organizer,
     private val destination: PublicKey,
     private val amount: KinAmount,
+    private val fee: Kin,
     private val isWithdrawal: Boolean,
 
     val resultTray: Tray,
@@ -50,7 +53,8 @@ class IntentPrivateTransfer(
             organizer: Organizer,
             destination: PublicKey,
             amount: KinAmount,
-            isWithdrawal: Boolean
+            fee: Kin,
+            isWithdrawal: Boolean,
         ): IntentPrivateTransfer {
             val currentTray = organizer.tray.copy()
             val startBalance = currentTray.availableBalance
@@ -82,11 +86,15 @@ class IntentPrivateTransfer(
                 }
             }
 
+            val feePayment = fee.takeIf { it > 0 }?.let {
+                ActionFeePayment.newInstance(currentTray.outgoing.getCluster(), fee)
+            }
+
             // 2. Transfer all collected funds from the temp
             // outgoing account to the destination account
 
             val outgoing = ActionWithdraw.newInstance(
-                kind = ActionWithdraw.Kind.NoPrivacyWithdraw(amount.kin),
+                kind = ActionWithdraw.Kind.NoPrivacyWithdraw(amount.kin - fee),
                 cluster = currentTray.outgoing.getCluster(),
                 destination = destination
             )
@@ -133,20 +141,24 @@ class IntentPrivateTransfer(
                 throw IntentPrivateTransferException.BalanceMismatchException()
             }
 
-            val group = ActionGroup().apply {
-                actions = listOf(
-                    *transfers.toTypedArray(),
-                    outgoing,
-                    *redistributes.toTypedArray(),
-                    *rotation.toTypedArray()
-                )
+            val group = ActionGroup()
+
+            group.actions += transfers
+            if (feePayment != null) {
+                group.actions += feePayment
             }
+            group.actions += listOf(
+                outgoing,
+                *redistributes.toTypedArray(),
+                *rotation.toTypedArray()
+            )
 
             return IntentPrivateTransfer(
                 id = rendezvousKey,
                 organizer = organizer,
                 destination = destination,
                 amount = amount,
+                fee = fee,
                 isWithdrawal = isWithdrawal,
                 actionGroup = group,
                 resultTray = currentTray,

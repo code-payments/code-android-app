@@ -68,10 +68,7 @@ sealed class AccountType {
                 Model.AccountType.REMOTE_SEND_GIFT_CARD -> RemoteSend
                 Model.AccountType.UNRECOGNIZED -> null
                 Model.AccountType.RELATIONSHIP -> {
-                    val domain = relationship?.domain?.value?.let {
-                        runCatching { Domain(it) }.getOrNull()
-                    } ?: return null
-
+                    val domain = Domain.from(relationship?.domain?.value) ?: return null
                     Relationship(domain)
                 }
                 Model.AccountType.ASSOCIATED_TOKEN_ACCOUNT -> null
