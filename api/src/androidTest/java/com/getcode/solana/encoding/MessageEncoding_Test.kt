@@ -1,6 +1,6 @@
 package com.getcode.solana.encoding
 
-import com.getcode.keys.Hash
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.network.repository.toByteList
 import com.getcode.solana.AccountMeta
