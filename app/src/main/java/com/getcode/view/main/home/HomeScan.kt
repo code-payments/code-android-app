@@ -671,7 +671,7 @@ private fun BillContainer(
                     contentAlignment = BottomCenter
                 ) {
                     PaymentConfirmation(
-                        state = dataState.billState.paymentConfirmation?.state,
+                        confirmation = dataState.billState.paymentConfirmation,
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {
                             homeViewModel.rejectPayment()

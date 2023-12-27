@@ -54,12 +54,20 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun PaymentConfirmation(
     modifier: Modifier = Modifier,
-    state: PaymentState?,
+    confirmation: PaymentConfirmation?,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
+    val state by remember(confirmation?.state) {
+        derivedStateOf { confirmation?.state }
+    }
+
     val isSending by remember(state) {
         derivedStateOf { state is PaymentState.Sending }
+    }
+
+    val requestedAmount by remember(confirmation?.requestedAmount) {
+        derivedStateOf { confirmation?.requestedAmount }
     }
 
     Column(
@@ -72,6 +80,19 @@ internal fun PaymentConfirmation(
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         if (state != null) {
+            requestedAmount?.let { amount ->
+                PriceWithFlag(
+                    currency = amount.rate.currency,
+                    amount = amount,
+                    iconSize = 24.dp
+                ) {
+                    Text(
+                        text = it,
+                        color = Color.White,
+                        style = MaterialTheme.typography.h1
+                    )
+                }
+            }
             SlideToConfirm(
                 isLoading = isSending,
                 isSuccess = state is PaymentState.Sent,
@@ -79,7 +100,8 @@ internal fun PaymentConfirmation(
             )
             AnimatedContent(
                 targetState = !isSending && state !is PaymentState.Sent,
-                transitionSpec = { fadeIn() togetherWith fadeOut() }
+                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                label = "show/hide cancel button"
             ) { show ->
                 if (show) {
                     TextButton(
@@ -99,6 +121,23 @@ internal fun PaymentConfirmation(
     }
 }
 
+private val payload = CodePayload(
+    Kind.RequestPayment,
+    value = Fiat(CurrencyCode.USD, 0.25),
+    nonce = listOf(
+        -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
+    ).map { it.toByte() }
+)
+
+private fun confirmationWithState(state: PaymentState) = PaymentConfirmation(
+    state = state,
+    payload = payload,
+    requestedAmount = KinAmount.fromFiatAmount(
+        fiat = 0.25,
+        fx = 0.00001585,
+        CurrencyCode.USD
+    )
+)
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Awaiting() {
@@ -110,7 +149,9 @@ fun Preview_PaymentConfirmModal_Awaiting() {
         ) {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                state = PaymentState.AwaitingConfirmation, onSend = { }) {
+                confirmation = confirmationWithState(PaymentState.AwaitingConfirmation),
+                onSend = { }
+            ) {
 
             }
         }
@@ -128,7 +169,9 @@ fun Preview_PaymentConfirmModal_Sending() {
         ) {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                state = PaymentState.Sending, onSend = { }) {
+                confirmation = confirmationWithState(PaymentState.Sending),
+                onSend = { }
+            ) {
 
             }
         }
@@ -146,7 +189,9 @@ fun Preview_PaymentConfirmModal_Sent() {
         ) {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                state = PaymentState.Sent, onSend = { }) {
+                confirmation = confirmationWithState(PaymentState.Sent),
+                onSend = { }
+            ) {
 
             }
         }
@@ -156,14 +201,6 @@ fun Preview_PaymentConfirmModal_Sent() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Interactive() {
-    val payload = CodePayload(
-        Kind.RequestPayment,
-        value = Fiat(CurrencyCode.USD, 0.25),
-        nonce = listOf(
-            -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
-        ).map { it.toByte() }
-    )
-
     CodeTheme {
         Box(
             modifier = Modifier
@@ -201,7 +238,7 @@ fun Preview_PaymentConfirmModal_Interactive() {
                         contentAlignment = Alignment.BottomCenter
                     ) {
                         PaymentConfirmation(
-                            state = confirmation?.state,
+                            confirmation = confirmation,
                             onSend = {
                                 confirmation = confirmation?.copy(state = PaymentState.Sending)
                             },

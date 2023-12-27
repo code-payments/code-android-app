@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
@@ -20,11 +21,23 @@ import com.getcode.model.KinAmount
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.FormatAmountUtils
 
+object PriceWithFlagDefaults {
+    @Composable
+    fun Text(label: String) {
+        Text(
+            text = label,
+            color = Color.Black,
+            style = MaterialTheme.typography.body1
+        )
+    }
+}
 @Composable
 internal fun PriceWithFlag(
     modifier: Modifier = Modifier,
     currency: CurrencyCode,
     amount: KinAmount,
+    iconSize: Dp = 20.dp,
+    text: @Composable (String) -> Unit = { PriceWithFlagDefaults.Text(label = it) },
 ) {
     Row(
         modifier = modifier,
@@ -37,16 +50,12 @@ internal fun PriceWithFlag(
             Icon(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .size(20.dp),
+                    .size(iconSize),
                 painter = painterResource(id = flagResId),
                 tint = Color.Unspecified,
                 contentDescription = currencyCode.let { "$it flag" }
             )
-            Text(
-                text = FormatAmountUtils.formatAmountString(amount),
-                color = Color.Black,
-                style = MaterialTheme.typography.body1
-            )
+            text(FormatAmountUtils.formatAmountString(amount),)
         }
     }
 }
