@@ -138,7 +138,11 @@ fun HomeScan(
     val billDismissState = rememberDismissState(
         initialValue = DismissValue.Default,
         confirmStateChange = {
-            it != DismissValue.DismissedToStart && dataState.billState.canSwipeToDismiss
+            val canDismiss = it != DismissValue.DismissedToStart && dataState.billState.canSwipeToDismiss
+            if (canDismiss) {
+                homeViewModel.cancelSend()
+            }
+            canDismiss
         }
     )
     var isPaused by remember { mutableStateOf(false) }
