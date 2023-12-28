@@ -10,10 +10,10 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.core.NetworkOracleImpl
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.CurrencyRepository
-import com.getcode.network.repository.PhoneRepository
 import com.getcode.view.main.connectivity.ConnectionRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -107,7 +107,7 @@ object ApiModule {
             privacyMigration,
             transactionReceiver,
 
-        )
+            )
     }
 
     @Singleton
@@ -120,7 +120,8 @@ object ApiModule {
         analyticsManager: AnalyticsManager,
         prefRepository: PrefRepository,
         currencyRepository: CurrencyRepository,
-        transactionReceiver: TransactionReceiver
+        transactionReceiver: TransactionReceiver,
+        exchange: Exchange
     ): Client {
         return Client(
             context,
@@ -130,7 +131,8 @@ object ApiModule {
             analyticsManager,
             prefRepository,
             currencyRepository,
-            transactionReceiver
+            exchange,
+            transactionReceiver,
         )
     }
 
@@ -148,8 +150,11 @@ object ApiModule {
 
     @Singleton
     @Provides
-    fun provideTransactionRepository(transactionApi: TransactionApiV2):TransactionRepository {
-        return TransactionRepository(transactionApi = transactionApi)
+    fun provideTransactionRepository(
+        @ApplicationContext context: Context,
+        transactionApi: TransactionApiV2,
+    ): TransactionRepository {
+        return TransactionRepository(transactionApi = transactionApi, context = context)
     }
 
     @Singleton

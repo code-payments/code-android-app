@@ -107,7 +107,7 @@ fun BottomSheetNavigator(
 
 @OptIn(ExperimentalMaterialApi::class)
 class BottomSheetNavigator @InternalVoyagerApi constructor(
-    private val navigator: Navigator,
+    internal val navigator: Navigator,
     private val sheetState: ModalBottomSheetState,
     private val coroutineScope: CoroutineScope
 ) : Stack<Screen> by navigator {

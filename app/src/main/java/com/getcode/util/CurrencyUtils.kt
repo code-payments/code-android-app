@@ -65,20 +65,18 @@ object CurrencyUtils {
     }
 
     private suspend fun getCurrency(code: CurrencyCode, scope: CoroutineScope): Currency {
-        if (code != CurrencyCode.KIN) {
-            val resId = scope.async { getFlagByCurrency(code.name) }
-            val currencyJava = scope.async { java.util.Currency.getInstance(code.name) }
-            val locale = scope.async { getLocale(code.getRegion()) }
+        if (code == CurrencyCode.KIN) return currencyKin
 
-            return Currency(
-                code = currencyJava.await().currencyCode,
-                name = currencyJava.await().displayName,
-                resId = resId.await(),
-                symbol = currencyJava.await().getSymbol(locale.await())
-            )
-        } else {
-            return currencyKin
-        }
+        val resId = scope.async { getFlagByCurrency(code.name) }
+        val currencyJava = scope.async { java.util.Currency.getInstance(code.name) }
+        val locale = scope.async { getLocale(code.getRegion()) }
+
+        return Currency(
+            code = currencyJava.await().currencyCode,
+            name = currencyJava.await().displayName,
+            resId = resId.await(),
+            symbol = currencyJava.await().getSymbol(locale.await())
+        )
     }
 
     /**

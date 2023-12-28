@@ -57,12 +57,16 @@ data class AccountInfo (
     ///     the balance, in quarks, may be greater than the original quark value.
     ///  3. The balance could have been received, so the total balance can show
     ///     as zero.
-    var originalKinAmount: KinAmount?
+    var originalKinAmount: KinAmount?,
+
+    /// The relationship with a third party that this account has established with.
+    /// This only applies to relevant account types (eg. RELATIONSHIP).
+    var relationship: Relationship?
 
 ) {
     companion object {
         fun newInstance(info: AccountService.TokenAccountInfo): AccountInfo? {
-            val accountType = AccountType.newInstance(info.accountType) ?: return null
+            val accountType = AccountType.newInstance(info.accountType, info.relationship) ?: return null
             val address = PublicKey(info.address.value.toByteArray().toList())
             val balanceSource = BalanceSource.getInstance(info.balanceSource) ?: return null
 
@@ -85,6 +89,9 @@ data class AccountInfo (
                 )
             }
 
+            val relationship = Domain.from(info.relationship.domain.value)
+                ?.let { Relationship(it) }
+
             return AccountInfo(
                 index = info.index.toInt(),
                 accountType = accountType,
@@ -97,7 +104,8 @@ data class AccountInfo (
                 blockchainState = blockchainState,
                 claimState = claimState,
                 mustRotate = info.mustRotate,
-                originalKinAmount = originalKinAmount
+                originalKinAmount = originalKinAmount,
+                relationship = relationship
             )
 
         }
@@ -226,4 +234,6 @@ data class AccountInfo (
 
         }
     }
+
+    data class Relationship(val domain: Domain)
 }

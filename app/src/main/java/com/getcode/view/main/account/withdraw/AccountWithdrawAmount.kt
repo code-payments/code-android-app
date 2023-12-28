@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
@@ -18,6 +19,7 @@ import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight
 import com.getcode.util.AnimationUtils
+import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
@@ -30,6 +32,11 @@ fun AccountWithdrawAmount(
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
+
+
+    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+        viewModel.reset()
+    }
 
     AnalyticsScreenWatcher(
         lifecycleOwner = LocalLifecycleOwner.current,
@@ -137,9 +144,5 @@ fun AccountWithdrawAmount(
         BackHandler {
             viewModel.setCurrencySelectorVisible(false)
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.init()
     }
 }

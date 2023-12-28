@@ -27,7 +27,7 @@ object Versions {
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
 
-    const val hilt = "2.48.1"
+    const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
     const val rxjava: String = "3.1.3"
@@ -129,7 +129,7 @@ object Libs {
         "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
 
     const val androidx_constraint_layout_compose =
-        "androidx.constraintlayout:constraintlayout-compose:1.0.0"
+        "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     //const val androidx_lifecycle_compose = androidx.lifecycle-viewmodel-compose:${Versions.androidx_lifecycle}"
 
     const val compose_ui = "androidx.compose.ui:ui:1.5.3"

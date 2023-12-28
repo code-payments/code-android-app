@@ -1,10 +1,11 @@
 package com.getcode.solana
 
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.*
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.LENGTH_64
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 import com.getcode.utils.DataSlice.chunk
 import com.getcode.utils.DataSlice.tail
 

@@ -40,5 +40,16 @@ object DataSlice {
         return container
     }
 
-    fun Byte.byteToUnsignedInt() = if (this < 0) this + 256 else this
+    fun Byte.byteToUnsignedInt() = if (this < 0) this + 256 else this.toInt()
+
+    fun ByteArray.toLong(): Long {
+        require(size <= 8) { "ByteArray size must be 8 bytes or less" }
+
+        var result: Long = 0
+        for (i in indices) {
+            result = result or ((this[i].toLong() and 0xFF) shl (i * 8))
+        }
+
+        return result
+    }
 }

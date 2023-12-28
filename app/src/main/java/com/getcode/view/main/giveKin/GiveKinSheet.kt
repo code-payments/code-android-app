@@ -1,9 +1,14 @@
 package com.getcode.view.main.giveKin
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -16,10 +21,10 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
-import com.getcode.theme.sheetHeight
 import com.getcode.util.AnimationUtils
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.showNetworkError
@@ -28,7 +33,6 @@ import com.getcode.utils.NetworkUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
-import com.getcode.view.components.SheetTitle
 import com.getcode.view.main.connectivity.NetworkConnectionViewModel
 import com.getcode.view.main.home.HomeViewModel
 
@@ -37,7 +41,7 @@ import com.getcode.view.main.home.HomeViewModel
 fun GiveKinSheet(
     viewModel: GiveKinSheetViewModel = hiltViewModel(),
     connectionViewModel: NetworkConnectionViewModel = hiltViewModel(),
-    homeViewModel: HomeViewModel = hiltViewModel()
+    billToSend: (Bill) -> Unit = { },
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
@@ -45,7 +49,7 @@ fun GiveKinSheet(
     val currencySelectorVisible = dataState.currencySelectorVisible
 
     RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.init()
+        viewModel.reset()
     }
 
     AnalyticsScreenWatcher(
@@ -127,8 +131,7 @@ fun GiveKinSheet(
                             }
 
                             val amount = viewModel.onSubmit() ?: return@CodeButton
-                            navigator.hide()
-                            homeViewModel.showBill(amount)
+                            navigator.hideWithResult(Bill.Cash(amount))
                         },
                         enabled = dataState.continueEnabled,
                         text = stringResource(R.string.action_next),

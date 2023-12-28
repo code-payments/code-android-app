@@ -28,7 +28,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.theme.White
 import com.getcode.theme.White05
-import com.getcode.util.conditionally
+import com.getcode.util.addIf
 import com.getcode.view.SheetSections
 import com.getcode.view.main.home.HomeViewModel
 
@@ -160,12 +160,10 @@ fun GetKin(
 
                     Row(
                         modifier = Modifier
-                            .conditionally(
-                                condition = item.isStrikeThrough.not(),
+                            .addIf(
+                                item.isStrikeThrough.not(),
                             ) {
-                                clickable {
-                                    item.onClick()
-                                }
+                                Modifier.clickable { item.onClick() }
                             }
                             .padding(vertical = 20.dp, horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,

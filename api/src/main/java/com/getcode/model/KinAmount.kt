@@ -1,6 +1,7 @@
 package com.getcode.model
 
 import com.codeinc.gen.transaction.v2.TransactionService.ExchangeData
+import com.getcode.utils.FormatUtils
 
 data class KinAmount(
     val kin: Kin,
@@ -39,6 +40,15 @@ data class KinAmount(
                 fiat = fiat,
                 fx = fx,
                 currencyCode = currencyCode
+            )
+        }
+
+        fun fromFiatAmount(fiat: Double, rate: Rate): KinAmount {
+            return fromFiatAmount(
+                kin = Kin.fromFiat(fiat = fiat, fx = rate.fx),
+                fiat = fiat,
+                fx = rate.fx,
+                currencyCode = rate.currency
             )
         }
 

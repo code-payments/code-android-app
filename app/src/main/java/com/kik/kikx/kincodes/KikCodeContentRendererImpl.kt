@@ -1,6 +1,7 @@
 package com.kik.kikx.kincodes
 
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.drawable.Drawable
@@ -77,8 +78,9 @@ class KikCodeContentRendererImpl : KikCodeContentRenderer {
                 // get correct bit from byte
                 val bitMask = 0x1 shl bitsRead % 8
 
+                val byteIndex = bitsRead / 8
                 // check if bit is on or off
-                val currentBit = (dataByteArray[bitsRead / 8] and bitMask.toByte()) != 0.toByte()
+                val currentBit = byteIndex < dataByteArray.count() && (dataByteArray[byteIndex] and bitMask.toByte()) != 0.toByte()
                 if (!currentBit) {
                     bitsRead++
                     continue
@@ -91,7 +93,8 @@ class KikCodeContentRendererImpl : KikCodeContentRenderer {
 
                 val nextOffset = (bitsRead - bitsReadBeforeCurrentRing + 1) % bitsPerRing + bitsReadBeforeCurrentRing
                 val nextBitMask = 0x1 shl nextOffset % 8
-                var nextBit = (dataByteArray[nextOffset / 8] and nextBitMask.toByte()) != 0.toByte()
+                val nextIndex = nextOffset / 8
+                var nextBit = nextIndex < dataByteArray.count() && (dataByteArray[nextOffset / 8] and nextBitMask.toByte()) != 0.toByte()
 
                 // This is for the edge case where the start bit of the ring and the end bit of the ring both are there to draw over
                 // Note:: nextbit in this case would be the first bit of the current ring (nextOffset is modded by bitsPerRing)

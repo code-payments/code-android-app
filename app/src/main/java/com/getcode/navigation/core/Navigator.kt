@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.Navigator
+import com.getcode.navigation.screens.AppScreen
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
     staticCompositionLocalOf { NavigatorNull() }
@@ -22,6 +23,7 @@ class NavigatorNull : CodeNavigator {
     override fun show(screen: Screen) = Unit
 
     override fun hide() = Unit
+    override fun <T> hideWithResult(result: T) = Unit
 
     override fun push(item: Screen) = Unit
 
@@ -34,6 +36,7 @@ class NavigatorNull : CodeNavigator {
     override fun replaceAll(items: List<Screen>, inSheet: Boolean) = Unit
 
     override fun pop(): Boolean = false
+    override fun <T> popWithResult(result: T) = false
 
     override fun popAll() = Unit
 
@@ -48,6 +51,7 @@ interface CodeNavigator {
     var screensNavigator: Navigator?
     fun show(screen: Screen)
     fun hide()
+    fun <T> hideWithResult(result: T)
     infix fun push(item: Screen)
 
     infix fun push(items: List<Screen>)
@@ -59,6 +63,7 @@ interface CodeNavigator {
     fun replaceAll(items: List<Screen>, inSheet: Boolean = true)
 
     fun pop(): Boolean
+    fun <T> popWithResult(result: T): Boolean
 
     fun popAll()
 
@@ -66,7 +71,7 @@ interface CodeNavigator {
 }
 
 class CombinedNavigator(
-    val sheetNavigator: BottomSheetNavigator
+    var sheetNavigator: BottomSheetNavigator
 ) : CodeNavigator {
     override var screensNavigator: Navigator? = null
 
@@ -87,6 +92,22 @@ class CombinedNavigator(
 
     override fun hide() {
         sheetNavigator.hide()
+    }
+
+    override fun <T> hideWithResult(result: T) {
+        with (sheetNavigator) {
+            var prev = if (size < 2) null else items[items.size - 2] as? AppScreen
+            if (prev == null) {
+                // grab last screen from base
+                prev = screensNavigator?.let {
+                    with (it) {
+                        items.lastOrNull() as AppScreen
+                    }
+                }
+            }
+            prev?.onResult(result)
+            hide()
+        }
     }
 
     override fun push(item: Screen) {
@@ -136,6 +157,24 @@ class CombinedNavigator(
             sheetNavigator.pop()
         } else {
             screensNavigator?.pop() ?: false
+        }
+    }
+
+    override fun <T> popWithResult(result: T): Boolean {
+        return if (isVisible) {
+            with (sheetNavigator) {
+                val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
+                prev?.onResult(result)
+                pop()
+            }
+        } else {
+            screensNavigator?.let {
+                with (it) {
+                    val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
+                    prev?.onResult(result)
+                    pop()
+                }
+            } ?: false
         }
     }
 

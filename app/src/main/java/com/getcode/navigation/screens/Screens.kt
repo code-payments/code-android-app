@@ -18,12 +18,23 @@ import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.sheetHeight
 import com.getcode.view.components.SheetTitle
+import kotlinx.coroutines.flow.MutableStateFlow
+import timber.log.Timber
 
-sealed interface NamedScreen {
+sealed interface NamedScreen: Screen {
 
     val name: String
         @Composable get() = ""
 
     val hasName: Boolean
         @Composable get() = name.isNotEmpty()
+}
+
+abstract class AppScreen: Screen {
+    var result =  MutableStateFlow<Any?>(null)
+
+    fun <T> onResult(obj: T) {
+        Timber.d("onResult=$obj")
+        result.value = obj
+    }
 }

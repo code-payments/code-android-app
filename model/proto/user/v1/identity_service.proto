@@ -1,33 +1,28 @@
 syntax = "proto3";
 package code.user.v1;
-option go_package = "github.com/code-wallet/code-api/genproto/user/v1;user";
+option go_package = "github.com/code-payments/code-protobuf-api/generated/go/user/v1;user";
 option java_package = "com.codeinc.gen.user.v1";
 option objc_class_prefix = "CPBUserV1";
 import "common/v1/model.proto";
 import "phone/v1/phone_verification_service.proto";
 import "transaction/v2/transaction_service.proto";
-
 service Identity {
-    // LinkAccount links an owner account to:
-    //   * the user identified and authenticated by a one-time use token
-    //   * any identifying features that support remote send
+    // LinkAccount links an owner account to the user identified and authenticated
+    // by a one-time use token.
+    //
     // Notably, this RPC has the following side effects:
     //   * A new user is automatically created if one doesn't exist.
     //   * Server will create a new data container for at least every unique
     //     owner account linked to the user.
-    //   * Previous links to identifying features that support remote send are
-    //     invalidated. Relinking must occur to restore previous state.
     rpc LinkAccount(LinkAccountRequest) returns (LinkAccountResponse);
     // UnlinkAccount removes links from an owner account. It will NOT remove
     // existing associations between users, owner accounts and identifying
-    // features. Currently, the RPC will remove:
-    //   * remote send features for any applicable identifying features
+    // features.
+    //
     // The following associations will remain intact to ensure owner accounts
     // can continue to be used with a consistent login experience:
     //   * the user continues to be associated to existing owner accounts and
     //     identifying features
-    //   * identifying features whose remote send was disabled continue to be
-    //     associated with the owner account
     //
     // Client can continue mainting their current login session. Their current
     // user and data container will remain the same.
@@ -40,7 +35,6 @@ service Identity {
     // GetUser gets user information given a user identifier and an owner account.
     rpc GetUser(GetUserRequest) returns (GetUserResponse);
 }
-
 message LinkAccountRequest {
     // The public key of the owner account that will be linked to a user.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -54,9 +48,7 @@ message LinkAccountRequest {
         // SMS code using the phone verification service.
         phone.v1.PhoneLinkingToken phone = 3;
     }
-
 }
-
 message LinkAccountResponse {
     Result result = 1;
     enum Result {
@@ -69,7 +61,6 @@ message LinkAccountResponse {
         // retry at a later time.
         RATE_LIMITED = 2;
     }
-
     // The user that was linked to the owner account
     User user = 2;
     // The data container where the user can store a copy of their data
@@ -81,9 +72,7 @@ message LinkAccountResponse {
         // Metadata that corresponds to a phone-based identifying feature.
         PhoneMetadata phone = 5;
     }
-
 }
-
 message UnlinkAccountRequest {
     // The public key of the owner account that will be unliked.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -92,13 +81,10 @@ message UnlinkAccountRequest {
     // mechanism to the RPC.
     common.v1.Signature signature = 2;
     oneof identifying_feature {
-        // The phone number associated with the owner account. Remote send features
-        // will be disabled on success.
+        // The phone number associated with the owner account.
         common.v1.PhoneNumber phone_number = 4;
     }
-
 }
-
 message UnlinkAccountResponse {
     Result result = 1;
     enum Result {
@@ -107,9 +93,7 @@ message UnlinkAccountResponse {
         // that never had a valid association.
         NEVER_ASSOCIATED = 1;
     }
-
 }
-
 message GetUserRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -121,9 +105,7 @@ message GetUserRequest {
     oneof identifying_feature {
         common.v1.PhoneNumber phone_number = 3;
     }
-
 }
-
 message GetUserResponse {
     Result result = 1;
     enum Result {
@@ -135,7 +117,6 @@ message GetUserResponse {
         // The user exists, but at least one of their timelock accounts is unlocked
         UNLOCKED_TIMELOCK_ACCOUNT = 3;
     }
-
     // The user associated with the identifier
     User user = 2;
     // The data container where the user can store a copy of their data
@@ -147,13 +128,11 @@ message GetUserResponse {
         // Metadata that corresponds to a phone-based identifying feature.
         PhoneMetadata phone = 5;
     }
-
-    // Whether client beta flags are enabled for this user
-    bool enable_beta_flags = 6;
+    // Whether client internal flags are enabled for this user
+    bool enable_internal_flags = 6;
     // Set of which airdrops the user is eligible to receive
     repeated transaction.v2.AirdropType eligible_airdrops = 7;
 }
-
 // User is the highest order of a form of identity.
 message User {
     // The user's ID
@@ -161,7 +140,6 @@ message User {
     // The identifying features that are associated with the user
     View view = 2;
 }
-
 // View is a well-defined set of identifying features. It is contrained to having
 // exactly one feature set at a time, for now.
 message View {
@@ -171,7 +149,6 @@ message View {
     //       supported to date.
     common.v1.PhoneNumber phone_number = 1;
 }
-
 message PhoneMetadata {
     // State that determines whether a phone number is linked to the owner
     // account. A phone number is linked if we can treat it as an alias.
@@ -179,4 +156,3 @@ message PhoneMetadata {
     // of whether the number was linked at any point in time.
     bool is_linked = 1;
 }
-

@@ -2,10 +2,14 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
+import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.google.protobuf.ByteString
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.Signature
+import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.solana.keys.Signature
 import com.getcode.model.PaymentRequest
+import com.getcode.model.StreamMessage
 import com.getcode.solana.keys.PublicKey
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.MessagingApi
@@ -17,6 +21,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
+import kotlin.math.sign
 
 private const val TAG = "MessagingRepository"
 
@@ -26,13 +31,13 @@ class MessagingRepository @Inject constructor(
 ) {
 
     fun openMessageStream(
-        rendezvousKeyPair: Ed25519.KeyPair,
+        rendezvousKeyPair: KeyPair,
     ): Flowable<PaymentRequest> {
         Timber.i("openMessageStream")
 
         val request = MessagingService.OpenMessageStreamRequest.newBuilder()
             .setRendezvousKey(
-                MessagingService.RendezvousKey.newBuilder().setValue(
+                RendezvousKey.newBuilder().setValue(
                     ByteString.copyFrom(rendezvousKeyPair.publicKeyBytes)
                 )
             )
@@ -54,8 +59,10 @@ class MessagingRepository @Inject constructor(
             .filter { it.isNotEmpty() }
             .map { messagesList ->
                 messagesList.map { message ->
-                    val account = message.requestToGrabBill.requestorAccount.value.toByteArray().toPublicKey()
-                    val signature = Signature(message.sendMessageRequestSignature.value.toByteArray().toList())
+                    val account =
+                        message.requestToGrabBill.requestorAccount.value.toByteArray().toPublicKey()
+                    val signature =
+                        Signature(message.sendMessageRequestSignature.value.toByteArray().toList())
                     PaymentRequest(account, signature)
                 }.first()
             }
@@ -67,13 +74,13 @@ class MessagingRepository @Inject constructor(
     }
 
     private fun ackMessages(
-        rendezvousKeyPair: Ed25519.KeyPair,
+        rendezvousKeyPair: KeyPair,
         messageIds: List<MessagingService.MessageId>
     ): Completable {
         val request = MessagingService.AckMessagesRequest.newBuilder()
             .addAllMessageIds(messageIds)
             .setRendezvousKey(
-                MessagingService.RendezvousKey.newBuilder().setValue(
+                RendezvousKey.newBuilder().setValue(
                     ByteString.copyFrom(rendezvousKeyPair.publicKeyBytes)
                 )
             )
@@ -92,7 +99,7 @@ class MessagingRepository @Inject constructor(
 
     fun verifyRequestForPayment(
         destination: PublicKey,
-        rendezvousKey: Ed25519.KeyPair,
+        rendezvousKey: KeyPair,
         signature: Signature
     ): Boolean {
         val messageData = requestForPayment(destination = destination).build().toByteArray()
@@ -101,7 +108,7 @@ class MessagingRepository @Inject constructor(
 
     fun sendRequestForPayment(
         destination: ByteArray,
-        rendezvousKeyPair: Ed25519.KeyPair,
+        rendezvousKeyPair: KeyPair,
     ): Flowable<MessagingService.SendMessageResponse> {
         val requestor = destination.toSolanaAccount()
         val paymentRequest = MessagingService.RequestToGrabBill.newBuilder()
@@ -117,7 +124,7 @@ class MessagingRepository @Inject constructor(
         val request = MessagingService.SendMessageRequest.newBuilder()
             .setMessage(message)
             .setRendezvousKey(
-                MessagingService.RendezvousKey.newBuilder().setValue(
+                RendezvousKey.newBuilder().setValue(
                     ByteString.copyFrom(rendezvousKeyPair.publicKeyBytes)
                 )
             )
@@ -129,6 +136,52 @@ class MessagingRepository @Inject constructor(
             .doOnEach {
                 Timber.i("sendRequestForPayment: result: ${it.value?.result}")
             }
+    }
+
+    fun fetchMessages(rendezvous: KeyPair): Result<List<StreamMessage>> {
+        val request = PollMessagesRequest.newBuilder()
+            .setRendezvousKey(
+                RendezvousKey.newBuilder()
+                    .setValue(ByteString.copyFrom(rendezvous.publicKeyBytes))
+            ).let {
+                val bos = ByteArrayOutputStream()
+                it.buildPartial().writeTo(bos)
+                it.setSignature(Ed25519.sign(bos.toByteArray(), rendezvous).toSignature())
+            }
+            .build()
+
+        return networkOracle.managedRequest(messagingApi.pollMessages(request))
+            .map { response ->
+                Timber.d("response=${response.messagesList}")
+                response.messagesList.mapNotNull { m -> StreamMessage.getInstance(m) }
+            }.firstOrError().blockingGet().runCatching { this }
+    }
+
+    fun rejectPayment(rendezvous: KeyPair): Result<Flowable<MessagingService.SendMessageResponse>> {
+        val rejection = MessagingService.ClientRejectedPayment.newBuilder()
+            .setIntentId(PublicKey.fromBase58(rendezvous.getPublicKeyBase58()).toIntentId())
+            .build()
+
+        val message = MessagingService.Message.newBuilder()
+            .setClientRejectedPayment(rejection)
+
+        val signature = ByteArrayOutputStream().let {
+            message.buildPartial().writeTo(it)
+            val signed = Ed25519.sign(it.toByteArray(), rendezvous)
+            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
+        }
+
+        RendezvousKey.parseFrom(ByteString.copyFrom(rendezvous.publicKeyBytes))
+        val request = MessagingService.SendMessageRequest.newBuilder()
+            .setMessage(message)
+            .setRendezvousKey(RendezvousKey.parseFrom(ByteString.copyFrom(rendezvous.publicKeyBytes)))
+            .setSignature(signature)
+            .build()
+
+        return runCatching {
+            messagingApi.sendMessage(request)
+                .let { networkOracle.managedRequest(it) }
+        }
     }
 
     private fun requestForPayment(destination: PublicKey): MessagingService.Message.Builder {

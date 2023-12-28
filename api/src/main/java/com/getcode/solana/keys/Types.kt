@@ -1,6 +1,4 @@
-package com.getcode.keys
-
-import com.getcode.solana.keys.*
+package com.getcode.solana.keys
 
 typealias Seed16 = Key16
 

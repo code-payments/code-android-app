@@ -14,6 +14,7 @@ import com.kik.scan.Scanner
 import com.kik.scan.UsernameKikCode
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 
 class KikCodeScannerImpl : KikCodeScanner {

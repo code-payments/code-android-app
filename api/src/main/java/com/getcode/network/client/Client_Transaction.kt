@@ -1,5 +1,6 @@
 package com.getcode.network.client
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
@@ -17,6 +18,8 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.*
@@ -33,23 +36,50 @@ fun Client.createAccounts(organizer: Organizer): Completable {
 fun Client.transfer(
     context: Context,
     amount: KinAmount,
+    fee: Kin = Kin.fromKin(0),
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean
 ): Completable {
+    return transferWithResult(
+        context,
+        amount,
+        fee,
+        organizer,
+        rendezvousKey,
+        destination,
+        isWithdrawal
+    ).flatMapCompletable {
+        if (it.isSuccess) {
+            Completable.complete()
+        } else {
+            Completable.error(it.exceptionOrNull() ?: Throwable("Failed to complete transfer"))
+        }
+    }
+}
+
+fun Client.transferWithResult(
+    context: Context,
+    amount: KinAmount,
+    fee: Kin = Kin.fromKin(0),
+    organizer: Organizer,
+    rendezvousKey: PublicKey,
+    destination: PublicKey,
+    isWithdrawal: Boolean
+): Single<Result<Unit>> {
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                context, amount, organizer, rendezvousKey, destination, isWithdrawal
+                context, amount, fee, organizer, rendezvousKey, destination, isWithdrawal
             )
         })
         .map {
             if (it is IntentPrivateTransfer) {
                 balanceController.setTray(organizer, it.resultTray)
             }
-        }
-        .ignoreElement()
+        }.map { Result.success(Unit) }
+        .onErrorReturn { Result.failure(it) }
 }
 
 fun Client.sendRemotely(
@@ -112,39 +142,41 @@ fun Client.receiveRemote(giftCard: GiftCardAccount): Single<KinAmount> {
         }
 }
 
-suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount = withContext(Dispatchers.IO) {
-    // Before we can receive from the gift card account
-    // we have to determine the balance of the account
+suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
+    withContext(Dispatchers.IO) {
+        // Before we can receive from the gift card account
+        // we have to determine the balance of the account
 
-    val information = accountRepository.getTokenAccountInfosSuspend(giftCard.cluster.authority.keyPair)
+        val information =
+            accountRepository.getTokenAccountInfosSuspend(giftCard.cluster.authority.keyPair)
 
-    val info: AccountInfo = information.values.firstOrNull()
-        ?: throw RemoteSendException.FailedToFetchGiftCardInfoException()
+        val info: AccountInfo = information.values.firstOrNull()
+            ?: throw RemoteSendException.FailedToFetchGiftCardInfoException()
 
-    val kinAmount = info.originalKinAmount
-        ?: throw RemoteSendException.GiftCardBalanceNotFoundException()
+        val kinAmount = info.originalKinAmount
+            ?: throw RemoteSendException.GiftCardBalanceNotFoundException()
 
-    if (info.claimState == AccountInfo.ClaimState.Claimed) {
-        throw RemoteSendException.GiftCardClaimedException()
+        if (info.claimState == AccountInfo.ClaimState.Claimed) {
+            throw RemoteSendException.GiftCardClaimedException()
+        }
+
+        if (info.claimState == AccountInfo.ClaimState.Claimed || info.claimState == AccountInfo.ClaimState.Unknown) {
+            throw RemoteSendException.GiftCardExpiredException()
+        }
+
+        val organizer = SessionManager.getOrganizer()!!
+
+        transactionReceiver.receiveRemotelySuspend(
+            giftCard = giftCard,
+            amount = info.balance,
+            organizer = organizer,
+            isVoiding = false
+        )
+
+        balanceController.fetchBalanceSuspend()
+
+        return@withContext kinAmount
     }
-
-    if (info.claimState == AccountInfo.ClaimState.Claimed || info.claimState == AccountInfo.ClaimState.Unknown) {
-        throw RemoteSendException.GiftCardExpiredException()
-    }
-
-    val organizer = SessionManager.getOrganizer()!!
-
-    transactionReceiver.receiveRemotelySuspend(
-        giftCard = giftCard,
-        amount = info.balance,
-        organizer = organizer,
-        isVoiding = false
-    )
-
-    balanceController.fetchBalanceSuspend()
-
-    return@withContext kinAmount
-}
 
 fun Client.cancelRemoteSend(
     giftCard: GiftCardAccount,
@@ -257,9 +289,11 @@ fun Client.sendRemotely(
         transactionRepository.sendRemotely(
             context, amount, organizer, rendezvousKey, giftCard
         )
-            .map { if (it is IntentRemoteSend) {
-                balanceController.setTray(organizer, it.resultTray)
-            } }
+            .map {
+                if (it is IntentRemoteSend) {
+                    balanceController.setTray(organizer, it.resultTray)
+                }
+            }
             .ignoreElement()
     }
 }
@@ -336,7 +370,10 @@ fun Client.fetchTransactionLimits(
     return transactionRepository.fetchTransactionLimits(owner, seconds)
 }
 
-fun Client.fetchPaymentHistoryDelta(owner: Ed25519.KeyPair, afterId: ByteArray? = null): Single<List<HistoricalTransaction>> {
+fun Client.fetchPaymentHistoryDelta(
+    owner: Ed25519.KeyPair,
+    afterId: ByteArray? = null
+): Single<List<HistoricalTransaction>> {
     return transactionRepository.fetchPaymentHistoryDelta(owner, afterId)
 }
 
@@ -475,4 +512,10 @@ fun Client.getTransferPreflightAction(amount: Kin): Completable {
     } else {
         Completable.complete()
     }
+}
+
+@SuppressLint("CheckResult")
+@Throws
+fun Client.establishRelationship(organizer: Organizer, domain: Domain) {
+    transactionRepository.establishRelationship(organizer, domain).ignoreElement()
 }

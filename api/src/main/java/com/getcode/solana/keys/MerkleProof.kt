@@ -1,7 +1,6 @@
 package com.getcode.solana.keys
 
 import com.getcode.crypt.Sha256Hash
-import com.getcode.keys.Hash
 import com.getcode.solana.AccountMeta
 
 fun KeyType.verifyContained(merkleRoot: Hash, proof: List<Hash>): Boolean {
