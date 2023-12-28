@@ -33,7 +33,7 @@ fun CodeScaffold(
     drawerElevation: Dp = DrawerDefaults.Elevation,
     drawerBackgroundColor: Color = CodeTheme.colors.background,
     drawerContentColor: Color = CodeTheme.colors.onBackground,
-    drawerScrimColor: Color = CodeTheme.colors.brandSecondary,
+    drawerScrimColor: Color = CodeTheme.colors.brandLight,
     backgroundColor: Color = CodeTheme.colors.background,
     contentColor: Color = CodeTheme.colors.onBackground,
     content: @Composable (PaddingValues) -> Unit

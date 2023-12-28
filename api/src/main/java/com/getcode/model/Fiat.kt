@@ -1,6 +1,6 @@
 package com.getcode.model
 
-interface Value
+sealed interface Value
 
 data class Fiat(
     val currency: CurrencyCode,

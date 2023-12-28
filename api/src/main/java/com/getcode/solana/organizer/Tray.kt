@@ -27,15 +27,13 @@ class Tray(
         get() = slotsBalance + availableDepositBalance + availableIncomingBalance + availableRelationshipBalance
         private set
 
-    private var availableDepositBalance: Kin = Kin.fromKin(0)
+    private val availableDepositBalance: Kin
         get() = owner.partialBalance
-        private set
 
-    private var availableIncomingBalance: Kin = Kin.fromKin(0)
+    private val availableIncomingBalance: Kin
         get() = incoming.partialBalance
-        private set
 
-    private val relationships = RelationshipBox()
+    val relationships = RelationshipBox()
 
     private var availableRelationshipBalance: Kin = Kin.fromKin(0)
         get() = relationships.publicKeys.values.map { it.partialBalance }
@@ -154,9 +152,10 @@ class Tray(
         relationshipInfos.onEach { createRelationship(context, it.domain) }
     }
 
-    private fun createRelationship(context: Context, domain: Domain) {
+    fun createRelationship(context: Context, domain: Domain): Relationship {
         val relationship = Relationship.newInstance(context, domain, mnemonic)
         relationships.insert(relationship)
+        return relationship
     }
 
     fun incrementIncoming(context: Context) {

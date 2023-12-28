@@ -5,6 +5,7 @@ import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
+import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.solana.keys.*
 import timber.log.Timber
@@ -96,6 +97,14 @@ class Organizer(
         }
 
         setBalances(balances)
+    }
+
+    fun relationshipFor(domain: Domain): Relationship? {
+        return tray.relationships.relationshipWith(domain)
+    }
+
+    fun relationshipsLargestFirst(): List<Relationship> {
+        return tray.relationships.relationships(largestFirst = true)
     }
 
     companion object {

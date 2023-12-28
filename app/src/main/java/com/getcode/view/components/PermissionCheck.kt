@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
 
+typealias PermissionsLauncher = ManagedActivityResultLauncher<String, Boolean>
 @Composable
 fun getPermissionLauncher(onPermissionResult: (isGranted: Boolean) -> Unit) =
     rememberLauncherForActivityResult(
@@ -22,7 +23,7 @@ object PermissionCheck {
         permission: String,
         shouldRequest: Boolean,
         onPermissionResult: (isGranted: Boolean) -> Unit,
-        launcher: ManagedActivityResultLauncher<String, Boolean>
+        launcher: PermissionsLauncher
     ) {
         when (ContextCompat.checkSelfPermission(context, permission)) {
             PackageManager.PERMISSION_GRANTED -> {

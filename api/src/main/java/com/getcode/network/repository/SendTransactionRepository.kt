@@ -39,9 +39,8 @@ class SendTransactionRepository @Inject constructor(
             nonce = Random.nextBytes(11).toList()
         )
 
-        val payloadEncoded = payload.encode().toByteArray()
-        this.payloadData = CodeScanner.Encode(payloadEncoded).toList()
-        this.rendezvousKey = Ed25519.createKeyPair(Base64.encodeToString(Sha256Hash.hash(payloadEncoded), Base64.DEFAULT))
+        this.payloadData = payload.codeData.toList()
+        this.rendezvousKey = payload.rendezvous
         this.receivingAccount = null
     }
 
@@ -61,16 +60,14 @@ class SendTransactionRepository @Inject constructor(
 
                 if (!isValid) {
                     analyticsManager.transfer(
-                        kin = amount.kin,
-                        currencyCode = amount.rate.currency,
+                        amount = amount,
                         successful = false
                     )
 
                     Flowable.error(SendTransactionException.DestinationSignatureInvalidException())
                 } else {
                     analyticsManager.transfer(
-                        kin = amount.kin,
-                        currencyCode = amount.rate.currency,
+                        amount = amount,
                         successful = true
                     )
 
@@ -80,8 +77,7 @@ class SendTransactionRepository @Inject constructor(
             }
             .doOnError {
                 analyticsManager.transfer(
-                    kin = amount.kin,
-                    currencyCode = amount.rate.currency,
+                    amount = amount,
                     successful = false
                 )
                 ErrorUtils.handleError(it)

@@ -25,6 +25,8 @@ class ServerParameter(
             val merkleProof: List<Hash>,
         ): Parameter()
 
+        data class FeePayment(val publicKey: PublicKey): Parameter()
+
         companion object {
             fun newInstance(proto: TransactionService.ServerParameter): Parameter? {
                 return when (proto.typeCase) {
@@ -60,12 +62,17 @@ class ServerParameter(
                             merkleProof = merkleProof
                         )
                     }
-                    TransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT -> null
-                    TransactionService.ServerParameter.TypeCase.CLOSE_EMPTY_ACCOUNT -> null
-                    TransactionService.ServerParameter.TypeCase.CLOSE_DORMANT_ACCOUNT -> null
-                    TransactionService.ServerParameter.TypeCase.NO_PRIVACY_WITHDRAW -> null
-                    TransactionService.ServerParameter.TypeCase.TYPE_NOT_SET -> null
-                    else -> null
+                    TransactionService.ServerParameter.TypeCase.FEE_PAYMENT -> {
+                        val param = proto.feePayment
+                        val destination = PublicKey(param.destination.value.toByteArray().toList())
+                        FeePayment(destination)
+                    }
+                    TransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT,
+                    TransactionService.ServerParameter.TypeCase.CLOSE_EMPTY_ACCOUNT,
+                    TransactionService.ServerParameter.TypeCase.CLOSE_DORMANT_ACCOUNT,
+                    TransactionService.ServerParameter.TypeCase.NO_PRIVACY_WITHDRAW,
+                    TransactionService.ServerParameter.TypeCase.TYPE_NOT_SET,
+                    TransactionService.ServerParameter.TypeCase.NO_PRIVACY_TRANSFER -> null
                 }
             }
 

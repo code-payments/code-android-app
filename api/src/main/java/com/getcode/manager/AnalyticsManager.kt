@@ -3,6 +3,7 @@ package com.getcode.manager
 import com.getcode.api.BuildConfig
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
+import com.getcode.model.KinAmount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.google.firebase.ktx.Firebase
@@ -94,12 +95,22 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun transfer(kin: Kin, currencyCode: CurrencyCode, successful: Boolean) {
+    fun transfer(amount: KinAmount, successful: Boolean) {
         track(
             Name.Transfer,
-            Pair(Property.State, if (successful) StringValue.Success.value else StringValue.Failure.value),
-            Pair(Property.Amount, kin.toKin().toInt().toString()),
-            Pair(Property.Currency, currencyCode.name)
+            Property.State to if (successful) StringValue.Success.value else StringValue.Failure.value,
+            Property.Amount to amount.kin.toKin().toInt().toString(),
+            Property.Fiat to amount.fiat.toString(),
+            Property.Fx to amount.rate.fx.toString(),
+            Property.Currency to amount.rate.currency.name,
+        )
+    }
+
+    fun recomputed(fxIn: Double, fxOut: Double) {
+        val delta = ((fxOut / fxIn) - 1) * 100
+        track(
+            Name.Recompute,
+            Property.PercentDelta to delta.toString()
         )
     }
 
@@ -198,12 +209,17 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
 
         //Transfer
         Transfer("Transfer"),
+        RequestPayment("Request Payment"),
         Grab("Grab"),
         CashLinkGrab("CashLinkGrab"),
         Validation("Validation"),
 
         PrivacyMigration("Privacy Migration"),
-        UpgradePrivacy("Upgrade Privacy")
+        UpgradePrivacy("Upgrade Privacy"),
+        ErrorRequest("Error Request"),
+
+
+        Recompute("Recompute"),
     }
 
     enum class Property(val value: String) {
@@ -221,8 +237,11 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         // Bill
         State("State"),
         Amount("Amount"),
+        Fiat("Fiat"),
+        Fx("Exchange Rate"),
         Currency("Currency"),
         Animation("Animation"),
+        Rendezvous("Rendezvous"),
 
         // Validation
         Type("Type"),
@@ -230,7 +249,9 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
 
         // Privacy Upgrade
         IntentId("Intent ID"),
-        ActionCount("Action Count")
+        ActionCount("Action Count"),
+
+        PercentDelta("Percent Delta"),
 
     }
 

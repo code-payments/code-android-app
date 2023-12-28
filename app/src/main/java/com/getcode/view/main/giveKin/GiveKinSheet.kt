@@ -16,6 +16,7 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.models.Bill
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight
@@ -140,7 +141,7 @@ fun GiveKinSheet(
 
                                 val amount = viewModel.onSubmit() ?: return@CodeButton
                                 onCloseQuickly()
-                                homeViewModel.showBill(amount)
+                                homeViewModel.showBill(Bill.Cash(amount = amount))
                             },
                             enabled = dataState.continueEnabled,
                             text = stringResource(R.string.action_next),

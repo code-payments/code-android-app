@@ -1,6 +1,5 @@
 package com.getcode.model
 
-import android.content.Context
 import com.codeinc.gen.account.v1.AccountService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
@@ -90,7 +89,7 @@ data class AccountInfo (
                 )
             }
 
-            val relationship = runCatching { Domain(info.relationship.domain.value) }.getOrNull()
+            val relationship = Domain.from(info.relationship.domain.value)
                 ?.let { Relationship(it) }
 
             return AccountInfo(

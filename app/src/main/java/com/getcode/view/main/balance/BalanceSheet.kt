@@ -52,15 +52,18 @@ import timber.log.Timber
 
 @Composable
 fun BalanceSheet(
+    isOpen: Boolean,
     viewModel: BalanceSheetViewModel = hiltViewModel(),
     upPress: () -> Unit = {},
     faqOpen: () -> Unit = {},
 ) {
-    val dataState by viewModel.uiFlow.collectAsState()
-
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.reset()
+    LaunchedEffect(isOpen) {
+        if (isOpen) {
+            viewModel.reset()
+        }
     }
+
+    val dataState by viewModel.uiFlow.collectAsState()
 
     AnalyticsScreenWatcher(
         lifecycleOwner = LocalLifecycleOwner.current,
