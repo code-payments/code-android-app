@@ -1,6 +1,7 @@
 package com.getcode.model.intents
 
 import android.content.Context
+import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.Domain
 import com.getcode.model.intents.actions.ActionOpenAccount
@@ -19,8 +20,13 @@ class IntentEstablishRelationship(
 ): IntentType() {
     override fun metadata(): TransactionService.Metadata {
         return TransactionService.Metadata.newBuilder()
-
-            .setOpenAccounts(TransactionService.OpenAccountsMetadata.getDefaultInstance())
+            .setEstablishRelationship(
+                TransactionService.EstablishRelationshipMetadata.newBuilder()
+                    .setRelationship(
+                        Model.Relationship.newBuilder()
+                            .setDomain(Model.Domain.newBuilder().setValue(domain.relationshipHost))
+                    )
+            )
             .build()
     }
 
