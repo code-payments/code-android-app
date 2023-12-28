@@ -61,7 +61,12 @@ class DeeplinkHandler @Inject constructor() {
             if (SessionManager.isAuthenticated() == true) {
                 null
             } else {
-                Type.Login(getEntropy().also { Timber.d("entropy=$it") })
+                var entropy = getEntropy()
+                if (entropy == null) {
+                    entropy = this.getQueryParameter("data")
+                }
+
+                Type.Login(entropy.also { Timber.d("entropy=$it") })
             }
         }
         "cash", "c" -> Type.Cash(getEntropy())
