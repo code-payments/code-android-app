@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
@@ -19,6 +20,7 @@ import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.sheetHeight
 import com.getcode.util.AnimationUtils
+import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
@@ -29,6 +31,11 @@ import com.getcode.view.main.giveKin.CurrencyList
 fun AccountWithdrawAmount(navController: NavController) {
     val viewModel = hiltViewModel<AccountWithdrawAmountViewModel>()
     val dataState by viewModel.uiFlow.collectAsState()
+
+
+    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+        viewModel.reset()
+    }
 
     AnalyticsScreenWatcher(
         lifecycleOwner = LocalLifecycleOwner.current,
@@ -136,9 +143,5 @@ fun AccountWithdrawAmount(navController: NavController) {
         BackHandler {
             viewModel.setCurrencySelectorVisible(false)
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.init()
     }
 }

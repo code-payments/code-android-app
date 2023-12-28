@@ -1,18 +1,23 @@
 package com.getcode.view.main.account.withdraw
 
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.network.client.Client
+import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
+import com.getcode.utils.ErrorUtils
 import com.getcode.view.*
 import com.getcode.view.main.giveKin.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AccountWithdrawAmountUiModel(
@@ -32,14 +37,24 @@ class AccountWithdrawAmountViewModel @Inject constructor(
 ) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository) {
     val uiFlow = MutableStateFlow(AccountWithdrawAmountUiModel())
 
-    override fun init() {
-        super.init()
-        uiFlow.update {
-            it.copy(
-                currencySelectorVisible = false,
-                currencyModel = it.currencyModel.copy(currencySearchText = ""),
-                continueEnabled = false
-            )
+    init {
+        init()
+        viewModelScope.launch(Dispatchers.Default) {
+            client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
+        }
+    }
+
+    fun reset() {
+        numberInputHelper.reset()
+        onAmountChanged(true)
+        viewModelScope.launch {
+            uiFlow.update {
+                it.copy(
+                    currencySelectorVisible = false,
+                    currencyModel = it.currencyModel.copy(currencySearchText = ""),
+                    continueEnabled = false
+                )
+            }
         }
     }
 

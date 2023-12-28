@@ -46,7 +46,7 @@ fun GiveKinSheet(
     val currencySelectorVisible = dataState.currencySelectorVisible
 
     RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.init()
+        viewModel.reset()
     }
 
     AnalyticsScreenWatcher(

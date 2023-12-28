@@ -39,17 +39,18 @@ class GiveKinSheetViewModel @Inject constructor(
     val uiFlow = MutableStateFlow(GiveKinSheetUiModel())
 
     init {
-        super.init()
-        reset()
+        init()
         viewModelScope.launch(Dispatchers.Default) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
 
     fun reset() {
+        numberInputHelper.reset()
+        onAmountChanged(true)
         viewModelScope.launch {
             uiFlow.update {
-                it.copy(amountModel = AmountUiModel(),
+                it.copy(
                     currencySelectorVisible = false,
                     currencyModel = it.currencyModel.copy(currencySearchText = ""),
                     continueEnabled = false
