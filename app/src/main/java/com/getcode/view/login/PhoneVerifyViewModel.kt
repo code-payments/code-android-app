@@ -11,7 +11,9 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.urlEncode
@@ -199,14 +201,25 @@ class PhoneVerifyViewModel @Inject constructor(
                         return@subscribe
                     }
 
-                    navigator.push(
-                        PhoneConfirmationScreen(
-                            phoneNumber = phoneNumber.urlEncode(),
-                            signInEntropy = uiFlow.value.entropyB64?.urlEncode(),
-                            isNewAccount = uiFlow.value.isNewAccount,
-                            isPhoneLinking = uiFlow.value.isPhoneLinking,
+                    if (uiFlow.value.isNewAccount) {
+                        navigator.push(
+                            LoginPhoneConfirmationScreen(
+                                phoneNumber = phoneNumber.urlEncode(),
+                                signInEntropy = uiFlow.value.entropyB64?.urlEncode(),
+                                isNewAccount = uiFlow.value.isNewAccount,
+                                isPhoneLinking = uiFlow.value.isPhoneLinking,
+                            )
                         )
-                    )
+                    } else {
+                        navigator.push(
+                            PhoneConfirmationScreen(
+                                phoneNumber = phoneNumber.urlEncode(),
+                                signInEntropy = uiFlow.value.entropyB64,
+                                isNewAccount = uiFlow.value.isNewAccount,
+                                isPhoneLinking = uiFlow.value.isPhoneLinking,
+                            )
+                        )
+                    }
                 }, {
                     setIsLoading(false)
                     TopBarManager.showMessage(getGenericError())

@@ -259,6 +259,7 @@ class PhoneConfirmViewModel @Inject constructor(
                 if (isNewAccount) Ed25519.createSeed16().encodeBase64() else entropyB64.orEmpty()
             keyPair = MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64).getSolanaKeyPair(App.getInstance())
         } catch (e: Exception) {
+            e.printStackTrace()
             TopBarManager.showMessage(getGenericError())
             return
         }

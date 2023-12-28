@@ -7,18 +7,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.manager.SessionManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
-import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.LocalDeeplinks
-import com.getcode.util.RepeatOnLifecycle
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
@@ -47,7 +44,7 @@ fun AuthCheck(
         isAuthenticated?.let { authenticated ->
             //Allow the seed input screen to complete and avoid
             //premature navigation
-            if (currentRoute is InviteCodeScreen) {
+            if (currentRoute is AccessKeyLoginScreen) {
                 Timber.tag(AUTH_NAV).d("No navigation within seed input")
                 return@LaunchedEffect
             }

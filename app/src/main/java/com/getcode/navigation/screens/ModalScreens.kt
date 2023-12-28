@@ -17,6 +17,7 @@ import com.getcode.view.main.account.AccountPhone
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.getKin.BuyAndSellKin
+import com.getcode.view.main.getKin.ReferFriend
 
 data object BuySellScreen : MainGraph, ModalContent {
     @Composable
@@ -171,4 +172,14 @@ data object DeleteConfirmationScreen : MainGraph, NamedScreen, ModalContent {
             ConfirmDeleteAccount()
         }
     }
+}
+
+data object ReferFriendScreen: MainGraph, ModalContent {
+    @Composable
+    override fun Content() {
+        ModalContainer(backButton = { it is DeleteConfirmationScreen }) {
+            ReferFriend()
+        }
+    }
+
 }

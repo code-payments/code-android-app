@@ -13,7 +13,7 @@ import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
-import com.getcode.view.main.getKin.GetKin
+import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
@@ -64,7 +64,7 @@ data object GetKinModal : MainGraph, ModalRoot {
                 }
             },
         ) {
-            GetKin(getViewModel(), homeViewModel)
+            GetKinSheet(getViewModel(), homeViewModel)
         }
     }
 }

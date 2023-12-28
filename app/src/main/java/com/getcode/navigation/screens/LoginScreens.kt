@@ -10,6 +10,7 @@ import com.getcode.R
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
 import com.getcode.view.login.CameraPermission
+import com.getcode.view.login.InviteCode
 import com.getcode.view.login.LoginHome
 import com.getcode.view.login.NotificationPermission
 import com.getcode.view.login.PhoneConfirm
@@ -89,7 +90,7 @@ data class LoginPhoneConfirmationScreen(
     }
 }
 
-data class InviteCodeScreen(
+data class AccessKeyLoginScreen(
     val arguments: LoginArgs = LoginArgs()
 ) : LoginGraph, NamedScreen {
 
@@ -108,6 +109,26 @@ data class InviteCodeScreen(
         val viewModel: SeedInputViewModel = getViewModel()
         SeedInput(viewModel, arguments)
     }
+}
+
+data class InviteCodeScreen(
+    val arguments: LoginArgs = LoginArgs()
+): LoginGraph, NamedScreen {
+
+    constructor(
+        signInEntropy: String? = null,
+        isPhoneLinking: Boolean = false,
+        isNewAccount: Boolean = false,
+        phoneNumber: String? = null,
+    ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    override val name: String
+        @Composable get() = stringResource(R.string.subtitle_inviteCode)
+    @Composable
+    override fun Content() {
+        InviteCode(getViewModel(), arguments)
+    }
+
 }
 
 data class AccessKeyScreen(

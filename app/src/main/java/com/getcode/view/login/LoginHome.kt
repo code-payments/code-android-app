@@ -29,7 +29,7 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 
 
@@ -97,7 +97,7 @@ fun LoginHome(
                 }
                 .padding(horizontal = 20.dp),
             onClick = {
-                navigator.push(InviteCodeScreen())
+                navigator.push(AccessKeyLoginScreen())
             },
             text = stringResource(R.string.action_logIn),
             buttonState = ButtonState.Subtle,

@@ -1,19 +1,29 @@
 package com.getcode.view.login
 
-import android.os.Bundle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -22,21 +32,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.theme.*
-import com.getcode.util.getActivity
-import com.getcode.view.ARG_PHONE_NUMBER
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
+import com.getcode.theme.BrandLight
+import com.getcode.theme.White05
+import com.getcode.theme.White50
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Preview
 @Composable
 fun InviteCode(
-    navController: NavController? = null,
-    arguments: Bundle? = null
+    viewModel: InviteCodeViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs()
 ) {
-    val viewModel = hiltViewModel<InviteCodeViewModel>()
+    val navigator = LocalCodeNavigator.current
     val dataState: InviteCodeUiModel by viewModel.uiFlow.collectAsState()
     val focusRequester = FocusRequester()
 
@@ -79,7 +90,7 @@ fun InviteCode(
             ),
             singleLine = true,
             keyboardActions = KeyboardActions(
-                onDone = { viewModel.onSubmit(navController) }
+                onDone = { viewModel.onSubmit(navigator) }
             ),
             onValueChange = {
                 if (!dataState.isLoading) {
@@ -113,7 +124,7 @@ fun InviteCode(
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                viewModel.onSubmit(navController)
+                viewModel.onSubmit(navigator)
             },
             enabled = dataState.isContinue,
             isLoading = dataState.isLoading,
@@ -129,9 +140,9 @@ fun InviteCode(
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
         viewModel.reset()
-        arguments?.getString(ARG_PHONE_NUMBER)
-            ?.let { viewModel.setPhoneNumber(it) }
+        arguments.phoneNumber?.let {
+            viewModel.setPhoneNumber(it)
+        }
     }
-
 }
 
