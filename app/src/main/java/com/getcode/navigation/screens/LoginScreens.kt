@@ -18,7 +18,6 @@ import com.getcode.view.login.PhoneVerifyViewModel
 import com.getcode.view.login.SeedDeepLink
 import com.getcode.view.login.SeedInput
 import com.getcode.view.login.SeedInputViewModel
-import timber.log.Timber
 
 sealed interface LoginGraph : Screen {
     fun readResolve(): Any = this
@@ -48,7 +47,7 @@ data class LoginScreen(val seed: String? = null) : LoginGraph, NamedScreen {
     }
 }
 
-data class PhoneVerificationScreen(
+data class LoginPhoneVerificationScreen(
     val arguments: LoginArgs = LoginArgs()
 ) : LoginGraph, NamedScreen {
     constructor(
@@ -68,7 +67,7 @@ data class PhoneVerificationScreen(
     }
 }
 
-data class PhoneConfirmationScreen(
+data class LoginPhoneConfirmationScreen(
     val arguments: LoginArgs = LoginArgs()
 ) : LoginGraph, NamedScreen {
     constructor(

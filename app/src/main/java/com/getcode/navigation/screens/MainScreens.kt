@@ -2,12 +2,6 @@ package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -21,7 +15,7 @@ import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.getKin.GetKin
 import com.getcode.view.main.giveKin.GiveKinSheet
-import com.getcode.view.main.home.HomeScan
+import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
@@ -45,7 +39,7 @@ data class HomeScreen(val cashLink: String? = null) : AppScreen(), MainGraph {
     @Composable
     override fun Content() {
         val vm = homeViewModel
-        HomeScan(vm, cashLink)
+        HomeScreen(vm, cashLink)
 
         OnScreenResult<Bill> {
             Timber.d("onshowBill$it")

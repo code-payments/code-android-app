@@ -13,12 +13,11 @@ import kotlinx.coroutines.launch
 @Composable
 fun RepeatOnLifecycle(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
-    key: Any? = null,
     targetState: Lifecycle.State,
     doOnDispose: () -> Unit = {},
     action: suspend CoroutineScope.() -> Unit,
 ) {
-    DisposableEffect(lifecycleOwner, key) {
+    DisposableEffect(lifecycleOwner) {
         val job = lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(targetState) {
                 action(this)

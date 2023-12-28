@@ -16,23 +16,22 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.PhoneVerificationScreen
 import com.getcode.network.repository.urlEncode
 import com.getcode.theme.Brand
-import com.getcode.view.ARG_IS_PHONE_LINKING
-import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
-import com.getcode.view.LoginSections
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun AccountPhone(navController: NavController? = null) {
-    val viewModel = hiltViewModel<AccountPhoneViewModel>()
+fun AccountPhone(
+    viewModel: AccountPhoneViewModel,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState: AccountPhoneUiModel by viewModel.uiFlow.collectAsState()
 
     ConstraintLayout(
@@ -76,11 +75,7 @@ fun AccountPhone(navController: NavController? = null) {
                 if (!dataState.isLinked) {
                     val entropyB64 = SessionManager.authState.value?.entropyB64
                     if (!entropyB64.isNullOrBlank()) {
-                        navController?.navigate(
-                            route = LoginSections.PHONE_VERIFY.route
-                                .replace("{$ARG_SIGN_IN_ENTROPY_B64}", entropyB64.urlEncode())
-                                .replace("{$ARG_IS_PHONE_LINKING}", true.toString())
-                        )
+                        navigator.push(PhoneVerificationScreen(signInEntropy = entropyB64.urlEncode(), isPhoneLinking = true))
                     }
                 } else {
                     unlinkPhone {

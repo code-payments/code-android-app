@@ -12,6 +12,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.navigation.screens.PhoneVerificationScreen
 import com.getcode.view.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -143,13 +144,7 @@ class SeedInputViewModel @Inject constructor(
                 positiveText = App.getInstance().getString(R.string.action_createNewCodeAccount),
                 negativeText = App.getInstance().getString(R.string.action_tryDifferentCodeAccount),
                 onPositive = {
-                    navigator.push(PhoneVerificationScreen())
-//                    navController?.navigate(
-//                        LoginSections.PHONE_VERIFY.route,
-//                        NavOptions.Builder().setPopUpTo(
-//                            LoginSections.LOGIN.route, inclusive = false, saveState = false
-//                        ).build()
-//                    )
+                    navigator.push(LoginPhoneVerificationScreen())
                 }
             )
         )

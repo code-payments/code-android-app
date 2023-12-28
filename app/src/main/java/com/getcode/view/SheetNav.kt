@@ -74,13 +74,13 @@ fun NavGraphBuilder.addSheetGraph(
 //        onTitleChange(null)
 //        AccountHome(onAccountHomeNav)
 //    }
-    composableItem(
-        route = SheetSections.DEPOSIT.route,
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.DEPOSIT.title)
-        AccountDeposit()
-    }
+//    composableItem(
+//        route = SheetSections.DEPOSIT.route,
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.DEPOSIT.title)
+//        AccountDeposit()
+//    }
 //    composableItem(
 //        route = SheetSections.WITHDRAW_AMOUNT.route,
 //    ) {
@@ -130,14 +130,13 @@ fun NavGraphBuilder.addSheetGraph(
 //        onTitleChange(SheetSections.FAQ.title)
 //        AccountFaq()
 //    }
-
-    composableItem(
-        route = SheetSections.PHONE.route,
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(SheetSections.PHONE.title)
-        AccountPhone(navController)
-    }
+//    composableItem(
+//        route = SheetSections.PHONE.route,
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(SheetSections.PHONE.title)
+//        AccountPhone(navController)
+//    }
 //    composableItem(
 //        route = SheetSections.PHONE_VERIFY.route,
 //        arguments = SheetSections.PHONE_VERIFY.arguments,
@@ -184,14 +183,13 @@ fun NavGraphBuilder.addSheetGraph(
         onTitleChange(R.string.empty)
         ReferFriend(onClose, navController)
     }
-
-    composableItem(
-        route = SheetSections.BUY_AND_SELL_KIN.route
-    ) {
-        onBackButtonVisibilityChange(true)
-        onTitleChange(R.string.empty)
-        BuyAndSellKin()
-    }
+//    composableItem(
+//        route = SheetSections.BUY_AND_SELL_KIN.route
+//    ) {
+//        onBackButtonVisibilityChange(true)
+//        onTitleChange(R.string.empty)
+//        BuyAndSellKin()
+//    }
 }
 
 enum class SheetSections(

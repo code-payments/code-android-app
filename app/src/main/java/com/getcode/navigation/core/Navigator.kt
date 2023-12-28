@@ -9,6 +9,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.Navigator
 import com.getcode.navigation.screens.AppScreen
+import timber.log.Timber
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
     staticCompositionLocalOf { NavigatorNull() }
@@ -91,6 +92,7 @@ class CombinedNavigator(
     }
 
     override fun hide() {
+        Timber.d("hide")
         sheetNavigator.hide()
     }
 

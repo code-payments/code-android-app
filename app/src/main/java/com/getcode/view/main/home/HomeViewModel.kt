@@ -67,7 +67,6 @@ sealed interface PresentationStyle {
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
     val isCameraScanEnabled: Boolean = true,
-    val isBottomSheetVisible: Boolean = false,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState(null, false, null, null, null, false),
@@ -125,20 +124,6 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
-    }
-
-    fun onHideBottomSheet() {
-        uiFlow.update {
-            it.copy(
-                isBottomSheetVisible = false,
-                isCameraScanEnabled = true,
-                selectedBottomSheet = null
-            )
-        }
-    }
-
-    fun onShowBottomSheet() {
-        uiFlow.value = uiFlow.value.copy(isBottomSheetVisible = true)
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {

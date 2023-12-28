@@ -21,7 +21,6 @@ import cafe.adriel.voyager.transitions.ScreenTransition
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.navigation.core.BottomSheetNavigator
-import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
@@ -30,7 +29,6 @@ import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
-import com.getcode.util.LocalDeeplinks
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold

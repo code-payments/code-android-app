@@ -63,15 +63,15 @@ fun BalanceSheet(
         viewModel.reset()
     }
 
-    AnalyticsScreenWatcher(
-        lifecycleOwner = LocalLifecycleOwner.current,
-        event = AnalyticsManager.Screen.Balance
-    )
-
     if (dataState.isDebugBucketsVisible) {
         AccountDebugBuckets()
     } else {
-        BalanceContent(viewModel, dataState, { navigator.hide() }, { navigator.push(FaqScreen) })
+        BalanceContent(
+            viewModel = viewModel,
+            dataState = dataState,
+            upPress = { navigator.hide() },
+            faqOpen = { navigator.push(FaqScreen) }
+        )
     }
 }
 
@@ -90,6 +90,7 @@ fun BalanceContent(
             when {
                 lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyListState.firstVisibleItemIndex == 0 ->
                     lazyListState.firstVisibleItemScrollOffset * .2f
+
                 else -> 0f
             }
         }
@@ -102,7 +103,7 @@ fun BalanceContent(
         state = lazyListState
     ) {
         val transactionsEmpty =
-                dataState.historicalTransactionsUiModel.isEmpty()
+            dataState.historicalTransactionsUiModel.isEmpty()
 
         item {
             Column(
@@ -119,7 +120,7 @@ fun BalanceContent(
                     viewModel.setDebugBucketsVisible(true)
                 }
                 if (!transactionsEmpty) {
-                    KinValueHint(upPress, faqOpen)
+                    KinValueHint(faqOpen)
                 }
             }
         }
@@ -162,6 +163,7 @@ fun TransactionItem(event: HistoricalTransactionUIModel) {
                             event.isRemoteSend -> stringResource(R.string.title_sent)
                             else -> stringResource(R.string.title_gaveKin)
                         }
+
                     PaymentType.Receive ->
                         when {
                             event.airdropType == AirdropType.GiveFirstKin -> stringResource(R.string.title_referralBonus)
@@ -170,6 +172,7 @@ fun TransactionItem(event: HistoricalTransactionUIModel) {
                             event.isRemoteSend && event.isReturned -> stringResource(R.string.title_returned)
                             else -> stringResource(R.string.title_received)
                         }
+
                     else -> stringResource(R.string.title_unknown)
                 },
                 style = MaterialTheme.typography.body1
@@ -256,7 +259,7 @@ fun BalanceTop(
 }
 
 @Composable
-private fun ColumnScope.KinValueHint(upPress: () -> Unit, faqOpen: () -> Unit) {
+private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .align(CenterHorizontally)
@@ -299,10 +302,7 @@ private fun ColumnScope.KinValueHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                         it,
                         it
                     )
-                    .firstOrNull()?.let {
-                        upPress()
-                        faqOpen()
-                    }
+                    .firstOrNull()?.let { onClick() }
             }
         )
     }
@@ -390,13 +390,14 @@ private fun TopPreview() {
         selectedCurrency = CurrencyUtils.currencyKin,
         historicalTransactions = emptyList(),
         historicalTransactionsUiModel = emptyList(),
-        isDebugBucketsEnabled =false,
+        isDebugBucketsEnabled = false,
         isDebugBucketsVisible = false,
     )
 
     BalanceTop(
         dataState = model,
-        isClickable = false)
+        isClickable = false
+    )
 }
 
 @Preview

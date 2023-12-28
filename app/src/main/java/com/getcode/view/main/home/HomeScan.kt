@@ -3,12 +3,8 @@ package com.getcode.view.main.home
 import android.Manifest
 import android.app.Activity
 import android.content.Context
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -18,28 +14,20 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.ModalBottomSheetLayout
-import androidx.compose.material.ModalBottomSheetState
-import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.Text
 import androidx.compose.material.rememberDismissState
-import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -50,8 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
@@ -62,19 +48,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.models.Bill
-import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.theme.Black50
 import com.getcode.theme.Brand
 import com.getcode.util.AnimationUtils
 import com.getcode.util.CurrencyUtils
@@ -91,13 +74,8 @@ import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.Timer
-import kotlin.concurrent.timerTask
 
 
 enum class HomeBottomSheet {
@@ -105,49 +83,53 @@ enum class HomeBottomSheet {
     ACCOUNT,
     GIVE_KIN,
     GET_KIN,
-    BALANCE,
-    FAQ
+    BALANCE
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun ModalSheetLayout(
-    state: ModalBottomSheetState,
-    sheetContent: @Composable ColumnScope.() -> Unit
-) {
-    ModalBottomSheetLayout(
-        sheetState = state,
-        sheetBackgroundColor = Brand,
-        sheetContent = sheetContent,
-        sheetShape = RoundedCornerShape(12.dp, 12.dp, 0.dp, 0.dp),
-    ) {
-    }
-}
-
-@OptIn(ExperimentalMaterialApi::class)
-@Composable
-fun HomeScan(
+fun HomeScreen(
     homeViewModel: HomeViewModel,
     deepLink: String? = null
 ) {
     val dataState by homeViewModel.uiFlow.collectAsState()
 
+    when (val restrictionType = dataState.restrictionType) {
+        RestrictionType.ACCESS_EXPIRED,
+        RestrictionType.FORCE_UPGRADE,
+        RestrictionType.TIMELOCK_UNLOCKED -> {
+            HomeRestricted(restrictionType) {
+                homeViewModel.logout(it)
+            }
+        }
+
+        null -> {
+            HomeScan(homeViewModel = homeViewModel, dataState = dataState, deepLink = deepLink)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun HomeScan(
+    homeViewModel: HomeViewModel,
+    dataState: HomeUiModel,
+    deepLink: String?,
+) {
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
 
-    var isInitBottomSheet by remember { mutableStateOf(false) }
-    var isReturnBackToBalance by remember { mutableStateOf(false) }
     val billDismissState = rememberDismissState(
         initialValue = DismissValue.Default,
         confirmStateChange = {
-            val canDismiss = it != DismissValue.DismissedToStart && dataState.billState.canSwipeToDismiss
+            val canDismiss =
+                it != DismissValue.DismissedToStart && dataState.billState.canSwipeToDismiss
             if (canDismiss) {
                 homeViewModel.cancelSend()
             }
             canDismiss
         }
     )
-    var isPaused by remember { mutableStateOf(false) }
+    var isPaused by rememberSaveable { mutableStateOf(false) }
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 
@@ -172,12 +154,6 @@ fun HomeScan(
         }
         if (!deepLink.isNullOrBlank() && !dataState.isDeepLinkHandled) {
             homeViewModel.openCashLink(deepLink)
-
-            Timer().schedule(timerTask {
-                isInitBottomSheet = true
-            }, 2500)
-        } else {
-            isInitBottomSheet = true
         }
     }
 
@@ -194,10 +170,6 @@ fun HomeScan(
         homeViewModel.stopScan()
     }
 
-    fun hideSheet(bottomSheet: HomeBottomSheet) {
-
-    }
-
     fun showBottomSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {
             when (bottomSheet) {
@@ -205,40 +177,9 @@ fun HomeScan(
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
                 HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
-                HomeBottomSheet.FAQ -> {
-
-                }
-
-                else -> Unit
+                HomeBottomSheet.NONE -> Unit
             }
         }
-        homeViewModel.onShowBottomSheet()
-    }
-
-
-    fun hideBottomSheet() {
-        HomeBottomSheet.entries.forEach {
-            hideSheet(it)
-        }
-        homeViewModel.onHideBottomSheet()
-    }
-
-
-    BackHandler {
-        if (dataState.isBottomSheetVisible) {
-            hideBottomSheet()
-        } else {
-            context.finish()
-        }
-    }
-
-    dataState.restrictionType?.let { restrictionType ->
-        context.let { activity ->
-            HomeRestricted(activity, restrictionType) {
-                homeViewModel.logout(activity)
-            }
-        }
-        return
     }
 
     BillContainer(
@@ -277,7 +218,7 @@ fun HomeScan(
 
             Lifecycle.Event.ON_PAUSE -> {
                 isPaused = true
-                homeViewModel.startSheetDismissTimer { hideBottomSheet() }
+                homeViewModel.startSheetDismissTimer { navigator.hide() }
             }
 
             Lifecycle.Event.ON_RESUME -> {

@@ -29,8 +29,8 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.PhoneVerificationScreen
 import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 
 
 @Preview
@@ -85,7 +85,7 @@ fun LoginHome(
                 }
                 .padding(horizontal = 20.dp),
             onClick = {
-                navigator.push(PhoneVerificationScreen(isNewAccount = true))
+                navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
             },
             text = stringResource(R.string.action_createAccount),
             buttonState = ButtonState.Filled,

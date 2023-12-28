@@ -78,8 +78,8 @@ import com.getcode.util.PhoneUtils
 import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
+import com.getcode.view.components.ModalSheetLayout
 import com.getcode.view.components.SheetTitle
-import com.getcode.view.main.home.ModalSheetLayout
 import com.google.android.gms.auth.api.credentials.Credential
 import com.google.android.gms.auth.api.credentials.Credentials
 import com.google.android.gms.auth.api.credentials.HintRequest
