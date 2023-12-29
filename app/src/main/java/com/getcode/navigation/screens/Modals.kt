@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.sheetHeight
 import com.getcode.view.components.SheetTitle
@@ -27,6 +28,7 @@ internal interface ModalContent {
         screenContent: @Composable () -> Unit
     ) {
         ModalContainer(
+            navigator = LocalCodeNavigator.current,
             displayLogo = false,
             backButton = { false },
             onLogoClicked = {},
@@ -43,6 +45,7 @@ internal interface ModalContent {
         screenContent: @Composable () -> Unit
     ) {
         ModalContainer(
+            navigator = LocalCodeNavigator.current,
             displayLogo = displayLogo,
             backButton = { false },
             onLogoClicked = onLogoClicked,
@@ -53,9 +56,12 @@ internal interface ModalContent {
 
     @Composable
     fun ModalContainer(
+        navigator: CodeNavigator = LocalCodeNavigator.current,
         displayLogo: Boolean = false,
         backButton: (Screen?) -> Boolean = { false },
+        onBackClicked: (() -> Unit)? = null,
         closeButton: (Screen?) -> Boolean = { false },
+        onCloseClicked: (() -> Unit)? = null,
         onLogoClicked: () -> Unit = { },
         screenContent: @Composable () -> Unit
     ) {
@@ -64,8 +70,6 @@ internal interface ModalContent {
                 .fillMaxWidth()
                 .fillMaxHeight(sheetHeight)
         ) {
-            val navigator = LocalCodeNavigator.current
-
             val name = (navigator.lastItem as? NamedScreen)?.name
             val sheetName = remember(navigator) { name }
 
@@ -77,8 +81,8 @@ internal interface ModalContent {
                 // hide while transitioning to/from other destinations
                 backButton = backButton(navigator.lastItem),
                 closeButton = closeButton(navigator.lastItem),
-                onBackIconClicked = { navigator.pop() },
-                onCloseIconClicked = { navigator.hide() }
+                onBackIconClicked = onBackClicked?.let { { it() } } ?: { navigator.pop() },
+                onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { navigator.hide() }
             )
             Box(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)) {
                 screenContent()

@@ -17,6 +17,7 @@ import com.getcode.solana.organizer.SlotType
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandLight
 import com.getcode.view.components.MiddleEllipsisText
+import com.getcode.view.main.balance.BalanceSheetViewModel
 
 
 @Composable
@@ -41,7 +42,6 @@ fun AccountDebugBuckets() {
             }
             is AccountType.Relationship -> 10
             AccountType.RemoteSend -> 11
-
         }
     }
 
