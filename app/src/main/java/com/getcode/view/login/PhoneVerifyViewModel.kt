@@ -1,20 +1,21 @@
 package com.getcode.view.login
 
+import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
-import androidx.navigation.NavController
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.AccessKeyLoginScreen
+import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
+import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.replaceParam
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
 import com.getcode.view.*
@@ -60,11 +61,11 @@ class PhoneVerifyViewModel @Inject constructor(
         }
     }
 
-    fun onSubmit(navController: NavController?, activity: Activity?) {
+    fun onSubmit(navigator: CodeNavigator, activity: Activity?) {
         if (!uiFlow.value.continueEnabled) return
         TopBarManager.setMessageShown()
         CoroutineScope(Dispatchers.IO).launch {
-            performVerify(navController, activity)
+            performVerify(navigator, activity)
         }
     }
 
@@ -146,7 +147,8 @@ class PhoneVerifyViewModel @Inject constructor(
         }
     }
 
-    private fun performVerify(navController: NavController?, activity: Activity?) {
+    @SuppressLint("CheckResult")
+    private fun performVerify(navigator: CodeNavigator, activity: Activity?) {
         val areaCode = uiFlow.value.countryLocale.phoneCode
         val countryCode = uiFlow.value.countryLocale.countryCode
         val phoneInput = uiFlow.value.phoneInput
@@ -175,10 +177,7 @@ class PhoneVerifyViewModel @Inject constructor(
                 when (res) {
                     PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
                     PhoneVerificationService.SendVerificationCodeResponse.Result.NOT_INVITED -> {
-                        navController?.navigate(
-                            LoginSections.INVITE_CODE.route
-                                .replace("{$ARG_PHONE_NUMBER}", phoneNumber.urlEncode())
-                        )
+                        navigator.push(InviteCodeScreen(phoneNumber.urlEncode()))
                         null
                     }
                     else ->
@@ -202,25 +201,25 @@ class PhoneVerifyViewModel @Inject constructor(
                         return@subscribe
                     }
 
-                    navController?.navigate(
-                        route = LoginSections.PHONE_CONFIRM.route
-                            .replace(
-                                "{${ARG_PHONE_NUMBER}}",
-                                phoneNumber.urlEncode()
+                    if (uiFlow.value.isNewAccount) {
+                        navigator.push(
+                            LoginPhoneConfirmationScreen(
+                                phoneNumber = phoneNumber.urlEncode(),
+                                signInEntropy = uiFlow.value.entropyB64?.urlEncode(),
+                                isNewAccount = uiFlow.value.isNewAccount,
+                                isPhoneLinking = uiFlow.value.isPhoneLinking,
                             )
-                            .replace(
-                                "{${ARG_SIGN_IN_ENTROPY_B64}}",
-                                uiFlow.value.entropyB64.orEmpty().urlEncode()
+                        )
+                    } else {
+                        navigator.push(
+                            PhoneConfirmationScreen(
+                                phoneNumber = phoneNumber.urlEncode(),
+                                signInEntropy = uiFlow.value.entropyB64,
+                                isNewAccount = uiFlow.value.isNewAccount,
+                                isPhoneLinking = uiFlow.value.isPhoneLinking,
                             )
-                            .replace(
-                                "{${ARG_IS_PHONE_LINKING}}",
-                                uiFlow.value.isPhoneLinking.toString()
-                            )
-                            .replace(
-                                "{${ARG_IS_NEW_ACCOUNT}}",
-                                uiFlow.value.isNewAccount.toString()
-                            )
-                    )
+                        )
+                    }
                 }, {
                     setIsLoading(false)
                     TopBarManager.showMessage(getGenericError())

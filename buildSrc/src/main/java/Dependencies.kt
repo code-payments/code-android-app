@@ -27,7 +27,7 @@ object Versions {
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
 
-    const val hilt = "2.48.1"
+    const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
     const val rxjava: String = "3.1.3"
@@ -60,6 +60,7 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
+    const val voyager = "1.0.0-rc10"
 }
 
 object Classpath {
@@ -144,6 +145,10 @@ object Libs {
     const val compose_livedata = "androidx.compose.runtime:runtime-livedata:${Versions.compose}"
     const val compose_navigation =
         "androidx.navigation:navigation-compose:${Versions.compose_navigation}"
+    const val compose_voyager_navigation = "cafe.adriel.voyager:voyager-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_hilt = "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
+    const val compose_voyager_navigation_bottomsheet = "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_transitions = "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
 
     const val rxjava = "io.reactivex.rxjava3:rxjava:${Versions.rxjava}"
     const val rxandroid = "io.reactivex.rxjava3:rxandroid:${Versions.rxandroid}"

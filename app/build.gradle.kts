@@ -134,6 +134,11 @@ dependencies {
     implementation(Libs.compose_navigation)
     implementation(Libs.androidx_constraint_layout_compose)
 
+    implementation(Libs.compose_voyager_navigation)
+    implementation(Libs.compose_voyager_navigation_transitions)
+    implementation(Libs.compose_voyager_navigation_bottomsheet)
+    implementation(Libs.compose_voyager_navigation_hilt)
+
     implementation(Libs.rxjava)
     implementation(Libs.rxandroid)
 

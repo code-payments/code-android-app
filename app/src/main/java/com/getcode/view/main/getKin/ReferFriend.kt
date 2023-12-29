@@ -23,7 +23,7 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun ReferFriend(upPress: () -> Unit = {}, navController: NavController) {
+fun ReferFriend() {
     val context = LocalContext.current as Activity
 
     ConstraintLayout(

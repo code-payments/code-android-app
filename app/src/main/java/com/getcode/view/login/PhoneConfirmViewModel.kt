@@ -1,10 +1,8 @@
 package com.getcode.view.login
 
+import android.annotation.SuppressLint
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.App
@@ -12,6 +10,10 @@ import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.*
+import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.PhoneNumberScreen
 import com.getcode.network.repository.*
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
@@ -28,7 +30,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -60,15 +61,15 @@ class PhoneConfirmViewModel @Inject constructor(
     private val sessionManager: SessionManager
 ) : BaseViewModel() {
     val uiFlow = MutableStateFlow(PhoneConfirmUiModel())
-    private var navController: NavController? = null
+    private var navigator: CodeNavigator? = null
     private var timer: Timer? = null
     private var otpSmsCodeDisposable: Disposable? = null
 
-    fun reset(navController: NavController?) {
+    fun reset(navigator: CodeNavigator) {
         uiFlow.update {
             PhoneConfirmUiModel()
         }
-        this.navController = navController
+        this.navigator = navigator
 
         startTimer()
         otpSmsCodeDisposable?.dispose()
@@ -77,7 +78,7 @@ class PhoneConfirmViewModel @Inject constructor(
 
     fun onSubmit() {
         CoroutineScope(Dispatchers.IO).launch {
-            performConfirm(navController)
+            performConfirm(navigator)
         }
     }
 
@@ -238,7 +239,8 @@ class PhoneConfirmViewModel @Inject constructor(
             }
     }
 
-    private fun performConfirm(navController: NavController?) {
+    @SuppressLint("CheckResult")
+    private fun performConfirm(navigator: CodeNavigator?) {
         val phoneNumber = uiFlow.value.phoneNumber ?: return
         val otpInput = uiFlow.value.otpInput ?: return
         val entropyB64 = uiFlow.value.entropyB64
@@ -258,6 +260,7 @@ class PhoneConfirmViewModel @Inject constructor(
                 if (isNewAccount) Ed25519.createSeed16().encodeBase64() else entropyB64.orEmpty()
             keyPair = MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64).getSolanaKeyPair(App.getInstance())
         } catch (e: Exception) {
+            e.printStackTrace()
             TopBarManager.showMessage(getGenericError())
             return
         }
@@ -265,7 +268,7 @@ class PhoneConfirmViewModel @Inject constructor(
         if (attempts + 1 >= 3) {
             TopBarManager.showMessage(getMaximumAttemptsReachedError())
             CoroutineScope(Dispatchers.Main).launch {
-                navController?.popBackStack()
+                navigator?.popAll()
             }
             return
         }
@@ -307,30 +310,13 @@ class PhoneConfirmViewModel @Inject constructor(
                 {
                     when {
                         isPhoneLinking -> {
-                            navController?.navigate(
-                                SheetSections.PHONE.route,
-                                NavOptions.Builder().setPopUpTo(
-                                    SheetSections.HOME.route,
-                                    inclusive = false,
-                                    saveState = false
-                                ).build()
-                            )
+                            navigator?.push(PhoneNumberScreen)
                         }
                         isNewAccount -> {
-                            navController?.navigate(
-                                LoginSections.SEED_VIEW.route
-                                    .replace(
-                                        "{$ARG_SIGN_IN_ENTROPY_B64}",
-                                        seedB64.urlEncode()
-                                    ),
-                                NavOptions.Builder().setPopUpTo(
-                                    LoginSections.LOGIN.route, inclusive = false, saveState = false
-                                )
-                                    .build()
-                            )
+                            navigator?.push(AccessKeyScreen(signInEntropy = seedB64.urlEncode()))
                         }
                         isSeedInput -> {
-                            navController?.navigate(MainSections.HOME.route)
+                            navigator?.replaceAll(HomeScreen())
                         }
                     }
                 }, {

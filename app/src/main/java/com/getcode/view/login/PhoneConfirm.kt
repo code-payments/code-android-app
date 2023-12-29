@@ -1,12 +1,24 @@
 package com.getcode.view.login
 
-import android.os.Bundle
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -21,13 +33,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.topBarHeight
 import com.getcode.util.PhoneUtils
-import com.getcode.view.*
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OtpRow
@@ -38,10 +50,11 @@ const val OTP_LENGTH = 6
 @Preview
 @Composable
 fun PhoneConfirm(
-    navController: NavController? = null,
-    arguments: Bundle? = null
+    viewModel: PhoneConfirmViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs(),
 ) {
-    val viewModel = hiltViewModel<PhoneConfirmViewModel>()
+    val navigator = LocalCodeNavigator.current
+
     val dataState by viewModel.uiFlow.collectAsState()
     val inputService = LocalTextInputService.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -56,6 +69,7 @@ fun PhoneConfirm(
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .imePadding()
             .padding(horizontal = 20.dp)
             .padding(top = topBarHeight)
@@ -162,16 +176,14 @@ fun PhoneConfirm(
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        viewModel.reset(navController)
-        val phoneNumber = arguments?.getString(ARG_PHONE_NUMBER).orEmpty()
+        viewModel.reset(navigator)
+        val phoneNumber = arguments.phoneNumber.orEmpty()
 
         viewModel.setPhoneNumber(phoneNumber)
 
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B64)
+        arguments.signInEntropy
             ?.let { viewModel.setSignInEntropy(it) }
-        arguments?.getBoolean(ARG_IS_PHONE_LINKING)
-            ?.let { viewModel.setIsPhoneLinking(it) }
-        arguments?.getBoolean(ARG_IS_NEW_ACCOUNT)
-            ?.let { viewModel.setIsNewAccount(it) }
+        viewModel.setIsPhoneLinking(arguments.isPhoneLinking)
+        viewModel.setIsNewAccount(arguments.isNewAccount)
     }
 }

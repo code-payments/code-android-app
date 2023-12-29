@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.view.WindowManager
 import androidx.lifecycle.viewModelScope
+import cafe.adriel.voyager.core.model.ScreenModel
 import com.kik.kikx.kikcodes.KikCodeScanner
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
@@ -66,7 +67,6 @@ sealed interface PresentationStyle {
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
     val isCameraScanEnabled: Boolean = true,
-    val isBottomSheetVisible: Boolean = false,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState(null, false, null, null, null, false),
@@ -92,7 +92,7 @@ class HomeViewModel @Inject constructor(
     private val prefRepository: PrefRepository,
     private val analyticsManager: AnalyticsManager,
     private val authManager: AuthManager,
-) : BaseViewModel() {
+) : BaseViewModel(), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
@@ -124,20 +124,6 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
-    }
-
-    fun onHideBottomSheet() {
-        uiFlow.update {
-            it.copy(
-                isBottomSheetVisible = false,
-                isCameraScanEnabled = true,
-                selectedBottomSheet = null
-            )
-        }
-    }
-
-    fun onShowBottomSheet() {
-        uiFlow.value = uiFlow.value.copy(isBottomSheetVisible = true)
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {

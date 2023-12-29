@@ -11,24 +11,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.view.LoginSections
-import com.getcode.view.MainSections
+import com.getcode.navigation.screens.CodeLoginPermission
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun CameraPermission(navController: NavController? = null) {
+fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     var isResultHandled by remember { mutableStateOf(false) }
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (!isResultHandled) {
             isResultHandled = true
 
             if (isGranted) {
-                navController?.navigate(MainSections.HOME.route)
+                navigator.replaceAll(HomeScreen())
             } else {
-                navController?.navigate(LoginSections.PERMISSION_NOTIFICATION_REQUEST.route)
+                navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
             }
         }
     }
@@ -50,6 +52,7 @@ fun CameraPermission(navController: NavController? = null) {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         val (image, caption, button) = createRefs()
 

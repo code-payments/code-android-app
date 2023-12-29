@@ -1,86 +1,132 @@
 package com.getcode
 
-import android.content.Intent
-import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.snap
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.navigation.*
-import androidx.navigation.compose.NavHost
-import com.getcode.manager.SessionManager
+import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.transitions.ScreenTransition
+import cafe.adriel.voyager.transitions.ScreenTransitionContent
+import cafe.adriel.voyager.transitions.SlideTransition
+import com.getcode.navigation.core.BottomSheetNavigator
+import com.getcode.navigation.core.CombinedNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.MainRoot
+import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import com.getcode.view.*
-import com.getcode.view.components.*
-import com.getcode.view.main.home.HomeViewModel
-import timber.log.Timber
+import com.getcode.theme.LocalCodeColors
+import com.getcode.view.components.AuthCheck
+import com.getcode.view.components.BottomBarContainer
+import com.getcode.view.components.CodeScaffold
+import com.getcode.view.components.TitleBar
+import com.getcode.view.components.TopBarContainer
 
 @Composable
-fun CodeApp(appState: CodeAppState) {
+fun CodeApp() {
     CodeTheme {
-        CodeScaffold(
-            backgroundColor = Brand,
-            scaffoldState = appState.scaffoldState
-        ) { innerPaddingModifier ->
-            val onNavigateToLogin = {
-                appState.navController.navigate(LoginSections.LOGIN.route) {
-                    popUpTo(LoginSections.LOGIN.route) {
-                        inclusive = true
+        val appState = rememberCodeAppState()
+        AppNavHost {
+            CodeScaffold(
+                backgroundColor = Brand,
+                scaffoldState = appState.scaffoldState
+            ) { innerPaddingModifier ->
+                Navigator(
+                    screen = MainRoot,
+                ) { navigator ->
+                    val codeNavigator = LocalCodeNavigator.current
+                    LaunchedEffect(navigator.lastItem) {
+                        // update global navigator for platform access to support push/pop from a single
+                        // navigator current
+                        codeNavigator.screensNavigator = navigator
                     }
+
+                    val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
+                    if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
+                        TitleBar(
+                            title = appState.currentTitle,
+                            backButton = isVisibleBackButton,
+                            onBackIconClicked = appState::upPress
+                        )
+                    }
+
+                    Box(modifier = Modifier.padding(innerPaddingModifier)) {
+                        if (navigator.lastItem is LoginScreen) {
+                            CrossfadeTransition(navigator = navigator)
+                        } else {
+                            SlideTransition(navigator = navigator)
+                        }
+                    }
+
+                    //Listen for authentication changes here
+                    AuthCheck(
+                        navigator = appState.navigator,
+                        onNavigate = {
+                            codeNavigator.replaceAll(it, inSheet = false)
+                        }
+                    )
                 }
             }
-            val onNavigateToHomeScan = { appState.navController.navigate(MainSections.HOME.route) }
+        }
 
-            val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
-            if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
-                TitleBar(
-                    title = appState.currentTitle,
-                    backButton = isVisibleBackButton,
-                    onBackIconClicked = appState::upPress
-                )
-            }
+        TopBarContainer(appState)
+        BottomBarContainer(appState)
+    }
+}
 
-            NavHost(
-                navController = appState.navController,
-                startDestination = MainDestinations.MAIN_GRAPH,
-                modifier = Modifier.padding(innerPaddingModifier)
-            ) {
-                //Start destination should be the launch screen to await authentication
-                navigation(
-                    route = MainDestinations.MAIN_GRAPH,
-                    startDestination = MainSections.LAUNCH.route
-                ) {
-                    addLoginGraph(appState.navController, appState::upPress)
-                    addMainGraph()
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun AppNavHost(content: @Composable () -> Unit) {
+    var combinedNavigator by remember {
+        mutableStateOf<CombinedNavigator?>(null)
+    }
+    BottomSheetNavigator(
+        modifier = Modifier.fillMaxSize(),
+        sheetBackgroundColor = LocalCodeColors.current.background,
+        sheetContentColor = LocalCodeColors.current.onBackground,
+        sheetContent = { sheetNav ->
+            combinedNavigator = combinedNavigator?.apply { sheetNavigator = sheetNav }
+                ?: CombinedNavigator(sheetNav)
+            combinedNavigator?.let {
+                CompositionLocalProvider(LocalCodeNavigator provides it) {
+                    SheetSlideTransition(navigator = it)
                 }
             }
 
-            //Listen for authentication changes here
-            authCheck(
-                navController = appState.navController,
-                onNavigateToLogin = onNavigateToLogin,
-                onNavigateToHome = onNavigateToHomeScan
-            )
-
-            TopBarContainer(appState)
-            BottomBarContainer(appState)
+        }
+    ) { sheetNav ->
+        combinedNavigator =
+            combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)
+        combinedNavigator?.let {
+            CompositionLocalProvider(LocalCodeNavigator provides it) {
+                content()
+            }
         }
     }
 }
 
-
-fun NavGraphBuilder.codeSheetNavGraph(
-    navController: NavController,
-    homeViewModel: HomeViewModel,
-    onTitleChange: (Int?) -> Unit,
-    onBackButtonVisibilityChange: (Boolean) -> Unit,
-    onClose: () -> Unit,
+@Composable
+private fun CrossfadeTransition(
+    navigator: Navigator,
+    modifier: Modifier = Modifier,
+    content: ScreenTransitionContent = { it.Content() }
 ) {
-    navigation(
-        route = MainDestinations.SHEET_GRAPH,
-        startDestination = SheetSections.NONE.route
-    ) {
-        addSheetGraph(navController, homeViewModel, onTitleChange, onBackButtonVisibilityChange, onClose)
-    }
+    ScreenTransition(
+        navigator = navigator,
+        modifier = modifier,
+        content = content,
+        transition = { fadeIn() togetherWith fadeOut() }
+    )
 }

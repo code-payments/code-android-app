@@ -11,17 +11,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.view.MainSections
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun NotificationPermission(navController: NavController? = null) {
+fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
-            navController?.navigate(MainSections.HOME.route)
+            navigator.replaceAll(HomeScreen())
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })
@@ -33,6 +34,7 @@ fun NotificationPermission(navController: NavController? = null) {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         val (image, caption, button, buttonSkip) = createRefs()
 

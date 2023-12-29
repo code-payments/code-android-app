@@ -31,7 +31,6 @@ fun TitleBar(
         Box(
             modifier = modifier
                 .background(Brand)
-                .statusBarsPadding()
                 .fillMaxWidth()
                 .height(topBarHeight)
         ) {

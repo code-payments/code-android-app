@@ -2,7 +2,6 @@ package com.getcode.view.login
 
 import android.Manifest
 import android.os.Build
-import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
@@ -27,25 +26,25 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
-import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
 import com.getcode.view.components.*
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview
 @Composable
 fun AccessKey(
-    navController: NavController? = null,
+    viewModel: AccessKeyViewModel = hiltViewModel(),
     upPress: () -> Unit = {},
-    arguments: Bundle? = null
+    arguments: LoginArgs = LoginArgs(),
 ) {
-    val viewModel = hiltViewModel<AccessKeyViewModel>()
+    val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -74,7 +73,7 @@ fun AccessKey(
     val launcher = getPermissionLauncher(onPermissionResult)
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navController, true)
+        viewModel.onSubmit(navigator, true)
         isExportSeedRequested = false
     }
 
@@ -95,12 +94,13 @@ fun AccessKey(
 
     }
     val onSkipClick = {
-        viewModel.onSubmit(navController, false)
+        viewModel.onSubmit(navigator, false)
     }
 
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = 20.dp)
             .padding(top = 85.dp)
     ) {
@@ -202,14 +202,14 @@ fun AccessKey(
                     .getString(R.string.prompt_description_exitAccountCreation),
                 positiveText = App.getInstance().getString(R.string.action_exit),
                 negativeText = App.getInstance().getString(R.string.action_cancel),
-                onPositive = { navController?.navigateUp() },
+                onPositive = { navigator.popAll() },
                 onNegative = {}
             )
         )
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B64)
+        arguments.signInEntropy
             ?.let { viewModel.initWithEntropy(it) }
     }
 

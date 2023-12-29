@@ -32,7 +32,7 @@ import com.getcode.view.components.CodeButton
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ConfirmDeleteAccount(navController: NavController) {
+fun ConfirmDeleteAccount() {
     val viewModel = hiltViewModel<DeleteAccountViewModel>()
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current

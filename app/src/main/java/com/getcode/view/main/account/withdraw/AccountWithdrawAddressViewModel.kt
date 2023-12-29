@@ -1,10 +1,12 @@
 package com.getcode.view.main.account.withdraw
 
+import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.content.Context
-import android.os.Bundle
-import androidx.navigation.NavController
 import com.getcode.App
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.WithdrawalArgs
+import com.getcode.navigation.screens.WithdrawalSummaryScreen
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchDestinationMetadata
 import com.getcode.network.repository.TransactionRepository
@@ -93,30 +95,14 @@ class AccountWithdrawAddressViewModel @Inject constructor(
     }
 
     fun onSubmit(
-        navController: NavController,
-        arguments: Bundle,
+        navigator: CodeNavigator,
+        arguments: WithdrawalArgs,
     ) {
-        val amountFiat = arguments.getString(ARG_WITHDRAW_AMOUNT_FIAT) ?: return
-        val amountKin = arguments.getString(ARG_WITHDRAW_AMOUNT_KIN) ?: return
-        val amountText = arguments.getString(ARG_WITHDRAW_AMOUNT_TEXT) ?: return
-        val currencyCode = arguments.getString(ARG_WITHDRAW_AMOUNT_CURRENCY_CODE) ?: return
-        val currencyResId = arguments.getString(ARG_WITHDRAW_AMOUNT_CURRENCY_RES_ID) ?: return
-        val currencyRate = arguments.getString(ARG_WITHDRAW_AMOUNT_CURRENCY_RATE) ?: return
         val resolvedDestination = uiFlow.value.resolvedAddress ?: return
-
-        navController.navigate(
-            SheetSections.WITHDRAW_SUMMARY.route
-                .replace("{$ARG_WITHDRAW_AMOUNT_FIAT}", amountFiat)
-                .replace("{$ARG_WITHDRAW_AMOUNT_KIN}", amountKin)
-                .replace("{$ARG_WITHDRAW_AMOUNT_TEXT}", amountText)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_CODE}", currencyCode)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_RES_ID}", currencyResId)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_RATE}", currencyRate)
-                .replace("{$ARG_WITHDRAW_ADDRESS}", uiFlow.value.addressText)
-                .replace("{$ARG_WITHDRAW_RESOLVED_DESTINATION}", resolvedDestination)
-        )
+        navigator.push(WithdrawalSummaryScreen(arguments.copy(resolvedDestination = resolvedDestination)))
     }
 
+    @SuppressLint("CheckResult")
     private fun getDestinationMetaData(publicKey: PublicKey) {
         client.fetchDestinationMetadata(publicKey)
             .subscribe({ result ->

@@ -1,7 +1,19 @@
 package com.getcode.view.main.balance
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -9,10 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
@@ -20,7 +34,6 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -30,64 +43,46 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import com.getcode.App
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
 import com.getcode.model.AirdropType
-import com.getcode.model.Currency
-import com.getcode.model.HistoricalTransaction
 import com.getcode.model.PaymentType
-import com.getcode.theme.*
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.BalanceModal
+import com.getcode.navigation.screens.FaqScreen
+import com.getcode.theme.BrandLight
+import com.getcode.theme.White10
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.RepeatOnLifecycle
-import com.getcode.view.components.*
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.previewComponent.PreviewColumn
-import timber.log.Timber
 
 
 @Composable
 fun BalanceSheet(
-    isOpen: Boolean,
-    viewModel: BalanceSheetViewModel = hiltViewModel(),
-    upPress: () -> Unit = {},
-    faqOpen: () -> Unit = {},
+    viewModel: BalanceSheetViewModel,
 ) {
-    LaunchedEffect(isOpen) {
-        if (isOpen) {
-            viewModel.reset()
-        }
-    }
-
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
-    AnalyticsScreenWatcher(
-        lifecycleOwner = LocalLifecycleOwner.current,
-        event = AnalyticsManager.Screen.Balance
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(sheetHeight)
+    RepeatOnLifecycle(
+        targetState = Lifecycle.State.RESUMED,
+        screen = BalanceModal,
     ) {
-        SheetTitle(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            title = stringResource(R.string.title_balance),
-            onCloseIconClicked = upPress,
-            onBackIconClicked = { viewModel.setDebugBucketsVisible(false) },
-            closeButton = !dataState.isDebugBucketsVisible,
-            backButton = dataState.isDebugBucketsVisible,
+        viewModel.reset()
+    }
+
+    if (dataState.isDebugBucketsVisible) {
+        AccountDebugBuckets()
+    } else {
+        BalanceContent(
+            viewModel = viewModel,
+            dataState = dataState,
+            upPress = { navigator.hide() },
+            faqOpen = { navigator.push(FaqScreen) }
         )
-        if (dataState.isDebugBucketsVisible) {
-            AccountDebugBuckets()
-        } else {
-            BalanceContent(viewModel, dataState, upPress, faqOpen)
-        }
     }
 }
 
@@ -106,6 +101,7 @@ fun BalanceContent(
             when {
                 lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyListState.firstVisibleItemIndex == 0 ->
                     lazyListState.firstVisibleItemScrollOffset * .2f
+
                 else -> 0f
             }
         }
@@ -118,7 +114,7 @@ fun BalanceContent(
         state = lazyListState
     ) {
         val transactionsEmpty =
-                dataState.historicalTransactionsUiModel.isEmpty()
+            dataState.historicalTransactionsUiModel.isEmpty()
 
         item {
             Column(
@@ -135,7 +131,7 @@ fun BalanceContent(
                     viewModel.setDebugBucketsVisible(true)
                 }
                 if (!transactionsEmpty) {
-                    KinValueHint(upPress, faqOpen)
+                    KinValueHint(faqOpen)
                 }
             }
         }
@@ -178,6 +174,7 @@ fun TransactionItem(event: HistoricalTransactionUIModel) {
                             event.isRemoteSend -> stringResource(R.string.title_sent)
                             else -> stringResource(R.string.title_gaveKin)
                         }
+
                     PaymentType.Receive ->
                         when {
                             event.airdropType == AirdropType.GiveFirstKin -> stringResource(R.string.title_referralBonus)
@@ -186,6 +183,7 @@ fun TransactionItem(event: HistoricalTransactionUIModel) {
                             event.isRemoteSend && event.isReturned -> stringResource(R.string.title_returned)
                             else -> stringResource(R.string.title_received)
                         }
+
                     else -> stringResource(R.string.title_unknown)
                 },
                 style = MaterialTheme.typography.body1
@@ -272,7 +270,7 @@ fun BalanceTop(
 }
 
 @Composable
-private fun ColumnScope.KinValueHint(upPress: () -> Unit, faqOpen: () -> Unit) {
+private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .align(CenterHorizontally)
@@ -315,10 +313,7 @@ private fun ColumnScope.KinValueHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                         it,
                         it
                     )
-                    .firstOrNull()?.let {
-                        upPress()
-                        faqOpen()
-                    }
+                    .firstOrNull()?.let { onClick() }
             }
         )
     }
@@ -406,13 +401,14 @@ private fun TopPreview() {
         selectedCurrency = CurrencyUtils.currencyKin,
         historicalTransactions = emptyList(),
         historicalTransactionsUiModel = emptyList(),
-        isDebugBucketsEnabled =false,
+        isDebugBucketsEnabled = false,
         isDebugBucketsVisible = false,
     )
 
     BalanceTop(
         dataState = model,
-        isClickable = false)
+        isClickable = false
+    )
 }
 
 @Preview

@@ -32,15 +32,15 @@ fun CodeTheme(
     val sysUiController = rememberSystemUiController()
 
     SideEffect {
-        sysUiController.setStatusBarColor(color = Color.Transparent)
-        sysUiController.setSystemBarsColor(color = Color.Transparent)
+        sysUiController.setSystemBarsColor(color = Color(0x01000000))
     }
 
     ProvideCodeColors(colors) {
         MaterialTheme(
             //colors = debugColors(),
-            typography = Typography,
-            content = content
+            typography = typography,
+            content = content,
+            shapes = shapes
         )
     }
 }
@@ -96,7 +96,7 @@ fun ProvideCodeColors(
     CompositionLocalProvider(LocalCodeColors provides colorPalette, content = content)
 }
 
-private val LocalCodeColors = staticCompositionLocalOf<CodeColors> {
+val LocalCodeColors = staticCompositionLocalOf<CodeColors> {
     error("No ColorPalette provided")
 }
 

@@ -2,6 +2,7 @@ package com.getcode.view.main.home
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -11,6 +12,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,20 +21,21 @@ import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White
+import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
 fun HomeRestricted(
-    activity: Activity,
     restrictionType: RestrictionType,
-    onLogoutClick: () -> Unit = {}
+    onLogoutClick: (Activity) -> Unit = {}
 ) {
     lateinit var titleText: String
     lateinit var subTitleText: String
     lateinit var buttonText: String
     lateinit var buttonAction: () -> Unit
 
+    val activity = LocalContext.current as Activity
     when(restrictionType) {
         RestrictionType.FORCE_UPGRADE -> {
             titleText = stringResource(R.string.title_updateRequired)
@@ -44,13 +47,13 @@ fun HomeRestricted(
             titleText = stringResource(R.string.error_title_timelockUnlocked)
             subTitleText = stringResource(R.string.error_description_timelockUnlocked)
             buttonText = stringResource(R.string.action_logout)
-            buttonAction = { onLogoutClick() }
+            buttonAction = { onLogoutClick(activity) }
         }
         RestrictionType.ACCESS_EXPIRED -> {
             titleText = stringResource(R.string.title_accessExpired)
             subTitleText = stringResource(R.string.subtitle_accessExpiredDescription)
             buttonText = stringResource(R.string.action_logout)
-            buttonAction = { onLogoutClick() }
+            buttonAction = { onLogoutClick(activity) }
         }
     }
 

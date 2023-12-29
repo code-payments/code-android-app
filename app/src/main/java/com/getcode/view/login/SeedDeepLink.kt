@@ -1,6 +1,5 @@
 package com.getcode.view.login
 
-import android.os.Bundle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -12,19 +11,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.screens.CodeLoginPermission
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
 import com.getcode.util.getActivity
 import com.getcode.vendor.Base58
-import com.getcode.view.ARG_SIGN_IN_ENTROPY_B58
-import com.getcode.view.LoginSections
-import com.getcode.view.MainSections
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,29 +32,27 @@ import timber.log.Timber
 
 @Preview
 @Composable
-fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null) {
-
-    val viewModel = hiltViewModel<SeedInputViewModel>()
+fun SeedDeepLink(
+    viewModel: SeedInputViewModel = hiltViewModel(),
+    seed: String? = null,
+) {
     val dataState by viewModel.uiFlow.collectAsState()
+    val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val authState by SessionManager.authState.collectAsState()
     var isMessageShown by remember { mutableStateOf(false) }
 
-    fun navigateMain() = navController?.navigate(MainSections.HOME.route)
-    fun navigateLogin() = navController?.navigate(LoginSections.LOGIN.route)
+    fun navigateMain() = navigator.replaceAll(HomeScreen())
+    fun navigateLogin() = navigator.replace(LoginScreen())
 
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
             navigateMain()
         } else {
-            navController?.navigate(LoginSections.PERMISSION_NOTIFICATION_REQUEST.route)
+            navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck { onNotificationResult(it) }
-
-    SideEffect {
-        notificationPermissionCheck(false)
-    }
 
     fun onError() {
         TopBarManager.showMessage(
@@ -81,8 +79,7 @@ fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null
                     context.getActivity()?.let { activity ->
                         CoroutineScope(Dispatchers.IO).launch {
                             viewModel.logout(activity) {
-                                arguments?.clear()
-                                viewModel.performLogin(navController, entropyB64)
+                                viewModel.performLogin(navigator, entropyB64)
                             }
 
                         }
@@ -94,7 +91,7 @@ fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null
     }
 
     LaunchedEffect(authState?.isAuthenticated) {
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B58)
+        seed
             ?.let { entropyB58 ->
                 val entropy: ByteArray
                 try {
@@ -112,13 +109,12 @@ fun SeedDeepLink(navController: NavController? = null, arguments: Bundle? = null
                 val isAuthenticated = authState?.isAuthenticated ?: return@LaunchedEffect
                 val isSame = entropy.toList() == authState?.entropyB64?.decodeBase64()?.toList()
                 if (isSame) {
-                    navigateMain()
+                    notificationPermissionCheck(false)
                 } else if (isAuthenticated) {
                     showLogoutMessage(entropyB64)
                 } else {
                     try {
-                        arguments.clear()
-                        viewModel.performLogin(navController, entropyB64)
+                        viewModel.performLogin(navigator, entropyB64)
                     } catch (e: Exception) {
                         onError()
                     }

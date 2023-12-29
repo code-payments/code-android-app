@@ -10,15 +10,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.view.SheetSections
+import com.getcode.navigation.screens.DeleteConfirmationScreen
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.TextSection
 
 @Composable
-fun DeleteCodeAccount(navController: NavController) {
+fun DeleteCodeAccount() {
+    val navigator = LocalCodeNavigator.current
     Column(Modifier.padding(20.dp)) {
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -50,9 +51,7 @@ fun DeleteCodeAccount(navController: NavController) {
             }
         }
         CodeButton(
-            onClick = {
-                navController.navigate(SheetSections.CONFIRM_DELETE_ACCOUNT.route)
-            },
+            onClick = { navigator.push(DeleteConfirmationScreen) },
             text = stringResource(R.string.action_continue),
             buttonState = ButtonState.Filled,
         )

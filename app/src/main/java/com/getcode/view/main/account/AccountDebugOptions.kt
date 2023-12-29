@@ -18,7 +18,7 @@ import com.getcode.theme.BrandLight
 
 @Composable
 fun AccountDebugOptions(
-    viewModel: AccountDebugOptionsViewModel = hiltViewModel()
+    viewModel: AccountDebugOptionsViewModel,
 ) {
     data class DebugOption(
         val titleResId: Int,
