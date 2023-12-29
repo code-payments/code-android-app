@@ -32,10 +32,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.compositionUniqueId
+import com.getcode.navigation.screens.ModalContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -116,7 +119,16 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
         get() = sheetState.isVisible
 
     val progress: Float
-        get() = sheetState.progress
+        get() {
+            val currentState = sheetState.currentValue
+            val targetState = sheetState.targetValue
+            if (currentState == ModalBottomSheetValue.Hidden && currentState == targetState) return 0f
+            return when (targetState) {
+                ModalBottomSheetValue.Hidden -> 1f - sheetState.progress
+                ModalBottomSheetValue.Expanded -> sheetState.progress
+                ModalBottomSheetValue.HalfExpanded -> 0f
+            }.coerceIn(0f, 1f)
+        }
 
     fun show(screen: Screen) {
         coroutineScope.launch {
@@ -154,6 +166,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 }
 
 private object HiddenBottomSheetScreen : Screen {
+    override val key: ScreenKey = uniqueScreenKey
     private fun readResolve(): Any = this
 
     @Composable

@@ -2,18 +2,29 @@ package com.getcode.view.main.account
 
 import android.Manifest
 import android.os.Build
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,13 +32,14 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.getcode.App
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.util.IntentUtils
-import com.getcode.view.components.*
+import com.getcode.view.components.ButtonState
+import com.getcode.view.components.CodeButton
+import com.getcode.view.components.PermissionCheck
+import com.getcode.view.components.getPermissionLauncher
 
 @Composable
 fun AccountAccessKey(
@@ -79,11 +91,6 @@ fun AccountAccessKey(
             )
         }
     }
-
-    AnalyticsScreenWatcher(
-        lifecycleOwner = LocalLifecycleOwner.current,
-        event = AnalyticsManager.Screen.Backup
-    )
 
     ConstraintLayout(
         modifier = Modifier

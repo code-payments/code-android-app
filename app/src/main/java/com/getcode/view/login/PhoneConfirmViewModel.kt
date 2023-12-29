@@ -13,6 +13,7 @@ import com.getcode.manager.*
 import com.getcode.navigation.screens.AccessKeyScreen
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.PhoneNumberScreen
 import com.getcode.network.repository.*
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
@@ -309,21 +310,13 @@ class PhoneConfirmViewModel @Inject constructor(
                 {
                     when {
                         isPhoneLinking -> {
-//                            navigator.push()
-//                            navController?.navigate(
-//                                SheetSections.PHONE.route,
-//                                NavOptions.Builder().setPopUpTo(
-//                                    SheetSections.HOME.route,
-//                                    inclusive = false,
-//                                    saveState = false
-//                                ).build()
-//                            )
+                            navigator?.push(PhoneNumberScreen)
                         }
                         isNewAccount -> {
                             navigator?.push(AccessKeyScreen(signInEntropy = seedB64.urlEncode()))
                         }
                         isSeedInput -> {
-                            navigator?.replace(HomeScreen())
+                            navigator?.replaceAll(HomeScreen())
                         }
                     }
                 }, {

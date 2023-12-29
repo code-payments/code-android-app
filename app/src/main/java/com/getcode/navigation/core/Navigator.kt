@@ -1,5 +1,6 @@
 package com.getcode.navigation.core
 
+import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.derivedStateOf
@@ -7,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import com.getcode.navigation.screens.AppScreen
 import timber.log.Timber
@@ -16,6 +18,7 @@ val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
 
 class NavigatorNull : CodeNavigator {
     override val lastItem: Screen? = null
+    override val lastEvent: StackEvent = StackEvent.Idle
     override val isVisible: Boolean = false
     override val progress: Float = 0f
 
@@ -43,10 +46,20 @@ class NavigatorNull : CodeNavigator {
 
     override fun popUntil(predicate: (Screen) -> Boolean): Boolean = false
 
+    @Composable
+    override fun saveableState(
+        key: String,
+        screen: Screen?,
+        content: @Composable () -> Unit
+    ) {
+        content()
+    }
+
 }
 
 interface CodeNavigator {
     val lastItem: Screen?
+    val lastEvent: StackEvent
     val isVisible: Boolean
     val progress: Float
     var screensNavigator: Navigator?
@@ -69,6 +82,14 @@ interface CodeNavigator {
     fun popAll()
 
     infix fun popUntil(predicate: (Screen) -> Boolean): Boolean
+
+    @SuppressLint("ComposableNaming")
+    @Composable
+    fun saveableState(
+        key: String,
+        screen: Screen?,
+        content: @Composable () -> Unit
+    )
 }
 
 class CombinedNavigator(
@@ -79,6 +100,10 @@ class CombinedNavigator(
 
     override val lastItem: Screen?
         get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
+
+    override val lastEvent: StackEvent
+        get() = if (isVisible) sheetNavigator.lastEvent else screensNavigator?.lastEvent
+            ?: StackEvent.Idle
 
     override val isVisible: Boolean
         get() = sheetNavigator.isVisible
@@ -92,17 +117,16 @@ class CombinedNavigator(
     }
 
     override fun hide() {
-        Timber.d("hide")
         sheetNavigator.hide()
     }
 
     override fun <T> hideWithResult(result: T) {
-        with (sheetNavigator) {
+        with(sheetNavigator) {
             var prev = if (size < 2) null else items[items.size - 2] as? AppScreen
             if (prev == null) {
                 // grab last screen from base
                 prev = screensNavigator?.let {
-                    with (it) {
+                    with(it) {
                         items.lastOrNull() as AppScreen
                     }
                 }
@@ -164,14 +188,14 @@ class CombinedNavigator(
 
     override fun <T> popWithResult(result: T): Boolean {
         return if (isVisible) {
-            with (sheetNavigator) {
+            with(sheetNavigator) {
                 val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
                 prev?.onResult(result)
                 pop()
             }
         } else {
             screensNavigator?.let {
-                with (it) {
+                with(it) {
                     val prev = if (size < 2) null else items[items.size - 2] as? AppScreen
                     prev?.onResult(result)
                     pop()
@@ -197,19 +221,20 @@ class CombinedNavigator(
     }
 
     @Composable
-    fun saveableState(
+    override fun saveableState(
         key: String,
+        screen: Screen?,
         content: @Composable () -> Unit
     ) {
-        if (isVisible) {
-            sheetNavigator.saveableState(key, content = content)
-        } else {
-            val screen by remember(lastItem) {
+//        if (isVisible) {
+//            sheetNavigator.saveableState(key, screen = screen, content = content)
+//        } else {
+            val lastScreen by remember(screen) {
                 derivedStateOf {
-                    lastItem ?: error("Navigator has no screen")
+                    screen ?: error("Navigator has no screen")
                 }
             }
-            screensNavigator?.saveableState(key = key, screen = screen, content)
-        }
+            screensNavigator?.saveableState(key = key, screen = lastScreen, content = content)
+//        }
     }
 }

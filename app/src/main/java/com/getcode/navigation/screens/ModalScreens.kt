@@ -1,10 +1,14 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.navigation.screens.AccountAccessKeyScreen.ModalContainer
+import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.manager.AnalyticsManager
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
@@ -18,8 +22,14 @@ import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.ReferFriend
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data object BuySellScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     @Composable
     override fun Content() {
         ModalContainer(backButton = { it is BuySellScreen }) {
@@ -28,7 +38,10 @@ data object BuySellScreen : MainGraph, ModalContent {
     }
 }
 
-data object DepositKinScreen : MainGraph, ModalContent, NamedScreen {
+@Parcelize
+data object DepositKinScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(id = R.string.title_depositKin)
@@ -38,10 +51,18 @@ data object DepositKinScreen : MainGraph, ModalContent, NamedScreen {
         ModalContainer(backButton = { it is DepositKinScreen }) {
             AccountDeposit()
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.Deposit
+        )
     }
 }
 
-data object FaqScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object FaqScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(id = R.string.title_faq)
@@ -51,10 +72,19 @@ data object FaqScreen : MainGraph, NamedScreen, ModalContent {
         ModalContainer(backButton = { it is FaqScreen }) {
             AccountFaq(getViewModel())
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.Faq
+        )
     }
 }
 
-data object AccountDebugOptionsScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object AccountDebugOptionsScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     override val name: String
         @Composable get() = stringResource(id = R.string.title_myAccount)
 
@@ -66,7 +96,10 @@ data object AccountDebugOptionsScreen : MainGraph, NamedScreen, ModalContent {
     }
 }
 
-data object AccountDetailsScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object AccountDetailsScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(id = R.string.title_myAccount)
@@ -79,7 +112,11 @@ data object AccountDetailsScreen : MainGraph, NamedScreen, ModalContent {
     }
 }
 
-data object AccountAccessKeyScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object AccountAccessKeyScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     override val name: String
         @Composable get() = stringResource(id = R.string.title_accessKey)
 
@@ -88,10 +125,20 @@ data object AccountAccessKeyScreen : MainGraph, NamedScreen, ModalContent {
         ModalContainer(backButton = { it is AccountAccessKeyScreen }) {
             AccountAccessKey(getViewModel())
         }
+
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.Backup
+        )
     }
 }
 
-data object PhoneNumberScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object PhoneNumberScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     override val name: String
         @Composable get() = stringResource(id = R.string.title_phoneNumber)
 
@@ -103,15 +150,19 @@ data object PhoneNumberScreen : MainGraph, NamedScreen, ModalContent {
     }
 }
 
+@Parcelize
 data class PhoneVerificationScreen(
     val arguments: LoginArgs = LoginArgs()
-) : MainGraph, NamedScreen, ModalContent {
+) : MainGraph, ModalContent {
     constructor(
         signInEntropy: String? = null,
         isPhoneLinking: Boolean = false,
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.title_enterPhoneNumber)
@@ -125,15 +176,19 @@ data class PhoneVerificationScreen(
     }
 }
 
+@Parcelize
 data class PhoneConfirmationScreen(
     val arguments: LoginArgs = LoginArgs()
-) : MainGraph, NamedScreen, ModalContent {
+) : MainGraph, ModalContent {
     constructor(
         signInEntropy: String? = null,
         isPhoneLinking: Boolean = false,
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.title_verifyPhoneNumber)
@@ -150,7 +205,11 @@ data class PhoneConfirmationScreen(
 }
 
 
-data object DeleteCodeScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object DeleteCodeScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     override val name: String
         @Composable get() = stringResource(id = R.string.title_deleteAccount)
 
@@ -162,7 +221,11 @@ data object DeleteCodeScreen : MainGraph, NamedScreen, ModalContent {
     }
 }
 
-data object DeleteConfirmationScreen : MainGraph, NamedScreen, ModalContent {
+@Parcelize
+data object DeleteConfirmationScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     override val name: String
         @Composable get() = stringResource(id = R.string.title_deleteAccount)
 
@@ -174,7 +237,11 @@ data object DeleteConfirmationScreen : MainGraph, NamedScreen, ModalContent {
     }
 }
 
-data object ReferFriendScreen: MainGraph, ModalContent {
+@Parcelize
+data object ReferFriendScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     @Composable
     override fun Content() {
         ModalContainer(backButton = { it is DeleteConfirmationScreen }) {

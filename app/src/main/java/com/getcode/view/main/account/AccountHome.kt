@@ -2,7 +2,6 @@ package com.getcode.view.main.account
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,17 +21,14 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,15 +38,13 @@ import androidx.compose.ui.unit.sp
 import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountDebugOptionsScreen
 import com.getcode.navigation.screens.AccountDetailsScreen
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White10
@@ -65,11 +59,6 @@ fun AccountHome(
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
     val context = LocalContext.current
-
-    AnalyticsScreenWatcher(
-        lifecycleOwner = LocalLifecycleOwner.current,
-        event = AnalyticsManager.Screen.Settings
-    )
 
     val composeScope = rememberCoroutineScope()
     fun handleItemClicked(item: AccountPage) {

@@ -1,5 +1,6 @@
 package com.getcode.navigation.screens
 
+import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
@@ -19,24 +20,19 @@ import com.getcode.view.login.PhoneVerifyViewModel
 import com.getcode.view.login.SeedDeepLink
 import com.getcode.view.login.SeedInput
 import com.getcode.view.login.SeedInputViewModel
-
-sealed interface LoginGraph : Screen {
-    fun readResolve(): Any = this
-}
-
-data class LoginArgs(
-    val signInEntropy: String? = null,
-    val isPhoneLinking: Boolean = false,
-    val isNewAccount: Boolean = false,
-    val phoneNumber: String? = null
-)
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 
 
-data class LoginScreen(val seed: String? = null) : LoginGraph, NamedScreen {
+@Parcelize
+data class LoginScreen(val seed: String? = null) : LoginGraph {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     override val name: String
         @Composable get() = stringResource(id = R.string.action_logIn)
 
-    override val key: ScreenKey = uniqueScreenKey
+
 
     @Composable
     override fun Content() {
@@ -48,15 +44,19 @@ data class LoginScreen(val seed: String? = null) : LoginGraph, NamedScreen {
     }
 }
 
+@Parcelize
 data class LoginPhoneVerificationScreen(
     val arguments: LoginArgs = LoginArgs()
-) : LoginGraph, NamedScreen {
+) : LoginGraph {
     constructor(
         signInEntropy: String? = null,
         isPhoneLinking: Boolean = false,
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.title_enterPhoneNumber)
@@ -68,15 +68,19 @@ data class LoginPhoneVerificationScreen(
     }
 }
 
+@Parcelize
 data class LoginPhoneConfirmationScreen(
     val arguments: LoginArgs = LoginArgs()
-) : LoginGraph, NamedScreen {
+) : LoginGraph {
     constructor(
         signInEntropy: String? = null,
         isPhoneLinking: Boolean = false,
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.title_verifyPhoneNumber)
@@ -90,9 +94,10 @@ data class LoginPhoneConfirmationScreen(
     }
 }
 
+@Parcelize
 data class AccessKeyLoginScreen(
     val arguments: LoginArgs = LoginArgs()
-) : LoginGraph, NamedScreen {
+) : LoginGraph {
 
     constructor(
         signInEntropy: String? = null,
@@ -100,6 +105,9 @@ data class AccessKeyLoginScreen(
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.title_enterAccessKeyWords)
@@ -111,9 +119,10 @@ data class AccessKeyLoginScreen(
     }
 }
 
+@Parcelize
 data class InviteCodeScreen(
     val arguments: LoginArgs = LoginArgs()
-): LoginGraph, NamedScreen {
+): LoginGraph {
 
     constructor(
         signInEntropy: String? = null,
@@ -121,6 +130,9 @@ data class InviteCodeScreen(
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(R.string.subtitle_inviteCode)
@@ -131,9 +143,11 @@ data class InviteCodeScreen(
 
 }
 
+
+@Parcelize
 data class AccessKeyScreen(
     val arguments: LoginArgs = LoginArgs()
-) : LoginGraph, NamedScreen {
+) : LoginGraph {
 
     constructor(
         signInEntropy: String? = null,
@@ -141,6 +155,9 @@ data class AccessKeyScreen(
         isNewAccount: Boolean = false,
         phoneNumber: String? = null,
     ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
         @Composable get() = stringResource(id = R.string.title_accessKey)
@@ -152,12 +169,20 @@ data class AccessKeyScreen(
     }
 }
 
-sealed interface CodeLoginPermission {
+@Parcelize
+sealed interface CodeLoginPermission: Parcelable {
+    @Parcelize
     data object Camera : CodeLoginPermission
+    @Parcelize
     data object Notifications : CodeLoginPermission
 }
 
+@Parcelize
 data class PermissionRequestScreen(val permission: CodeLoginPermission) : LoginGraph {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
     @Composable
     override fun Content() {
         when (permission) {

@@ -15,7 +15,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
@@ -102,11 +101,7 @@ private fun AppNavHost(content: @Composable () -> Unit) {
                 ?: CombinedNavigator(sheetNav)
             combinedNavigator?.let {
                 CompositionLocalProvider(LocalCodeNavigator provides it) {
-                    if (sheetNav.isVisible) {
-                        SheetSlideTransition(navigator = it.sheetNavigator)
-                    } else {
-                        CurrentScreen()
-                    }
+                    SheetSlideTransition(navigator = it)
                 }
             }
 

@@ -13,11 +13,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.sheetHeight
 import com.getcode.view.components.SheetTitle
 
-sealed interface ModalContent {
+internal interface ModalContent {
 
     @Composable
     fun ModalContainer(
@@ -84,9 +86,10 @@ sealed interface ModalContent {
         }
     }
 }
-sealed interface ModalRoot: ModalContent
+internal sealed interface ModalRoot: ModalContent
 
 data object MainRoot : Screen {
+    override val key: ScreenKey = uniqueScreenKey
     private fun readResolve(): Any = this
 
     @Composable

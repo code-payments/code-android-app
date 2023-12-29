@@ -80,7 +80,7 @@ class AccessKeyViewModel @Inject constructor(
             navigator.push(PermissionRequestScreen(CodeLoginPermission.Camera))
         } else {
             if (Build.VERSION.SDK_INT < 33) {
-                navigator.push(HomeScreen())
+                navigator.replaceAll(HomeScreen())
             } else {
                 val notificationsPermissionDenied = ContextCompat.checkSelfPermission(
                     App.getInstance(),
@@ -90,7 +90,7 @@ class AccessKeyViewModel @Inject constructor(
                 if (notificationsPermissionDenied) {
                     navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
                 } else {
-                    navigator.push(HomeScreen())
+                    navigator.replaceAll(HomeScreen())
                 }
             }
         }

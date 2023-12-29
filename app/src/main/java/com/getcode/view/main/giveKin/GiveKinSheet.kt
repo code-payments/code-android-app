@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -19,10 +18,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import com.getcode.App
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.util.AnimationUtils
@@ -34,7 +32,6 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.connectivity.NetworkConnectionViewModel
-import com.getcode.view.main.home.HomeViewModel
 
 @Preview
 @Composable
@@ -48,15 +45,12 @@ fun GiveKinSheet(
     val connectionState by connectionViewModel.connectionStatus.collectAsState()
     val currencySelectorVisible = dataState.currencySelectorVisible
 
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+    RepeatOnLifecycle(
+        targetState = Lifecycle.State.RESUMED,
+        screen = GiveKinModal,
+    ) {
         viewModel.reset()
     }
-
-    AnalyticsScreenWatcher(
-        lifecycleOwner = LocalLifecycleOwner.current,
-        event = AnalyticsManager.Screen.GiveKin
-    )
-
 
     Box(
         modifier = Modifier.fillMaxSize()
