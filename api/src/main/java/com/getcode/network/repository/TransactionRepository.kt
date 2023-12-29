@@ -45,6 +45,9 @@ class TransactionRepository @Inject constructor(
 
     var maxDeposit: Long = 0
 
+    var transactionCache = mutableListOf<HistoricalTransaction>()
+        private set
+
     fun setMaximumDeposit(deposit: Long) {
         maxDeposit = deposit
     }
@@ -410,13 +413,17 @@ class TransactionRepository @Inject constructor(
     ): Single<List<HistoricalTransaction>> {
         return Single.create<List<HistoricalTransaction>> {
             val container = mutableListOf<HistoricalTransaction>()
-            var afterId: ByteArray? = afterId
+            var after: ByteArray? = afterId
 
             while (true) {
-                val response = fetchPaymentHistoryPage(owner, afterId).blockingGet()
+                val response = fetchPaymentHistoryPage(owner, after).blockingGet()
                 if (response.isEmpty()) break
                 container.addAll(response)
-                afterId = response.lastOrNull()?.id?.toByteArray()
+                transactionCache = transactionCache
+                    .filterNot { item -> response.contains(item) }
+                    .plus(response)
+                    .toMutableList()
+                after = response.lastOrNull()?.id?.toByteArray()
             }
             container.reverse()
             it.onSuccess(container)

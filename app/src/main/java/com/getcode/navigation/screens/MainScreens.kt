@@ -2,6 +2,10 @@ package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -15,6 +19,7 @@ import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
+import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScreen
@@ -105,16 +110,34 @@ data object BalanceModal : MainGraph, ModalRoot {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
 
+        val viewModel = getViewModel<BalanceSheetViewModel>()
+        val state by viewModel.stateFlow.collectAsState()
+        val isViewingBuckets by remember(state.isDebugBucketsVisible) {
+            derivedStateOf { state.isDebugBucketsVisible }
+        }
+
         ModalContainer(
-            closeButton = {
+            navigator = navigator,
+            onLogoClicked = {},
+            backButton = { isViewingBuckets },
+            onBackClicked = isViewingBuckets.takeIf { it }?.let {
+                {
+                    viewModel.dispatchEvent(
+                        BalanceSheetViewModel.Event.OnDebugBucketsVisible(false)
+                    )
+                }
+            },
+            closeButton = close@{
+                if (viewModel.stateFlow.value.isDebugBucketsVisible) return@close false
                 if (navigator.isVisible) {
                     it is BalanceModal
                 } else {
                     navigator.progress > 0f
                 }
             },
+            onCloseClicked = null,
         ) {
-            BalanceSheet(getViewModel())
+            BalanceSheet(state = state, dispatch = viewModel::dispatchEvent)
         }
 
         AnalyticsScreenWatcher(
@@ -160,7 +183,7 @@ data object AccountModal : MainGraph, ModalRoot {
 
 @Composable
 fun <T> AppScreen.OnScreenResult(block: (T) -> Unit) {
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED, screen = this) {
+    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
         result
             .filterNotNull()
             .mapNotNull { it as? T }

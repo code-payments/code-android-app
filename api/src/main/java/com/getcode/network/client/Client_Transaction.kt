@@ -5,6 +5,7 @@ import android.content.Context
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.*
@@ -18,7 +19,14 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.rx3.asFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -368,6 +376,26 @@ fun Client.fetchTransactionLimits(
 
     val seconds = date.timeInMillis / 1000
     return transactionRepository.fetchTransactionLimits(owner, seconds)
+}
+
+fun Client.historicalTransactions() = transactionRepository.transactionCache.toList()
+    .sortedByDescending { it.date }
+
+@OptIn(ExperimentalCoroutinesApi::class)
+fun Client.observeTransactions(
+    owner: KeyPair,
+): Flow<List<HistoricalTransaction>> {
+    return flowOf(historicalTransactions())
+        .flatMapConcat { initialList ->
+            fetchPaymentHistoryDelta(owner, initialList.firstOrNull()?.id?.toByteArray())
+                .toObservable().asFlow()
+                .scan(initialList) { previous, update ->
+                    previous
+                        .filterNot { update.contains(it) }
+                        .plus(update)
+                        .sortedByDescending { it.date }
+                }
+        }
 }
 
 fun Client.fetchPaymentHistoryDelta(

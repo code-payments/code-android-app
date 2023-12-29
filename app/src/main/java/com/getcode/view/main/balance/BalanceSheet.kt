@@ -1,5 +1,8 @@
 package com.getcode.view.main.balance
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -31,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
+import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
@@ -43,18 +48,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
 import com.getcode.App
 import com.getcode.R
+import com.getcode.data.transactions.HistoricalTransactionUiModel
 import com.getcode.model.AirdropType
+import com.getcode.model.CurrencyCode
 import com.getcode.model.PaymentType
+import com.getcode.model.Rate
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White10
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.previewComponent.PreviewColumn
@@ -62,35 +67,41 @@ import com.getcode.view.previewComponent.PreviewColumn
 
 @Composable
 fun BalanceSheet(
-    viewModel: BalanceSheetViewModel,
+    state: BalanceSheetViewModel.State,
+    dispatch: (BalanceSheetViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
-    val dataState by viewModel.uiFlow.collectAsState()
 
-    RepeatOnLifecycle(
-        targetState = Lifecycle.State.RESUMED,
-        screen = BalanceModal,
-    ) {
-        viewModel.reset()
-    }
 
-    if (dataState.isDebugBucketsVisible) {
-        AccountDebugBuckets()
-    } else {
-        BalanceContent(
-            viewModel = viewModel,
-            dataState = dataState,
-            upPress = { navigator.hide() },
-            faqOpen = { navigator.push(FaqScreen) }
-        )
+    AnimatedContent(
+        targetState = state.isDebugBucketsVisible,
+        label = "show/hide buckets",
+        transitionSpec = {
+            slideIntoContainer(
+                AnimatedContentTransitionScope.SlideDirection.End
+            ) togetherWith slideOutOfContainer(
+                AnimatedContentTransitionScope.SlideDirection.Start
+            )
+        }
+    ) { buckets ->
+        if (buckets) {
+            AccountDebugBuckets()
+        } else {
+            BalanceContent(
+                state = state,
+                dispatch = dispatch,
+                upPress = { navigator.hide() },
+                faqOpen = { navigator.push(FaqScreen) }
+            )
+        }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BalanceContent(
-    viewModel: BalanceSheetViewModel,
-    dataState: BalanceSheetUiModel,
+    state: BalanceSheetViewModel.State,
+    dispatch: (BalanceSheetViewModel.Event) -> Unit,
     upPress: () -> Unit,
     faqOpen: () -> Unit
 ) {
@@ -107,15 +118,16 @@ fun BalanceContent(
         }
     }
 
+    val transactionsEmpty by remember(state.historicalTransactions) {
+        derivedStateOf { state.historicalTransactions.isEmpty() }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight(),
         state = lazyListState
     ) {
-        val transactionsEmpty =
-            dataState.historicalTransactionsUiModel.isEmpty()
-
         item {
             Column(
                 modifier = Modifier
@@ -125,32 +137,42 @@ fun BalanceContent(
                     .graphicsLayer { translationY = firstItemTranslationY },
             ) {
                 BalanceTop(
-                    dataState,
-                    dataState.isDebugBucketsEnabled
+                    state,
+                    state.isDebugBucketsEnabled
                 ) {
-                    viewModel.setDebugBucketsVisible(true)
+                    dispatch(BalanceSheetViewModel.Event.OnDebugBucketsVisible(true))
                 }
-                if (!transactionsEmpty) {
+                if (!transactionsEmpty && !state.historicalTransactionsLoading) {
                     KinValueHint(faqOpen)
                 }
             }
         }
-        items(dataState.historicalTransactionsUiModel, key = { it.id }) { event ->
+        items(state.historicalTransactions, key = { it.id }) { event ->
             Row(Modifier.animateItemPlacement()) {
                 TransactionItem(event)
             }
         }
 
-        if (transactionsEmpty) {
-            item {
-                EmptyTransactionsHint(upPress, faqOpen)
+        when {
+            state.historicalTransactionsLoading -> {
+                item {
+                    Box(modifier = Modifier.fillParentMaxSize()) {
+                        CircularProgressIndicator(modifier = Modifier.align(TopCenter))
+                    }
+                }
+            }
+
+            transactionsEmpty -> {
+                item {
+                    EmptyTransactionsHint(upPress, faqOpen)
+                }
             }
         }
     }
 }
 
 @Composable
-fun TransactionItem(event: HistoricalTransactionUIModel) {
+fun TransactionItem(event: HistoricalTransactionUiModel) {
 
     Box(
         modifier = Modifier
@@ -255,15 +277,15 @@ fun TransactionItem(event: HistoricalTransactionUIModel) {
 
 @Composable
 fun BalanceTop(
-    dataState: BalanceSheetUiModel,
+    state: BalanceSheetViewModel.State,
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
     AmountArea(
-        amountText = dataState.amountText,
+        amountText = state.amountText,
         isAltCaption = false,
         isAltCaptionKinIcon = false,
-        currencyResId = dataState.selectedCurrency?.resId,
+        currencyResId = state.currencyFlag,
         isClickable = isClickable,
         onClick = onClick
     )
@@ -395,18 +417,17 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
 @Preview
 @Composable
 private fun TopPreview() {
-    val model = BalanceSheetUiModel(
+    val model = BalanceSheetViewModel.State(
         amountText = "$12.34 of Kin",
         marketValue = 1.0,
-        selectedCurrency = CurrencyUtils.currencyKin,
+        selectedRate = Rate(CurrencyUtils.currencyKin.rate, CurrencyCode.KIN),
         historicalTransactions = emptyList(),
-        historicalTransactionsUiModel = emptyList(),
         isDebugBucketsEnabled = false,
         isDebugBucketsVisible = false,
     )
 
     BalanceTop(
-        dataState = model,
+        state = model,
         isClickable = false
     )
 }
@@ -414,7 +435,7 @@ private fun TopPreview() {
 @Preview
 @Composable
 private fun ItemPreview() {
-    val transaction = HistoricalTransactionUIModel(
+    val transaction = HistoricalTransactionUiModel(
         id = emptyList(),
         amountText = "$1.23 of Kin",
         dateText = "2023-10-10 10:10 p.m.",
