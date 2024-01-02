@@ -1,0 +1,20 @@
+package com.getcode.util
+
+import android.content.Context
+import com.getcode.model.Currency
+import com.getcode.util.locale.LocaleHelper
+import com.getcode.utils.LocaleUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+
+class AndroidLocale @Inject constructor(
+    @ApplicationContext private val context: Context
+): LocaleHelper {
+    override fun getDefaultCurrencyName(): String {
+        return LocaleUtils.getDefaultCurrency(context)
+    }
+
+    override fun getDefaultCurrency(): Currency? {
+        return CurrencyUtils.getCurrency(getDefaultCurrencyName())
+    }
+}

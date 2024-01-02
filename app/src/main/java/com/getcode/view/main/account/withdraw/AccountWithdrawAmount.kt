@@ -19,6 +19,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
@@ -29,7 +30,7 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.giveKin.AmountArea
-import com.getcode.view.main.giveKin.CurrencyList
+import com.getcode.view.main.currency.CurrencyList
 
 @Composable
 fun AccountWithdrawAmount(
@@ -89,7 +90,7 @@ fun AccountWithdrawAmount(
                             end.linkTo(parent.end)
                         }
                     ) {
-                        viewModel.setCurrencySelectorVisible(true)
+                        navigator.show(CurrencySelectionModal)
                     }
 
                     CodeKeyPad(
@@ -125,27 +126,6 @@ fun AccountWithdrawAmount(
                     )
                 }
             }
-        }
-
-        androidx.compose.animation.AnimatedVisibility(
-            visible = dataState.currencySelectorVisible,
-            modifier = Modifier.fillMaxSize(),
-            enter = AnimationUtils.animationFrontEnter,
-            exit = AnimationUtils.animationFrontExit
-        ) {
-            CurrencyList(
-                dataState.currencyModel,
-                viewModel::onUpdateCurrencySearchFilter,
-                viewModel::onSelectedCurrencyChanged,
-                viewModel::setCurrencySelectorVisible,
-                viewModel::onRecentCurrencyRemoved,
-            )
-        }
-    }
-
-    if (dataState.currencySelectorVisible) {
-        BackHandler {
-            viewModel.setCurrencySelectorVisible(false)
         }
     }
 }

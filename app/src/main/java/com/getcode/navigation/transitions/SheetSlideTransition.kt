@@ -3,8 +3,6 @@ package com.getcode.navigation.transitions
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.VisibilityThreshold
@@ -21,13 +19,8 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
-import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.HomeScreen
-import com.getcode.navigation.screens.MainRoot
 import com.getcode.navigation.screens.ModalContent
-import com.getcode.navigation.screens.ModalRoot
-import timber.log.Timber
 
 @Composable
 fun SheetSlideTransition(

@@ -11,6 +11,7 @@ import com.getcode.model.KinAmount
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.repository.*
+import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,6 @@ data class GiveKinSheetUiModel(
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val amountModel: AmountUiModel = AmountUiModel(),
     val continueEnabled: Boolean = false,
-    val currencySelectorVisible: Boolean = false
 )
 
 @HiltViewModel
@@ -33,8 +33,9 @@ class GiveKinSheetViewModel @Inject constructor(
     client: Client,
     currencyRepository: CurrencyRepository,
     prefsRepository: PrefRepository,
-    balanceRepository: BalanceRepository
-) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository) {
+    balanceRepository: BalanceRepository,
+    localeHelper: LocaleHelper,
+) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository, localeHelper) {
 
     val uiFlow = MutableStateFlow(GiveKinSheetUiModel())
 
@@ -51,8 +52,6 @@ class GiveKinSheetViewModel @Inject constructor(
         viewModelScope.launch {
             uiFlow.update {
                 it.copy(
-                    currencySelectorVisible = false,
-                    currencyModel = it.currencyModel.copy(currencySearchText = ""),
                     continueEnabled = false
                 )
             }
@@ -112,10 +111,6 @@ class GiveKinSheetViewModel @Inject constructor(
                 continueEnabled = numberInputHelper.amount >= minValue && !it.amountModel.isInsufficient
             )
         }
-    }
-
-    override fun setCurrencySelectorVisible(isVisible: Boolean) {
-        uiFlow.update { it.copy(currencySelectorVisible = isVisible) }
     }
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {

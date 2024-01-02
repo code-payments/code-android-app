@@ -11,6 +11,7 @@ import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
+import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,8 +34,9 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     client: Client,
     currencyRepository: CurrencyRepository,
     prefsRepository: PrefRepository,
-    balanceRepository: BalanceRepository
-) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository) {
+    balanceRepository: BalanceRepository,
+    localeHelper: LocaleHelper,
+) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository, localeHelper) {
     val uiFlow = MutableStateFlow(AccountWithdrawAmountUiModel())
 
     init {
@@ -92,10 +94,6 @@ class AccountWithdrawAmountViewModel @Inject constructor(
             // only enable if sufficient balance and non-zero
             it.copy(continueEnabled = !it.amountModel.isInsufficient && numberInputHelper.amount != 0.0)
         }
-    }
-
-    override fun setCurrencySelectorVisible(isVisible: Boolean) {
-        uiFlow.update { it.copy(currencySelectorVisible = isVisible) }
     }
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {

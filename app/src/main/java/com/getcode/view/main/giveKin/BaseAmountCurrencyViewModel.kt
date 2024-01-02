@@ -11,6 +11,7 @@ import com.getcode.network.client.fetchTransactionLimits
 import com.getcode.network.repository.*
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.NumberInputHelper
+import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.LocaleUtils
@@ -21,8 +22,12 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 import java.lang.StringBuilder
 import kotlin.math.min
@@ -61,7 +66,8 @@ abstract class BaseAmountCurrencyViewModel(
     val client: Client,
     private val prefsRepository: PrefRepository,
     val currencyRepository: CurrencyRepository,
-    private val balanceRepository: BalanceRepository
+    private val balanceRepository: BalanceRepository,
+    private val localeHelper: LocaleHelper,
 ) : BaseViewModel(), AmountInputViewModel {
     protected val numberInputHelper = NumberInputHelper()
     private var searchJob: Job? = null
@@ -69,7 +75,6 @@ abstract class BaseAmountCurrencyViewModel(
     abstract fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel)
     abstract fun setAmountUiModel(amountUiModel: AmountUiModel)
     abstract fun setAmountAnimatedInputUiModel(amountAnimatedInputUiModel: AmountAnimatedInputUiModel)
-    abstract fun setCurrencySelectorVisible(isVisible: Boolean)
     abstract fun getCurrencyUiModel(): CurrencyUiModel
     abstract fun getAmountUiModel(): AmountUiModel
     abstract fun getAmountAnimatedInputUiModel(): AmountAnimatedInputUiModel
@@ -87,6 +92,31 @@ abstract class BaseAmountCurrencyViewModel(
             )
         }.launchIn(viewModelScope)
 
+        combine(
+            currencyRepository.getRates()
+                .flowOn(Dispatchers.IO)
+                .map { CurrencyUtils.getCurrenciesWithRates(it) },
+            prefsRepository
+                .observeOrDefault(
+                    PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
+                ).flowOn(Dispatchers.IO)
+                .distinctUntilChanged(),
+        ) { currencies, selectedCode ->
+            val currencyUiModel = getCurrencyUiModel()
+            val currency = currencies.firstOrNull { it.code == selectedCode }
+            getModelsWithSelectedCurrency(
+                currencyUiModel,
+                getAmountUiModel(),
+                selectedCode,
+                currency?.resId,
+                numberInputHelper.amount,
+                numberInputHelper.getFormattedString()
+            )
+        }.filterNotNull().onEach {  (currencyModel, amountModel) ->
+            setCurrencyUiModel(currencyModel)
+            setAmountUiModel(amountModel)
+        }.launchIn(viewModelScope)
+
         SessionManager.getKeyPair()?.let {
             client.fetchTransactionLimits(it)
                 .subscribeOn(Schedulers.io())
@@ -94,21 +124,11 @@ abstract class BaseAmountCurrencyViewModel(
                 .doOnNext { sendLimitsMap ->
                     setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimitsMap))
                 }
-                .subscribeOn(Schedulers.io())
-                .flatMapSingle {
-                    getDefaultAndRecentCurrencies()
-                }
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext { pair ->
-                    val (selectedCurrencyCode, recentCurrencyCodes) = pair
-                    onRecentCurrenciesChanged(recentCurrencyCodes)
-                    onSelectedCurrencyChanged(selectedCurrencyCode)
-                }
                 .subscribe({}, ErrorUtils::handleError)
         }
     }
 
-    fun onSelectedCurrencyChanged(
+    private fun onSelectedCurrencyChanged(
         selectedCurrencyCode: String
     ) {
         numberInputHelper.reset()
@@ -132,49 +152,6 @@ abstract class BaseAmountCurrencyViewModel(
 
         persistSelectedCurrencyChanged(selectedCurrencyCode)
         persistRecentCurrenciesChanged(currencyModel.currenciesRecent)
-    }
-
-    fun onRecentCurrenciesChanged(currenciesRecent: List<String>) {
-        val currencyModel = getCurrencyUiModel()
-        val currenciesRecentMapped = currenciesRecent
-            .mapNotNull { currencyModel.currenciesMap[it] }
-            .sortedBy { it.code }
-
-        currencyModel.copy(
-            currenciesRecent = currenciesRecentMapped,
-            listItems = getCurrenciesLocalesListItems(
-                currencyModel.currenciesFiltered,
-                currenciesRecentMapped,
-                currencyModel.currencySearchText
-            )
-        ).let { setCurrencyUiModel(it) }
-    }
-
-    fun onRecentCurrencyRemoved(code: String) {
-        val currencies = getCurrencyUiModel()
-            .currenciesRecent
-            .filter { it.code != code }
-
-        onRecentCurrenciesChanged(currencies.map { it.code })
-        persistRecentCurrenciesChanged(currencies)
-    }
-
-    fun onUpdateCurrencySearchFilter(str: String) {
-        setCurrencyUiModel(getCurrencyUiModel().copy(currencySearchText = str))
-
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            val currencyUiModel = getCurrencyUiModel()
-            delay(300)
-            setCurrencyUiModel(
-                currencyUiModel.copy(
-                    currencySearchText = str,
-                    listItems = getCurrenciesLocalesListItems(
-                        currencyUiModel.currenciesFiltered, currencyUiModel.currenciesRecent, str
-                    )
-                )
-            )
-        }
     }
 
     protected open fun onAmountChanged(
