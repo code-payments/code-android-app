@@ -2,12 +2,8 @@ package com.getcode.navigation.core
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ModalBottomSheetDefaults
@@ -38,7 +34,6 @@ import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.compositionUniqueId
-import com.getcode.navigation.screens.ModalContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -118,6 +113,9 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
     val isVisible: Boolean
         get() = sheetState.isVisible
 
+
+    private var shownSheetScreens: MutableList<Screen> = mutableListOf()
+
     val progress: Float
         get() {
             val currentState = sheetState.currentValue
@@ -132,20 +130,60 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 
     fun show(screen: Screen) {
         coroutineScope.launch {
+            if (shownSheetScreens.isEmpty()) {
+                replaceAll(screen)
+                shownSheetScreens.add(screen)
+                sheetState.show()
+            } else {
+                hideAndShow(screen)
+            }
+        }
+    }
+
+    private suspend fun hideAndShow(screen: Screen) {
+        if (isVisible) {
+            sheetState.hide()
+            replaceAll(HiddenBottomSheetScreen)
+
+            shownSheetScreens.add(screen)
             replaceAll(screen)
             sheetState.show()
         }
     }
+
 
     fun hide() {
         coroutineScope.launch {
             if (isVisible) {
                 sheetState.hide()
                 replaceAll(HiddenBottomSheetScreen)
+                showPreviousSheet()
             } else if (sheetState.targetValue == ModalBottomSheetValue.Hidden) {
                 // Swipe down - sheetState is already hidden here so `isVisible` is false
                 replaceAll(HiddenBottomSheetScreen)
             }
+        }
+    }
+
+    override fun push(item: Screen) {
+        if (isVisible) {
+            shownSheetScreens.add(item)
+        }
+        navigator.push(item)
+    }
+
+    override fun pop(): Boolean {
+        if (isVisible) {
+            shownSheetScreens.removeLastOrNull()
+        }
+        return navigator.pop()
+    }
+
+    private suspend fun showPreviousSheet() {
+        shownSheetScreens.removeLastOrNull()
+        if (shownSheetScreens.isNotEmpty()) {
+            replaceAll(shownSheetScreens)
+            sheetState.show()
         }
     }
 

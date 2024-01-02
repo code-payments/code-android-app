@@ -13,6 +13,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.model.Currency
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
@@ -20,6 +21,8 @@ import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
+import com.getcode.view.main.currency.CurrencySelectionSheet
+import com.getcode.view.main.currency.CurrencyViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScreen
@@ -39,6 +42,7 @@ data class HomeScreen(val cashLink: String? = null) : AppScreen(), MainGraph {
     @Composable
     override fun Content() {
         val vm = homeViewModel
+        val currencyVm = currencyViewModel
         HomeScreen(vm, cashLink)
 
         OnScreenResult<Bill> {
@@ -72,7 +76,7 @@ data object GetKinModal : MainGraph, ModalRoot {
 }
 
 @Parcelize
-data object GiveKinModal : MainGraph, ModalRoot {
+data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -97,7 +101,6 @@ data object GiveKinModal : MainGraph, ModalRoot {
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.GiveKin
         )
-
     }
 }
 
@@ -181,13 +184,37 @@ data object AccountModal : MainGraph, ModalRoot {
     }
 }
 
+@Parcelize
+data object CurrencySelectionModal: MainGraph, ModalRoot {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is CurrencySelectionModal
+                } else {
+                    navigator.progress > 0f
+                }
+            }
+        ) {
+            CurrencySelectionSheet(viewModel = currencyViewModel)
+        }
+    }
+}
+
 @Composable
 fun <T> AppScreen.OnScreenResult(block: (T) -> Unit) {
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+    RepeatOnLifecycle(
+        targetState = Lifecycle.State.RESUMED,
+    ) {
         result
             .filterNotNull()
             .mapNotNull { it as? T }
-            .onEach { block(it) }
+            .onEach { runCatching { block(it) } }
             .onEach { result.value = null }
             .launchIn(this)
     }

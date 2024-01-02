@@ -3,7 +3,8 @@ package com.getcode.navigation.screens
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.util.getActivityScopedViewModel
+import com.getcode.view.main.currency.CurrencyViewModel
 import com.getcode.view.main.home.HomeViewModel
 import kotlinx.parcelize.Parcelize
 
@@ -16,7 +17,14 @@ internal sealed interface MainGraph : Screen, Parcelable, NamedScreen {
      * Common HomeViewModel for main graph to share
      */
     val homeViewModel: HomeViewModel
-        @Composable get() = getViewModel<HomeViewModel>()
+        @Composable get() = getActivityScopedViewModel()
+
+    /**
+     * Common CurrencyViewModel for main graph to share
+     */
+    val currencyViewModel: CurrencyViewModel
+        @Composable get() = getActivityScopedViewModel()
+
 
     fun readResolve(): Any = this
 }

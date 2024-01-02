@@ -1,38 +1,90 @@
-package com.getcode.view.main.giveKin
+package com.getcode.view.main.currency
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Divider
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
 import com.getcode.R
-import com.getcode.theme.*
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.Brand
+import com.getcode.theme.BrandLight
+import com.getcode.theme.White05
+import com.getcode.theme.White50
+import com.getcode.theme.inputColors
+import com.getcode.util.RepeatOnLifecycle
 import com.getcode.view.components.SwipeableView
+import com.getcode.view.main.giveKin.CurrencyListItem
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun CurrencyList(
-    uiModel: CurrencyUiModel,
-    onUpdateCurrencySearchFilter: (String) -> Unit,
-    onSelectedCurrencyChanged: (String) -> Unit,
-    setCurrencySelectorVisible: (Boolean) -> Unit,
-    onRecentCurrencyRemoved: (String) -> Unit,
+fun CurrencySelectionSheet(
+    viewModel: CurrencyViewModel,
 ) {
+    Timber.d("currency screen")
+    val navigator = LocalCodeNavigator.current
+    val state by viewModel.stateFlow.collectAsState()
+
+    var searchQuery by remember {
+        mutableStateOf(TextFieldValue())
+    }
+
+    LaunchedEffect(searchQuery, state.currencySearchText) {
+        if (searchQuery.text != state.currencySearchText) {
+            viewModel.dispatchEvent(CurrencyViewModel.Event.OnSearchQueryChanged(searchQuery.text))
+        }
+    }
+
+    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
+        viewModel.eventFlow
+            .filterIsInstance<CurrencyViewModel.Event.OnSelectedCurrencyChanged>()
+            .filter { it.fromUser }
+            .map { it.currency }
+            .distinctUntilChanged()
+            .onEach {
+                navigator.hideWithResult(it)
+            }.launchIn(this)
+    }
+
     Column(
         modifier = Modifier.imePadding()
     ) {
@@ -55,10 +107,10 @@ fun CurrencyList(
                 )
             ) },
             trailingIcon = {
-                if (uiModel.currencySearchText.isNotEmpty()) {
+                if (searchQuery.text.isNotEmpty()) {
                     IconButton(
                         onClick = {
-                            onUpdateCurrencySearchFilter("")
+                            searchQuery = TextFieldValue()
                         },
                     ) {
                         Icon(
@@ -69,10 +121,8 @@ fun CurrencyList(
                     }
                 }
             },
-            value = uiModel.currencySearchText,
-            onValueChange = {
-                onUpdateCurrencySearchFilter(it)
-            },
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
             textStyle = MaterialTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
@@ -87,8 +137,15 @@ fun CurrencyList(
                 .background(Brand)
                 .wrapContentHeight()
         ) {
-            items(uiModel.listItems) { listItem ->
-                val isSelectable = listItem is CurrencyListItem.RegionCurrencyItem
+            if (state.loading) {
+                item {
+                    Box(Modifier.fillParentMaxSize()) {
+                        CircularProgressIndicator(Modifier.align(Alignment.TopCenter))
+                    }
+                }
+            }
+
+            items(state.listItems) { listItem ->
                 val isDisabled = listItem is CurrencyListItem.RegionCurrencyItem && listItem.currency.rate <= 0
                 val currencyCode = when (listItem) {
                     is CurrencyListItem.RegionCurrencyItem -> listItem.currency.code
@@ -127,7 +184,7 @@ fun CurrencyList(
                             SwipeableView(
                                 isSwipeEnabled = listItem.isRecent,
                                 leftSwiped = {
-                                    onRecentCurrencyRemoved(listItem.currency.code)
+                                    viewModel.dispatchEvent(CurrencyViewModel.Event.OnRecentCurrencyRemoved(listItem.currency))
                                 },
                                 leftSwipeCard = {
                                     if (listItem.isRecent) ListSwipeDeleteCard()
@@ -136,12 +193,11 @@ fun CurrencyList(
                                 ListRowItem(
                                     listItem.currency.resId,
                                     listItem.currency.name,
-                                    isSelectable,
-                                    uiModel.selectedCurrencyCode.orEmpty() == currencyCode,
+                                    true,
+                                    state.selectedCurrencyCode.orEmpty()  == currencyCode,
                                     isDisabled,
                                 ) {
-                                    onSelectedCurrencyChanged(currencyCode)
-                                    setCurrencySelectorVisible(false)
+                                    viewModel.dispatchEvent(CurrencyViewModel.Event.OnSelectedCurrencyChanged(listItem.currency))
                                 }
 
                                 Divider(
@@ -154,84 +210,8 @@ fun CurrencyList(
                             }
                         }
                     }
-
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun ListSwipeDeleteCard() {
-    Box(
-        modifier = Modifier.background(TopError),
-        contentAlignment = Alignment.CenterEnd,
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.ic_delete),
-            contentDescription = "",
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 20.dp)
-                .size(30.dp),
-        )
-    }
-}
-
-@Composable
-private fun ListRowItem(resId: Int?, title: String, isSelectable: Boolean, isSelected: Boolean, isDisabled: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brand)
-            .let {
-                if (isSelectable && !isDisabled) {
-                    it.clickable { onClick() }
-                } else it
-            }
-            .padding(horizontal = 20.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .align(Alignment.CenterStart)
-                .alpha(if (isDisabled) 0.25f else 1.0f)
-        ) {
-            resId?.let {
-                Image(
-                    modifier = Modifier
-                        .padding(end = 15.dp)
-                        .size(30.dp)
-                        .clip(RoundedCornerShape(15.dp))
-                        .align(Alignment.CenterVertically),
-                    painter = painterResource(resId),
-                    contentDescription = ""
-                )
-            }
-            Column(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .align(Alignment.CenterVertically),
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.body1
-                )
-            }
-        }
-
-        if (isSelectable) {
-            Image(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .align(Alignment.CenterEnd)
-                    .alpha(if (isDisabled) 0.25f else 1.0f),
-                painter = painterResource(
-                    if (isSelected)
-                        R.drawable.ic_checked_blue else R.drawable.ic_unchecked
-                ),
-                contentDescription = ""
-            )
         }
     }
 }

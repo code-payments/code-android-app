@@ -20,6 +20,7 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
@@ -32,6 +33,7 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.connectivity.NetworkConnectionViewModel
+import com.getcode.view.main.currency.CurrencyList
 
 @Preview
 @Composable
@@ -43,7 +45,6 @@ fun GiveKinSheet(
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
     val connectionState by connectionViewModel.connectionStatus.collectAsState()
-    val currencySelectorVisible = dataState.currencySelectorVisible
 
     RepeatOnLifecycle(
         targetState = Lifecycle.State.RESUMED,
@@ -56,7 +57,7 @@ fun GiveKinSheet(
         modifier = Modifier.fillMaxSize()
     ) {
         androidx.compose.animation.AnimatedVisibility(
-            visible = !currencySelectorVisible,
+            visible = true,
             modifier = Modifier.fillMaxSize(),
             enter = AnimationUtils.animationBackEnter,
             exit = AnimationUtils.animationBackExit
@@ -90,7 +91,8 @@ fun GiveKinSheet(
                                 end.linkTo(parent.end)
                             }
                     ) {
-                        viewModel.setCurrencySelectorVisible(true)
+                        navigator.show(CurrencySelectionModal)
+//                        viewModel.setCurrencySelectorVisible(true)
                     }
 
                     CodeKeyPad(
@@ -133,27 +135,6 @@ fun GiveKinSheet(
                     )
                 }
             }
-        }
-
-        androidx.compose.animation.AnimatedVisibility(
-            visible = currencySelectorVisible,
-            modifier = Modifier.fillMaxSize(),
-            enter = AnimationUtils.animationFrontEnter,
-            exit = AnimationUtils.animationFrontExit
-        ) {
-            CurrencyList(
-                dataState.currencyModel,
-                viewModel::onUpdateCurrencySearchFilter,
-                viewModel::onSelectedCurrencyChanged,
-                viewModel::setCurrencySelectorVisible,
-                viewModel::onRecentCurrencyRemoved,
-            )
-        }
-    }
-
-    if (dataState.currencySelectorVisible) {
-        BackHandler {
-            viewModel.setCurrencySelectorVisible(false)
         }
     }
 }
