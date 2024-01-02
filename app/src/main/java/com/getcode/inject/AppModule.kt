@@ -5,6 +5,8 @@ import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidResources
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.AndroidNetworkUtils
+import com.getcode.utils.NetworkUtils
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,4 +25,9 @@ object AppModule {
     fun providesLocaleHelper(
         @ApplicationContext context: Context,
     ): LocaleHelper = AndroidLocale(context)
+
+    @Provides
+    fun providesNetworkUtilities(
+        @ApplicationContext context: Context,
+    ): NetworkUtils = AndroidNetworkUtils(context)
 }

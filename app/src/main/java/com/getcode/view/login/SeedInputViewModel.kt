@@ -82,7 +82,7 @@ class SeedInputViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     fun performLogin(navigator: CodeNavigator, entropyB64: String) {
-        authManager.login(App.getInstance(), entropyB64)
+        authManager.login(entropyB64)
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
                 setState(isLoading = true, isSuccess = false, isContinueEnabled = false)

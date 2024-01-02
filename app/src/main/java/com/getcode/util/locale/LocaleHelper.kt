@@ -5,4 +5,5 @@ import com.getcode.model.Currency
 interface LocaleHelper {
     fun getDefaultCurrencyName(): String
     fun getDefaultCurrency(): Currency?
+    fun getDefaultCountry(): String
 }

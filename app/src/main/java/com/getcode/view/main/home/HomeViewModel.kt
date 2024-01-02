@@ -15,7 +15,6 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.*
 import com.getcode.model.*
 import com.getcode.models.Bill
@@ -92,6 +91,7 @@ class HomeViewModel @Inject constructor(
     private val prefRepository: PrefRepository,
     private val analyticsManager: AnalyticsManager,
     private val authManager: AuthManager,
+    private val networkUtils: NetworkUtils,
 ) : BaseViewModel(), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
     private var billDismissTimer: TimerTask? = null
@@ -138,7 +138,7 @@ class HomeViewModel @Inject constructor(
         if (amountFloor.fiat == 0.0 || bill.amount.kin.toKinTruncatingLong() == 0L) return
         val owner = SessionManager.getKeyPair() ?: return
 
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
+        if (!networkUtils.isAvailable()) {
             return ErrorUtils.showNetworkError()
         }
 
@@ -320,7 +320,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun onCodeScan(payload: ByteArray) {
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
+        if (!networkUtils.isAvailable()) {
             return ErrorUtils.showNetworkError()
         }
 
@@ -619,7 +619,7 @@ class HomeViewModel @Inject constructor(
         val amount = sendTransactionRepository.getAmount()
         var loadingIndicatorTimer: TimerTask? = null
 
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
+        if (!networkUtils.isAvailable()) {
             ErrorUtils.showNetworkError()
             return
         }

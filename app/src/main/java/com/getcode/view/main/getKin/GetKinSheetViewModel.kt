@@ -1,6 +1,5 @@
 package com.getcode.view.main.getKin
 
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
@@ -33,7 +32,8 @@ data class GetKinSheetUiModel(
 class GetKinSheetViewModel @Inject constructor(
     private val prefsRepository: PrefRepository,
     private val balanceController: BalanceController,
-    private val client: Client
+    private val client: Client,
+    private val networkUtils: NetworkUtils,
 ) : BaseViewModel() {
     val uiFlow = MutableStateFlow(GetKinSheetUiModel())
 
@@ -53,7 +53,7 @@ class GetKinSheetViewModel @Inject constructor(
     }
 
     internal fun requestFirstKinAirdrop(upPress: () -> Unit = {}, homeViewModel: HomeViewModel) {
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
+        if (!networkUtils.isAvailable()) {
             return ErrorUtils.showNetworkError()
         }
 

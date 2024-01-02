@@ -25,6 +25,7 @@ import com.getcode.network.repository.*
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DateUtils
 import com.getcode.util.FormatAmountUtils
+import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.LocaleUtils
 import com.getcode.view.BaseViewModel
@@ -58,6 +59,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
     private val client: Client,
+    private val localeHelper: LocaleHelper,
     currencyRepository: CurrencyRepository,
     exchange: Exchange,
     balanceRepository: BalanceRepository,
@@ -148,7 +150,7 @@ class BalanceSheetViewModel @Inject constructor(
     //TODO manage currency with a repository rather than a static class
     private suspend fun getCurrency(rates: Map<String, Double>): Currency =
         withContext(Dispatchers.Default) {
-            val defaultCurrencyCode = LocaleUtils.getDefaultCurrency(App.getInstance())
+            val defaultCurrencyCode = localeHelper.getDefaultCurrency()?.code
             return@withContext CurrencyUtils.getCurrenciesWithRates(rates)
                 .firstOrNull { p ->
                     p.code == defaultCurrencyCode
@@ -159,7 +161,7 @@ class BalanceSheetViewModel @Inject constructor(
         val fiatValue = FormatUtils.getFiatValue(balance, rate)
         val locale = Locale(
             Locale.getDefault().language,
-            LocaleUtils.getDefaultCountry(App.getInstance())
+            localeHelper.getDefaultCountry()
         )
         val fiatValueFormatted = FormatUtils.formatCurrency(fiatValue, locale)
         val amountText = StringBuilder().apply {

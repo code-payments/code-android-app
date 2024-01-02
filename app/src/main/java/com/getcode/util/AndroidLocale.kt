@@ -1,6 +1,7 @@
 package com.getcode.util
 
 import android.content.Context
+import com.getcode.App
 import com.getcode.model.Currency
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.LocaleUtils
@@ -16,5 +17,9 @@ class AndroidLocale @Inject constructor(
 
     override fun getDefaultCurrency(): Currency? {
         return CurrencyUtils.getCurrency(getDefaultCurrencyName())
+    }
+
+    override fun getDefaultCountry(): String {
+        return LocaleUtils.getDefaultCountry(context)
     }
 }
