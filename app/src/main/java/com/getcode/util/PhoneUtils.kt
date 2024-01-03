@@ -16,7 +16,7 @@ val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticComposi
 
 @Singleton
 class PhoneUtils @Inject constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     currencyUtils: CurrencyUtils
 ) {
     var countryLocales: List<CountryLocale> = listOf()
@@ -66,7 +66,7 @@ class PhoneUtils @Inject constructor(
         return Locale.getDefault().country
     }
 
-    fun isPhoneNumberValid(context: Context, number: String, countryCode: String): Boolean {
+    fun isPhoneNumberValid(number: String, countryCode: String): Boolean {
         val phoneNumberUtil: PhoneNumberUtil = PhoneNumberUtil.createInstance(context)
         var isValid = false
         var numberType: PhoneNumberUtil.PhoneNumberType? = null

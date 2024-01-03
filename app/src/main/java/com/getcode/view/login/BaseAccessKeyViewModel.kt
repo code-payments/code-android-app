@@ -133,14 +133,12 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
 
     private fun createBitmapForExport(words: List<String>, entropyB64: String): Bitmap {
         val accessKeyText = getAccessKeyText(words)
-        val context = App.getInstance()
 
-        val accessKeyBg =
-            AppCompatResources.getDrawable(context, R.drawable.ic_access_key_bg)
+        val accessKeyBg = resources.getDrawable(R.drawable.ic_access_key_bg)
                 ?.toBitmap(812, 1353)!!
 
         val imageLogo =
-            AppCompatResources.getDrawable(context, R.drawable.ic_code_logo_white)
+            resources.getDrawable(R.drawable.ic_code_logo_white)
                 ?.toBitmap(logoWidth, logoHeight)!!
 
         val imageOut = Bitmap.createBitmap(
@@ -153,7 +151,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
             drawPaint(paintBackground)
 
             val accessBgActualWidth =
-                accessKeyBg.getScaledWidth(App.getInstance().resources.displayMetrics)
+                accessKeyBg.getScaledWidth(resources.displayMetrics)
             drawBitmap(
                 accessKeyBg,
                 (((targetWidth - accessBgActualWidth) / 2)).toFloat(),
@@ -234,7 +232,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
         textPaint.color = color
         textPaint.textSize = sizePx.toFloat()
         textPaint.typeface = Typeface.create(
-            ResourcesCompat.getFont(App.getInstance(), R.font.avenir),
+            resources.getFont(R.font.avenir),
             Typeface.BOLD
         )
 

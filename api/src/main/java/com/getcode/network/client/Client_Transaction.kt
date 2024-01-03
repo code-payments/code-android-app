@@ -208,7 +208,6 @@ sealed class RemoteSendException : Exception() {
 }
 
 fun Client.withdrawExternally(
-    context: Context,
     amount: KinAmount,
     organizer: Organizer,
     destination: PublicKey

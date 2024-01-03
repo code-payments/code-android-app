@@ -102,7 +102,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
         val organizer = SessionManager.getOrganizer() ?: return
         val destination = PublicKey(Base58.decode(uiModel.resolvedDestination).toList())
 
-        client.withdrawExternally(App.getInstance(), amount, organizer, destination)
+        client.withdrawExternally(amount, organizer, destination)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 TopBarManager.showMessage(

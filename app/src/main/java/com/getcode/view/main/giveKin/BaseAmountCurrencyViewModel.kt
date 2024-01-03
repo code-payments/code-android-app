@@ -290,19 +290,6 @@ abstract class BaseAmountCurrencyViewModel(
         )
     }
 
-    protected fun getDefaultAndRecentCurrencies(): Single<Pair<String, List<String>>> {
-        return Single.zip(
-            prefsRepository.getFirstOrDefault(
-                PrefsString.KEY_CURRENCY_SELECTED,
-                LocaleUtils.getDefaultCurrency(App.getInstance())
-            ),
-            prefsRepository.getFirstOrDefault(
-                PrefsString.KEY_CURRENCIES_RECENT,
-                ""
-            )
-        ) { a, b -> Pair(a, b.split(",")) }
-    }
-
     private fun persistSelectedCurrencyChanged(selectedCurrencyCode: String) {
         prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selectedCurrencyCode)
     }

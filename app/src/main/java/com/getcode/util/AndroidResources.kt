@@ -2,9 +2,17 @@ package com.getcode.util
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.util.DisplayMetrics
+import androidx.annotation.DrawableRes
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.res.ResourcesCompat
+import com.getcode.App
 import com.getcode.BuildConfig
+import com.getcode.R
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -69,14 +77,27 @@ class AndroidResources @Inject constructor(
         return context.getDir(name, mode)
     }
 
+    override val displayMetrics: DisplayMetrics
+        get() = context.resources.displayMetrics
+
+    override fun getDrawable(@DrawableRes drawableResId: Int): Drawable? {
+        return runCatching { AppCompatResources.getDrawable(context, drawableResId) }.getOrNull()
+    }
+
     @SuppressLint("DiscouragedApi")
     override fun getIdentifier(name: String, type: ResourceType): Int? {
-        return when (type) {
-            ResourceType.Drawable -> context.resources.getIdentifier(
-                name,
-                type.defType,
-                BuildConfig.APPLICATION_ID
-            )
-        }.let { if (it == 0) null else it }
+        return runCatching {
+            when (type) {
+                ResourceType.Drawable -> context.resources.getIdentifier(
+                    name,
+                    type.defType,
+                    BuildConfig.APPLICATION_ID
+                )
+            }.let { if (it == 0) null else it }
+        }.getOrNull()
+    }
+
+    override fun getFont(fontResId: Int): Typeface? {
+        return runCatching { ResourcesCompat.getFont(context, fontResId) }.getOrNull()
     }
 }

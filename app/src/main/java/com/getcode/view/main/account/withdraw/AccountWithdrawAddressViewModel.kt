@@ -36,14 +36,13 @@ data class AccountWithdrawAddressUiModel(
 @HiltViewModel
 class AccountWithdrawAddressViewModel @Inject constructor(
     private val client: Client,
+    private val clipboard: ClipboardManager,
     resources: ResourceHelper,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawAddressUiModel())
 
     private fun getClipboardValue(): String {
-        val clipboard: ClipboardManager? =
-            App.getInstance().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager?
-        return clipboard?.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
+        return clipboard.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
     }
 
     fun refreshPasteButtonState() {

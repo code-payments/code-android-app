@@ -1,6 +1,11 @@
 package com.getcode.util.resources
 
+import android.graphics.Typeface
+import android.graphics.drawable.Drawable
+import android.util.DisplayMetrics
 import androidx.annotation.DimenRes
+import androidx.annotation.DrawableRes
+import androidx.annotation.FontRes
 import androidx.annotation.PluralsRes
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
@@ -25,7 +30,13 @@ interface ResourceHelper {
 
     fun getDir(name: String, mode: Int): File?
 
+    val displayMetrics: DisplayMetrics
+
+    fun getDrawable(@DrawableRes drawableResId: Int): Drawable?
+
     fun getIdentifier(name: String, type: ResourceType): Int?
+
+    fun getFont(@FontRes fontResId: Int): Typeface?
 }
 
 sealed interface ResourceType {

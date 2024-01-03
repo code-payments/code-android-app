@@ -147,7 +147,6 @@ class PhoneVerifyViewModel @Inject constructor(
                 ),
                 countryFlag = phoneUtils.toFlagEmoji(countryCode),
                 continueEnabled = phoneNumber.length > 7 && phoneUtils.isPhoneNumberValid(
-                    App.getInstance(),
                     phoneNumber,
                     countryCode
                 )

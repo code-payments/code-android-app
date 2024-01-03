@@ -1,14 +1,11 @@
 package com.getcode.view.main.invites
 
-import android.content.ContentResolver
-import android.database.Cursor
-import android.provider.ContactsContract
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
 import com.codeinc.gen.invite.v2.InviteService
-import com.getcode.App
 import com.getcode.R
 import com.getcode.db.Database
+import com.getcode.manager.LocalContactsManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.network.repository.ContactsRepository
@@ -16,7 +13,6 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.InviteRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.IntentUtils
-import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.makeE164
 import com.getcode.view.BaseViewModel
@@ -54,8 +50,8 @@ data class InvitesSheetUiModel(
 class InvitesSheetViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
     private val contactsRepository: ContactsRepository,
+    private val localContactsManager: LocalContactsManager,
     private val identityRepository: IdentityRepository,
-    private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(InvitesSheetUiModel())
@@ -75,7 +71,7 @@ class InvitesSheetViewModel @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             val keyPair = SessionManager.getKeyPair() ?: return@launch
 
-            val contacts = getLocalContacts()
+            val contacts = localContactsManager.query()
             if (contacts.isEmpty()) {
                 updateContacts(contacts)
                 return@launch
@@ -221,87 +217,5 @@ class InvitesSheetViewModel @Inject constructor(
                 contactsFiltered = contactsFiltered
             )
         }
-    }
-
-    private fun getLocalContacts(): List<ContactModel> {
-        val map = linkedMapOf<String, ContactModel>()
-
-        val cr: ContentResolver = App.getInstance().contentResolver
-        val cur: Cursor? = cr.query(
-            ContactsContract.Contacts.CONTENT_URI,
-            null, null, null, ContactsContract.Contacts.DISPLAY_NAME + " ASC"
-        )
-        if ((cur?.count ?: 0) > 0) {
-            while (cur != null && cur.moveToNext()) {
-                val idIndex = cur.getColumnIndex(ContactsContract.Contacts._ID)
-                val nameIndex = cur.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME)
-                val hasPhoneIndex = cur.getColumnIndex(ContactsContract.Contacts.HAS_PHONE_NUMBER)
-
-                val id: String = cur.getString(idIndex)
-                val name: String = cur.getString(nameIndex) ?: continue
-
-                val initials = when {
-                    name.length >= 3 && name.contains(" ") -> {
-                        name
-                            .split(" ")
-                            .take(2)
-                            .joinToString("") { it.take(1) }
-                    }
-                    name.isNotEmpty() -> name.take(1)
-                    else -> ""
-                }
-
-                if (cur.getInt(hasPhoneIndex) > 0) {
-                    val pCur: Cursor? = cr.query(
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                        null,
-                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                        arrayOf(id),
-                        null
-                    )
-                    pCur ?: return listOf()
-
-                    while (pCur.moveToNext()) {
-                        val phone =
-                            pCur.getColumnIndex(
-                                ContactsContract.CommonDataKinds.Phone.NORMALIZED_NUMBER
-                            ).let {
-                                pCur.getString(it)
-                            } ?: pCur.getColumnIndex(
-                                ContactsContract.CommonDataKinds.Phone.NUMBER
-                            ).let {
-                                pCur.getString(it)
-                            }.let {
-                                if (!it.startsWith("+")) "+$it" else it
-                            }
-
-                        val phoneNumber: String = phone
-                            .replace("(", "")
-                            .replace(")", "")
-                            .replace("-", "")
-                            .replace(" ", "")
-
-                        val phoneNumberFormatted = phoneUtils.formatNumber(
-                            phoneNumber
-                        )
-
-                        if (phoneNumber.matches(Regex("^\\+[1-9]\\d{7,14}$"))) {
-                            map[phoneNumber] = ContactModel(
-                                id = id,
-                                name = name,
-                                phoneNumber = phoneNumber,
-                                phoneNumberFormatted = phoneNumberFormatted,
-                                initials = initials,
-                                isInvited = false
-                            )
-                        }
-                    }
-                    pCur.close()
-                }
-            }
-        }
-        cur?.close()
-
-        return map.values.toList()
     }
 }

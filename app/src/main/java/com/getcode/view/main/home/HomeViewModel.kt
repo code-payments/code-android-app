@@ -30,10 +30,10 @@ import com.getcode.network.repository.*
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
-import com.getcode.util.VibrationUtil
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
+import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.NetworkUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.camera.KikCodeScannerView
@@ -94,6 +94,7 @@ class HomeViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val networkUtils: NetworkUtils,
     private val resources: ResourceHelper,
+    private val vibrator: Vibrator,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
     private var billDismissTimer: TimerTask? = null
@@ -150,7 +151,7 @@ class HomeViewModel @Inject constructor(
         sendTransactionDisposable?.dispose()
         sendTransactionRepository.init(amount = amountFloor, owner = owner)
         sendTransactionDisposable =
-            sendTransactionRepository.startTransaction(App.getInstance(), organizer)
+            sendTransactionRepository.startTransaction(organizer)
                 .flatMapCompletable {
                     Completable.concatArray(
                         balanceController.fetchBalance(),
@@ -225,7 +226,7 @@ class HomeViewModel @Inject constructor(
 
             if (isVibrate) {
                 Timer().schedule(timerTask {
-                    VibrationUtil.vibrate()
+                    vibrator.vibrate()
                 }, 150)
             }
         }
@@ -333,7 +334,7 @@ class HomeViewModel @Inject constructor(
 
         prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
             .subscribe { value: Boolean ->
-                if (value) VibrationUtil.vibrate()
+                if (value) vibrator.vibrate()
             }
 
         analyticsManager.grabStart()
@@ -378,7 +379,7 @@ class HomeViewModel @Inject constructor(
 
 
         Timer().schedule(timerTask {
-            VibrationUtil.vibrate()
+            vibrator.vibrate()
         }, 150)
     }
 
