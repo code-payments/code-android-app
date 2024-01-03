@@ -12,6 +12,7 @@ import com.getcode.network.repository.*
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.NumberInputHelper
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.LocaleUtils
@@ -69,7 +70,8 @@ abstract class BaseAmountCurrencyViewModel(
     private val balanceRepository: BalanceRepository,
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
-) : BaseViewModel(), AmountInputViewModel {
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources), AmountInputViewModel {
     protected val numberInputHelper = NumberInputHelper()
     abstract fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel)
     abstract fun setAmountUiModel(amountUiModel: AmountUiModel)
@@ -323,7 +325,7 @@ abstract class BaseAmountCurrencyViewModel(
             if (currenciesRecent.isNotEmpty()) {
                 currenciesLocalesList.add(
                     CurrencyListItem.TitleItem(
-                        App.getInstance().getString(R.string.title_recentCurrencies)
+                        resources.getString(R.string.title_recentCurrencies)
                     )
                 )
                 currenciesRecent.forEach { currency ->
@@ -338,13 +340,13 @@ abstract class BaseAmountCurrencyViewModel(
 
             currenciesLocalesList.add(
                 CurrencyListItem.TitleItem(
-                    App.getInstance().getString(R.string.title_otherCurrencies)
+                    resources.getString(R.string.title_otherCurrencies)
                 )
             )
         } else {
             currenciesLocalesList.add(
                 CurrencyListItem.TitleItem(
-                    App.getInstance().getString(R.string.title_results),
+                    resources.getString(R.string.title_results),
                 )
             )
         }
@@ -376,7 +378,7 @@ abstract class BaseAmountCurrencyViewModel(
 
     private fun formatSuffix(selectedCurrency: Currency): String {
         return if (!isKin(selectedCurrency)) " ${
-            App.getInstance().getString(R.string.core_ofKin)
+            resources.getString(R.string.core_ofKin)
         }" else ""
     }
 
@@ -389,7 +391,7 @@ abstract class BaseAmountCurrencyViewModel(
             append(amountText)
             if (!isKin) {
                 append(" ")
-                append(App.getInstance().getString(R.string.core_ofKin))
+                append(resources.getString(R.string.core_ofKin))
             }
         }.toString()
     }
@@ -407,7 +409,7 @@ abstract class BaseAmountCurrencyViewModel(
                 FormatUtils.formatWholeRoundDown(amountAvailable)
 
             "${getString(R.string.subtitle_enterUpTo).replaceParam(kinAmountFormatted)} " +
-                    App.getInstance().getString(R.string.core_kin)
+                    resources.getString(R.string.core_kin)
         } else {
             return if (amountInput == 0.0) {
                 val currencyValue = FormatUtils.format(amountAvailable)

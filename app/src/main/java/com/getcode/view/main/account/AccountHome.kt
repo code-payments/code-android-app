@@ -74,11 +74,11 @@ fun AccountHome(
                 AccountPage.LOGOUT -> {
                     BottomBarManager.showMessage(
                         BottomBarManager.BottomBarMessage(
-                            title = App.getInstance().getString(R.string.prompt_title_logout),
-                            subtitle = App.getInstance()
+                            title = context.getString(R.string.prompt_title_logout),
+                            subtitle = context
                                 .getString(R.string.prompt_description_logout),
-                            positiveText = App.getInstance().getString(R.string.action_logout),
-                            negativeText = App.getInstance().getString(R.string.action_cancel),
+                            positiveText = context.getString(R.string.action_logout),
+                            negativeText = context.getString(R.string.action_cancel),
                             onPositive = {
                                 context.getActivity()?.let {
                                     viewModel.logout(it)

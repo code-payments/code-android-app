@@ -10,6 +10,7 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.NetworkUtils
@@ -34,7 +35,8 @@ class GetKinSheetViewModel @Inject constructor(
     private val balanceController: BalanceController,
     private val client: Client,
     private val networkUtils: NetworkUtils,
-) : BaseViewModel() {
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(GetKinSheetUiModel())
 
     fun reset() {
@@ -54,7 +56,7 @@ class GetKinSheetViewModel @Inject constructor(
 
     internal fun requestFirstKinAirdrop(upPress: () -> Unit = {}, homeViewModel: HomeViewModel) {
         if (!networkUtils.isAvailable()) {
-            return ErrorUtils.showNetworkError()
+            return ErrorUtils.showNetworkError(resources)
         }
 
         val owner = SessionManager.getKeyPair() ?: return

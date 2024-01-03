@@ -13,6 +13,7 @@ import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,13 +39,15 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
+    private val resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,
     currencyRepository,
     balanceRepository,
     localeHelper,
-    currencyUtils
+    currencyUtils,
+    resources
 ) {
     val uiFlow = MutableStateFlow(AccountWithdrawAmountUiModel())
 
@@ -73,8 +76,8 @@ class AccountWithdrawAmountViewModel @Inject constructor(
         val uiModel = uiFlow.value
         if (uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin) {
             TopBarManager.showMessage(
-                App.getInstance().getString(R.string.error_title_insuffiecientKin),
-                App.getInstance().getString(R.string.error_description_insuffiecientKin)
+                resources.getString(R.string.error_title_insuffiecientKin),
+                resources.getString(R.string.error_description_insuffiecientKin)
             )
             return
         }

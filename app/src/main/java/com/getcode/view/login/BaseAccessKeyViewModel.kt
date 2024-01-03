@@ -21,6 +21,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.network.repository.ApiDeniedException
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.*
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toAGColor
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
@@ -50,7 +51,7 @@ data class AccessKeyUiModel(
     val accessKeyCroppedBitmap: Bitmap? = null,
 )
 
-abstract class BaseAccessKeyViewModel : BaseViewModel() {
+abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
     @OptIn(InternalCoroutinesApi::class)
@@ -213,7 +214,7 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
 
     internal fun getQrCode(entropyB64: String): Bitmap? {
         val base58 = Base58.encode(entropyB64.decodeBase64())
-        val url = "${App.getInstance().getString(R.string.root_url_app)}/login?data=$base58"
+        val url = "${resources.getString(R.string.root_url_app)}/login?data=$base58"
 
         val qrgEncoder = QRGEncoder(url, null, QRGContents.Type.TEXT, qrCodeSize)
         qrgEncoder.colorBlack = White.toAGColor()
@@ -244,18 +245,18 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
     }
 
     internal fun getAccessKeySaveError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToSave),
-        App.getInstance().getString(R.string.error_description_failedToSave),
+        resources.getString(R.string.error_title_failedToSave),
+        resources.getString(R.string.error_description_failedToSave),
     )
 
     internal fun getDeniedError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_tooManyAccounts),
-        App.getInstance().getString(R.string.error_description_tooManyAccounts)
+        resources.getString(R.string.error_title_tooManyAccounts),
+        resources.getString(R.string.error_description_tooManyAccounts)
     )
 
     internal fun getGenericError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToVerifyPhone),
-        App.getInstance().getString(R.string.error_description_failedToVerifyPhone),
+        resources.getString(R.string.error_title_failedToVerifyPhone),
+        resources.getString(R.string.error_description_failedToVerifyPhone),
     )
 
     internal fun onSubmitError(e: Throwable) {

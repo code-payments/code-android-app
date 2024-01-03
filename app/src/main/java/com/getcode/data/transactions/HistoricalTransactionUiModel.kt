@@ -26,7 +26,7 @@ fun HistoricalTransaction.toUi(
         if (isKin) kinAmount.toKinTruncatingLong().toDouble()
         else nativeAmount
 
-    val amountText = currency.format(amount)
+    val amountText = currency.format(resources, amount)
 
     return HistoricalTransactionUiModel(
         id = id,

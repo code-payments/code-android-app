@@ -5,14 +5,18 @@ import android.telephony.PhoneNumberUtils
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.App
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.michaelrocks.libphonenumber.android.NumberParseException
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import java.util.*
 import javax.inject.Inject
+import javax.inject.Singleton
 
 val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }
 
+@Singleton
 class PhoneUtils @Inject constructor(
+    @ApplicationContext context: Context,
     currencyUtils: CurrencyUtils
 ) {
     var countryLocales: List<CountryLocale> = listOf()
@@ -20,7 +24,7 @@ class PhoneUtils @Inject constructor(
     var defaultCountryLocale: CountryLocale
 
     init {
-        val phoneNumberUtil = PhoneNumberUtil.createInstance(App.getInstance())
+        val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
 
         phoneNumberUtil.supportedRegions.map { region ->
             val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)

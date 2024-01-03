@@ -11,6 +11,7 @@ import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.main.giveKin.CurrencyListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +41,7 @@ class CurrencyViewModel @Inject constructor(
     currencyUtils: CurrencyUtils,
     currencyRepository: CurrencyRepository,
     prefsRepository: PrefRepository,
+    private val resources: ResourceHelper,
 ): BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -165,7 +167,7 @@ class CurrencyViewModel @Inject constructor(
             if (currenciesRecent.isNotEmpty()) {
                 currenciesLocalesList.add(
                     CurrencyListItem.TitleItem(
-                        App.getInstance().getString(R.string.title_recentCurrencies)
+                        resources.getString(R.string.title_recentCurrencies)
                     )
                 )
                 currenciesRecent.forEach { currency ->
@@ -180,13 +182,13 @@ class CurrencyViewModel @Inject constructor(
 
             currenciesLocalesList.add(
                 CurrencyListItem.TitleItem(
-                    App.getInstance().getString(R.string.title_otherCurrencies)
+                    resources.getString(R.string.title_otherCurrencies)
                 )
             )
         } else {
             currenciesLocalesList.add(
                 CurrencyListItem.TitleItem(
-                    App.getInstance().getString(R.string.title_results),
+                    resources.getString(R.string.title_results),
                 )
             )
         }

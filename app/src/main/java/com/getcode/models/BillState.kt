@@ -1,5 +1,6 @@
 package com.getcode.models
 
+import androidx.compose.runtime.Composable
 import com.getcode.model.CodePayload
 import com.getcode.model.KinAmount
 import com.getcode.network.repository.Request
@@ -70,7 +71,7 @@ data class BillToast(
     val isDeposit: Boolean,
 ) {
     val formattedAmount: String
-        get() = StringBuilder()
+        @Composable get() = StringBuilder()
             .append(if (isDeposit) "+" else "-")
             .append(amount.formatted(false))
             .toString()

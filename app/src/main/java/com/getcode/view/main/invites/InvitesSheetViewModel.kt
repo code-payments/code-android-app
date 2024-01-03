@@ -17,6 +17,7 @@ import com.getcode.network.repository.InviteRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.IntentUtils
 import com.getcode.util.PhoneUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.makeE164
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -55,8 +56,8 @@ class InvitesSheetViewModel @Inject constructor(
     private val contactsRepository: ContactsRepository,
     private val identityRepository: IdentityRepository,
     private val phoneUtils: PhoneUtils,
-) :
-    BaseViewModel() {
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(InvitesSheetUiModel())
 
     fun init() {
@@ -138,9 +139,9 @@ class InvitesSheetViewModel @Inject constructor(
 
         if (phoneE164.length < 8) {
             TopBarManager.showMessage(
-                App.getInstance().getString(
+                resources.getString(
                     R.string.error_title_invalidInvitePhone),
-                App.getInstance().getString(
+                resources.getString(
                     R.string.error_description_invalidInvitePhone)
             )
         } else {
@@ -153,9 +154,9 @@ class InvitesSheetViewModel @Inject constructor(
             .subscribe {
                 if (it == InviteService.InvitePhoneNumberResponse.Result.INVITE_COUNT_EXCEEDED) {
                     TopBarManager.showMessage(
-                        App.getInstance().getString(
+                        resources.getString(
                             R.string.error_title_noInvitesLeft),
-                        App.getInstance().getString(
+                        resources.getString(
                             R.string.error_description_noInvitesLeft)
                     )
                 } else {
@@ -187,7 +188,7 @@ class InvitesSheetViewModel @Inject constructor(
                     title = "Failed to access contacts",
                     message = "Please allow Code access to Contacts in Settings.",
                     type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = App.getInstance().getString(R.string.action_openSettings),
+                    secondaryText = resources.getString(R.string.action_openSettings),
                     secondaryAction = { IntentUtils.launchAppSettings() }
                 )
             )

@@ -7,6 +7,7 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.PhoneUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.makeE164
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,8 +26,8 @@ class AccountPhoneViewModel @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
-) :
-    BaseViewModel() {
+    resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountPhoneUiModel())
 
     fun init() {

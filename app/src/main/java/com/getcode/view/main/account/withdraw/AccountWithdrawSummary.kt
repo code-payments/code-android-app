@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -96,7 +97,7 @@ fun AccountWithdrawSummary(
                 viewModel.onSubmit(navigator, arguments)
             },
             enabled = true,
-            text = App.getInstance().getString(R.string.action_withdrawKin),
+            text = stringResource(R.string.action_withdrawKin),
             buttonState = ButtonState.Filled,
         )
     }

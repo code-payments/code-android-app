@@ -15,6 +15,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.network.client.*
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.*
@@ -38,8 +39,9 @@ data class AccountWithdrawSummaryUiModel(
 
 @HiltViewModel
 class AccountWithdrawSummaryViewModel @Inject constructor(
-    private val client: Client
-) : BaseViewModel() {
+    private val client: Client,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawSummaryUiModel())
 
     fun setArguments(n: CodeNavigator, arguments: WithdrawalArgs) {
@@ -69,10 +71,10 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
     ) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.prompt_title_confirmWithdrawal),
-                subtitle = App.getInstance().getString(R.string.prompt_description_confirmWithdrawal),
-                positiveText = App.getInstance().getString(R.string.action_withdrawKin),
-                negativeText = App.getInstance().getString(R.string.action_cancel),
+                title = resources.getString(R.string.prompt_title_confirmWithdrawal),
+                subtitle = resources.getString(R.string.prompt_description_confirmWithdrawal),
+                positiveText = resources.getString(R.string.action_withdrawKin),
+                negativeText = resources.getString(R.string.action_cancel),
                 onPositive = { startWithdraw(navigator) }
             ))
     }

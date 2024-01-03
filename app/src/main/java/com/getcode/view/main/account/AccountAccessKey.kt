@@ -59,10 +59,10 @@ fun AccountAccessKey(
         if (!isStoragePermissionGranted) {
             TopBarManager.showMessage(
                 TopBarManager.TopBarMessage(
-                    title = App.getInstance().getString(R.string.error_title_failedToSave),
-                    message = App.getInstance().getString(R.string.error_description_failedToSave),
+                    title = context.getString(R.string.error_title_failedToSave),
+                    message = context.getString(R.string.error_description_failedToSave),
                     type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = App.getInstance().getString(R.string.action_openSettings),
+                    secondaryText = context.getString(R.string.action_openSettings),
                     secondaryAction = { IntentUtils.launchAppSettings() }
                 )
             )

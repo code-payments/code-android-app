@@ -13,6 +13,7 @@ import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.repository.*
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,13 +38,15 @@ class GiveKinSheetViewModel @Inject constructor(
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
+    private val resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,
     currencyRepository,
     balanceRepository,
     localeHelper,
-    currencyUtils
+    currencyUtils,
+    resources
 ) {
 
     val uiFlow = MutableStateFlow(GiveKinSheetUiModel())
@@ -74,8 +77,8 @@ class GiveKinSheetViewModel @Inject constructor(
                 uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin
             if (isOverBalance) {
                 TopBarManager.showMessage(
-                    App.getInstance().getString(R.string.error_title_insuffiecientKin),
-                    App.getInstance().getString(R.string.error_description_insuffiecientKin)
+                    resources.getString(R.string.error_title_insuffiecientKin),
+                    resources.getString(R.string.error_description_insuffiecientKin)
                 )
             }
             isOverBalance
@@ -88,8 +91,8 @@ class GiveKinSheetViewModel @Inject constructor(
                     ?.symbol
                     .orEmpty()
                 TopBarManager.showMessage(
-                    App.getInstance().getString(R.string.error_title_giveLimitReached),
-                    App.getInstance().getString(R.string.error_description_giveLimitReached)
+                    resources.getString(R.string.error_title_giveLimitReached),
+                    resources.getString(R.string.error_description_giveLimitReached)
                         .replaceParam(
                             "$currencySymbol${uiModel.amountModel.sendLimit.toInt()}"
                         )

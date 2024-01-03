@@ -16,6 +16,7 @@ import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58
+import com.getcode.util.resources.ResourceHelper
 import javax.inject.Inject
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -26,8 +27,9 @@ import java.util.concurrent.TimeUnit
 @HiltViewModel
 class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
-    private val analyticsManager: AnalyticsManager
-) : BaseAccessKeyViewModel() {
+    private val analyticsManager: AnalyticsManager,
+    resources: ResourceHelper,
+) : BaseAccessKeyViewModel(resources) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return

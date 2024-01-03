@@ -150,7 +150,7 @@ class BalanceSheetViewModel @Inject constructor(
         val amountText = StringBuilder().apply {
             append(fiatValueFormatted)
             append(" ")
-            append(App.getInstance().getString(R.string.core_ofKin))
+            append(resources.getString(R.string.core_ofKin))
         }.toString()
 
         return fiatValue to amountText

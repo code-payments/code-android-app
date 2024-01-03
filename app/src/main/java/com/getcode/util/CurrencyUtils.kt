@@ -15,8 +15,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.*
 import javax.inject.Inject
+import javax.inject.Singleton
 
 
+@Singleton
 class CurrencyUtils @Inject constructor(
     @ApplicationContext private val context: Context
 ) {

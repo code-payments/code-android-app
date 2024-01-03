@@ -18,6 +18,7 @@ import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.makeE164
 import com.getcode.view.*
 import com.google.android.gms.auth.api.phone.SmsRetriever
@@ -54,7 +55,8 @@ data class PhoneVerifyUiModel(
 class PhoneVerifyViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
-) : BaseViewModel() {
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(PhoneVerifyUiModel())
 
     fun reset() {
@@ -237,7 +239,7 @@ class PhoneVerifyViewModel @Inject constructor(
     }
 
     private fun getGenericError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToSendCode),
-        App.getInstance().getString(R.string.error_description_failedToSendCode)
+        resources.getString(R.string.error_title_failedToSendCode),
+        resources.getString(R.string.error_description_failedToSendCode)
     )
 }

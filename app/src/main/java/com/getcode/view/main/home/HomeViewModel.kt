@@ -32,6 +32,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import com.getcode.util.VibrationUtil
 import com.getcode.util.formatted
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.utils.NetworkUtils
 import com.getcode.vendor.Base58
@@ -92,7 +93,8 @@ class HomeViewModel @Inject constructor(
     private val analyticsManager: AnalyticsManager,
     private val authManager: AuthManager,
     private val networkUtils: NetworkUtils,
-) : BaseViewModel(), ScreenModel {
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
@@ -139,7 +141,7 @@ class HomeViewModel @Inject constructor(
         val owner = SessionManager.getKeyPair() ?: return
 
         if (!networkUtils.isAvailable()) {
-            return ErrorUtils.showNetworkError()
+            return ErrorUtils.showNetworkError(resources)
         }
 
         val organizer = SessionManager.getOrganizer() ?: return
@@ -321,7 +323,7 @@ class HomeViewModel @Inject constructor(
 
     private fun onCodeScan(payload: ByteArray) {
         if (!networkUtils.isAvailable()) {
-            return ErrorUtils.showNetworkError()
+            return ErrorUtils.showNetworkError(resources)
         }
 
         runBlocking {
@@ -620,7 +622,7 @@ class HomeViewModel @Inject constructor(
         var loadingIndicatorTimer: TimerTask? = null
 
         if (!networkUtils.isAvailable()) {
-            ErrorUtils.showNetworkError()
+            ErrorUtils.showNetworkError(resources)
             return
         }
 
@@ -662,7 +664,7 @@ class HomeViewModel @Inject constructor(
         val url = "https://cash.getcode.com/c/#/e=" +
                 giftCard.mnemonicPhrase.getBase58EncodedEntropy(context)
         val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(amount.formatted())
+            .replaceParam(amount.formatted(resources))
             .replaceParam(url)
 
         val sendIntent: Intent = Intent().apply {

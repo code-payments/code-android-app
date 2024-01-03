@@ -2,6 +2,7 @@ package com.getcode.view.main.account
 
 import android.annotation.SuppressLint
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.login.BaseAccessKeyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -11,7 +12,9 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class AccountAccessKeyViewModel @Inject constructor() : BaseAccessKeyViewModel() {
+class AccountAccessKeyViewModel @Inject constructor(
+    resources: ResourceHelper,
+) : BaseAccessKeyViewModel(resources) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator) {
         Completable.create {

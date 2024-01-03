@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -294,6 +295,7 @@ fun BalanceTop(
 
 @Composable
 private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .align(CenterHorizontally)
@@ -332,7 +334,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
             onClick = {
                 annotatedBalanceString
                     .getStringAnnotations(
-                        App.getInstance().getString(R.string.subtitle_learnMore),
+                        context.getString(R.string.subtitle_learnMore),
                         it,
                         it
                     )
@@ -344,6 +346,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
 
 @Composable
 private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .height(200.dp)
@@ -383,7 +386,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
             )
 
             addStringAnnotation(
-                tag = App.getInstance().getString(R.string.title_faq),
+                tag = context.getString(R.string.title_faq),
                 annotation = "",
                 start = startIndex,
                 end = endIndex
@@ -400,7 +403,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                 onClick = {
                     annotatedLinkString
                         .getStringAnnotations(
-                            App.getInstance().getString(R.string.title_faq),
+                            context.getString(R.string.title_faq),
                             it,
                             it
                         )

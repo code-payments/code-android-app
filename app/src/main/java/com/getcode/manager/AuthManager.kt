@@ -3,7 +3,6 @@ package com.getcode.manager
 import android.app.Activity
 import android.content.Context
 import com.bugsnag.android.Bugsnag
-import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.google.firebase.messaging.FirebaseMessaging
@@ -17,6 +16,7 @@ import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.repository.*
 import com.getcode.util.AccountUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,7 +40,8 @@ class AuthManager @Inject constructor(
     private val balanceController: BalanceController,
     private val inMemoryDao: InMemoryDao,
     private val analyticsManager: AnalyticsManager,
-    private val client: Client
+    private val client: Client,
+    private val resources: ResourceHelper,
 ) {
     private var softLoginDisabled: Boolean = false
 
@@ -127,7 +128,7 @@ class AuthManager @Inject constructor(
                         SessionManager.authStateMutable.update { state -> state?.copy(isTimelockUnlocked = true) }
                     }
                     if (ErrorUtils.isNetworkError(it) || ErrorUtils.isRuntimeError(it)) {
-                        ErrorUtils.showNetworkError()
+                        ErrorUtils.showNetworkError(resources)
                     }
                 }
             }

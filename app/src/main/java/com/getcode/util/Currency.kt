@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.model.Currency
@@ -82,51 +81,71 @@ private fun getFlag(resourceHelper: ResourceHelper, countryCode: String): Int? {
     )
 }
 
-fun Currency.format(amount: KinAmount): String {
+fun Currency.format(resources: ResourceHelper, amount: KinAmount): String {
     return formatAmountString(
+        resources,
         this,
         amount.fiat
     )
 }
 
-fun Currency.format(amount: Double): String {
+fun Currency.format(resources: ResourceHelper, amount: Double): String {
     return formatAmountString(
+        resources,
         this,
         amount
     )
 }
 
-private fun formatAmountString(currency: Currency, amount: Double): String {
+private fun formatAmountString(resources: ResourceHelper, currency: Currency, amount: Double): String {
     val isKin = currency.code == Currency.Kin.code
 
     return if (isKin) {
         "${FormatUtils.formatWholeRoundDown(amount)} ${
-            App.getInstance().getString(R.string.core_kin)
+            resources.getString(R.string.core_kin)
         }"
     } else {
         "${currency.symbol}${FormatUtils.format(amount)} ${
-            App.getInstance().getString(R.string.core_ofKin)
+            resources.getString(R.string.core_ofKin)
         }"
     }
 }
 
-fun CurrencyCode.format(amount: KinAmount): String {
+fun CurrencyCode.format(resources: ResourceHelper, amount: KinAmount): String {
     return formatAmountString(
+        resources,
         this,
         amount.fiat
     )
 }
 
-private fun formatAmountString(currencyCode: CurrencyCode, amount: Double): String {
+fun CurrencyCode.format(context: Context, amount: KinAmount): String {
+    return formatAmountString(
+        AndroidResources(context),
+        this,
+        amount.fiat
+    )
+}
+
+@Composable
+fun CurrencyCode.format(amount: KinAmount): String {
+    return formatAmountString(
+        AndroidResources(LocalContext.current,),
+        this,
+        amount.fiat
+    )
+}
+
+private fun formatAmountString(resources: ResourceHelper, currencyCode: CurrencyCode, amount: Double): String {
     val isKin = currencyCode.name == Currency.Kin.code
 
     return if (isKin) {
         "${FormatUtils.formatWholeRoundDown(amount)} ${
-            App.getInstance().getString(R.string.core_kin)
+            resources.getString(R.string.core_kin)
         }"
     } else {
         "${currencyCode.name}${FormatUtils.format(amount)} ${
-            App.getInstance().getString(R.string.core_ofKin)
+            resources.getString(R.string.core_ofKin)
         }"
     }
 }
