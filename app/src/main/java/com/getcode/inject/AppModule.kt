@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
-import android.os.Vibrator
 import android.os.VibratorManager
 import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidPermissions
@@ -16,6 +15,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.AndroidNetworkUtils
 import com.getcode.utils.NetworkUtils
 import dagger.Module
@@ -57,9 +57,9 @@ object AppModule {
     @Provides
     fun providesVibrator(
         @ApplicationContext context: Context
-    ): com.getcode.util.Vibrator = when (val apiLevel = Build.VERSION.SDK_INT) {
+    ): Vibrator = when (val apiLevel = Build.VERSION.SDK_INT) {
         in Build.VERSION_CODES.BASE..Build.VERSION_CODES.R -> {
-            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
             if (apiLevel >= Build.VERSION_CODES.O) {
                 Api26Vibrator(vibrator)
             } else {
