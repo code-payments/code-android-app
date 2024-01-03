@@ -67,7 +67,7 @@ fun SeedInput(
                         top.linkTo(parent.top)
                     }
                     .padding(top = 40.dp),
-                style = MaterialTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 color = BrandLight,
                 text = stringResource(R.string.subtitle_loginDescription)
             )
@@ -86,7 +86,7 @@ fun SeedInput(
                 visualTransformation = VisualTransformation.None,
                 value = dataState.wordsString,
                 onValueChange = { viewModel.onTextChange(it) },
-                textStyle = MaterialTheme.typography.subtitle1.copy(
+                textStyle = CodeTheme.typography.subtitle1.copy(
                     fontSize = 16.sp,
                 ),
                 colors = inputColors(),

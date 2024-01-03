@@ -52,7 +52,7 @@ fun CurrencyList(
                 ) },
             placeholder = { Text(
                 stringResource(id = R.string.subtitle_searchCurrencies),
-                style = MaterialTheme.typography.subtitle1.copy(
+                style = CodeTheme.typography.subtitle1.copy(
                     fontSize = 16.sp,
                 )
             ) },
@@ -75,7 +75,7 @@ fun CurrencyList(
             onValueChange = {
                 onUpdateCurrencySearchFilter(it)
             },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,
@@ -117,7 +117,7 @@ fun CurrencyList(
                             ) {
                                 Text(
                                     modifier = Modifier.padding(bottom = 10.dp),
-                                    style = MaterialTheme.typography.caption.copy(
+                                    style = CodeTheme.typography.caption.copy(
                                         fontSize = 14.sp,
                                     ),
                                     color = BrandLight,
@@ -217,7 +217,7 @@ internal fun ListRowItem(resId: Int?, title: String, isSelectable: Boolean, isSe
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.body1
+                    style = CodeTheme.typography.body1
                 )
             }
         }

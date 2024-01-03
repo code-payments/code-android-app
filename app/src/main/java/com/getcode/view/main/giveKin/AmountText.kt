@@ -14,6 +14,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.util.WindowSize
 
@@ -23,7 +24,7 @@ fun AmountText(
     currencyResId: Int?,
     amountText: String
 ) {
-    val textStyleH1 = MaterialTheme.typography.h1.copy(textAlign = TextAlign.Center)
+    val textStyleH1 = CodeTheme.typography.h1.copy(textAlign = TextAlign.Center)
     var scaledTextStyle by remember { mutableStateOf(textStyleH1) }
     var isReadyToDraw by remember { mutableStateOf(false) }
 

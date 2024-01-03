@@ -15,6 +15,7 @@ import com.getcode.R
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
@@ -64,7 +65,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
                     end.linkTo(parent.end)
                 },
             text = stringResource(R.string.permissions_description_push),
-            style = MaterialTheme.typography.body1
+            style = CodeTheme.typography.body1
                 .copy(textAlign = TextAlign.Center),
         )
 

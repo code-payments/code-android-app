@@ -60,6 +60,7 @@ import com.getcode.model.Rate
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.util.Kin
 import com.getcode.view.main.account.AccountDebugBuckets
@@ -210,7 +211,7 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
 
                     else -> stringResource(R.string.title_unknown)
                 },
-                style = MaterialTheme.typography.body1
+                style = CodeTheme.typography.body1
             )
             Text(
                 modifier = Modifier
@@ -218,7 +219,7 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
                     .padding(top = 3.dp),
                 text = event.dateText,
                 color = BrandLight,
-                style = MaterialTheme.typography.body2
+                style = CodeTheme.typography.body2
             )
         }
         Column(
@@ -241,7 +242,7 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
                 }
                 Text(
                     text = event.amountText,
-                    style = MaterialTheme.typography.body1
+                    style = CodeTheme.typography.body1
                 )
             }
             if (!event.isKin) {
@@ -259,7 +260,7 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
                     )
                     Text(
                         text = event.kinAmountText,
-                        style = MaterialTheme.typography.body1,
+                        style = CodeTheme.typography.body1,
                         color = BrandLight
                     )
                 }
@@ -330,7 +331,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
             modifier = Modifier
                 .padding(horizontal = 3.dp),
             text = annotatedBalanceString,
-            style = MaterialTheme.typography.body1,
+            style = CodeTheme.typography.body1,
             onClick = {
                 annotatedBalanceString
                     .getStringAnnotations(
@@ -361,7 +362,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                 modifier = Modifier.padding(vertical = 5.dp),
                 text = stringResource(R.string.subtitle_dontHaveKin),
                 color = BrandLight,
-                style = MaterialTheme.typography.body1
+                style = CodeTheme.typography.body1
             )
         }
 
@@ -399,7 +400,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
         ) {
             ClickableText(
                 text = annotatedLinkString,
-                style = MaterialTheme.typography.body1.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
                 onClick = {
                     annotatedLinkString
                         .getStringAnnotations(

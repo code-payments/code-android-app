@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.theme.inputColors
 import com.getcode.view.components.ButtonState
@@ -40,7 +41,7 @@ fun InvitesContacts(
                     .align(CenterHorizontally)
                     .padding(top = 100.dp, bottom = 30.dp),
                 text = stringResource(id = R.string.subtitle_organizingContacts),
-                style = MaterialTheme.typography.body1.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             )
 
             CircularProgressIndicator(
@@ -70,7 +71,7 @@ fun InvitesContacts(
             Text(
                 text = stringResource(R.string.subtitle_phoneNotInContacts),
                 color = BrandLight,
-                style = MaterialTheme.typography.body2
+                style = CodeTheme.typography.body2
                     .copy(textAlign = TextAlign.Center),
                 modifier = Modifier.padding(
                     vertical = 14.dp
@@ -115,7 +116,7 @@ fun InvitesContacts(
                                 modifier = Modifier
                                     .align(Alignment.Center),
                                 text = contact.initials,
-                                style = MaterialTheme.typography.body1,
+                                style = CodeTheme.typography.body1,
                             )
                         }
                         Column(
@@ -126,13 +127,13 @@ fun InvitesContacts(
                                     .padding(bottom = 2.dp)
                                     .fillMaxWidth(.6f),
                                 text = contact.name,
-                                style = MaterialTheme.typography.body1,
+                                style = CodeTheme.typography.body1,
 
                                 )
                             Text(
                                 modifier = Modifier.padding(top = 2.dp),
                                 text = contact.phoneNumberFormatted,
-                                style = MaterialTheme.typography.body2.copy(
+                                style = CodeTheme.typography.body2.copy(
                                     color = BrandLight
                                 ),
                             )
@@ -155,7 +156,7 @@ fun InvitesContacts(
                             )
                             Text(
                                 text = stringResource(R.string.subtitle_onCode),
-                                style = MaterialTheme.typography.body1
+                                style = CodeTheme.typography.body1
                             )
                         }
                     } else {
@@ -184,7 +185,7 @@ fun InvitesContacts(
                                         R.string.action_remind
                                     }
                                 ),
-                                style = MaterialTheme.typography.button,
+                                style = CodeTheme.typography.button,
                                 modifier = Modifier.padding(horizontal = 10.dp)
                             )
                         }

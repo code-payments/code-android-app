@@ -32,6 +32,7 @@ import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.vendor.Base58
@@ -60,7 +61,7 @@ fun AccountDeposit() {
                 .wrapContentHeight(),
             text = stringResource(R.string.subtitle_howToDeposit),
             color = BrandLight,
-            style = MaterialTheme.typography.body2.copy(
+            style = CodeTheme.typography.body2.copy(
                 textAlign = TextAlign.Center,
             ),
         )
@@ -86,7 +87,7 @@ fun AccountDeposit() {
                     .padding(top = 2.dp),
                 text = address,
                 color = White,
-                style = MaterialTheme.typography.body1.copy(
+                style = CodeTheme.typography.body1.copy(
                     textAlign = TextAlign.Center,
                 ),
             )

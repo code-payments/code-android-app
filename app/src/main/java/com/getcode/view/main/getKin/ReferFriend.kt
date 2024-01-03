@@ -19,6 +19,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
@@ -47,12 +48,12 @@ fun ReferFriend() {
         ) {
             Text(
                 text = stringResource(R.string.title_getFriendStartedOnCode),
-                style = MaterialTheme.typography.h1,
+                style = CodeTheme.typography.h1,
                 modifier = Modifier.padding(vertical = 15.dp)
             )
             Text(
                 text = stringResource(R.string.subtitle_getFriendStartedOnCode),
-                style = MaterialTheme.typography.body1,
+                style = CodeTheme.typography.body1,
                 modifier = Modifier.padding(vertical = 10.dp)
             )
         }

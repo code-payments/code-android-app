@@ -29,7 +29,7 @@ fun CodeScaffold(
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     isFloatingActionButtonDocked: Boolean = false,
     drawerContent: @Composable (ColumnScope.() -> Unit)? = null,
-    drawerShape: Shape = MaterialTheme.shapes.large,
+    drawerShape: Shape = CodeTheme.shapes.large,
     drawerElevation: Dp = DrawerDefaults.Elevation,
     drawerBackgroundColor: Color = CodeTheme.colors.background,
     drawerContentColor: Color = CodeTheme.colors.onBackground,

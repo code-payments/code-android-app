@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.PermissionCheck
@@ -32,7 +33,7 @@ internal fun PermissionsBlockingView(
     ) {
         Text(
             modifier = Modifier.padding(bottom = 30.dp),
-            style = MaterialTheme.typography.body1.copy(textAlign = TextAlign.Center),
+            style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             text = stringResource(R.string.subtitle_allowCameraAccess)
         )
         CodeButton(

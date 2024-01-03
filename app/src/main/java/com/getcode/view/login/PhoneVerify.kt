@@ -71,6 +71,7 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.sheetHeight
@@ -170,7 +171,7 @@ internal fun PhoneVerify(
                         .height(60.dp)
                         .align(CenterVertically)
                         .padding(horizontal = 15.dp, vertical = 18.dp),
-                    style = MaterialTheme.typography.subtitle1,
+                    style = CodeTheme.typography.subtitle1,
                     text = "+${dataState.countryLocale.phoneCode}"
                 )
             }
@@ -186,7 +187,7 @@ internal fun PhoneVerify(
                     .focusRequester(focusRequester)
                     .padding(top = 2.dp),
                 value = dataState.phoneNumberFormattedTextFieldValue,
-                textStyle = MaterialTheme.typography.subtitle1,
+                textStyle = CodeTheme.typography.subtitle1,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone),
                 colors = TextFieldDefaults.textFieldColors(
                     backgroundColor = Color.Transparent,
@@ -222,7 +223,7 @@ internal fun PhoneVerify(
             modifier = Modifier.constrainAs(captionText) {
                 linkTo(countryCodeRow.bottom, captionText.top, topMargin = 20.dp)
             },
-            style = MaterialTheme.typography.body2.copy(
+            style = CodeTheme.typography.body2.copy(
                 textAlign = TextAlign.Center
             ),
             color = BrandLight,
@@ -364,7 +365,7 @@ private fun PhoneAreaSelect(
                             .padding(start = 20.dp)
                             .align(CenterVertically),
                         text = countryCode.name,
-                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+                        style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
                         modifier = Modifier
@@ -372,7 +373,7 @@ private fun PhoneAreaSelect(
                             .align(CenterVertically),
                         color = BrandLight,
                         text = "+${countryCode.phoneCode}",
-                        style = MaterialTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+                        style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
                     )
                 }
                 Divider(

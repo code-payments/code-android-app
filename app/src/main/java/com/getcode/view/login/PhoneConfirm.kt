@@ -38,6 +38,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
 import com.getcode.util.LocalPhoneFormatter
 import com.getcode.util.PhoneUtils
@@ -121,7 +122,7 @@ fun PhoneConfirm(
                     }
                     .padding(vertical = 10.dp),
                 color = BrandLight,
-                style = MaterialTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 text = stringResource(R.string.subtitle_didntGetCode)
                     .replaceParam(LocalPhoneFormatter.current?.formatNumber(dataState.phoneNumberFormatted.orEmpty())) +
                         " " +

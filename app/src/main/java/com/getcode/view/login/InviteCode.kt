@@ -36,6 +36,7 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.view.components.ButtonState
@@ -79,7 +80,7 @@ fun InviteCode(
                 .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(5.dp))
                 .background(White05),
             value = dataState.inviteCode,
-            textStyle = MaterialTheme.typography.subtitle1,
+            textStyle = CodeTheme.typography.subtitle1,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text),
             colors = TextFieldDefaults.textFieldColors(
                 backgroundColor = Color.Transparent,
@@ -111,7 +112,7 @@ fun InviteCode(
             modifier = Modifier.constrainAs(captionText) {
                 linkTo(inviteCodeRow.bottom, captionText.top, topMargin = 20.dp)
             },
-            style = MaterialTheme.typography.body2.copy(
+            style = CodeTheme.typography.body2.copy(
                 textAlign = TextAlign.Center
             ),
             color = BrandLight,

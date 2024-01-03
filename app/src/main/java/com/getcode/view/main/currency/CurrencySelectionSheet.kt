@@ -41,6 +41,7 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
@@ -102,7 +103,7 @@ fun CurrencySelectionSheet(
                 ) },
             placeholder = { Text(
                 stringResource(id = R.string.subtitle_searchCurrencies),
-                style = MaterialTheme.typography.subtitle1.copy(
+                style = CodeTheme.typography.subtitle1.copy(
                     fontSize = 16.sp,
                 )
             ) },
@@ -123,7 +124,7 @@ fun CurrencySelectionSheet(
             },
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,
@@ -172,7 +173,7 @@ fun CurrencySelectionSheet(
                             ) {
                                 Text(
                                     modifier = Modifier.padding(bottom = 10.dp),
-                                    style = MaterialTheme.typography.caption.copy(
+                                    style = CodeTheme.typography.caption.copy(
                                         fontSize = 14.sp,
                                     ),
                                     color = BrandLight,

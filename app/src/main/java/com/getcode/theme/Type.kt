@@ -16,7 +16,7 @@ private val Avenir = FontFamily(
     Font(R.font.avenir_next_demi, FontWeight.SemiBold)
 )
 
-val typography = Typography(
+internal val typography = Typography(
     h1 = TextStyle(
         fontFamily = Avenir,
         fontSize = 40.sp,

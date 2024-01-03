@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 
 @Composable
 fun AccountDebugOptions(
@@ -72,7 +73,7 @@ fun AccountDebugOptions(
                             modifier = Modifier
                                 .padding(vertical = 5.dp),
                             text = option.subtitleText,
-                            style = MaterialTheme.typography.body2,
+                            style = CodeTheme.typography.body2,
                             color = BrandLight
                         )
                     }

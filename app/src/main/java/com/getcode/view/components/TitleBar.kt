@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.Brand
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
 
 
@@ -49,7 +50,7 @@ fun TitleBar(
             Text(
                 text = title,
                 color = Color.White,
-                style = MaterialTheme.typography.subtitle2,
+                style = CodeTheme.typography.subtitle2,
                 modifier = Modifier.align(Alignment.Center)
             )
         }

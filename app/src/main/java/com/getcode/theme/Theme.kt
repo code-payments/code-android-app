@@ -2,7 +2,9 @@ package com.getcode.theme
 
 import androidx.compose.material.Colors
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Shapes
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
@@ -21,7 +23,9 @@ private val DarkColorPalette = CodeColors(
     brandLight = BrandLight,
     brandSubtle = BrandSubtle,
     background = Brand,
-    onBackground = White
+    onBackground = White,
+    surface = Brand,
+    onSurface = White
 )
 
 @Composable
@@ -35,20 +39,29 @@ fun CodeTheme(
         sysUiController.setSystemBarsColor(color = Color(0x01000000))
     }
 
+    val dimensions = calculateDimensions()
+
     ProvideCodeColors(colors) {
-        MaterialTheme(
-            //colors = debugColors(),
-            typography = typography,
-            content = content,
-            shapes = shapes
-        )
+        ProvideDimens(dimensions = dimensions) {
+            MaterialTheme(
+                //colors = debugColors(),
+                typography = typography,
+                content = content,
+                shapes = shapes
+            )
+        }
     }
 }
 
 object CodeTheme {
     val colors: CodeColors
-        @Composable
-        get() = LocalCodeColors.current
+        @Composable get() = LocalCodeColors.current
+    val dimens: Dimensions
+        @Composable get() = LocalDimens.current
+    val typography: Typography
+        @Composable get() = MaterialTheme.typography
+    val shapes: Shapes
+        @Composable get() = MaterialTheme.shapes
 }
 
 @Stable
@@ -58,6 +71,8 @@ class CodeColors(
     brandSubtle: Color,
     background: Color,
     onBackground: Color,
+    surface: Color,
+    onSurface: Color,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -69,12 +84,18 @@ class CodeColors(
         private set
     var onBackground by mutableStateOf(onBackground)
         private set
+    var surface by mutableStateOf(surface)
+        private set
+    var onSurface by mutableStateOf(onSurface)
+        private set
 
     fun update(other: CodeColors) {
         brand = other.brand
         brandLight = other.brandLight
         background = other.background
         onBackground = other.onBackground
+        surface = other.surface
+        onSurface = other.onSurface
     }
 
     fun copy(): CodeColors = CodeColors(
@@ -83,6 +104,8 @@ class CodeColors(
         brandSubtle = brandSubtle,
         background = background,
         onBackground = onBackground,
+        surface = surface,
+        onSurface = onSurface,
     )
 }
 

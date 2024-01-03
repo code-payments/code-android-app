@@ -59,6 +59,7 @@ import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Brand
+import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
@@ -365,7 +366,7 @@ private fun BillContainer(
                     ) {
                         Text(
                             modifier = Modifier.padding(top = 15.dp),
-                            style = MaterialTheme.typography.subtitle1.copy(
+                            style = CodeTheme.typography.subtitle1.copy(
                                 fontWeight = FontWeight.Bold
                             ),
                             text = stringResource(id = R.string.subtitle_youReceived)

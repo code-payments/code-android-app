@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Brand
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
 import com.getcode.view.main.account.AccountSheetViewModel
 
@@ -99,7 +100,7 @@ fun SheetTitle(
                 Text(
                     text = title.orEmpty(),
                     color = Color.White,
-                    style = MaterialTheme.typography.h6.copy(
+                    style = CodeTheme.typography.h6.copy(
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     ),

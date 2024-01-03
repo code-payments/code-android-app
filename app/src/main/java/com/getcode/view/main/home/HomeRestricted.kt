@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
@@ -75,13 +76,13 @@ fun HomeRestricted(
                     .padding(bottom = 25.dp),
                 color = White,
                 text = titleText,
-                style = MaterialTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
+                style = CodeTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
             )
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 color = BrandLight,
                 text = subTitleText,
-                style = MaterialTheme.typography.body1.copy(
+                style = CodeTheme.typography.body1.copy(
                     textAlign = TextAlign.Center,
                     lineHeight = 25.sp
                 )

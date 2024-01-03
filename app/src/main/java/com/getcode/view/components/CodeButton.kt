@@ -35,7 +35,7 @@ fun CodeButton(
     isPaddedVertical: Boolean = true,
     textColor: Color? = null,
     isMaxWidth: Boolean = true,
-    shape: Shape = MaterialTheme.shapes.small,
+    shape: Shape = CodeTheme.shapes.small,
 ) {
     val isEnabledC = enabled && !isLoading && !isSuccess
     Button(
@@ -55,7 +55,7 @@ fun CodeButton(
         Box {
             Text(
                 text = " ",
-                style = MaterialTheme.typography.button,
+                style = CodeTheme.typography.button,
                 modifier = Modifier.padding(
                     vertical = if (isPaddedVertical) 14.dp else 0.dp,
                 ),
@@ -87,7 +87,7 @@ fun CodeButton(
                     if (!isSuccess) {
                         Text(
                             text = text,
-                            style = MaterialTheme.typography.button,
+                            style = CodeTheme.typography.button,
                             modifier = Modifier.padding(
                                 vertical = if (isPaddedVertical) 14.dp else 0.dp,
                                 horizontal = 10.dp

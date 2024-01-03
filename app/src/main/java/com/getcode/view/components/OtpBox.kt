@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.util.WindowSize
 
 @Composable
@@ -56,7 +57,7 @@ fun OtpBox(
             text = character,
             modifier = Modifier
                 .align(Alignment.Center),
-            style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Normal),
+            style = CodeTheme.typography.h6.copy(fontWeight = FontWeight.Normal),
             color = Color.White,
         )
     }

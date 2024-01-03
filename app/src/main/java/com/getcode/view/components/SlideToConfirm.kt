@@ -84,7 +84,7 @@ object SlideToConfirmDefaults {
         Text(
             text = text,
             color = hintTextColor,
-            style = MaterialTheme.typography.body1,
+            style = CodeTheme.typography.body1,
             modifier = modifier,
         )
     }
@@ -322,7 +322,7 @@ private fun Preview() {
                             onClick = { isLoading = false }) {
                             Text(
                                 text = "Cancel",
-                                style = MaterialTheme.typography.caption,
+                                style = CodeTheme.typography.caption,
                                 color = White50
                             )
                         }

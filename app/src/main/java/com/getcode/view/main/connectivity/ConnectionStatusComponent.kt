@@ -13,6 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.TopError
 
 @Composable
@@ -25,7 +26,7 @@ fun ConnectionStatus(state: ConnectionState) {
                     modifier = Modifier.align(Alignment.CenterVertically),
                     text = "Loading",
                     color = BrandLight,
-                    style = MaterialTheme.typography.body1.copy(
+                    style = CodeTheme.typography.body1.copy(
                     textAlign = TextAlign.Center))
             }
 
@@ -35,7 +36,7 @@ fun ConnectionStatus(state: ConnectionState) {
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = "No network connection",
                 color = TopError,
-                style = MaterialTheme.typography.body1.copy(
+                style = CodeTheme.typography.body1.copy(
                 textAlign = TextAlign.Center))
         }
     }
