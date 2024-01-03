@@ -63,7 +63,7 @@ fun CodeButton(
 
             Row {
                 if (isLoading) {
-                    CircularProgressIndicator(
+                    CodeCircularProgressIndicator(
                         strokeWidth = 2.dp,
                         color = White,
                         modifier = Modifier

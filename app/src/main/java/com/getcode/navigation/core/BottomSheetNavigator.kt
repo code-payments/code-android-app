@@ -49,7 +49,7 @@ val LocalBottomSheetNavigator: ProvidableCompositionLocal<BottomSheetNavigator> 
 fun BottomSheetNavigator(
     modifier: Modifier = Modifier,
     hideOnBackPress: Boolean = true,
-    scrimColor: Color = ModalBottomSheetDefaults.scrimColor,
+    scrimColor: Color = CodeTheme.colors.surface.copy(alpha = 0.32f),
     sheetShape: Shape = CodeTheme.shapes.large,
     sheetElevation: Dp = ModalBottomSheetDefaults.Elevation,
     sheetBackgroundColor: Color = CodeTheme.colors.surface,

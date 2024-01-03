@@ -22,12 +22,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -63,6 +60,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.util.Kin
+import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.previewComponent.PreviewColumn
@@ -160,7 +158,7 @@ fun BalanceContent(
             state.historicalTransactionsLoading -> {
                 item {
                     Box(modifier = Modifier.fillParentMaxSize()) {
-                        CircularProgressIndicator(modifier = Modifier.align(TopCenter))
+                        CodeCircularProgressIndicator(modifier = Modifier.align(TopCenter))
                     }
                 }
             }

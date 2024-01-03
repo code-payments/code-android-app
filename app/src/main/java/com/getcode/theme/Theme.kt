@@ -44,7 +44,7 @@ fun CodeTheme(
     ProvideCodeColors(colors) {
         ProvideDimens(dimensions = dimensions) {
             MaterialTheme(
-                //colors = debugColors(),
+                colors = debugColors(),
                 typography = typography,
                 content = content,
                 shapes = shapes

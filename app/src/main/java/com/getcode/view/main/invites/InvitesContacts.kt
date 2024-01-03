@@ -23,6 +23,7 @@ import com.getcode.theme.White10
 import com.getcode.theme.inputColors
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
+import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.components.getButtonBorder
 import com.getcode.view.components.getButtonColors
 
@@ -44,7 +45,7 @@ fun InvitesContacts(
                 style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             )
 
-            CircularProgressIndicator(
+            CodeCircularProgressIndicator(
                 modifier = Modifier
                     .align(CenterHorizontally)
                     .padding(vertical = 20.dp)

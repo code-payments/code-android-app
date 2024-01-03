@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Gray50
 import com.getcode.theme.White
+import com.getcode.view.components.CodeCircularProgressIndicator
 
 @Composable
 internal fun BillManagementOptions(
@@ -72,7 +72,7 @@ internal fun BillManagementOptions(
                         }
 
                         if (isSending) {
-                            CircularProgressIndicator(
+                            CodeCircularProgressIndicator(
                                 strokeWidth = 2.dp,
                                 color = White,
                                 modifier = Modifier

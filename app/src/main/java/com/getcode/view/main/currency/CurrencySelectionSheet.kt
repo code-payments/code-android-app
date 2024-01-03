@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
@@ -46,6 +44,7 @@ import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
 import com.getcode.util.RepeatOnLifecycle
+import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.components.SwipeableView
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -141,7 +140,7 @@ fun CurrencySelectionSheet(
             if (state.loading) {
                 item {
                     Box(Modifier.fillParentMaxSize()) {
-                        CircularProgressIndicator(Modifier.align(Alignment.TopCenter))
+                        CodeCircularProgressIndicator(Modifier.align(Alignment.TopCenter))
                     }
                 }
             }
