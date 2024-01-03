@@ -20,6 +20,8 @@ import com.getcode.util.LocalDeeplinks
 import com.getcode.util.LocalPhoneFormatter
 import com.getcode.util.PhoneUtils
 import com.getcode.util.handleUncaughtException
+import com.getcode.util.vibration.LocalVibrator
+import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.NetworkUtils
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
@@ -51,6 +53,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var phoneUtils: PhoneUtils
 
+    @Inject
+    lateinit var vibrator: Vibrator
+
     /**
      * The compose navigation controller does not play nice with single task activities.
      * Invoking the navigation controller here will cause the intent to be fired
@@ -81,7 +86,8 @@ class MainActivity : FragmentActivity() {
                 LocalAnalytics provides analyticsManager,
                 LocalDeeplinks provides deeplinkHandler,
                 LocalNetwork provides networkUtils,
-                LocalPhoneFormatter provides phoneUtils
+                LocalPhoneFormatter provides phoneUtils,
+                LocalVibrator provides vibrator,
             ) {
                 CodeApp()
             }
