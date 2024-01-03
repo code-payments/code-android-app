@@ -82,7 +82,7 @@ internal fun PaymentConfirmation(
         if (state != null) {
             requestedAmount?.let { amount ->
                 PriceWithFlag(
-                    currency = amount.rate.currency,
+                    currencyCode = amount.rate.currency,
                     amount = amount,
                     iconSize = 24.dp
                 ) {

@@ -2,13 +2,19 @@ package com.getcode.util
 
 import android.content.Context
 import android.telephony.PhoneNumberUtils
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.App
-import com.getcode.util.CurrencyUtils.getFlag
 import io.michaelrocks.libphonenumber.android.NumberParseException
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
 import java.util.*
+import javax.inject.Inject
 
-object PhoneUtils {
+val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }
+
+class PhoneUtils @Inject constructor(
+    currencyUtils: CurrencyUtils
+) {
     var countryLocales: List<CountryLocale> = listOf()
     private var countryCodesMap: Map<Int, CountryLocale> = mapOf()
     var defaultCountryLocale: CountryLocale
@@ -18,7 +24,7 @@ object PhoneUtils {
 
         phoneNumberUtil.supportedRegions.map { region ->
             val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)
-            val resId: Int? = getFlag(region)
+            val resId: Int? = currencyUtils.getFlag(region)
             val displayCountry = Locale(Locale.getDefault().language, region).displayCountry
 
             CountryLocale(

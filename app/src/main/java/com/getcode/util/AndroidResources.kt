@@ -1,9 +1,12 @@
 package com.getcode.util
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
+import com.getcode.BuildConfig
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.ResourceType
 import dagger.hilt.android.qualifiers.ApplicationContext
 import timber.log.Timber
 import java.io.File
@@ -64,5 +67,16 @@ class AndroidResources @Inject constructor(
 
     override fun getDir(name: String, mode: Int): File? {
         return context.getDir(name, mode)
+    }
+
+    @SuppressLint("DiscouragedApi")
+    override fun getIdentifier(name: String, type: ResourceType): Int? {
+        return when (type) {
+            ResourceType.Drawable -> context.resources.getIdentifier(
+                name,
+                type.defType,
+                BuildConfig.APPLICATION_ID
+            )
+        }.let { if (it == 0) null else it }
     }
 }

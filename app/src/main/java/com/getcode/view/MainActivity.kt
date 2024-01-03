@@ -17,6 +17,8 @@ import com.getcode.network.client.Client
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.LocalDeeplinks
+import com.getcode.util.LocalPhoneFormatter
+import com.getcode.util.PhoneUtils
 import com.getcode.util.handleUncaughtException
 import com.getcode.utils.NetworkUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,6 +47,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var networkUtils: NetworkUtils
+
+    @Inject
+    lateinit var phoneUtils: PhoneUtils
 
     /**
      * The compose navigation controller does not play nice with single task activities.
@@ -75,7 +80,8 @@ class MainActivity : FragmentActivity() {
             CompositionLocalProvider(
                 LocalAnalytics provides analyticsManager,
                 LocalDeeplinks provides deeplinkHandler,
-                LocalNetwork provides networkUtils
+                LocalNetwork provides networkUtils,
+                LocalPhoneFormatter provides phoneUtils
             ) {
                 CodeApp()
             }

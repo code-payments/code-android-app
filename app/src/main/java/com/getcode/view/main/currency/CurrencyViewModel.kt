@@ -37,6 +37,7 @@ import javax.inject.Inject
 @HiltViewModel
 class CurrencyViewModel @Inject constructor(
     localeHelper: LocaleHelper,
+    currencyUtils: CurrencyUtils,
     currencyRepository: CurrencyRepository,
     prefsRepository: PrefRepository,
 ): BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
@@ -70,7 +71,7 @@ class CurrencyViewModel @Inject constructor(
             .flowOn(Dispatchers.IO)
             .onStart { dispatchEvent(Dispatchers.Main, Event.OnLoadingChanged(true)) }
             .distinctUntilChanged()
-            .map { rates -> CurrencyUtils.getCurrenciesWithRates(rates) }
+            .map { rates -> currencyUtils.getCurrenciesWithRates(rates) }
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnFilteredCurrenciesUpdated(it)) }
             .launchIn(viewModelScope)
 
@@ -78,9 +79,9 @@ class CurrencyViewModel @Inject constructor(
             .observeOrDefault(
                 PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
             ).distinctUntilChanged()
-            .mapNotNull { CurrencyUtils.getCurrency(it) }
+            .mapNotNull { currencyUtils.getCurrency(it) }
             .mapNotNull { currencyWithoutRate ->
-                val currencies = CurrencyUtils.getCurrenciesWithRates(currencyRepository.getRatesAsMap())
+                val currencies = currencyUtils.getCurrenciesWithRates(currencyRepository.getRatesAsMap())
                 currencies.find { it.code == currencyWithoutRate.code }
             }
             .onEach { dispatchEvent(Event.OnSelectedCurrencyChanged(it, false)) }
@@ -98,7 +99,7 @@ class CurrencyViewModel @Inject constructor(
                         )
                         .map { it.split(",") }
                 ) { selectedCode, recentCodes ->
-                    val currencies = CurrencyUtils.getCurrenciesWithRates(currencyRepository.getRatesAsMap())
+                    val currencies = currencyUtils.getCurrenciesWithRates(currencyRepository.getRatesAsMap())
                     recentCodes
                         .mapNotNull { currencies.find { c -> c.code == it } }
                         .sortedBy { c -> c.code }

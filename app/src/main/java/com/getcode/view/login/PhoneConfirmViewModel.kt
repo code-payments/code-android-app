@@ -58,7 +58,8 @@ data class PhoneConfirmUiModel(
 class PhoneConfirmViewModel @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val phoneRepository: PhoneRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val phoneUtils: PhoneUtils,
 ) : BaseViewModel() {
     val uiFlow = MutableStateFlow(PhoneConfirmUiModel())
     private var navigator: CodeNavigator? = null
@@ -86,7 +87,7 @@ class PhoneConfirmViewModel @Inject constructor(
         uiFlow.update {
             it.copy(
                 phoneNumber = phoneNumber,
-                phoneNumberFormatted = PhoneUtils.formatNumber(phoneNumber)
+                phoneNumberFormatted = phoneUtils.formatNumber(phoneNumber)
             )
         }
     }

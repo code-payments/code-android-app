@@ -7,6 +7,7 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.PhoneUtils
+import com.getcode.utils.makeE164
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,8 @@ data class AccountPhoneUiModel(
 @HiltViewModel
 class AccountPhoneViewModel @Inject constructor(
     private val identityRepository: IdentityRepository,
-    private val phoneRepository: PhoneRepository
+    private val phoneRepository: PhoneRepository,
+    private val phoneUtils: PhoneUtils,
 ) :
     BaseViewModel() {
     val uiFlow = MutableStateFlow(AccountPhoneUiModel())
@@ -33,7 +35,7 @@ class AccountPhoneViewModel @Inject constructor(
                 uiFlow.value = AccountPhoneUiModel(
                     isLinked = it.isLinked,
                     phoneNumber = it.phoneNumber,
-                    phoneNumberFormatted = PhoneUtils.formatNumber(it.phoneNumber)
+                    phoneNumberFormatted = phoneUtils.formatNumber(it.phoneNumber)
                 )
             }
     }
@@ -41,8 +43,7 @@ class AccountPhoneViewModel @Inject constructor(
     fun unlinkPhone() {
         val keyPair = SessionManager.authState.value?.keyPair ?: return
         val phoneNumber = uiFlow.value.phoneNumber
-            ?.filter { it.isDigit() }
-            ?.let { com.getcode.utils.PhoneUtils.makeE164(it) } ?: return
+            ?.filter { it.isDigit() }?.makeE164()  ?: return
 
         identityRepository.unlinkAccount(keyPair, phoneNumber).subscribe { result ->
             if (result == IdentityService.UnlinkAccountResponse.Result.OK)

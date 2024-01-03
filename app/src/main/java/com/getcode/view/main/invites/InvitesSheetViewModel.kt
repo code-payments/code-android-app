@@ -16,7 +16,8 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.InviteRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.IntentUtils
-import com.getcode.utils.PhoneUtils
+import com.getcode.util.PhoneUtils
+import com.getcode.utils.makeE164
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -52,7 +53,8 @@ data class InvitesSheetUiModel(
 class InvitesSheetViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
     private val contactsRepository: ContactsRepository,
-    private val identityRepository: IdentityRepository
+    private val identityRepository: IdentityRepository,
+    private val phoneUtils: PhoneUtils,
 ) :
     BaseViewModel() {
     val uiFlow = MutableStateFlow(InvitesSheetUiModel())
@@ -105,9 +107,9 @@ class InvitesSheetViewModel @Inject constructor(
         remoteContacts: List<ContactsRepository.GetContactsResponse> = listOf()
     ) {
         val remoteContactsMap =
-            remoteContacts.associateBy { PhoneUtils.makeE164(it.phoneNumber) }
+            remoteContacts.associateBy { it.phoneNumber.makeE164() }
         val contacts = contacts_.map { contact ->
-            val phoneInternational = PhoneUtils.makeE164(contact.phoneNumber)
+            val phoneInternational = contact.phoneNumber.makeE164()
             contact.copy(
                 isInvited = remoteContactsMap[phoneInternational]?.isInvited == true,
                 isRegistered = remoteContactsMap[phoneInternational]?.isRegistered == true,
@@ -132,7 +134,7 @@ class InvitesSheetViewModel @Inject constructor(
     }
 
     fun inviteContactCustomInput(phoneValue: String) {
-        val phoneE164 = PhoneUtils.makeE164(phoneValue, java.util.Locale.getDefault())
+        val phoneE164 = phoneValue.makeE164(java.util.Locale.getDefault())
 
         if (phoneE164.length < 8) {
             TopBarManager.showMessage(
@@ -278,7 +280,7 @@ class InvitesSheetViewModel @Inject constructor(
                             .replace("-", "")
                             .replace(" ", "")
 
-                        val phoneNumberFormatted = com.getcode.util.PhoneUtils.formatNumber(
+                        val phoneNumberFormatted = phoneUtils.formatNumber(
                             phoneNumber
                         )
 

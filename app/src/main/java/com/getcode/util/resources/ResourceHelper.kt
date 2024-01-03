@@ -24,4 +24,13 @@ interface ResourceHelper {
     fun getDimensionPixelSize(@DimenRes dimenId: Int, default: Int = 0): Int
 
     fun getDir(name: String, mode: Int): File?
+
+    fun getIdentifier(name: String, type: ResourceType): Int?
+}
+
+sealed interface ResourceType {
+    val defType: String
+    data object Drawable: ResourceType {
+        override val defType: String = "drawable"
+    }
 }

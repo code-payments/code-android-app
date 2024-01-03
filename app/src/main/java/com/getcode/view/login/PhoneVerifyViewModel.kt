@@ -18,6 +18,7 @@ import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
+import com.getcode.utils.makeE164
 import com.getcode.view.*
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,9 +38,9 @@ data class PhoneVerifyUiModel(
     val phoneNumberFormatted: String = "",
     val phoneNumberFormattedTextFieldValue: TextFieldValue = TextFieldValue(),
     val countryFlag: String = "",
-    val countryLocales: List<PhoneUtils.CountryLocale> = PhoneUtils.countryLocales,
-    val countryLocalesFiltered: List<PhoneUtils.CountryLocale> = PhoneUtils.countryLocales,
-    val countryLocale: PhoneUtils.CountryLocale = PhoneUtils.defaultCountryLocale,
+    val countryLocales: List<PhoneUtils.CountryLocale> = emptyList(), // PhoneUtils.countryLocales,
+    val countryLocalesFiltered: List<PhoneUtils.CountryLocale> = emptyList(), // PhoneUtils.countryLocales,
+    val countryLocale: PhoneUtils.CountryLocale = PhoneUtils.CountryLocale(name = "", phoneCode = 0, countryCode = ""), // PhoneUtils.defaultCountryLocale,
     val countrySearchFilterString: String = "",
     val continueEnabled: Boolean = false,
     val isLoading: Boolean = false,
@@ -52,12 +53,17 @@ data class PhoneVerifyUiModel(
 @HiltViewModel
 class PhoneVerifyViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
+    private val phoneUtils: PhoneUtils,
 ) : BaseViewModel() {
     val uiFlow = MutableStateFlow(PhoneVerifyUiModel())
 
     fun reset() {
         uiFlow.update {
-            PhoneVerifyUiModel()
+            PhoneVerifyUiModel(
+                countryLocales = phoneUtils.countryLocales,
+                countryLocalesFiltered = phoneUtils.countryLocales,
+                countryLocale = phoneUtils.defaultCountryLocale,
+            )
         }
     }
 
@@ -117,7 +123,7 @@ class PhoneVerifyViewModel @Inject constructor(
         val countryCode = uiFlow.value.countryLocale.phoneCode.toString()
         val phoneInputFiltered = phoneInput.replace("+$countryCode", "")
         val phoneNumber = "+$countryCode$phoneInputFiltered"
-        val phoneFormatted = PhoneUtils.formatNumber(
+        val phoneFormatted = phoneUtils.formatNumber(
             number = phoneNumber,
             countryCode = countryCode,
             plus = false
@@ -137,8 +143,8 @@ class PhoneVerifyViewModel @Inject constructor(
                     text = phoneFormatted,
                     selection = selection
                 ),
-                countryFlag = PhoneUtils.toFlagEmoji(countryCode),
-                continueEnabled = phoneNumber.length > 7 && PhoneUtils.isPhoneNumberValid(
+                countryFlag = phoneUtils.toFlagEmoji(countryCode),
+                continueEnabled = phoneNumber.length > 7 && phoneUtils.isPhoneNumberValid(
                     App.getInstance(),
                     phoneNumber,
                     countryCode
@@ -155,8 +161,7 @@ class PhoneVerifyViewModel @Inject constructor(
 
         val phoneNumberCombined = areaCode.toString() + phoneInput
 
-        val phoneNumber = com.getcode.utils.PhoneUtils.makeE164(
-            phoneNumberCombined,
+        val phoneNumber = phoneNumberCombined.makeE164(
             java.util.Locale(java.util.Locale.getDefault().language, countryCode)
         )
 

@@ -6,5 +6,5 @@ import com.getcode.utils.FormatUtils
 fun KinAmount.formatted(round: Boolean = true) = if (round) {
     FormatUtils.formatWholeRoundDown(kin.toKin().toDouble())
 } else {
-    FormatAmountUtils.formatAmountString(this)
+    rate.currency.format(this)
 }

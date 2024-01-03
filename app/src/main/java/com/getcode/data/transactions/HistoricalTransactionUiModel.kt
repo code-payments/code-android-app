@@ -1,29 +1,32 @@
 package com.getcode.data.transactions
 
 import com.getcode.model.AirdropType
+import com.getcode.model.Currency
 import com.getcode.model.HistoricalTransaction
 import com.getcode.model.Kin
 import com.getcode.model.PaymentType
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.DateUtils
-import com.getcode.util.FormatAmountUtils
+import com.getcode.util.Kin
+import com.getcode.util.flagResId
+import com.getcode.util.format
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
 
-fun HistoricalTransaction.toUi(): HistoricalTransactionUiModel {
-
-    val currency = CurrencyUtils.getCurrency(
-        transactionRateCurrency?.uppercase().orEmpty()
-    ) ?: CurrencyUtils.currencyKin
+fun HistoricalTransaction.toUi(
+    currencyLookup: (String) -> Currency?,
+    resources: ResourceHelper,
+): HistoricalTransactionUiModel {
+    val currency = currencyLookup(  transactionRateCurrency?.uppercase().orEmpty()) ?: Currency.Kin
 
     val isKin = currency.code == "KIN"
-    val currencyResId = CurrencyUtils.getFlagByCurrency(currency.code)
+    val currencyResId = currency.flagResId(resources)
 
     val kinAmount = Kin.fromQuarks(transactionAmountQuarks)
     val amount: Double =
         if (isKin) kinAmount.toKinTruncatingLong().toDouble()
         else nativeAmount
 
-    val amountText = FormatAmountUtils.formatAmountString(currency, amount)
+    val amountText = currency.format(amount)
 
     return HistoricalTransactionUiModel(
         id = id,

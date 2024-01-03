@@ -68,10 +68,9 @@ abstract class BaseAmountCurrencyViewModel(
     val currencyRepository: CurrencyRepository,
     private val balanceRepository: BalanceRepository,
     private val localeHelper: LocaleHelper,
+    private val currencyUtils: CurrencyUtils,
 ) : BaseViewModel(), AmountInputViewModel {
     protected val numberInputHelper = NumberInputHelper()
-    private var searchJob: Job? = null
-
     abstract fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel)
     abstract fun setAmountUiModel(amountUiModel: AmountUiModel)
     abstract fun setAmountAnimatedInputUiModel(amountAnimatedInputUiModel: AmountAnimatedInputUiModel)
@@ -95,7 +94,7 @@ abstract class BaseAmountCurrencyViewModel(
         combine(
             currencyRepository.getRates()
                 .flowOn(Dispatchers.IO)
-                .map { CurrencyUtils.getCurrenciesWithRates(it) },
+                .map { currencyUtils.getCurrenciesWithRates(it) },
             prefsRepository
                 .observeOrDefault(
                     PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
@@ -198,7 +197,7 @@ abstract class BaseAmountCurrencyViewModel(
         model: CurrencyUiModel?,
         rates: Map<String, Double>
     ): CurrencyUiModel {
-        val currenciesLocales = CurrencyUtils.getCurrenciesWithRates(rates)
+        val currenciesLocales = currencyUtils.getCurrenciesWithRates(rates)
 
         return CurrencyUiModel(
             currenciesMap = currenciesLocales.map { it }.associateBy { it.code },
@@ -211,7 +210,7 @@ abstract class BaseAmountCurrencyViewModel(
             ),
             currencySearchText = "",
             selectedCurrencyCode = model?.selectedCurrencyCode,
-            selectedCurrencyResId = CurrencyUtils.getFlagByCurrency(model?.selectedCurrencyCode)
+            selectedCurrencyResId = currencyUtils.getFlagByCurrency(model?.selectedCurrencyCode)
         )
     }
 

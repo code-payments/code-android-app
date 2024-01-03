@@ -3,6 +3,7 @@ package com.getcode.inject
 import android.content.Context
 import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidResources
+import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.AndroidNetworkUtils
@@ -24,7 +25,8 @@ object AppModule {
     @Provides
     fun providesLocaleHelper(
         @ApplicationContext context: Context,
-    ): LocaleHelper = AndroidLocale(context)
+        currencyUtils: CurrencyUtils,
+    ): LocaleHelper = AndroidLocale(context, currencyUtils)
 
     @Provides
     fun providesNetworkUtilities(

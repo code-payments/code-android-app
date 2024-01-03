@@ -30,8 +30,8 @@ import com.getcode.network.repository.*
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
-import com.getcode.util.FormatAmountUtils
 import com.getcode.util.VibrationUtil
+import com.getcode.util.formatted
 import com.getcode.util.showNetworkError
 import com.getcode.utils.NetworkUtils
 import com.getcode.vendor.Base58
@@ -662,7 +662,7 @@ class HomeViewModel @Inject constructor(
         val url = "https://cash.getcode.com/c/#/e=" +
                 giftCard.mnemonicPhrase.getBase58EncodedEntropy(context)
         val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(FormatAmountUtils.formatAmountString(amount))
+            .replaceParam(amount.formatted())
             .replaceParam(url)
 
         val sendIntent: Intent = Intent().apply {

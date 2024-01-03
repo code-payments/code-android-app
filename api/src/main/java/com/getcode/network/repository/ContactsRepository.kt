@@ -5,7 +5,7 @@ import com.codeinc.gen.contact.v1.ContactListService
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.ContactsApi
 import com.getcode.network.core.NetworkOracle
-import com.getcode.utils.PhoneUtils
+import com.getcode.utils.makeE164
 import io.reactivex.rxjava3.core.Flowable
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
@@ -30,9 +30,7 @@ class ContactsRepository @Inject constructor(
                 )
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
                 .addAllContacts(contacts.map { contact ->
-                    contact
-                        .let { PhoneUtils.makeE164(it) }
-                        .toPhoneNumber()
+                    contact.makeE164().toPhoneNumber()
                 })
                 .let {
                     val bos = ByteArrayOutputStream()
