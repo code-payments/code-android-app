@@ -1,6 +1,5 @@
 package com.getcode.view.main.giveKin
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,13 +9,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import com.getcode.App
+import com.getcode.LocalNetwork
 import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -28,12 +28,10 @@ import com.getcode.util.AnimationUtils
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.NetworkUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.connectivity.NetworkConnectionViewModel
-import com.getcode.view.main.currency.CurrencyList
 
 @Preview
 @Composable
@@ -42,6 +40,7 @@ fun GiveKinSheet(
     connectionViewModel: NetworkConnectionViewModel = hiltViewModel(),
     billToSend: (Bill) -> Unit = { },
 ) {
+    val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
     val connectionState by connectionViewModel.connectionStatus.collectAsState()
@@ -53,6 +52,7 @@ fun GiveKinSheet(
         viewModel.reset()
     }
 
+    val networkUtils = LocalNetwork.current
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -121,8 +121,8 @@ fun GiveKinSheet(
                                 //top.linkTo(keyPad.bottom)
                             },
                         onClick = {
-                            if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
-                                ErrorUtils.showNetworkError()
+                            if (!networkUtils.isAvailable()) {
+                                ErrorUtils.showNetworkError(context)
                                 return@CodeButton
                             }
 

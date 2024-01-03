@@ -3,7 +3,6 @@ package com.getcode.manager
 import android.app.Activity
 import android.content.Context
 import com.bugsnag.android.Bugsnag
-import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.google.firebase.messaging.FirebaseMessaging
@@ -17,8 +16,10 @@ import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.repository.*
 import com.getcode.util.AccountUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -29,6 +30,7 @@ import javax.inject.Singleton
 
 @Singleton
 class AuthManager @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
     private val phoneRepository: PhoneRepository,
     private val identityRepository: IdentityRepository,
@@ -38,7 +40,8 @@ class AuthManager @Inject constructor(
     private val balanceController: BalanceController,
     private val inMemoryDao: InMemoryDao,
     private val analyticsManager: AnalyticsManager,
-    private val client: Client
+    private val client: Client,
+    private val resources: ResourceHelper,
 ) {
     private var softLoginDisabled: Boolean = false
 
@@ -53,10 +56,10 @@ class AuthManager @Inject constructor(
 
     private fun softLogin(entropyB64: String): Completable {
         if (softLoginDisabled) return Completable.complete()
-        return login(App.getInstance(), entropyB64, isSoftLogin = true)
+        return login(entropyB64, isSoftLogin = true)
     }
 
-    fun login(context: Context, entropyB64: String, isSoftLogin: Boolean = false, rollbackOnError: Boolean = false): Completable {
+    fun login(entropyB64: String, isSoftLogin: Boolean = false, rollbackOnError: Boolean = false): Completable {
         Timber.i("Login: entropyB64: $entropyB64, isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
@@ -67,10 +70,10 @@ class AuthManager @Inject constructor(
         return Single.create<SessionManager.SessionState> {
             if (!isSoftLogin) softLoginDisabled = true
 
-            Database.init(App.getInstance(), entropyB64)
+            Database.init(context, entropyB64)
 
             val originalSessionState = SessionManager.authState.value
-            sessionManager.set(App.getInstance(), entropyB64)
+            sessionManager.set(context, entropyB64)
 
             if (!isSoftLogin) {
                 loginAnalytics(entropyB64)
@@ -105,7 +108,7 @@ class AuthManager @Inject constructor(
                     val (phone, _) = it
 
                     AccountUtils.addAccount(
-                        context = App.getInstance(),
+                        context = context,
                         name = phone.phoneNumber,
                         password = entropyB64,
                         token = entropyB64
@@ -116,7 +119,7 @@ class AuthManager @Inject constructor(
                 val isTimelockUnlockedException = it is AuthManagerException.TimelockUnlockedException
                 if (!isSoftLogin) {
                     if (rollbackOnError) {
-                        login(context, originalSessionState?.entropyB64.orEmpty(), isSoftLogin, rollbackOnError = false)
+                        login(originalSessionState?.entropyB64.orEmpty(), isSoftLogin, rollbackOnError = false)
                     } else {
                         clearToken()
                     }
@@ -125,7 +128,7 @@ class AuthManager @Inject constructor(
                         SessionManager.authStateMutable.update { state -> state?.copy(isTimelockUnlocked = true) }
                     }
                     if (ErrorUtils.isNetworkError(it) || ErrorUtils.isRuntimeError(it)) {
-                        ErrorUtils.showNetworkError()
+                        ErrorUtils.showNetworkError(resources)
                     }
                 }
             }
@@ -176,7 +179,7 @@ class AuthManager @Inject constructor(
             .flatMap {
                 user = it
                 if (SessionManager.authState.value?.entropyB64 != entropyB64) {
-                    sessionManager.set(App.getInstance(), entropyB64)
+                    sessionManager.set(context, entropyB64)
                 }
                 balanceController.fetchBalance()
                     .toSingleDefault(Pair(phone!!, user!!))
@@ -190,7 +193,8 @@ class AuthManager @Inject constructor(
     }
 
     private fun loginAnalytics(entropyB64: String) {
-        val owner = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64).getSolanaKeyPair(App.getInstance())
+        val owner = MnemonicPhrase.fromEntropyB64(context, entropyB64)
+            .getSolanaKeyPair(context)
         analyticsManager.login(
             ownerPublicKey = owner.getPublicKeyBase58(),
             autoCompleteCount = 0,
@@ -204,7 +208,7 @@ class AuthManager @Inject constructor(
         sessionManager.clear()
         Database.close()
         inMemoryDao.clear()
-        Database.delete(App.getInstance())
+        Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

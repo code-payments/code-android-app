@@ -6,7 +6,7 @@ import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.getcode.App
 import com.getcode.BuildConfig
-import com.getcode.utils.PhoneUtils
+import com.getcode.utils.makeE164
 
 object IntentUtils {
     fun launchAppSettings() {
@@ -21,7 +21,7 @@ object IntentUtils {
     }
 
     fun launchSmsIntent(phoneValue: String, message: String) {
-        val uri: Uri = Uri.parse("smsto:${PhoneUtils.makeE164(phoneValue)}")
+        val uri: Uri = Uri.parse("smsto:${phoneValue.makeE164()}")
         val intent = Intent(Intent.ACTION_SENDTO, uri)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.putExtra(

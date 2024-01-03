@@ -24,7 +24,7 @@ import com.getcode.view.components.CodeButton
 
 @Composable
 fun ReferFriend() {
-    val context = LocalContext.current as Activity
+    val context = LocalContext.current
 
     ConstraintLayout(
         modifier = Modifier
@@ -67,7 +67,7 @@ fun ReferFriend() {
                 shareDownloadLink(context)
             },
             enabled = true,
-            text = App.getInstance().getString(R.string.action_shareDownloadLink),
+            text = stringResource(R.string.action_shareDownloadLink),
             buttonState = ButtonState.Filled,
         )
     }
@@ -83,5 +83,6 @@ private fun shareDownloadLink(
         type = "text/plain"
     }
     val shareIntent = Intent.createChooser(sendIntent, null)
+    shareIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
     context.startActivity(shareIntent)
 }

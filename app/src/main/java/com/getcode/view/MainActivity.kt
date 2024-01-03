@@ -9,6 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
+import com.getcode.LocalNetwork
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
@@ -16,7 +17,12 @@ import com.getcode.network.client.Client
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.LocalDeeplinks
+import com.getcode.util.LocalPhoneFormatter
+import com.getcode.util.PhoneUtils
 import com.getcode.util.handleUncaughtException
+import com.getcode.util.vibration.LocalVibrator
+import com.getcode.util.vibration.Vibrator
+import com.getcode.utils.NetworkUtils
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -40,6 +46,15 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var deeplinkHandler: DeeplinkHandler
+
+    @Inject
+    lateinit var networkUtils: NetworkUtils
+
+    @Inject
+    lateinit var phoneUtils: PhoneUtils
+
+    @Inject
+    lateinit var vibrator: Vibrator
 
     /**
      * The compose navigation controller does not play nice with single task activities.
@@ -69,7 +84,10 @@ class MainActivity : FragmentActivity() {
         setContent {
             CompositionLocalProvider(
                 LocalAnalytics provides analyticsManager,
-                LocalDeeplinks provides deeplinkHandler
+                LocalDeeplinks provides deeplinkHandler,
+                LocalNetwork provides networkUtils,
+                LocalPhoneFormatter provides phoneUtils,
+                LocalVibrator provides vibrator,
             ) {
                 CodeApp()
             }

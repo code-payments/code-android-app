@@ -73,26 +73,18 @@ fun ConfirmDeleteAccount() {
         CodeButton(
             onClick = {
                 keyboardController?.hide()
-                showConfirmDeletionBanner(onConfirm = {
-                    context.getActivity()?.let { viewModel.onConfirmDelete(it) }
-                })
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = context.getString(R.string.prompt_title_deleteAccount),
+                        positiveText = context.getString(R.string.action_deleteAccount),
+                        negativeText = context.getString(R.string.action_cancel),
+                        onPositive = { context.getActivity()?.let { viewModel.onConfirmDelete(it) } },
+                        onNegative = { }
+                    ))
             },
             text = stringResource(R.string.action_deleteAccount),
             buttonState = ButtonState.Filled,
             enabled = viewModel.isDeletionAllowed()
         )
     }
-}
-
-fun showConfirmDeletionBanner(onConfirm: () -> Unit) {
-    BottomBarManager.showMessage(
-        BottomBarManager.BottomBarMessage(
-            title = App.getInstance()
-                .getString(R.string.prompt_title_deleteAccount),
-            positiveText = App.getInstance()
-                .getString(R.string.action_deleteAccount),
-            negativeText = App.getInstance().getString(R.string.action_cancel),
-            onPositive = onConfirm,
-            onNegative = { }
-        ))
 }

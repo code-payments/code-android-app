@@ -12,6 +12,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import com.getcode.view.components.CodeButton
 fun AccountPhone(
     viewModel: AccountPhoneViewModel,
 ) {
+    val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
     val dataState: AccountPhoneUiModel by viewModel.uiFlow.collectAsState()
 
@@ -78,9 +80,16 @@ fun AccountPhone(
                         navigator.push(PhoneVerificationScreen(signInEntropy = entropyB64.urlEncode(), isPhoneLinking = true))
                     }
                 } else {
-                    unlinkPhone {
-                        viewModel.unlinkPhone()
-                    }
+                    BottomBarManager.showMessage(
+                        BottomBarManager.BottomBarMessage(
+                            title = context.getString(R.string.prompt_title_unlinkPhoneNumber),
+                            subtitle = context.getString(R.string.prompt_description_unlinkPhoneNumber),
+                            positiveText = "Yes",
+                            negativeText = context.getString(R.string.action_cancel),
+                            onPositive = viewModel::unlinkPhone,
+                            onNegative = {}
+                        )
+                    )
                 }
             },
             text = if (!dataState.isLinked) stringResource(R.string.action_linkPhoneNumber) else stringResource(R.string.action_removeYourPhoneNumber),
@@ -96,18 +105,4 @@ fun AccountPhone(
     SideEffect {
         viewModel.init()
     }
-}
-
-
-fun unlinkPhone(onPositive: () -> Unit) {
-    BottomBarManager.showMessage(
-        BottomBarManager.BottomBarMessage(
-            title = App.getInstance().getString(R.string.prompt_title_unlinkPhoneNumber),
-            subtitle = App.getInstance().getString(R.string.prompt_description_unlinkPhoneNumber),
-            positiveText = "Yes",
-            negativeText = App.getInstance().getString(R.string.action_cancel),
-            onPositive = onPositive,
-            onNegative = {}
-        )
-    )
 }

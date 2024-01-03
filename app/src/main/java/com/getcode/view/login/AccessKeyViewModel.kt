@@ -16,6 +16,8 @@ import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58
+import com.getcode.util.permissions.PermissionChecker
+import com.getcode.util.resources.ResourceHelper
 import javax.inject.Inject
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -26,13 +28,15 @@ import java.util.concurrent.TimeUnit
 @HiltViewModel
 class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
-    private val analyticsManager: AnalyticsManager
-) : BaseAccessKeyViewModel() {
+    private val analyticsManager: AnalyticsManager,
+    private val permissions: PermissionChecker,
+    resources: ResourceHelper,
+) : BaseAccessKeyViewModel(resources) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return
 
-        authManager.login(App.getInstance(), entropyB64, rollbackOnError = isDeepLink)
+        authManager.login(entropyB64, rollbackOnError = isDeepLink)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
@@ -71,10 +75,7 @@ class AccessKeyViewModel @Inject constructor(
             .getSolanaKeyPair(App.getInstance())
         analyticsManager.createAccount(true, owner.getPublicKeyBase58())
 
-        val cameraPermissionDenied = ContextCompat.checkSelfPermission(
-            App.getInstance(),
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_DENIED
+        val cameraPermissionDenied = permissions.isDenied(Manifest.permission.CAMERA)
 
         if (cameraPermissionDenied) {
             navigator.push(PermissionRequestScreen(CodeLoginPermission.Camera))
@@ -82,10 +83,9 @@ class AccessKeyViewModel @Inject constructor(
             if (Build.VERSION.SDK_INT < 33) {
                 navigator.replaceAll(HomeScreen())
             } else {
-                val notificationsPermissionDenied = ContextCompat.checkSelfPermission(
-                    App.getInstance(),
+                val notificationsPermissionDenied = permissions.isDenied(
                     Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_DENIED
+                )
 
                 if (notificationsPermissionDenied) {
                     navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))

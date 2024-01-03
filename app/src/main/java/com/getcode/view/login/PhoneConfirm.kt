@@ -39,6 +39,7 @@ import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.topBarHeight
+import com.getcode.util.LocalPhoneFormatter
 import com.getcode.util.PhoneUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -122,7 +123,7 @@ fun PhoneConfirm(
                 color = BrandLight,
                 style = MaterialTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 text = stringResource(R.string.subtitle_didntGetCode)
-                    .replaceParam(PhoneUtils.formatNumber(dataState.phoneNumberFormatted.orEmpty())) +
+                    .replaceParam(LocalPhoneFormatter.current?.formatNumber(dataState.phoneNumberFormatted.orEmpty())) +
                         " " +
                         stringResource(R.string.subtitle_requestNewOneIn)
                             .replaceParam(

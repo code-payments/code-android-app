@@ -15,7 +15,6 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.*
 import com.getcode.model.*
 import com.getcode.models.Bill
@@ -31,9 +30,10 @@ import com.getcode.network.repository.*
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
-import com.getcode.util.FormatAmountUtils
-import com.getcode.util.VibrationUtil
+import com.getcode.util.formatted
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
+import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.NetworkUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.camera.KikCodeScannerView
@@ -92,7 +92,10 @@ class HomeViewModel @Inject constructor(
     private val prefRepository: PrefRepository,
     private val analyticsManager: AnalyticsManager,
     private val authManager: AuthManager,
-) : BaseViewModel(), ScreenModel {
+    private val networkUtils: NetworkUtils,
+    private val resources: ResourceHelper,
+    private val vibrator: Vibrator,
+) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
@@ -138,8 +141,8 @@ class HomeViewModel @Inject constructor(
         if (amountFloor.fiat == 0.0 || bill.amount.kin.toKinTruncatingLong() == 0L) return
         val owner = SessionManager.getKeyPair() ?: return
 
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
-            return ErrorUtils.showNetworkError()
+        if (!networkUtils.isAvailable()) {
+            return ErrorUtils.showNetworkError(resources)
         }
 
         val organizer = SessionManager.getOrganizer() ?: return
@@ -148,7 +151,7 @@ class HomeViewModel @Inject constructor(
         sendTransactionDisposable?.dispose()
         sendTransactionRepository.init(amount = amountFloor, owner = owner)
         sendTransactionDisposable =
-            sendTransactionRepository.startTransaction(App.getInstance(), organizer)
+            sendTransactionRepository.startTransaction(organizer)
                 .flatMapCompletable {
                     Completable.concatArray(
                         balanceController.fetchBalance(),
@@ -223,7 +226,7 @@ class HomeViewModel @Inject constructor(
 
             if (isVibrate) {
                 Timer().schedule(timerTask {
-                    VibrationUtil.vibrate()
+                    vibrator.vibrate()
                 }, 150)
             }
         }
@@ -320,8 +323,8 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun onCodeScan(payload: ByteArray) {
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
-            return ErrorUtils.showNetworkError()
+        if (!networkUtils.isAvailable()) {
+            return ErrorUtils.showNetworkError(resources)
         }
 
         runBlocking {
@@ -331,7 +334,7 @@ class HomeViewModel @Inject constructor(
 
         prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
             .subscribe { value: Boolean ->
-                if (value) VibrationUtil.vibrate()
+                if (value) vibrator.vibrate()
             }
 
         analyticsManager.grabStart()
@@ -376,7 +379,7 @@ class HomeViewModel @Inject constructor(
 
 
         Timer().schedule(timerTask {
-            VibrationUtil.vibrate()
+            vibrator.vibrate()
         }, 150)
     }
 
@@ -619,8 +622,8 @@ class HomeViewModel @Inject constructor(
         val amount = sendTransactionRepository.getAmount()
         var loadingIndicatorTimer: TimerTask? = null
 
-        if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
-            ErrorUtils.showNetworkError()
+        if (!networkUtils.isAvailable()) {
+            ErrorUtils.showNetworkError(resources)
             return
         }
 
@@ -662,7 +665,7 @@ class HomeViewModel @Inject constructor(
         val url = "https://cash.getcode.com/c/#/e=" +
                 giftCard.mnemonicPhrase.getBase58EncodedEntropy(context)
         val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(FormatAmountUtils.formatAmountString(amount))
+            .replaceParam(amount.formatted(resources))
             .replaceParam(url)
 
         val sendIntent: Intent = Intent().apply {

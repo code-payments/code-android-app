@@ -17,6 +17,7 @@ import com.getcode.navigation.screens.PhoneNumberScreen
 import com.getcode.network.repository.*
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -58,8 +59,10 @@ data class PhoneConfirmUiModel(
 class PhoneConfirmViewModel @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val phoneRepository: PhoneRepository,
-    private val sessionManager: SessionManager
-) : BaseViewModel() {
+    private val sessionManager: SessionManager,
+    private val phoneUtils: PhoneUtils,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(PhoneConfirmUiModel())
     private var navigator: CodeNavigator? = null
     private var timer: Timer? = null
@@ -86,7 +89,7 @@ class PhoneConfirmViewModel @Inject constructor(
         uiFlow.update {
             it.copy(
                 phoneNumber = phoneNumber,
-                phoneNumberFormatted = PhoneUtils.formatNumber(phoneNumber)
+                phoneNumberFormatted = phoneUtils.formatNumber(phoneNumber)
             )
         }
     }
@@ -333,22 +336,22 @@ class PhoneConfirmViewModel @Inject constructor(
     }
 
     private fun getInvalidCodeError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_invalidVerificationCode),
-        App.getInstance().getString(R.string.error_description_invalidVerificationCode)
+        resources.getString(R.string.error_title_invalidVerificationCode),
+        resources.getString(R.string.error_description_invalidVerificationCode)
     )
 
     private fun getTimeoutError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_codeTimedOut),
-        App.getInstance().getString(R.string.error_description_codeTimedOut),
+        resources.getString(R.string.error_title_codeTimedOut),
+        resources.getString(R.string.error_description_codeTimedOut),
     )
 
     private fun getGenericError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToVerifyPhone),
-        App.getInstance().getString(R.string.error_description_failedToVerifyPhone),
+        resources.getString(R.string.error_title_failedToVerifyPhone),
+        resources.getString(R.string.error_description_failedToVerifyPhone),
     )
 
     private fun getMaximumAttemptsReachedError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_maxAttemptsReached),
-        App.getInstance().getString(R.string.error_description_maxAttemptsReached),
+        resources.getString(R.string.error_title_maxAttemptsReached),
+        resources.getString(R.string.error_description_maxAttemptsReached),
     )
 }

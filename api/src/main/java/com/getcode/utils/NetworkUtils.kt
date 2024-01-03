@@ -4,9 +4,23 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 
-object NetworkUtils {
-     fun isNetworkAvailable(context: Context): Boolean {
+interface NetworkUtils {
+    fun isAvailable(): Boolean
+}
+
+class NetworkUtilsStub : NetworkUtils {
+    override fun isAvailable(): Boolean {
+        return false
+    }
+}
+
+class AndroidNetworkUtils @Inject constructor(
+    @ApplicationContext private val context: Context
+): NetworkUtils {
+     override fun isAvailable(): Boolean {
         var result = false
         val connectivityManager =
             context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

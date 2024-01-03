@@ -11,6 +11,7 @@ import com.getcode.model.*
 import com.getcode.network.client.*
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
 import javax.inject.Inject
 import kotlin.random.Random
@@ -19,7 +20,8 @@ import kotlin.random.Random
 class SendTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
     private val analyticsManager: AnalyticsManager,
-    private val client: Client
+    private val client: Client,
+    @ApplicationContext private val context: Context
 ) {
     private lateinit var amount: KinAmount
     private lateinit var owner: Ed25519.KeyPair
@@ -44,7 +46,7 @@ class SendTransactionRepository @Inject constructor(
         this.receivingAccount = null
     }
 
-    fun startTransaction(context: Context, organizer: Organizer): Flowable<IntentMetadata> {
+    fun startTransaction(organizer: Organizer): Flowable<IntentMetadata> {
         return messagingRepository.openMessageStream(rendezvousKey)
             .firstOrError()
             .flatMapPublisher { paymentRequest ->

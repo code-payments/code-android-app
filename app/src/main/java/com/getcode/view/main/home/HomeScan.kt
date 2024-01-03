@@ -60,7 +60,7 @@ import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Brand
 import com.getcode.util.AnimationUtils
-import com.getcode.util.CurrencyUtils
+import com.getcode.util.flagResId
 import com.getcode.util.formatted
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.components.ButtonState
@@ -375,7 +375,7 @@ private fun BillContainer(
                             val bill = dataState.billState.bill as Bill.Cash
                             AmountArea(
                                 amountText = bill.amount.formatted(round = false),
-                                currencyResId = CurrencyUtils.getFlagByCurrency(bill.amount.rate.currency.name),
+                                currencyResId = bill.amount.rate.currency.flagResId,
                                 isClickable = false
                             )
 

@@ -9,6 +9,7 @@ import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.network.repository.InviteRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.urlEncode
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +35,8 @@ data class InviteCodeUiModel(
 class InviteCodeViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
     private val phoneRepository: PhoneRepository,
-) : BaseViewModel() {
+    resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(InviteCodeUiModel())
 
     fun reset() {

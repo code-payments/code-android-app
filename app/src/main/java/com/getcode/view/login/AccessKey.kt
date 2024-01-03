@@ -63,7 +63,7 @@ fun AccessKey(
                     title = context.getString(R.string.error_title_failedToSave),
                     message = context.getString(R.string.error_description_failedToSave),
                     type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = App.getInstance().getString(R.string.action_openSettings),
+                    secondaryText = context.getString(R.string.action_openSettings),
                     secondaryAction = { IntentUtils.launchAppSettings() }
                 )
             )
@@ -176,12 +176,12 @@ fun AccessKey(
             onClick = {
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
-                        title = App.getInstance().getString(R.string.prompt_title_wroteThemDown),
-                        subtitle = App.getInstance()
+                        title = context.getString(R.string.prompt_title_wroteThemDown),
+                        subtitle = context
                             .getString(R.string.prompt_description_wroteThemDown),
-                        positiveText = App.getInstance()
+                        positiveText = context
                             .getString(R.string.action_yesWroteThemDown),
-                        negativeText = App.getInstance().getString(R.string.action_cancel),
+                        negativeText = context.getString(R.string.action_cancel),
                         onPositive = { onSkipClick() },
                         onNegative = {}
                     )
@@ -197,11 +197,11 @@ fun AccessKey(
     BackHandler {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.prompt_title_exitAccountCreation),
-                subtitle = App.getInstance()
+                title = context.getString(R.string.prompt_title_exitAccountCreation),
+                subtitle = context
                     .getString(R.string.prompt_description_exitAccountCreation),
-                positiveText = App.getInstance().getString(R.string.action_exit),
-                negativeText = App.getInstance().getString(R.string.action_cancel),
+                positiveText = context.getString(R.string.action_exit),
+                negativeText = context.getString(R.string.action_cancel),
                 onPositive = { navigator.popAll() },
                 onNegative = {}
             )

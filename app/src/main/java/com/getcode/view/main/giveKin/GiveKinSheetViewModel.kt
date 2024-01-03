@@ -11,7 +11,9 @@ import com.getcode.model.KinAmount
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.repository.*
+import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +37,17 @@ class GiveKinSheetViewModel @Inject constructor(
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
-) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository, localeHelper) {
+    currencyUtils: CurrencyUtils,
+    private val resources: ResourceHelper,
+) : BaseAmountCurrencyViewModel(
+    client,
+    prefsRepository,
+    currencyRepository,
+    balanceRepository,
+    localeHelper,
+    currencyUtils,
+    resources
+) {
 
     val uiFlow = MutableStateFlow(GiveKinSheetUiModel())
 
@@ -61,11 +73,12 @@ class GiveKinSheetViewModel @Inject constructor(
     fun onSubmit(): KinAmount? {
         val uiModel = uiFlow.value
         val checkBalanceLimit: () -> Boolean = {
-            val isOverBalance = uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin
+            val isOverBalance =
+                uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin
             if (isOverBalance) {
                 TopBarManager.showMessage(
-                    App.getInstance().getString(R.string.error_title_insuffiecientKin),
-                    App.getInstance().getString(R.string.error_description_insuffiecientKin)
+                    resources.getString(R.string.error_title_insuffiecientKin),
+                    resources.getString(R.string.error_description_insuffiecientKin)
                 )
             }
             isOverBalance
@@ -78,10 +91,11 @@ class GiveKinSheetViewModel @Inject constructor(
                     ?.symbol
                     .orEmpty()
                 TopBarManager.showMessage(
-                    App.getInstance().getString(R.string.error_title_giveLimitReached),
-                    App.getInstance().getString(R.string.error_description_giveLimitReached).replaceParam(
-                        "$currencySymbol${uiModel.amountModel.sendLimit.toInt()}"
-                    )
+                    resources.getString(R.string.error_title_giveLimitReached),
+                    resources.getString(R.string.error_description_giveLimitReached)
+                        .replaceParam(
+                            "$currencySymbol${uiModel.amountModel.sendLimit.toInt()}"
+                        )
                 )
             }
             isOverLimit
@@ -94,10 +108,12 @@ class GiveKinSheetViewModel @Inject constructor(
 
         //This should not be the information of the selected currency, it should come from the repo
         val selectedCurrencyRate = runBlocking {
-            return@runBlocking currencyRepository.getRates().first()[uiModel.currencyModel.selectedCurrencyCode]
+            return@runBlocking currencyRepository.getRates()
+                .first()[uiModel.currencyModel.selectedCurrencyCode]
         } ?: return null
 
-        val currencyCode = CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrencyCode.orEmpty())
+        val currencyCode =
+            CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrencyCode.orEmpty())
                 ?: return null
 
         return KinAmount.fromFiatAmount(amountKin, amountFiat, selectedCurrencyRate, currencyCode)
@@ -106,7 +122,8 @@ class GiveKinSheetViewModel @Inject constructor(
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
         super.onAmountChanged(lastPressedBackspace)
         uiFlow.update {
-            val minValue = if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
+            val minValue =
+                if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
                 continueEnabled = numberInputHelper.amount >= minValue && !it.amountModel.isInsufficient
             )

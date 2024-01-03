@@ -61,6 +61,7 @@ class App : Application() {
     companion object {
         private lateinit var instance: Application
 
+        @Deprecated(message = "Anti-pattern; inject @ApplicationContext where needed. Convert objects to classes.")
         fun getInstance(): Application {
             return instance
         }

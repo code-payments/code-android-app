@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -52,6 +53,7 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.data.transactions.HistoricalTransactionUiModel
 import com.getcode.model.AirdropType
+import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PaymentType
 import com.getcode.model.Rate
@@ -59,7 +61,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.White10
-import com.getcode.util.CurrencyUtils
+import com.getcode.util.Kin
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.previewComponent.PreviewColumn
@@ -293,6 +295,7 @@ fun BalanceTop(
 
 @Composable
 private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
+    val context = LocalContext.current
     Row(
         modifier = Modifier
             .align(CenterHorizontally)
@@ -331,7 +334,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
             onClick = {
                 annotatedBalanceString
                     .getStringAnnotations(
-                        App.getInstance().getString(R.string.subtitle_learnMore),
+                        context.getString(R.string.subtitle_learnMore),
                         it,
                         it
                     )
@@ -343,6 +346,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
 
 @Composable
 private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .height(200.dp)
@@ -382,7 +386,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
             )
 
             addStringAnnotation(
-                tag = App.getInstance().getString(R.string.title_faq),
+                tag = context.getString(R.string.title_faq),
                 annotation = "",
                 start = startIndex,
                 end = endIndex
@@ -399,7 +403,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                 onClick = {
                     annotatedLinkString
                         .getStringAnnotations(
-                            App.getInstance().getString(R.string.title_faq),
+                            context.getString(R.string.title_faq),
                             it,
                             it
                         )
@@ -420,7 +424,7 @@ private fun TopPreview() {
     val model = BalanceSheetViewModel.State(
         amountText = "$12.34 of Kin",
         marketValue = 1.0,
-        selectedRate = Rate(CurrencyUtils.currencyKin.rate, CurrencyCode.KIN),
+        selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
         historicalTransactions = emptyList(),
         isDebugBucketsEnabled = false,
         isDebugBucketsVisible = false,

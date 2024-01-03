@@ -12,6 +12,7 @@ import com.getcode.network.client.fetchDestinationMetadata
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,13 +36,13 @@ data class AccountWithdrawAddressUiModel(
 @HiltViewModel
 class AccountWithdrawAddressViewModel @Inject constructor(
     private val client: Client,
-) : BaseViewModel() {
+    private val clipboard: ClipboardManager,
+    resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawAddressUiModel())
 
     private fun getClipboardValue(): String {
-        val clipboard: ClipboardManager? =
-            App.getInstance().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager?
-        return clipboard?.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
+        return clipboard.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
     }
 
     fun refreshPasteButtonState() {

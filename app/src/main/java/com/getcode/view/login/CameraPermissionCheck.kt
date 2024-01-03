@@ -20,7 +20,7 @@ fun cameraPermissionCheck(isShowError: Boolean = true, onResult: (Boolean) -> Un
                 title = context.getString(R.string.action_allowCameraAccess),
                 message = context.getString(R.string.error_description_cameraAccessRequired),
                 type = TopBarManager.TopBarMessageType.ERROR,
-                secondaryText = App.getInstance().getString(R.string.action_openSettings),
+                secondaryText = context.getString(R.string.action_openSettings),
                 secondaryAction = { IntentUtils.launchAppSettings() }
             )
         )

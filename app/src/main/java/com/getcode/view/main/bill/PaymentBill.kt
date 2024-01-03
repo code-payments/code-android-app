@@ -102,7 +102,7 @@ internal fun PaymentBill(
             }
 
             if (currencyCode != null) {
-                PriceWithFlag(currency = currencyCode, amount = amount)
+                PriceWithFlag(currencyCode = currencyCode, amount = amount)
             }
         }
     }

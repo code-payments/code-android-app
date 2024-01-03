@@ -14,6 +14,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.navigation.screens.PhoneVerificationScreen
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -36,8 +37,9 @@ data class SeedInputUiModel(
 
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
-    val authManager: AuthManager
-) : BaseViewModel() {
+    private val authManager: AuthManager,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = MnemonicCode(App.getInstance().resources)
 
@@ -82,7 +84,7 @@ class SeedInputViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     fun performLogin(navigator: CodeNavigator, entropyB64: String) {
-        authManager.login(App.getInstance(), entropyB64)
+        authManager.login(entropyB64)
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
                 setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
@@ -139,10 +141,10 @@ class SeedInputViewModel @Inject constructor(
     private fun showError(navigator: CodeNavigator) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.prompt_title_notCodeAccount),
-                subtitle = App.getInstance().getString(R.string.prompt_description_notCodeAccount),
-                positiveText = App.getInstance().getString(R.string.action_createNewCodeAccount),
-                negativeText = App.getInstance().getString(R.string.action_tryDifferentCodeAccount),
+                title = resources.getString(R.string.prompt_title_notCodeAccount),
+                subtitle = resources.getString(R.string.prompt_description_notCodeAccount),
+                positiveText = resources.getString(R.string.action_createNewCodeAccount),
+                negativeText = resources.getString(R.string.action_tryDifferentCodeAccount),
                 onPositive = {
                     navigator.push(LoginPhoneVerificationScreen())
                 }

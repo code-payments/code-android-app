@@ -57,8 +57,8 @@ fun SeedDeepLink(
     fun onError() {
         TopBarManager.showMessage(
             TopBarManager.TopBarMessage(
-                App.getInstance().getString(R.string.error_title_failedToVerifyPhone),
-                App.getInstance().getString(R.string.error_description_failedToVerifyPhone),
+                context.getString(R.string.error_title_failedToVerifyPhone),
+                context.getString(R.string.error_description_failedToVerifyPhone),
             )
         )
         navigateLogin()
@@ -70,10 +70,10 @@ fun SeedDeepLink(
 
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.subtitle_logoutAndLoginConfirmation),
+                title = context.getString(R.string.subtitle_logoutAndLoginConfirmation),
                 subtitle = "",
-                positiveText = App.getInstance().getString(R.string.action_logIn),
-                negativeText = App.getInstance().getString(R.string.action_cancel),
+                positiveText = context.getString(R.string.action_logIn),
+                negativeText = context.getString(R.string.action_cancel),
                 isDismissible = false,
                 onPositive = {
                     context.getActivity()?.let { activity ->

@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
@@ -21,6 +22,7 @@ import com.getcode.navigation.screens.PhoneNumberScreen
 fun AccountDetails(
     viewModel: AccountSheetViewModel,
 ) {
+    val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
 
@@ -29,13 +31,10 @@ fun AccountDetails(
             AccountPage.ACCESS_KEY -> {
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
-                        title = App.getInstance()
-                            .getString(R.string.prompt_title_viewAccessKey),
-                        subtitle = App.getInstance()
-                            .getString(R.string.prompt_description_viewAccessKey),
-                        positiveText = App.getInstance()
-                            .getString(R.string.action_viewAccessKey),
-                        negativeText = App.getInstance().getString(R.string.action_cancel),
+                        title = context.getString(R.string.prompt_title_viewAccessKey),
+                        subtitle = context.getString(R.string.prompt_description_viewAccessKey),
+                        positiveText = context.getString(R.string.action_viewAccessKey),
+                        negativeText = context.getString(R.string.action_cancel),
                         onPositive = { navigator.push(AccountAccessKeyScreen) },
                         onNegative = {}
                     )

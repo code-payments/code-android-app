@@ -12,14 +12,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.FormatAmountUtils
+import com.getcode.util.flagResId
+import com.getcode.util.format
 
 object PriceWithFlagDefaults {
     @Composable
@@ -34,7 +34,7 @@ object PriceWithFlagDefaults {
 @Composable
 internal fun PriceWithFlag(
     modifier: Modifier = Modifier,
-    currency: CurrencyCode,
+    currencyCode: CurrencyCode,
     amount: KinAmount,
     iconSize: Dp = 20.dp,
     text: @Composable (String) -> Unit = { PriceWithFlagDefaults.Text(label = it) },
@@ -44,8 +44,8 @@ internal fun PriceWithFlag(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        val currencyCode = currency.name
-        val flagResId = CurrencyUtils.getFlagByCurrency(currencyCode)
+        val currencyCodeName = currencyCode.name
+        val flagResId = currencyCode.flagResId
         if (flagResId != null) {
             Icon(
                 modifier = Modifier
@@ -53,9 +53,9 @@ internal fun PriceWithFlag(
                     .size(iconSize),
                 painter = painterResource(id = flagResId),
                 tint = Color.Unspecified,
-                contentDescription = currencyCode.let { "$it flag" }
+                contentDescription = currencyCodeName.let { "$it flag" }
             )
-            text(FormatAmountUtils.formatAmountString(amount),)
+            text(currencyCode.format(amount))
         }
     }
 }
