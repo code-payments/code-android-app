@@ -35,6 +35,7 @@ import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.compositionUniqueId
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraLarge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -50,7 +51,7 @@ fun BottomSheetNavigator(
     modifier: Modifier = Modifier,
     hideOnBackPress: Boolean = true,
     scrimColor: Color = CodeTheme.colors.surface.copy(alpha = 0.32f),
-    sheetShape: Shape = CodeTheme.shapes.large,
+    sheetShape: Shape = CodeTheme.shapes.extraLarge,
     sheetElevation: Dp = ModalBottomSheetDefaults.Elevation,
     sheetBackgroundColor: Color = CodeTheme.colors.surface,
     sheetContentColor: Color = CodeTheme.colors.onSurface,

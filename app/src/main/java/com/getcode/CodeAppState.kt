@@ -24,8 +24,11 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.view.login.SeedDeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
+import kotlin.math.log
 
 object MainDestinations {
     const val MAIN_GRAPH = "main"
@@ -39,12 +42,10 @@ object MainDestinations {
 fun rememberCodeAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     navigator: CodeNavigator = LocalCodeNavigator.current,
-    sheetNavController: NavHostController = rememberNavController(),
-    resources: Resources = resources(),
     coroutineScope: CoroutineScope = rememberCoroutineScope()
 ) =
-    remember(scaffoldState, navigator, resources, coroutineScope) {
-        CodeAppState(scaffoldState, navigator, sheetNavController, resources, coroutineScope)
+    remember(scaffoldState, navigator , coroutineScope) {
+        CodeAppState(scaffoldState, navigator, coroutineScope)
     }
 
 /**
@@ -53,9 +54,7 @@ fun rememberCodeAppState(
 @Stable
 class CodeAppState(
     val scaffoldState: ScaffoldState,
-    val navigator: CodeNavigator,
-    val sheetNavController: NavHostController,
-    private val resources: Resources,
+    var navigator: CodeNavigator,
     coroutineScope: CoroutineScope
 ) {
     init {
@@ -75,17 +74,28 @@ class CodeAppState(
     // ----------------------------------------------------------
 
     val currentTitle: String
-        @Composable get() = (navigator.lastItem as? NamedScreen)?.name.orEmpty()
+        @Composable get() {
+            val lastItem = navigator.lastItem
+            Timber.d("lastItem=${lastItem?.javaClass?.simpleName}")
+            return (lastItem as? NamedScreen)?.name.orEmpty()
+        }
 
     @Composable
-    fun getScreen() = navigator.lastItem
+    fun getScreen() = navigator.lastItem.also { Timber.d("last item=${it?.javaClass?.simpleName},${it?.key}") }
 
     val isVisibleTopBar: Pair<Boolean, Boolean>
-        @Composable get() =
-            Pair(
-                getScreen() !is LoginScreen,
-                getScreen() !is AccessKeyScreen,
+        @Composable get() {
+            val screen = getScreen()
+            val isModalVisible = navigator.isVisible
+            val loginScreen = screen as? LoginScreen
+            val isLoginScreen = loginScreen != null
+            val isAccessKeyScreen = screen is AccessKeyScreen
+
+            return Pair(
+                !isLoginScreen && !isModalVisible,
+                !isAccessKeyScreen && loginScreen?.seed != null && !isModalVisible,
             )
+        }
 
     val topBarMessage = MutableLiveData<TopBarManager.TopBarMessage?>()
     val bottomBarMessage = MutableLiveData<BottomBarManager.BottomBarMessage?>()

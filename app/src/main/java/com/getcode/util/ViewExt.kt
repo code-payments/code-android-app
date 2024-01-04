@@ -54,8 +54,6 @@ val Float.toDp get() = this / Resources.getSystem().displayMetrics.density
 val Int.toPx get() = (this * Resources.getSystem().displayMetrics.density).toInt()
 val Int.toDp get() = (this / Resources.getSystem().displayMetrics.density).toInt()
 
-enum class WindowSize { SMALL, REGULAR }
-
 fun Activity.handleUncaughtException() {
     val crashedKey = "isCrashed"
     if (intent.getBooleanExtra(crashedKey, false)) return

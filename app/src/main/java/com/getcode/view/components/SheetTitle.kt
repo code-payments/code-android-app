@@ -18,12 +18,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
-import com.getcode.view.main.account.AccountSheetViewModel
+import com.getcode.util.unboundedClickable
 
 @Composable
 fun SheetTitle(
@@ -37,49 +36,43 @@ fun SheetTitle(
     onCloseIconClicked: () -> Unit = {},
 ) {
     Surface(
-        elevation = 0.dp,
-        modifier = modifier.background(Brand)
+        modifier = modifier,
+        color = Brand,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brand)
-                .padding(top = 10.dp, bottom = 10.dp)
+                .padding(vertical = CodeTheme.dimens.grid.x2)
                 .fillMaxWidth()
                 .height(topBarHeight),
         ) {
             if (closeButton) {
-                IconButton(
-                    onClick = onCloseIconClicked,
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = "",
+                    tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .size(35.dp)
-                    )
-                }
+                        .padding(end = CodeTheme.dimens.inset)
+                        .wrapContentWidth()
+                        .size(CodeTheme.dimens.staticGrid.x6)
+                        .unboundedClickable { onCloseIconClicked() }
+                )
             }
 
             if (backButton) {
-                IconButton(
-                    onClick = onBackIconClicked,
+                Icon(
+                    imageVector = Icons.Outlined.ArrowBack,
+                    contentDescription = "",
+                    tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.ArrowBack,
-                        contentDescription = "",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .size(35.dp)
-                    )
-                }
+                        .padding(start = CodeTheme.dimens.inset)
+                        .wrapContentWidth()
+                        .size(CodeTheme.dimens.staticGrid.x6)
+                        .unboundedClickable { onBackIconClicked() }
+                )
             }
 
             if (displayLogo) {
@@ -89,7 +82,7 @@ fun SheetTitle(
                     ),
                     contentDescription = "",
                     modifier = Modifier
-                        .height(40.dp)
+                        .requiredHeight(CodeTheme.dimens.staticGrid.x8)
                         .align(Alignment.Center)
                         .clickable(
                             indication = null,

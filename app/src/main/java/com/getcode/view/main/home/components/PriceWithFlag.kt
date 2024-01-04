@@ -37,13 +37,13 @@ internal fun PriceWithFlag(
     modifier: Modifier = Modifier,
     currencyCode: CurrencyCode,
     amount: KinAmount,
-    iconSize: Dp = 20.dp,
+    iconSize: Dp = CodeTheme.dimens.staticGrid.x4,
     text: @Composable (String) -> Unit = { PriceWithFlagDefaults.Text(label = it) },
 ) {
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
         val currencyCodeName = currencyCode.name
         val flagResId = currencyCode.flagResId

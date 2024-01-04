@@ -12,7 +12,6 @@ import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
-val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }
 
 @Singleton
 class PhoneUtils @Inject constructor(

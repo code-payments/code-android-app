@@ -21,7 +21,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.R
-import com.getcode.util.WindowSize
 import com.getcode.theme.*
 import java.text.DecimalFormatSymbols
 
@@ -34,13 +33,11 @@ fun CodeKeyPad(
     onClear: () -> Unit,
     isDecimal: Boolean = false
 ) {
-    val windowSize = windowSizeCheck()
-
     Row(
         modifier = modifier
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.grid.x4)
             .widthIn(100.dp, 350.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
     ) {
         for (column in 1..3) {
             Column(
@@ -70,7 +67,7 @@ fun CodeKeyPad(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(getSpacerSize(windowSize).dp))
+                    Spacer(modifier = Modifier.height(getSpacerSize().dp))
                 }
             }
         }
@@ -83,7 +80,7 @@ private fun NumberButton(
     onClick: () -> Unit
 ) {
     KeyBoardButton(text = number.toString(), onClick = onClick)
-    Spacer(modifier = Modifier.width(10.dp))
+    Spacer(modifier = Modifier.width(CodeTheme.dimens.grid.x2))
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -132,7 +129,7 @@ private fun KeyBoardButton(
                 Image(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(42.dp)
+                        .height(CodeTheme.dimens.staticGrid.x8)
                         .graphicsLayer(
                             scaleX = scale,
                             scaleY = scale
@@ -150,7 +147,7 @@ private fun KeyBoardButton(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 5.dp)
+                        .padding(vertical = CodeTheme.dimens.grid.x1)
                         .graphicsLayer(
                             scaleX = scale,
                             scaleY = scale
@@ -162,10 +159,11 @@ private fun KeyBoardButton(
 }
 
 
-private fun getSpacerSize(windowSize: WindowSize): Int {
-    return when (windowSize) {
-        WindowSize.SMALL -> 0
-        WindowSize.REGULAR -> 10
+@Composable
+private fun getSpacerSize(): Int {
+    return when (CodeTheme.dimens.heightWindowSizeClass) {
+        WindowSizeClass.COMPACT -> 0
+        else -> 10
     }
 }
 

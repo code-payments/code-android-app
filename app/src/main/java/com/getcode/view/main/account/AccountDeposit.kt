@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +25,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.theme.Brand
@@ -35,6 +32,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.theme.extraSmall
 import com.getcode.vendor.Base58
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -52,7 +50,7 @@ fun AccountDeposit() {
     Column(
         modifier = Modifier
             .background(Brand)
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .verticalScroll(rememberScrollState())
     ) {
         Text(
@@ -68,23 +66,23 @@ fun AccountDeposit() {
 
         Row(
             modifier = Modifier
-                .padding(vertical = 15.dp)
-                .clip(RoundedCornerShape(5.dp))
-                .border(1.dp, BrandLight, RoundedCornerShape(5.dp))
+                .padding(vertical = CodeTheme.dimens.grid.x3)
+                .clip(CodeTheme.shapes.extraSmall)
+                .border(CodeTheme.dimens.border, BrandLight, CodeTheme.shapes.extraSmall)
                 .fillMaxWidth()
-                .height(50.dp)
+                .height(CodeTheme.dimens.grid.x10)
                 .background(White05)
                 .clickable {
                     localClipboardManager.setText(AnnotatedString(address))
                     isCopied = true
                 }
-                .padding(vertical = 10.dp, horizontal = 10.dp),
+                .padding(CodeTheme.dimens.grid.x2),
         ) {
             MiddleEllipsisText(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .weight(1f)
-                    .padding(top = 2.dp),
+                    .padding(top = CodeTheme.dimens.grid.x1),
                 text = address,
                 color = White,
                 style = CodeTheme.typography.body1.copy(
@@ -97,7 +95,7 @@ fun AccountDeposit() {
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 10.dp),
+                .padding(bottom = CodeTheme.dimens.grid.x2),
             onClick = {
                 localClipboardManager.setText(AnnotatedString(address))
                 isCopied = true

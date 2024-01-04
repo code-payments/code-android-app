@@ -2,27 +2,27 @@ package com.getcode.view.main.home
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
@@ -62,7 +62,7 @@ fun HomeRestricted(
         modifier = Modifier
             .fillMaxSize()
             .background(Brand)
-            .padding(horizontal = 30.dp)
+            .padding(horizontal = CodeTheme.dimens.grid.x6)
     ) {
         Column(
             modifier = Modifier
@@ -72,8 +72,8 @@ fun HomeRestricted(
             Text(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.dp)
-                    .padding(bottom = 25.dp),
+                    .padding(horizontal = CodeTheme.dimens.grid.x5)
+                    .padding(bottom = CodeTheme.dimens.grid.x5),
                 color = White,
                 text = titleText,
                 style = CodeTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
@@ -91,7 +91,7 @@ fun HomeRestricted(
         CodeButton(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 25.dp),
+                .padding(bottom = CodeTheme.dimens.grid.x5),
             text = buttonText,
             buttonState = ButtonState.Filled,
             onClick = { buttonAction() },

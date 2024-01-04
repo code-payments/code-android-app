@@ -9,7 +9,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.getcode.model.CodePayload
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
@@ -30,7 +29,7 @@ fun Bill(
     when (bill) {
         is Bill.Cash -> CashBill(
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = CodeTheme.dimens.inset)
                 .then(modifier),
             payloadData = bill.data,
             amount = bill.amount.formatted()

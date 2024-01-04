@@ -12,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -24,6 +23,7 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.showNetworkError
@@ -98,7 +98,7 @@ fun GiveKinSheet(
                     CodeKeyPad(
                         modifier = Modifier
                             .wrapContentSize()
-                            .padding(bottom = 5.dp)
+                            .padding(bottom = CodeTheme.dimens.grid.x1)
                             .constrainAs(keyPad) {
                                 start.linkTo(parent.start)
                                 end.linkTo(parent.end)
@@ -113,7 +113,7 @@ fun GiveKinSheet(
 
                     CodeButton(
                         modifier = Modifier
-                            .padding(horizontal = 20.dp)
+                            .padding(horizontal = CodeTheme.dimens.inset)
                             .constrainAs(button) {
                                 bottom.linkTo(parent.bottom)
                                 start.linkTo(parent.start)

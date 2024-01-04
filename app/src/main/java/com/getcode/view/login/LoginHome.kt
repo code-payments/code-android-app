@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -84,7 +83,7 @@ fun LoginHome(
                     top.linkTo(logo.bottom) //possibly remove!!
                     bottom.linkTo(buttonLogin.top)
                 }
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
                 navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
             },
@@ -96,7 +95,7 @@ fun LoginHome(
                 .constrainAs(buttonLogin) {
                     top.linkTo(buttonCreate.bottom)
                 }
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
                 navigator.push(AccessKeyLoginScreen())
             },
@@ -140,7 +139,7 @@ fun LoginHome(
                 .constrainAs(toc) {
                     bottom.linkTo(parent.bottom)
                 }
-                .padding(20.dp),
+                .padding(CodeTheme.dimens.grid.x4),
             onClick = { offset ->
                 bottomString.getStringAnnotations(tag = "tos", start = offset, end = offset)
                     .firstOrNull()?.let {

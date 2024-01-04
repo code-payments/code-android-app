@@ -35,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
@@ -108,7 +107,7 @@ fun AccountHome(
                 Box(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         modifier = Modifier
-                            .padding(top = 35.dp)
+                            .padding(top = CodeTheme.dimens.grid.x7)
                             .fillMaxWidth()
                             .align(Alignment.Center),
                         text = "v${BuildConfig.VERSION_NAME}",
@@ -128,16 +127,16 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clickable { onClick() }
-            .padding(vertical = 25.dp, horizontal = 25.dp)
+            .padding(CodeTheme.dimens.grid.x5)
             .fillMaxWidth()
             .wrapContentHeight(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = CenterVertically
     ) {
         Image(
             modifier = Modifier
-                .padding(end = 20.dp)
-                .height(25.dp)
-                .width(25.dp),
+                .padding(end = CodeTheme.dimens.inset)
+                .height(CodeTheme.dimens.staticGrid.x5)
+                .width(CodeTheme.dimens.staticGrid.x5),
             painter = painterResource(id = item.icon),
             contentDescription = ""
         )
@@ -160,12 +159,12 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
                         imageVector = Icons.Filled.Check,
                         tint = Color.Green,
                         contentDescription = "Linked",
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3)
                     )
                 }
                 Text(
                     modifier = Modifier
-                        .padding(start = 5.dp),
+                        .padding(start = CodeTheme.dimens.grid.x1),
                     text = if (isPhoneLinked) stringResource(id = R.string.title_linked)
                     else stringResource(id = R.string.title_notLinked),
                     color = BrandLight,
@@ -178,7 +177,7 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
     }
 
     Divider(
-        modifier = Modifier.padding(horizontal = 20.dp),
+        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
         color = White10,
         thickness = 0.5.dp
     )

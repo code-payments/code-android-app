@@ -41,8 +41,7 @@ fun CodeButton(
     Button(
         onClick = { onClick() },
         modifier = modifier
-            .let { if (isMaxWidth) it.fillMaxWidth() else it }
-            .padding(vertical = if (isPaddedVertical) 10.dp else 0.dp),
+            .let { if (isMaxWidth) it.fillMaxWidth() else it },
         colors = getButtonColors(buttonState, textColor),
         border = getButtonBorder(buttonState, isEnabledC),
         enabled = isEnabledC,
@@ -57,18 +56,18 @@ fun CodeButton(
                 text = " ",
                 style = CodeTheme.typography.button,
                 modifier = Modifier.padding(
-                    vertical = if (isPaddedVertical) 14.dp else 0.dp,
+                    vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
                 ),
             )
 
             Row {
                 if (isLoading) {
                     CodeCircularProgressIndicator(
-                        strokeWidth = 2.dp,
+                        strokeWidth = CodeTheme.dimens.thickBorder,
                         color = White,
                         modifier = Modifier
-                            .padding(vertical = if (isPaddedVertical) 12.dp else 0.dp)
-                            .size(20.dp)
+                            .padding(vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp)
+                            .size(CodeTheme.dimens.grid.x4)
                             .align(Alignment.CenterVertically)
                     )
                 } else {
@@ -78,8 +77,8 @@ fun CodeButton(
                             contentDescription = "",
                             modifier = Modifier
                                 .padding(
-                                    horizontal = 5.dp,
-                                    vertical = if (isPaddedVertical) 14.dp else 0.dp
+                                    horizontal = CodeTheme.dimens.grid.x1,
+                                    vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp
                                 )
                                 .align(Alignment.CenterVertically)
                         )
@@ -89,8 +88,8 @@ fun CodeButton(
                             text = text,
                             style = CodeTheme.typography.button,
                             modifier = Modifier.padding(
-                                vertical = if (isPaddedVertical) 14.dp else 0.dp,
-                                horizontal = 10.dp
+                                vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
+                                horizontal = CodeTheme.dimens.grid.x2,
                             )
                         )
                     }
@@ -133,10 +132,11 @@ fun getButtonColors(
     }
 }
 
+@Composable
 fun getButtonBorder(buttonState: ButtonState, isEnabled: Boolean = true): BorderStroke? {
     return if (buttonState == ButtonState.Bordered && isEnabled) {
-        BorderStroke(1.dp, White50)
+        BorderStroke(CodeTheme.dimens.border, White50)
     } else {
-        BorderStroke(1.dp, Color.Transparent)
+        BorderStroke(CodeTheme.dimens.border, Color.Transparent)
     }
 }

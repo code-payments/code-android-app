@@ -59,10 +59,10 @@ fun AccountDebugBuckets() {
 
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 15.dp)
+                    .padding(horizontal = CodeTheme.dimens.grid.x3)
             ) {
                 Row(
-                    modifier = Modifier.padding(vertical = 5.dp)
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1)
                 ) {
                     Text(
                         modifier = Modifier
@@ -73,7 +73,7 @@ fun AccountDebugBuckets() {
                 }
 
                 Row(
-                    modifier = Modifier.padding(vertical = 5.dp)
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1)
                 ) {
                     MiddleEllipsisText(
                         modifier = Modifier
@@ -96,7 +96,7 @@ fun AccountDebugBuckets() {
                 }
 
                 Row(
-                    modifier = Modifier.padding(vertical = 5.dp)
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1)
                 ) {
                     Text(
                         modifier = Modifier.weight(1f),
@@ -112,7 +112,7 @@ fun AccountDebugBuckets() {
                 }
 
                 Spacer(modifier = Modifier
-                    .padding(vertical = 10.dp)
+                    .padding(vertical = CodeTheme.dimens.grid.x2)
                     .background(BrandLight)
                     .fillMaxWidth()
                     .height(1.dp))

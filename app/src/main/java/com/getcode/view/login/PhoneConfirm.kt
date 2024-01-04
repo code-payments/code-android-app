@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -30,9 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.LocalPhoneFormatter
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
@@ -40,8 +39,6 @@ import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
-import com.getcode.util.LocalPhoneFormatter
-import com.getcode.util.PhoneUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OtpRow
@@ -73,7 +70,7 @@ fun PhoneConfirm(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .imePadding()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .padding(top = topBarHeight)
     ) {
         val (captionText, input, buttonAction, otpRow) = createRefs()
@@ -85,7 +82,7 @@ fun PhoneConfirm(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }
-                .width(5.dp)
+                .width(CodeTheme.dimens.grid.x1)
                 .alpha(0f)
                 .focusRequester(focusRequester),
             value = dataState.otpInputTextFieldValue,
@@ -98,7 +95,7 @@ fun PhoneConfirm(
 
         OtpRow(
             modifier = Modifier
-                .padding(top = 5.dp)
+                .padding(top = CodeTheme.dimens.grid.x1)
                 .constrainAs(otpRow) {
                     top.linkTo(parent.top)
                     bottom.linkTo(buttonAction.top)
@@ -114,13 +111,13 @@ fun PhoneConfirm(
         if (dataState.isResendTimerRunning) {
             Text(
                 modifier = Modifier
-                    .padding(top = 20.dp)
+                    .padding(top = CodeTheme.dimens.inset)
                     .wrapContentHeight()
                     .fillMaxWidth()
                     .constrainAs(captionText) {
                         top.linkTo(otpRow.bottom)
                     }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = CodeTheme.dimens.grid.x2),
                 color = BrandLight,
                 style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 text = stringResource(R.string.subtitle_didntGetCode)
@@ -134,13 +131,13 @@ fun PhoneConfirm(
         } else {
             CodeButton(
                 modifier = Modifier
-                    .padding(top = 20.dp)
+                    .padding(top = CodeTheme.dimens.inset)
                     .wrapContentHeight()
                     .fillMaxWidth()
                     .constrainAs(captionText) {
                         top.linkTo(otpRow.bottom)
                     }
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = CodeTheme.dimens.grid.x2),
                 buttonState = ButtonState.Subtle,
                 text = stringResource(R.string.subtitle_didntGetCodeResend)
                     .replaceParam(dataState.phoneNumber),
@@ -151,7 +148,7 @@ fun PhoneConfirm(
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 10.dp)
+                .padding(bottom = CodeTheme.dimens.grid.x2)
                 .constrainAs(buttonAction) {
                     //linkTo(buttonAction.bottom, parent.bottom, bias = 1.0F)
                     bottom.linkTo(parent.bottom)

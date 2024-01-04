@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.KeyboardArrowLeft
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,9 +16,9 @@ import androidx.compose.ui.unit.dp
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
+import com.getcode.util.unboundedClickable
 
 
-@Preview
 @Composable
 fun TitleBar(
     modifier: Modifier = Modifier,
@@ -26,25 +27,27 @@ fun TitleBar(
     onBackIconClicked: () -> Unit = {}
 ) {
     Surface(
-        modifier = Modifier.background(Brand),
+        color = Brand,
         elevation = 0.dp
     ) {
         Box(
             modifier = modifier
+                .statusBarsPadding()
                 .background(Brand)
                 .fillMaxWidth()
-                .height(topBarHeight)
+                .height(topBarHeight),
         ) {
             if (backButton) {
                 Icon(
-                    imageVector = Icons.Outlined.KeyboardArrowLeft,
+                    imageVector = Icons.Outlined.ArrowBack,
                     contentDescription = "",
                     tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                        .clickable { onBackIconClicked() }
-                        .padding(horizontal = 10.dp)
-                        .size(34.dp)
+                        .padding(start = CodeTheme.dimens.inset)
+                        .wrapContentWidth()
+                        .size(24.dp)
+                        .unboundedClickable { onBackIconClicked() }
                 )
             }
             Text(
@@ -54,5 +57,15 @@ fun TitleBar(
                 modifier = Modifier.align(Alignment.Center)
             )
         }
+    }
+}
+
+@Preview
+@Composable
+fun Preview_TitleBar(
+
+) {
+    CodeTheme {
+        TitleBar(backButton = true, title = "Hey")
     }
 }

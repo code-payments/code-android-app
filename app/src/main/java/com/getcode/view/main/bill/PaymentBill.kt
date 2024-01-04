@@ -42,9 +42,9 @@ internal fun PaymentBill(
     BoxWithConstraints(
         modifier = Modifier
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .requiredHeight(screenHeight * 0.62f)
-            .background(CodeTheme.colors.onBackground, shape = RoundedCornerShape(8.dp))
+            .background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.small)
             .then(modifier)
     ) {
         Image(
@@ -62,7 +62,7 @@ internal fun PaymentBill(
         Image(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(15.dp),
+                .padding(CodeTheme.dimens.grid.x3),
             painter = painterResource(
                 R.drawable.ic_code_logo_offwhite_small
             ),
@@ -74,7 +74,7 @@ internal fun PaymentBill(
         Column(
             modifier = Modifier.align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(32.dp)
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x7)
         ) {
             if (data.isNotEmpty()) {
                 BoxWithConstraints(

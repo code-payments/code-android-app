@@ -31,7 +31,7 @@ import kotlin.concurrent.timerTask
 fun TopBarContainer(appState: CodeAppState) {
     val topBarMessage by appState.topBarMessage.observeAsState()
     val topBarVisibleState = remember { MutableTransitionState(false) }
-    var topBarMessageDismissId by remember { mutableStateOf(0L) }
+    var topBarMessageDismissId by remember { mutableLongStateOf(0L) }
 
     if (!topBarVisibleState.targetState && !topBarVisibleState.currentState) {
         Timer().schedule(timerTask {
@@ -82,25 +82,26 @@ private fun TopBarView(
     onClose: () -> Unit
 ) {
     topBarMessage ?: return
-        Column(
-            modifier = Modifier
-                .background(
-                    when (topBarMessage.type) {
-                        ERROR_NETWORK, ERROR -> TopError
-                        WARNING -> topWarning
-                        NOTIFICATION -> topInfo
-                        NEUTRAL -> topNeutral
-                    }
-                )
-                .statusBarsPadding()
-                .padding(top = 8.dp)
-                .fillMaxWidth()
-        ) {
+    Column(
+        modifier = Modifier
+            .background(
+                when (topBarMessage.type) {
+                    ERROR_NETWORK, ERROR -> TopError
+                    WARNING -> topWarning
+                    NOTIFICATION -> topInfo
+                    NEUTRAL -> topNeutral
+                }
+            )
+            .statusBarsPadding()
+            .padding(top = CodeTheme.dimens.grid.x2)
+            .fillMaxWidth()
+    ) {
+        CompositionLocalProvider(LocalContentColor provides White) {
 
             Row(
                 modifier = Modifier
-                    .padding(bottom = 10.dp)
-                    .padding(horizontal = 18.dp)
+                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                    .padding(horizontal = CodeTheme.dimens.inset)
             ) {
                 Image(
                     painterResource(
@@ -114,9 +115,9 @@ private fun TopBarView(
                     ),
                     contentDescription = "",
                     modifier = Modifier
-                        .padding(vertical = 4.dp)
-                        .padding(end = 8.dp)
-                        .size(17.dp)
+                        .padding(vertical = CodeTheme.dimens.grid.x1)
+                        .padding(end = CodeTheme.dimens.grid.x2)
+                        .size(CodeTheme.dimens.staticGrid.x4)
                 )
                 Text(
                     text = topBarMessage.title,
@@ -132,7 +133,7 @@ private fun TopBarView(
             }
             Text(
                 modifier = Modifier
-                    .padding(horizontal = 18.dp),
+                    .padding(horizontal = CodeTheme.dimens.inset),
                 text = topBarMessage.message,
                 style = CodeTheme.typography.body1.copy(
                     fontSize = 15.sp,
@@ -141,16 +142,16 @@ private fun TopBarView(
             )
             Spacer(
                 modifier = Modifier
-                    .padding(top = 15.dp)
+                    .padding(top = CodeTheme.dimens.grid.x3)
                     .fillMaxWidth()
-                    .height(1.dp)
+                    .height(CodeTheme.dimens.border)
                     .background(Black10)
             )
             Row {
                 Button(
                     modifier = Modifier
                         .weight(1f)
-                        .height(50.dp),
+                        .height(CodeTheme.dimens.grid.x10),
                     onClick = { topBarMessage.primaryAction(); onClose() },
                     elevation = ButtonDefaults.elevation(0.dp, 0.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Transparent)
@@ -161,7 +162,7 @@ private fun TopBarView(
                     Button(
                         modifier = Modifier
                             .weight(1f)
-                            .height(50.dp),
+                            .height(CodeTheme.dimens.grid.x10),
                         onClick = { topBarMessage.secondaryAction(); onClose() },
                         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
                         colors = ButtonDefaults.buttonColors(backgroundColor = Transparent)
@@ -171,4 +172,5 @@ private fun TopBarView(
                 }
             }
         }
+    }
 }

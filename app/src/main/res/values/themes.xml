@@ -11,7 +11,7 @@
         <item name="colorOnSecondary">@color/white</item>
         <item name="colorPrimaryDark">@color/purple_dark</item>
         <item name="colorAccent">@color/purple_light</item>
-
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@drawable/splash</item>
         <item name="android:windowTranslucentStatus">true</item>
     </style>

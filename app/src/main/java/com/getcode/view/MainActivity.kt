@@ -9,15 +9,15 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
+import com.getcode.LocalDeeplinks
 import com.getcode.LocalNetwork
+import com.getcode.LocalPhoneFormatter
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.client.Client
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.DeeplinkHandler
-import com.getcode.util.LocalDeeplinks
-import com.getcode.util.LocalPhoneFormatter
 import com.getcode.util.PhoneUtils
 import com.getcode.util.handleUncaughtException
 import com.getcode.util.vibration.LocalVibrator

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FractionalThreshold
@@ -89,14 +90,17 @@ object SlideToConfirmDefaults {
 }
 
 private object Thumb {
-    val Size = 60.dp
+    val Size: Dp
+        @Composable get() = CodeTheme.dimens.grid.x12
     val Color = androidx.compose.ui.graphics.Color.White
-    val Shape = RoundedCornerShape(8.dp)
+    val Shape : Shape
+        @Composable get() = CodeTheme.shapes.small
 }
 
 private object Track {
     val VelocityThreshold = SwipeableDefaults.VelocityThreshold * 10
-    val Shape = RoundedCornerShape(8.dp)
+    val Shape: Shape
+        @Composable get() = CodeTheme.shapes.small
     val Color = Color(0xFF201D1D)
 }
 
@@ -150,7 +154,7 @@ fun SlideToConfirm(
         shape = trackShape,
     ) {
         if (!isSuccess) {
-            hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + 8.dp))
+            hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2))
         }
 
         when {
@@ -159,16 +163,16 @@ fun SlideToConfirm(
                     painter = painterResource(id = R.drawable.ic_check),
                     contentDescription = "",
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(CodeTheme.dimens.grid.x4)
                         .align(Alignment.Center),
                 )
             }
             loading -> {
                 CodeCircularProgressIndicator(
-                    strokeWidth = 2.dp,
+                    strokeWidth = CodeTheme.dimens.thickBorder,
                     color = White,
                     modifier = Modifier
-                        .size(20.dp)
+                        .size(CodeTheme.dimens.grid.x4)
                         .align(Alignment.Center),
                 )
             }
@@ -213,11 +217,12 @@ private fun Track(
     val density = LocalDensity.current
     var fullWidth by remember { mutableIntStateOf(0) }
 
-    val horizontalPadding = 4.dp
+    val horizontalPadding = CodeTheme.dimens.grid.x1
 
+    val thumbSize = Thumb.Size
     val startOfTrackPx = 0f
     val endOfTrackPx = remember(fullWidth) {
-        with(density) { fullWidth - (2 * horizontalPadding + Thumb.Size).toPx() }
+        with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() }
     }
 
     val snapThreshold = 0.8f
@@ -232,7 +237,7 @@ private fun Track(
     Box(
         modifier = modifier
             .onSizeChanged { fullWidth = it.width }
-            .height(52.dp)
+            .height(CodeTheme.dimens.grid.x11)
             .fillMaxWidth()
             .swipeable(
                 enabled = enabled,
@@ -252,7 +257,7 @@ private fun Track(
             .padding(
                 PaddingValues(
                     horizontal = horizontalPadding,
-                    vertical = 4.dp,
+                    vertical = CodeTheme.dimens.grid.x1,
                 )
             ),
         content = content,
@@ -270,7 +275,7 @@ private fun Thumb(
         modifier = modifier
             .size(size)
             .background(color = color, shape = shape)
-            .padding(8.dp),
+            .padding(CodeTheme.dimens.grid.x2),
         contentAlignment = Alignment.Center
     ) {
         Image(
@@ -301,9 +306,9 @@ private fun Preview() {
             Column(
                 modifier = Modifier
                     .background(Color.Black)
-                    .padding(horizontal = 20.dp, vertical = 30.dp),
+                    .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x6),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(15.dp)
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
             ) {
                 SlideToConfirm(
                     isLoading = isLoading,
@@ -316,7 +321,7 @@ private fun Preview() {
                 ) { show ->
                     if (show) {
                         TextButton(
-                            shape = RoundedCornerShape(percent = 50),
+                            shape = CircleShape,
                             onClick = { isLoading = false }) {
                             Text(
                                 text = "Cancel",

@@ -3,6 +3,7 @@ package com.getcode.view.components
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -10,15 +11,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.getcode.manager.BottomBarManager
-import com.getcode.theme.*
+import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.TopError
+import com.getcode.theme.White
 
 @Composable
 fun BottomBarView(
@@ -44,53 +47,58 @@ fun BottomBarView(
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
                     }
                 )
-                .padding(15.dp)
+                .padding(CodeTheme.dimens.inset),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {
-            Text(
-                modifier = Modifier.padding(vertical = 15.dp),
-                style = CodeTheme.typography.subtitle1,
-                text = bottomBarMessage.title
-            )
-            Text(
-                modifier = Modifier.padding(bottom = 10.dp),
-                style = CodeTheme.typography.body2,
-                text = bottomBarMessage.subtitle
-            )
-            CodeButton(
-                onClick = {
-                    bottomBarMessage.onPositive()
-                    onClose(BottomBarManager.BottomBarActionType.Positive)
-                },
-                textColor =
-                when (bottomBarMessage.type) {
-                    BottomBarManager.BottomBarMessageType.DEFAULT -> TopError
-                    BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
-                },
-                buttonState = ButtonState.Filled,
-                text = bottomBarMessage.positiveText
-            )
-            CodeButton(
-                onClick = {
-                    bottomBarMessage.onNegative()
-                    onClose(BottomBarManager.BottomBarActionType.Negative)
-                },
-                textColor = White,
-                buttonState = ButtonState.Filled10,
-                text = bottomBarMessage.negativeText
-            )
-            bottomBarMessage.tertiaryText?.let {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp)
-                        .clickable {
-                            bottomBarMessage.onTertiary()
-                            onClose(BottomBarManager.BottomBarActionType.Tertiary)
-                        }
-                        .padding(vertical = 10.dp),
-                    style = CodeTheme.typography.button.copy(fontSize = 14.sp),
-                    text = it
+            CompositionLocalProvider(LocalContentColor provides White) {
+                Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
+                    Text(
+                        style = CodeTheme.typography.subtitle1,
+                        text = bottomBarMessage.title
+                    )
+                    Text(
+                        style = CodeTheme.typography.body2,
+                        text = bottomBarMessage.subtitle,
+                        color = LocalContentColor.current.copy(alpha = 0.8f)
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
+                CodeButton(
+                    onClick = {
+                        bottomBarMessage.onPositive()
+                        onClose(BottomBarManager.BottomBarActionType.Positive)
+                    },
+                    textColor =
+                    when (bottomBarMessage.type) {
+                        BottomBarManager.BottomBarMessageType.DEFAULT -> TopError
+                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
+                    },
+                    buttonState = ButtonState.Filled,
+                    text = bottomBarMessage.positiveText
                 )
+                CodeButton(
+                    onClick = {
+                        bottomBarMessage.onNegative()
+                        onClose(BottomBarManager.BottomBarActionType.Negative)
+                    },
+                    textColor = White,
+                    buttonState = ButtonState.Filled10,
+                    text = bottomBarMessage.negativeText
+                )
+                bottomBarMessage.tertiaryText?.let {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                bottomBarMessage.onTertiary()
+                                onClose(BottomBarManager.BottomBarActionType.Tertiary)
+                            }
+                            .padding(vertical = CodeTheme.dimens.grid.x2),
+                        style = CodeTheme.typography.button,
+                        text = it
+                    )
+                }
             }
         }
     }

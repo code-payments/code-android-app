@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.navigation.screens.CodeLoginPermission
@@ -61,8 +60,8 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
             painter = painterResource(R.drawable.ic_home_bill_image),
             contentDescription = "",
             modifier = Modifier
-                .padding(horizontal = 40.dp)
-                .padding(top = 50.dp)
+                .padding(horizontal = CodeTheme.dimens.grid.x8)
+                .padding(top = CodeTheme.dimens.grid.x10)
                 .fillMaxHeight(0.6f)
                 .fillMaxWidth()
                 .constrainAs(image) {
@@ -75,7 +74,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
 
         Text(
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(caption) {
                     top.linkTo(image.bottom)
                     bottom.linkTo(button.top)
@@ -92,7 +91,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
             text = stringResource(R.string.action_allowCameraAccess),
             buttonState = ButtonState.Filled,
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(button) {
                     linkTo(button.bottom, parent.bottom, bias = 1.0F)
                     start.linkTo(parent.start)

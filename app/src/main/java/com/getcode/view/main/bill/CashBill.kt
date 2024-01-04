@@ -45,7 +45,7 @@ internal fun CashBill(
             .aspectRatio(0.555f)
             .heightIn(0.dp, 800.dp)
             .fillMaxHeight(0.85f)
-            .padding(horizontal = 20.dp, vertical = 40.dp)
+            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x8)
     ) {
         val (billImage, code, billText1, billText2, addressText) = createRefs()
         var sizeBillImage by remember { mutableStateOf(IntSize.Zero) }

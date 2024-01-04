@@ -112,5 +112,3 @@ class DeeplinkHandler @Inject constructor() {
         }
     }
 }
-
-val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }

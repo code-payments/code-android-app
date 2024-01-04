@@ -38,7 +38,7 @@ fun AccountWithdrawSummary(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
         val (centerColumn, nextButton) = createRefs()
@@ -53,9 +53,9 @@ fun AccountWithdrawSummary(
         ) {
             Box(
                 modifier = Modifier
-                    .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(10.dp))
+                    .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.medium)
                     .background(Brand01)
-                    .padding(20.dp)
+                    .padding(CodeTheme.dimens.grid.x4)
             ) {
                 AmountArea(
                     currencyResId = dataState.currencyResId,
@@ -69,7 +69,7 @@ fun AccountWithdrawSummary(
 
             Image(
                 modifier = Modifier
-                    .padding(vertical = 20.dp)
+                    .padding(vertical = CodeTheme.dimens.inset)
                     .align(CenterHorizontally),
                 painter = painterResource(id = R.drawable.ic_arrow_down),
                 contentDescription = ""
@@ -77,9 +77,9 @@ fun AccountWithdrawSummary(
 
             Box(
                 modifier = Modifier
-                    .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(10.dp))
+                    .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.medium)
                     .background(Brand01)
-                    .padding(20.dp)
+                    .padding(CodeTheme.dimens.grid.x4)
             ) {
                 Text(
                     text = dataState.resolvedDestination,
@@ -90,7 +90,7 @@ fun AccountWithdrawSummary(
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(nextButton) {
                     bottom.linkTo(parent.bottom)
                 },

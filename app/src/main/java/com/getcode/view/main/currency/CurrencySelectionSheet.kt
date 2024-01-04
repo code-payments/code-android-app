@@ -1,14 +1,20 @@
 package com.getcode.view.main.currency
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -40,6 +49,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.TopError
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
@@ -92,20 +102,23 @@ fun CurrencySelectionSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .padding(bottom = 10.dp)
-                .padding(horizontal = 15.dp),
+                .padding(bottom = CodeTheme.dimens.grid.x2)
+                .padding(horizontal = CodeTheme.dimens.grid.x3),
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = null,
                     tint = White50,
-                ) },
-            placeholder = { Text(
-                stringResource(id = R.string.subtitle_searchCurrencies),
-                style = CodeTheme.typography.subtitle1.copy(
-                    fontSize = 16.sp,
                 )
-            ) },
+            },
+            placeholder = {
+                Text(
+                    stringResource(id = R.string.subtitle_searchCurrencies),
+                    style = CodeTheme.typography.subtitle1.copy(
+                        fontSize = 16.sp,
+                    )
+                )
+            },
             trailingIcon = {
                 if (searchQuery.text.isNotEmpty()) {
                     IconButton(
@@ -146,15 +159,17 @@ fun CurrencySelectionSheet(
             }
 
             items(state.listItems) { listItem ->
-                val isDisabled = listItem is CurrencyListItem.RegionCurrencyItem && listItem.currency.rate <= 0
+                val isDisabled =
+                    listItem is CurrencyListItem.RegionCurrencyItem && listItem.currency.rate <= 0
                 val currencyCode = when (listItem) {
                     is CurrencyListItem.RegionCurrencyItem -> listItem.currency.code
                     else -> ""
                 }
 
-                Box(modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (listItem !is CurrencyListItem.TitleItem) 70.dp else 60.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (listItem !is CurrencyListItem.TitleItem) 70.dp else 60.dp)
                 ) {
                     Divider(
                         color = White05,
@@ -166,9 +181,10 @@ fun CurrencySelectionSheet(
 
                     when (listItem) {
                         is CurrencyListItem.TitleItem -> {
-                            Row(modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(horizontal = 20.dp)
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(horizontal = 20.dp)
                             ) {
                                 Text(
                                     modifier = Modifier.padding(bottom = 10.dp),
@@ -180,11 +196,16 @@ fun CurrencySelectionSheet(
                                 )
                             }
                         }
+
                         is CurrencyListItem.RegionCurrencyItem -> {
                             SwipeableView(
                                 isSwipeEnabled = listItem.isRecent,
                                 leftSwiped = {
-                                    viewModel.dispatchEvent(CurrencyViewModel.Event.OnRecentCurrencyRemoved(listItem.currency))
+                                    viewModel.dispatchEvent(
+                                        CurrencyViewModel.Event.OnRecentCurrencyRemoved(
+                                            listItem.currency
+                                        )
+                                    )
                                 },
                                 leftSwipeCard = {
                                     if (listItem.isRecent) ListSwipeDeleteCard()
@@ -193,11 +214,14 @@ fun CurrencySelectionSheet(
                                 ListRowItem(
                                     listItem.currency.resId,
                                     listItem.currency.name,
-                                    true,
-                                    state.selectedCurrencyCode.orEmpty()  == currencyCode,
+                                    state.selectedCurrencyCode.orEmpty() == currencyCode,
                                     isDisabled,
                                 ) {
-                                    viewModel.dispatchEvent(CurrencyViewModel.Event.OnSelectedCurrencyChanged(listItem.currency))
+                                    viewModel.dispatchEvent(
+                                        CurrencyViewModel.Event.OnSelectedCurrencyChanged(
+                                            listItem.currency
+                                        )
+                                    )
                                 }
 
                                 Divider(
@@ -213,5 +237,85 @@ fun CurrencySelectionSheet(
                 }
             }
         }
+    }
+}
+
+
+@Composable
+private fun ListRowItem(
+    resId: Int?,
+    title: String,
+    isSelected: Boolean,
+    isDisabled: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brand)
+            .let {
+                if (!isDisabled) {
+                    it.clickable { onClick() }
+                } else it
+            }
+            .padding(horizontal = CodeTheme.dimens.inset)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .align(Alignment.CenterStart)
+                .alpha(if (isDisabled) 0.25f else 1.0f)
+        ) {
+            resId?.let {
+                Image(
+                    modifier = Modifier
+                        .padding(end = CodeTheme.dimens.grid.x3)
+                        .requiredSize(CodeTheme.dimens.staticGrid.x6)
+                        .clip(RoundedCornerShape(15.dp))
+                        .align(Alignment.CenterVertically),
+                    painter = painterResource(resId),
+                    contentDescription = ""
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .align(Alignment.CenterVertically),
+            ) {
+                Text(
+                    text = title,
+                    style = CodeTheme.typography.body1
+                )
+            }
+        }
+
+        Image(
+            modifier = Modifier
+                .wrapContentWidth()
+                .align(Alignment.CenterEnd)
+                .alpha(if (isDisabled) 0.25f else 1.0f),
+            painter = painterResource(
+                if (isSelected)
+                    R.drawable.ic_checked_blue else R.drawable.ic_unchecked
+            ),
+            contentDescription = ""
+        )
+    }
+}
+
+@Composable
+private fun ListSwipeDeleteCard() {
+    Box(
+        modifier = Modifier.background(TopError),
+        contentAlignment = Alignment.CenterEnd,
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_delete),
+            contentDescription = "",
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = CodeTheme.dimens.inset)
+                .size(CodeTheme.dimens.staticGrid.x6),
+        )
     }
 }

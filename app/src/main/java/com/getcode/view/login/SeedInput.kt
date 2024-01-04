@@ -49,7 +49,7 @@ fun SeedInput(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .padding(top = topBarHeight)
             .verticalScroll(rememberScrollState())
             .imePadding(),
@@ -66,7 +66,7 @@ fun SeedInput(
                     .constrainAs(captionText) {
                         top.linkTo(parent.top)
                     }
-                    .padding(top = 40.dp),
+                    .padding(top = CodeTheme.dimens.grid.x8),
                 style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 color = BrandLight,
                 text = stringResource(R.string.subtitle_loginDescription)
@@ -77,10 +77,10 @@ fun SeedInput(
                     .constrainAs(input) {
                         top.linkTo(captionText.bottom)
                     }
-                    .padding(top = 20.dp)
+                    .padding(top = CodeTheme.dimens.inset)
                     .fillMaxWidth()
                     .height(120.dp)
-                    .padding(vertical = 5.dp)
+                    .padding(vertical = CodeTheme.dimens.grid.x1)
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 visualTransformation = VisualTransformation.None,
@@ -101,7 +101,7 @@ fun SeedInput(
                     .constrainAs(wordCount) {
                         bottom.linkTo(input.bottom)
                     }
-                    .padding(bottom = 10.dp, start = 8.dp)
+                    .padding(bottom = CodeTheme.dimens.grid.x2, start = CodeTheme.dimens.grid.x2)
             )
 
             if (dataState.isValid) {
@@ -113,8 +113,8 @@ fun SeedInput(
                             top.linkTo(wordCount.top)
                             bottom.linkTo(wordCount.bottom)
                         }
-                        .padding(bottom = 12.dp, start = 6.dp)
-                        .height(12.dp),
+                        .padding(bottom = CodeTheme.dimens.grid.x2, start = CodeTheme.dimens.grid.x1)
+                        .height(CodeTheme.dimens.grid.x3),
                     contentDescription = ""
                 )
             }
@@ -132,7 +132,7 @@ fun SeedInput(
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 20.dp),
+                .padding(bottom = CodeTheme.dimens.grid.x4),
             onClick = {
                 focusManager.clearFocus()
                 viewModel.onSubmit(navigator)

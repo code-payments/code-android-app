@@ -74,7 +74,6 @@ internal interface ModalContent {
             val sheetName = remember(navigator) { name }
 
             SheetTitle(
-                modifier = Modifier.padding(horizontal = 20.dp),
                 title = sheetName.takeIf { !displayLogo },
                 displayLogo = displayLogo,
                 onLogoClicked = onLogoClicked,
