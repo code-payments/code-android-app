@@ -25,8 +25,9 @@ import java.io.File
         PrefDouble::class,
         SendLimit::class,
         GiftCard::class,
+        ExchangeRate::class,
     ],
-    version = 6
+    version = 7
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun prefBoolDao(): PrefBoolDao
     abstract fun prefDoubleDao(): PrefDoubleDao
     abstract fun giftCardDao(): GiftCardDao
+    abstract fun exchangeDao(): ExchangeDao
 }
 
 object Database {

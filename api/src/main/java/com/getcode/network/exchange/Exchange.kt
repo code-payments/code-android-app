@@ -1,6 +1,9 @@
 package com.getcode.network.exchange
 
 import android.annotation.SuppressLint
+import com.getcode.db.AppDatabase
+import com.getcode.db.Database
+import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
 import com.getcode.network.api.CurrencyApi
@@ -8,6 +11,10 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
@@ -21,7 +28,18 @@ class Exchange @Inject constructor(
     private val currencyApi: CurrencyApi,
     private val networkOracle: NetworkOracle,
 ): CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    private val db = Database.getInstance()
+
+    private val _rates = MutableStateFlow(emptyMap<CurrencyCode, Rate>())
     private var rates = RatesBox(0, emptyMap())
+        set(value) {
+            field = value
+            _rates.value = value.rates
+        }
+
+    fun rates() = rates.rates
+    fun observeRates(): StateFlow<Map<CurrencyCode, Rate>> = _rates.asStateFlow()
 
     private val isStale: Boolean
         get() {
@@ -35,6 +53,12 @@ class Exchange @Inject constructor(
 
     init {
         launch {
+            db?.exchangeDao()?.query()?.let { exchangeData ->
+                val rates = exchangeData.map { Rate(it.fx, it.currency) }
+                val dateMillis = exchangeData.minOf { it.synced }
+                RatesBox(dateMillis = dateMillis, rates = rates)
+            }
+
             fetchRatesIfNeeded()
         }
     }
@@ -44,6 +68,7 @@ class Exchange @Inject constructor(
             runCatching { fetchExchangeRates() }
                 .onSuccess { (updatedRates, date) ->
                     rates = RatesBox(date, updatedRates)
+                    db?.exchangeDao()?.insert(rates = updatedRates, syncedAt = date)
                 }.onFailure {
                     it.printStackTrace()
                 }

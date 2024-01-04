@@ -16,6 +16,7 @@ buildscript {
         classpath(Classpath.bugsnag)
         classpath(Classpath.firebase_perf)
         classpath(Classpath.secrets_gradle_plugin)
+        classpath(Classpath.kotlin_serialization_plugin)
     }
 }
 
