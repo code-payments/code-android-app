@@ -45,13 +45,6 @@ fun GiveKinSheet(
     val dataState by viewModel.uiFlow.collectAsState()
     val connectionState by connectionViewModel.connectionStatus.collectAsState()
 
-    RepeatOnLifecycle(
-        targetState = Lifecycle.State.RESUMED,
-        screen = GiveKinModal,
-    ) {
-        viewModel.reset()
-    }
-
     val networkUtils = LocalNetwork.current
     Box(
         modifier = Modifier.fillMaxSize()

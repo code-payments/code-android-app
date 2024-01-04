@@ -13,7 +13,6 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
-import com.getcode.model.Currency
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
@@ -22,7 +21,6 @@ import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.currency.CurrencySelectionSheet
-import com.getcode.view.main.currency.CurrencyViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScreen
