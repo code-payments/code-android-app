@@ -1,5 +1,6 @@
 package com.getcode.theme
 
+import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.material.Colors
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Shapes
@@ -47,9 +48,13 @@ fun CodeTheme(
             MaterialTheme(
                 colors = debugColors(),
                 typography = typography,
-                content = content,
                 shapes = shapes
-            )
+            ) {
+                // setup after MDC theme to override defaults in theme
+                CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
+                    content()
+                }
+            }
         }
     }
 }
@@ -156,4 +161,5 @@ fun inputColors() = TextFieldDefaults.textFieldColors(
     focusedIndicatorColor = Color.Transparent,
     unfocusedIndicatorColor = Color.Transparent,
     cursorColor = Color.White,
+
 )
