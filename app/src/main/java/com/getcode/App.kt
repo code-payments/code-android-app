@@ -1,16 +1,12 @@
 package com.getcode
 
 import android.app.Application
-import android.os.Debug
 import androidx.appcompat.app.AppCompatDelegate
 import com.bugsnag.android.Bugsnag
 import com.getcode.manager.AuthManager
 import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 

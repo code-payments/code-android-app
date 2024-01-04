@@ -38,6 +38,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 typealias BottomSheetNavigatorContent = @Composable (bottomSheetNavigator: BottomSheetNavigator) -> Unit
 
@@ -150,6 +151,10 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             shownSheetScreens.add(screen)
             replaceAll(screen)
             sheetState.show()
+        } else {
+            Timber.e("shouldn't get here; but ensuring a sheet is shown when requested.")
+            sheetStacks.popAll()
+            show(screen)
         }
     }
 

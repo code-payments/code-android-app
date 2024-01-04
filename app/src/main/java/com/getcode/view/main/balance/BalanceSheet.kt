@@ -14,13 +14,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
@@ -35,7 +33,6 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -108,17 +105,6 @@ fun BalanceContent(
 ) {
     val lazyListState = rememberLazyListState()
 
-    val firstItemTranslationY by remember {
-        derivedStateOf {
-            when {
-                lazyListState.layoutInfo.visibleItemsInfo.isNotEmpty() && lazyListState.firstVisibleItemIndex == 0 ->
-                    lazyListState.firstVisibleItemScrollOffset * .2f
-
-                else -> 0f
-            }
-        }
-    }
-
     val transactionsEmpty by remember(state.historicalTransactions) {
         derivedStateOf { state.historicalTransactions.isEmpty() }
     }
@@ -132,10 +118,12 @@ fun BalanceContent(
         item {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x7)
+                    .padding(
+                        horizontal = CodeTheme.dimens.inset,
+                        vertical = CodeTheme.dimens.grid.x7
+                    )
                     .padding(bottom = CodeTheme.dimens.grid.x2)
-                    .fillParentMaxWidth()
-                    .graphicsLayer { translationY = firstItemTranslationY },
+                    .fillParentMaxWidth(),
             ) {
                 BalanceTop(
                     state,
@@ -148,7 +136,7 @@ fun BalanceContent(
                 }
             }
         }
-        items(state.historicalTransactions, key = { it.id }) { event ->
+        items(state.historicalTransactions, key = { it.id }, contentType = { it }) { event ->
             Row(Modifier.animateItemPlacement()) {
                 TransactionItem(event)
             }
@@ -174,7 +162,6 @@ fun BalanceContent(
 
 @Composable
 fun TransactionItem(event: HistoricalTransactionUiModel) {
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -324,6 +311,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
                 end = endIndex
             )
         }
+
         ClickableText(
             modifier = Modifier
                 .padding(horizontal = CodeTheme.dimens.grid.x1),
