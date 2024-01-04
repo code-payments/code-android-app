@@ -48,12 +48,12 @@ fun BottomBarView(
         ) {
             Text(
                 modifier = Modifier.padding(vertical = 15.dp),
-                style = MaterialTheme.typography.subtitle1,
+                style = CodeTheme.typography.subtitle1,
                 text = bottomBarMessage.title
             )
             Text(
                 modifier = Modifier.padding(bottom = 10.dp),
-                style = MaterialTheme.typography.body2,
+                style = CodeTheme.typography.body2,
                 text = bottomBarMessage.subtitle
             )
             CodeButton(
@@ -88,7 +88,7 @@ fun BottomBarView(
                             onClose(BottomBarManager.BottomBarActionType.Tertiary)
                         }
                         .padding(vertical = 10.dp),
-                    style = MaterialTheme.typography.button.copy(fontSize = 14.sp),
+                    style = CodeTheme.typography.button.copy(fontSize = 14.sp),
                     text = it
                 )
             }

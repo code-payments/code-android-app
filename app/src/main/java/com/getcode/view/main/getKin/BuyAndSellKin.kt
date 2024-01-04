@@ -33,6 +33,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import kotlinx.collections.immutable.toImmutableList
@@ -84,14 +85,14 @@ fun BuyAndSellKin(
             item {
                 Text(
                     text = stringResource(R.string.title_buyAndSellKin),
-                    style = MaterialTheme.typography.h1,
+                    style = CodeTheme.typography.h1,
                     modifier = Modifier.padding(vertical = 15.dp),
                 )
             }
             item {
                 Text(
                     text = stringResource(R.string.subtitle_buySellDescription),
-                    style = MaterialTheme.typography.body1,
+                    style = CodeTheme.typography.body1,
                     modifier = Modifier.padding(vertical = 30.dp),
                 )
             }
@@ -140,7 +141,7 @@ private fun VideoThumbnail(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 10.dp)
-            .clip(MaterialTheme.shapes.small)
+            .clip(CodeTheme.shapes.small)
             .clickable { onVideoClick(context, link) },
 
     ) {

@@ -47,7 +47,7 @@ fun AccountWithdrawAddress(
                 end.linkTo(parent.end)
             },
             text = stringResource(R.string.subtitle_whereToWithdrawKin),
-            style = MaterialTheme.typography.body1.copy(textAlign = TextAlign.Center),
+            style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             color = BrandLight
         )
 
@@ -62,7 +62,7 @@ fun AccountWithdrawAddress(
             placeholder = {
                 Text(
                     text = stringResource(R.string.subtitle_enterDestinationAddress),
-                    style = MaterialTheme.typography.subtitle1.copy(
+                    style = CodeTheme.typography.subtitle1.copy(
                         fontSize = 16.sp,
                     )
                 )
@@ -71,7 +71,7 @@ fun AccountWithdrawAddress(
             visualTransformation = VisualTransformation.None,
             value = dataState.addressText,
             onValueChange = { viewModel.setAddress(it) },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,
@@ -110,7 +110,7 @@ fun AccountWithdrawAddress(
                         .padding(start = 7.dp, top = 3.dp),
                     text = text,
                     color = if (isValid) green else Color.Red,
-                    style = MaterialTheme.typography.caption.copy(
+                    style = CodeTheme.typography.caption.copy(
                         fontSize = 12.sp
                     )
                 )

@@ -143,7 +143,7 @@ private fun KeyBoardButton(
             } else if (text != null) {
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.button.copy(
+                    style = CodeTheme.typography.button.copy(
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Normal,
                         textAlign = TextAlign.Center

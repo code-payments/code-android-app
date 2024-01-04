@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 import com.getcode.view.main.home.HomeBottomSheet
 
 @Preview
@@ -55,7 +56,7 @@ internal fun HomeBottom(
             )
             Text(
                 text = stringResource(R.string.action_giveKin),
-                style = MaterialTheme.typography.body2
+                style = CodeTheme.typography.body2
             )
         }
 
@@ -86,7 +87,7 @@ internal fun HomeBottom(
             )
             Text(
                 text = stringResource(R.string.title_getKin),
-                style = MaterialTheme.typography.body2
+                style = CodeTheme.typography.body2
             )
         }
 
@@ -114,7 +115,7 @@ internal fun HomeBottom(
             )
             Text(
                 text = stringResource(R.string.action_balance),
-                style = MaterialTheme.typography.body2
+                style = CodeTheme.typography.body2
             )
         }
     }

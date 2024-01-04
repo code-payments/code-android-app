@@ -35,6 +35,7 @@ import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.util.IntentUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -131,7 +132,7 @@ fun AccountAccessKey(
                     end.linkTo(parent.end)
                 }
                 .padding(vertical = 10.dp),
-            style = MaterialTheme.typography.body2.copy(textAlign = TextAlign.Center),
+            style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
             color = BrandLight,
             text = stringResource(R.string.subtitle_accessKeyDescription)
         )

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Black50
+import com.getcode.theme.CodeTheme
 import com.getcode.view.main.home.components.HomeBottom
 import timber.log.Timber
 
@@ -101,7 +102,7 @@ internal fun DecorView(
                     Timber.d("toast=$toast")
                     Text(
                         text = toast?.formattedAmount.orEmpty(),
-                        style = MaterialTheme.typography.body2.copy(
+                        style = CodeTheme.typography.body2.copy(
                             fontWeight = FontWeight.Bold
                         )
                     )

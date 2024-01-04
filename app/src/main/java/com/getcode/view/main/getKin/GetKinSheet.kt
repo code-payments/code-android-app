@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -31,9 +29,11 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.ReferFriendScreen
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.util.addIf
+import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.main.home.HomeViewModel
 
 data class GetKinItem(
@@ -130,12 +130,12 @@ fun GetKinSheet(
             )
             Text(
                 text = stringResource(R.string.title_getKin),
-                style = MaterialTheme.typography.h1,
+                style = CodeTheme.typography.h1,
                 modifier = Modifier.padding(vertical = 15.dp),
             )
             Text(
                 text = stringResource(R.string.subtitle_getKin),
-                style = MaterialTheme.typography.body1,
+                style = CodeTheme.typography.body1,
                 modifier = Modifier.padding(vertical = 10.dp),
             )
         }
@@ -186,15 +186,15 @@ fun GetKinSheet(
                             Text(
                                 text = stringResource(item.titleTextResId),
                                 color = if (item.isActive) Color.White else colorResource(R.color.code_brand_light),
-                                style = MaterialTheme.typography.button.copy(
-                                    textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else MaterialTheme.typography.button.textDecoration,
+                                style = CodeTheme.typography.button.copy(
+                                    textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
                                 ),
                             )
                             item.subtitleTextResId?.let {
                                 Text(
                                     modifier = Modifier.padding(top = 3.dp),
                                     text = stringResource(it),
-                                    style = MaterialTheme.typography.caption,
+                                    style = CodeTheme.typography.caption,
                                     fontSize = 13.sp,
                                     color = colorResource(R.color.code_brand_light),
                                 )
@@ -202,7 +202,7 @@ fun GetKinSheet(
                         }
 
                         if (item.isLoading) {
-                            CircularProgressIndicator(
+                            CodeCircularProgressIndicator(
                                 strokeWidth = 2.dp,
                                 color = White,
                                 modifier = Modifier

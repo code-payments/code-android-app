@@ -21,6 +21,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.Brand01
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.main.giveKin.AmountArea
@@ -82,7 +83,7 @@ fun AccountWithdrawSummary(
             ) {
                 Text(
                     text = dataState.resolvedDestination,
-                    style = MaterialTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
+                    style = CodeTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
                 )
             }
         }

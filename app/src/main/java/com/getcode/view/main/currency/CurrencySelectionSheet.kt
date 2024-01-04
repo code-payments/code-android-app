@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.icons.Icons
@@ -41,10 +39,12 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
 import com.getcode.util.RepeatOnLifecycle
+import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.components.SwipeableView
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -102,7 +102,7 @@ fun CurrencySelectionSheet(
                 ) },
             placeholder = { Text(
                 stringResource(id = R.string.subtitle_searchCurrencies),
-                style = MaterialTheme.typography.subtitle1.copy(
+                style = CodeTheme.typography.subtitle1.copy(
                     fontSize = 16.sp,
                 )
             ) },
@@ -123,7 +123,7 @@ fun CurrencySelectionSheet(
             },
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,
@@ -140,7 +140,7 @@ fun CurrencySelectionSheet(
             if (state.loading) {
                 item {
                     Box(Modifier.fillParentMaxSize()) {
-                        CircularProgressIndicator(Modifier.align(Alignment.TopCenter))
+                        CodeCircularProgressIndicator(Modifier.align(Alignment.TopCenter))
                     }
                 }
             }
@@ -172,7 +172,7 @@ fun CurrencySelectionSheet(
                             ) {
                                 Text(
                                     modifier = Modifier.padding(bottom = 10.dp),
-                                    style = MaterialTheme.typography.caption.copy(
+                                    style = CodeTheme.typography.caption.copy(
                                         fontSize = 14.sp,
                                     ),
                                     color = BrandLight,

@@ -25,10 +25,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FractionalThreshold
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.SwipeProgress
 import androidx.compose.material.SwipeableDefaults
 import androidx.compose.material.SwipeableState
@@ -84,7 +82,7 @@ object SlideToConfirmDefaults {
         Text(
             text = text,
             color = hintTextColor,
-            style = MaterialTheme.typography.body1,
+            style = CodeTheme.typography.body1,
             modifier = modifier,
         )
     }
@@ -166,7 +164,7 @@ fun SlideToConfirm(
                 )
             }
             loading -> {
-                CircularProgressIndicator(
+                CodeCircularProgressIndicator(
                     strokeWidth = 2.dp,
                     color = White,
                     modifier = Modifier
@@ -322,7 +320,7 @@ private fun Preview() {
                             onClick = { isLoading = false }) {
                             Text(
                                 text = "Cancel",
-                                style = MaterialTheme.typography.caption,
+                                style = CodeTheme.typography.caption,
                                 color = White50
                             )
                         }

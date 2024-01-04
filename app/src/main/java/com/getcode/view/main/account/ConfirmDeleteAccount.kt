@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
@@ -44,7 +45,7 @@ fun ConfirmDeleteAccount() {
     ) {
         Text(
             text = stringResource(id = R.string.subtitle_deleteAccountDescription),
-            style = MaterialTheme.typography.subtitle2
+            style = CodeTheme.typography.subtitle2
         )
         TextField(
             modifier = Modifier
@@ -53,7 +54,7 @@ fun ConfirmDeleteAccount() {
             placeholder = {
                 Text(
                     stringResource(id = R.string.subtitle_typeDelete).format(viewModel.requiredPhrase),
-                    style = MaterialTheme.typography.subtitle1.copy(
+                    style = CodeTheme.typography.subtitle1.copy(
                         fontSize = 16.sp,
                     )
                 )
@@ -62,7 +63,7 @@ fun ConfirmDeleteAccount() {
             onValueChange = {
                 viewModel.onTextUpdated(it)
             },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,

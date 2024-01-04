@@ -31,6 +31,7 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
+import com.getcode.theme.CodeTheme
 
 
 @Preview
@@ -129,7 +130,7 @@ fun LoginHome(
 
         ClickableText(
             text = bottomString,
-            style = MaterialTheme.typography.caption.copy(
+            style = CodeTheme.typography.caption.copy(
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Normal,
                 fontSize = 12.sp,

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.windowSizeCheck
 import com.getcode.view.main.connectivity.ConnectionState
 import com.getcode.view.main.connectivity.ConnectionStatus
@@ -98,7 +99,7 @@ fun AmountArea(
                         .align(CenterVertically),
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-                    style = MaterialTheme.typography.body1.copy(
+                    style = CodeTheme.typography.body1.copy(
                         textAlign = TextAlign.Center
                     )
                 )

@@ -10,6 +10,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 
 
 @Preview
@@ -50,7 +51,7 @@ private fun SeedItem(
             text = "$number.",
             modifier = Modifier.padding(end = 15.dp)
                 .width(30.dp),
-            style = MaterialTheme.typography.body1.copy(
+            style = CodeTheme.typography.body1.copy(
                 textAlign = TextAlign.End
             ),
             color = BrandLight
@@ -59,12 +60,12 @@ private fun SeedItem(
             Text(
                 modifier = Modifier.alpha(if (isVisible) 1f else 0f),
                 text = text,
-                style = MaterialTheme.typography.body1
+                style = CodeTheme.typography.body1
             )
             Text(
                 modifier = Modifier.alpha(if (!isVisible) 1f else 0f),
                 text = "-".repeat(text.length),
-                style = MaterialTheme.typography.body1
+                style = CodeTheme.typography.body1
             )
         }
     }

@@ -19,6 +19,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.manager.AnalyticsManager
 import com.getcode.navigation.screens.FaqScreen
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.view.components.MarkdownText
 
@@ -42,14 +43,14 @@ fun AccountFaq(
                 Text(
                     text = faqResponse.question,
                     color = White,
-                    style = MaterialTheme.typography.h6.copy(
+                    style = CodeTheme.typography.h6.copy(
                         fontWeight = FontWeight.Bold
                     )
                 )
                 MarkdownText(
                     markdown = faqResponse.answer,
                     fontResource = R.font.avenir_next_demi,
-                    style = MaterialTheme.typography.body1.copy(
+                    style = CodeTheme.typography.body1.copy(
                         lineHeight = 20.sp,
                     ),
                 )

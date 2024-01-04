@@ -3,7 +3,6 @@ package com.getcode.view.login
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -11,7 +10,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
@@ -25,10 +23,10 @@ import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
 import com.getcode.util.getActivity
 import com.getcode.vendor.Base58
+import com.getcode.view.components.CodeCircularProgressIndicator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 @Preview
 @Composable
@@ -132,7 +130,7 @@ fun SeedDeepLink(
 
     if (dataState.isLoading) {
         Box(modifier = Modifier.fillMaxSize()) {
-            CircularProgressIndicator(
+            CodeCircularProgressIndicator(
                 modifier = Modifier
                     .size(100.dp)
                     .align(Alignment.Center)

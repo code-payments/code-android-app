@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
+import com.getcode.theme.CodeTheme
 import com.getcode.util.flagResId
 import com.getcode.util.format
 
@@ -27,7 +28,7 @@ object PriceWithFlagDefaults {
         Text(
             text = label,
             color = Color.Black,
-            style = MaterialTheme.typography.body1
+            style = CodeTheme.typography.body1
         )
     }
 }

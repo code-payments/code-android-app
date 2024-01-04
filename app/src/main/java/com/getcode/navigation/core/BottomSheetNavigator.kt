@@ -34,6 +34,7 @@ import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.compositionUniqueId
+import com.getcode.theme.CodeTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -48,11 +49,11 @@ val LocalBottomSheetNavigator: ProvidableCompositionLocal<BottomSheetNavigator> 
 fun BottomSheetNavigator(
     modifier: Modifier = Modifier,
     hideOnBackPress: Boolean = true,
-    scrimColor: Color = ModalBottomSheetDefaults.scrimColor,
-    sheetShape: Shape = MaterialTheme.shapes.large,
+    scrimColor: Color = CodeTheme.colors.surface.copy(alpha = 0.32f),
+    sheetShape: Shape = CodeTheme.shapes.large,
     sheetElevation: Dp = ModalBottomSheetDefaults.Elevation,
-    sheetBackgroundColor: Color = MaterialTheme.colors.surface,
-    sheetContentColor: Color = contentColorFor(sheetBackgroundColor),
+    sheetBackgroundColor: Color = CodeTheme.colors.surface,
+    sheetContentColor: Color = CodeTheme.colors.onSurface,
     sheetGesturesEnabled: Boolean = true,
     skipHalfExpanded: Boolean = true,
     animationSpec: AnimationSpec<Float> = SwipeableDefaults.AnimationSpec,

@@ -89,7 +89,7 @@ internal fun PaymentConfirmation(
                     Text(
                         text = it,
                         color = Color.White,
-                        style = MaterialTheme.typography.h1
+                        style = CodeTheme.typography.h1
                     )
                 }
             }
@@ -109,7 +109,7 @@ internal fun PaymentConfirmation(
                         onClick = { onCancel() }) {
                         Text(
                             text = "Cancel",
-                            style = MaterialTheme.typography.caption,
+                            style = CodeTheme.typography.caption,
                             color = White50
                         )
                     }

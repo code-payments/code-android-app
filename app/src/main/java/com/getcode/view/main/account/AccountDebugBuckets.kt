@@ -16,6 +16,7 @@ import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.SlotType
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.MiddleEllipsisText
 import com.getcode.view.main.balance.BalanceSheetViewModel
 
@@ -67,7 +68,7 @@ fun AccountDebugBuckets() {
                         modifier = Modifier
                             .weight(1f),
                         text = name,
-                        style = MaterialTheme.typography.body1,
+                        style = CodeTheme.typography.body1,
                     )
                 }
 
@@ -81,7 +82,7 @@ fun AccountDebugBuckets() {
                             .padding(end = 100.dp),
                         text = info.address.base58(),
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
 
                     val kinValue = info.balance.toKinValueDouble()
@@ -90,7 +91,7 @@ fun AccountDebugBuckets() {
                     Text(
                         text = "K ${String.format(format, info.balance.toKinValueDouble())}",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
                 }
 
@@ -101,12 +102,12 @@ fun AccountDebugBuckets() {
                         modifier = Modifier.weight(1f),
                         text = "${info.managementState.name}  •  ${info.blockchainState.name}",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
                     Text(
                         text = "",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
                 }
 

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 
 @Preview
 @Composable
@@ -41,13 +42,13 @@ fun InvitesPermission(inviteCount: Int = 0, onButtonClick: () -> Unit = {}) {
             )
             Text(
                 text = stringResource(id = R.string.subtitle_inviteCount, inviteCount),
-                style = MaterialTheme.typography.h1,
+                style = CodeTheme.typography.h1,
                 modifier = Modifier.padding(bottom = 15.dp)
             )
 
             Text(
                 text = stringResource(id = R.string.subtitle_youHaveInvitesLeft, inviteCount),
-                style = MaterialTheme.typography.body1,
+                style = CodeTheme.typography.body1,
                 modifier = Modifier.padding(bottom = 15.dp)
             )
         }

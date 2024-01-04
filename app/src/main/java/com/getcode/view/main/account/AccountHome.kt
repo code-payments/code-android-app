@@ -47,6 +47,7 @@ import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.util.getActivity
 import kotlinx.coroutines.delay
@@ -112,7 +113,7 @@ fun AccountHome(
                             .align(Alignment.Center),
                         text = "v${BuildConfig.VERSION_NAME}",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2.copy(
+                        style = CodeTheme.typography.body2.copy(
                             textAlign = TextAlign.Center
                         ),
                     )
@@ -143,7 +144,7 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
         Text(
             modifier = Modifier.align(CenterVertically),
             text = stringResource(item.name),
-            style = MaterialTheme.typography.subtitle1.copy(
+            style = CodeTheme.typography.subtitle1.copy(
                 fontWeight = FontWeight.Bold
             ),
         )
@@ -168,7 +169,7 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
                     text = if (isPhoneLinked) stringResource(id = R.string.title_linked)
                     else stringResource(id = R.string.title_notLinked),
                     color = BrandLight,
-                    style = MaterialTheme.typography.caption.copy(
+                    style = CodeTheme.typography.caption.copy(
                         fontSize = 12.sp
                     ),
                 )

@@ -37,7 +37,7 @@ fun BillAmount(modifier: Modifier = Modifier, text: String = "") {
             )
             Text(
                 text = text,
-                style = MaterialTheme.typography.h1.copy(
+                style = CodeTheme.typography.h1.copy(
                     fontSize = 40.nonScaledSp
                 ),
                 color = CodeTheme.colors.onBackground
