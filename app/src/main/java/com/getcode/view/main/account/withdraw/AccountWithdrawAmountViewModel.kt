@@ -1,21 +1,23 @@
 package com.getcode.view.main.account.withdraw
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.WithdrawalAddressScreen
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
-import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.view.main.giveKin.*
+import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
+import com.getcode.view.main.giveKin.AmountUiModel
+import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
+import com.getcode.view.main.giveKin.CurrencyUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,13 +30,12 @@ data class AccountWithdrawAmountUiModel(
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val amountModel: AmountUiModel = AmountUiModel(),
     val continueEnabled: Boolean = false,
-    val currencySelectorVisible: Boolean = false
 )
 
 @HiltViewModel
 class AccountWithdrawAmountViewModel @Inject constructor(
     client: Client,
-    currencyRepository: CurrencyRepository,
+    exchange: Exchange,
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
@@ -43,7 +44,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,
-    currencyRepository,
+    exchange,
     balanceRepository,
     localeHelper,
     currencyUtils,
@@ -63,11 +64,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
         onAmountChanged(true)
         viewModelScope.launch {
             uiFlow.update {
-                it.copy(
-                    currencySelectorVisible = false,
-                    currencyModel = it.currencyModel.copy(currencySearchText = ""),
-                    continueEnabled = false
-                )
+                it.copy(continueEnabled = false)
             }
         }
     }
@@ -95,7 +92,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
                 uiModel.amountModel.amountText,
                 currencyCode,
                 currencyResId,
-                uiModel.currencyModel.currenciesMap[currencyCode]?.rate
+                uiModel.currencyModel.currencies.firstOrNull { it.code == currencyCode }?.rate
             )
         )
     }
