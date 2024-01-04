@@ -1,5 +1,6 @@
 package com.getcode.theme
 
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.graphics.Color
 
 val Brand = Color(0xff0F0C1F)
@@ -25,3 +26,8 @@ val topInfo = Color(0xFF4f49ce)
 val topNeutral = Color(0xFF747474)
 
 val green = Color(0xFF87D300)
+
+val textSelectionColors = TextSelectionColors(
+    handleColor = White,
+    backgroundColor = BrandLight.copy(alpha = 0.4f)
+)
