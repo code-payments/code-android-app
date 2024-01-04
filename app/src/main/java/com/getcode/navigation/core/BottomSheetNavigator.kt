@@ -5,13 +5,11 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.ModalBottomSheetDefaults
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.SwipeableDefaults
-import androidx.compose.material.contentColorFor
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -30,6 +28,7 @@ import cafe.adriel.voyager.core.annotation.InternalVoyagerApi
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.core.stack.SnapshotStateStack
 import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -116,7 +115,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
         get() = sheetState.isVisible
 
 
-    private var shownSheetScreens: MutableList<Screen> = mutableListOf()
+    private val sheetStacks = SheetStacks(LinkedHashMap())
 
     val progress: Float
         get() {
@@ -132,9 +131,10 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 
     fun show(screen: Screen) {
         coroutineScope.launch {
-            if (shownSheetScreens.isEmpty()) {
+            if (sheetStacks.isEmpty) {
                 replaceAll(screen)
-                shownSheetScreens.add(screen)
+                // setup stack
+                sheetStacks.push(screen)
                 sheetState.show()
             } else {
                 hideAndShow(screen)
@@ -144,10 +144,13 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 
     private suspend fun hideAndShow(screen: Screen) {
         if (isVisible) {
+            // animate sheet out
             sheetState.hide()
+            // replacing w/ dummy sheet
             replaceAll(HiddenBottomSheetScreen)
-
-            shownSheetScreens.add(screen)
+            // push new stack
+            sheetStacks.push(screen)
+            // show new sheet
             replaceAll(screen)
             sheetState.show()
         }
@@ -159,6 +162,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
             if (isVisible) {
                 sheetState.hide()
                 replaceAll(HiddenBottomSheetScreen)
+                sheetStacks.pop()
                 showPreviousSheet()
             } else if (sheetState.targetValue == ModalBottomSheetValue.Hidden) {
                 // Swipe down - sheetState is already hidden here so `isVisible` is false
@@ -169,25 +173,28 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 
     override fun push(item: Screen) {
         if (isVisible) {
-            shownSheetScreens.add(item)
+            sheetStacks.pushToLastStack(item)
         }
         navigator.push(item)
     }
 
     override fun pop(): Boolean {
         if (isVisible) {
-            shownSheetScreens.removeLastOrNull()
+            sheetStacks.popFromLastStack()
         }
         return navigator.pop()
     }
 
     private suspend fun showPreviousSheet() {
-        shownSheetScreens.removeLastOrNull()
-        if (shownSheetScreens.isNotEmpty()) {
-            replaceAll(shownSheetScreens)
-            sheetState.show()
+        if (!sheetStacks.isEmpty) {
+            val screens =sheetStacks.lastItemOrNull?.second.orEmpty()
+            if (screens.isNotEmpty()) {
+                replaceAll(screens)
+                sheetState.show()
+            }
         }
     }
+
 
     @Composable
     fun saveableState(
@@ -227,3 +234,36 @@ private object HiddenBottomSheetScreen : Screen {
         }
     }
 }
+
+private class SheetStacks(
+    map: LinkedHashMap<Screen, List<Screen>>
+): Stack<Pair<Screen, List<Screen>>> by map.toMutableStateStack() {
+
+    fun pushTo(stackRoot: Screen, screen: Screen) {
+        val stack = items.firstOrNull { it.first == stackRoot } ?: return
+        replace(stackRoot to stack.second + screen)
+    }
+
+    fun popFrom(stackRoot: Screen, screen: Screen) {
+        val stack = items.firstOrNull { it.first == stackRoot } ?: return
+        replace(stackRoot to stack.second - screen)
+    }
+
+    infix fun pushToLastStack(screen: Screen) {
+        val stack = lastItemOrNull ?: return
+        pushTo(stack.first, screen)
+    }
+    infix fun push(screen: Screen) {
+        push(screen to listOf(screen))
+    }
+
+    fun popFromLastStack() {
+        val stack = lastItemOrNull ?: return
+        popFrom(stack.first, stack.second.last())
+    }
+}
+
+private fun <K, V> LinkedHashMap<K, V>.toMutableStateStack(
+    minSize: Int = 0
+): SnapshotStateStack<Pair<K, V>> =
+    SnapshotStateStack(this.toList(), minSize)
