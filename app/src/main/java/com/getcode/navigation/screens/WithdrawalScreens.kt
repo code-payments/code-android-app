@@ -9,6 +9,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.util.getActivityScopedViewModel
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
@@ -32,7 +33,6 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph, ModalContent {
         ModalContainer(backButton = { it is WithdrawalAmountScreen }) {
             AccountWithdrawAmount(viewModel = getViewModel())
         }
-
 
         AnalyticsScreenWatcher(
             lifecycleOwner = LocalLifecycleOwner.current,

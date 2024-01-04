@@ -1,27 +1,26 @@
 package com.getcode.view.main.giveKin
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.CurrencyCode
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import com.getcode.model.KinAmount
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
-import com.getcode.network.repository.*
+import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import timber.log.Timber
+import javax.inject.Inject
 
 data class GiveKinSheetUiModel(
     val currencyModel: CurrencyUiModel = CurrencyUiModel(),
@@ -33,7 +32,7 @@ data class GiveKinSheetUiModel(
 @HiltViewModel
 class GiveKinSheetViewModel @Inject constructor(
     client: Client,
-    currencyRepository: CurrencyRepository,
+    private val exchange: Exchange,
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
@@ -42,7 +41,7 @@ class GiveKinSheetViewModel @Inject constructor(
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,
-    currencyRepository,
+    exchange,
     balanceRepository,
     localeHelper,
     currencyUtils,
@@ -70,7 +69,7 @@ class GiveKinSheetViewModel @Inject constructor(
         }
     }
 
-    fun onSubmit(): KinAmount? {
+    suspend fun onSubmit(): KinAmount? {
         val uiModel = uiFlow.value
         val checkBalanceLimit: () -> Boolean = {
             val isOverBalance =
@@ -87,7 +86,7 @@ class GiveKinSheetViewModel @Inject constructor(
             val isOverLimit = uiModel.amountModel.amountDouble > uiModel.amountModel.sendLimit
             if (isOverLimit) {
                 val currencySymbol = uiModel.currencyModel
-                    .currenciesMap[uiModel.currencyModel.selectedCurrencyCode]
+                    .currencies.firstOrNull { uiModel.currencyModel.selectedCurrencyCode == it.code }
                     ?.symbol
                     .orEmpty()
                 TopBarManager.showMessage(
@@ -106,17 +105,14 @@ class GiveKinSheetViewModel @Inject constructor(
         val amountFiat = uiModel.amountModel.amountDouble
         val amountKin = uiModel.amountModel.amountKin
 
-        //This should not be the information of the selected currency, it should come from the repo
-        val selectedCurrencyRate = runBlocking {
-            return@runBlocking currencyRepository.getRates()
-                .first()[uiModel.currencyModel.selectedCurrencyCode]
-        } ?: return null
-
         val currencyCode =
             CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrencyCode.orEmpty())
                 ?: return null
 
-        return KinAmount.fromFiatAmount(amountKin, amountFiat, selectedCurrencyRate, currencyCode)
+        exchange.fetchRatesIfNeeded()
+        val rate = exchange.rateFor(currencyCode) ?: return null
+
+        return KinAmount.fromFiatAmount(amountKin, amountFiat, rate.fx, currencyCode)
     }
 
     override fun onAmountChanged(lastPressedBackspace: Boolean) {

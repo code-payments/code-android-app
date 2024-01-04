@@ -13,7 +13,6 @@ import com.getcode.network.core.NetworkOracleImpl
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
-import com.getcode.network.repository.CurrencyRepository
 import com.getcode.view.main.connectivity.ConnectionRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -119,7 +118,6 @@ object ApiModule {
         balanceController: BalanceController,
         analyticsManager: AnalyticsManager,
         prefRepository: PrefRepository,
-        currencyRepository: CurrencyRepository,
         transactionReceiver: TransactionReceiver,
         exchange: Exchange
     ): Client {
@@ -130,7 +128,6 @@ object ApiModule {
             accountRepository,
             analyticsManager,
             prefRepository,
-            currencyRepository,
             exchange,
             transactionReceiver,
         )

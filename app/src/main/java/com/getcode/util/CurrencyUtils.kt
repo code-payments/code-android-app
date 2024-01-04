@@ -6,6 +6,7 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
+import com.getcode.model.Rate
 import com.getcode.model.RegionCode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +19,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 
+// TODO: see if Exchange can absorb this?
 @Singleton
 class CurrencyUtils @Inject constructor(
     @ApplicationContext private val context: Context
@@ -31,13 +33,13 @@ class CurrencyUtils @Inject constructor(
         currencies.associateBy { it.code }
     }
 
-    suspend fun getCurrenciesWithRates(rates: Map<String, Double>): List<Currency> = withContext(Dispatchers.Default) {
+    suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> = withContext(Dispatchers.Default) {
         return@withContext currencies
-            .map { it.copy(rate = rates.getOrElse(it.code) { 0.0 }) }
-    }
-
-    suspend fun getCurrenciesMapWithRates(rates: Map<String, Double>): Map<String, Currency> {
-        return getCurrenciesWithRates(rates).associateBy { it.code }
+            .mapNotNull {
+                val code = CurrencyCode.tryValueOf(it.code) ?: return@mapNotNull null
+                val rate = rates[code]?.fx ?: 0.0
+                it.copy(rate = rate)
+            }
     }
 
     fun getCurrency(code: String) = currenciesMap[code]

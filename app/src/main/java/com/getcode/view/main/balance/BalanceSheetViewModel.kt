@@ -21,6 +21,7 @@ import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
 import com.getcode.view.BaseViewModel2
+import com.getcode.view.main.currency.CurrencyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -43,7 +44,6 @@ class BalanceSheetViewModel @Inject constructor(
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     private val resources: ResourceHelper,
-    currencyRepository: CurrencyRepository,
     exchange: Exchange,
     balanceRepository: BalanceRepository,
     prefsRepository: PrefRepository,
@@ -89,10 +89,8 @@ class BalanceSheetViewModel @Inject constructor(
                 dispatchEvent(Dispatchers.Main, Event.OnDebugBucketsEnabled(enabled))
             }.launchIn(viewModelScope)
 
-
         combine(
-            currencyRepository.getRates()
-                .flowOn(Dispatchers.IO)
+            exchange.observeRates()
                 .map { getCurrency(it) }
                 .onEach {
                     dispatchEvent(Event.OnCurrencyFlagChanged(it.resId))
@@ -131,7 +129,7 @@ class BalanceSheetViewModel @Inject constructor(
     }
 
     //TODO manage currency with a repository rather than a static class
-    private suspend fun getCurrency(rates: Map<String, Double>): Currency =
+    private suspend fun getCurrency(rates: Map<CurrencyCode, Rate>): Currency =
         withContext(Dispatchers.Default) {
             val defaultCurrencyCode = localeHelper.getDefaultCurrency()?.code
             return@withContext currencyUtils.getCurrenciesWithRates(rates)

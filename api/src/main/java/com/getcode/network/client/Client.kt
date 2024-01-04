@@ -6,7 +6,6 @@ import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
-import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -16,7 +15,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.*
+import java.util.Timer
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.fixedRateTimer
@@ -32,7 +31,6 @@ class Client @Inject constructor(
     internal val accountRepository: AccountRepository,
     internal val analyticsManager: AnalyticsManager,
     internal val prefRepository: PrefRepository,
-    internal val currencyRepository: CurrencyRepository,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver
 ) {
@@ -77,7 +75,6 @@ class Client @Inject constructor(
 
     private suspend fun poll() {
         balanceController.fetchBalanceSuspend()
-        currencyRepository.fetchRates()
         exchange.fetchRatesIfNeeded()
         fetchLimits()
         fetchPrivacyUpgrades()

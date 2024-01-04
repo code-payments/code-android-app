@@ -17,15 +17,19 @@ import com.getcode.model.Currency
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
+import com.getcode.util.getActivityScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
+import com.getcode.view.main.account.withdraw.AccountWithdrawAmountViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.currency.CurrencySelectionSheet
 import com.getcode.view.main.currency.CurrencyViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
+import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import com.getcode.view.main.home.HomeScreen
+import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -41,12 +45,11 @@ data class HomeScreen(val cashLink: String? = null) : AppScreen(), MainGraph {
 
     @Composable
     override fun Content() {
-        val vm = homeViewModel
-        val currencyVm = currencyViewModel
+        val vm = getActivityScopedViewModel<HomeViewModel>()
         HomeScreen(vm, cashLink)
 
         OnScreenResult<Bill> {
-            Timber.d("onshowBill$it")
+            Timber.d("onShowBill=${it.amount.fiat}")
             vm.showBill(it, vibrate = true)
         }
     }
@@ -70,7 +73,7 @@ data object GetKinModal : MainGraph, ModalRoot {
                 }
             },
         ) {
-            GetKinSheet(getViewModel(), homeViewModel)
+            GetKinSheet(getViewModel(), getActivityScopedViewModel())
         }
     }
 }
@@ -93,7 +96,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getViewModel(), getViewModel())
+            GiveKinSheet(getActivityScopedViewModel(), getViewModel())
         }
 
 
@@ -201,7 +204,7 @@ data object CurrencySelectionModal: MainGraph, ModalRoot {
                 }
             }
         ) {
-            CurrencySelectionSheet(viewModel = currencyViewModel)
+            CurrencySelectionSheet(viewModel = getActivityScopedViewModel())
         }
     }
 }

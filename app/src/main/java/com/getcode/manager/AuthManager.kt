@@ -14,6 +14,7 @@ import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.*
 import com.getcode.util.AccountUtils
 import com.getcode.util.resources.ResourceHelper
@@ -23,7 +24,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -36,13 +40,13 @@ class AuthManager @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val pushRepository: PushRepository,
     private val prefRepository: PrefRepository,
-    private val currencyRepository: CurrencyRepository,
+    private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val inMemoryDao: InMemoryDao,
     private val analyticsManager: AnalyticsManager,
     private val client: Client,
     private val resources: ResourceHelper,
-) {
+): CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
     fun init(activity: Activity) {
@@ -187,7 +191,7 @@ class AuthManager @Inject constructor(
             .doOnSuccess {
                 savePrefs(phone!!, user!!)
                 updateFcmToken(owner, user!!.dataContainerId.toByteArray())
-                currencyRepository.fetchRates()
+                launch { exchange.fetchRatesIfNeeded() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
             }
     }

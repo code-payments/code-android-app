@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -32,18 +33,20 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.connectivity.NetworkConnectionViewModel
+import com.getcode.view.main.currency.CurrencyViewModel
+import kotlinx.coroutines.launch
 
 @Preview
 @Composable
 fun GiveKinSheet(
     viewModel: GiveKinSheetViewModel = hiltViewModel(),
     connectionViewModel: NetworkConnectionViewModel = hiltViewModel(),
-    billToSend: (Bill) -> Unit = { },
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
     val connectionState by connectionViewModel.connectionStatus.collectAsState()
+    val composeScope = rememberCoroutineScope()
 
     RepeatOnLifecycle(
         targetState = Lifecycle.State.RESUMED,
@@ -92,7 +95,6 @@ fun GiveKinSheet(
                             }
                     ) {
                         navigator.show(CurrencySelectionModal)
-//                        viewModel.setCurrencySelectorVisible(true)
                     }
 
                     CodeKeyPad(
@@ -126,8 +128,10 @@ fun GiveKinSheet(
                                 return@CodeButton
                             }
 
-                            val amount = viewModel.onSubmit() ?: return@CodeButton
-                            navigator.hideWithResult(Bill.Cash(amount))
+                            composeScope.launch {
+                                val amount = viewModel.onSubmit() ?: return@launch
+                                navigator.hideWithResult(Bill.Cash(amount))
+                            }
                         },
                         enabled = dataState.continueEnabled,
                         text = stringResource(R.string.action_next),

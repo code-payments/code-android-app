@@ -2,12 +2,10 @@ package com.getcode.view.main.currency
 
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.model.ScreenModel
-import com.getcode.App
 import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.PrefsString
-import com.getcode.network.repository.CurrencyRepository
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
@@ -18,14 +16,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -39,7 +35,7 @@ import javax.inject.Inject
 class CurrencyViewModel @Inject constructor(
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
-    currencyRepository: CurrencyRepository,
+    exchange: Exchange,
     prefsRepository: PrefRepository,
     private val resources: ResourceHelper,
 ): BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
@@ -69,8 +65,7 @@ class CurrencyViewModel @Inject constructor(
 
 
     init {
-        currencyRepository.getRates()
-            .flowOn(Dispatchers.IO)
+        exchange.observeRates()
             .onStart { dispatchEvent(Dispatchers.Main, Event.OnLoadingChanged(true)) }
             .distinctUntilChanged()
             .map { rates -> currencyUtils.getCurrenciesWithRates(rates) }
@@ -83,7 +78,7 @@ class CurrencyViewModel @Inject constructor(
             ).distinctUntilChanged()
             .mapNotNull { currencyUtils.getCurrency(it) }
             .mapNotNull { currencyWithoutRate ->
-                val currencies = currencyUtils.getCurrenciesWithRates(currencyRepository.getRatesAsMap())
+                val currencies = currencyUtils.getCurrenciesWithRates(exchange.rates())
                 currencies.find { it.code == currencyWithoutRate.code }
             }
             .onEach { dispatchEvent(Event.OnSelectedCurrencyChanged(it, false)) }
@@ -101,7 +96,7 @@ class CurrencyViewModel @Inject constructor(
                         )
                         .map { it.split(",") }
                 ) { selectedCode, recentCodes ->
-                    val currencies = currencyUtils.getCurrenciesWithRates(currencyRepository.getRatesAsMap())
+                    val currencies = currencyUtils.getCurrenciesWithRates(exchange.rates())
                     recentCodes
                         .mapNotNull { currencies.find { c -> c.code == it } }
                         .sortedBy { c -> c.code }

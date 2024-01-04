@@ -13,18 +13,6 @@ import kotlinx.parcelize.Parcelize
  */
 @Parcelize
 internal sealed interface MainGraph : Screen, Parcelable, NamedScreen {
-    /**
-     * Common HomeViewModel for main graph to share
-     */
-    val homeViewModel: HomeViewModel
-        @Composable get() = getActivityScopedViewModel()
-
-    /**
-     * Common CurrencyViewModel for main graph to share
-     */
-    val currencyViewModel: CurrencyViewModel
-        @Composable get() = getActivityScopedViewModel()
-
 
     fun readResolve(): Any = this
 }
