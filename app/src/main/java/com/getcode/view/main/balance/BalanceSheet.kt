@@ -46,7 +46,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.getcode.App
 import com.getcode.R
 import com.getcode.data.transactions.HistoricalTransactionUiModel
 import com.getcode.model.AirdropType
@@ -59,6 +58,7 @@ import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.theme.extraSmall
 import com.getcode.util.Kin
 import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.main.account.AccountDebugBuckets
@@ -132,8 +132,8 @@ fun BalanceContent(
         item {
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 20.dp, vertical = 35.dp)
-                    .padding(bottom = 10.dp)
+                    .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x7)
+                    .padding(bottom = CodeTheme.dimens.grid.x2)
                     .fillParentMaxWidth()
                     .graphicsLayer { translationY = firstItemTranslationY },
             ) {
@@ -178,18 +178,18 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp)
+            .height(CodeTheme.dimens.grid.x12)
     ) {
         Column(
             modifier = Modifier
                 .wrapContentWidth()
                 .align(Alignment.CenterStart)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CodeTheme.dimens.inset)
         ) {
             Text(
                 modifier = Modifier
                     .wrapContentWidth()
-                    .padding(bottom = 3.dp),
+                    .padding(bottom = CodeTheme.dimens.grid.x1),
                 text = when (event.paymentType) {
                     PaymentType.Send ->
                         when {
@@ -214,7 +214,7 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
             Text(
                 modifier = Modifier
                     .wrapContentWidth()
-                    .padding(top = 3.dp),
+                    .padding(top = CodeTheme.dimens.grid.x1),
                 text = event.dateText,
                 color = BrandLight,
                 style = CodeTheme.typography.body2
@@ -223,16 +223,16 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
         Column(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = CodeTheme.dimens.inset),
             horizontalAlignment = Alignment.End
         ) {
             Row {
                 event.currencyResourceId?.let {
                     Image(
                         modifier = Modifier
-                            .padding(end = 10.dp)
-                            .size(13.dp)
-                            .clip(RoundedCornerShape(6.dp))
+                            .padding(end = CodeTheme.dimens.grid.x2)
+                            .size(CodeTheme.dimens.grid.x3)
+                            .clip(CodeTheme.shapes.extraSmall)
                             .align(CenterVertically),
                         painter = painterResource(id = event.currencyResourceId),
                         contentDescription = ""
@@ -245,13 +245,12 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
             }
             if (!event.isKin) {
                 Row(
-                    modifier = Modifier.padding(top = 12.dp)
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3)
                 ) {
                     Image(
                         modifier = Modifier
-                            .padding(end = 5.dp)
-                            .height(10.dp)
-                            .width(10.dp)
+                            .padding(end = CodeTheme.dimens.grid.x1)
+                            .size(CodeTheme.dimens.staticGrid.x2)
                             .align(CenterVertically),
                         painter = painterResource(id = R.drawable.ic_kin_brand),
                         contentDescription = ""
@@ -269,7 +268,7 @@ fun TransactionItem(event: HistoricalTransactionUiModel) {
             color = White10,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .height(0.5.dp)
                 .align(BottomCenter)
         )
@@ -327,7 +326,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
         }
         ClickableText(
             modifier = Modifier
-                .padding(horizontal = 3.dp),
+                .padding(horizontal = CodeTheme.dimens.grid.x1),
             text = annotatedBalanceString,
             style = CodeTheme.typography.body1,
             onClick = {
@@ -349,7 +348,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
     Column(
         modifier = Modifier
             .height(200.dp)
-            .padding(horizontal = 30.dp),
+            .padding(horizontal = CodeTheme.dimens.grid.x6),
         verticalArrangement = Arrangement.Bottom,
     ) {
         Row(
@@ -357,7 +356,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                 .align(CenterHorizontally)
         ) {
             Text(
-                modifier = Modifier.padding(vertical = 5.dp),
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1),
                 text = stringResource(R.string.subtitle_dontHaveKin),
                 color = BrandLight,
                 style = CodeTheme.typography.body1

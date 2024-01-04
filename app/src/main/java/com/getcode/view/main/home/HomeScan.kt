@@ -22,10 +22,10 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.Composable
@@ -48,7 +48,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
@@ -74,7 +73,6 @@ import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -135,18 +133,12 @@ private fun HomeScan(
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 
     val context = LocalContext.current as Activity
-    val systemUiController = rememberSystemUiController()
-
 
     val focusManager = LocalFocusManager.current
     LaunchedEffect(dataState.isCameraScanEnabled) {
         if (dataState.isCameraScanEnabled) {
             focusManager.clearFocus()
         }
-    }
-
-    SideEffect {
-        systemUiController.setSystemBarsColor(Color.Black)
     }
 
     LaunchedEffect(homeViewModel) {
@@ -359,13 +351,13 @@ private fun BillContainer(
                 ) {
                     Column(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp, 12.dp, 0.dp, 0.dp))
+                            .clip(CodeTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize))
                             .background(Brand)
-                            .padding(horizontal = 20.dp, vertical = 15.dp),
+                            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x3),
                         horizontalAlignment = CenterHorizontally
                     ) {
                         Text(
-                            modifier = Modifier.padding(top = 15.dp),
+                            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
                             style = CodeTheme.typography.subtitle1.copy(
                                 fontWeight = FontWeight.Bold
                             ),

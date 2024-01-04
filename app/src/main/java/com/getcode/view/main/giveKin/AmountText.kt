@@ -3,7 +3,6 @@ package com.getcode.view.main.giveKin
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -13,20 +12,18 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.util.WindowSize
 
 @Composable
 fun AmountText(
-    windowSize: WindowSize,
     currencyResId: Int?,
     amountText: String
 ) {
     val textStyleH1 = CodeTheme.typography.h1.copy(textAlign = TextAlign.Center)
     var scaledTextStyle by remember { mutableStateOf(textStyleH1) }
     var isReadyToDraw by remember { mutableStateOf(false) }
+
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -36,8 +33,8 @@ fun AmountText(
             Image(
                 modifier = Modifier
                     .align(CenterVertically)
-                    .size(25.dp)
-                    .clip(RoundedCornerShape(15.dp)),
+                    .size(CodeTheme.dimens.staticGrid.x5)
+                    .clip(RoundedCornerShape(CodeTheme.dimens.staticGrid.x3)),
                 painter = painterResource(currencyResId),
                 contentDescription = ""
             )
@@ -46,14 +43,8 @@ fun AmountText(
             modifier = Modifier
                 .wrapContentWidth()
                 .wrapContentHeight()
-                .padding(start = 15.dp)
-                .padding(
-                    vertical =
-                    when (windowSize) {
-                        WindowSize.SMALL -> 5.dp
-                        WindowSize.REGULAR -> 15.dp
-                    }
-                )
+                .padding(start = CodeTheme.dimens.grid.x3)
+                .padding(vertical = CodeTheme.dimens.grid.x3)
                 .drawWithContent {
                     if (isReadyToDraw) drawContent()
                 },

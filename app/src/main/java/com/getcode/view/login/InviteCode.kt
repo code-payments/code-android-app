@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
@@ -28,7 +27,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,6 +37,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
+import com.getcode.theme.extraSmall
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
@@ -55,8 +54,8 @@ fun InviteCode(
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 50.dp, bottom = 20.dp)
-            .padding(horizontal = 20.dp)
+            .padding(top = CodeTheme.dimens.grid.x10, bottom = CodeTheme.dimens.grid.x4)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
         val (inviteCodeRow, captionText, buttonAction) = createRefs()
@@ -75,9 +74,9 @@ fun InviteCode(
 
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
-                .padding(top = 2.dp)
-                .height(60.dp)
-                .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(5.dp))
+                .padding(top = CodeTheme.dimens.grid.x1)
+                .height(CodeTheme.dimens.grid.x12)
+                .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.extraSmall)
                 .background(White05),
             value = dataState.inviteCode,
             textStyle = CodeTheme.typography.subtitle1,
@@ -108,9 +107,10 @@ fun InviteCode(
             }
         )
 
+        val x4 = CodeTheme.dimens.grid.x4
         Text(
             modifier = Modifier.constrainAs(captionText) {
-                linkTo(inviteCodeRow.bottom, captionText.top, topMargin = 20.dp)
+                linkTo(inviteCodeRow.bottom, captionText.top, topMargin = x4)
             },
             style = CodeTheme.typography.body2.copy(
                 textAlign = TextAlign.Center

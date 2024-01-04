@@ -32,13 +32,13 @@ fun AccountFaq(
 
     LazyColumn(
         contentPadding = PaddingValues(
-            horizontal = 20.dp,
+            horizontal = CodeTheme.dimens.inset,
         ),
-        verticalArrangement = Arrangement.spacedBy(55.dp)
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x11)
     ) {
         items(dataState.faqItems) { faqResponse ->
             Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
             ) {
                 Text(
                     text = faqResponse.question,

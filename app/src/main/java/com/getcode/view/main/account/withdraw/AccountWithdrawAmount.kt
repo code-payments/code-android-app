@@ -1,6 +1,5 @@
 package com.getcode.view.main.account.withdraw
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +13,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
@@ -23,6 +21,7 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
 import com.getcode.util.AnimationUtils
 import com.getcode.util.RepeatOnLifecycle
@@ -30,7 +29,6 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.giveKin.AmountArea
-import com.getcode.view.main.currency.CurrencyList
 
 @Composable
 fun AccountWithdrawAmount(
@@ -96,7 +94,7 @@ fun AccountWithdrawAmount(
                     CodeKeyPad(
                         modifier = Modifier
                             .wrapContentSize()
-                            .padding(bottom = 20.dp)
+                            .padding(bottom = CodeTheme.dimens.inset)
                             .constrainAs(keyPad) {
                                 bottom.linkTo(button.top)
                                 start.linkTo(parent.start)
@@ -111,7 +109,7 @@ fun AccountWithdrawAmount(
 
                     CodeButton(
                         modifier = Modifier
-                            .padding(horizontal = 20.dp)
+                            .padding(horizontal = CodeTheme.dimens.inset)
                             .constrainAs(button) {
                                 bottom.linkTo(parent.bottom)
                                 start.linkTo(parent.start)

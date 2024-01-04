@@ -11,7 +11,7 @@ import com.getcode.theme.CodeTheme
 
 @Composable
 fun TextSection(title: String, description: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
         Text(
             text = title,
             style = CodeTheme.typography.h6.copy(

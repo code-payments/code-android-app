@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.xxl
 import com.getcode.view.main.home.components.HomeBottom
 import timber.log.Timber
 
@@ -52,8 +53,8 @@ internal fun DecorView(
         Image(
             modifier = Modifier
                 .statusBarsPadding()
-                .padding(vertical = 15.dp)
-                .padding(horizontal = 15.dp)
+                .padding(vertical = CodeTheme.dimens.grid.x3)
+                .padding(horizontal = CodeTheme.dimens.grid.x3)
                 .align(Alignment.TopStart),
             painter = painterResource(
                 R.drawable.ic_code_logo_white
@@ -64,8 +65,8 @@ internal fun DecorView(
         Image(
             modifier = Modifier
                 .statusBarsPadding()
-                .padding(vertical = 10.dp)
-                .padding(horizontal = 15.dp)
+                .padding(vertical = CodeTheme.dimens.grid.x2)
+                .padding(horizontal = CodeTheme.dimens.grid.x3)
                 .align(Alignment.TopEnd)
                 .clip(CircleShape)
                 .clickable {
@@ -82,7 +83,7 @@ internal fun DecorView(
             AnimatedVisibility(
                 modifier = Modifier
                     .align(Alignment.End)
-                    .padding(end = 25.dp, bottom = 16.dp),
+                    .padding(end = CodeTheme.dimens.grid.x5, bottom = CodeTheme.dimens.grid.x3),
                 visible = dataState.billState.showToast,
                 enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
                         fadeIn(animationSpec = tween(500, 100)),
@@ -94,9 +95,9 @@ internal fun DecorView(
                 Row(
                     modifier = Modifier
                         .wrapContentSize()
-                        .clip(RoundedCornerShape(25.dp))
+                        .clip(CodeTheme.shapes.xxl)
                         .background(Black50)
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                        .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x1),
                 ) {
                     val toast = dataState.billState.toast
                     Timber.d("toast=$toast")
@@ -113,7 +114,7 @@ internal fun DecorView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = CodeTheme.dimens.grid.x3),
                 onPress = {
                     showBottomSheet(it)
                 },

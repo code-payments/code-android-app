@@ -27,10 +27,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -96,7 +94,7 @@ fun AccountAccessKey(
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
     ) {
         val (seedView, captionText, buttonAction) = createRefs()
 
@@ -131,7 +129,7 @@ fun AccountAccessKey(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }
-                .padding(vertical = 10.dp),
+                .padding(vertical = CodeTheme.dimens.grid.x2),
             style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
             color = BrandLight,
             text = stringResource(R.string.subtitle_accessKeyDescription)

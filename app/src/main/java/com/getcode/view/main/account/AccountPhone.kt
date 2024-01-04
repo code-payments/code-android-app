@@ -41,22 +41,22 @@ fun AccountPhone(
         modifier = Modifier
             .background(Brand)
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
     ) {
         val (image, title, text, button) = createRefs()
         Image(
             modifier = Modifier
-                .padding(bottom = 30.dp)
+                .padding(bottom = CodeTheme.dimens.staticGrid.x6)
                 .constrainAs(image) {
                     bottom.linkTo(title.top, 0.dp)
                 }
-                .size(85.dp),
+                .size(CodeTheme.dimens.staticGrid.x17),
             painter = painterResource(id = if (dataState.isLinked) R.drawable.ic_phone_filled else R.drawable.ic_phone_empty),
             contentDescription = ""
         )
         Text(
             modifier = Modifier
-                .padding(bottom = 30.dp)
+                .padding(bottom = CodeTheme.dimens.grid.x6)
                 .constrainAs(title) {
                     centerVerticallyTo(parent, 0.4f)
                 },
@@ -96,7 +96,7 @@ fun AccountPhone(
             text = if (!dataState.isLinked) stringResource(R.string.action_linkPhoneNumber) else stringResource(R.string.action_removeYourPhoneNumber),
             buttonState = if (!dataState.isLinked) ButtonState.Filled else ButtonState.Filled10,
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(button) {
                     bottom.linkTo(parent.bottom)
                 }

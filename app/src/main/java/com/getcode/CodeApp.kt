@@ -38,8 +38,6 @@ import com.getcode.view.components.CodeScaffold
 import com.getcode.view.components.TitleBar
 import com.getcode.view.components.TopBarContainer
 
-val LocalNetwork: ProvidableCompositionLocal<NetworkUtils> = staticCompositionLocalOf { NetworkUtilsStub() }
-
 @Composable
 fun CodeApp() {
     CodeTheme {
@@ -53,6 +51,8 @@ fun CodeApp() {
                     screen = MainRoot,
                 ) { navigator ->
                     val codeNavigator = LocalCodeNavigator.current
+                    appState.navigator = codeNavigator
+
                     LaunchedEffect(navigator.lastItem) {
                         // update global navigator for platform access to support push/pop from a single
                         // navigator current
@@ -68,7 +68,9 @@ fun CodeApp() {
                         )
                     }
 
-                    Box(modifier = Modifier.padding(innerPaddingModifier)) {
+                    Box(modifier = Modifier
+                        .padding(innerPaddingModifier)
+                    ) {
                         if (navigator.lastItem is LoginScreen) {
                             CrossfadeTransition(navigator = navigator)
                         } else {

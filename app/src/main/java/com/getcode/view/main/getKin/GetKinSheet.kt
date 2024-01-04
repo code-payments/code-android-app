@@ -110,7 +110,7 @@ fun GetKinSheet(
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = CodeTheme.dimens.inset),
     ) {
         val (topSection, bottomSection) = createRefs()
 
@@ -126,17 +126,17 @@ fun GetKinSheet(
             Image(
                 painter = painterResource(R.drawable.ic_graphic_wallet),
                 contentDescription = "",
-                modifier = Modifier.padding(vertical = 10.dp),
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
             )
             Text(
                 text = stringResource(R.string.title_getKin),
                 style = CodeTheme.typography.h1,
-                modifier = Modifier.padding(vertical = 15.dp),
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
             )
             Text(
                 text = stringResource(R.string.subtitle_getKin),
                 style = CodeTheme.typography.body1,
-                modifier = Modifier.padding(vertical = 10.dp),
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
             )
         }
 
@@ -170,17 +170,17 @@ fun GetKinSheet(
                             ) {
                                 Modifier.clickable { item.onClick() }
                             }
-                            .padding(vertical = 20.dp, horizontal = 10.dp),
+                            .padding(vertical = CodeTheme.dimens.grid.x4, horizontal = CodeTheme.dimens.grid.x2),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Image(
-                            modifier = Modifier.size(25.dp),
+                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
                             painter = if (item.isActive) painterResource(id = item.imageResId) else painterResource(id = item.inactiveImageResId),
                             contentDescription = "",
                         )
                         Column(
                             modifier = Modifier
-                                .padding(start = 17.dp)
+                                .padding(start = CodeTheme.dimens.grid.x3)
                                 .weight(1f),
                         ) {
                             Text(
@@ -192,7 +192,7 @@ fun GetKinSheet(
                             )
                             item.subtitleTextResId?.let {
                                 Text(
-                                    modifier = Modifier.padding(top = 3.dp),
+                                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                                     text = stringResource(it),
                                     style = CodeTheme.typography.caption,
                                     fontSize = 13.sp,
@@ -203,15 +203,15 @@ fun GetKinSheet(
 
                         if (item.isLoading) {
                             CodeCircularProgressIndicator(
-                                strokeWidth = 2.dp,
+                                strokeWidth = CodeTheme.dimens.thickBorder,
                                 color = White,
                                 modifier = Modifier
-                                    .size(20.dp)
+                                    .size(CodeTheme.dimens.grid.x3)
                                     .align(Alignment.CenterVertically),
                             )
                         } else if (item.isActive) {
                             Image(
-                                modifier = Modifier.padding(start = 10.dp),
+                                modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
                                 painter = painterResource(R.drawable.ic_chevron_right),
                                 contentDescription = "",
                             )

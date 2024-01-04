@@ -1,6 +1,5 @@
 package com.getcode.view.main.getKin
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,8 +14,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
-import com.getcode.App
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
@@ -30,7 +26,7 @@ fun ReferFriend() {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
     ) {
         val (textSection, button) = createRefs()
 
@@ -43,18 +39,18 @@ fun ReferFriend() {
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }
-                .padding(bottom=80.dp),
+                .padding(bottom= CodeTheme.dimens.grid.x16),
                 verticalArrangement = Arrangement.Center,
         ) {
             Text(
                 text = stringResource(R.string.title_getFriendStartedOnCode),
                 style = CodeTheme.typography.h1,
-                modifier = Modifier.padding(vertical = 15.dp)
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3)
             )
             Text(
                 text = stringResource(R.string.subtitle_getFriendStartedOnCode),
                 style = CodeTheme.typography.body1,
-                modifier = Modifier.padding(vertical = 10.dp)
+                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2)
             )
         }
 
@@ -63,7 +59,7 @@ fun ReferFriend() {
                 .constrainAs(button) {
                     bottom.linkTo(parent.bottom)
                 }
-                .padding(bottom = 10.dp),
+                .padding(bottom = CodeTheme.dimens.grid.x2),
             onClick = {
                 shareDownloadLink(context)
             },

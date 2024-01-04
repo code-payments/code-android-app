@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,16 +20,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
@@ -69,7 +63,7 @@ fun BuyAndSellKin(
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = CodeTheme.dimens.inset),
     ) {
         val (topSection) = createRefs()
 
@@ -86,14 +80,14 @@ fun BuyAndSellKin(
                 Text(
                     text = stringResource(R.string.title_buyAndSellKin),
                     style = CodeTheme.typography.h1,
-                    modifier = Modifier.padding(vertical = 15.dp),
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
                 )
             }
             item {
                 Text(
                     text = stringResource(R.string.subtitle_buySellDescription),
                     style = CodeTheme.typography.body1,
-                    modifier = Modifier.padding(vertical = 30.dp),
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x6),
                 )
             }
 
@@ -117,7 +111,7 @@ fun BuyAndSellKin(
                 )
 
                 CodeButton(
-                    modifier = Modifier.padding(bottom = 30.dp),
+                    modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x6),
                     onClick = {
                         viewModel.dispatchEvent(BuyAndSellKinViewModel.Event.ShareVideo(item.link))
                     },
@@ -140,7 +134,7 @@ private fun VideoThumbnail(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 10.dp)
+            .padding(bottom = CodeTheme.dimens.grid.x2)
             .clip(CodeTheme.shapes.small)
             .clickable { onVideoClick(context, link) },
 
@@ -157,7 +151,7 @@ private fun VideoThumbnail(
 
         Image(
             modifier = Modifier
-                .size(70.dp)
+                .size(CodeTheme.dimens.staticGrid.x14)
                 .align(Alignment.Center),
             painter = painterResource(id = R.drawable.youtube),
             contentDescription = "Youtube Logo",

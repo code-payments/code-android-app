@@ -36,7 +36,8 @@ fun CodeTheme(
     val sysUiController = rememberSystemUiController()
 
     SideEffect {
-        sysUiController.setSystemBarsColor(color = Color(0x01000000))
+        sysUiController.setStatusBarColor(color = Color(0x01000000))
+        sysUiController.setNavigationBarColor(color = Color(0x01000000))
     }
 
     val dimensions = calculateDimensions()

@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import cafe.adriel.voyager.core.screen.Screen
+import com.getcode.LocalDeeplinks
 import com.getcode.manager.SessionManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
@@ -15,7 +16,6 @@ import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
-import com.getcode.util.LocalDeeplinks
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn

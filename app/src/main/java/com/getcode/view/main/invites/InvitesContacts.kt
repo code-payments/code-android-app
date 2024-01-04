@@ -40,7 +40,7 @@ fun InvitesContacts(
             Text(
                 modifier = Modifier
                     .align(CenterHorizontally)
-                    .padding(top = 100.dp, bottom = 30.dp),
+                    .padding(top = 100.dp, bottom = CodeTheme.dimens.grid.x6),
                 text = stringResource(id = R.string.subtitle_organizingContacts),
                 style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             )
@@ -48,7 +48,7 @@ fun InvitesContacts(
             CodeCircularProgressIndicator(
                 modifier = Modifier
                     .align(CenterHorizontally)
-                    .padding(vertical = 20.dp)
+                    .padding(vertical = CodeTheme.dimens.grid.x4)
             )
         } else {
             TextField(
@@ -75,7 +75,7 @@ fun InvitesContacts(
                 style = CodeTheme.typography.body2
                     .copy(textAlign = TextAlign.Center),
                 modifier = Modifier.padding(
-                    vertical = 14.dp
+                    vertical = CodeTheme.dimens.grid.x3
                 )
             )
             CodeButton(
@@ -101,11 +101,11 @@ fun InvitesContacts(
                     Row(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
-                            .padding(start = 15.dp)
+                            .padding(start = CodeTheme.dimens.grid.x3)
                     ) {
                         Box(
                             modifier = Modifier
-                                .padding(end = 20.dp)
+                                .padding(end = CodeTheme.dimens.grid.x4)
                         ) {
                             Image(
                                 painter = painterResource(
@@ -121,18 +121,17 @@ fun InvitesContacts(
                             )
                         }
                         Column(
-                            modifier = Modifier.align(CenterVertically)
+                            modifier = Modifier.align(CenterVertically),
+                            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
                         ) {
                             Text(
                                 modifier = Modifier
-                                    .padding(bottom = 2.dp)
                                     .fillMaxWidth(.6f),
                                 text = contact.name,
                                 style = CodeTheme.typography.body1,
 
                                 )
                             Text(
-                                modifier = Modifier.padding(top = 2.dp),
                                 text = contact.phoneNumberFormatted,
                                 style = CodeTheme.typography.body2.copy(
                                     color = BrandLight
@@ -145,11 +144,11 @@ fun InvitesContacts(
                         Row(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
-                                .padding(end = 15.dp)
+                                .padding(end = CodeTheme.dimens.grid.x3)
                         ) {
                             Image(
                                 modifier = Modifier
-                                    .padding(end = 10.dp),
+                                    .padding(end = CodeTheme.dimens.grid.x2),
                                 painter = painterResource(
                                     R.drawable.ic_check
                                 ),
@@ -166,10 +165,10 @@ fun InvitesContacts(
                         Button(
                             onClick = { onClick(contact) },
                             modifier = Modifier
-                                .padding(end = 15.dp)
-                                .height(30.dp)
+                                .padding(end = CodeTheme.dimens.grid.x3)
+                                .height(CodeTheme.dimens.grid.x6)
                                 .align(Alignment.CenterEnd),
-                            shape = RoundedCornerShape(25.dp),
+                            shape = RoundedCornerShape(CodeTheme.dimens.staticGrid.x5),
                             colors = getButtonColors(buttonState),
                             border = getButtonBorder(buttonState),
                             elevation = ButtonDefaults.elevation(
@@ -187,7 +186,7 @@ fun InvitesContacts(
                                     }
                                 ),
                                 style = CodeTheme.typography.button,
-                                modifier = Modifier.padding(horizontal = 10.dp)
+                                modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x2)
                             )
                         }
                     }

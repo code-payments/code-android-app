@@ -22,11 +22,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
@@ -102,8 +100,8 @@ fun AccessKey(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 20.dp)
-            .padding(top = 85.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(top = CodeTheme.dimens.grid.x17)
     ) {
         val (seedView, captionText, buttonAction, buttonSkip) = createRefs()
 
@@ -146,7 +144,7 @@ fun AccessKey(
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 }
-                .padding(vertical = 10.dp),
+                .padding(vertical = CodeTheme.dimens.grid.x2),
             style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
             color = BrandLight,
             text = stringResource(R.string.subtitle_accessKeyDescription)
@@ -170,7 +168,7 @@ fun AccessKey(
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 10.dp)
+                .padding(bottom = CodeTheme.dimens.grid.x2)
                 .constrainAs(buttonSkip) {
                     linkTo(buttonSkip.bottom, parent.bottom, bias = 1.0F)
                 },

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraLarge
 
 
 @Composable
@@ -29,7 +30,7 @@ fun CodeScaffold(
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     isFloatingActionButtonDocked: Boolean = false,
     drawerContent: @Composable (ColumnScope.() -> Unit)? = null,
-    drawerShape: Shape = CodeTheme.shapes.large,
+    drawerShape: Shape = CodeTheme.shapes.extraLarge,
     drawerElevation: Dp = DrawerDefaults.Elevation,
     drawerBackgroundColor: Color = CodeTheme.colors.background,
     drawerContentColor: Color = CodeTheme.colors.onBackground,

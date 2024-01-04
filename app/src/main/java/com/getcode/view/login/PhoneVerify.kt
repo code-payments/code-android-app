@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Divider
@@ -74,6 +75,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
+import com.getcode.theme.extraSmall
 import com.getcode.theme.sheetHeight
 import com.getcode.util.PhoneUtils
 import com.getcode.util.getActivity
@@ -129,8 +131,8 @@ internal fun PhoneVerify(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(top = 50.dp, bottom = 20.dp)
-            .padding(horizontal = 20.dp)
+            .padding(top = CodeTheme.dimens.grid.x10, bottom = CodeTheme.dimens.grid.x4)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
         val (countryCodeRow, captionText, buttonAction) = createRefs()
@@ -145,32 +147,34 @@ internal fun PhoneVerify(
                         verticalBias = 0.4f
                     )
                 }
-                .height(60.dp)
-                .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(5.dp))
+                .height(CodeTheme.dimens.grid.x12)
+                .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.extraSmall)
                 .background(White05)
         ) {
             Row(
                 modifier = Modifier
-                    .height(60.dp)
-                    .clip(RoundedCornerShape(topStart = 5.dp, bottomStart = 5.dp))
-                    .clickable { showAreaCodes() }
+                    .height(CodeTheme.dimens.grid.x12)
+                    .clip(
+                        CodeTheme.shapes.extraSmall
+                            .copy(bottomEnd = ZeroCornerSize, topEnd = ZeroCornerSize)
+                    ).clickable { showAreaCodes() }
             ) {
                 dataState.countryLocale.resId?.let { resId ->
                     Image(
                         modifier = Modifier
                             .align(CenterVertically)
-                            .padding(start = 15.dp)
-                            .size(25.dp)
-                            .clip(RoundedCornerShape(15.dp)),
+                            .padding(start = CodeTheme.dimens.grid.x3)
+                            .size(CodeTheme.dimens.staticGrid.x5)
+                            .clip(CodeTheme.shapes.large),
                         painter = painterResource(resId),
                         contentDescription = "",
                     )
                 }
                 Text(
                     modifier = Modifier
-                        .height(60.dp)
+                        .height(CodeTheme.dimens.grid.x12)
                         .align(CenterVertically)
-                        .padding(horizontal = 15.dp, vertical = 18.dp),
+                        .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x4),
                     style = CodeTheme.typography.subtitle1,
                     text = "+${dataState.countryLocale.phoneCode}"
                 )
@@ -179,13 +183,13 @@ internal fun PhoneVerify(
                 modifier = Modifier
                     .background(BrandLight)
                     .width(1.dp)
-                    .height(60.dp)
+                    .height(CodeTheme.dimens.grid.x12)
             )
             TextField(
                 modifier = Modifier
                     .wrapContentWidth()
                     .focusRequester(focusRequester)
-                    .padding(top = 2.dp),
+                    .padding(top = CodeTheme.dimens.grid.x1),
                 value = dataState.phoneNumberFormattedTextFieldValue,
                 textStyle = CodeTheme.typography.subtitle1,
                 keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone),
@@ -219,9 +223,10 @@ internal fun PhoneVerify(
 
         }
 
+        val inset = CodeTheme.dimens.inset
         Text(
             modifier = Modifier.constrainAs(captionText) {
-                linkTo(countryCodeRow.bottom, captionText.top, topMargin = 20.dp)
+                linkTo(countryCodeRow.bottom, captionText.top, topMargin = inset)
             },
             style = CodeTheme.typography.body2.copy(
                 textAlign = TextAlign.Center
@@ -351,9 +356,9 @@ private fun PhoneAreaSelect(
                         Image(
                             modifier = Modifier
                                 .align(CenterVertically)
-                                .padding(start = 20.dp)
-                                .size(25.dp)
-                                .clip(RoundedCornerShape(15.dp)),
+                                .padding(start = CodeTheme.dimens.inset)
+                                .size(CodeTheme.dimens.staticGrid.x5)
+                                .clip(CodeTheme.shapes.large),
                             painter = painterResource(id = resId),
                             contentDescription = ""
                         )
@@ -361,15 +366,15 @@ private fun PhoneAreaSelect(
                     Text(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(vertical = 20.dp)
-                            .padding(start = 20.dp)
+                            .padding(vertical = CodeTheme.dimens.inset)
+                            .padding(start = CodeTheme.dimens.inset)
                             .align(CenterVertically),
                         text = countryCode.name,
                         style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
                         modifier = Modifier
-                            .padding(20.dp)
+                            .padding(CodeTheme.dimens.inset)
                             .align(CenterVertically),
                         color = BrandLight,
                         text = "+${countryCode.phoneCode}",

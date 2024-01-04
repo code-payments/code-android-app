@@ -41,62 +41,65 @@ fun calculateDimensions(
         },
         grid = when (widthSizeClass) {
             WindowSizeClass.COMPACT -> GridDimensionSet(
-                2.dp,
-                4.dp,
-                6.dp,
-                8.dp,
+                2.5.dp,
+                5.dp,
+                7.5.dp,
                 10.dp,
-                12.dp,
-                14.dp,
-                16.dp,
-                18.dp,
+                12.5.dp,
+                15.dp,
+                17.5.dp,
                 20.dp,
-                22.dp,
-                24.dp,
-                26.dp,
-                28.dp,
+                22.5.dp,
+                25.dp,
+                27.5.dp,
                 30.dp,
-                34.dp,
+                32.5.dp,
+                35.dp,
+                37.5.dp,
+                40.dp,
+                42.5.dp
             )
 
             WindowSizeClass.NORMAL -> GridDimensionSet(
-                4.dp,
-                8.dp,
-                12.dp,
-                16.dp,
+                5.dp,
+                10.dp,
+                15.dp,
                 20.dp,
-                24.dp,
-                28.dp,
-                32.dp,
-                36.dp,
+                25.dp,
+                30.dp,
+                35.dp,
                 40.dp,
-                44.dp,
-                48.dp,
-                52.dp,
-                56.dp,
+                45.dp,
+                50.dp,
+                55.dp,
                 60.dp,
-                64.dp,
+                65.dp,
+                70.dp,
+                75.dp,
+                80.dp,
+                85.dp
             )
 
             WindowSizeClass.MEDIUM,
             WindowSizeClass.LARGE,
             -> GridDimensionSet(
-                8.dp,
-                16.dp,
-                24.dp,
-                32.dp,
-                40.dp,
-                48.dp,
-                56.dp,
-                64.dp,
-                72.dp,
-                80.dp,
-                88.dp,
-                96.dp,
-                104.dp,
-                112.dp,
+                7.5.dp,
+                15.dp,
+                22.5.dp,
+                30.dp,
+                37.5.dp,
+                45.dp,
+                52.5.dp,
+                60.dp,
+                67.5.dp,
+                75.dp,
+                82.5.dp,
+                90.dp,
+                97.5.dp,
+                105.dp,
+                112.5.dp,
                 120.dp,
-                124.dp,
+                127.5.dp
             )
         },
         widthWindowSizeClass = widthSizeClass,
@@ -134,6 +137,29 @@ private val staticGridPreset =
         x14 = 56.dp,
         x15 = 60.dp,
         x16 = 64.dp,
+        x17 = 68.dp
+    )
+
+/** Fixed 5pt grid **/
+private val static5GridPreset =
+    GridDimensionSet(
+        x1 = 5.dp,
+        x2 = 10.dp,
+        x3 = 15.dp,
+        x4 = 20.dp,
+        x5 = 25.dp,
+        x6 = 30.dp,
+        x7 = 35.dp,
+        x8 = 40.dp,
+        x9 = 45.dp,
+        x10 = 50.dp,
+        x11 = 55.dp,
+        x12 = 60.dp,
+        x13 = 65.dp,
+        x14 = 70.dp,
+        x15 = 75.dp,
+        x16 = 80.dp,
+        x17 = 85.dp
     )
 
 class Dimensions(
@@ -153,7 +179,7 @@ class Dimensions(
     /**
      * A static grid that is screen size independent based on Material design 4dp spacing
      */
-    val staticGrid: GridDimensionSet = staticGridPreset,
+    val staticGrid: GridDimensionSet = static5GridPreset,
 ) {
     val isMediumWidth: Boolean
         get() = widthWindowSizeClass == WindowSizeClass.MEDIUM
@@ -179,4 +205,5 @@ data class GridDimensionSet(
     val x14: Dp,
     val x15: Dp,
     val x16: Dp,
+    val x17: Dp,
 )

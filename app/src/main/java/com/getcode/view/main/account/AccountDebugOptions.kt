@@ -1,8 +1,10 @@
 package com.getcode.view.main.account
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -11,8 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -53,25 +53,25 @@ fun AccountDebugOptions(
         for (option in options) {
             Row(
                 modifier = Modifier
-                    .padding(horizontal = 15.dp)
-                    .padding(end = 15.dp),
+                    .padding(horizontal = CodeTheme.dimens.grid.x3)
+                    .padding(end = CodeTheme.dimens.grid.x3),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .clickable { option.onChange(!option.dataState) }
-                        .padding(vertical = 14.dp)
+                        .padding(vertical = CodeTheme.dimens.grid.x3)
                 ) {
                     Text(
                         modifier = Modifier
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = CodeTheme.dimens.grid.x2),
                         text = stringResource(id = option.titleResId)
                     )
                     if (option.subtitleText.isNotEmpty()) {
                         Text(
                             modifier = Modifier
-                                .padding(vertical = 5.dp),
+                                .padding(vertical = CodeTheme.dimens.grid.x1),
                             text = option.subtitleText,
                             style = CodeTheme.typography.body2,
                             color = BrandLight
