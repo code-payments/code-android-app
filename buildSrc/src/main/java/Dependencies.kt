@@ -10,6 +10,7 @@ object Versions {
     const val java = "17"
     const val kotlin = "1.9.10"
     const val kotlinx_coroutines = "1.7.3"
+    const val kotlinx_serialization = "1.6.2"
     const val android_gradle_build_tools = "8.1.0"
     const val google_services = "4.3.15"
 
@@ -19,7 +20,7 @@ object Versions {
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
     const val androidx_material = "1.5.0"
-    const val androidx_room = "2.4.2"
+    const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
 
     const val compose = "1.5.4"
@@ -68,6 +69,7 @@ object Classpath {
     const val kotlin_hilt_plugin = "com.google.dagger:hilt-android-gradle-plugin:${Versions.hilt}"
     const val androidx_navigation_safeargs = "androidx.navigation:navigation-safe-args-gradle-plugin:${Versions.androidx_navigation}"
     const val kotlin_gradle_plugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
+    const val kotlin_serialization_plugin = "org.jetbrains.kotlin:kotlin-serialization:${Versions.kotlin}"
     const val google_services = "com.google.gms:google-services:${Versions.google_services}"
 
     const val crashlytics_gradle = "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
@@ -84,6 +86,7 @@ object Plugins {
     const val kotlin_parcelize = "kotlin-parcelize"
     const val kotlin_jvm = "org.jetbrains.kotlin.jvm"
     const val kotlin_kapt = "kotlin-kapt"
+    const val kotlin_serialization = "org.jetbrains.kotlin.plugin.serialization"
     const val hilt = "dagger.hilt.android.plugin"
     const val google_services = "com.google.gms.google-services"
     const val firebase_crashlytics = "com.google.firebase.crashlytics"
@@ -124,6 +127,7 @@ object Libs {
     const val kotlinx_coroutines_test =
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
     const val kotlinx_collections_immutable = "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
+    const val kotlinx_serialization_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinx_serialization}"
 
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"

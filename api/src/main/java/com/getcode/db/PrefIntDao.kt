@@ -22,5 +22,5 @@ interface PrefIntDao {
     fun getMaybe(key: String): Maybe<PrefInt>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(item: PrefInt)
+    suspend fun insert(item: PrefInt)
 }
