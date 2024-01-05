@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +27,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.util.rememberedClickable
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import kotlinx.collections.immutable.toImmutableList
@@ -136,7 +136,7 @@ private fun VideoThumbnail(
             .fillMaxWidth()
             .padding(bottom = CodeTheme.dimens.grid.x2)
             .clip(CodeTheme.shapes.small)
-            .clickable { onVideoClick(context, link) },
+            .rememberedClickable { onVideoClick(context, link) },
 
     ) {
         Image(

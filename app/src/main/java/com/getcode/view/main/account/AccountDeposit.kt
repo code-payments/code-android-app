@@ -2,7 +2,6 @@ package com.getcode.view.main.account
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +32,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
+import com.getcode.util.rememberedClickable
 import com.getcode.vendor.Base58
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -72,7 +72,7 @@ fun AccountDeposit() {
                 .fillMaxWidth()
                 .height(CodeTheme.dimens.grid.x10)
                 .background(White05)
-                .clickable {
+                .rememberedClickable {
                     localClipboardManager.setText(AnnotatedString(address))
                     isCopied = true
                 }

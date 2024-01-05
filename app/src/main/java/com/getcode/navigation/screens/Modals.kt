@@ -6,24 +6,19 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.core.stack.StackEvent
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.sheetHeight
 import com.getcode.view.components.SheetTitle
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.onEach
 
 internal interface ModalContent {
 
@@ -78,23 +73,36 @@ internal interface ModalContent {
             val name = (navigator.lastItem as? NamedScreen)?.name
             val sheetName = remember(navigator) { name }
 
+            val isBackEnabled by remember(backButton, navigator.lastItem) {
+                derivedStateOf { backButton(navigator.lastItem) }
+            }
+
+            val isCloseEnabled by remember(closeButton, navigator.lastItem) {
+                derivedStateOf { closeButton(navigator.lastItem) }
+            }
+
             SheetTitle(
+                modifier = Modifier,
                 title = sheetName.takeIf { !displayLogo },
                 displayLogo = displayLogo,
                 onLogoClicked = onLogoClicked,
                 // hide while transitioning to/from other destinations
-                backButton = backButton(navigator.lastItem),
-                closeButton = closeButton(navigator.lastItem),
+                backButton = isBackEnabled,
+                closeButton = isCloseEnabled,
                 onBackIconClicked = onBackClicked?.let { { it() } } ?: { navigator.pop() },
                 onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { navigator.hide() }
             )
-            Box(modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars)) {
+            Box(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+            ) {
                 screenContent()
             }
         }
     }
 }
-internal sealed interface ModalRoot: ModalContent
+
+internal sealed interface ModalRoot : ModalContent
 
 data object MainRoot : Screen {
     override val key: ScreenKey = uniqueScreenKey

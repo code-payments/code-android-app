@@ -6,7 +6,6 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -24,6 +23,7 @@ import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.manager.TopBarManager.TopBarMessageType.*
 import com.getcode.theme.*
+import com.getcode.util.rememberedClickable
 import java.util.*
 import kotlin.concurrent.timerTask
 
@@ -54,7 +54,7 @@ fun TopBarContainer(appState: CodeAppState) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Black40)
-                .clickable(indication = null,
+                .rememberedClickable(indication = null,
                     interactionSource = remember { MutableInteractionSource() }) {}
         )
     }
@@ -97,7 +97,6 @@ private fun TopBarView(
             .fillMaxWidth()
     ) {
         CompositionLocalProvider(LocalContentColor provides White) {
-
             Row(
                 modifier = Modifier
                     .padding(bottom = CodeTheme.dimens.grid.x2)

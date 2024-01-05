@@ -2,14 +2,11 @@ package com.getcode.view.main.giveKin
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +21,7 @@ import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.util.rememberedClickable
 import com.getcode.view.main.connectivity.ConnectionState
 import com.getcode.view.main.connectivity.ConnectionStatus
 
@@ -48,7 +46,7 @@ fun AmountArea(
     Column(
         modifier
             .fillMaxWidth()
-            .let { if (isClickable) it.clickable { onClick() } else it },
+            .let { if (isClickable) it.rememberedClickable { onClick() } else it },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(

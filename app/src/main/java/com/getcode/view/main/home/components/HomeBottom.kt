@@ -1,7 +1,6 @@
 package com.getcode.view.main.home.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.util.rememberedClickable
 import com.getcode.view.main.home.HomeBottomSheet
 
 @Preview
@@ -40,7 +40,7 @@ internal fun HomeBottom(
             .clip(
                 RoundedCornerShape(10.dp)
             )
-            .clickable { onPress(HomeBottomSheet.GIVE_KIN) },
+            .rememberedClickable { onPress(HomeBottomSheet.GIVE_KIN) },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -69,7 +69,7 @@ internal fun HomeBottom(
             .clip(
                 RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp)
             )
-            .clickable {
+            .rememberedClickable {
                 onPress(HomeBottomSheet.GET_KIN)
             },
             horizontalAlignment = Alignment.CenterHorizontally
@@ -100,7 +100,7 @@ internal fun HomeBottom(
             .clip(
                 RoundedCornerShape(10.dp, 10.dp, 10.dp, 10.dp)
             )
-            .clickable { onPress(HomeBottomSheet.BALANCE) },
+            .rememberedClickable { onPress(HomeBottomSheet.BALANCE) },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(

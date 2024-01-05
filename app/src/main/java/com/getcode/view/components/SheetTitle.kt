@@ -2,7 +2,6 @@ package com.getcode.view.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -22,6 +21,7 @@ import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
+import com.getcode.util.rememberedClickable
 import com.getcode.util.unboundedClickable
 
 @Composable
@@ -84,7 +84,7 @@ fun SheetTitle(
                     modifier = Modifier
                         .requiredHeight(CodeTheme.dimens.staticGrid.x8)
                         .align(Alignment.Center)
-                        .clickable(
+                        .rememberedClickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ) { onLogoClicked() }

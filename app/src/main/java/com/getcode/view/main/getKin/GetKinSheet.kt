@@ -3,7 +3,6 @@ package com.getcode.view.main.getKin
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +32,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.util.addIf
+import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.main.home.HomeViewModel
 
@@ -168,7 +168,7 @@ fun GetKinSheet(
                             .addIf(
                                 item.isStrikeThrough.not(),
                             ) {
-                                Modifier.clickable { item.onClick() }
+                                Modifier.rememberedClickable { item.onClick() }
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x4, horizontal = CodeTheme.dimens.grid.x2),
                         verticalAlignment = Alignment.CenterVertically,

@@ -1,6 +1,5 @@
 package com.getcode.view.main.account
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -16,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import com.getcode.R
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.util.rememberedClickable
 
 @Composable
 fun AccountDebugOptions(
@@ -60,7 +60,7 @@ fun AccountDebugOptions(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { option.onChange(!option.dataState) }
+                        .rememberedClickable { option.onChange(!option.dataState) }
                         .padding(vertical = CodeTheme.dimens.grid.x3)
                 ) {
                     Text(

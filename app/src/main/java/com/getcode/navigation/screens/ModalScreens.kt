@@ -9,6 +9,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.util.getActivityScopedViewModel
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
@@ -107,7 +108,7 @@ data object AccountDetailsScreen : MainGraph, ModalContent {
     @Composable
     override fun Content() {
         ModalContainer(backButton = { it is AccountDetailsScreen }) {
-            AccountDetails(getViewModel())
+            AccountDetails(getActivityScopedViewModel())
         }
     }
 }
@@ -174,6 +175,21 @@ data class PhoneVerificationScreen(
             PhoneVerify(viewModel, arguments)
         }
     }
+}
+
+@Parcelize
+data object PhoneAreaSelectionModal : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(R.string.title_selectCountry)
+
+    @Composable
+    override fun Content() {
+        val vm = PhoneVerificationScreen().getViewModel<PhoneVerifyViewModel>()
+    }
+
 }
 
 @Parcelize
