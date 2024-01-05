@@ -27,7 +27,7 @@ import com.getcode.util.unboundedClickable
 @Composable
 fun SheetTitle(
     modifier: Modifier = Modifier,
-    title: String? = null,
+    title: (@Composable () -> String?)? = null,
     displayLogo: Boolean = false,
     onLogoClicked: () -> Unit = { },
     backButton: Boolean = false,
@@ -91,7 +91,7 @@ fun SheetTitle(
                 )
             } else {
                 Text(
-                    text = title.orEmpty(),
+                    text = title?.invoke().orEmpty(),
                     color = Color.White,
                     style = CodeTheme.typography.h6.copy(
                         fontWeight = FontWeight.Bold,
@@ -110,6 +110,6 @@ fun SheetTitle(
 @Composable
 fun TitlePreview() {
     SheetTitle(
-        title = "Sheet Title"
+        title = { "Sheet Title" }
     )
 }

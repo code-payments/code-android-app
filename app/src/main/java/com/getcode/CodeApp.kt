@@ -10,12 +10,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
@@ -30,8 +28,6 @@ import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
-import com.getcode.utils.NetworkUtils
-import com.getcode.utils.NetworkUtilsStub
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold

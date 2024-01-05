@@ -62,21 +62,21 @@ fun BottomSheetNavigator(
     sheetContent: BottomSheetNavigatorContent = { CurrentScreen() },
     content: BottomSheetNavigatorContent
 ) {
-    var hideBottomSheet: (() -> Unit)? = null
-    val coroutineScope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(
-        initialValue = ModalBottomSheetValue.Hidden,
-        confirmValueChange = { state ->
-            if (state == ModalBottomSheetValue.Hidden) {
-                hideBottomSheet?.invoke()
-            }
-            true
-        },
-        skipHalfExpanded = skipHalfExpanded,
-        animationSpec = animationSpec
-    )
-
     Navigator(HiddenBottomSheetScreen, onBackPressed = null, key = key) { navigator ->
+        var hideBottomSheet: (() -> Unit)? = null
+        val coroutineScope = rememberCoroutineScope()
+        val sheetState = rememberModalBottomSheetState(
+            initialValue = ModalBottomSheetValue.Hidden,
+            confirmValueChange = { state ->
+                if (state == ModalBottomSheetValue.Hidden) {
+                    hideBottomSheet?.invoke()
+                }
+                true
+            },
+            skipHalfExpanded = skipHalfExpanded,
+            animationSpec = animationSpec
+        )
+
         val bottomSheetNavigator = remember(navigator, sheetState, coroutineScope) {
             BottomSheetNavigator(navigator, sheetState, coroutineScope)
         }
@@ -116,7 +116,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
         get() = sheetState.isVisible
 
 
-    private val sheetStacks = SheetStacks(LinkedHashMap())
+    val sheetStacks = SheetStacks(LinkedHashMap())
 
     val progress: Float
         get() {
@@ -217,7 +217,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
     }
 }
 
-private object HiddenBottomSheetScreen : Screen {
+object HiddenBottomSheetScreen : Screen {
     override val key: ScreenKey = uniqueScreenKey
     private fun readResolve(): Any = this
 
@@ -240,7 +240,7 @@ private object HiddenBottomSheetScreen : Screen {
     }
 }
 
-private class SheetStacks(
+class SheetStacks(
     map: LinkedHashMap<Screen, List<Screen>>
 ): Stack<Pair<Screen, List<Screen>>> by map.toMutableStateStack() {
 
@@ -264,7 +264,8 @@ private class SheetStacks(
 
     fun popFromLastStack() {
         val stack = lastItemOrNull ?: return
-        popFrom(stack.first, stack.second.last())
+        val screen = stack.second.lastOrNull() ?: return
+        popFrom(stack.first, screen)
     }
 }
 

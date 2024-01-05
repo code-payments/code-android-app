@@ -1,6 +1,14 @@
 package com.getcode.navigation.screens
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -9,7 +17,9 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.getActivityScopedViewModel
+import com.getcode.util.getStackScopedViewModel
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
@@ -23,6 +33,9 @@ import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.ReferFriend
+import com.google.android.gms.auth.api.credentials.Credential
+import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
+import com.google.android.gms.auth.api.identity.Identity
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -170,15 +183,18 @@ data class PhoneVerificationScreen(
 
     @Composable
     override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        val viewModel = getStackScopedViewModel<PhoneVerifyViewModel>(key)
         ModalContainer(backButton = { it is PhoneVerificationScreen }) {
-            val viewModel = getViewModel<PhoneVerifyViewModel>()
-            PhoneVerify(viewModel, arguments)
+            PhoneVerify(viewModel, arguments) {
+                navigator.show(PhoneAreaSelectionModal(key))
+            }
         }
     }
 }
 
 @Parcelize
-data object PhoneAreaSelectionModal : MainGraph, ModalContent {
+data class PhoneAreaSelectionModal(val providedKey: String) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -187,9 +203,15 @@ data object PhoneAreaSelectionModal : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        val vm = PhoneVerificationScreen().getViewModel<PhoneVerifyViewModel>()
-    }
+        val navigator = LocalCodeNavigator.current
+        val vm = getStackScopedViewModel<PhoneVerifyViewModel>(providedKey)
 
+        ModalContainer(closeButton = { it is PhoneAreaSelectionModal }) {
+            PhoneCountrySelection(viewModel = vm) {
+                navigator.hide()
+            }
+        }
+    }
 }
 
 @Parcelize

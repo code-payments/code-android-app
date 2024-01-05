@@ -51,7 +51,7 @@ fun InvitesSheet(upPress: () -> Unit = {}) {
                 else stringResource(id = R.string.title_inviteFriend)
 
             SheetTitle(
-                title = title,
+                title = { title },
                 onCloseIconClicked = upPress
             )
 
