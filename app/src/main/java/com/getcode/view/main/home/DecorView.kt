@@ -8,7 +8,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +34,7 @@ import com.getcode.R
 import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
+import com.getcode.util.rememberedClickable
 import com.getcode.view.main.home.components.HomeBottom
 import timber.log.Timber
 
@@ -69,7 +69,7 @@ internal fun DecorView(
                 .padding(horizontal = CodeTheme.dimens.grid.x3)
                 .align(Alignment.TopEnd)
                 .clip(CircleShape)
-                .clickable {
+                .rememberedClickable {
                     showBottomSheet(HomeBottomSheet.ACCOUNT)
                 },
             painter = painterResource(

@@ -1,11 +1,10 @@
 package com.getcode.view.main.account
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,13 +15,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
@@ -49,7 +48,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.util.getActivity
-import kotlinx.coroutines.delay
+import com.getcode.util.rememberedClickable
 import kotlinx.coroutines.launch
 
 @Composable
@@ -61,62 +60,62 @@ fun AccountHome(
     val context = LocalContext.current
 
     val composeScope = rememberCoroutineScope()
-    fun handleItemClicked(item: AccountPage) {
-        composeScope.launch {
-            delay(25)
-            when (item) {
-                AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
-                AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
-                AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
-                AccountPage.FAQ -> navigator.push(FaqScreen)
-                AccountPage.ACCOUNT_DETAILS -> navigator.push(AccountDetailsScreen)
-                AccountPage.ACCOUNT_DEBUG_OPTIONS -> navigator.push(AccountDebugOptionsScreen)
-                AccountPage.LOGOUT -> {
-                    BottomBarManager.showMessage(
-                        BottomBarManager.BottomBarMessage(
-                            title = context.getString(R.string.prompt_title_logout),
-                            subtitle = context
-                                .getString(R.string.prompt_description_logout),
-                            positiveText = context.getString(R.string.action_logout),
-                            negativeText = context.getString(R.string.action_cancel),
-                            onPositive = {
-                                context.getActivity()?.let {
-                                    viewModel.logout(it)
-                                }
-                            }
-                        )
-                    )
-                }
 
-                AccountPage.PHONE -> Unit
-                AccountPage.DELETE_ACCOUNT -> Unit
-                AccountPage.ACCESS_KEY -> Unit
+    val handleItemClicked = remember {
+        { item: AccountPage ->
+            composeScope.launch {
+                when (item) {
+                    AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
+                    AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
+                    AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
+                    AccountPage.FAQ -> navigator.push(FaqScreen)
+                    AccountPage.ACCOUNT_DETAILS -> navigator.push(AccountDetailsScreen)
+                    AccountPage.ACCOUNT_DEBUG_OPTIONS -> navigator.push(AccountDebugOptionsScreen)
+                    AccountPage.LOGOUT -> {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(R.string.prompt_title_logout),
+                                subtitle = context
+                                    .getString(R.string.prompt_description_logout),
+                                positiveText = context.getString(R.string.action_logout),
+                                negativeText = context.getString(R.string.action_cancel),
+                                onPositive = {
+                                    context.getActivity()?.let {
+                                        viewModel.logout(it)
+                                    }
+                                }
+                            )
+                        )
+                    }
+
+                    AccountPage.PHONE -> Unit
+                    AccountPage.DELETE_ACCOUNT -> Unit
+                    AccountPage.ACCESS_KEY -> Unit
+                }
             }
         }
     }
 
-    Column {
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(dataState.items, key = { it.type }, contentType = { it }) { item ->
-                ListItem(item = item) {
-                    handleItemClicked(item.type)
-                }
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(dataState.items, key = { it.type }, contentType = { it }) { item ->
+            ListItem(item = item) {
+                handleItemClicked(item.type)
             }
+        }
 
-            item {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        modifier = Modifier
-                            .padding(top = CodeTheme.dimens.grid.x7)
-                            .fillMaxWidth()
-                            .align(Alignment.Center),
-                        text = "v${BuildConfig.VERSION_NAME}",
-                        color = BrandLight,
-                        style = CodeTheme.typography.body2.copy(
-                            textAlign = TextAlign.Center
-                        ),
-                    )
-                }
+        item {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    modifier = Modifier
+                        .padding(top = CodeTheme.dimens.grid.x7)
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    color = BrandLight,
+                    style = CodeTheme.typography.body2.copy(
+                        textAlign = TextAlign.Center
+                    ),
+                )
             }
         }
     }
@@ -126,7 +125,7 @@ fun AccountHome(
 fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clickable { onClick() }
+            .rememberedClickable { onClick() }
             .padding(CodeTheme.dimens.grid.x5)
             .fillMaxWidth()
             .wrapContentHeight(),

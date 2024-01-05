@@ -2,7 +2,6 @@ package com.getcode.view.components
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +21,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.TopError
 import com.getcode.theme.White
+import com.getcode.util.rememberedClickable
 
 @Composable
 fun BottomBarView(
@@ -90,7 +90,7 @@ fun BottomBarView(
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .rememberedClickable {
                                 bottomBarMessage.onTertiary()
                                 onClose(BottomBarManager.BottomBarActionType.Tertiary)
                             }

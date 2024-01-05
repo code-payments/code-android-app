@@ -2,7 +2,6 @@ package com.getcode.view.main.currency
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,6 +53,7 @@ import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
 import com.getcode.util.RepeatOnLifecycle
+import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.components.SwipeableView
 import com.getcode.view.main.giveKin.CurrencyListItem
@@ -70,7 +70,6 @@ import timber.log.Timber
 fun CurrencySelectionSheet(
     viewModel: CurrencyViewModel,
 ) {
-    Timber.d("currency screen")
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsState()
 
@@ -255,7 +254,7 @@ private fun ListRowItem(
             .background(Brand)
             .let {
                 if (!isDisabled) {
-                    it.clickable { onClick() }
+                    it.rememberedClickable { onClick() }
                 } else it
             }
             .padding(horizontal = CodeTheme.dimens.inset)

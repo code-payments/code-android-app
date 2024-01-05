@@ -94,7 +94,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getActivityScopedViewModel(), getViewModel())
+            GiveKinSheet(getViewModel(), getViewModel())
         }
 
 
@@ -159,7 +159,7 @@ data object AccountModal : MainGraph, ModalRoot {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-        val viewModel = getViewModel<AccountSheetViewModel>()
+        val viewModel = getActivityScopedViewModel<AccountSheetViewModel>()
         ModalContainer(
             displayLogo = true,
             onLogoClicked = { viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked) },
@@ -172,10 +172,6 @@ data object AccountModal : MainGraph, ModalRoot {
             }
         ) {
             AccountHome(viewModel)
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.dispatchEvent(AccountSheetViewModel.Event.Load)
         }
 
         AnalyticsScreenWatcher(

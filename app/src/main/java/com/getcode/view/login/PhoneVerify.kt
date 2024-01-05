@@ -11,7 +11,6 @@ import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -79,6 +78,7 @@ import com.getcode.theme.extraSmall
 import com.getcode.theme.sheetHeight
 import com.getcode.util.PhoneUtils
 import com.getcode.util.getActivity
+import com.getcode.util.rememberedClickable
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.ModalSheetLayout
@@ -157,7 +157,7 @@ internal fun PhoneVerify(
                     .clip(
                         CodeTheme.shapes.extraSmall
                             .copy(bottomEnd = ZeroCornerSize, topEnd = ZeroCornerSize)
-                    ).clickable { showAreaCodes() }
+                    ).rememberedClickable { showAreaCodes() }
             ) {
                 dataState.countryLocale.resId?.let { resId ->
                     Image(
@@ -256,9 +256,6 @@ internal fun PhoneVerify(
     ) {
         PhoneAreaSelect(
             dataState = dataState,
-            onUpdateSearchFilter = {
-                viewModel.onUpdateSearchFilter(it)
-            },
             onClick = {
                 hideAreaCodes()
                 viewModel.setCountryCode(it)
@@ -319,7 +316,6 @@ internal fun PhoneVerify(
 @Composable
 private fun PhoneAreaSelect(
     dataState: PhoneVerifyUiModel,
-    onUpdateSearchFilter: (filter: String) -> Unit,
     onClick: (countryLocale: PhoneUtils.CountryLocale) -> Unit,
     onClose: () -> Unit
 ) {
@@ -330,27 +326,12 @@ private fun PhoneAreaSelect(
     ) {
         SheetTitle(title = stringResource(R.string.title_selectCountry), closeButton = true, onCloseIconClicked = onClose)
 
-       /* TextField(
-            placeholder = { Text("Search") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(bottom = 15.dp)
-                .padding(horizontal = 10.dp),
-            value = dataState.countrySearchFilterString,
-            onValueChange = {
-                onUpdateSearchFilter(it)
-            },
-            singleLine = true,
-            colors = inputColors()
-        ) */
-
         LazyColumn {
             items(dataState.countryLocalesFiltered) { countryCode ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onClick(countryCode) },
+                        .rememberedClickable { onClick(countryCode) },
                 ) {
                     countryCode.resId?.let { resId ->
                         Image(

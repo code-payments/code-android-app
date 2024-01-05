@@ -2,7 +2,6 @@ package com.getcode.view.main.home.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.Gray50
 import com.getcode.theme.White
+import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeCircularProgressIndicator
 
 @Composable
@@ -50,7 +50,7 @@ internal fun BillManagementOptions(
                     modifier = Modifier
                         .background(Gray50, RoundedCornerShape(30.dp))
                         .clip(RoundedCornerShape(30.dp))
-                        .clickable(enabled = !isSending) {
+                        .rememberedClickable(enabled = !isSending) {
                             onSend()
                         }
                         .padding(vertical = 15.dp, horizontal = 20.dp),
@@ -91,7 +91,7 @@ internal fun BillManagementOptions(
                     modifier = Modifier
                         .background(Gray50, RoundedCornerShape(30.dp))
                         .clip(RoundedCornerShape(30.dp))
-                        .clickable {
+                        .rememberedClickable {
                             onCancel()
                         }
                         .padding(vertical = 15.dp, horizontal = 20.dp),

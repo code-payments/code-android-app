@@ -1,6 +1,7 @@
 package com.getcode.view.main.account
 
 import android.app.Activity
+import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.AnalyticsManager
@@ -19,9 +20,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.annotation.concurrent.Immutable
 import javax.inject.Inject
 
 data class AccountMainItem(
@@ -48,14 +47,14 @@ enum class AccountPage {
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val prefRepository: PrefRepository,
-    private val phoneRepository: PhoneRepository,
-    private val analyticsManager: AnalyticsManager
+    private val analyticsManager: AnalyticsManager,
+    phoneRepository: PhoneRepository,
 ) : BaseViewModel2<AccountSheetViewModel.State, AccountSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
 
-    @Immutable
+    @Stable
     data class State(
         val logoClickCount: Int = 0,
         val items: List<AccountMainItem> = emptyList(),
@@ -66,7 +65,6 @@ class AccountSheetViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data object Load: Event
         data class OnPhoneLinked(val linked: Boolean) : Event
         data class OnDebugChanged(val isDebug: Boolean) : Event
         data object LogoClicked : Event
@@ -168,7 +166,6 @@ class AccountSheetViewModel @Inject constructor(
 
                 is Event.OnDebugChanged -> { state ->
                     val items = when {
-                        state.items.isEmpty() -> emptyList()
                         event.isDebug -> fullItemSet
                         else -> fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS }
                     }
@@ -181,10 +178,6 @@ class AccountSheetViewModel @Inject constructor(
                 }
 
                 is Event.OnItemsChanged -> { state -> state.copy(items = event.items) }
-
-                is Event.Load -> { state ->
-                    state.copy(items = if (state.isDebug) fullItemSet else fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS })
-                }
                 is Event.Navigate -> { state -> state }
             }
         }

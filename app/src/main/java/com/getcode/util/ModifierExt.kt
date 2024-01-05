@@ -1,5 +1,6 @@
 package com.getcode.util
 
+import androidx.compose.foundation.Indication
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,7 +33,7 @@ fun Modifier.unboundedClickable(
 ) = this.composed {
     val interaction = interactionSource ?: remember { MutableInteractionSource() }
 
-    clickable(
+    rememberedClickable(
         onClick = onClick,
         enabled = enabled,
         role = role,
@@ -43,5 +44,33 @@ fun Modifier.unboundedClickable(
 
 
 fun Modifier.debugBounds(color: Color = Color.Magenta, shape: Shape = RectangleShape) = this.border(1.dp, color, shape)
+
+fun Modifier.rememberedClickable(
+    enabled: Boolean = true,
+    onClickLabel: String? = null,
+    role: Role? = null,
+    onClick: () -> Unit
+) = composed {
+    val clicker = remember(enabled, onClickLabel, role, onClick) {
+        Modifier.clickable(enabled, onClickLabel, role, onClick)
+    }
+
+    this.then(clicker)
+}
+
+fun Modifier.rememberedClickable(
+    interactionSource: MutableInteractionSource,
+    indication: Indication?,
+    enabled: Boolean = true,
+    onClickLabel: String? = null,
+    role: Role? = null,
+    onClick: () -> Unit
+) = composed {
+
+    val clicker = remember(interactionSource, indication, enabled, onClickLabel, role, onClick) {
+        Modifier.clickable(interactionSource, indication, enabled, onClickLabel, role, onClick)
+    }
+    this.then(clicker)
+}
 
 

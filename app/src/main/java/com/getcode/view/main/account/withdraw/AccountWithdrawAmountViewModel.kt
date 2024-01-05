@@ -54,7 +54,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
 
     init {
         init()
-        viewModelScope.launch(Dispatchers.Default) {
+        viewModelScope.launch(Dispatchers.IO) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }

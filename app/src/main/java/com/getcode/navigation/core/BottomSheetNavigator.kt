@@ -192,7 +192,7 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
 
     private suspend fun showPreviousSheet() {
         if (!sheetStacks.isEmpty) {
-            val screens =sheetStacks.lastItemOrNull?.second.orEmpty()
+            val screens = sheetStacks.lastItemOrNull?.second.orEmpty()
             if (screens.isNotEmpty()) {
                 replaceAll(screens)
                 sheetState.show()

@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -38,7 +39,7 @@ class CurrencyViewModel @Inject constructor(
     exchange: Exchange,
     prefsRepository: PrefRepository,
     private val resources: ResourceHelper,
-): BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
+) : BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -46,7 +47,7 @@ class CurrencyViewModel @Inject constructor(
     data class State(
         val loading: Boolean = false,
         val currenciesFiltered: List<Currency> = listOf(),
-        val currenciesRecent: List<Currency> = listOf(),
+        val currenciesRecent: List<Currency>? = null,
         val listItems: List<CurrencyListItem> = listOf(),
         val currencySearchText: String = "",
         val selectedCurrencyCode: String? = null,
@@ -54,13 +55,15 @@ class CurrencyViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnLoadingChanged(val loading: Boolean): Event
-        data class OnCurrenciesLoaded(val currencies: List<CurrencyListItem>): Event
-        data class OnRecentCurrenciesUpdated(val currencies: List<Currency>): Event
-        data class OnSearchQueryChanged(val query: String): Event
-        data class OnFilteredCurrenciesUpdated(val currencies: List<Currency>): Event
-        data class OnSelectedCurrencyChanged(val currency: Currency, val fromUser: Boolean = true): Event
-        data class OnRecentCurrencyRemoved(val currency: Currency): Event
+        data class OnLoadingChanged(val loading: Boolean) : Event
+        data class OnCurrenciesLoaded(val currencies: List<CurrencyListItem>) : Event
+        data class OnRecentCurrenciesUpdated(val currencies: List<Currency>) : Event
+        data class OnSearchQueryChanged(val query: String) : Event
+        data class OnFilteredCurrenciesUpdated(val currencies: List<Currency>) : Event
+        data class OnSelectedCurrencyChanged(val currency: Currency, val fromUser: Boolean = true) :
+            Event
+
+        data class OnRecentCurrencyRemoved(val currency: Currency) : Event
     }
 
 
@@ -106,43 +109,49 @@ class CurrencyViewModel @Inject constructor(
                         }
                         .sortedBy { it.code }
                 }
-            }.onEach { dispatchEvent(Event.OnRecentCurrenciesUpdated(it)) }
+            }.distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnRecentCurrenciesUpdated(it)) }
             .launchIn(viewModelScope)
 
         stateFlow
-            .filter { it.currenciesFiltered.isNotEmpty() }
+            .filter { it.currenciesFiltered.isNotEmpty() && it.currenciesRecent != null }
             .map {
-                with (it) {
-                    getCurrenciesLocalesListItems(currenciesFiltered, currenciesRecent, currencySearchText)
+                with(it) {
+                    getCurrenciesLocalesListItems(
+                        currenciesFiltered,
+                        currenciesRecent.orEmpty(),
+                        currencySearchText
+                    )
                 }
-            }.onEach {
+            }.distinctUntilChanged()
+            .onEach {
                 dispatchEvent(Event.OnCurrenciesLoaded(it.toImmutableList()))
             }.onEach {
                 dispatchEvent(Event.OnLoadingChanged(false))
             }.launchIn(viewModelScope)
 
-       eventFlow
-           .filterIsInstance<Event.OnSelectedCurrencyChanged>()
-           .filter { it.fromUser }
-           .map { it.currency }
-           .distinctUntilChanged()
-           .onEach { selected ->
-               prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selected.code)
+        eventFlow
+            .filterIsInstance<Event.OnSelectedCurrencyChanged>()
+            .filter { it.fromUser }
+            .map { it.currency }
+            .distinctUntilChanged()
+            .onEach { selected ->
+                prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selected.code)
 
-               val recents = (stateFlow.value.currenciesRecent + selected).distinctBy { it.code }
-               prefsRepository.set(
-                   PrefsString.KEY_CURRENCIES_RECENT,
-                   recents.joinToString(",") { it.code }
-               )
-           }.launchIn(viewModelScope)
+                val recents = (stateFlow.value.currenciesRecent.orEmpty() + selected).distinctBy { it.code }
+                prefsRepository.set(
+                    PrefsString.KEY_CURRENCIES_RECENT,
+                    recents.joinToString(",") { it.code }
+                )
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnRecentCurrencyRemoved>()
             .map { it.currency }
             .map { selected ->
                 val currencies = stateFlow.value
-                    .currenciesRecent
-                    .filter { it.code != selected.code  }
+                    .currenciesRecent.orEmpty()
+                    .filter { it.code != selected.code }
 
                 prefsRepository.set(
                     PrefsString.KEY_CURRENCIES_RECENT,
@@ -211,7 +220,16 @@ class CurrencyViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            Timber.tag("currency(${hashCode()})").d("event=${event.javaClass.simpleName}")
+            Timber
+                .tag("currency(${hashCode()})")
+                .d(
+                    when (event) {
+                        is Event.OnLoadingChanged -> "Loading => ${event.loading}"
+                        is Event.OnSelectedCurrencyChanged -> "Selected ${event.currency.code} byUser=${event.fromUser}"
+                        else -> event.javaClass.simpleName
+                    }
+                )
+
             when (event) {
                 is Event.OnLoadingChanged -> { state -> state.copy(loading = event.loading) }
                 is Event.OnCurrenciesLoaded -> { state ->
@@ -234,7 +252,10 @@ class CurrencyViewModel @Inject constructor(
 
                 is Event.OnRecentCurrencyRemoved -> { state -> state }
                 is Event.OnSelectedCurrencyChanged -> { state ->
-                    state.copy(selectedCurrencyCode = event.currency.code, selectedCurrencyResId = event.currency.resId)
+                    state.copy(
+                        selectedCurrencyCode = event.currency.code,
+                        selectedCurrencyResId = event.currency.resId
+                    )
                 }
             }
         }
