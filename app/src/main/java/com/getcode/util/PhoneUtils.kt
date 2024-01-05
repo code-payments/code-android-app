@@ -26,7 +26,7 @@ class PhoneUtils @Inject constructor(
     private val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
 
     init {
-        phoneNumberUtil.supportedRegions.map { region ->
+        countryLocales = phoneNumberUtil.supportedRegions.map { region ->
             val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)
             val resId: Int? = currencyUtils.getFlag(region)
             val displayCountry = Locale(Locale.getDefault().language, region).displayCountry
@@ -39,9 +39,7 @@ class PhoneUtils @Inject constructor(
             )
         }
             .sortedBy { it.name }
-            .let {
-                countryLocales = it
-            }
+            .filter { it.resId != null }
 
         countryCodesMap = countryLocales.map { it }.associateBy { it.phoneCode }
         val isoCountry = Locale.getDefault().country
