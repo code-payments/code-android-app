@@ -8,6 +8,8 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.util.getStackScopedViewModel
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
 import com.getcode.view.login.CameraPermission
@@ -63,8 +65,11 @@ data class LoginPhoneVerificationScreen(
 
     @Composable
     override fun Content() {
-        val viewModel = getViewModel<PhoneVerifyViewModel>()
-        PhoneVerify(viewModel, arguments)
+        val navigator = LocalCodeNavigator.current
+        val viewModel = getStackScopedViewModel<PhoneVerifyViewModel>(key)
+        PhoneVerify(viewModel, arguments) {
+            navigator.show(PhoneAreaSelectionModal(key))
+        }
     }
 }
 

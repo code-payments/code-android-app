@@ -16,6 +16,7 @@ import com.getcode.navigation.screens.InviteCodeScreen
 import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
+import com.getcode.network.repository.toPhoneNumber
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
@@ -30,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -57,17 +59,13 @@ class PhoneVerifyViewModel @Inject constructor(
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
-    val uiFlow = MutableStateFlow(PhoneVerifyUiModel())
-
-    fun reset() {
-        uiFlow.update {
-            PhoneVerifyUiModel(
-                countryLocales = phoneUtils.countryLocales,
-                countryLocalesFiltered = phoneUtils.countryLocales,
-                countryLocale = phoneUtils.defaultCountryLocale,
-            )
-        }
-    }
+    val uiFlow = MutableStateFlow(
+        PhoneVerifyUiModel(
+            countryLocales = phoneUtils.countryLocales,
+            countryLocalesFiltered = phoneUtils.countryLocales,
+            countryLocale = phoneUtils.defaultCountryLocale,
+        )
+    )
 
     fun onSubmit(navigator: CodeNavigator, activity: Activity?) {
         if (!uiFlow.value.continueEnabled) return
@@ -121,6 +119,38 @@ class PhoneVerifyViewModel @Inject constructor(
         uiFlow.update { it.copy(isSuccess = isSuccess) }
     }
 
+    fun setPhoneFromHint(phoneNumber: String) {
+        val e164Phone = phoneNumber.makeE164()
+        val countryCode = phoneUtils.getCountryCode(e164Phone)
+        val locale = phoneUtils.countryLocales.firstOrNull { it.countryCode == countryCode }
+        Timber.d("phone=$phoneNumber, e164=$e164Phone, countryCode=$countryCode")
+        val phoneFormatted = phoneUtils.formatNumber(phoneNumber)
+            .replaceFirst("+", "")
+            .split(" ")
+            .drop(1)
+            .firstOrNull()
+            .orEmpty()
+            .trimStart()
+
+        uiFlow.update {
+            val selection = TextRange(phoneFormatted.length)
+
+            it.copy(
+                phoneInput = e164Phone,
+                phoneNumberFormatted = phoneFormatted,
+                phoneNumberFormattedTextFieldValue = TextFieldValue(
+                    text = phoneFormatted,
+                    selection = selection
+                ),
+                countryLocale = locale ?: phoneUtils.defaultCountryLocale,
+                countryFlag = phoneUtils.toFlagEmoji(countryCode),
+                continueEnabled = phoneNumber.length > 7 && phoneUtils.isPhoneNumberValid(
+                    phoneNumber,
+                    countryCode
+                )
+            )
+        }
+    }
     fun setPhoneInput(phoneInput: String, selection_: TextRange? = null) {
         val countryCode = uiFlow.value.countryLocale.phoneCode.toString()
         val phoneInputFiltered = phoneInput.replace("+$countryCode", "")

@@ -1,23 +1,16 @@
 package com.getcode.view.login
 
-import android.app.Activity.RESULT_OK
-import android.content.ActivityNotFoundException
+import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.TweenSpec
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -26,29 +19,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Divider
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,10 +36,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -70,62 +48,30 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
+import com.getcode.navigation.screens.PhoneAreaSelectionModal
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
-import com.getcode.theme.sheetHeight
-import com.getcode.util.PhoneUtils
 import com.getcode.util.getActivity
 import com.getcode.util.rememberedClickable
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
-import com.getcode.view.components.ModalSheetLayout
-import com.getcode.view.components.SheetTitle
-import com.google.android.gms.auth.api.credentials.Credential
-import com.google.android.gms.auth.api.credentials.Credentials
-import com.google.android.gms.auth.api.credentials.HintRequest
-import kotlinx.coroutines.launch
+import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
+import com.google.android.gms.auth.api.identity.Identity
 
-@OptIn(ExperimentalMaterialApi::class)
 @Preview
 @Composable
 internal fun PhoneVerify(
     viewModel: PhoneVerifyViewModel = hiltViewModel(),
     arguments: LoginArgs = LoginArgs(),
+    openCountrySelector: () -> Unit = { },
 ) {
     val navigator = LocalCodeNavigator.current
-    val dataState: PhoneVerifyUiModel by viewModel.uiFlow.collectAsState()
-    val focusManager = LocalFocusManager.current
+    val dataState by viewModel.uiFlow.collectAsState()
     val focusRequester = FocusRequester()
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var isPhoneRequestCompleted by remember { mutableStateOf(false) }
-    val animationSpec = remember {
-        Animatable(0f)
-            .run {
-                TweenSpec<Float>(durationMillis = 400, easing = LinearEasing)
-            }
-    }
-    val bottomSheetState = rememberModalBottomSheetState(
-        initialValue = ModalBottomSheetValue.Hidden,
-        skipHalfExpanded = true,
-        animationSpec = animationSpec)
-
-
-    fun showAreaCodes() {
-        scope.launch {
-            focusManager.clearFocus()
-            bottomSheetState.show()
-        }
-    }
-
-    fun hideAreaCodes() {
-        scope.launch {
-            bottomSheetState.hide()
-        }
-    }
 
     ConstraintLayout(
         modifier = Modifier
@@ -148,7 +94,11 @@ internal fun PhoneVerify(
                     )
                 }
                 .height(CodeTheme.dimens.grid.x12)
-                .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.extraSmall)
+                .border(
+                    width = CodeTheme.dimens.border,
+                    color = BrandLight,
+                    shape = CodeTheme.shapes.extraSmall
+                )
                 .background(White05)
         ) {
             Row(
@@ -157,7 +107,8 @@ internal fun PhoneVerify(
                     .clip(
                         CodeTheme.shapes.extraSmall
                             .copy(bottomEnd = ZeroCornerSize, topEnd = ZeroCornerSize)
-                    ).rememberedClickable { showAreaCodes() }
+                    )
+                    .rememberedClickable { openCountrySelector() }
             ) {
                 dataState.countryLocale.resId?.let { resId ->
                     Image(
@@ -174,7 +125,10 @@ internal fun PhoneVerify(
                     modifier = Modifier
                         .height(CodeTheme.dimens.grid.x12)
                         .align(CenterVertically)
-                        .padding(horizontal = CodeTheme.dimens.grid.x3, vertical = CodeTheme.dimens.grid.x4),
+                        .padding(
+                            horizontal = CodeTheme.dimens.grid.x3,
+                            vertical = CodeTheme.dimens.grid.x4
+                        ),
                     style = CodeTheme.typography.subtitle1,
                     text = "+${dataState.countryLocale.phoneCode}"
                 )
@@ -251,27 +205,7 @@ internal fun PhoneVerify(
         )
     }
 
-    ModalSheetLayout(
-        bottomSheetState
-    ) {
-        PhoneAreaSelect(
-            dataState = dataState,
-            onClick = {
-                hideAreaCodes()
-                viewModel.setCountryCode(it)
-            }, onClose = {
-                hideAreaCodes()
-            }
-        )
-    }
-
-    LaunchedEffect(bottomSheetState.isVisible) {
-        if (!bottomSheetState.isVisible && isPhoneRequestCompleted) {
-            focusRequester.requestFocus()
-        }
-    }
-
-    LaunchedEffect(rememberUpdatedState(Unit)) {
+    LaunchedEffect(arguments) {
         arguments.signInEntropy
             ?.let { viewModel.setSignInEntropy(it) }
         viewModel.setIsPhoneLinking(arguments.isPhoneLinking)
@@ -281,94 +215,31 @@ internal fun PhoneVerify(
     val phoneNumberHintLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) {
-        isPhoneRequestCompleted = true
-        focusRequester.requestFocus()
-        if (it.resultCode != RESULT_OK) {
+        if (it.resultCode != Activity.RESULT_OK) {
             return@rememberLauncherForActivityResult
         }
 
-        val credential: Credential? = it.data?.getParcelableExtra(Credential.EXTRA_KEY)
-        val hintResult = credential?.id
+        val phoneNum = Identity.getSignInClient(context)
+            .getPhoneNumberFromIntent(it.data)
 
-        if (hintResult?.isNotEmpty() == true) {
-            viewModel.setPhoneInput(hintResult)
-        }
+        viewModel.setPhoneFromHint(phoneNum)
     }
 
     LaunchedEffect(Unit) {
-        val hintRequest: HintRequest = HintRequest.Builder()
-            .setPhoneNumberIdentifierSupported(true)
+        val request = GetPhoneNumberHintIntentRequest
+            .builder()
             .build()
 
-        val phoneNumberHintIntent = Credentials.getClient(context)
-            .getHintPickerIntent(hintRequest)
-
-        try {
-            phoneNumberHintLauncher.launch(
-                IntentSenderRequest.Builder(phoneNumberHintIntent)
-                    .build()
-            )
-        } catch (e: ActivityNotFoundException) {
-        }
-    }
-}
-
-@Composable
-private fun PhoneAreaSelect(
-    dataState: PhoneVerifyUiModel,
-    onClick: (countryLocale: PhoneUtils.CountryLocale) -> Unit,
-    onClose: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(sheetHeight)
-    ) {
-        SheetTitle(title = stringResource(R.string.title_selectCountry), closeButton = true, onCloseIconClicked = onClose)
-
-        LazyColumn {
-            items(dataState.countryLocalesFiltered) { countryCode ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .rememberedClickable { onClick(countryCode) },
-                ) {
-                    countryCode.resId?.let { resId ->
-                        Image(
-                            modifier = Modifier
-                                .align(CenterVertically)
-                                .padding(start = CodeTheme.dimens.inset)
-                                .size(CodeTheme.dimens.staticGrid.x5)
-                                .clip(CodeTheme.shapes.large),
-                            painter = painterResource(id = resId),
-                            contentDescription = ""
-                        )
-                    }
-                    Text(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = CodeTheme.dimens.inset)
-                            .padding(start = CodeTheme.dimens.inset)
-                            .align(CenterVertically),
-                        text = countryCode.name,
-                        style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+        if (navigator.lastItem == navigator.lastModalItem && dataState.phoneNumberFormatted.isEmpty()) {
+            Identity.getSignInClient(context)
+                .getPhoneNumberHintIntent(request)
+                .addOnSuccessListener {
+                    phoneNumberHintLauncher.launch(
+                        IntentSenderRequest.Builder(it.intentSender).build()
                     )
-                    Text(
-                        modifier = Modifier
-                            .padding(CodeTheme.dimens.inset)
-                            .align(CenterVertically),
-                        color = BrandLight,
-                        text = "+${countryCode.phoneCode}",
-                        style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
-                    )
+                }.addOnFailureListener {
+
                 }
-                Divider(
-                    color = White05,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                )
-            }
         }
     }
 }

@@ -8,6 +8,7 @@ import com.getcode.App
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.michaelrocks.libphonenumber.android.NumberParseException
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
+import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,9 +23,9 @@ class PhoneUtils @Inject constructor(
     private var countryCodesMap: Map<Int, CountryLocale> = mapOf()
     var defaultCountryLocale: CountryLocale
 
-    init {
-        val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
+    private val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
 
+    init {
         phoneNumberUtil.supportedRegions.map { region ->
             val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)
             val resId: Int? = currencyUtils.getFlag(region)
@@ -66,7 +67,6 @@ class PhoneUtils @Inject constructor(
     }
 
     fun isPhoneNumberValid(number: String, countryCode: String): Boolean {
-        val phoneNumberUtil: PhoneNumberUtil = PhoneNumberUtil.createInstance(context)
         var isValid = false
         var numberType: PhoneNumberUtil.PhoneNumberType? = null
 
@@ -74,6 +74,7 @@ class PhoneUtils @Inject constructor(
             //val countryCallingCode: Int = phoneNumberUtil.getCountryCodeForRegion(countryCode)
             //val countryCode: String = phoneNumberUtil.getRegionCodeForCountryCode(countryCallingCode)
             val phoneNumber = phoneNumberUtil.parse(number, countryCode)
+            Timber.d("number=$phoneNumber")
             isValid = phoneNumberUtil.isValidNumber(phoneNumber)
             numberType = phoneNumberUtil.getNumberType(phoneNumber)
         } catch (e: NumberParseException) {
@@ -84,11 +85,8 @@ class PhoneUtils @Inject constructor(
             //e.printStackTrace()
         }
 
-        if (isValid && (PhoneNumberUtil.PhoneNumberType.UNKNOWN !== numberType)
-        ) {
-            return true
-        }
-        return false
+        Timber.d("valid=$isValid, type=$numberType")
+        return isValid && (PhoneNumberUtil.PhoneNumberType.UNKNOWN !== numberType)
     }
 
     fun formatNumber(

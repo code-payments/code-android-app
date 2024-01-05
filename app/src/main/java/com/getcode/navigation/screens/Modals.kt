@@ -18,7 +18,9 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.sheetHeight
+import com.getcode.util.recomposeHighlighter
 import com.getcode.view.components.SheetTitle
+import timber.log.Timber
 
 internal interface ModalContent {
 
@@ -70,20 +72,29 @@ internal interface ModalContent {
                 .fillMaxWidth()
                 .fillMaxHeight(sheetHeight)
         ) {
-            val name = (navigator.lastItem as? NamedScreen)?.name
-            val sheetName = remember(navigator) { name }
-
-            val isBackEnabled by remember(backButton, navigator.lastItem) {
-                derivedStateOf { backButton(navigator.lastItem) }
+            val lastItem by remember(navigator.lastModalItem) {
+                derivedStateOf { navigator.lastModalItem }
             }
 
-            val isCloseEnabled by remember(closeButton, navigator.lastItem) {
-                derivedStateOf { closeButton(navigator.lastItem) }
+            Timber.d("lastItem=$lastItem")
+
+            val isBackEnabled by remember(backButton, lastItem) {
+                derivedStateOf { backButton(lastItem) }
+            }
+
+            val isCloseEnabled by remember(closeButton, lastItem) {
+                derivedStateOf { closeButton(lastItem) }
             }
 
             SheetTitle(
                 modifier = Modifier,
-                title = sheetName.takeIf { !displayLogo },
+                title = {
+                    val name = (lastItem as? NamedScreen)?.name
+                    val sheetName by remember(lastItem) {
+                        derivedStateOf { name }
+                    }
+                    sheetName.takeIf { !displayLogo }
+                },
                 displayLogo = displayLogo,
                 onLogoClicked = onLogoClicked,
                 // hide while transitioning to/from other destinations
@@ -96,6 +107,7 @@ internal interface ModalContent {
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
+                Timber.d("render screen content")
                 screenContent()
             }
         }

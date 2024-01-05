@@ -65,7 +65,7 @@ fun BottomSheetScreenTransition(
 ) {
     val lastItem = navigator.lastItem
     if (lastItem != null) {
-        return when {
+        when {
             lastItem is ModalContent -> {
                 AnimatedContent(
                     targetState = lastItem,

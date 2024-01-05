@@ -8,9 +8,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import com.getcode.navigation.screens.AppScreen
+import com.getcode.navigation.screens.ModalContent
 import timber.log.Timber
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
@@ -18,6 +20,8 @@ val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
 
 class NavigatorNull : CodeNavigator {
     override val lastItem: Screen? = null
+    override val lastModalItem: Screen? = null
+    override val sheetStackRoot: Screen? = null
     override val lastEvent: StackEvent = StackEvent.Idle
     override val isVisible: Boolean = false
     override val progress: Float = 0f
@@ -59,6 +63,8 @@ class NavigatorNull : CodeNavigator {
 
 interface CodeNavigator {
     val lastItem: Screen?
+    val lastModalItem: Screen?
+    val sheetStackRoot: Screen?
     val lastEvent: StackEvent
     val isVisible: Boolean
     val progress: Float
@@ -100,6 +106,12 @@ class CombinedNavigator(
 
     override val lastItem: Screen?
         get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
+
+    override val lastModalItem: Screen?
+        get() = sheetNavigator.lastItemOrNull
+
+    override val sheetStackRoot: Screen?
+        get() = sheetNavigator.sheetStacks.lastItemOrNull?.first
 
     override val lastEvent: StackEvent
         get() = if (isVisible) sheetNavigator.lastEvent else screensNavigator?.lastEvent
@@ -226,15 +238,15 @@ class CombinedNavigator(
         screen: Screen?,
         content: @Composable () -> Unit
     ) {
-//        if (isVisible) {
-//            sheetNavigator.saveableState(key, screen = screen, content = content)
-//        } else {
+        if (isVisible) {
+            sheetNavigator.saveableState(key, screen = screen, content = content)
+        } else {
             val lastScreen by remember(screen) {
                 derivedStateOf {
                     screen ?: error("Navigator has no screen")
                 }
             }
             screensNavigator?.saveableState(key = key, screen = lastScreen, content = content)
-//        }
+        }
     }
 }
