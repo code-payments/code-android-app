@@ -259,9 +259,13 @@ class PhoneConfirmViewModel @Inject constructor(
         val keyPair: Ed25519.KeyPair
 
         try {
-            seedB64 =
-                if (isNewAccount) Ed25519.createSeed16().encodeBase64() else entropyB64.orEmpty()
-            keyPair = MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64).getSolanaKeyPair(App.getInstance())
+            keyPair = if (isNewAccount) {
+                seedB64 = Ed25519.createSeed16().encodeBase64()
+                MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64).getSolanaKeyPair(App.getInstance())
+            } else {
+                seedB64 = ""
+                SessionManager.getOrganizer()?.mnemonic?.getSolanaKeyPair(App.getInstance())!!
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             TopBarManager.showMessage(getGenericError())
