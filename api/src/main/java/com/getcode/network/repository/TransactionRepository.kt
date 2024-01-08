@@ -352,6 +352,7 @@ class TransactionRepository @Inject constructor(
 
         return transactionApi.getIntentMetadata(request)
             .flatMap {
+                Timber.d("${it.result}")
                 if (it.result != TransactionService.GetIntentMetadataResponse.Result.OK) {
                     Single.error(IllegalStateException())
                 } else {
@@ -389,7 +390,7 @@ class TransactionRepository @Inject constructor(
                         maxDeposit = Kin.fromQuarks(it.depositLimit.maxQuarks),
                     ).let { limits ->
                         Single.just(limits)
-                    } ?: Single.error(IllegalStateException())
+                    }
                 }
             }
             .doOnSuccess {
@@ -404,7 +405,6 @@ class TransactionRepository @Inject constructor(
 
         return Flowable.just(sendLimit)
             .map { it.associateBy { i -> i.id } }
-            .distinctUntilChanged()
     }
 
     fun fetchPaymentHistoryDelta(

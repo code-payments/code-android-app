@@ -329,7 +329,7 @@ class HomeViewModel @Inject constructor(
 
         runBlocking {
             balanceController.fetchBalanceSuspend()
-            client.receiveIfNeeded().blockingAwait()
+            client.receiveIfNeeded().blockingAwait(1_000L, TimeUnit.MILLISECONDS)
         }
 
         prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
@@ -341,16 +341,11 @@ class HomeViewModel @Inject constructor(
         val organizer = SessionManager.getOrganizer() ?: return
 
         val codePayload = CodePayload.fromList(payload.toList())
-        Timber.d("codePayload=${codePayload.kind.name}")
         when (codePayload.kind) {
             Kind.Cash,
-            Kind.GiftCard -> {
-                attemptReceive(organizer, codePayload)
-            }
+            Kind.GiftCard -> attemptReceive(organizer, codePayload)
 
-            Kind.RequestPayment -> {
-                attemptPayment(codePayload)
-            }
+            Kind.RequestPayment -> attemptPayment(codePayload)
         }
     }
 
@@ -400,7 +395,11 @@ class HomeViewModel @Inject constructor(
         }
 
         runCatching {
-            paymentRepository.completePayment(paymentConfirmation.requestedAmount, paymentConfirmation.payload.rendezvous) }
+            paymentRepository.completePayment(
+                paymentConfirmation.requestedAmount,
+                paymentConfirmation.payload.rendezvous
+            )
+        }
             .onSuccess {
                 showToast(paymentConfirmation.requestedAmount, false)
 
@@ -434,7 +433,7 @@ class HomeViewModel @Inject constructor(
                 error.printStackTrace()
                 TopBarManager.showMessage(
                     "Payment Failed",
-                   "This payment request could not be paid at this time. Please try again later."
+                    "This payment request could not be paid at this time. Please try again later."
                 )
                 uiFlow.update { uiModel ->
                     uiModel.copy(
@@ -487,13 +486,13 @@ class HomeViewModel @Inject constructor(
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
         cancelPayment(true, ignoreRedirect)
-        val payload = uiFlow.value.billState.paymentConfirmation?.payload  ?: return
+        val payload = uiFlow.value.billState.paymentConfirmation?.payload ?: return
         paymentRepository.rejectPayment(payload)
     }
 
     @SuppressLint("CheckResult")
     private fun attemptReceive(organizer: Organizer, payload: CodePayload) {
-        receiveTransactionRepository.start(organizer, payload.nonce)
+        receiveTransactionRepository.start(organizer, payload.rendezvous)
             .doOnNext { metadata ->
                 val kinAmount = when (metadata) {
                     is IntentMetadata.SendPrivatePayment -> metadata.metadata.amount
@@ -594,17 +593,17 @@ class HomeViewModel @Inject constructor(
                             )
                         }
                 }
-        }.filter { uiFlow.value.billState.bill == null }
-            .doOnSuccess { code: ScannableKikCode ->
-                if (code is ScannableKikCode.RemoteKikCode) {
-                    onCodeScan(code.payloadId)
-                }
+        }.filter {
+            uiFlow.value.billState.bill == null
+        }.doOnSuccess { code: ScannableKikCode ->
+            if (code is ScannableKikCode.RemoteKikCode) {
+                onCodeScan(code.payloadId)
             }
-            .delay(3000, TimeUnit.MILLISECONDS)
+        }.delay(3000, TimeUnit.MILLISECONDS)
             .repeat()
             .onErrorResumeNext { error ->
                 when (error) {
-                    is KikCodeScanner.NoKikCodeFoundException -> Unit //Timber.i("Code Not Found")
+                    is KikCodeScanner.NoKikCodeFoundException -> Unit // Timber.i("Code Not Found")
                     is LegacyCameraController.NoPreviewException -> Timber.i("No preview")
                     else -> ErrorUtils.handleError(error)
                 }
