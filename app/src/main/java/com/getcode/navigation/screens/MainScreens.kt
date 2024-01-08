@@ -7,10 +7,12 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.models.Bill
@@ -81,6 +83,10 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_giveKin)
+
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
@@ -109,6 +115,10 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
 data object BalanceModal : MainGraph, ModalRoot {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
+
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_balance)
 
     @Composable
     override fun Content() {
@@ -178,28 +188,6 @@ data object AccountModal : MainGraph, ModalRoot {
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.Settings
         )
-    }
-}
-
-@Parcelize
-data object CurrencySelectionModal: MainGraph, ModalRoot {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @Composable
-    override fun Content() {
-        val navigator = LocalCodeNavigator.current
-        ModalContainer(
-            closeButton = {
-                if (navigator.isVisible) {
-                    it is CurrencySelectionModal
-                } else {
-                    navigator.progress > 0f
-                }
-            }
-        ) {
-            CurrencySelectionSheet(viewModel = getActivityScopedViewModel())
-        }
     }
 }
 
