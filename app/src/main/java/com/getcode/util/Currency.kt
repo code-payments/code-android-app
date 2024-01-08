@@ -97,7 +97,7 @@ fun Currency.format(resources: ResourceHelper, amount: Double): String {
     )
 }
 
-private fun formatAmountString(resources: ResourceHelper, currency: Currency, amount: Double): String {
+fun formatAmountString(resources: ResourceHelper, currency: Currency, amount: Double): String {
     val isKin = currency.code == Currency.Kin.code
 
     return if (isKin) {
@@ -106,45 +106,6 @@ private fun formatAmountString(resources: ResourceHelper, currency: Currency, am
         }"
     } else {
         "${currency.symbol}${FormatUtils.format(amount)} ${
-            resources.getString(R.string.core_ofKin)
-        }"
-    }
-}
-
-fun CurrencyCode.format(resources: ResourceHelper, amount: KinAmount): String {
-    return formatAmountString(
-        resources,
-        this,
-        amount.fiat
-    )
-}
-
-fun CurrencyCode.format(context: Context, amount: KinAmount): String {
-    return formatAmountString(
-        AndroidResources(context),
-        this,
-        amount.fiat
-    )
-}
-
-@Composable
-fun CurrencyCode.format(amount: KinAmount): String {
-    return formatAmountString(
-        AndroidResources(LocalContext.current,),
-        this,
-        amount.fiat
-    )
-}
-
-private fun formatAmountString(resources: ResourceHelper, currencyCode: CurrencyCode, amount: Double): String {
-    val isKin = currencyCode.name == Currency.Kin.code
-
-    return if (isKin) {
-        "${FormatUtils.formatWholeRoundDown(amount)} ${
-            resources.getString(R.string.core_kin)
-        }"
-    } else {
-        "${currencyCode.name}${FormatUtils.format(amount)} ${
             resources.getString(R.string.core_ofKin)
         }"
     }
