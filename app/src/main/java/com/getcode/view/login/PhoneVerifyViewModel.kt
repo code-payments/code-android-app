@@ -240,7 +240,7 @@ class PhoneVerifyViewModel @Inject constructor(
                     if (uiFlow.value.isNewAccount) {
                         navigator.push(
                             LoginPhoneConfirmationScreen(
-                                phoneNumber = phoneNumber.urlEncode(),
+                                phoneNumber = phoneNumber,
                                 signInEntropy = uiFlow.value.entropyB64?.urlEncode(),
                                 isNewAccount = uiFlow.value.isNewAccount,
                                 isPhoneLinking = uiFlow.value.isPhoneLinking,
@@ -249,7 +249,7 @@ class PhoneVerifyViewModel @Inject constructor(
                     } else {
                         navigator.push(
                             PhoneConfirmationScreen(
-                                phoneNumber = phoneNumber.urlEncode(),
+                                phoneNumber = phoneNumber,
                                 signInEntropy = uiFlow.value.entropyB64,
                                 isNewAccount = uiFlow.value.isNewAccount,
                                 isPhoneLinking = uiFlow.value.isPhoneLinking,

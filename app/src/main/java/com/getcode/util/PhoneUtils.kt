@@ -72,7 +72,6 @@ class PhoneUtils @Inject constructor(
             //val countryCallingCode: Int = phoneNumberUtil.getCountryCodeForRegion(countryCode)
             //val countryCode: String = phoneNumberUtil.getRegionCodeForCountryCode(countryCallingCode)
             val phoneNumber = phoneNumberUtil.parse(number, countryCode)
-            Timber.d("number=$phoneNumber")
             isValid = phoneNumberUtil.isValidNumber(phoneNumber)
             numberType = phoneNumberUtil.getNumberType(phoneNumber)
         } catch (e: NumberParseException) {
@@ -83,7 +82,6 @@ class PhoneUtils @Inject constructor(
             //e.printStackTrace()
         }
 
-        Timber.d("valid=$isValid, type=$numberType")
         return isValid && (PhoneNumberUtil.PhoneNumberType.UNKNOWN !== numberType)
     }
 

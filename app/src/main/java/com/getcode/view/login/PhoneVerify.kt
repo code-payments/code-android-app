@@ -48,7 +48,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.navigation.screens.PhoneAreaSelectionModal
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
