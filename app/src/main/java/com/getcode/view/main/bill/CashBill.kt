@@ -27,8 +27,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.core.content.ContextCompat
+import com.getcode.LocalCurrencyUtils
 import com.getcode.R
+import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
+import com.getcode.util.formatted
+import com.getcode.util.formattedRaw
 import com.getcode.util.nonScaledSp
 import com.getcode.util.toDp
 import com.kik.kikx.kincodes.KikCodeContentView
@@ -36,8 +40,8 @@ import com.kik.kikx.kincodes.KikCodeContentView
 @Composable
 internal fun CashBill(
     modifier: Modifier = Modifier,
-    payloadData: List<Byte> = listOf(),
-    amount: String = ""
+    payloadData: List<Byte>,
+    amount: KinAmount,
 ) {
     ConstraintLayout(
         modifier = modifier
@@ -89,7 +93,7 @@ internal fun CashBill(
                     start.linkTo(parent.start)
                     top.linkTo(billImage.top)
                 },
-            text = amount
+            text = amount.formattedRaw()
         )
 
         BillAmount(
@@ -99,7 +103,7 @@ internal fun CashBill(
                     end.linkTo(parent.end)
                     bottom.linkTo(billImage.bottom)
                 },
-            text = amount
+            text = amount.formattedRaw()
         )
         Text(
             modifier = Modifier

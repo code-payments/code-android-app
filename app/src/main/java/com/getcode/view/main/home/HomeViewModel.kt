@@ -17,6 +17,7 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
 import com.getcode.manager.*
 import com.getcode.model.*
+import com.getcode.model.Currency
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
@@ -29,6 +30,8 @@ import com.getcode.network.client.*
 import com.getcode.network.repository.*
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.util.CurrencyUtils
+import com.getcode.util.Kin
 import com.getcode.utils.ErrorUtils
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
@@ -95,6 +98,7 @@ class HomeViewModel @Inject constructor(
     private val networkUtils: NetworkUtils,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
+    private val currencyUtils: CurrencyUtils,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
     private var billDismissTimer: TimerTask? = null
@@ -664,7 +668,10 @@ class HomeViewModel @Inject constructor(
         val url = "https://cash.getcode.com/c/#/e=" +
                 giftCard.mnemonicPhrase.getBase58EncodedEntropy(context)
         val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(amount.formatted(resources))
+            .replaceParam(amount.formatted(
+                currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
+                resources = resources)
+            )
             .replaceParam(url)
 
         val sendIntent: Intent = Intent().apply {

@@ -2,8 +2,11 @@ package com.getcode.models
 
 import androidx.compose.runtime.Composable
 import com.getcode.model.CodePayload
+import com.getcode.model.Currency
+import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.network.repository.Request
+import com.getcode.util.format
 import com.getcode.util.formatted
 
 data class BillState(
@@ -73,7 +76,7 @@ data class BillToast(
     val formattedAmount: String
         @Composable get() = StringBuilder()
             .append(if (isDeposit) "+" else "-")
-            .append(amount.formatted(false))
+            .append(amount.formatted())
             .toString()
 }
 
