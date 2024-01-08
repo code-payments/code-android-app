@@ -31,6 +31,7 @@ import com.getcode.view.main.account.AccountFaq
 import com.getcode.view.main.account.AccountPhone
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
+import com.getcode.view.main.currency.CurrencySelectionSheet
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.ReferFriend
 import com.google.android.gms.auth.api.credentials.Credential
@@ -286,5 +287,30 @@ data object ReferFriendScreen : MainGraph, ModalContent {
             ReferFriend()
         }
     }
+}
 
+@Parcelize
+data object CurrencySelectionModal: MainGraph, ModalRoot {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_selectCurrency)
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is CurrencySelectionModal
+                } else {
+                    navigator.progress > 0f
+                }
+            }
+        ) {
+            CurrencySelectionSheet(viewModel = getActivityScopedViewModel())
+        }
+    }
 }
