@@ -367,7 +367,7 @@ private fun BillContainer(
                         Row {
                             val bill = dataState.billState.bill as Bill.Cash
                             AmountArea(
-                                amountText = bill.amount.formatted(round = false),
+                                amountText = bill.amount.formatt,
                                 currencyResId = bill.amount.rate.currency.flagResId,
                                 isClickable = false
                             )

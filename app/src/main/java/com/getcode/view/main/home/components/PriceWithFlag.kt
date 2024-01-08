@@ -5,22 +5,20 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
 import com.getcode.util.flagResId
-import com.getcode.util.format
+import com.getcode.util.formatted
+import timber.log.Timber
 
 object PriceWithFlagDefaults {
     @Composable
@@ -56,7 +54,8 @@ internal fun PriceWithFlag(
                 tint = Color.Unspecified,
                 contentDescription = currencyCodeName.let { "$it flag" }
             )
-            text(currencyCode.format(amount))
+            Timber.d("amount=$amount")
+            text(amount.formatted())
         }
     }
 }

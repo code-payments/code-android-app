@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
+import com.getcode.LocalCurrencyUtils
 import com.getcode.LocalDeeplinks
 import com.getcode.LocalNetwork
 import com.getcode.LocalPhoneFormatter
@@ -16,6 +17,7 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.client.Client
 import com.getcode.network.repository.PrefRepository
+import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
 import com.getcode.util.handleUncaughtException
@@ -55,6 +57,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var vibrator: Vibrator
 
+    @Inject
+    lateinit var currencyUtils: CurrencyUtils
+
     /**
      * The compose navigation controller does not play nice with single task activities.
      * Invoking the navigation controller here will cause the intent to be fired
@@ -87,6 +92,7 @@ class MainActivity : FragmentActivity() {
                 LocalNetwork provides networkUtils,
                 LocalPhoneFormatter provides phoneUtils,
                 LocalVibrator provides vibrator,
+                LocalCurrencyUtils provides currencyUtils,
             ) {
                 CodeApp()
             }

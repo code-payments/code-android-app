@@ -32,7 +32,7 @@ fun Bill(
                 .padding(bottom = CodeTheme.dimens.inset)
                 .then(modifier),
             payloadData = bill.data,
-            amount = bill.amount.formatted()
+            amount = bill.amount
         )
         is Bill.Payment -> PaymentBill(
             modifier = modifier,
@@ -47,7 +47,22 @@ fun Bill(
 @Composable
 fun Preview_CashBill() {
     CodeTheme {
-        CashBill(payloadData = emptyList(), amount = "15,760")
+        val payload = CodePayload(
+            Kind.Cash,
+            value = Fiat(CurrencyCode.USD, 3.00),
+            nonce = listOf(
+                -85, -37, -27, -38, 37, -1, -4, -128, 102, 123, -35
+            ).map { it.toByte() }
+        )
+
+        CashBill(
+            amount = KinAmount.fromFiatAmount(
+                fiat = 3.00,
+                fx = 0.00001585,
+                CurrencyCode.USD
+            ),
+            payloadData = payload.codeData.toList(),
+        )
     }
 }
 
