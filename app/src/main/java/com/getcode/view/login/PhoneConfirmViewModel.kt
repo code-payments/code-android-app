@@ -155,7 +155,13 @@ class PhoneConfirmViewModel @Inject constructor(
     }
 
     private fun startTimer() {
-        uiFlow.update { it.copy(isCodeResent = false, isResendTimerRunning = true, resetTimerTime = 60) }
+        uiFlow.update {
+            it.copy(
+                isCodeResent = false,
+                isResendTimerRunning = true,
+                resetTimerTime = 60
+            )
+        }
         timer?.cancel()
         timer = fixedRateTimer("timer", false, 0L, 1000) {
             uiFlow.update {
@@ -206,8 +212,10 @@ class PhoneConfirmViewModel @Inject constructor(
                         PhoneVerificationService.CheckVerificationCodeResponse.Result.OK -> null
                         PhoneVerificationService.CheckVerificationCodeResponse.Result.INVALID_CODE ->
                             getInvalidCodeError()
+
                         PhoneVerificationService.CheckVerificationCodeResponse.Result.NO_VERIFICATION ->
                             getTimeoutError()
+
                         else ->
                             getGenericError()
                     }?.let { message -> TopBarManager.showMessage(message) }
@@ -228,6 +236,7 @@ class PhoneConfirmViewModel @Inject constructor(
                     IdentityService.LinkAccountResponse.Result.OK -> null
                     IdentityService.LinkAccountResponse.Result.INVALID_TOKEN ->
                         getInvalidCodeError()
+
                     else ->
                         getGenericError()
                 }?.let { message -> TopBarManager.showMessage(message) }
@@ -261,7 +270,8 @@ class PhoneConfirmViewModel @Inject constructor(
         try {
             keyPair = if (isNewAccount) {
                 seedB64 = Ed25519.createSeed16().encodeBase64()
-                MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64).getSolanaKeyPair(App.getInstance())
+                MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64)
+                    .getSolanaKeyPair(App.getInstance())
             } else {
                 seedB64 = ""
                 SessionManager.getOrganizer()?.mnemonic?.getSolanaKeyPair(App.getInstance())!!
@@ -288,7 +298,13 @@ class PhoneConfirmViewModel @Inject constructor(
             .toFlowable()
             .observeOn(AndroidSchedulers.mainThread())
             .doOnSubscribe { setIsLoading(true) }
-            .flatMapSingle { isSuccess -> if (isSuccess) linkAccount(keyPair, phoneNumber, otpInput) else Single.just(isSuccess) }
+            .flatMapSingle { isSuccess ->
+                if (isSuccess) linkAccount(
+                    keyPair,
+                    phoneNumber,
+                    otpInput
+                ) else Single.just(isSuccess)
+            }
             .flatMap { isSuccess ->
                 when {
                     isPhoneLinking && isSuccess -> getAssociatedPhoneNumber(keyPair)
@@ -316,15 +332,19 @@ class PhoneConfirmViewModel @Inject constructor(
             .subscribe(
                 {
                     when {
-                        isPhoneLinking -> {
-                            navigator?.push(PhoneNumberScreen)
-                        }
+                        isPhoneLinking -> navigator?.push(PhoneNumberScreen)
+
                         isNewAccount -> {
-                            navigator?.push(AccessKeyScreen(signInEntropy = seedB64.urlEncode()))
+                            navigator?.push(
+                                AccessKeyScreen(
+                                    signInEntropy = seedB64,
+                                    isNewAccount = true,
+                                    phoneNumber = phoneNumber
+                                )
+                            )
                         }
-                        isSeedInput -> {
-                            navigator?.replaceAll(HomeScreen())
-                        }
+
+                        else -> navigator?.replaceAll(HomeScreen())
                     }
                 }, {
                     setIsLoading(false)

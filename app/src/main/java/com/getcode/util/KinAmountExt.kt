@@ -22,7 +22,6 @@ fun KinAmount.formatted(currency: Currency) = formatAmountString(
 fun KinAmount.formatted(): String {
     val currency = LocalCurrencyUtils.current?.getCurrency(rate.currency.name)
         ?: Currency.Kin
-    Timber.d("formatted currency=${currency.code}")
     return formatted(currency = currency)
 }
 

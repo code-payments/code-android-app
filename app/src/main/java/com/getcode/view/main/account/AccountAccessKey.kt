@@ -152,8 +152,7 @@ fun AccountAccessKey(
         )
     }
 
-
-    SideEffect {
+    LaunchedEffect(viewModel) {
         viewModel.init()
     }
 

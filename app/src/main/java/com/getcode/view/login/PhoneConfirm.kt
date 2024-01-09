@@ -174,7 +174,7 @@ fun PhoneConfirm(
         }
     }
 
-    LaunchedEffect(rememberUpdatedState(Unit)) {
+    LaunchedEffect(arguments) {
         viewModel.reset(navigator)
         val phoneNumber = arguments.phoneNumber.orEmpty()
 

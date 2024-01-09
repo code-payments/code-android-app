@@ -1,11 +1,13 @@
 package com.getcode.view.main.home
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -80,18 +82,23 @@ internal fun DecorView(
 
         Column(modifier = Modifier.align(Alignment.BottomCenter)) {
             //Balance Changed Toast
-            AnimatedVisibility(
+            AnimatedContent(
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(end = CodeTheme.dimens.grid.x5, bottom = CodeTheme.dimens.grid.x3),
-                visible = dataState.billState.showToast,
-                enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
-                        fadeIn(animationSpec = tween(500, 100)),
-                exit = if (!isPaused)
-                    slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
-                            fadeOut(animationSpec = tween(500, 100))
-                else fadeOut(animationSpec = tween(0)),
-            ) {
+                targetState = dataState.billState.toast,
+                transitionSpec = {
+                    slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
+                            fadeIn(animationSpec = tween(500, 100)) togetherWith if (!isPaused)
+                        slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
+                                fadeOut(animationSpec = tween(500, 100))
+                    else fadeOut(animationSpec = tween(0))
+                },
+                label = "toast",
+            ) { toast ->
+                if (toast != null) {
+                    Timber.d("toast=$toast")
+                }
                 Row(
                     modifier = Modifier
                         .wrapContentSize()
@@ -99,8 +106,6 @@ internal fun DecorView(
                         .background(Black50)
                         .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x1),
                 ) {
-                    val toast = dataState.billState.toast
-                    Timber.d("toast=$toast")
                     Text(
                         text = toast?.formattedAmount.orEmpty(),
                         style = CodeTheme.typography.body2.copy(

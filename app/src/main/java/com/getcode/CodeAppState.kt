@@ -59,12 +59,11 @@ class CodeAppState(
     val currentTitle: String
         @Composable get() {
             val lastItem = navigator.lastItem
-            Timber.d("lastItem=${lastItem?.javaClass?.simpleName}")
             return (lastItem as? NamedScreen)?.name.orEmpty()
         }
 
     @Composable
-    fun getScreen() = navigator.lastItem.also { Timber.d("last item=${it?.javaClass?.simpleName},${it?.key}") }
+    fun getScreen() = navigator.lastItem
 
     val isVisibleTopBar: Pair<Boolean, Boolean>
         @Composable get() {
