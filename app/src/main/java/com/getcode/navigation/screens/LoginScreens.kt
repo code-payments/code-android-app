@@ -25,7 +25,6 @@ import com.getcode.view.login.SeedInputViewModel
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
-
 @Parcelize
 data class LoginScreen(val seed: String? = null) : LoginGraph {
     @IgnoredOnParcel
@@ -170,7 +169,7 @@ data class AccessKeyScreen(
     @Composable
     override fun Content() {
         val viewModel = getViewModel<AccessKeyViewModel>()
-        AccessKey(viewModel)
+        AccessKey(viewModel, arguments)
     }
 }
 
