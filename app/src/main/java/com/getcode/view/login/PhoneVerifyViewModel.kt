@@ -241,7 +241,7 @@ class PhoneVerifyViewModel @Inject constructor(
                         navigator.push(
                             LoginPhoneConfirmationScreen(
                                 phoneNumber = phoneNumber,
-                                signInEntropy = uiFlow.value.entropyB64?.urlEncode(),
+                                signInEntropy = uiFlow.value.entropyB64,
                                 isNewAccount = uiFlow.value.isNewAccount,
                                 isPhoneLinking = uiFlow.value.isPhoneLinking,
                             )

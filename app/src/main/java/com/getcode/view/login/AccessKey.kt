@@ -9,10 +9,20 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.MaterialTheme
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -33,14 +43,16 @@ import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.IntentUtils
-import com.getcode.view.components.*
+import com.getcode.view.components.ButtonState
+import com.getcode.view.components.CodeButton
+import com.getcode.view.components.PermissionCheck
+import com.getcode.view.components.getPermissionLauncher
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview
 @Composable
 fun AccessKey(
     viewModel: AccessKeyViewModel = hiltViewModel(),
-    upPress: () -> Unit = {},
     arguments: LoginArgs = LoginArgs(),
 ) {
     val navigator = LocalCodeNavigator.current
@@ -207,7 +219,7 @@ fun AccessKey(
         )
     }
 
-    LaunchedEffect(rememberUpdatedState(Unit)) {
+    LaunchedEffect(viewModel) {
         arguments.signInEntropy
             ?.let { viewModel.initWithEntropy(it) }
     }

@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.text.DateFormat
@@ -67,7 +68,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
 
     fun initWithEntropy(entropyB64: String) {
         if (uiFlow.value.entropyB64 == entropyB64) return
-
+        Timber.d("entropy=$entropyB64")
         val words = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")
 

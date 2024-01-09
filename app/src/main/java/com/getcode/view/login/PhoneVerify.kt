@@ -59,6 +59,7 @@ import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
 import com.google.android.gms.auth.api.identity.Identity
+import timber.log.Timber
 
 @Preview
 @Composable
@@ -229,7 +230,8 @@ internal fun PhoneVerify(
             .builder()
             .build()
 
-        if (navigator.lastItem == navigator.lastModalItem && dataState.phoneNumberFormatted.isEmpty()) {
+        val isSettled = navigator.lastItem == navigator.lastModalItem || arguments.isNewAccount
+        if (isSettled && dataState.phoneNumberFormatted.isEmpty()) {
             Identity.getSignInClient(context)
                 .getPhoneNumberHintIntent(request)
                 .addOnSuccessListener {
@@ -237,7 +239,7 @@ internal fun PhoneVerify(
                         IntentSenderRequest.Builder(it.intentSender).build()
                     )
                 }.addOnFailureListener {
-
+                    focusRequester.requestFocus()
                 }
         }
     }
