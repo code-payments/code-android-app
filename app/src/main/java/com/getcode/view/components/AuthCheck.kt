@@ -65,7 +65,7 @@ fun AuthCheck(
     }
 
     deeplinkHandler ?: return
-    LaunchedEffect(isAuthenticated) {
+    LaunchedEffect(deeplinkHandler) {
         deeplinkHandler.intent
             .filterNotNull()
             .mapNotNull { deeplinkHandler.handle() }
@@ -83,6 +83,7 @@ fun AuthCheck(
                 deeplinkRouted = true
                 onNavigate(screens)
                 deeplinkHandler.debounceIntent = null
+                deeplinkRouted = false
             }
             .launchIn(this)
     }
