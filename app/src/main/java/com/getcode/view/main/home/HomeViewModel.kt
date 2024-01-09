@@ -175,6 +175,7 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             }
+
             else -> Unit
         }
 
@@ -190,7 +191,11 @@ class HomeViewModel @Inject constructor(
                     )
                 }
                 .subscribe({
-                }, { ErrorUtils.handleError(it) })
+                    cancelSend(PresentationStyle.Pop)
+                }, {
+                    ErrorUtils.handleError(it)
+                    cancelSend(style = PresentationStyle.Slide)
+                })
 
         presentSend(sendTransactionRepository.payloadData, bill, vibrate)
     }
