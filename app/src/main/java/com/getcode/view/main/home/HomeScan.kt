@@ -211,7 +211,9 @@ private fun HomeScan(
 
             Lifecycle.Event.ON_PAUSE -> {
                 isPaused = true
-                homeViewModel.startSheetDismissTimer { navigator.hide() }
+                homeViewModel.startSheetDismissTimer {
+                    Timber.d("hiding from timeout")
+                    navigator.hide() }
             }
 
             Lifecycle.Event.ON_RESUME -> {

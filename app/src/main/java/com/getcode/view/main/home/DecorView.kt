@@ -1,6 +1,7 @@
 package com.getcode.view.main.home
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,8 +27,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -81,31 +86,30 @@ internal fun DecorView(
         )
 
         Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-            //Balance Changed Toast
-            AnimatedContent(
+            AnimatedVisibility(
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(end = CodeTheme.dimens.grid.x5, bottom = CodeTheme.dimens.grid.x3),
-                targetState = dataState.billState.toast,
-                transitionSpec = {
-                    slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
-                            fadeIn(animationSpec = tween(500, 100)) togetherWith if (!isPaused)
-                        slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
-                                fadeOut(animationSpec = tween(500, 100))
-                    else fadeOut(animationSpec = tween(0))
-                },
-                label = "toast",
-            ) { toast ->
-                if (toast != null) {
-                    Timber.d("toast=$toast")
-                }
+                visible = dataState.billState.showToast,
+                enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
+                        fadeIn(animationSpec = tween(500, 100)),
+                exit = if (!isPaused)
+                    slideOutVertically(animationSpec = tween(600), targetOffsetY = { it }) +
+                            fadeOut(animationSpec = tween(500, 100))
+                else fadeOut(animationSpec = tween(0)),
+            ) {
                 Row(
                     modifier = Modifier
                         .wrapContentSize()
                         .clip(CodeTheme.shapes.xxl)
                         .background(Black50)
-                        .padding(horizontal = CodeTheme.dimens.grid.x2, vertical = CodeTheme.dimens.grid.x1),
+                        .padding(
+                            horizontal = CodeTheme.dimens.grid.x2,
+                            vertical = CodeTheme.dimens.grid.x1
+                        ),
                 ) {
+                    val toast by
+                        remember(dataState.billState.toast) { derivedStateOf { dataState.billState.toast } }
                     Text(
                         text = toast?.formattedAmount.orEmpty(),
                         style = CodeTheme.typography.body2.copy(

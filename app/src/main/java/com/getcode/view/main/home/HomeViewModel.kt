@@ -57,6 +57,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.concurrent.schedule
 import kotlin.concurrent.timerTask
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 sealed interface PresentationStyle {
@@ -213,7 +214,6 @@ class HomeViewModel @Inject constructor(
             }
 
             if (bill.didReceive) {
-                delay(300)
                 withContext(Dispatchers.Main) {
                     uiFlow.update {
                         val billState = it.billState
@@ -349,10 +349,21 @@ class HomeViewModel @Inject constructor(
                 val billState = uiModel.billState
                 uiModel.copy(
                     billState = billState.copy(
-                        toast = null,
                         showToast = false
                     )
                 )
+            }
+            // wait for animation to run
+            Timer().schedule(500.milliseconds.inWholeMilliseconds) {
+                uiFlow.update {
+                        uiModel ->
+                    val billState = uiModel.billState
+                    uiModel.copy(
+                        billState = billState.copy(
+                            toast = null
+                        )
+                    )
+                }
             }
         }
     }
