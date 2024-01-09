@@ -50,7 +50,7 @@ data class HomeScreen(val cashLink: String? = null) : AppScreen(), MainGraph {
 
         OnScreenResult<Bill> {
             Timber.d("onShowBill=${it.amount.fiat}")
-            vm.showBill(it, vibrate = true)
+            vm.showBill(it)
         }
     }
 }
