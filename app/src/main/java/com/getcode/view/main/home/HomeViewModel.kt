@@ -162,6 +162,22 @@ class HomeViewModel @Inject constructor(
 
         val organizer = SessionManager.getOrganizer() ?: return
 
+        // Don't show the remote send and cancel buttons for first kin
+        when (bill) {
+            is Bill.Cash -> {
+                if (bill.kind == Bill.Kind.firstKin) {
+                    uiFlow.update {
+                        it.copy(
+                            billState = it.billState.copy(
+                                hideBillButtons = true
+                            )
+                        )
+                    }
+                }
+            }
+            else -> Unit
+        }
+
         // this should not be in the view model
         sendTransactionDisposable?.dispose()
         sendTransactionRepository.init(amount = amountFloor, owner = owner)
@@ -246,7 +262,7 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-    fun cancelSend(style: PresentationStyle = uiFlow.value.presentationStyle) {
+    fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
         billDismissTimer?.cancel()
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
@@ -276,10 +292,9 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
-
     }
 
-    private fun showToastIfNeeded(style: PresentationStyle = uiFlow.value.presentationStyle): Boolean {
+    private fun showToastIfNeeded(style: PresentationStyle): Boolean {
         val billState = uiFlow.value.billState
         val bill = billState.bill ?: return false
 
@@ -675,9 +690,11 @@ class HomeViewModel @Inject constructor(
         val url = "https://cash.getcode.com/c/#/e=" +
                 giftCard.mnemonicPhrase.getBase58EncodedEntropy(context)
         val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(amount.formatted(
-                currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
-                resources = resources)
+            .replaceParam(
+                amount.formatted(
+                    currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
+                    resources = resources
+                )
             )
             .replaceParam(url)
 
@@ -738,7 +755,11 @@ class HomeViewModel @Inject constructor(
                             viewModelScope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()
                                 showBill(
-                                    Bill.Cash(amount = amount, didReceive = true),
+                                    Bill.Cash(
+                                        amount = amount,
+                                        didReceive = true,
+                                        kind = Bill.Kind.remote
+                                    ),
                                     vibrate = true
                                 )
                                 removeLinkWithDelay(cashLink)
