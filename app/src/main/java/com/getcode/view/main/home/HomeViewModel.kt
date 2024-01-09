@@ -69,6 +69,7 @@ sealed interface PresentationStyle {
 
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
+    val vibrateOnScan: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
@@ -119,6 +120,16 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
                 }
             }
+
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
+            .flowOn(Dispatchers.IO)
+            .onEach { vibrate ->
+                withContext(Dispatchers.Main) {
+                    uiFlow.update {
+                        it.copy(vibrateOnScan = vibrate)
+                    }
+                }
+            }.launchIn(viewModelScope)
 
         CoroutineScope(Dispatchers.IO).launch {
             SessionManager.authState
@@ -336,11 +347,6 @@ class HomeViewModel @Inject constructor(
             client.receiveIfNeeded().blockingAwait(1_000L, TimeUnit.MILLISECONDS)
         }
 
-        prefRepository.getFirstOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
-            .subscribe { value: Boolean ->
-                if (value) vibrator.vibrate()
-            }
-
         analyticsManager.grabStart()
         val organizer = SessionManager.getOrganizer() ?: return
 
@@ -377,6 +383,7 @@ class HomeViewModel @Inject constructor(
         }
 
 
+        // vibrate with every payment request presentation (regardless of debug setting)
         Timer().schedule(timerTask {
             vibrator.vibrate()
         }, 150)
@@ -518,7 +525,7 @@ class HomeViewModel @Inject constructor(
 
                 showBill(
                     Bill.Cash(kinAmount, didReceive = true),
-                    vibrate = true
+                    vibrate = uiFlow.value.vibrateOnScan
                 )
             }
             .flatMapCompletable {
