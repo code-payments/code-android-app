@@ -76,8 +76,6 @@ internal interface ModalContent {
                 derivedStateOf { navigator.lastModalItem }
             }
 
-            Timber.d("lastItem=$lastItem")
-
             val isBackEnabled by remember(backButton, lastItem) {
                 derivedStateOf { backButton(lastItem) }
             }
@@ -107,7 +105,6 @@ internal interface ModalContent {
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
-                Timber.d("render screen content")
                 screenContent()
             }
         }
