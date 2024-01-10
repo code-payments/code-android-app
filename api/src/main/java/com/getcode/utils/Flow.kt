@@ -9,17 +9,17 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 
 fun flowInterval(
-    delayMillis: Long,
+    delayMillis: () -> Long,
     initialDelayMillis: Long = 0L
 ) = flow {
-    require(delayMillis >= 0) { "delayMillis must be positive" }
+    require(delayMillis() >= 0) { "delayMillis must be positive" }
     require(initialDelayMillis >=0) { "initialDelayMillis cannot be negative" }
     if (initialDelayMillis > 0) {
         delay(initialDelayMillis)
     }
     emit(System.currentTimeMillis())
     while (true) {
-        delay(delayMillis)
+        delay(delayMillis())
         emit(System.currentTimeMillis())
     }
 }.cancellable().buffer()

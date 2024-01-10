@@ -24,18 +24,22 @@ class AccountDebugOptionsViewModel @Inject constructor(
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
-        val isDebugBuckets: Boolean = false,
-        val isDebugScanTimes: Boolean = false,
-        val isDisplayErrors: Boolean = false,
-        val isRemoteSendEnabled: Boolean = false,
-        val isIncentivesEnabled: Boolean = false,
+        val showNetworkDropOff: Boolean = false,
+        val canViewBuckets: Boolean = false,
+        val isVibrateOnScan: Boolean = false,
+        val debugScanTimesEnabled: Boolean = false,
+        val displayErrors: Boolean = false,
+        val remoteSendEnabled: Boolean = false,
+        val incentivesEnabled: Boolean = false,
     )
 
     sealed interface Event {
         data class UpdateSettings(val settings: AccountDebugSettings) : Event
 
         data class ShowErrors(val display: Boolean) : Event
+        data class ShowNetworkDropOff(val show: Boolean): Event
         data class SetLogScanTimes(val log: Boolean) : Event
+        data class SetVibrateOnScan(val vibrate: Boolean) : Event
         data class UseDebugBuckets(val enabled: Boolean) : Event
     }
 
@@ -52,6 +56,22 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .onEach {
                 prefRepository.set(PrefsBool.IS_DEBUG_DISPLAY_ERRORS, it)
                 ErrorUtils.setDisplayErrors(it)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.SetVibrateOnScan>()
+            .map { it.vibrate }
+            .onEach {
+                prefRepository.set(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, it)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ShowNetworkDropOff>()
+            .map { it.show }
+            .onEach {
+                prefRepository.set(PrefsBool.IS_DEBUG_NETWORK_NO_CONNECTION, it)
             }
             .launchIn(viewModelScope)
 
@@ -78,17 +98,20 @@ class AccountDebugOptionsViewModel @Inject constructor(
                 is Event.UpdateSettings -> { state ->
                     with(event.settings) {
                         state.copy(
-                            isDebugBuckets = isDebugBuckets,
-                            isDebugScanTimes = isDebugScanTimesEnabled,
-                            isDisplayErrors = isDisplayErrors,
-                            isRemoteSendEnabled = isRemoteSendEnabled,
-                            isIncentivesEnabled = isIncentivesEnabled,
+                            showNetworkDropOff = showNetworkDropOff,
+                            canViewBuckets = canViewBuckets,
+                            debugScanTimesEnabled = debugScanTimesEnabled,
+                            displayErrors = displayErrors,
+                            remoteSendEnabled = remoteSendEnabled,
+                            incentivesEnabled = incentivesEnabled,
                         )
                     }
                 }
 
+                is Event.ShowNetworkDropOff,
                 is Event.UseDebugBuckets,
                 is Event.SetLogScanTimes,
+                is Event.SetVibrateOnScan,
                 is Event.ShowErrors -> { state -> state }
             }
         }

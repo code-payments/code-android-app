@@ -68,6 +68,8 @@ import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OnLifecycleEvent
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.getPermissionLauncher
+import com.getcode.view.main.connectivity.ConnectionState
+import com.getcode.view.main.connectivity.NetworkConnectionViewModel
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
@@ -88,6 +90,7 @@ enum class HomeBottomSheet {
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
+    connectionViewModel: NetworkConnectionViewModel,
     deepLink: String? = null
 ) {
     val dataState by homeViewModel.uiFlow.collectAsState()
@@ -102,7 +105,12 @@ fun HomeScreen(
         }
 
         null -> {
-            HomeScan(homeViewModel = homeViewModel, dataState = dataState, deepLink = deepLink)
+            HomeScan(
+                homeViewModel = homeViewModel,
+                connectionViewModel = connectionViewModel,
+                dataState = dataState,
+                deepLink = deepLink
+            )
         }
     }
 }
@@ -112,6 +120,7 @@ fun HomeScreen(
 private fun HomeScan(
     homeViewModel: HomeViewModel,
     dataState: HomeUiModel,
+    connectionViewModel: NetworkConnectionViewModel,
     deepLink: String?,
 ) {
     val navigator = LocalCodeNavigator.current
@@ -180,6 +189,7 @@ private fun HomeScan(
         isPaused = isPaused,
         dataState = dataState,
         homeViewModel = homeViewModel,
+        connectionViewModel = connectionViewModel,
         billDismissState = billDismissState,
         scannerView = {
             AndroidView(
@@ -213,7 +223,8 @@ private fun HomeScan(
                 isPaused = true
                 homeViewModel.startSheetDismissTimer {
                     Timber.d("hiding from timeout")
-                    navigator.hide() }
+                    navigator.hide()
+                }
             }
 
             Lifecycle.Event.ON_RESUME -> {
@@ -244,6 +255,7 @@ private fun BillContainer(
     isPaused: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
+    connectionViewModel: NetworkConnectionViewModel,
     billDismissState: DismissState,
     scannerView: @Composable () -> Unit,
     showBottomSheet: (HomeBottomSheet) -> Unit,
@@ -254,6 +266,7 @@ private fun BillContainer(
         }
 
     val launcher = getPermissionLauncher(onPermissionResult)
+    val connectionState by connectionViewModel.connectionStatus.collectAsState()
 
     SideEffect {
         PermissionCheck.requestPermission(
@@ -291,7 +304,7 @@ private fun BillContainer(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(dataState, isPaused) { showBottomSheet(it) }
+            DecorView(dataState, connectionState, isPaused) { showBottomSheet(it) }
         }
 
         Column(
@@ -353,9 +366,17 @@ private fun BillContainer(
                 ) {
                     Column(
                         modifier = Modifier
-                            .clip(CodeTheme.shapes.medium.copy(bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize))
+                            .clip(
+                                CodeTheme.shapes.medium.copy(
+                                    bottomStart = ZeroCornerSize,
+                                    bottomEnd = ZeroCornerSize
+                                )
+                            )
                             .background(Brand)
-                            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x3),
+                            .padding(
+                                horizontal = CodeTheme.dimens.inset,
+                                vertical = CodeTheme.dimens.grid.x3
+                            ),
                         horizontalAlignment = CenterHorizontally
                     ) {
                         Text(

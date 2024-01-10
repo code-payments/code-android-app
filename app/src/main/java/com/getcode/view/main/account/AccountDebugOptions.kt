@@ -32,19 +32,29 @@ fun AccountDebugOptions(
 
     val options = listOf(
         DebugOption(
-            R.string.account_debug_bucket_debugger,
-            stringResource(R.string.settings_bucket_debugger_description),
-            dataState.isDebugBuckets
-        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.UseDebugBuckets(it)) },
+            R.string.account_debug_vibrate_on_scan,
+            stringResource(R.string.settings_vibrate_on_scan_description),
+            dataState.isVibrateOnScan
+        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.SetVibrateOnScan(it)) },
+        DebugOption(
+            R.string.account_debug_network_dropoff,
+            stringResource(R.string.settings_network_connectivity_description),
+            dataState.showNetworkDropOff
+        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.ShowNetworkDropOff(it)) },
         DebugOption(
             R.string.account_debug_scan_times,
             stringResource(R.string.settings_scan_times_description),
-            dataState.isDebugScanTimes
+            dataState.debugScanTimesEnabled
         ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.SetLogScanTimes(it)) },
+        DebugOption(
+            R.string.account_debug_bucket_debugger,
+            stringResource(R.string.settings_bucket_debugger_description),
+            dataState.canViewBuckets
+        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.UseDebugBuckets(it)) },
         DebugOption(
             R.string.account_debug_display_errors,
             "",
-            dataState.isDisplayErrors,
+            dataState.displayErrors,
         ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.ShowErrors(it)) }
 
     )
@@ -73,7 +83,7 @@ fun AccountDebugOptions(
                             modifier = Modifier
                                 .padding(vertical = CodeTheme.dimens.grid.x1),
                             text = option.subtitleText,
-                            style = CodeTheme.typography.body2,
+                            style = CodeTheme.typography.overline,
                             color = BrandLight
                         )
                     }

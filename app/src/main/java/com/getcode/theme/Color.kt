@@ -20,7 +20,7 @@ val Transparent = Color(0x00FFFFFF)
 val Gray50 = Color(0x803C3C3C)
 
 val Alert = Color(0xFFFF8383)
-val TopError = Color(0xFFbc3434)
+val TopError = Color(0xFFBC3434)
 val topWarning = Color(0xFFf1ab1f)
 val topInfo = Color(0xFF4f49ce)
 val topNeutral = Color(0xFF747474)

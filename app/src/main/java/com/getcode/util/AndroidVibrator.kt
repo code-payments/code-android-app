@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.CombinedVibration
 import android.os.VibrationEffect
 import android.os.VibratorManager
+import android.view.HapticFeedbackConstants
 import androidx.annotation.RequiresApi
 import com.getcode.util.vibration.Vibrator
 
@@ -13,6 +14,10 @@ class Api25Vibrator(
     override fun vibrate(duration: Long) {
         vibrator.vibrate(duration)
     }
+
+    override fun tick() {
+        vibrator.vibrate(50)
+    }
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -21,6 +26,10 @@ class Api26Vibrator(
 ) : Vibrator {
     override fun vibrate(duration: Long) {
         vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+    }
+
+    override fun tick() {
+        vibrator.vibrate(VibrationEffect.createOneShot(50,  HapticFeedbackConstants.CLOCK_TICK))
     }
 }
 
@@ -33,9 +42,17 @@ class Api31Vibrator(
         vibrator.vibrate(
             CombinedVibration.createParallel(
                 VibrationEffect.createOneShot(
-                    duration,
+                    50,
                     VibrationEffect.DEFAULT_AMPLITUDE
                 )
+            )
+        )
+    }
+
+    override fun tick() {
+        vibrator.vibrate(
+            CombinedVibration.createParallel(
+                VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
             )
         )
     }

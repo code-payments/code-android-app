@@ -6,11 +6,13 @@ import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 data class AccountDebugSettings(
-    val isDebugBuckets: Boolean = false,
-    val isDebugScanTimesEnabled: Boolean = false,
-    val isDisplayErrors: Boolean = false,
-    val isRemoteSendEnabled: Boolean = false,
-    val isIncentivesEnabled: Boolean = false,
+    val showNetworkDropOff: Boolean = false,
+    val canViewBuckets: Boolean = false,
+    val tickOnScan: Boolean = false,
+    val debugScanTimesEnabled: Boolean = false,
+    val displayErrors: Boolean = false,
+    val remoteSendEnabled: Boolean = false,
+    val incentivesEnabled: Boolean = false,
 )
 
 class AccountDebugRepository @Inject constructor(
@@ -18,14 +20,18 @@ class AccountDebugRepository @Inject constructor(
 ) {
 
     fun observe(): Flow<AccountDebugSettings> = combine(
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_NETWORK_NO_CONNECTION, false),
         prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_BUCKETS, false),
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false),
         prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_SCAN_TIMES, false),
         prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_DISPLAY_ERRORS, false),
-    ) { buckets, times, errors ->
+    ) { network, buckets, vibez, times, errors ->
         AccountDebugSettings(
-            isDebugBuckets = buckets,
-            isDebugScanTimesEnabled = times,
-            isDisplayErrors = errors
+            showNetworkDropOff = network,
+            canViewBuckets = buckets,
+            tickOnScan = vibez,
+            debugScanTimesEnabled = times,
+            displayErrors = errors
         )
     }
 }

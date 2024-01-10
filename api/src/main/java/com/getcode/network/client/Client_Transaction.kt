@@ -335,7 +335,7 @@ fun Client.pollIntentMetadata(
         Timber.tag("codescan").i("pollIntentMetadata: start polling")
     }
 
-    return flowInterval(50L * (attemptCount.get() / 10))
+    return flowInterval({ 50L * (attemptCount.get() / 10) })
         .takeWhile { !stopped.get() && attemptCount.get() < maxAttempts }
         .map { attemptCount.incrementAndGet() }
         .onEach {
