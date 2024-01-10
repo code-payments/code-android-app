@@ -10,13 +10,14 @@ import com.getcode.network.client.pollIntentMetadata
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import io.reactivex.rxjava3.core.Flowable
+import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject
 
 class ReceiveTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
     private val client: Client
 ) {
-    fun start(organizer: Organizer, rendezvous: KeyPair): Flowable<IntentMetadata> {
+    fun start(organizer: Organizer, rendezvous: KeyPair, debug: Boolean = false): Flowable<IntentMetadata> {
         return messagingRepository.sendRequestForPayment(
             destination = organizer.incomingVault.byteArray,
             rendezvousKeyPair = rendezvous
@@ -27,8 +28,9 @@ class ReceiveTransactionRepository @Inject constructor(
                 } else {
                     client.pollIntentMetadata(
                         owner = organizer.ownerKeyPair,
-                        intentId = rendezvous.publicKeyBytes.toPublicKey()
-                    )
+                        intentId = rendezvous.publicKeyBytes.toPublicKey(),
+                        debugLogs = debug,
+                    ).asFlowable()
                 }
             }
             .doOnError {

@@ -70,7 +70,7 @@ sealed interface PresentationStyle {
 
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
-    val vibrateOnScan: Boolean = false,
+    val logScanTImes: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
@@ -122,12 +122,12 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_SCAN_TIMES, false)
             .flowOn(Dispatchers.IO)
-            .onEach { vibrate ->
+            .onEach { log ->
                 withContext(Dispatchers.Main) {
                     uiFlow.update {
-                        it.copy(vibrateOnScan = vibrate)
+                        it.copy(logScanTImes = log)
                     }
                 }
             }.launchIn(viewModelScope)
@@ -369,6 +369,10 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun onCodeScan(payload: ByteArray) {
+        if (DEBUG_SCAN_TIMES) {
+            Timber.tag("codescan").d("start")
+            scanProcessingTime = System.currentTimeMillis()
+        }
         if (!networkUtils.isAvailable()) {
             return ErrorUtils.showNetworkError(resources)
         }
@@ -411,6 +415,11 @@ class HomeViewModel @Inject constructor(
                     hideBillButtons = true
                 )
             )
+        }
+
+        if (DEBUG_SCAN_TIMES) {
+            Timber.tag("codescan").d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
+            scanProcessingTime = 0
         }
 
 
@@ -556,8 +565,12 @@ class HomeViewModel @Inject constructor(
 
                 showBill(
                     Bill.Cash(kinAmount, didReceive = true),
-                    vibrate = uiFlow.value.vibrateOnScan
+                    vibrate = true
                 )
+                if (DEBUG_SCAN_TIMES) {
+                    Timber.tag("codescan").d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
+                    scanProcessingTime = 0
+                }
             }
             .flatMapCompletable {
                 Completable.concatArray(
@@ -839,6 +852,8 @@ class HomeViewModel @Inject constructor(
 
     companion object {
         private val openedLinks = mutableListOf<String>()
+        private const val DEBUG_SCAN_TIMES = true
+        private var scanProcessingTime = 0L
 
         fun removeLinkWithDelay(link: String) {
             CoroutineScope(Dispatchers.IO).launch {

@@ -15,6 +15,8 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.utils.catchSafely
+import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
@@ -23,9 +25,17 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapConcat
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.rx3.asFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -307,50 +317,47 @@ fun Client.sendRemotely(
 
 
 fun Client.requestFirstKinAirdrop(
-    owner: Ed25519.KeyPair,
+    owner: KeyPair,
 ): Single<KinAmount> {
     return transactionRepository.requestFirstKinAirdrop(owner)
 }
 
 fun Client.pollIntentMetadata(
-    owner: Ed25519.KeyPair,
+    owner: KeyPair,
     intentId: PublicKey,
-    maxAttempts: Int = 120
-): Flowable<IntentMetadata> {
+    maxAttempts: Int = 50,
+    debugLogs: Boolean = false,
+): Flow<IntentMetadata> {
     val stopped = AtomicBoolean()
     val attemptCount = AtomicInteger()
-    val slowAttemptThreshold = (maxAttempts * 0.85).toInt()
-    val fastInterval = 20L
-    val slowInterval = 800L
 
-    Timber.i("pollIntentMetadata: start polling")
-    return Flowable.interval(fastInterval, TimeUnit.MILLISECONDS)
+    if (debugLogs) {
+        Timber.tag("codescan").i("pollIntentMetadata: start polling")
+    }
+
+    return flowInterval(50L * (attemptCount.get() / 10))
         .takeWhile { !stopped.get() && attemptCount.get() < maxAttempts }
-        .doOnNext {
-            attemptCount.set(attemptCount.get() + 1)
+        .map { attemptCount.incrementAndGet() }
+        .onEach {
+            if (debugLogs) {
+                Timber.tag("codescan").i("pollIntentMetadata: [${it}] fetch data")
+            }
         }
-        .flatMap {
-            val attemptCountInt = attemptCount.get()
-            val isSlow = attemptCountInt > slowAttemptThreshold
-            val slowCount = attemptCountInt - slowAttemptThreshold
-            val slowDelay = slowInterval * slowCount
-
-            Flowable.just(Unit)
-                .delay(if (isSlow) slowDelay else 0, TimeUnit.MILLISECONDS)
-                .doOnNext { Timber.i("pollIntentMetadata: [${attemptCountInt}, isSlow: $isSlow] fetch data") }
-                .flatMap { transactionRepository.fetchIntentMetadata(owner, intentId).toFlowable() }
-                .onErrorComplete()
-        }
+        .map { transactionRepository.fetchIntentMetadata(owner, intentId) }
         .filter { !stopped.get() }
-        .map { metadata ->
-            Timber.i("pollMatchingRendezvous: stop polling")
+        .mapNotNull { it.getOrNull() }
+        .map {
+            if (debugLogs) {
+                Timber.tag("codescan")
+                    .i("pollMatchingRendezvous: stop polling :: took ${attemptCount.get()} attempts")
+            }
             stopped.set(true)
-            metadata
+            it
         }
 }
 
 fun Client.fetchTransactionLimits(
-    owner: Ed25519.KeyPair,
+    owner: KeyPair,
     isForce: Boolean = false
 ): Flowable<Map<String, SendLimit>> {
     val time = System.currentTimeMillis()
@@ -398,7 +405,7 @@ fun Client.observeTransactions(
 }
 
 fun Client.fetchPaymentHistoryDelta(
-    owner: Ed25519.KeyPair,
+    owner: KeyPair,
     afterId: ByteArray? = null
 ): Single<List<HistoricalTransaction>> {
     return transactionRepository.fetchPaymentHistoryDelta(owner, afterId)

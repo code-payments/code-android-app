@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,7 +25,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
 ) {
     data class State(
         val isDebugBuckets: Boolean = false,
-        val isVibrateOnScan: Boolean = false,
+        val isDebugScanTimes: Boolean = false,
         val isDisplayErrors: Boolean = false,
         val isRemoteSendEnabled: Boolean = false,
         val isIncentivesEnabled: Boolean = false,
@@ -36,7 +35,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
         data class UpdateSettings(val settings: AccountDebugSettings) : Event
 
         data class ShowErrors(val display: Boolean) : Event
-        data class SetVibrateOnScan(val vibrate: Boolean) : Event
+        data class SetLogScanTimes(val log: Boolean) : Event
         data class UseDebugBuckets(val enabled: Boolean) : Event
     }
 
@@ -57,10 +56,10 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.SetVibrateOnScan>()
-            .map { it.vibrate }
+            .filterIsInstance<Event.SetLogScanTimes>()
+            .map { it.log }
             .onEach {
-                prefRepository.set(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, it)
+                prefRepository.set(PrefsBool.IS_DEBUG_SCAN_TIMES, it)
             }
             .launchIn(viewModelScope)
 
@@ -80,7 +79,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
                     with(event.settings) {
                         state.copy(
                             isDebugBuckets = isDebugBuckets,
-                            isVibrateOnScan = isVibrateOnScan,
+                            isDebugScanTimes = isDebugScanTimesEnabled,
                             isDisplayErrors = isDisplayErrors,
                             isRemoteSendEnabled = isRemoteSendEnabled,
                             isIncentivesEnabled = isIncentivesEnabled,
@@ -89,7 +88,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
                 }
 
                 is Event.UseDebugBuckets,
-                is Event.SetVibrateOnScan,
+                is Event.SetLogScanTimes,
                 is Event.ShowErrors -> { state -> state }
             }
         }

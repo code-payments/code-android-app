@@ -276,5 +276,5 @@
   <string name="withdraw_address_valid_owner_account">Valid owner account</string>
   <string name="withdraw_address_valid_token_account">Valid token account</string>
     <string name="settings_bucket_debugger_description">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
-  <string name="settings_vibrate_on_scan_description">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
+  <string name="settings_scan_times_description">If enabled, the device will log additional processing information while grabbing bills.</string>
 </resources>
