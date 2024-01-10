@@ -4,7 +4,7 @@ import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.graphics.Color
 
 val Brand = Color(0xff0F0C1F)
-val BrandLight = Color(0xff7379A0)
+val BrandLight = Color(0xFF7379A0)
 val BrandSubtle = Color(0xFF565C86)
 
 val Brand01 = Color(0xFF130F27)

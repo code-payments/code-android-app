@@ -182,7 +182,7 @@ internal fun PhoneVerify(
             modifier = Modifier.constrainAs(captionText) {
                 linkTo(countryCodeRow.bottom, captionText.top, topMargin = inset)
             },
-            style = CodeTheme.typography.body2.copy(
+            style = CodeTheme.typography.overline.copy(
                 textAlign = TextAlign.Center
             ),
             color = BrandLight,
