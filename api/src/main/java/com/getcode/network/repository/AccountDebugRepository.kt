@@ -7,7 +7,7 @@ import javax.inject.Inject
 
 data class AccountDebugSettings(
     val isDebugBuckets: Boolean = false,
-    val isVibrateOnScan: Boolean = false,
+    val isDebugScanTimesEnabled: Boolean = false,
     val isDisplayErrors: Boolean = false,
     val isRemoteSendEnabled: Boolean = false,
     val isIncentivesEnabled: Boolean = false,
@@ -19,12 +19,12 @@ class AccountDebugRepository @Inject constructor(
 
     fun observe(): Flow<AccountDebugSettings> = combine(
         prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_BUCKETS, false),
-        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false),
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_SCAN_TIMES, false),
         prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_DISPLAY_ERRORS, false),
-    ) { buckets, vibez, errors ->
+    ) { buckets, times, errors ->
         AccountDebugSettings(
             isDebugBuckets = buckets,
-            isVibrateOnScan = vibez,
+            isDebugScanTimesEnabled = times,
             isDisplayErrors = errors
         )
     }

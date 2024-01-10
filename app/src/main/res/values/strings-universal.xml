@@ -8,7 +8,7 @@
     <string translatable="false" name="root_url_cash_no_protocol">cash.getcode.com</string>
     <string translatable="false" name="account_debug_options">Beta Flags</string>
     <string translatable="false" name="account_debug_bucket_debugger">Bucket Debugger</string>
-    <string translatable="false" name="account_debug_vibrate_on_scan">Vibrate on Scan</string>
+    <string translatable="false" name="account_debug_scan_times">Log scan processing times</string>
     <string translatable="false" name="account_debug_display_errors">Show Errors</string>
     <string translatable="false" name="empty" />
 </resources>

@@ -25,7 +25,11 @@ import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
@@ -339,7 +343,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    fun fetchIntentMetadata(owner: Ed25519.KeyPair, intentId: PublicKey): Single<IntentMetadata> {
+    suspend fun fetchIntentMetadata(owner: Ed25519.KeyPair, intentId: PublicKey): Result<IntentMetadata> {
         val request = TransactionService.GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.toIntentId())
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
@@ -350,17 +354,21 @@ class TransactionRepository @Inject constructor(
             }
             .build()
 
-        return transactionApi.getIntentMetadata(request)
-            .flatMap {
-                Timber.d("${it.result}")
-                if (it.result != TransactionService.GetIntentMetadataResponse.Result.OK) {
-                    Single.error(IllegalStateException())
-                } else {
-                    IntentMetadata.newInstance(it.metadata)?.let { metadata ->
-                        Single.just(metadata)
-                    } ?: Single.error(IllegalStateException())
+        return runCatching {
+            transactionApi.getIntentMetadata(request)
+                .toFlowable()
+                .asFlow()
+                .flowOn(Dispatchers.IO)
+                .map {
+                    Timber.d("${it.result}")
+                    if (it.result != TransactionService.GetIntentMetadataResponse.Result.OK) {
+                        throw IllegalStateException()
+                    } else {
+                        IntentMetadata.newInstance(it.metadata) ?: throw IllegalStateException()
+                    }
                 }
-            }
+                .firstOrNull() ?: throw IllegalStateException()
+        }
     }
 
     fun fetchTransactionLimits(

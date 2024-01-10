@@ -13,6 +13,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
+import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject
 import kotlin.random.Random
 
@@ -113,7 +114,7 @@ class SendTransactionRepository @Inject constructor(
                 client.pollIntentMetadata(
                     owner = organizer.ownerKeyPair,
                     intentId = rendezvousKey.publicKeyBytes.toPublicKey()
-                )
+                ).asFlowable()
             )
     }
 
