@@ -14,6 +14,8 @@ plugins {
     id(Plugins.secrets_gradle_plugin)
 }
 
+val contributorsSigningConfig = ContributorsSignatory(rootProject)
+
 android {
     namespace = "com.getcode"
     compileSdk = Android.compileSdkVersion
@@ -35,6 +37,12 @@ android {
     }
 
     signingConfigs {
+        create("contributors") {
+            storeFile = contributorsSigningConfig.keystore
+            storePassword = contributorsSigningConfig.keystorePassword
+            keyAlias = contributorsSigningConfig.keyAlias
+            keyPassword = contributorsSigningConfig.keyPassword
+        }
     }
 
     buildFeatures {
@@ -51,11 +59,10 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            //signingConfig = signingConfigs.getByName("debug")
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
-
+            signingConfig = signingConfigs.getByName("contributors")
 
             //isMinifyEnabled = true
             //isShrinkResources = true
