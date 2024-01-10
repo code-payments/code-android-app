@@ -27,7 +27,8 @@ private val DarkColorPalette = CodeColors(
     onBackground = White,
     surface = Brand,
     onSurface = White,
-    error = TopError
+    error = topError,
+    errorText = errorText
 )
 
 @Composable
@@ -80,7 +81,8 @@ class CodeColors(
     onBackground: Color,
     surface: Color,
     onSurface: Color,
-    error: Color
+    error: Color,
+    errorText: Color
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -98,6 +100,8 @@ class CodeColors(
         private set
     var error by mutableStateOf(error)
         private set
+    var errorText by mutableStateOf(errorText)
+        private set
 
     fun update(other: CodeColors) {
         brand = other.brand
@@ -107,6 +111,7 @@ class CodeColors(
         surface = other.surface
         onSurface = other.onSurface
         error = other.error
+        errorText = other.errorText
     }
 
     fun copy(): CodeColors = CodeColors(
@@ -117,7 +122,8 @@ class CodeColors(
         onBackground = onBackground,
         surface = surface,
         onSurface = onSurface,
-        error = error
+        error = error,
+        errorText = errorText
     )
 }
 
