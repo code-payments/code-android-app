@@ -32,7 +32,7 @@ fun ConnectionStatus(state: ConnectionState) {
             ConnectionStatus.DISCONNECTED -> Text(
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = "No network connection",
-                color = CodeTheme.colors.error,
+                color = CodeTheme.colors.errorText,
                 style = CodeTheme.typography.body1.copy(
                 textAlign = TextAlign.Center))
         }
