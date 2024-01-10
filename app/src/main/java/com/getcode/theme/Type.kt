@@ -97,6 +97,6 @@ internal val typography = Typography(
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
         lineHeight = 16.sp,
-        letterSpacing = 1.sp
+//        letterSpacing = 1.sp
     )
 )

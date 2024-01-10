@@ -177,8 +177,9 @@
   <string name="subtitle_comingSoon">Coming Soon</string>
   <string name="subtitle_delete">Delete</string>
   <string name="subtitle_deleteAccountDescription">Make sure you have your Secret Recovery Phrase saved, and then enter “Delete” to delete your Code account. This action is irreversible.</string>
-  <string name="subtitle_didntGetCode">Didn\'t get a code at %s?</string>
-  <string name="subtitle_didntGetCodeResend">Didn\'t get the code? Resend</string>
+  <string name="subtitle_didntGetCode">Didn\'t get an SMS at %s?</string>
+  <string name="subtitle_didntGetCodeResend">Didn\'t get an SMS?</string>
+  <string name="subtitle_resend">Resend</string>
   <string name="subtitle_disableFaceID">Disabling Face ID requires you to verify your identity.</string>
   <string name="subtitle_dontHaveKin">You don\'t have any Kin yet.</string>
   <string name="subtitle_enableFaceID">Enable Face ID to further enhance the security of transaction in Code.</string>
@@ -203,7 +204,7 @@
   <string name="subtitle_onCode">On Code</string>
   <string name="subtitle_organizingContacts">Organizing Your Contacts</string>
   <string name="subtitle_phoneNotInContacts">This phone number is not in your Contacts. You can still invite them to Code.</string>
-  <string name="subtitle_phoneVerificationDescription">Enter your phone number including the country code. Make sure you use the same phone number that received the invite.</string>
+  <string name="subtitle_phoneVerificationDescription">Enter your phone number including the country code.</string>
   <string name="subtitle_referralBonusReceived">Referral bonus received</string>
   <string name="subtitle_remoteSendShareSheetTitle">Send %s</string>
   <string name="subtitle_remoteSendSubject">Here\'s %s</string>

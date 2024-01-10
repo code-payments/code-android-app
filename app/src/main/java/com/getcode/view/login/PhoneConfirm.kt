@@ -1,5 +1,7 @@
 package com.getcode.view.login
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,7 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.ProvideTextStyle
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.Composable
@@ -17,7 +22,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -26,8 +30,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -108,41 +116,61 @@ fun PhoneConfirm(
             }
         )
 
-        if (dataState.isResendTimerRunning) {
-            Text(
-                modifier = Modifier
-                    .padding(top = CodeTheme.dimens.inset)
-                    .wrapContentHeight()
-                    .fillMaxWidth()
-                    .constrainAs(captionText) {
-                        top.linkTo(otpRow.bottom)
+        Column(
+            Modifier
+                .padding(top = CodeTheme.dimens.inset)
+                .wrapContentHeight()
+                .fillMaxWidth()
+                .constrainAs(captionText) {
+                    top.linkTo(otpRow.bottom)
+                }
+                .padding(vertical = CodeTheme.dimens.grid.x2),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+        ) {
+
+            ProvideTextStyle(
+                CodeTheme.typography.overline.copy(textAlign = TextAlign.Center, color = BrandLight)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.subtitle_smsWasSent)
+                )
+                if (dataState.isResendTimerRunning) {
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(R.string.subtitle_didntGetCode)
+                            .replaceParam(LocalPhoneFormatter.current?.formatNumber(dataState.phoneNumberFormatted.orEmpty())) +
+                                "\n" +
+                                stringResource(R.string.subtitle_requestNewOneIn)
+                                    .replaceParam(
+                                        "0:${if (dataState.resetTimerTime < 10) "0" else ""}${dataState.resetTimerTime}"
+                                    )
+                    )
+                } else {
+                    val text = buildAnnotatedString {
+                        append(stringResource(id = R.string.subtitle_didntGetCodeResend))
+                        append(" ")
+                        pushStringAnnotation(
+                            tag = "resend",
+                            annotation = "resend code trigger"
+                        )
+                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                            append(stringResource(R.string.subtitle_resend))
+                        }
+                        pop()
                     }
-                    .padding(vertical = CodeTheme.dimens.grid.x2),
-                color = BrandLight,
-                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
-                text = stringResource(R.string.subtitle_didntGetCode)
-                    .replaceParam(LocalPhoneFormatter.current?.formatNumber(dataState.phoneNumberFormatted.orEmpty())) +
-                        " " +
-                        stringResource(R.string.subtitle_requestNewOneIn)
-                            .replaceParam(
-                                "0:${if (dataState.resetTimerTime < 10) "0" else ""}${dataState.resetTimerTime}"
-                            )
-            )
-        } else {
-            CodeButton(
-                modifier = Modifier
-                    .padding(top = CodeTheme.dimens.inset)
-                    .wrapContentHeight()
-                    .fillMaxWidth()
-                    .constrainAs(captionText) {
-                        top.linkTo(otpRow.bottom)
+
+                    ClickableText(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = text,
+                        style = LocalTextStyle.current
+                    ) { offset ->
+                        text.getStringAnnotations(tag = "resend", start = offset, end = offset)
+                            .firstOrNull()?.let {
+                                viewModel.resendCode()
+                            }
                     }
-                    .padding(vertical = CodeTheme.dimens.grid.x2),
-                buttonState = ButtonState.Subtle,
-                text = stringResource(R.string.subtitle_didntGetCodeResend)
-                    .replaceParam(dataState.phoneNumber),
-                onClick = { viewModel.resendCode() }
-            )
+                }
+            }
         }
 
 
