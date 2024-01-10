@@ -5,7 +5,6 @@ import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
-import com.google.firebase.messaging.FirebaseMessaging
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
 import com.getcode.ed25519.Ed25519
@@ -15,11 +14,17 @@ import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.*
+import com.getcode.network.repository.IdentityRepository
+import com.getcode.network.repository.PhoneRepository
+import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.PushRepository
+import com.getcode.network.repository.encodeBase64
+import com.getcode.network.repository.getPublicKeyBase58
+import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
+import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
@@ -130,9 +135,6 @@ class AuthManager @Inject constructor(
                 } else {
                     if (isTimelockUnlockedException) {
                         SessionManager.authStateMutable.update { state -> state?.copy(isTimelockUnlocked = true) }
-                    }
-                    if (ErrorUtils.isNetworkError(it) || ErrorUtils.isRuntimeError(it)) {
-                        ErrorUtils.showNetworkError(resources)
                     }
                 }
             }

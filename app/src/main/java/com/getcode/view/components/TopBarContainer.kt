@@ -86,7 +86,7 @@ private fun TopBarView(
         modifier = Modifier
             .background(
                 when (topBarMessage.type) {
-                    ERROR_NETWORK, ERROR -> TopError
+                    ERROR_NETWORK, ERROR -> CodeTheme.colors.error
                     WARNING -> topWarning
                     NOTIFICATION -> topInfo
                     NEUTRAL -> topNeutral

@@ -48,7 +48,6 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.TopError
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
@@ -305,7 +304,7 @@ private fun ListRowItem(
 @Composable
 private fun ListSwipeDeleteCard() {
     Box(
-        modifier = Modifier.background(TopError),
+        modifier = Modifier.background(CodeTheme.colors.error),
         contentAlignment = Alignment.CenterEnd,
     ) {
         Image(

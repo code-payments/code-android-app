@@ -11,13 +11,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.TopError
 import com.getcode.view.components.CodeCircularProgressIndicator
 
 @Composable
 fun ConnectionStatus(state: ConnectionState) {
     Row {
-        when(state.connectionState) {
+        when(state.status) {
             ConnectionStatus.CONNECTING -> {
                 CodeCircularProgressIndicator(modifier = Modifier.height(CodeTheme.dimens.grid.x2))
                 Text(
@@ -33,7 +32,7 @@ fun ConnectionStatus(state: ConnectionState) {
             ConnectionStatus.DISCONNECTED -> Text(
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = "No network connection",
-                color = TopError,
+                color = CodeTheme.colors.error,
                 style = CodeTheme.typography.body1.copy(
                 textAlign = TextAlign.Center))
         }

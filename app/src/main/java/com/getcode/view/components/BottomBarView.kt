@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.TopError
 import com.getcode.theme.White
 import com.getcode.util.rememberedClickable
 
@@ -43,7 +42,7 @@ fun BottomBarView(
             modifier = Modifier
                 .background(
                     when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DEFAULT -> TopError
+                        BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
                     }
                 )
@@ -71,7 +70,7 @@ fun BottomBarView(
                     },
                     textColor =
                     when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DEFAULT -> TopError
+                        BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
                     },
                     buttonState = ButtonState.Filled,

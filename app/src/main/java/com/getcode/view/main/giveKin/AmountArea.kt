@@ -84,7 +84,7 @@ fun AmountArea(
                     contentDescription = ""
                 )
             }
-            if (connectionState.connectionState == ConnectionStatus.DISCONNECTED) {
+            if (connectionState.status == ConnectionStatus.DISCONNECTED) {
                 ConnectionStatus(state = connectionState)
             } else if (captionText != null) {
                 Text(

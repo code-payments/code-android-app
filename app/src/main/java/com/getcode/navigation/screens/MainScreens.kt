@@ -1,7 +1,6 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -21,13 +20,10 @@ import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.getActivityScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
-import com.getcode.view.main.account.withdraw.AccountWithdrawAmountViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
-import com.getcode.view.main.currency.CurrencySelectionSheet
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
-import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterNotNull
@@ -46,7 +42,7 @@ data class HomeScreen(val cashLink: String? = null) : AppScreen(), MainGraph {
     @Composable
     override fun Content() {
         val vm = getActivityScopedViewModel<HomeViewModel>()
-        HomeScreen(vm, cashLink)
+        HomeScreen(vm, getActivityScopedViewModel(), cashLink)
 
         OnScreenResult<Bill> {
             Timber.d("onShowBill=${it.amount.fiat}")
@@ -100,7 +96,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getViewModel(), getViewModel())
+            GiveKinSheet(getViewModel(), getActivityScopedViewModel())
         }
 
 

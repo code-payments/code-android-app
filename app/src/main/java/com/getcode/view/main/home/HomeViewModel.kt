@@ -56,7 +56,6 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.concurrent.schedule
-import kotlin.concurrent.timerTask
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -70,7 +69,9 @@ sealed interface PresentationStyle {
 
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
-    val logScanTImes: Boolean = false,
+    val vibrateOnScan: Boolean = false,
+    val logScanTimes: Boolean = false,
+    val showNetworkOffline: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
@@ -127,7 +128,27 @@ class HomeViewModel @Inject constructor(
             .onEach { log ->
                 withContext(Dispatchers.Main) {
                     uiFlow.update {
-                        it.copy(logScanTImes = log)
+                        it.copy(logScanTimes = log)
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, false)
+            .flowOn(Dispatchers.IO)
+            .onEach { enabled ->
+                withContext(Dispatchers.Main) {
+                    uiFlow.update {
+                        it.copy(vibrateOnScan = enabled)
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_NETWORK_NO_CONNECTION, false)
+            .flowOn(Dispatchers.IO)
+            .onEach { enabled ->
+                withContext(Dispatchers.Main) {
+                    uiFlow.update {
+                        it.copy(showNetworkOffline = enabled)
                     }
                 }
             }.launchIn(viewModelScope)
@@ -261,9 +282,7 @@ class HomeViewModel @Inject constructor(
             }
 
             if (isVibrate) {
-                Timer().schedule(timerTask {
-                    vibrator.vibrate()
-                }, 150)
+                vibrator.vibrate()
             }
         }
 
@@ -373,6 +392,11 @@ class HomeViewModel @Inject constructor(
             Timber.tag("codescan").d("start")
             scanProcessingTime = System.currentTimeMillis()
         }
+
+        if (uiFlow.value.vibrateOnScan) {
+            vibrator.tick()
+        }
+
         if (!networkUtils.isAvailable()) {
             return ErrorUtils.showNetworkError(resources)
         }
@@ -424,9 +448,7 @@ class HomeViewModel @Inject constructor(
 
 
         // vibrate with every payment request presentation (regardless of debug setting)
-        Timer().schedule(timerTask {
-            vibrator.vibrate()
-        }, 150)
+        vibrator.vibrate()
     }
 
     fun completePayment() = viewModelScope.launch {
