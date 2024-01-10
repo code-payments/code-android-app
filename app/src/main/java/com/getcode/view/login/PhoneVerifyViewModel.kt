@@ -75,26 +75,6 @@ class PhoneVerifyViewModel @Inject constructor(
         }
     }
 
-    fun onUpdateSearchFilter(filter: String) {
-        val locales = (uiFlow.value.countryLocales)
-        val localesFiltered =
-            if (filter.isBlank()) {
-                locales
-            } else {
-                (uiFlow.value.countryLocales)
-                    .filter {
-                        it.name
-                            .toLowerCase(Locale.current)
-                            .contains(filter)
-                    }
-            }
-
-        uiFlow.value = uiFlow.value.copy(
-            countrySearchFilterString = filter,
-            countryLocalesFiltered = localesFiltered
-        )
-    }
-
     fun setSignInEntropy(entropyB64: String) {
         uiFlow.update { it.copy(entropyB64 = entropyB64) }
     }
@@ -115,41 +95,21 @@ class PhoneVerifyViewModel @Inject constructor(
         uiFlow.update { it.copy(isLoading = isLoading) }
     }
 
-    fun setIsSuccess(isSuccess: Boolean) {
+    private fun setIsSuccess(isSuccess: Boolean) {
         uiFlow.update { it.copy(isSuccess = isSuccess) }
     }
 
     fun setPhoneFromHint(phoneNumber: String) {
-        val e164Phone = phoneNumber.makeE164()
-        val countryCode = phoneUtils.getCountryCode(e164Phone)
-        val locale = phoneUtils.countryLocales.firstOrNull { it.countryCode == countryCode }
-        Timber.d("phone=$phoneNumber, e164=$e164Phone, countryCode=$countryCode")
-        val phoneFormatted = phoneUtils.formatNumber(phoneNumber)
-            .replaceFirst("+", "")
-            .split(" ")
-            .drop(1)
-            .firstOrNull()
-            .orEmpty()
-            .trimStart()
+        val countryCode = phoneUtils.getCountryCode(phoneNumber)
+        val locale = phoneUtils.countryLocales
+            .firstOrNull { it.countryCode == countryCode } ?: phoneUtils.defaultCountryLocale
+        setCountryCode(locale)
 
-        uiFlow.update {
-            val selection = TextRange(phoneFormatted.length)
+        setPhoneInput(
+            phoneInput = phoneNumber
+                .replace("+${locale.phoneCode}", "")
 
-            it.copy(
-                phoneInput = e164Phone,
-                phoneNumberFormatted = phoneFormatted,
-                phoneNumberFormattedTextFieldValue = TextFieldValue(
-                    text = phoneFormatted,
-                    selection = selection
-                ),
-                countryLocale = locale ?: phoneUtils.defaultCountryLocale,
-                countryFlag = phoneUtils.toFlagEmoji(countryCode),
-                continueEnabled = phoneNumber.length > 7 && phoneUtils.isPhoneNumberValid(
-                    phoneNumber,
-                    countryCode
-                )
-            )
-        }
+        )
     }
     fun setPhoneInput(phoneInput: String, selection_: TextRange? = null) {
         val countryCode = uiFlow.value.countryLocale.phoneCode.toString()
@@ -192,6 +152,7 @@ class PhoneVerifyViewModel @Inject constructor(
 
         val phoneNumberCombined = areaCode.toString() + phoneInput
 
+        Timber.d("phoneNumber=$phoneNumberCombined")
         val phoneNumber = phoneNumberCombined.makeE164(
             java.util.Locale(java.util.Locale.getDefault().language, countryCode)
         )
