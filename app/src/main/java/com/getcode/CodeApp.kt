@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
@@ -22,8 +23,11 @@ import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AccessKeyLoginScreen
+import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.MainRoot
+import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
@@ -33,6 +37,7 @@ import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold
 import com.getcode.view.components.TitleBar
 import com.getcode.view.components.TopBarContainer
+import timber.log.Timber
 
 @Composable
 fun CodeApp() {
@@ -64,13 +69,23 @@ fun CodeApp() {
                         )
                     }
 
-                    Box(modifier = Modifier
-                        .padding(innerPaddingModifier)
+                    Box(
+                        modifier = Modifier
+                            .padding(innerPaddingModifier)
                     ) {
-                        if (navigator.lastItem is LoginScreen) {
-                            CrossfadeTransition(navigator = navigator)
-                        } else {
-                            SlideTransition(navigator = navigator)
+                        Timber.d("screen=${navigator.lastItem}")
+                        when (navigator.lastItem) {
+                            is LoginScreen, is MainRoot -> {
+                                CrossfadeTransition(navigator = navigator)
+                            }
+
+                            is HomeScreen -> {
+                                CurrentScreen()
+                            }
+
+                            else -> {
+                                SlideTransition(navigator = navigator)
+                            }
                         }
                     }
 
