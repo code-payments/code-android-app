@@ -15,6 +15,7 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.models.Bill
+import com.getcode.models.DeepLinkPaymentRequest
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.getActivityScopedViewModel
@@ -35,14 +36,17 @@ import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 
 @Parcelize
-data class HomeScreen(val cashLink: String? = null) : AppScreen(), MainGraph {
+data class HomeScreen(
+    val cashLink: String? = null,
+    val requestPayload: String? = null,
+) : AppScreen(), MainGraph {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
         val vm = getActivityScopedViewModel<HomeViewModel>()
-        HomeScreen(vm, getActivityScopedViewModel(), cashLink)
+        HomeScreen(vm, getActivityScopedViewModel(), cashLink, requestPayload)
 
         OnScreenResult<Bill> {
             Timber.d("onShowBill=${it.amount.fiat}")

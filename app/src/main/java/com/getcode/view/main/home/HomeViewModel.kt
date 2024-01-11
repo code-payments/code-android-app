@@ -21,6 +21,7 @@ import com.getcode.model.Currency
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
+import com.getcode.models.DeepLinkPaymentRequest
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
 import com.getcode.models.Valuation
@@ -38,6 +39,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.NetworkUtils
+import com.getcode.utils.base64EncodedData
 import com.getcode.vendor.Base58
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.BaseViewModel
@@ -418,23 +420,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun attemptPayment(payload: CodePayload) {
-        val request = paymentRepository.attemptRequest(payload) ?: return
+    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) {
+        val (amount, p) = paymentRepository.attemptRequest(payload) ?: return
         BottomBarManager.clear()
 
-        presentRequest(request)
+        presentRequest(amount, p, request = request)
     }
 
-    private fun presentRequest(request: Request) {
+    private fun presentRequest(amount: KinAmount, payload: CodePayload, request: DeepLinkPaymentRequest? = null) {
         uiFlow.update {
             it.copy(
                 presentationStyle = PresentationStyle.Pop,
                 billState = it.billState.copy(
-                    bill = Bill.Payment(request = request),
+                    bill = Bill.Payment(amount, payload, request),
                     paymentConfirmation = PaymentConfirmation(
                         state = PaymentState.AwaitingConfirmation,
-                        request.payload,
-                        requestedAmount = request.amount
+                        payload,
+                        requestedAmount = amount
                     ),
                     hideBillButtons = true
                 )
@@ -526,7 +528,7 @@ class HomeViewModel @Inject constructor(
 
     fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
         val bill = uiFlow.value.billState.bill as? Bill.Payment ?: return
-        val amount = bill.request.amount
+        val amount = bill.amount
 
         // TODO: analytics
 
@@ -778,6 +780,20 @@ class HomeViewModel @Inject constructor(
                     timeoutSeconds = 60
                 )
             )
+        }
+    }
+
+    fun handlePaymentRequest(bytes: String) {
+        val data = bytes.base64EncodedData()
+        val request = DeepLinkPaymentRequest.from(data)
+        if (request != null) {
+            Timber.d("request=$request")
+            val payload = CodePayload(
+                kind = Kind.RequestPayment,
+                value = request.fiat,
+                nonce = request.clientSecret
+            )
+            attemptPayment(payload, request)
         }
     }
 

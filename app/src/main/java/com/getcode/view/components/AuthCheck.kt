@@ -69,16 +69,16 @@ fun AuthCheck(
         deeplinkHandler.intent
             .filterNotNull()
             .mapNotNull { deeplinkHandler.handle() }
+            .onEach { Timber.d("${it.first}") }
             .filter {
-                if (it.first is DeeplinkHandler.Type.Cash) {
-                    return@filter isAuthenticated == true
+                Timber.d("isAuth=$isAuthenticated")
+                when (it.first) {
+                    is DeeplinkHandler.Type.Cash -> {
+                        return@filter isAuthenticated == true
+                    }
+                    else -> return@filter true
                 }
-                return@filter true
             }
-//            .onEach { (type, screens) ->
-//                val screen = screens.lastOrNull()?.javaClass?.simpleName
-//                Timber.tag(AUTH_NAV).d("navigating to $type $screen (stack size=${screens.count()})")
-//            }
             .onEach { (type, screens) ->
                 deeplinkRouted = true
                 onNavigate(screens)

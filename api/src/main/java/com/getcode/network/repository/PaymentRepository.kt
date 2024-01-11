@@ -34,7 +34,7 @@ class PaymentRepository @Inject constructor(
     private val analytics: AnalyticsManager,
     private val balanceController: BalanceController,
 ) {
-    fun attemptRequest(payload: CodePayload): Request? {
+    fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
         val fiat = payload.fiat
         if (fiat == null) {
             Timber.d("payload does not contain Fiat value")
@@ -54,7 +54,7 @@ class PaymentRepository @Inject constructor(
 
         Timber.d("amount=${amount.fiat}, ${amount.kin}, ${amount.rate}")
 
-        return Request(amount, payload)
+        return amount to payload
     }
 
     @SuppressLint("CheckResult")

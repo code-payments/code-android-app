@@ -91,7 +91,8 @@ enum class HomeBottomSheet {
 fun HomeScreen(
     homeViewModel: HomeViewModel,
     connectionViewModel: NetworkConnectionViewModel,
-    deepLink: String? = null
+    deepLink: String? = null,
+    requestPayload: String? = null,
 ) {
     val dataState by homeViewModel.uiFlow.collectAsState()
 
@@ -109,7 +110,8 @@ fun HomeScreen(
                 homeViewModel = homeViewModel,
                 connectionViewModel = connectionViewModel,
                 dataState = dataState,
-                deepLink = deepLink
+                deepLink = deepLink,
+                requestPayload = requestPayload,
             )
         }
     }
@@ -122,6 +124,7 @@ private fun HomeScan(
     dataState: HomeUiModel,
     connectionViewModel: NetworkConnectionViewModel,
     deepLink: String?,
+    requestPayload: String?,
 ) {
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
@@ -156,6 +159,10 @@ private fun HomeScan(
         }
         if (!deepLink.isNullOrBlank() && !dataState.isDeepLinkHandled) {
             homeViewModel.openCashLink(deepLink)
+        }
+
+        if (!requestPayload.isNullOrBlank()) {
+            homeViewModel.handlePaymentRequest(requestPayload)
         }
     }
 

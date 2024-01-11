@@ -5,6 +5,7 @@ plugins {
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_parcelize)
     id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_serialization)
     id(Plugins.androidx_navigation_safeargs)
     id(Plugins.hilt)
     id(Plugins.google_services)
@@ -111,6 +112,7 @@ dependencies {
     //standard libraries
     implementation(Libs.kotlin_stdlib)
     implementation(Libs.kotlinx_collections_immutable)
+    implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)
