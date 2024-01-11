@@ -26,6 +26,7 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
 import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
@@ -33,15 +34,16 @@ import com.getcode.view.components.CodeButton
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ConfirmDeleteAccount() {
-    val viewModel = hiltViewModel<DeleteAccountViewModel>()
+fun ConfirmDeleteAccount(
+    viewModel: DeleteAccountViewModel
+) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         Modifier
-            .padding(20.dp)
+            .padding(CodeTheme.dimens.grid.x4)
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
         Text(
             text = stringResource(id = R.string.subtitle_deleteAccountDescription),
@@ -54,21 +56,17 @@ fun ConfirmDeleteAccount() {
             placeholder = {
                 Text(
                     stringResource(id = R.string.subtitle_typeDelete).format(viewModel.requiredPhrase),
-                    style = CodeTheme.typography.subtitle1.copy(
-                        fontSize = 16.sp,
-                    )
+                    style = CodeTheme.typography.caption
                 )
             },
             value = viewModel.typedText.collectAsState().value,
             onValueChange = {
                 viewModel.onTextUpdated(it)
             },
-            textStyle = CodeTheme.typography.subtitle1.copy(
-                fontSize = 16.sp,
-            ),
+            textStyle = CodeTheme.typography.caption,
             singleLine = true,
             colors = inputColors(),
-            shape = RoundedCornerShape(size = 5.dp)
+            shape = CodeTheme.shapes.extraSmall
         )
         Spacer(modifier = Modifier.weight(1f))
         CodeButton(

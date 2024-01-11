@@ -271,7 +271,7 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
     @Composable
     override fun Content() {
         ModalContainer(backButton = { it is DeleteConfirmationScreen }) {
-            ConfirmDeleteAccount()
+            ConfirmDeleteAccount(getViewModel())
         }
     }
 }

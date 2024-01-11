@@ -11,9 +11,13 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
+import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.PermissionRequestScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -71,11 +75,14 @@ class CodeAppState(
             val isModalVisible = navigator.isVisible
             val loginScreen = screen as? LoginScreen
             val isLoginScreen = loginScreen != null
-            val isAccessKeyScreen = screen is AccessKeyScreen
-
+            val isSeedInput = screen is AccessKeyLoginScreen
+            val isPhoneEntry = screen is LoginPhoneVerificationScreen
+            if (isModalVisible) {
+                return false to false
+            }
             return Pair(
-                !isLoginScreen && !isModalVisible,
-                !isAccessKeyScreen && loginScreen?.seed != null && !isModalVisible,
+                !isLoginScreen,
+                isSeedInput || isPhoneEntry
             )
         }
 

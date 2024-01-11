@@ -100,7 +100,7 @@ private fun KeyBoardButton(
         if (!isSelected) Transparent else White10
     }
 
-    CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) { //ADD MODIFIER, INSTEAD
+    CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) {
         OutlinedButton(
             modifier = Modifier
                 .pointerInteropFilter {

@@ -52,6 +52,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .padding(bottom = CodeTheme.dimens.grid.x4)
             .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         val (image, caption, button) = createRefs()

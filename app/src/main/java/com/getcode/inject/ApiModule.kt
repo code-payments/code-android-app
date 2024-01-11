@@ -1,4 +1,4 @@
-package com.getcode.util
+package com.getcode.inject
 
 import android.content.Context
 import com.getcode.BuildConfig
@@ -16,6 +16,7 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.view.main.connectivity.ConnectionRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.util.AccountAuthenticator
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides

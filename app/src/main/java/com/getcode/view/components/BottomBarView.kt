@@ -70,7 +70,7 @@ fun BottomBarView(
                     },
                     textColor =
                     when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.errorText
+                        BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
                     },
                     buttonState = ButtonState.Filled,

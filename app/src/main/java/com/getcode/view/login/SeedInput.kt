@@ -1,6 +1,7 @@
 package com.getcode.view.login
 
 import android.Manifest
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +32,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.view.components.*
 
+@SuppressLint("InlinedApi")
 @Preview
 @Composable
 fun SeedInput(
@@ -51,6 +53,7 @@ fun SeedInput(
             .windowInsetsPadding(WindowInsets.systemBars)
             .padding(horizontal = CodeTheme.dimens.inset)
             .padding(top = topBarHeight)
+            .padding(bottom = CodeTheme.dimens.grid.x4)
             .verticalScroll(rememberScrollState())
             .imePadding(),
     ) {
@@ -66,7 +69,7 @@ fun SeedInput(
                     .constrainAs(captionText) {
                         top.linkTo(parent.top)
                     }
-                    .padding(top = CodeTheme.dimens.grid.x8),
+                    .padding(top = CodeTheme.dimens.grid.x4),
                 style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 color = BrandLight,
                 text = stringResource(R.string.subtitle_loginDescription)
@@ -80,7 +83,6 @@ fun SeedInput(
                     .padding(top = CodeTheme.dimens.inset)
                     .fillMaxWidth()
                     .height(120.dp)
-                    .padding(vertical = CodeTheme.dimens.grid.x1)
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 visualTransformation = VisualTransformation.None,
@@ -132,7 +134,10 @@ fun SeedInput(
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = CodeTheme.dimens.grid.x4),
+                .padding(
+                    top = CodeTheme.dimens.grid.x3,
+                    bottom = CodeTheme.dimens.grid.x4
+                ),
             onClick = {
                 focusManager.clearFocus()
                 viewModel.onSubmit(navigator)
