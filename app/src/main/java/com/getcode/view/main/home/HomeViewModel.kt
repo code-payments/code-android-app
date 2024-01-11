@@ -214,6 +214,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
+                    vibrator.vibrate()
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -286,6 +287,7 @@ class HomeViewModel @Inject constructor(
             }
         }
 
+    fun canSwipeBill() = uiFlow.value.billState.canSwipeToDismiss
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
         billDismissTimer?.cancel()
         sendTransactionDisposable?.dispose()

@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,8 @@ import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
+import com.getcode.util.addIf
+import com.getcode.util.debugBounds
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
 import com.getcode.view.camera.KikCodeScannerView
@@ -75,6 +78,7 @@ import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -126,17 +130,7 @@ private fun HomeScan(
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
 
-    val billDismissState = rememberDismissState(
-        initialValue = DismissValue.Default,
-        confirmStateChange = {
-            val canDismiss =
-                it != DismissValue.DismissedToStart && dataState.billState.canSwipeToDismiss
-            if (canDismiss) {
-                homeViewModel.cancelSend()
-            }
-            canDismiss
-        }
-    )
+
     var isPaused by rememberSaveable { mutableStateOf(false) }
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
@@ -161,7 +155,6 @@ private fun HomeScan(
 
     fun startScanPreview() {
         val view = kikCodeScannerView ?: return
-
         view.startPreview()
         homeViewModel.startScan(view)
     }
@@ -190,7 +183,6 @@ private fun HomeScan(
         dataState = dataState,
         homeViewModel = homeViewModel,
         connectionViewModel = connectionViewModel,
-        billDismissState = billDismissState,
         scannerView = {
             AndroidView(
                 modifier = Modifier
@@ -256,7 +248,6 @@ private fun BillContainer(
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
     connectionViewModel: NetworkConnectionViewModel,
-    billDismissState: DismissState,
     scannerView: @Composable () -> Unit,
     showBottomSheet: (HomeBottomSheet) -> Unit,
 ) {
@@ -281,11 +272,36 @@ private fun BillContainer(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (dataState.isCameraScanEnabled && dataState.isCameraPermissionGranted == true) Color.Black else Brand)
+            .addIf(dataState.isCameraPermissionGranted != true) { Modifier.background(Color.Black) }
             .then(modifier)
     ) {
         if (dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null) {
             scannerView()
+
+            var show by rememberSaveable {
+                mutableStateOf(true)
+            }
+
+            AnimatedVisibility(
+                modifier = Modifier.fillMaxSize(),
+                visible = show,
+                enter = fadeIn(
+                    animationSpec = tween(AnimationUtils.animationTime)
+                ),
+                exit = fadeOut(tween(AnimationUtils.animationTime))
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(CodeTheme.colors.background)
+                )
+                LaunchedEffect(dataState.isCameraScanEnabled) {
+                    if (dataState.isCameraScanEnabled) {
+                        delay(500)
+                        show = false
+                    }
+                }
+            }
         } else {
             PermissionsBlockingView(
                 modifier = Modifier
@@ -297,6 +313,22 @@ private fun BillContainer(
             )
         }
 
+        val canSwipeToDismiss = {
+            homeViewModel.canSwipeBill()
+        }
+
+        val billDismissState = rememberDismissState(
+            initialValue = DismissValue.Default,
+            confirmStateChange = {
+                val canDismiss =
+                    it == DismissValue.DismissedToEnd && canSwipeToDismiss()
+                if (canDismiss) {
+                    homeViewModel.cancelSend()
+                }
+                canDismiss
+            }
+        )
+
         // Composable animation for the side bar sheet
         AnimatedVisibility(
             visible = dataState.billState.bill == null || billDismissState.targetValue != DismissValue.Default,
@@ -307,6 +339,7 @@ private fun BillContainer(
             DecorView(dataState, connectionState, isPaused) { showBottomSheet(it) }
         }
 
+        Timber.d("billState=${dataState.billState}")
         Column(
             modifier = Modifier
                 .fillMaxSize(),
