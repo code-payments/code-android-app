@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import android.os.Parcelable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
@@ -95,6 +96,7 @@ data class LoginPhoneConfirmationScreen(
             getViewModel(),
             arguments = arguments,
         )
+        BackHandler { /* intercept */ }
     }
 }
 
@@ -170,6 +172,7 @@ data class AccessKeyScreen(
     override fun Content() {
         val viewModel = getViewModel<AccessKeyViewModel>()
         AccessKey(viewModel, arguments)
+        BackHandler { /* intercept */ }
     }
 }
 
@@ -198,5 +201,7 @@ data class PermissionRequestScreen(val permission: CodeLoginPermission) : LoginG
                 NotificationPermission()
             }
         }
+
+        BackHandler { /* intercept */ }
     }
 }
