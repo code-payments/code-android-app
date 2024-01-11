@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.navigation.screens.DeleteConfirmationScreen
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.TextSection
@@ -20,10 +21,10 @@ import com.getcode.view.components.TextSection
 @Composable
 fun DeleteCodeAccount() {
     val navigator = LocalCodeNavigator.current
-    Column(Modifier.padding(20.dp)) {
+    Column(Modifier.padding(CodeTheme.dimens.grid.x4)) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(30.dp)
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6)
         ) {
             item {
                 Image(

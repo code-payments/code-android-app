@@ -80,6 +80,7 @@ fun PhoneConfirm(
             .imePadding()
             .padding(horizontal = CodeTheme.dimens.inset)
             .padding(top = topBarHeight)
+            .padding(bottom = CodeTheme.dimens.grid.x4)
     ) {
         val (captionText, input, buttonAction, otpRow) = createRefs()
 
@@ -176,7 +177,6 @@ fun PhoneConfirm(
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = CodeTheme.dimens.grid.x2)
                 .constrainAs(buttonAction) {
                     //linkTo(buttonAction.bottom, parent.bottom, bias = 1.0F)
                     bottom.linkTo(parent.bottom)

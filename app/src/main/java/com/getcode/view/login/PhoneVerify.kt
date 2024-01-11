@@ -181,11 +181,12 @@ internal fun PhoneVerify(
         val inset = CodeTheme.dimens.inset
         Text(
             modifier = Modifier.constrainAs(captionText) {
+                linkTo(captionText.start, parent.start)
                 linkTo(countryCodeRow.bottom, captionText.top, topMargin = inset)
+                linkTo(captionText.end, parent.end)
             },
-            style = CodeTheme.typography.overline.copy(
-                textAlign = TextAlign.Center
-            ),
+            style = CodeTheme.typography.body2,
+            textAlign = TextAlign.Center,
             color = BrandLight,
             text = stringResource(R.string.subtitle_phoneVerificationDescription)
         )

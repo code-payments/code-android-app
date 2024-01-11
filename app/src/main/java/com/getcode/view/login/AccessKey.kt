@@ -9,9 +9,13 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -23,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
@@ -32,6 +37,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -42,7 +48,9 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.util.IntentUtils
+import com.getcode.util.measured
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.PermissionCheck
@@ -108,101 +116,87 @@ fun AccessKey(
         viewModel.onSubmit(navigator, false)
     }
 
-    ConstraintLayout(
+    var buttonHeight by remember {
+        mutableStateOf(0.dp)
+    }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(top = CodeTheme.dimens.grid.x17)
+            .padding(vertical = CodeTheme.dimens.grid.x4)
     ) {
-        val (seedView, captionText, buttonAction, buttonSkip) = createRefs()
-
-        AnimatedVisibility(
+        Column(
             modifier = Modifier
+                .align(Alignment.TopCenter)
                 .fillMaxHeight()
-                .constrainAs(seedView) {
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    bottom.linkTo(captionText.top)
-                    height = Dimension.fillToConstraints
-                },
-            visibleState = isAccessKeyVisible,
-            enter = fadeIn(animationSpec = tween(300, 0)),
-            exit = fadeOut(animationSpec = tween(300, 0))
+                .padding(bottom = buttonHeight),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            dataState.accessKeyCroppedBitmap?.let { bitmap ->
-                Image(
-                    modifier = Modifier
-                        .constrainAs(seedView) {
-                            top.linkTo(parent.top)
-                            start.linkTo(parent.start)
-                            end.linkTo(parent.end)
-                            bottom.linkTo(captionText.top)
-                            height = Dimension.fillToConstraints
-                        },
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "",
-                    contentScale = ContentScale.Inside
-                )
+            AnimatedVisibility(
+                visibleState = isAccessKeyVisible,
+                enter = fadeIn(animationSpec = tween(300, 0)),
+                exit = fadeOut(animationSpec = tween(300, 0))
+            ) {
+                dataState.accessKeyCroppedBitmap?.let { bitmap ->
+                    Image(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "",
+                        contentScale = ContentScale.Inside
+                    )
+                }
             }
+
+            Text(
+                modifier = Modifier
+                    .padding(vertical = CodeTheme.dimens.grid.x2),
+                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                color = White,
+                text = stringResource(R.string.subtitle_accessKeyDescription)
+            )
         }
 
-        Text(
-            modifier = Modifier
-                .constrainAs(captionText) {
-                    //top.linkTo(seedView.bottom)
-                    bottom.linkTo(buttonAction.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                }
-                .padding(vertical = CodeTheme.dimens.grid.x2),
-            style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
-            color = BrandLight,
-            text = stringResource(R.string.subtitle_accessKeyDescription)
-        )
-
-        CodeButton(
-            modifier = Modifier
-                .constrainAs(buttonAction) {
-                    top.linkTo(captionText.bottom)
-                    linkTo(buttonAction.bottom, buttonSkip.top, bias = 1.0F)
+        Column(modifier = Modifier.align(Alignment.BottomCenter)
+            .measured { buttonHeight = it.height }) {
+            CodeButton(
+                modifier = Modifier,
+                onClick = {
+                    onExportClick()
                 },
-            onClick = {
-                onExportClick()
-            },
-            text = stringResource(R.string.action_saveAccessKey),
-            buttonState = ButtonState.Filled,
-            isLoading = dataState.isLoading,
-            enabled = dataState.isEnabled,
-            isSuccess = dataState.isSuccess,
-        )
+                text = stringResource(R.string.action_saveAccessKey),
+                buttonState = ButtonState.Filled,
+                isLoading = dataState.isLoading,
+                enabled = dataState.isEnabled,
+                isSuccess = dataState.isSuccess,
+            )
 
-        CodeButton(
-            modifier = Modifier
-                .padding(bottom = CodeTheme.dimens.grid.x2)
-                .constrainAs(buttonSkip) {
-                    linkTo(buttonSkip.bottom, parent.bottom, bias = 1.0F)
-                },
-            onClick = {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = context.getString(R.string.prompt_title_wroteThemDown),
-                        subtitle = context
-                            .getString(R.string.prompt_description_wroteThemDown),
-                        positiveText = context
-                            .getString(R.string.action_yesWroteThemDown),
-                        negativeText = context.getString(R.string.action_cancel),
-                        onPositive = { onSkipClick() },
-                        onNegative = {}
+            CodeButton(
+                modifier = Modifier,
+                onClick = {
+                    BottomBarManager.showMessage(
+                        BottomBarManager.BottomBarMessage(
+                            title = context.getString(R.string.prompt_title_wroteThemDown),
+                            subtitle = context
+                                .getString(R.string.prompt_description_wroteThemDown),
+                            positiveText = context
+                                .getString(R.string.action_yesWroteThemDown),
+                            negativeText = context.getString(R.string.action_cancel),
+                            onPositive = { onSkipClick() },
+                            onNegative = {}
+                        )
                     )
-                )
-            },
-            text = stringResource(R.string.action_wroteThemDownInstead),
-            buttonState = ButtonState.Subtle,
-            enabled = dataState.isEnabled,
-            isPaddedVertical = false,
-        )
+                },
+                text = stringResource(R.string.action_wroteThemDownInstead),
+                buttonState = ButtonState.Subtle,
+                enabled = dataState.isEnabled,
+                isPaddedVertical = false,
+            )
+        }
     }
 
     BackHandler {
