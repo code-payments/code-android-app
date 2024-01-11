@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
-import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
@@ -32,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,11 +56,11 @@ import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
+import com.getcode.navigation.screens.HomeScreen
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
 import com.getcode.util.addIf
-import com.getcode.util.debugBounds
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
 import com.getcode.view.camera.KikCodeScannerView
@@ -71,7 +69,6 @@ import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OnLifecycleEvent
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.getPermissionLauncher
-import com.getcode.view.main.connectivity.ConnectionState
 import com.getcode.view.main.connectivity.NetworkConnectionViewModel
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.home.components.BillManagementOptions
@@ -228,6 +225,13 @@ private fun HomeScan(
         }
     }
 
+    LaunchedEffect(navigator.isVisible) {
+        if (!navigator.isVisible) {
+            startScanPreview()
+        } else {
+            homeViewModel.stopScan()
+        }
+    }
     LaunchedEffect(dataState.isCameraScanEnabled) {
         if (dataState.isCameraScanEnabled) {
             startScanPreview()
@@ -339,7 +343,6 @@ private fun BillContainer(
             DecorView(dataState, connectionState, isPaused) { showBottomSheet(it) }
         }
 
-        Timber.d("billState=${dataState.billState}")
         Column(
             modifier = Modifier
                 .fillMaxSize(),
