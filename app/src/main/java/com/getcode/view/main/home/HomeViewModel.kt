@@ -569,8 +569,12 @@ class HomeViewModel @Inject constructor(
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
         cancelPayment(true, ignoreRedirect)
-        val payload = uiFlow.value.billState.paymentConfirmation?.payload ?: return
-        paymentRepository.rejectPayment(payload)
+        val payload = uiFlow.value.billState.paymentConfirmation?.payload
+        payload ?: return
+
+        viewModelScope.launch {
+            paymentRepository.rejectPayment(payload)
+        }
     }
 
     @SuppressLint("CheckResult")

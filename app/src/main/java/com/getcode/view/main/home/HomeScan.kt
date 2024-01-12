@@ -416,7 +416,6 @@ private fun BillContainer(
         ) {
             if (updatedState.billState.bill != null) {
                 Box(
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                     contentAlignment = BottomCenter
                 ) {
                     Column(
@@ -431,7 +430,7 @@ private fun BillContainer(
                             .padding(
                                 horizontal = CodeTheme.dimens.inset,
                                 vertical = CodeTheme.dimens.grid.x3
-                            ),
+                            ).windowInsetsPadding(WindowInsets.navigationBars),
                         horizontalAlignment = CenterHorizontally
                     ) {
                         Text(
@@ -475,7 +474,6 @@ private fun BillContainer(
         ) {
             if (it != null) {
                 Box(
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                     contentAlignment = BottomCenter
                 ) {
                     PaymentConfirmation(
