@@ -290,7 +290,9 @@ class HomeViewModel @Inject constructor(
         }
 
     fun canSwipeBill() = uiFlow.value.billState.canSwipeToDismiss
+
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
+        Timber.d("cancelsend")
         billDismissTimer?.cancel()
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
