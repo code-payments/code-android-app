@@ -1,7 +1,9 @@
 package com.getcode.network.client
 
 import android.content.Context
+import com.getcode.model.Domain
 import com.getcode.model.Kin
+import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentReceive
 import com.getcode.model.intents.IntentRemoteReceive
 import com.getcode.network.repository.BalanceRepository
@@ -20,9 +22,6 @@ class TransactionReceiver @Inject constructor(
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository
 ) {
-
-    private var lastReceive: Long = 0L
-
     fun receiveRemotely(
         amount: Kin,
         organizer: Organizer,
@@ -61,6 +60,31 @@ class TransactionReceiver @Inject constructor(
         }
     }
 
+    fun receiveFromRelationship( organizer: Organizer, limit: Kin? = null) {
+        var receivedTotal = Kin.fromKin(0)
+
+        run loop@{
+            organizer.relationshipsLargestFirst().onEach { relationship ->
+                Timber.d("Receiving from relationships: ${relationship.partialBalance}")
+
+                val intent = transactionRepository.receiveFromRelationship(
+                    relationship.domain, relationship.partialBalance, organizer
+                ).blockingGet()
+
+                receivedTotal += relationship.partialBalance
+
+                if (intent is IntentDeposit) {
+                    setTray(organizer, intent.resultTray)
+                }
+
+                // Bail early if a limit is set
+                if (limit != null && receivedTotal >= limit) {
+                    return@loop // break loop
+                }
+            }
+        }
+    }
+
     fun receiveFromIncomingIfRotationRequired(organizer: Organizer): Completable {
         // Server will set this to `true` if the account
         // has more than 1 transaction + other heuristics
@@ -72,31 +96,27 @@ class TransactionReceiver @Inject constructor(
         }
     }
 
-    fun receiveFromIncoming(organizer: Organizer): Completable {
+    fun receiveFromIncoming(organizer: Organizer): Kin {
         val incomingBalance = organizer.availableIncomingBalance.toKinTruncating()
         return if (incomingBalance <= 0) {
-            Completable.complete()
+            Kin.fromKin(0)
         } else {
             receiveFromIncoming(
                 amount = incomingBalance,
                 organizer = organizer
-            )
+            ).blockingAwait()
+            incomingBalance
         }
     }
 
     fun receiveFromIncoming(amount: Kin, organizer: Organizer): Completable {
-        val time = System.currentTimeMillis()
-        val isPastThrottle = time - lastReceive > 1000 * 1 || lastReceive == 0L
-
-        if (!isPastThrottle) return Completable.complete()
-        lastReceive = time
         return transactionRepository.receiveFromIncoming(
             context, amount, organizer
-        )
-            .map { if (it is IntentReceive) {
+        ).map {
+            if (it is IntentReceive) {
                 setTray(organizer, it.resultTray)
-            } }
-            .ignoreElement()
+            }
+        }.ignoreElement()
     }
 
     private fun setTray(organizer: Organizer, tray: Tray) {
