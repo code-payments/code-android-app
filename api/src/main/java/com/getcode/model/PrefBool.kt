@@ -18,5 +18,6 @@ enum class PrefsBool(val value: String) {
     IS_DEBUG_DISPLAY_ERRORS("debug_display_errors"),
     IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP("is_eligible_get_first_kin_airdrop"),
     IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP("is_eligible_give_first_kin_airdrop"),
-    IS_DEBUG_NETWORK_NO_CONNECTION("debug_no_network")
+    IS_DEBUG_NETWORK_NO_CONNECTION("debug_no_network"),
+    HAS_REMOVED_LOCAL_CURRENCY("removed_local_currency")
 }

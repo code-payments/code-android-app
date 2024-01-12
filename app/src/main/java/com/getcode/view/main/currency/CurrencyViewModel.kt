@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.model.Currency
+import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
@@ -16,13 +17,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -37,7 +35,7 @@ class CurrencyViewModel @Inject constructor(
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
     exchange: Exchange,
-    prefsRepository: PrefRepository,
+    private val prefsRepository: PrefRepository,
     private val resources: ResourceHelper,
 ) : BaseViewModel2<CurrencyViewModel.State, CurrencyViewModel.Event>(
     initialState = State(),
@@ -49,6 +47,7 @@ class CurrencyViewModel @Inject constructor(
         val currenciesFiltered: List<Currency> = listOf(),
         val currenciesRecent: List<Currency>? = null,
         val listItems: List<CurrencyListItem> = listOf(),
+        val wasLocalRemovedFromRecents: Boolean = false,
         val currencySearchText: String = "",
         val selectedCurrencyCode: String? = null,
         val selectedCurrencyResId: Int? = null,
@@ -62,6 +61,8 @@ class CurrencyViewModel @Inject constructor(
         data class OnFilteredCurrenciesUpdated(val currencies: List<Currency>) : Event
         data class OnSelectedCurrencyChanged(val currency: Currency, val fromUser: Boolean = true) :
             Event
+
+        data object RemovedLocalFromRecents : Event
 
         data class OnRecentCurrencyRemoved(val currency: Currency) : Event
     }
@@ -78,7 +79,9 @@ class CurrencyViewModel @Inject constructor(
         prefsRepository
             .observeOrDefault(
                 PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
-            ).distinctUntilChanged()
+            )
+            .flowOn(Dispatchers.IO)
+            .distinctUntilChanged()
             .mapNotNull { currencyUtils.getCurrency(it) }
             .mapNotNull { currencyWithoutRate ->
                 val currencies = currencyUtils.getCurrenciesWithRates(exchange.rates())
@@ -87,31 +90,45 @@ class CurrencyViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnSelectedCurrencyChanged(it, false)) }
             .launchIn(viewModelScope)
 
+        prefsRepository
+            .observeOrDefault(PrefsBool.HAS_REMOVED_LOCAL_CURRENCY, false)
+            .flowOn(Dispatchers.IO)
+            .distinctUntilChanged()
+            .filter { it }
+            .onEach {
+                dispatchEvent(Dispatchers.Main, Event.RemovedLocalFromRecents)
+            }.launchIn(viewModelScope)
 
-        stateFlow
-            .filter { it.selectedCurrencyCode != null }
-            .flatMapLatest { state ->
-                combine(
-                    flowOf(state.selectedCurrencyCode),
-                    prefsRepository
-                        .observeOrDefault(
-                            PrefsString.KEY_CURRENCIES_RECENT, ""
-                        )
-                        .map { it.split(",") }
-                ) { selectedCode, recentCodes ->
-                    val currencies = currencyUtils.getCurrenciesWithRates(exchange.rates())
-                    recentCodes
-                        .mapNotNull { currencies.find { c -> c.code == it } }
-                        .sortedBy { c -> c.code }
-                        .toMutableList()
-                        .let { sorted ->
-                            if (sorted.size >= 5) sorted.subList(0, 5) else sorted
+
+        prefsRepository
+            .observeOrDefault(
+                PrefsString.KEY_CURRENCIES_RECENT, ""
+            )
+            .flowOn(Dispatchers.IO)
+            .map { it.split(",") }
+            .map { recents ->
+                val currencies = currencyUtils.getCurrenciesWithRates(exchange.rates())
+                recents
+                    .mapNotNull { currencies.find { c -> c.code == it } }
+                    .sortedBy { c -> c.code }
+                    .toMutableList()
+                    .let { sorted ->
+                        val currency =
+                            currencies.find { it.code == localeHelper.getDefaultCurrency()?.code }
+                        if (currency != null) {
+                            // only add local currency if not removed by user this session
+                            if (!sorted.contains(currency) && !stateFlow.value.wasLocalRemovedFromRecents) {
+                                sorted.add(currency)
+                                addToRecents(currency)
+                            }
                         }
-                        .sortedBy { it.code }
-                }
+                        sorted
+                    }
+                    .sortedBy { it.code }
             }.distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnRecentCurrenciesUpdated(it)) }
             .launchIn(viewModelScope)
+
 
         stateFlow
             .filter { it.currenciesFiltered.isNotEmpty() && it.currenciesRecent != null }
@@ -137,12 +154,7 @@ class CurrencyViewModel @Inject constructor(
             .distinctUntilChanged()
             .onEach { selected ->
                 prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selected.code)
-
-                val recents = (stateFlow.value.currenciesRecent.orEmpty() + selected).distinctBy { it.code }
-                prefsRepository.set(
-                    PrefsString.KEY_CURRENCIES_RECENT,
-                    recents.joinToString(",") { it.code }
-                )
+                addToRecents(selected)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -153,11 +165,30 @@ class CurrencyViewModel @Inject constructor(
                     .currenciesRecent.orEmpty()
                     .filter { it.code != selected.code }
 
+                if (selected.code == localeHelper.getDefaultCurrency()?.code) {
+                    dispatchEvent(Event.RemovedLocalFromRecents)
+                }
+
                 prefsRepository.set(
                     PrefsString.KEY_CURRENCIES_RECENT,
                     currencies.joinToString(",") { it.code }
                 )
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.RemovedLocalFromRecents>()
+            .onEach {
+                prefsRepository.set(PrefsBool.HAS_REMOVED_LOCAL_CURRENCY, true)
+            }.launchIn(viewModelScope)
+    }
+
+    private fun addToRecents(currency: Currency) {
+        val recents =
+            (stateFlow.value.currenciesRecent.orEmpty() + currency).distinctBy { it.code }
+        prefsRepository.set(
+            PrefsString.KEY_CURRENCIES_RECENT,
+            recents.joinToString(",") { it.code }
+        )
     }
 
     private fun getCurrenciesLocalesListItems(
@@ -257,6 +288,8 @@ class CurrencyViewModel @Inject constructor(
                         selectedCurrencyResId = event.currency.resId
                     )
                 }
+
+                is Event.RemovedLocalFromRecents -> { state -> state.copy(wasLocalRemovedFromRecents = true) }
             }
         }
     }
