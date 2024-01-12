@@ -18,6 +18,8 @@ import com.getcode.utils.ErrorUtils
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
@@ -157,7 +159,7 @@ class MessagingRepository @Inject constructor(
             }.firstOrError().blockingGet().runCatching { this }
     }
 
-    fun rejectPayment(rendezvous: KeyPair): Result<Flowable<MessagingService.SendMessageResponse>> {
+    suspend fun rejectPayment(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
         val rejection = MessagingService.ClientRejectedPayment.newBuilder()
             .setIntentId(PublicKey.fromBase58(rendezvous.getPublicKeyBase58()).toIntentId())
             .build()
@@ -181,6 +183,11 @@ class MessagingRepository @Inject constructor(
         return runCatching {
             messagingApi.sendMessage(request)
                 .let { networkOracle.managedRequest(it) }
+                .asFlow()
+                .firstOrNull()
+                .also {
+                    Timber.i("rejectPayment: result: ${it?.result}")
+                } ?: throw IllegalArgumentException()
         }
     }
 
