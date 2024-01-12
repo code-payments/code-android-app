@@ -34,9 +34,7 @@ fun CodeKeyPad(
     isDecimal: Boolean = false
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = CodeTheme.dimens.grid.x4)
-            .widthIn(100.dp, 350.dp),
+        modifier = modifier.widthIn(min = 100.dp),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
     ) {
         for (column in 1..3) {
