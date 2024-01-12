@@ -31,7 +31,7 @@ import timber.log.Timber
 internal interface ModalContent {
 
     @Composable
-    fun ModalContainer(
+    fun Screen.ModalContainer(
         closeButton: (Screen?) -> Boolean = { false },
         screenContent: @Composable () -> Unit
     ) {
@@ -46,7 +46,7 @@ internal interface ModalContent {
     }
 
     @Composable
-    fun ModalContainer(
+    fun Screen.ModalContainer(
         displayLogo: Boolean = false,
         onLogoClicked: () -> Unit = { },
         closeButton: (Screen?) -> Boolean = { false },
@@ -64,7 +64,7 @@ internal interface ModalContent {
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    fun ModalContainer(
+    fun Screen.ModalContainer(
         navigator: CodeNavigator = LocalCodeNavigator.current,
         displayLogo: Boolean = false,
         backButton: (Screen?) -> Boolean = { false },
@@ -98,7 +98,7 @@ internal interface ModalContent {
                     val sheetName by remember(lastItem) {
                         derivedStateOf { name }
                     }
-                    sheetName.takeIf { !displayLogo }
+                    sheetName.takeIf { !displayLogo && lastItem == this@ModalContainer }
                 },
                 displayLogo = displayLogo,
                 onLogoClicked = onLogoClicked,
