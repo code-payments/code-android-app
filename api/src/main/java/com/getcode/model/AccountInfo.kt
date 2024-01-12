@@ -81,7 +81,7 @@ data class AccountInfo (
 
             val originalKinAmount = originalCurrency?.let {
                 KinAmount.newInstance(
-                    kin = Kin(quarks = info.originalExchangeData.quarks),
+                    kin = Kin(info.originalExchangeData.quarks),
                     rate = Rate(
                         fx = info.originalExchangeData.exchangeRate,
                         currency = originalCurrency
@@ -99,7 +99,7 @@ data class AccountInfo (
                 owner = owner,
                 authority = authority,
                 balanceSource = balanceSource,
-                balance = Kin(quarks = info.balance),
+                balance = Kin(info.balance),
                 managementState = managementState,
                 blockchainState = blockchainState,
                 claimState = claimState,

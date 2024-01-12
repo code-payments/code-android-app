@@ -13,7 +13,7 @@ class IntentDeposit(
     override val id: PublicKey,
     private val organizer: Organizer,
     private val amount: Kin,
-
+    private val source: AccountType,
     val resultTray: Tray,
 
     override val actionGroup: ActionGroup,
@@ -22,7 +22,7 @@ class IntentDeposit(
         return TransactionService.Metadata.newBuilder()
             .setReceivePaymentsPrivately(
                 TransactionService.ReceivePaymentsPrivatelyMetadata.newBuilder()
-                    .setSource(organizer.tray.owner.getCluster().timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setSource(organizer.tray.cluster(source).timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
                     .setQuarks(amount.quarks)
                     .setIsDeposit(true)
             )
@@ -31,17 +31,18 @@ class IntentDeposit(
 
     companion object {
         fun newInstance(
+            source: AccountType,
             organizer: Organizer,
             amount: Kin
         ): IntentDeposit {
             val intentId = PublicKey.generate()
             val currentTray = organizer.tray.copy()
-            val startBalance = currentTray.availableBalance
+            val startBalance = currentTray.slotsBalance
 
             // 1. Move all funds from the incoming
             // account to appropriate slots
 
-            val transfers = currentTray.receive(AccountType.Primary, amount = amount).map { transfer ->
+            val transfers = currentTray.receive(receivingAccount = source, amount = amount).map { transfer ->
                 ActionTransfer.newInstance(
                     kind = ActionTransfer.Kind.TempPrivacyTransfer,
                     intentId = intentId,
@@ -67,7 +68,7 @@ class IntentDeposit(
                 )
             }
 
-            val endBalance = currentTray.availableBalance
+            val endBalance = currentTray.slotsBalance
 
             // We're just moving funds from incoming
             // account to buckets, the balance
@@ -85,6 +86,7 @@ class IntentDeposit(
 
             return IntentDeposit(
                 id = intentId,
+                source = source,
                 organizer = organizer,
                 amount = amount,
                 actionGroup = group,

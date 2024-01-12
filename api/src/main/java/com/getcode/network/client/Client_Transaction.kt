@@ -523,29 +523,37 @@ fun Client.fetchPrivacyUpgrades(): Completable {
 
 fun Client.getTransferPreflightAction(amount: Kin): Completable {
     val organizer = SessionManager.getOrganizer() ?: return Completable.complete()
-    // We only need to receive funds if the amount is
-    // not fully available from slots balances
+    val neededKin = if (amount > organizer.slotsBalance) amount - organizer.slotsBalance else Kin.fromKin(0)
 
-    return if (amount > organizer.slotsBalance) {
-        // 1. Receive funds from incoming accounts before
-        // we reach into primary / deposits
+    // If the there's insufficient funds in the slots
+    // we'll need to top them up from incoming, relationship
+    // and primary accounts, in that order.
+    return if (neededKin > 0) {
+        // 1. Receive funds from incoming accounts as those
+        // will rotate more frequently than other types of accounts
+        val receivedKin = transactionReceiver.receiveFromIncoming(organizer)
 
-        transactionReceiver.receiveFromIncoming(organizer)
-            .andThen(
-                Completable.defer {
-                    // 2. If the amount is still larger than what's available
-                    // in the slots, we'll need to move funds from primary
-                    // deposits into slots after receiving
-                    if (amount > organizer.slotsBalance) {
-                        receiveFromPrimaryIfWithinLimits(organizer)
-                    } else {
-                        Completable.complete()
-                    }
-                }
-            )
+        // 2. Pull funds from relationships if there's still funds
+        // missing in buckets after the receiving from primary
+        if (receivedKin < neededKin) {
+            transactionReceiver.receiveFromRelationship(organizer, limit = neededKin - receivedKin)
+        }
+
+        // 3. If the amount is still larger than what's available
+        // in the slots, we'll need to move funds from primary
+        // deposits into slots after receiving
+        if (amount > organizer.slotsBalance) {
+            receiveFromPrimaryIfWithinLimits(organizer)
+        } else {
+            Completable.complete()
+        }
     } else {
         Completable.complete()
     }
+}
+
+fun Client.receiveFromRelationships(domain: Domain, amount: Kin, organizer: Organizer) {
+    transactionRepository.receiveFromRelationship(domain, amount, organizer)
 }
 
 @SuppressLint("CheckResult")

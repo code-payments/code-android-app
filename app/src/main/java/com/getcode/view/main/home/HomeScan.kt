@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
@@ -35,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
@@ -75,8 +78,10 @@ import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 
@@ -317,30 +322,42 @@ private fun BillContainer(
             )
         }
 
-        val canSwipeToDismiss = {
-            homeViewModel.canSwipeBill()
+        val updatedState by rememberUpdatedState(newValue = dataState)
+
+        var dismissed by remember {
+            mutableStateOf(false)
         }
 
-        val billDismissState = rememberDismissState(
-            initialValue = DismissValue.Default,
-            confirmStateChange = {
-                val canDismiss =
-                    it == DismissValue.DismissedToEnd && canSwipeToDismiss()
-                if (canDismiss) {
-                    homeViewModel.cancelSend()
+        // bill dismiss state, restarted for every bill
+        val billDismissState = remember(updatedState.billState.bill) {
+            DismissState(
+                initialValue = DismissValue.Default,
+                confirmStateChange = {
+                    val canDismiss = it == DismissValue.DismissedToEnd && updatedState.billState.canSwipeToDismiss
+                    if (canDismiss) {
+                        homeViewModel.cancelSend()
+                        dismissed = true
+                    }
+                    canDismiss
                 }
-                canDismiss
+            )
+        }
+
+        LaunchedEffect(dismissed) {
+            if (dismissed) {
+                delay(300)
+                dismissed = false
             }
-        )
+        }
 
         // Composable animation for the side bar sheet
         AnimatedVisibility(
-            visible = dataState.billState.bill == null || billDismissState.targetValue != DismissValue.Default,
+            visible = updatedState.billState.bill == null || billDismissState.targetValue != DismissValue.Default,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(dataState, connectionState, isPaused) { showBottomSheet(it) }
+            DecorView(updatedState, connectionState, isPaused) { showBottomSheet(it) }
         }
 
         Column(
@@ -352,13 +369,14 @@ private fun BillContainer(
                     .fillMaxWidth()
                     .weight(1f),
                 dismissState = billDismissState,
-                bill = dataState.billState.bill,
+                dismissed = dismissed,
+                bill = updatedState.billState.bill,
                 transitionSpec = {
-                    if (dataState.presentationStyle is PresentationStyle.Slide) {
+                    if (updatedState.presentationStyle is PresentationStyle.Slide) {
                         AnimationUtils.animationBillEnter
                     } else {
                         AnimationUtils.animationBillEnterSpring
-                    } togetherWith if (dataState.presentationStyle is PresentationStyle.Slide) {
+                    } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
                         AnimationUtils.animationBillExit
                     } else {
                         fadeOut()
@@ -369,14 +387,14 @@ private fun BillContainer(
             //Bill management options
             AnimatedVisibility(
                 visible = billDismissState.targetValue == DismissValue.Default &&
-                        dataState.billState.bill != null &&
-                        !dataState.billState.hideBillButtons,
+                        updatedState.billState.bill != null &&
+                        !updatedState.billState.hideBillButtons,
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
                 BillManagementOptions(
                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                    isSending = dataState.isRemoteSendLoading,
+                    isSending = updatedState.isRemoteSendLoading,
                     onSend = { homeViewModel.onRemoteSend(context) },
                     onCancel = {
                         homeViewModel.cancelSend()
@@ -388,14 +406,14 @@ private fun BillContainer(
         //Bill Received Bottom Dialog
         AnimatedVisibility(
             modifier = Modifier.align(BottomCenter),
-            visible = dataState.billState.bill is Bill.Cash && dataState.billState.bill.didReceive,
+            visible = (updatedState.billState.bill as? Bill.Cash)?.didReceive ?: false,
             enter = slideInVertically(
                 initialOffsetY = { it },
                 animationSpec = tween(durationMillis = 600, delayMillis = 450)
             ),
             exit = slideOutVertically(targetOffsetY = { it }),
         ) {
-            if (dataState.billState.bill != null) {
+            if (updatedState.billState.bill != null) {
                 Box(
                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                     contentAlignment = BottomCenter
@@ -424,7 +442,7 @@ private fun BillContainer(
                         )
 
                         Row {
-                            val bill = dataState.billState.bill as Bill.Cash
+                            val bill = updatedState.billState.bill as Bill.Cash
                             AmountArea(
                                 amountText = bill.amount.formatted(),
                                 currencyResId = bill.amount.rate.currency.flagResId,
@@ -445,7 +463,7 @@ private fun BillContainer(
         // Payment Confirmation container
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = dataState.billState.paymentConfirmation?.payload, // payload is constant across state changes
+            targetState = updatedState.billState.paymentConfirmation?.payload, // payload is constant across state changes
             transitionSpec = {
                 slideInVertically(
                     initialOffsetY = { it },
@@ -460,7 +478,7 @@ private fun BillContainer(
                     contentAlignment = BottomCenter
                 ) {
                     PaymentConfirmation(
-                        confirmation = dataState.billState.paymentConfirmation,
+                        confirmation = updatedState.billState.paymentConfirmation,
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {
                             homeViewModel.rejectPayment()

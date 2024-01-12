@@ -3,16 +3,31 @@ package com.getcode.network.repository
 import android.annotation.SuppressLint
 import android.content.Context
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.*
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.*
-import com.getcode.model.intents.*
+import com.getcode.model.intents.ActionGroup
+import com.getcode.model.intents.IntentCreateAccounts
+import com.getcode.model.intents.IntentDeposit
+import com.getcode.model.intents.IntentEstablishRelationship
+import com.getcode.model.intents.IntentMigratePrivacy
+import com.getcode.model.intents.IntentPrivateTransfer
+import com.getcode.model.intents.IntentPublicTransfer
+import com.getcode.model.intents.IntentReceive
+import com.getcode.model.intents.IntentRemoteReceive
+import com.getcode.model.intents.IntentRemoteSend
+import com.getcode.model.intents.IntentType
+import com.getcode.model.intents.IntentUpgradePrivacy
+import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.solana.keys.AssociatedTokenAccount
-import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
+import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
@@ -24,13 +39,10 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.asFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
@@ -129,10 +141,20 @@ class TransactionRepository @Inject constructor(
 
     fun receiveFromPrimary(amount: Kin, organizer: Organizer): Single<IntentType> {
         val intent = IntentDeposit.newInstance(
+            source = AccountType.Primary,
             organizer = organizer,
             amount = amount.toKinTruncating()
         )
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
+    }
+
+    fun receiveFromRelationship(domain: Domain, amount: Kin, organizer: Organizer): Single<IntentType> {
+        val intent = IntentDeposit.newInstance(
+            source = AccountType.Relationship(domain),
+            organizer = organizer,
+            amount = amount,
+        )
+        return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
     fun withdraw(
@@ -211,7 +233,7 @@ class TransactionRepository @Inject constructor(
     }
 
     private fun submit(intent: IntentType, owner: Ed25519.KeyPair): Single<IntentType> {
-        Timber.i("Submit ${intent.id}")
+        Timber.i("Submit ${intent.javaClass.simpleName}")
         val subject = SingleSubject.create<IntentType>()
 
         var serverMessageStream: StreamObserver<TransactionService.SubmitIntentRequest>? = null

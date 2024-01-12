@@ -73,7 +73,6 @@ fun CodeApp() {
                         modifier = Modifier
                             .padding(innerPaddingModifier)
                     ) {
-                        Timber.d("screen=${navigator.lastItem}")
                         when (navigator.lastItem) {
                             is LoginScreen, is MainRoot -> {
                                 CrossfadeTransition(navigator = navigator)
