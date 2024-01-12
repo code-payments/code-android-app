@@ -75,6 +75,7 @@ data class HomeUiModel(
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
+    val isCameraReady: Boolean = false,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState(null, false, null, null, null, false),
@@ -674,6 +675,13 @@ class HomeViewModel @Inject constructor(
                 .filter { it.isPresent }
                 .map { it.get()!! }
                 .firstOrError()
+                .doOnSuccess {
+                    if (!uiFlow.value.isCameraReady) {
+                        uiFlow.update {
+                            it.copy(isCameraReady = true)
+                        }
+                    }
+                }
                 .flatMap { previewSize: CameraController.PreviewSize? ->
                     view.getPreviewBuffer()
                         .flatMap { imageData ->

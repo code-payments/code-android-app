@@ -199,6 +199,7 @@ private fun HomeScan(
                 update = { }
             )
         },
+        isCameraReady = dataState.isCameraReady,
         showBottomSheet = { showBottomSheet(it) }
     )
 
@@ -254,6 +255,7 @@ private fun BillContainer(
     modifier: Modifier = Modifier,
     context: Context,
     isPaused: Boolean,
+    isCameraReady: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
     connectionViewModel: NetworkConnectionViewModel,
@@ -304,9 +306,8 @@ private fun BillContainer(
                         .fillMaxSize()
                         .background(CodeTheme.colors.background)
                 )
-                LaunchedEffect(dataState.isCameraScanEnabled) {
-                    if (dataState.isCameraScanEnabled) {
-                        delay(500)
+                LaunchedEffect(isCameraReady) {
+                    if (isCameraReady) {
                         show = false
                     }
                 }
