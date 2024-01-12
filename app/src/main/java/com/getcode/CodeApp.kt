@@ -78,10 +78,6 @@ fun CodeApp() {
                                 CrossfadeTransition(navigator = navigator)
                             }
 
-                            is HomeScreen -> {
-                                CurrentScreen()
-                            }
-
                             else -> {
                                 SlideTransition(navigator = navigator)
                             }
