@@ -37,7 +37,7 @@ class IntentDeposit(
         ): IntentDeposit {
             val intentId = PublicKey.generate()
             val currentTray = organizer.tray.copy()
-            val startBalance = currentTray.slotsBalance
+            val startBalance = currentTray.availableBalance
 
             // 1. Move all funds from the incoming
             // account to appropriate slots
@@ -68,7 +68,7 @@ class IntentDeposit(
                 )
             }
 
-            val endBalance = currentTray.slotsBalance
+            val endBalance = currentTray.availableBalance
 
             // We're just moving funds from incoming
             // account to buckets, the balance

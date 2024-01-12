@@ -1,6 +1,9 @@
 package com.getcode.view.main.account.withdraw
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
@@ -8,6 +11,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -29,59 +33,53 @@ fun AccountWithdrawAmount(
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
-    ConstraintLayout(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val (amountArea, keyPad, button) = createRefs()
         val color =
             if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
 
-        AmountArea(
-            amountPrefix = dataState.amountModel.amountPrefix,
-            amountSuffix = dataState.amountModel.amountSuffix,
-            amountText = dataState.amountModel.amountText,
-            captionText = dataState.amountModel.captionText,
-            isAltCaption = dataState.amountModel.isCaptionConversion,
-            altCaptionColor = color,
-            currencyResId = dataState.currencyModel.selectedCurrencyResId,
-            uiModel = dataState.amountAnimatedModel,
-            isAnimated = true,
-            modifier = Modifier.constrainAs(amountArea) {
-                top.linkTo(parent.top)
-                bottom.linkTo(keyPad.top)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-            }
+        Box(
+            modifier = Modifier.weight(1f)
         ) {
-            navigator.show(CurrencySelectionModal)
+            AmountArea(
+                modifier = Modifier.align(Alignment.Center),
+                amountPrefix = dataState.amountModel.amountPrefix,
+                amountSuffix = dataState.amountModel.amountSuffix,
+                amountText = dataState.amountModel.amountText,
+                captionText = dataState.amountModel.captionText,
+                isAltCaption = dataState.amountModel.isCaptionConversion,
+                altCaptionColor = color,
+                currencyResId = dataState.currencyModel.selectedCurrencyResId,
+                uiModel = dataState.amountAnimatedModel,
+                isAnimated = true,
+            ) {
+                navigator.show(CurrencySelectionModal)
+            }
         }
 
-        CodeKeyPad(
-            modifier = Modifier
-                .wrapContentSize()
-                .padding(bottom = CodeTheme.dimens.inset)
-                .constrainAs(keyPad) {
-                    bottom.linkTo(button.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    top.linkTo(amountArea.bottom)
-                },
-            onNumber = viewModel::onNumber,
-            onClear = viewModel::onBackspace,
-            onDecimal = viewModel::onDot,
-            isDecimal = true
-        )
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
+            CodeKeyPad(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = CodeTheme.dimens.inset)
+                    .align(Alignment.BottomCenter),
+                onNumber = viewModel::onNumber,
+                onClear = viewModel::onBackspace,
+                onDecimal = viewModel::onDot,
+                isDecimal = true
+            )
+        }
+
 
         CodeButton(
             modifier = Modifier
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .constrainAs(button) {
-                    bottom.linkTo(parent.bottom)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                },
+                .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
                 viewModel.onSubmit(navigator)
             },
