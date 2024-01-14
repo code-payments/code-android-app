@@ -79,7 +79,9 @@ class AuthManager @Inject constructor(
         return Single.create<SessionManager.SessionState> {
             if (!isSoftLogin) softLoginDisabled = true
 
-            Database.init(context, entropyB64)
+            if (!Database.isOpen()) {
+                Database.init(context, entropyB64)
+            }
 
             val originalSessionState = SessionManager.authState.value
             sessionManager.set(context, entropyB64)
@@ -87,13 +89,15 @@ class AuthManager @Inject constructor(
             if (!isSoftLogin) {
                 loginAnalytics(entropyB64)
             }
-            it.onSuccess(originalSessionState ?: SessionManager.SessionState())
+            it.onSuccess(originalSessionState)
         }
             .flatMapCompletable {
                 val fetchData = fetchAdditionalAccountData(context, entropyB64, isSoftLogin, rollbackOnError, it)
                 if (isSoftLogin) {
-                    fetchData.subscribe({}, ErrorUtils::handleError)
-                    Completable.complete()
+                    fetchData.onErrorComplete {
+                        ErrorUtils.handleError(it)
+                        true
+                    }
                 } else {
                     fetchData
                 }
@@ -134,7 +138,7 @@ class AuthManager @Inject constructor(
                     }
                 } else {
                     if (isTimelockUnlockedException) {
-                        SessionManager.authStateMutable.update { state -> state?.copy(isTimelockUnlocked = true) }
+                        SessionManager.update { state -> state.copy(isTimelockUnlocked = true) }
                     }
                 }
             }

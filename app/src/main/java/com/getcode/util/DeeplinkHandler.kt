@@ -11,6 +11,7 @@ import com.getcode.navigation.screens.LoginScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * This class is used to manage intent state across navigation.
@@ -25,6 +26,7 @@ import javax.inject.Inject
  * authentication state is complete and override navigation - dropping the intent
  * in favour of the latest request in the navigation graph.
  */
+@Singleton
 class DeeplinkHandler @Inject constructor() {
     var debounceIntent: Intent? = null
         set(value) {
@@ -41,8 +43,7 @@ class DeeplinkHandler @Inject constructor() {
     }
     fun handle(intent: Intent? = debounceIntent): Pair<Type, List<Screen>>? {
         val uri = intent?.data ?: return null
-        val type = uri.deeplinkType ?: return null
-        return when (type) {
+        return when (val type = uri.deeplinkType) {
             is Type.Login -> {
                 type to listOf(LoginScreen(type.link))
             }
@@ -55,19 +56,15 @@ class DeeplinkHandler @Inject constructor() {
         }
     }
 
-    private val Uri.deeplinkType: Type?
+    private val Uri.deeplinkType: Type
         get() = when (val segment = lastPathSegment) {
         "login" -> {
-            if (SessionManager.isAuthenticated() == true) {
-                null
-            } else {
-                var entropy = getEntropy()
-                if (entropy == null) {
-                    entropy = this.getQueryParameter("data")
-                }
-
-                Type.Login(entropy.also { Timber.d("entropy=$it") })
+            var entropy = getEntropy()
+            if (entropy == null) {
+                entropy = this.getQueryParameter("data")
             }
+
+            Type.Login(entropy)
         }
         "cash", "c" -> Type.Cash(getEntropy())
         else -> Type.Unknown(path = segment)

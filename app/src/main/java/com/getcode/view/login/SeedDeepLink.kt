@@ -3,7 +3,13 @@ package com.getcode.view.login
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -14,9 +20,9 @@ import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.screens.HomeScreen
-import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.decodeBase64
@@ -88,7 +94,7 @@ fun SeedDeepLink(
         )
     }
 
-    LaunchedEffect(authState?.isAuthenticated) {
+    LaunchedEffect(authState.isAuthenticated) {
         seed
             ?.let { entropyB58 ->
                 val entropy: ByteArray
@@ -104,8 +110,8 @@ fun SeedDeepLink(
                     onError()
                     return@let
                 }
-                val isAuthenticated = authState?.isAuthenticated ?: return@LaunchedEffect
-                val isSame = entropy.toList() == authState?.entropyB64?.decodeBase64()?.toList()
+                val isAuthenticated = authState.isAuthenticated ?: return@LaunchedEffect
+                val isSame = entropy.toList() == authState.entropyB64?.decodeBase64()?.toList()
                 if (isSame) {
                     notificationPermissionCheck(false)
                 } else if (isAuthenticated) {

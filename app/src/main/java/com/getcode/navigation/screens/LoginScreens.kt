@@ -25,6 +25,7 @@ import com.getcode.view.login.SeedInput
 import com.getcode.view.login.SeedInputViewModel
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import timber.log.Timber
 
 @Parcelize
 data class LoginScreen(val seed: String? = null) : LoginGraph {
@@ -38,6 +39,7 @@ data class LoginScreen(val seed: String? = null) : LoginGraph {
 
     @Composable
     override fun Content() {
+        Timber.d("seed=$seed")
         if (seed != null) {
             SeedDeepLink(getViewModel(), seed)
         } else {

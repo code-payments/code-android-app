@@ -227,7 +227,7 @@ internal fun PhoneVerify(
         viewModel.setPhoneFromHint(phoneNum)
     }
 
-    LaunchedEffect(viewModel) {
+    LaunchedEffect(phoneNumberHintLauncher) {
         val request = GetPhoneNumberHintIntentRequest
             .builder()
             .build()
