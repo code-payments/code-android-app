@@ -15,6 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
@@ -32,15 +34,18 @@ import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
+import com.getcode.util.getActivity
+import com.getcode.util.getActivityScopedViewModel
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold
 import com.getcode.view.components.TitleBar
 import com.getcode.view.components.TopBarContainer
-import timber.log.Timber
 
 @Composable
 fun CodeApp() {
+    val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
+    val activity = LocalContext.current.getActivity()
     CodeTheme {
         val appState = rememberCodeAppState()
         AppNavHost {
@@ -60,6 +65,10 @@ fun CodeApp() {
                         codeNavigator.screensNavigator = navigator
                     }
 
+                    var replacingStackFromDeepLink by remember {
+                        mutableStateOf(false)
+                    }
+
                     val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
                     if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
                         TitleBar(
@@ -73,22 +82,35 @@ fun CodeApp() {
                         modifier = Modifier
                             .padding(innerPaddingModifier)
                     ) {
-                        when (navigator.lastItem) {
-                            is LoginScreen, is MainRoot -> {
-                                CrossfadeTransition(navigator = navigator)
-                            }
+                        if (replacingStackFromDeepLink) {
+                            CurrentScreen()
+                            replacingStackFromDeepLink = false
+                        } else {
+                            when (navigator.lastItem) {
+                                is LoginScreen, is MainRoot -> {
+                                    CrossfadeTransition(navigator = navigator)
+                                }
 
-                            else -> {
-                                SlideTransition(navigator = navigator)
+                                else -> {
+                                    SlideTransition(navigator = navigator)
+                                }
                             }
                         }
                     }
 
                     //Listen for authentication changes here
                     AuthCheck(
-                        navigator = appState.navigator,
-                        onNavigate = {
-                            codeNavigator.replaceAll(it, inSheet = false)
+                        navigator = codeNavigator,
+                        onNavigate = { screens, fromDeeplink ->
+                            replacingStackFromDeepLink = fromDeeplink
+                            codeNavigator.replaceAll(screens, inSheet = false)
+                        },
+                        onSwitchAccounts = { seed ->
+                            activity?.let {
+                                tlvm.logout(it) {
+                                    appState.navigator.replaceAll(LoginScreen(seed))
+                                }
+                            }
                         }
                     )
                 }

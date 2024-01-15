@@ -85,6 +85,7 @@ class MainActivity : FragmentActivity() {
         authManager.init(this)
         setFullscreen()
         deeplinkHandler.debounceIntent = deeplinkHandler.checkIntent(intent)
+
         setContent {
             CompositionLocalProvider(
                 LocalAnalytics provides analyticsManager,
