@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import timber.log.Timber
+import java.net.URL
 
 data class DeepLinkPaymentRequest(
     val mode: Mode,
@@ -40,14 +41,14 @@ data class DeepLinkPaymentRequest(
 
     @Serializable
     private data class ConfirmParams(
-        @SerialName("success") val success: String?,
-        @SerialName("cancel") val cancel: String?
+        @SerialName("success") val success: UrlHolder?,
+        @SerialName("cancel") val cancel: UrlHolder?
     )
 
     @Serializable
-    private enum class UrlKeys {
-        @SerialName("url") Url
-    }
+    private data class UrlHolder(
+        @SerialName("url") val url: String?,
+    )
 
     companion object {
         fun from(data: ByteArray?): DeepLinkPaymentRequest? {
@@ -90,8 +91,8 @@ data class DeepLinkPaymentRequest(
                 fiat = fiat,
                 destination = destination,
                 clientSecret = clientSecret.toList(),
-                successUrl = successUrl,
-                cancelUrl = cancelUrl
+                successUrl = successUrl?.url,
+                cancelUrl = cancelUrl?.url
             )
         }
     }

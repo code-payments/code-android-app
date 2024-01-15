@@ -86,6 +86,10 @@ data class HomeUiModel(
     val isDeepLinkHandled: Boolean = false,
 )
 
+sealed interface HomeEvent {
+    data class OpenUrl(val url: String): HomeEvent
+}
+
 enum class RestrictionType {
     ACCESS_EXPIRED,
     FORCE_UPGRADE,
@@ -109,6 +113,10 @@ class HomeViewModel @Inject constructor(
     private val currencyUtils: CurrencyUtils,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
+
+    private val _eventFlow: MutableSharedFlow<HomeEvent> = MutableSharedFlow()
+    val eventFlow: SharedFlow<HomeEvent> = _eventFlow.asSharedFlow()
+
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
     private var cameraStarted = false
@@ -486,8 +494,7 @@ class HomeViewModel @Inject constructor(
                 paymentConfirmation.requestedAmount,
                 paymentConfirmation.payload.rendezvous
             )
-        }
-            .onSuccess {
+        }.onSuccess {
                 showToast(paymentConfirmation.requestedAmount, false)
 
                 withContext(Dispatchers.Main) {
@@ -546,13 +553,21 @@ class HomeViewModel @Inject constructor(
 
         if (rejected) {
             if (!ignoreRedirect) {
-                // TODO: handle cancelURL
+                bill.paymentRequest?.cancelUrl?.let {
+                    viewModelScope.launch {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
             }
         } else {
             showToast(amount, isDeposit = false)
 
             if (!ignoreRedirect) {
-                // TODO: handle successURL
+                bill.paymentRequest?.successUrl?.let {
+                    viewModelScope.launch {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
             }
         }
 

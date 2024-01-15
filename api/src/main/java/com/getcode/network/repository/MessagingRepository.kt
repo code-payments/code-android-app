@@ -2,6 +2,7 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.google.protobuf.ByteString
@@ -15,6 +16,7 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.MessagingApi
 import com.getcode.network.core.INFINITE_STREAM_TIMEOUT
 import com.getcode.utils.ErrorUtils
+import com.google.protobuf.Timestamp
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -157,6 +159,38 @@ class MessagingRepository @Inject constructor(
                 Timber.d("response=${response.messagesList}")
                 response.messagesList.mapNotNull { m -> StreamMessage.getInstance(m) }
             }.firstOrError().blockingGet().runCatching { this }
+    }
+
+    suspend fun codeScanned(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
+        val message = MessagingService.Message.newBuilder()
+            .setCodeScanned(CodeScanned.newBuilder()
+                .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)))
+
+        val signature = ByteArrayOutputStream().let {
+            message.buildPartial().writeTo(it)
+            val signed = Ed25519.sign(it.toByteArray(), rendezvous)
+            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
+        }
+
+        val request = MessagingService.SendMessageRequest.newBuilder()
+            .setMessage(message)
+            .setRendezvousKey(
+                RendezvousKey.newBuilder().setValue(
+                    ByteString.copyFrom(rendezvous.publicKeyBytes)
+                )
+            )
+            .setSignature(signature)
+            .build()
+
+        return runCatching {
+            messagingApi.sendMessage(request)
+                .let { networkOracle.managedRequest(it) }
+                .asFlow()
+                .firstOrNull()
+                .also {
+                    Timber.i("rejectPayment: result: ${it?.result}")
+                } ?: throw IllegalArgumentException()
+        }
     }
 
     suspend fun rejectPayment(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
