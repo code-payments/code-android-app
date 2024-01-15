@@ -130,6 +130,16 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         grabStartMillis = 0
     }
 
+    fun requestShown(amount: KinAmount) {
+        track(
+            Name.Request,
+            Property.State to StringValue.Shown.value,
+            Property.Amount to amount.kin.toKin().toInt().toString(),
+            Property.Fiat to amount.fiat.toString(),
+            Property.Currency to amount.rate.currency.name,
+        )
+    }
+
     fun cashLinkGrabStart() {
         cashLinkGrabStartMillis = System.currentTimeMillis()
     }
@@ -206,6 +216,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
 
         //Bill
         Bill("Bill"),
+        Request("Request Card"),
 
         //Transfer
         Transfer("Transfer"),

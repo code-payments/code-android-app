@@ -453,6 +453,8 @@ class HomeViewModel @Inject constructor(
             )
         }
 
+        analyticsManager.requestShown(amount = amount)
+
         if (DEBUG_SCAN_TIMES) {
             Timber.tag("codescan").d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
             scanProcessingTime = 0
