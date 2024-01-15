@@ -445,7 +445,7 @@ class HomeViewModel @Inject constructor(
                     bill = Bill.Payment(amount, payload, request),
                     paymentConfirmation = PaymentConfirmation(
                         state = PaymentState.AwaitingConfirmation,
-                        payload,
+                        payload = payload,
                         requestedAmount = amount
                     ),
                     hideBillButtons = true
@@ -570,8 +570,8 @@ class HomeViewModel @Inject constructor(
     }
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
-        cancelPayment(true, ignoreRedirect)
         val payload = uiFlow.value.billState.paymentConfirmation?.payload
+        cancelPayment(true, ignoreRedirect)
         payload ?: return
 
         viewModelScope.launch {

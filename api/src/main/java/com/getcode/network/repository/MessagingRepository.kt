@@ -173,10 +173,14 @@ class MessagingRepository @Inject constructor(
             Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
         }
 
-        RendezvousKey.parseFrom(ByteString.copyFrom(rendezvous.publicKeyBytes))
+
         val request = MessagingService.SendMessageRequest.newBuilder()
             .setMessage(message)
-            .setRendezvousKey(RendezvousKey.parseFrom(ByteString.copyFrom(rendezvous.publicKeyBytes)))
+            .setRendezvousKey(
+                RendezvousKey.newBuilder().setValue(
+                    ByteString.copyFrom(rendezvous.publicKeyBytes)
+                )
+            )
             .setSignature(signature)
             .build()
 
