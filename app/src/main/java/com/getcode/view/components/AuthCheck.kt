@@ -33,7 +33,7 @@ const val AUTH_NAV = "Authentication Navigation"
 @Composable
 fun AuthCheck(
     navigator: CodeNavigator,
-    onNavigate: (List<Screen>) -> Unit,
+    onNavigate: (List<Screen>, Boolean) -> Unit,
     onSwitchAccounts: (String) -> Unit,
 ) {
     val deeplinkHandler = LocalDeeplinks.current
@@ -59,10 +59,10 @@ fun AuthCheck(
             } else if (!deeplinkRouted) {
                 if (authenticated) {
                     Timber.tag(AUTH_NAV).d("Navigating to home")
-                    onNavigate(listOf(HomeScreen()))
+                    onNavigate(listOf(HomeScreen()), false)
                 } else {
                     Timber.tag(AUTH_NAV).d("Navigating to login")
-                    onNavigate(listOf(LoginScreen()))
+                    onNavigate(listOf(LoginScreen()), false)
                 }
             } else {
                 deeplinkRouted = false
@@ -82,7 +82,7 @@ fun AuthCheck(
             .mapNotNull { deeplinkHandler.handle() }
             .filter {
                 if (it.first is DeeplinkHandler.Type.Cash) {
-                    return@filter isAuthenticated == true
+                    return@filter SessionManager.isAuthenticated() == true
                 }
                 return@filter true
             }
@@ -104,7 +104,7 @@ fun AuthCheck(
             }
             .onEach { screens ->
                 deeplinkRouted = true
-                onNavigate(screens)
+                onNavigate(screens, true)
                 deeplinkHandler.debounceIntent = null
                 context.getActivity()?.intent = null
                 deeplinkRouted = false

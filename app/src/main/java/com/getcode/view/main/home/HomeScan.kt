@@ -123,7 +123,6 @@ fun HomeScreen(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 private fun HomeScan(
     homeViewModel: HomeViewModel,
