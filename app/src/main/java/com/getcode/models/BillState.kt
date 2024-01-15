@@ -42,8 +42,9 @@ sealed interface Bill {
                 )
 
                 is Payment -> Metadata(
-                    kinAmount = request.amount,
-                    data = request.payload.codeData.toList(),
+                    kinAmount = amount,
+                    data = payload.codeData.toList(),
+                    request = paymentRequest,
                 )
             }
         }
@@ -55,10 +56,13 @@ sealed interface Bill {
         val kind: Kind = Kind.cash
     ) : Bill
 
-    data class Payment(val request: Request) : Bill {
+    data class Payment(
+        override val amount: KinAmount,
+        val payload: CodePayload,
+        val paymentRequest: DeepLinkPaymentRequest? = null
+    ) : Bill {
         override val didReceive: Boolean = false
-        override val amount: KinAmount = request.amount
-        override val data: List<Byte> = request.payload.codeData.toList()
+        override val data: List<Byte> = payload.codeData.toList()
     }
 }
 
@@ -84,6 +88,7 @@ data class PaymentConfirmation(
     val state: PaymentState,
     val payload: CodePayload,
     val requestedAmount: KinAmount,
+    val localAmount: KinAmount,
 )
 
 sealed interface PaymentState {
@@ -96,4 +101,5 @@ sealed interface PaymentState {
 data class Metadata(
     val kinAmount: KinAmount,
     val data: List<Byte>,
+    val request: DeepLinkPaymentRequest? = null
 )

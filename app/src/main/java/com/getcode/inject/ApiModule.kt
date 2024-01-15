@@ -5,6 +5,7 @@ import com.getcode.BuildConfig
 import com.getcode.manager.AnalyticsManager
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
+import com.getcode.network.api.CurrencyApi
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
@@ -17,6 +18,8 @@ import com.getcode.view.main.connectivity.ConnectionRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.AccountAuthenticator
+import com.getcode.util.AndroidLocale
+import com.getcode.util.locale.LocaleHelper
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -108,6 +111,16 @@ object ApiModule {
             transactionReceiver,
 
             )
+    }
+
+    @Singleton
+    @Provides
+    fun providesExchange(
+        currencyApi: CurrencyApi,
+        networkOracle: NetworkOracle,
+        locale: LocaleHelper
+    ) = Exchange(currencyApi, networkOracle) {
+        locale.getDefaultCurrency()
     }
 
     @Singleton

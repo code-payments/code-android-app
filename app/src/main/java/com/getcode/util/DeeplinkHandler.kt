@@ -2,12 +2,10 @@ package com.getcode.util
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
-import com.getcode.manager.SessionManager
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
+import com.getcode.network.repository.urlDecode
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
 import javax.inject.Inject
@@ -41,66 +39,84 @@ class DeeplinkHandler @Inject constructor() {
         handle(intent) ?: return null
         return intent
     }
+
     fun handle(intent: Intent? = debounceIntent): Pair<Type, List<Screen>>? {
         val uri = intent?.data ?: return null
         return when (val type = uri.deeplinkType) {
             is Type.Login -> {
                 type to listOf(LoginScreen(type.link))
             }
+
             is Type.Cash -> {
-                Timber.d("cashlink=${type.link}")
                 type to listOf(HomeScreen(cashLink = type.link))
             }
-            Type.Sdk -> null
+
+            is Type.Sdk -> {
+                Timber.d("sdk=${type.payload}")
+                type to listOf(HomeScreen(requestPayload = type.payload))
+            }
+
             is Type.Unknown -> null
         }
     }
 
     private val Uri.deeplinkType: Type
         get() = when (val segment = lastPathSegment) {
-        "login" -> {
-            var entropy = getEntropy()
-            if (entropy == null) {
-                entropy = this.getQueryParameter("data")
+            "login" -> {
+                var entropy = fragments[Key.entropy]
+                if (entropy == null) {
+                    entropy = this.getQueryParameter("data")
+                }
+
+                Type.Login(entropy.also { Timber.d("entropy=$it") })
             }
 
-            Type.Login(entropy)
+            "cash", "c" -> Type.Cash(fragments[Key.entropy])
+            "payment-request-modal-desktop", "payment-request-modal-mobile" -> {
+                Type.Sdk(fragments[Key.payload]?.urlDecode())
+            }
+            else -> Type.Unknown(path = segment)
         }
-        "cash", "c" -> Type.Cash(getEntropy())
-        else -> Type.Unknown(path = segment)
-    }
 
-    private fun Uri.getEntropy(): String? {
-        val fragment = fragment ?: return null
+    private val Uri.fragments: Map<Key, String>
+        get() {
+            return this.toString().split("/")
+                .mapNotNull { fragment ->
+                    val data = Key.entries
+                        .map { key -> key to "${key.value}=" }
+                        .filter { (key, prefix) -> fragment.startsWith(prefix) }
+                        .firstNotNullOfOrNull { (key, prefix) -> key to fragment.removePrefix(prefix) }
 
-        return Key.entries
-            .map { key -> "/${key.value}=" }
-            .filter { prefix -> fragment.startsWith(prefix) }
-            .firstNotNullOfOrNull { prefix -> fragment.removePrefix(prefix) }
-    }
+                    data ?: return@mapNotNull null
+                }.associate { (key, value) -> key to value }
+        }
 
     sealed interface Type {
-        data class Login(val link: String?): Type
-        data class Cash(val link: String?): Type
-        data object Sdk: Type
-        data class Unknown(val path: String?): Type
+        data class Login(val link: String?) : Type
+        data class Cash(val link: String?) : Type
+        data class Sdk(val payload: String?) : Type
+        data class Unknown(val path: String?) : Type
     }
 
     @Suppress("ClassName")
     sealed interface Key {
         val value: String
-        data object entropy: Key {
+
+        data object entropy : Key {
             override val value: String = "e"
         }
-        data object payload: Key {
+
+        data object payload : Key {
             override val value: String = "p"
         }
+
         // unused
-        data object key: Key {
+        data object key : Key {
             override val value: String = "k"
         }
+
         // unused
-        data object data: Key {
+        data object data : Key {
             override val value: String = "d"
         }
 

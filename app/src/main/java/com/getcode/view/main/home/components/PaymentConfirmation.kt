@@ -69,8 +69,8 @@ internal fun PaymentConfirmation(
         derivedStateOf { state is PaymentState.Sending }
     }
 
-    val requestedAmount by remember(confirmation?.requestedAmount) {
-        derivedStateOf { confirmation?.requestedAmount }
+    val requestedAmount by remember(confirmation?.localAmount) {
+        derivedStateOf { confirmation?.localAmount }
     }
 
     Column(
@@ -140,7 +140,12 @@ private fun confirmationWithState(state: PaymentState) = PaymentConfirmation(
         fiat = 0.25,
         fx = 0.00001585,
         CurrencyCode.USD
-    )
+    ),
+    localAmount = KinAmount.fromFiatAmount(
+        fiat = 0.25,
+        fx = 0.00001585,
+        CurrencyCode.USD
+    ),
 )
 @Preview(showBackground = true)
 @Composable
@@ -220,7 +225,12 @@ fun Preview_PaymentConfirmModal_Interactive() {
                             fiat = 0.25,
                             fx = 0.00001585,
                             CurrencyCode.USD
-                        )
+                        ),
+                        localAmount = KinAmount.fromFiatAmount(
+                            fiat = 0.25,
+                            fx = 0.00001585,
+                            CurrencyCode.USD
+                        ),
                     )
                 )
             }

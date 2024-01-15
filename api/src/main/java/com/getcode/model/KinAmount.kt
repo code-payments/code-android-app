@@ -14,6 +14,10 @@ data class KinAmount(
         rate = rate
     )
 
+    fun replacing(rate: Rate): KinAmount {
+        return newInstance(this.kin, rate)
+    }
+
     companion object {
         fun newInstance(kin: Kin, rate: Rate): KinAmount {
             return KinAmount(

@@ -15,6 +15,9 @@ import com.getcode.network.client.transferWithResult
 import com.getcode.network.exchange.Exchange
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import javax.inject.Inject
@@ -33,8 +36,10 @@ class PaymentRepository @Inject constructor(
     private val client: Client,
     private val analytics: AnalyticsManager,
     private val balanceController: BalanceController,
-) {
-    fun attemptRequest(payload: CodePayload): Request? {
+): CoroutineScope by CoroutineScope(Dispatchers.IO) {
+    fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
+        codeScanned(payload.rendezvous)
+
         val fiat = payload.fiat
         if (fiat == null) {
             Timber.d("payload does not contain Fiat value")
@@ -54,7 +59,16 @@ class PaymentRepository @Inject constructor(
 
         Timber.d("amount=${amount.fiat}, ${amount.kin}, ${amount.rate}")
 
-        return Request(amount, payload)
+        return amount to payload
+    }
+
+    private fun codeScanned(rendezvousKey: KeyPair) = launch {
+        messagingRepository.codeScanned(rendezvousKey)
+            .onSuccess {
+                Timber.d("code scanned message sent successfully")
+            }.onFailure {
+                Timber.e(t = it, message= "code scanned message sent unsuccessfully")
+            }
     }
 
     @SuppressLint("CheckResult")

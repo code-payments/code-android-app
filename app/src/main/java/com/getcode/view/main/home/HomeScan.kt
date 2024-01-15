@@ -3,6 +3,8 @@ package com.getcode.view.main.home
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -28,6 +30,7 @@ import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
+import androidx.compose.material.contentColorFor
 import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -53,6 +56,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.models.Bill
@@ -65,6 +69,7 @@ import com.getcode.navigation.screens.HomeScreen
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
+import com.getcode.util.ChromeTabsUtils
 import com.getcode.util.addIf
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
@@ -82,6 +87,10 @@ import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -99,7 +108,8 @@ enum class HomeBottomSheet {
 fun HomeScreen(
     homeViewModel: HomeViewModel,
     connectionViewModel: NetworkConnectionViewModel,
-    deepLink: String? = null
+    deepLink: String? = null,
+    requestPayload: String? = null,
 ) {
     val dataState by homeViewModel.uiFlow.collectAsState()
 
@@ -117,8 +127,27 @@ fun HomeScreen(
                 homeViewModel = homeViewModel,
                 connectionViewModel = connectionViewModel,
                 dataState = dataState,
-                deepLink = deepLink
+                deepLink = deepLink,
+                requestPayload = requestPayload,
             )
+
+            val context = LocalContext.current
+            LaunchedEffect(homeViewModel) {
+                homeViewModel.eventFlow
+                    .filterIsInstance<HomeEvent.OpenUrl>()
+                    .map { it.url }
+                    .onEach {
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                it.toUri()
+                            ).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                        )
+                        ChromeTabsUtils.launchUrl(context, it)
+                    }.launchIn(this)
+            }
         }
     }
 }
@@ -129,6 +158,7 @@ private fun HomeScan(
     dataState: HomeUiModel,
     connectionViewModel: NetworkConnectionViewModel,
     deepLink: String?,
+    requestPayload: String?,
 ) {
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
@@ -153,6 +183,10 @@ private fun HomeScan(
         }
         if (!deepLink.isNullOrBlank() && !dataState.isDeepLinkHandled) {
             homeViewModel.openCashLink(deepLink)
+        }
+
+        if (!requestPayload.isNullOrBlank()) {
+            homeViewModel.handlePaymentRequest(requestPayload)
         }
     }
 

@@ -21,12 +21,14 @@ import com.getcode.model.Currency
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
+import com.getcode.models.DeepLinkPaymentRequest
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
 import com.getcode.models.Valuation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.client.*
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.*
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
@@ -40,6 +42,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.NetworkUtils
+import com.getcode.utils.base64EncodedData
 import com.getcode.vendor.Base58
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.BaseViewModel
@@ -84,6 +87,10 @@ data class HomeUiModel(
     val isDeepLinkHandled: Boolean = false,
 )
 
+sealed interface HomeEvent {
+    data class OpenUrl(val url: String): HomeEvent
+}
+
 enum class RestrictionType {
     ACCESS_EXPIRED,
     FORCE_UPGRADE,
@@ -105,8 +112,13 @@ class HomeViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
+    private val exchange: Exchange,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
+
+    private val _eventFlow: MutableSharedFlow<HomeEvent> = MutableSharedFlow()
+    val eventFlow: SharedFlow<HomeEvent> = _eventFlow.asSharedFlow()
+
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
     private var cameraStarted = false
@@ -428,28 +440,31 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun attemptPayment(payload: CodePayload) {
-        val request = paymentRepository.attemptRequest(payload) ?: return
+    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) {
+        val (amount, p) = paymentRepository.attemptRequest(payload) ?: return
         BottomBarManager.clear()
 
-        presentRequest(request)
+        presentRequest(amount, p, request = request)
     }
 
-    private fun presentRequest(request: Request) {
+    private fun presentRequest(amount: KinAmount, payload: CodePayload, request: DeepLinkPaymentRequest? = null) {
         uiFlow.update {
             it.copy(
                 presentationStyle = PresentationStyle.Pop,
                 billState = it.billState.copy(
-                    bill = Bill.Payment(request = request),
+                    bill = Bill.Payment(amount, payload, request),
                     paymentConfirmation = PaymentConfirmation(
                         state = PaymentState.AwaitingConfirmation,
-                        request.payload,
-                        requestedAmount = request.amount
+                        payload = payload,
+                        requestedAmount = amount,
+                        localAmount = amount.replacing(exchange.localRate)
                     ),
                     hideBillButtons = true
                 )
             )
         }
+
+        analyticsManager.requestShown(amount = amount)
 
         if (DEBUG_SCAN_TIMES) {
             Timber.tag("codescan").d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
@@ -482,9 +497,8 @@ class HomeViewModel @Inject constructor(
                 paymentConfirmation.requestedAmount,
                 paymentConfirmation.payload.rendezvous
             )
-        }
-            .onSuccess {
-                showToast(paymentConfirmation.requestedAmount, false)
+        }.onSuccess {
+                showToast(paymentConfirmation.localAmount, false)
 
                 withContext(Dispatchers.Main) {
                     uiFlow.update {
@@ -536,19 +550,27 @@ class HomeViewModel @Inject constructor(
 
     fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
         val bill = uiFlow.value.billState.bill as? Bill.Payment ?: return
-        val amount = bill.request.amount
+        val amount = bill.amount
 
-        // TODO: analytics
+        analyticsManager.requestHidden(amount = amount)
 
         if (rejected) {
             if (!ignoreRedirect) {
-                // TODO: handle cancelURL
+                bill.paymentRequest?.cancelUrl?.let {
+                    viewModelScope.launch {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
             }
         } else {
             showToast(amount, isDeposit = false)
 
             if (!ignoreRedirect) {
-                // TODO: handle successURL
+                bill.paymentRequest?.successUrl?.let {
+                    viewModelScope.launch {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
             }
         }
 
@@ -568,8 +590,8 @@ class HomeViewModel @Inject constructor(
     }
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
-        cancelPayment(true, ignoreRedirect)
         val payload = uiFlow.value.billState.paymentConfirmation?.payload
+        cancelPayment(true, ignoreRedirect)
         payload ?: return
 
         viewModelScope.launch {
@@ -804,6 +826,20 @@ class HomeViewModel @Inject constructor(
                     timeoutSeconds = 60
                 )
             )
+        }
+    }
+
+    fun handlePaymentRequest(bytes: String) {
+        val data = bytes.base64EncodedData()
+        val request = DeepLinkPaymentRequest.from(data)
+        if (request != null) {
+            Timber.d("request=$request")
+            val payload = CodePayload(
+                kind = Kind.RequestPayment,
+                value = request.fiat,
+                nonce = request.clientSecret
+            )
+            attemptPayment(payload, request)
         }
     }
 

@@ -1,6 +1,7 @@
 package com.getcode.network.exchange
 
 import android.annotation.SuppressLint
+import android.text.format.DateUtils
 import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.model.Currency
@@ -18,18 +19,27 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.minutes
 
-@Singleton
 class Exchange @Inject constructor(
     private val currencyApi: CurrencyApi,
     private val networkOracle: NetworkOracle,
+    private val defaultCurrency: () -> Currency?,
 ): CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val db = Database.getInstance()
+
+    private var entryRate: Rate = Rate.oneToOne
+    var localRate: Rate = Rate.oneToOne
+        private set
+
+    private var rateDate: Long = System.currentTimeMillis()
+
+    private var entryCurrency: CurrencyCode? = null
 
     private val _rates = MutableStateFlow(emptyMap<CurrencyCode, Rate>())
     private var rates = RatesBox(0, emptyMap())
@@ -56,7 +66,7 @@ class Exchange @Inject constructor(
             db?.exchangeDao()?.query()?.let { exchangeData ->
                 val rates = exchangeData.map { Rate(it.fx, it.currency) }
                 val dateMillis = exchangeData.minOf { it.synced }
-                RatesBox(dateMillis = dateMillis, rates = rates)
+                set(RatesBox(dateMillis = dateMillis, rates = rates))
             }
 
             fetchRatesIfNeeded()
@@ -67,18 +77,67 @@ class Exchange @Inject constructor(
         if (isStale) {
             runCatching { fetchExchangeRates() }
                 .onSuccess { (updatedRates, date) ->
-                    rates = RatesBox(date, updatedRates)
                     db?.exchangeDao()?.insert(rates = updatedRates, syncedAt = date)
+                    set(RatesBox(date, updatedRates))
                 }.onFailure {
                     it.printStackTrace()
                 }
         }
     }
 
+    fun set(currency: CurrencyCode) {
+        entryCurrency = currency
+        updateRates()
+    }
+
+    private fun set(ratesBox: RatesBox) {
+        rates = ratesBox
+        rateDate = ratesBox.dateMillis
+
+        setLocalEntryCurrencyIfNeeded()
+        updateRates()
+    }
+
+    private fun setLocalEntryCurrencyIfNeeded() {
+        if (entryCurrency == null) {
+            return
+        }
+
+        val localRegionCurrency = defaultCurrency() ?: return
+
+        entryCurrency = CurrencyCode.tryValueOf(localRegionCurrency.code)
+    }
+
     fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
 
     fun rateForUsd(): Rate? = rates.rateForUsd()
 
+    private fun updateRates() {
+        if (rates.isEmpty) {
+            return
+        }
+
+        val localCurrency = defaultCurrency()
+        val rate = localCurrency?.let { rates.rateFor(it) }
+        localRate = if (rate != null) {
+            Timber.d("Updated the entry currency: $localCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${Date(rates.dateMillis)}")
+            rate
+        } else {
+            Timber.d("Rate for $localCurrency not found. Defaulting to USD.")
+            rates.rateForUsd()!!
+        }
+
+
+        val entryRate = entryCurrency?.let { rates.rateFor(it) }
+        this.entryRate = if (entryRate != null) {
+            Timber.d("Updated the entry currency: $entryCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${Date(rates.dateMillis)}")
+            entryRate
+        } else {
+            Timber.d("Rate for $entryCurrency not found. Defaulting to USD.")
+            rates.rateForUsd()!!
+        }
+
+    }
 
     @SuppressLint("CheckResult")
     private suspend fun fetchExchangeRates() = suspendCancellableCoroutine { cont ->
@@ -112,6 +171,11 @@ private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, R
         get() = rates.isEmpty()
 
     fun rateFor(currencyCode: CurrencyCode): Rate? = rates[currencyCode]
+
+    fun rateFor(currency: Currency): Rate? {
+        val currencyCode = CurrencyCode.tryValueOf(currency.code)
+        return currencyCode?.let { rates[it] }
+    }
 
     fun rateForUsd(): Rate? {
         return rates[CurrencyCode.USD]

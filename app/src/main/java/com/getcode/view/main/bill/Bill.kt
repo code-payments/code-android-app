@@ -37,7 +37,7 @@ fun Bill(
         is Bill.Payment -> PaymentBill(
             modifier = modifier,
             data = bill.data,
-            currencyCode = bill.request.payload.fiat?.currency,
+            currencyCode = bill.payload.fiat?.currency,
             amount = bill.amount
         )
     }

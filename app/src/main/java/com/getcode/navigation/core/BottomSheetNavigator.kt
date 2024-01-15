@@ -36,6 +36,7 @@ import cafe.adriel.voyager.navigator.compositionUniqueId
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -165,9 +166,9 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
     fun hide() {
         coroutineScope.launch {
             if (isVisible) {
+                sheetStacks.pop()
                 sheetState.hide()
                 replaceAll(HiddenBottomSheetScreen)
-                sheetStacks.pop()
                 showPreviousSheet()
             } else if (sheetState.targetValue == ModalBottomSheetValue.Hidden) {
                 // Swipe down - sheetState is already hidden here so `isVisible` is false
@@ -190,14 +191,17 @@ class BottomSheetNavigator @InternalVoyagerApi constructor(
         return navigator.pop()
     }
 
-    private suspend fun showPreviousSheet() {
+    private suspend fun showPreviousSheet(): Boolean {
         if (!sheetStacks.isEmpty) {
             val screens = sheetStacks.lastItemOrNull?.second.orEmpty()
             if (screens.isNotEmpty()) {
                 replaceAll(screens)
                 sheetState.show()
+                return true
             }
         }
+
+        return false
     }
 
 

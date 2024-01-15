@@ -2,6 +2,8 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
+import com.codeinc.gen.messaging.v1.MessagingService.MessageId
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.google.protobuf.ByteString
@@ -15,6 +17,7 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.MessagingApi
 import com.getcode.network.core.INFINITE_STREAM_TIMEOUT
 import com.getcode.utils.ErrorUtils
+import com.google.protobuf.Timestamp
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -117,24 +120,8 @@ class MessagingRepository @Inject constructor(
             .setRequestorAccount(requestor)
         val message = MessagingService.Message.newBuilder()
             .setRequestToGrabBill(paymentRequest)
-        val signature = ByteArrayOutputStream().let {
-            message.buildPartial().writeTo(it)
-            val signed = Ed25519.sign(it.toByteArray(), rendezvousKeyPair)
-            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
-        }
 
-        val request = MessagingService.SendMessageRequest.newBuilder()
-            .setMessage(message)
-            .setRendezvousKey(
-                RendezvousKey.newBuilder().setValue(
-                    ByteString.copyFrom(rendezvousKeyPair.publicKeyBytes)
-                )
-            )
-            .setSignature(signature)
-            .build()
-
-        return messagingApi.sendMessage(request)
-            .let { networkOracle.managedRequest(it) }
+        return sendRendezvousMessageFlowable(message, rendezvousKeyPair)
             .doOnEach {
                 Timber.i("sendRequestForPayment: result: ${it.value?.result}")
             }
@@ -159,6 +146,14 @@ class MessagingRepository @Inject constructor(
             }.firstOrError().blockingGet().runCatching { this }
     }
 
+    suspend fun codeScanned(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
+        val message = MessagingService.Message.newBuilder()
+            .setCodeScanned(CodeScanned.newBuilder()
+                .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)))
+
+        return sendRendezvousMessage(message, rendezvous)
+    }
+
     suspend fun rejectPayment(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
         val rejection = MessagingService.ClientRejectedPayment.newBuilder()
             .setIntentId(PublicKey.fromBase58(rendezvous.getPublicKeyBase58()).toIntentId())
@@ -167,28 +162,7 @@ class MessagingRepository @Inject constructor(
         val message = MessagingService.Message.newBuilder()
             .setClientRejectedPayment(rejection)
 
-        val signature = ByteArrayOutputStream().let {
-            message.buildPartial().writeTo(it)
-            val signed = Ed25519.sign(it.toByteArray(), rendezvous)
-            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
-        }
-
-        RendezvousKey.parseFrom(ByteString.copyFrom(rendezvous.publicKeyBytes))
-        val request = MessagingService.SendMessageRequest.newBuilder()
-            .setMessage(message)
-            .setRendezvousKey(RendezvousKey.parseFrom(ByteString.copyFrom(rendezvous.publicKeyBytes)))
-            .setSignature(signature)
-            .build()
-
-        return runCatching {
-            messagingApi.sendMessage(request)
-                .let { networkOracle.managedRequest(it) }
-                .asFlow()
-                .firstOrNull()
-                .also {
-                    Timber.i("rejectPayment: result: ${it?.result}")
-                } ?: throw IllegalArgumentException()
-        }
+        return sendRendezvousMessage(message, rendezvous)
     }
 
     private fun requestForPayment(destination: PublicKey): MessagingService.Message.Builder {
@@ -199,5 +173,59 @@ class MessagingRepository @Inject constructor(
                     .newBuilder()
                     .setRequestorAccount(destination.bytes.toSolanaAccount())
             )
+    }
+
+    private suspend fun sendRendezvousMessage(
+        message: MessagingService.Message.Builder,
+        rendezvous: KeyPair
+    ): Result<MessagingService.SendMessageResponse> {
+        val signature = ByteArrayOutputStream().let {
+            message.buildPartial().writeTo(it)
+            val signed = Ed25519.sign(it.toByteArray(), rendezvous)
+            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
+        }
+
+        val request = MessagingService.SendMessageRequest.newBuilder()
+            .setMessage(message)
+            .setRendezvousKey(
+                RendezvousKey.newBuilder().setValue(
+                    ByteString.copyFrom(rendezvous.publicKeyBytes)
+                )
+            )
+            .setSignature(signature)
+            .build()
+
+        return runCatching {
+            messagingApi.sendMessage(request)
+                .let { networkOracle.managedRequest(it) }
+                .asFlow()
+                .firstOrNull() ?: throw IllegalArgumentException()
+        }.onSuccess {
+            Timber.i("message sent: ${it.messageId.value.toList().hexEncodedString()}: result: ${it.result}")
+        }
+    }
+
+    private fun sendRendezvousMessageFlowable(
+        message: MessagingService.Message.Builder,
+        rendezvous: KeyPair
+    ): Flowable<MessagingService.SendMessageResponse> {
+        val signature = ByteArrayOutputStream().let {
+            message.buildPartial().writeTo(it)
+            val signed = Ed25519.sign(it.toByteArray(), rendezvous)
+            Model.Signature.newBuilder().setValue(ByteString.copyFrom(signed))
+        }
+
+        val request = MessagingService.SendMessageRequest.newBuilder()
+            .setMessage(message)
+            .setRendezvousKey(
+                RendezvousKey.newBuilder().setValue(
+                    ByteString.copyFrom(rendezvous.publicKeyBytes)
+                )
+            )
+            .setSignature(signature)
+            .build()
+
+        return messagingApi.sendMessage(request)
+            .let { networkOracle.managedRequest(it) }
     }
 }

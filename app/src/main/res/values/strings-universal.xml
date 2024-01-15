@@ -6,6 +6,7 @@
     <string translatable="false" name="app_url_cash">codewallet://cash.getcode.com</string>
     <string translatable="false" name="root_url_app_no_protocol">app.getcode.com</string>
     <string translatable="false" name="root_url_cash_no_protocol">cash.getcode.com</string>
+    <string translatable="false" name="root_url_sdk_no_protocol">sdk.getcode.com</string>
     <string translatable="false" name="account_debug_options">Beta Flags</string>
     <string translatable="false" name="account_debug_bucket_debugger">Bucket Debugger</string>
     <string translatable="false" name="account_debug_vibrate_on_scan">Vibrate on Scan</string>

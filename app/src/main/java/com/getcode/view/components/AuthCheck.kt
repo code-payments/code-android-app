@@ -80,6 +80,7 @@ fun AuthCheck(
                 Timber.tag(AUTH_NAV).d("intent=${it.data}")
             }
             .mapNotNull { deeplinkHandler.handle() }
+            .onEach { Timber.d("${it.first}") }
             .filter {
                 if (it.first is DeeplinkHandler.Type.Cash) {
                     return@filter SessionManager.isAuthenticated() == true
