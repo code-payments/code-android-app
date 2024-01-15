@@ -140,6 +140,16 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
+    fun requestHidden(amount: KinAmount) {
+        track(
+            Name.Request,
+            Property.State to StringValue.Hidden.value,
+            Property.Amount to amount.kin.toKin().toInt().toString(),
+            Property.Fiat to amount.fiat.toString(),
+            Property.Currency to amount.rate.currency.name,
+        )
+    }
+
     fun cashLinkGrabStart() {
         cashLinkGrabStartMillis = System.currentTimeMillis()
     }

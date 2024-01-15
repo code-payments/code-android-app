@@ -542,7 +542,7 @@ class HomeViewModel @Inject constructor(
         val bill = uiFlow.value.billState.bill as? Bill.Payment ?: return
         val amount = bill.amount
 
-        // TODO: analytics
+        analyticsManager.requestHidden(amount = amount)
 
         if (rejected) {
             if (!ignoreRedirect) {
