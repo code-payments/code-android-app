@@ -116,3 +116,24 @@ fun <T> Boolean?.ifElseNull(ifTrue: T, ifFalse: T, ifNull: T) = when {
     this == false -> ifFalse
     else -> ifNull
 }
+
+fun List<Byte>.hexEncodedString(options: Set<HexEncodingOptions> = emptySet()): String {
+    val hexDigits = if (options.contains(HexEncodingOptions.Uppercase))
+        "0123456789ABCDEF"
+    else
+        "0123456789abcdef"
+
+    val chars = CharArray(2 * size)
+    var index = 0
+
+    for (byte in toByteArray()) {
+        chars[index++] = hexDigits[(byte.toInt() ushr 4) and 0xF]
+        chars[index++] = hexDigits[byte.toInt() and 0xF]
+    }
+
+    return String(chars)
+}
+
+sealed interface HexEncodingOptions {
+    data object Uppercase: HexEncodingOptions
+}

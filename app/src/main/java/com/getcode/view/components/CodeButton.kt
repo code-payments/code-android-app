@@ -5,7 +5,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.ButtonDefaults.elevation
+import androidx.compose.material.ripple.LocalRippleTheme
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,62 +43,99 @@ fun CodeButton(
     shape: Shape = CodeTheme.shapes.small,
 ) {
     val isEnabledC = enabled && !isLoading && !isSuccess
-    Button(
-        onClick = { onClick() },
-        modifier = modifier
-            .let { if (isMaxWidth) it.fillMaxWidth() else it },
-        colors = getButtonColors(buttonState, textColor),
-        border = getButtonBorder(buttonState, isEnabledC),
-        enabled = isEnabledC,
-        elevation = elevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp
-        ),
-        shape = shape,
-    ) {
-        Box {
-            Text(
-                text = " ",
-                style = CodeTheme.typography.button,
-                modifier = Modifier.padding(
-                    vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
-                ),
-            )
+    val colors = getButtonColors(buttonState, textColor)
+    val border = getButtonBorder(buttonState, isEnabledC)
+    val ripple = getRipple(
+        buttonState = buttonState,
+        contentColor = colors.contentColor(enabled = isEnabledC).value
+    )
 
-            Row {
-                if (isLoading) {
-                    CodeCircularProgressIndicator(
-                        strokeWidth = CodeTheme.dimens.thickBorder,
-                        color = White,
-                        modifier = Modifier
-                            .padding(vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp)
-                            .size(CodeTheme.dimens.grid.x4)
-                            .align(Alignment.CenterVertically)
-                    )
-                } else {
-                    if (isSuccess || isTextSuccess) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_check),
-                            contentDescription = "",
+    CompositionLocalProvider(LocalRippleTheme provides ripple) {
+        Button(
+            onClick = { onClick() },
+            modifier = modifier
+                .let { if (isMaxWidth) it.fillMaxWidth() else it },
+            colors = colors,
+            border = border,
+            enabled = isEnabledC,
+            elevation = elevation(
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp
+            ),
+            shape = shape,
+        ) {
+            Box {
+                Text(
+                    text = " ",
+                    style = CodeTheme.typography.button,
+                    modifier = Modifier.padding(
+                        vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
+                    ),
+                )
+
+                Row {
+                    if (isLoading) {
+                        CodeCircularProgressIndicator(
+                            strokeWidth = CodeTheme.dimens.thickBorder,
+                            color = White,
                             modifier = Modifier
-                                .padding(
-                                    horizontal = CodeTheme.dimens.grid.x1,
-                                    vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp
-                                )
+                                .padding(vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp)
+                                .size(CodeTheme.dimens.grid.x4)
                                 .align(Alignment.CenterVertically)
                         )
-                    }
-                    if (!isSuccess) {
-                        Text(
-                            text = text,
-                            style = CodeTheme.typography.button,
-                            modifier = Modifier.padding(
-                                vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
-                                horizontal = CodeTheme.dimens.grid.x2,
+                    } else {
+                        if (isSuccess || isTextSuccess) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_check),
+                                contentDescription = "",
+                                modifier = Modifier
+                                    .padding(
+                                        horizontal = CodeTheme.dimens.grid.x1,
+                                        vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp
+                                    )
+                                    .align(Alignment.CenterVertically)
                             )
-                        )
+                        }
+                        if (!isSuccess) {
+                            Text(
+                                text = text,
+                                style = CodeTheme.typography.button,
+                                modifier = Modifier.padding(
+                                    vertical = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
+                                    horizontal = CodeTheme.dimens.grid.x2,
+                                )
+                            )
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun getRipple(
+    buttonState: ButtonState,
+    contentColor: Color
+): RippleTheme {
+    return remember(buttonState, contentColor) {
+        object : RippleTheme {
+            @Composable
+            override fun defaultColor(): Color {
+                return when (buttonState) {
+                    ButtonState.Bordered -> White
+                    ButtonState.Filled -> BrandLight
+                    ButtonState.Filled10 -> White50
+                    ButtonState.Subtle -> White
+                }
+            }
+
+            @Composable
+            override fun rippleAlpha(): RippleAlpha {
+                return RippleTheme.defaultRippleAlpha(
+                    contentColor,
+                    lightTheme = true
+                )
             }
         }
     }
@@ -106,7 +148,7 @@ fun getButtonColors(
 ): ButtonColors {
     return when (buttonState) {
         ButtonState.Filled -> ButtonDefaults.buttonColors(
-            backgroundColor = Color.White,
+            backgroundColor = White,
             contentColor = textColor ?: Color(0XFF121212),
             disabledBackgroundColor = White10,
             disabledContentColor = White10,
@@ -134,9 +176,12 @@ fun getButtonColors(
 
 @Composable
 fun getButtonBorder(buttonState: ButtonState, isEnabled: Boolean = true): BorderStroke? {
-    return if (buttonState == ButtonState.Bordered && isEnabled) {
-        BorderStroke(CodeTheme.dimens.border, White50)
-    } else {
-        BorderStroke(CodeTheme.dimens.border, Color.Transparent)
+    val border = CodeTheme.dimens.border
+    return remember(buttonState, isEnabled) {
+        if (buttonState == ButtonState.Bordered && isEnabled) {
+            BorderStroke(border, White50)
+        } else {
+            BorderStroke(border, Color.Transparent)
+        }
     }
 }

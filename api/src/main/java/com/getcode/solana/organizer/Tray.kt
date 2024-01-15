@@ -1,6 +1,5 @@
 package com.getcode.solana.organizer
 
-import android.accounts.Account
 import android.content.Context
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
@@ -146,10 +145,10 @@ class Tray(
     }
 
     fun createRelationships(context: Context, accountInfos: Map<PublicKey, AccountInfo>) {
-        val relationshipInfos= accountInfos
-            .mapNotNull { it.value.relationship }
+        val domains= accountInfos
+            .mapNotNull { it.value.relationship?.domain }
 
-        relationshipInfos.onEach { createRelationship(context, it.domain) }
+        domains.onEach { createRelationship(context, it) }
     }
 
     fun createRelationship(context: Context, domain: Domain): Relationship {

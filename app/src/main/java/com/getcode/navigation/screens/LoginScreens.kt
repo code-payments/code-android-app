@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import android.os.Parcelable
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.Screen
@@ -24,6 +25,7 @@ import com.getcode.view.login.SeedInput
 import com.getcode.view.login.SeedInputViewModel
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import timber.log.Timber
 
 @Parcelize
 data class LoginScreen(val seed: String? = null) : LoginGraph {
@@ -37,6 +39,7 @@ data class LoginScreen(val seed: String? = null) : LoginGraph {
 
     @Composable
     override fun Content() {
+        Timber.d("seed=$seed")
         if (seed != null) {
             SeedDeepLink(getViewModel(), seed)
         } else {
@@ -95,6 +98,7 @@ data class LoginPhoneConfirmationScreen(
             getViewModel(),
             arguments = arguments,
         )
+        BackHandler { /* intercept */ }
     }
 }
 
@@ -170,6 +174,7 @@ data class AccessKeyScreen(
     override fun Content() {
         val viewModel = getViewModel<AccessKeyViewModel>()
         AccessKey(viewModel, arguments)
+        BackHandler { /* intercept */ }
     }
 }
 
@@ -198,5 +203,7 @@ data class PermissionRequestScreen(val permission: CodeLoginPermission) : LoginG
                 NotificationPermission()
             }
         }
+
+        BackHandler { /* intercept */ }
     }
 }

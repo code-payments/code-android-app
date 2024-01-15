@@ -34,7 +34,7 @@ data class Kin(val quarks: Long): Value {
 
 
     companion object {
-        private const val QUARK_CONVERSION_RATE = 100000
+        private const val QUARK_CONVERSION_RATE = 100_000
         fun fromKin(kin: Int) = fromKin(kin.toDouble())
         fun fromKin(kin: Long) = fromKin(kin.toDouble())
         fun fromKin(kin: Double): Kin {

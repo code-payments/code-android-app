@@ -53,7 +53,7 @@ sealed class IntentMetadata {
 
             return PaymentMetadata(
                 amount = KinAmount.newInstance(
-                    kin = Kin(quarks = quarks),
+                    kin = Kin(quarks),
                     rate = Rate(
                         fx = exchangeRate,
                         currency = currency

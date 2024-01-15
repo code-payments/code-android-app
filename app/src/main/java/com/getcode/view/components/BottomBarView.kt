@@ -35,7 +35,6 @@ fun BottomBarView(
     }
 
     Box(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
         contentAlignment = Alignment.BottomCenter
     ) {
         Column(
@@ -46,7 +45,8 @@ fun BottomBarView(
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
                     }
                 )
-                .padding(CodeTheme.dimens.inset),
+                .padding(CodeTheme.dimens.inset)
+                .windowInsetsPadding(WindowInsets.navigationBars),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {
             CompositionLocalProvider(LocalContentColor provides White) {
@@ -70,7 +70,7 @@ fun BottomBarView(
                     },
                     textColor =
                     when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.errorText
+                        BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
                     },
                     buttonState = ButtonState.Filled,

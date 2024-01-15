@@ -45,12 +45,10 @@ class Client @Inject constructor(
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
             SessionManager.authState.collect {
-                if (it != null) {
-                    if (it.isAuthenticated) {
-                        Timber.tag(TAG).i("User Authenticated - starting timer")
-                        startPollTimer()
-                        this.cancel()
-                    }
+                if (it.isAuthenticated == true) {
+                    Timber.tag(TAG).i("User Authenticated - starting timer")
+                    startPollTimer()
+                    this.cancel()
                 }
             }
         }

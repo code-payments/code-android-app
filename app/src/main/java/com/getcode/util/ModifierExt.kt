@@ -11,8 +11,11 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 
 inline fun Modifier.addIf(
@@ -73,4 +76,7 @@ fun Modifier.rememberedClickable(
     this.then(clicker)
 }
 
-
+fun Modifier.measured(block: (DpSize) -> Unit): Modifier = composed {
+    val density = LocalDensity.current
+    onPlaced { block(it.size.toDp(density)) }
+}

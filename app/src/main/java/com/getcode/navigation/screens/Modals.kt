@@ -1,13 +1,18 @@
 package com.getcode.navigation.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -17,6 +22,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
 import com.getcode.util.recomposeHighlighter
 import com.getcode.view.components.SheetTitle
@@ -25,7 +31,7 @@ import timber.log.Timber
 internal interface ModalContent {
 
     @Composable
-    fun ModalContainer(
+    fun Screen.ModalContainer(
         closeButton: (Screen?) -> Boolean = { false },
         screenContent: @Composable () -> Unit
     ) {
@@ -40,7 +46,7 @@ internal interface ModalContent {
     }
 
     @Composable
-    fun ModalContainer(
+    fun Screen.ModalContainer(
         displayLogo: Boolean = false,
         onLogoClicked: () -> Unit = { },
         closeButton: (Screen?) -> Boolean = { false },
@@ -56,8 +62,9 @@ internal interface ModalContent {
         )
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    fun ModalContainer(
+    fun Screen.ModalContainer(
         navigator: CodeNavigator = LocalCodeNavigator.current,
         displayLogo: Boolean = false,
         backButton: (Screen?) -> Boolean = { false },
@@ -91,7 +98,7 @@ internal interface ModalContent {
                     val sheetName by remember(lastItem) {
                         derivedStateOf { name }
                     }
-                    sheetName.takeIf { !displayLogo }
+                    sheetName.takeIf { !displayLogo && lastItem == this@ModalContainer }
                 },
                 displayLogo = displayLogo,
                 onLogoClicked = onLogoClicked,
@@ -105,7 +112,11 @@ internal interface ModalContent {
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
-                screenContent()
+                CompositionLocalProvider(
+                    LocalOverscrollConfiguration provides null
+                ) {
+                    screenContent()
+                }
             }
         }
     }
@@ -122,5 +133,6 @@ data object MainRoot : Screen {
         // TODO: potentially add a loading state here
         //  so app doesn't appear stuck in a dead state
         //  while we wait for auth check to complete
+        Box(modifier = Modifier.fillMaxSize().background(CodeTheme.colors.background))
     }
 }

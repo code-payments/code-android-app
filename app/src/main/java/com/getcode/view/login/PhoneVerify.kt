@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,7 +71,7 @@ internal fun PhoneVerify(
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
-    val focusRequester = FocusRequester()
+    val focusRequester = remember { FocusRequester() }
     val context = LocalContext.current
 
     ConstraintLayout(
@@ -180,11 +181,12 @@ internal fun PhoneVerify(
         val inset = CodeTheme.dimens.inset
         Text(
             modifier = Modifier.constrainAs(captionText) {
+                linkTo(captionText.start, parent.start)
                 linkTo(countryCodeRow.bottom, captionText.top, topMargin = inset)
+                linkTo(captionText.end, parent.end)
             },
-            style = CodeTheme.typography.overline.copy(
-                textAlign = TextAlign.Center
-            ),
+            style = CodeTheme.typography.body2,
+            textAlign = TextAlign.Center,
             color = BrandLight,
             text = stringResource(R.string.subtitle_phoneVerificationDescription)
         )
@@ -225,7 +227,7 @@ internal fun PhoneVerify(
         viewModel.setPhoneFromHint(phoneNum)
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(phoneNumberHintLauncher) {
         val request = GetPhoneNumberHintIntentRequest
             .builder()
             .build()

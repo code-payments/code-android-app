@@ -35,6 +35,7 @@ import timber.log.Timber
 fun HomeBill(
     modifier: Modifier = Modifier,
     dismissState: DismissState,
+    dismissed: Boolean,
     transitionSpec: AnimatedContentTransitionScope<Bill?>.() -> ContentTransform,
     bill: Bill?,
 ) {
@@ -51,7 +52,7 @@ fun HomeBill(
                 modifier = Modifier.align(Alignment.Center),
                 state = dismissState,
                 dismissContent = {
-                    if (b != null) {
+                    if (b != null && !dismissed) {
                         Bill(
                             modifier = Modifier
                                 .fillMaxWidth()

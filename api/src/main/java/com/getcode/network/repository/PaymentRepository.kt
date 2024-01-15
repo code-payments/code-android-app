@@ -142,7 +142,7 @@ class PaymentRepository @Inject constructor(
         }
     }
 
-    fun rejectPayment(payload: CodePayload) {
+    suspend fun rejectPayment(payload: CodePayload) {
         messagingRepository.rejectPayment(payload.rendezvous)
     }
 }

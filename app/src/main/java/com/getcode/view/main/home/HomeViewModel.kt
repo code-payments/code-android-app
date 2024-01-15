@@ -29,6 +29,8 @@ import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.client.*
 import com.getcode.network.repository.*
+import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.util.CurrencyUtils
@@ -75,6 +77,7 @@ data class HomeUiModel(
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
+    val isCameraReady: Boolean = false,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState(null, false, null, null, null, false),
@@ -216,6 +219,7 @@ class HomeViewModel @Inject constructor(
                 }
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
+                    vibrator.vibrate()
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -288,7 +292,10 @@ class HomeViewModel @Inject constructor(
             }
         }
 
+    fun canSwipeBill() = uiFlow.value.billState.canSwipeToDismiss
+
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
+        Timber.d("cancelsend")
         billDismissTimer?.cancel()
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
@@ -399,19 +406,22 @@ class HomeViewModel @Inject constructor(
             vibrator.tick()
         }
 
-        if (!networkUtils.isAvailable()) {
-            return ErrorUtils.showNetworkError(resources)
-        }
-
-        runBlocking {
-            balanceController.fetchBalanceSuspend()
-            client.receiveIfNeeded().blockingAwait(1_000L, TimeUnit.MILLISECONDS)
-        }
-
-        analyticsManager.grabStart()
         val organizer = SessionManager.getOrganizer() ?: return
 
         val codePayload = CodePayload.fromList(payload.toList())
+
+        if (scannedRendezvous.contains(codePayload.rendezvous.publicKey)) {
+            Timber.d("Nonce previously received: ${codePayload.nonce.hexEncodedString()}")
+            return
+        }
+
+        scannedRendezvous.add(codePayload.rendezvous.publicKey)
+
+        if (!networkUtils.isAvailable()) {
+            scannedRendezvous.remove(codePayload.rendezvous.publicKey)
+            return ErrorUtils.showNetworkError(resources)
+        }
+
         when (codePayload.kind) {
             Kind.Cash,
             Kind.GiftCard -> attemptReceive(organizer, codePayload)
@@ -561,14 +571,20 @@ class HomeViewModel @Inject constructor(
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
         cancelPayment(true, ignoreRedirect)
-        val payload = uiFlow.value.billState.paymentConfirmation?.payload ?: return
-        paymentRepository.rejectPayment(payload)
+        val payload = uiFlow.value.billState.paymentConfirmation?.payload
+        payload ?: return
+
+        viewModelScope.launch {
+            paymentRepository.rejectPayment(payload)
+        }
     }
 
     @SuppressLint("CheckResult")
     private fun attemptReceive(organizer: Organizer, payload: CodePayload) {
+        analyticsManager.grabStart()
         receiveTransactionRepository.start(organizer, payload.rendezvous)
             .doOnNext { metadata ->
+                Timber.d("metadata=$metadata")
                 val kinAmount = when (metadata) {
                     is IntentMetadata.SendPrivatePayment -> metadata.metadata.amount
                     is IntentMetadata.ReceivePaymentsPublicly -> metadata.metadata.amount
@@ -602,7 +618,10 @@ class HomeViewModel @Inject constructor(
                     client.fetchLimits(isForce = true)
                 )
             }
-            .subscribe({ }, ErrorUtils::handleError)
+            .subscribe({ }, {
+                scannedRendezvous.remove(payload.rendezvous.publicKey)
+                ErrorUtils.handleError(it)
+            })
     }
 
     fun onCashLinkGrabStart() {
@@ -662,6 +681,13 @@ class HomeViewModel @Inject constructor(
                 .filter { it.isPresent }
                 .map { it.get()!! }
                 .firstOrError()
+                .doOnSuccess {
+                    if (!uiFlow.value.isCameraReady) {
+                        uiFlow.update {
+                            it.copy(isCameraReady = true)
+                        }
+                    }
+                }
                 .flatMap { previewSize: CameraController.PreviewSize? ->
                     view.getPreviewBuffer()
                         .flatMap { imageData ->
@@ -890,6 +916,8 @@ class HomeViewModel @Inject constructor(
 
     companion object {
         private val openedLinks = mutableListOf<String>()
+        private val scannedRendezvous = mutableListOf<String>()
+
         private const val DEBUG_SCAN_TIMES = true
         private var scanProcessingTime = 0L
 

@@ -100,6 +100,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
                         state.copy(
                             showNetworkDropOff = showNetworkDropOff,
                             canViewBuckets = canViewBuckets,
+                            isVibrateOnScan = tickOnScan,
                             debugScanTimesEnabled = debugScanTimesEnabled,
                             displayErrors = displayErrors,
                             remoteSendEnabled = remoteSendEnabled,

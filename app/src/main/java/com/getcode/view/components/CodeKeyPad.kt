@@ -34,9 +34,7 @@ fun CodeKeyPad(
     isDecimal: Boolean = false
 ) {
     Row(
-        modifier = modifier
-            .padding(horizontal = CodeTheme.dimens.grid.x4)
-            .widthIn(100.dp, 350.dp),
+        modifier = modifier.widthIn(min = 100.dp),
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
     ) {
         for (column in 1..3) {
@@ -100,7 +98,7 @@ private fun KeyBoardButton(
         if (!isSelected) Transparent else White10
     }
 
-    CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) { //ADD MODIFIER, INSTEAD
+    CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) {
         OutlinedButton(
             modifier = Modifier
                 .pointerInteropFilter {

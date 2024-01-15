@@ -1,6 +1,12 @@
 package com.getcode.view.login
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -31,9 +43,12 @@ import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.util.AnimationUtils
 import com.getcode.util.ChromeTabsUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 @Preview
@@ -44,120 +59,150 @@ fun LoginHome(
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
 
-    ConstraintLayout(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars),
-    ) {
-        val (bgImage, logo, buttonCreate, buttonLogin, toc) = createRefs()
+    var show by remember {
+        mutableStateOf(false)
+    }
+    Box {
 
-        Image(
-            painterResource(R.drawable.ic_code_splash_bg),
-            "",
-            modifier = Modifier
-                .constrainAs(bgImage) {
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    top.linkTo(parent.top)
-                    bottom.linkTo(parent.bottom)
-                }
-                .fillMaxSize(),
-            contentScale = ContentScale.Crop,
-        )
-
-        Image(
-            painter = painterResource(
-                R.drawable.ic_code_logo_near_white
+        AnimatedVisibility(
+            modifier = Modifier.fillMaxSize(),
+            visible = show,
+            enter = fadeIn(
+                animationSpec = tween(AnimationUtils.animationTime)
             ),
-            contentDescription = "",
-            modifier = Modifier
-                .constrainAs(logo) {
-                    top.linkTo(parent.top)
-                    bottom.linkTo(buttonCreate.top)
-                    centerHorizontallyTo(parent)
-                }
-                .fillMaxWidth(0.65f)
-                .fillMaxHeight(0.65f)
-        )
-
-        CodeButton(
-            Modifier
-                .constrainAs(buttonCreate) {
-                    top.linkTo(logo.bottom) //possibly remove!!
-                    bottom.linkTo(buttonLogin.top)
-                }
-                .padding(horizontal = CodeTheme.dimens.inset),
-            onClick = {
-                navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
-            },
-            text = stringResource(R.string.action_createAccount),
-            buttonState = ButtonState.Filled,
-        )
-        CodeButton(
-            Modifier
-                .constrainAs(buttonLogin) {
-                    top.linkTo(buttonCreate.bottom)
-                }
-                .padding(horizontal = CodeTheme.dimens.inset),
-            onClick = {
-                navigator.push(AccessKeyLoginScreen())
-            },
-            text = stringResource(R.string.action_logIn),
-            buttonState = ButtonState.Subtle,
-        )
-
-
-        val bottomString = buildAnnotatedString {
-            append(stringResource(R.string.login_description_byTapping))
-            append(" ")
-            append(stringResource(R.string.login_description_agreeToOur))
-            append(" ")
-            pushStringAnnotation(tag = "tos", annotation = "https://app.getcode.com/tos")
-            withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                append(stringResource(R.string.title_termsOfService))
-            }
-            pop()
-            append(" ")
-            append(stringResource(R.string.core_and))
-            append(" ")
-            pushStringAnnotation(
-                tag = "policy",
-                annotation = "https://app.getcode.com/privacy-policy"
+            exit = fadeOut(tween(AnimationUtils.animationTime))
+        ) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(CodeTheme.colors.background)
             )
-            withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                append(stringResource(R.string.title_privacyPolicy))
-            }
-            pop()
         }
 
-        ClickableText(
-            text = bottomString,
-            style = CodeTheme.typography.overline.copy(
-                textAlign = TextAlign.Center,
-                color = BrandLight
-            ),
+        ConstraintLayout(
             modifier = Modifier
-                .constrainAs(toc) {
-                    bottom.linkTo(parent.bottom)
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars),
+        ) {
+            val (bgImage, logo, buttonCreate, buttonLogin, toc) = createRefs()
+
+            Image(
+                painterResource(R.drawable.ic_code_splash_bg),
+                "",
+                modifier = Modifier
+                    .constrainAs(bgImage) {
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                        top.linkTo(parent.top)
+                        bottom.linkTo(parent.bottom)
+                    }
+                    .fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+
+            Image(
+                painter = painterResource(
+                    R.drawable.ic_code_logo_near_white
+                ),
+                contentDescription = "",
+                modifier = Modifier
+                    .constrainAs(logo) {
+                        top.linkTo(parent.top)
+                        bottom.linkTo(buttonCreate.top)
+                        centerHorizontallyTo(parent)
+                    }
+                    .fillMaxWidth(0.65f)
+                    .fillMaxHeight(0.65f)
+            )
+
+            CodeButton(
+                Modifier
+                    .constrainAs(buttonCreate) {
+                        top.linkTo(logo.bottom) //possibly remove!!
+                        bottom.linkTo(buttonLogin.top)
+                    }
+                    .padding(horizontal = CodeTheme.dimens.inset),
+                onClick = {
+                    navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
+                },
+                text = stringResource(R.string.action_createAccount),
+                buttonState = ButtonState.Filled,
+            )
+            CodeButton(
+                Modifier
+                    .constrainAs(buttonLogin) {
+                        top.linkTo(buttonCreate.bottom)
+                    }
+                    .padding(horizontal = CodeTheme.dimens.inset),
+                onClick = {
+                    navigator.push(AccessKeyLoginScreen())
+                },
+                text = stringResource(R.string.action_logIn),
+                buttonState = ButtonState.Subtle,
+            )
+
+
+            val bottomString = buildAnnotatedString {
+                append(stringResource(R.string.login_description_byTapping))
+                append(" ")
+                append(stringResource(R.string.login_description_agreeToOur))
+                append(" ")
+                pushStringAnnotation(tag = "tos", annotation = "https://app.getcode.com/tos")
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append(stringResource(R.string.title_termsOfService))
                 }
-                .padding(CodeTheme.dimens.grid.x4),
-            onClick = { offset ->
-                bottomString.getStringAnnotations(tag = "tos", start = offset, end = offset)
-                    .firstOrNull()?.let {
-                        ChromeTabsUtils.launchUrl(context, it.item)
-                    }
-                bottomString.getStringAnnotations(tag = "policy", start = offset, end = offset)
-                    .firstOrNull()?.let {
-                        ChromeTabsUtils.launchUrl(context, it.item)
-                    }
+                pop()
+                append(" ")
+                append(stringResource(R.string.core_and))
+                append(" ")
+                pushStringAnnotation(
+                    tag = "policy",
+                    annotation = "https://app.getcode.com/privacy-policy"
+                )
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append(stringResource(R.string.title_privacyPolicy))
+                }
+                pop()
             }
-        )
+
+            ClickableText(
+                text = bottomString,
+                style = CodeTheme.typography.overline.copy(
+                    textAlign = TextAlign.Center,
+                    color = BrandLight
+                ),
+                modifier = Modifier
+                    .constrainAs(toc) {
+                        bottom.linkTo(parent.bottom)
+                    }
+                    .padding(CodeTheme.dimens.grid.x4),
+                onClick = { offset ->
+                    bottomString.getStringAnnotations(tag = "tos", start = offset, end = offset)
+                        .firstOrNull()?.let {
+                            ChromeTabsUtils.launchUrl(context, it.item)
+                        }
+                    bottomString.getStringAnnotations(tag = "policy", start = offset, end = offset)
+                        .firstOrNull()?.let {
+                            ChromeTabsUtils.launchUrl(context, it.item)
+                        }
+                }
+            )
+        }
     }
 
     val focusManager = LocalFocusManager.current
 
-    LaunchedEffect(Unit) {
+    val scope = rememberCoroutineScope()
+    DisposableEffect(Unit) {
         focusManager.clearFocus()
         viewModel.onInit()
+        scope.launch {
+            delay(750)
+            show = false
+        }
+
+        onDispose { show = true }
     }
+
+
 }
