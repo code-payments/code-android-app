@@ -28,6 +28,7 @@ import com.getcode.models.Valuation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.client.*
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.*
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
@@ -111,6 +112,7 @@ class HomeViewModel @Inject constructor(
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
+    private val exchange: Exchange,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
 
@@ -454,7 +456,8 @@ class HomeViewModel @Inject constructor(
                     paymentConfirmation = PaymentConfirmation(
                         state = PaymentState.AwaitingConfirmation,
                         payload = payload,
-                        requestedAmount = amount
+                        requestedAmount = amount,
+                        localAmount = amount.replacing(exchange.localRate)
                     ),
                     hideBillButtons = true
                 )
@@ -495,7 +498,7 @@ class HomeViewModel @Inject constructor(
                 paymentConfirmation.payload.rendezvous
             )
         }.onSuccess {
-                showToast(paymentConfirmation.requestedAmount, false)
+                showToast(paymentConfirmation.localAmount, false)
 
                 withContext(Dispatchers.Main) {
                     uiFlow.update {

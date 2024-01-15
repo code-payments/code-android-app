@@ -88,6 +88,7 @@ data class PaymentConfirmation(
     val state: PaymentState,
     val payload: CodePayload,
     val requestedAmount: KinAmount,
+    val localAmount: KinAmount,
 )
 
 sealed interface PaymentState {
