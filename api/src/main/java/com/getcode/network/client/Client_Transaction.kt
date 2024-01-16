@@ -391,6 +391,7 @@ fun Client.observeTransactions(
     owner: KeyPair,
 ): Flow<List<HistoricalTransaction>> {
     return transactionRepository.transactionCache
+        .map { it.orEmpty() }
         .map { it.sortedByDescending { trx -> trx.date } }
         .flatMapConcat { initialList ->
             fetchPaymentHistoryDelta(owner, initialList.firstOrNull()?.id?.toByteArray())

@@ -64,8 +64,8 @@ class TransactionRepository @Inject constructor(
 
     var maxDeposit: Long = 0
 
-    private var _transactionCache = MutableStateFlow<List<HistoricalTransaction>>(emptyList())
-    val transactionCache: Flow<List<HistoricalTransaction>>
+    private var _transactionCache = MutableStateFlow<List<HistoricalTransaction>?>(null)
+    val transactionCache: Flow<List<HistoricalTransaction>?>
         get() = _transactionCache
 
 
@@ -455,7 +455,7 @@ class TransactionRepository @Inject constructor(
                 val response = fetchPaymentHistoryPage(owner, after).blockingGet()
                 if (response.isEmpty()) break
                 container.addAll(response)
-                _transactionCache.value = _transactionCache.value
+                _transactionCache.value = _transactionCache.value.orEmpty()
                     .filterNot { item -> response.contains(item) }
                     .plus(response)
                     .toMutableList()

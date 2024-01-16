@@ -15,6 +15,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,7 @@ class GiveKinSheetViewModel @Inject constructor(
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
+    networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,
@@ -45,7 +47,8 @@ class GiveKinSheetViewModel @Inject constructor(
     balanceRepository,
     localeHelper,
     currencyUtils,
-    resources
+    resources,
+    networkObserver
 ) {
 
     val uiFlow = MutableStateFlow(GiveKinSheetUiModel())

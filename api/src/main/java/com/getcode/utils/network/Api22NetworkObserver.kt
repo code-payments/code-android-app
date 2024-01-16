@@ -14,6 +14,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
@@ -46,7 +47,7 @@ class Api22NetworkObserver(
         connectivityManager.registerNetworkCallback(builder.build(), listener)
         awaitClose { connectivityManager.unregisterNetworkCallback(listener) }
     }
-        .onStart { emit(connectivityManager.activeNetwork != null)  }
+        .onStart { emit(connectivityManager.activeNetworkInfo != null)  }
         .debounce(2000) // bridge wifi <> mobile switch
         .distinctUntilChanged()
         .shareIn(
@@ -127,8 +128,8 @@ class Api22NetworkObserver(
     }
         .stateIn(
             CoroutineScope(Dispatchers.Main),
-            SharingStarted.Eagerly,
-            NetworkState(true, SignalStrength.Unknown, ConnectionType.Unknown)
+            SharingStarted.WhileSubscribed(),
+            NetworkState(connectivityManager.activeNetworkInfo != null, SignalStrength.Unknown, ConnectionType.Unknown)
         ) // make state always available
 
     override val isConnected: Boolean

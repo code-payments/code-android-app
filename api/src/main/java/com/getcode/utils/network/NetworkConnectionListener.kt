@@ -40,6 +40,7 @@ enum class ConnectionType {
 
     fun isWifi() = this == Wifi
     fun isCellular() = this == Cellular
+    fun isValid() = isWifi() || isCellular()
 }
 
 enum class SignalStrength {
@@ -51,6 +52,7 @@ enum class SignalStrength {
     Strong;
 
     fun isWeakOrPoor() = this == Weak || this == Poor
+    fun isKnown() = this != Unknown
 }
 
 data class NetworkState(

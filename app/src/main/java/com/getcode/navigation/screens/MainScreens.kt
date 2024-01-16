@@ -101,7 +101,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getViewModel(), getActivityScopedViewModel())
+            GiveKinSheet(getViewModel())
         }
 
 

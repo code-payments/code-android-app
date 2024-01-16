@@ -47,14 +47,14 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
-    private val client: Client,
+    client: Client,
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     private val resources: ResourceHelper,
-    private val networkObserver: NetworkConnectivityListener,
     exchange: Exchange,
     balanceRepository: BalanceRepository,
     prefsRepository: PrefRepository,
+    networkObserver: NetworkConnectivityListener,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -63,7 +63,7 @@ class BalanceSheetViewModel @Inject constructor(
         val marketValue: Double = 0.0,
         val selectedRate: Rate? = null,
         val currencyFlag: Int? = null,
-        val historicalTransactionsLoading: Boolean = false,
+        val historicalTransactionsLoading: Boolean = true,
         val historicalTransactions: List<HistoricalTransactionUiModel> = listOf(),
         val isDebugBucketsEnabled: Boolean = false,
         val isDebugBucketsVisible: Boolean = false,
@@ -99,6 +99,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         combine(
             exchange.observeRates()
+                .flowOn(Dispatchers.IO)
                 .map { getCurrency(it) }
                 .onEach {
                     dispatchEvent(Event.OnCurrencyFlagChanged(it.resId))
@@ -108,8 +109,9 @@ class BalanceSheetViewModel @Inject constructor(
                     exchange.fetchRatesIfNeeded()
                     exchange.rateFor(it)
                 },
-            balanceRepository.balanceFlow
-        ) { rate, balance ->
+            balanceRepository.balanceFlow,
+            networkObserver.state
+        ) { rate, balance, _ ->
             rate to balance
         }.map { (rate, balance) ->
             dispatchEvent(Dispatchers.Main, Event.OnLatestRateChanged(rate))
@@ -119,11 +121,20 @@ class BalanceSheetViewModel @Inject constructor(
         }.launchIn(viewModelScope)
 
         client.historicalTransactions()
-            .map { it.map { transaction -> transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) } }
+            .flowOn(Dispatchers.IO)
+            .map {
+                when {
+                    it == null -> null // await for confirmation it's empty
+                    it.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+                    else -> it
+                }
+            }
+            .mapNotNull { historical -> historical?.map { transaction ->
+                transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) }
+            }
             .onEach { update ->
                 dispatchEvent(Dispatchers.Main, Event.OnTransactionsUpdated(update))
             }.onEach {
-                delay(300)
                 dispatchEvent(Dispatchers.Main, Event.OnTransactionsLoading(false))
             }.launchIn(viewModelScope)
     }

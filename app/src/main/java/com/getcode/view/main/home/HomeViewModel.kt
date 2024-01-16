@@ -168,9 +168,9 @@ class HomeViewModel @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             SessionManager.authState
-                .distinctUntilChangedBy { it?.isTimelockUnlocked }
+                .distinctUntilChangedBy { it.isTimelockUnlocked }
                 .collectLatest {
-                    it?.let { state ->
+                    it.let { state ->
                         if (state.isTimelockUnlocked) {
                             uiFlow.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
                         }
@@ -300,8 +300,6 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-    fun canSwipeBill() = uiFlow.value.billState.canSwipeToDismiss
-
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
         Timber.d("cancelsend")
         billDismissTimer?.cancel()
@@ -312,7 +310,6 @@ class HomeViewModel @Inject constructor(
 
         uiFlow.update {
             it.copy(
-                presentationStyle = PresentationStyle.Hidden,
                 billState = it.billState.copy(
                     bill = null,
                     valuation = null,

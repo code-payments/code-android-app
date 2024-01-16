@@ -126,8 +126,8 @@ class Api29NetworkObserver(
     }
         .stateIn(
             CoroutineScope(Dispatchers.Main),
-            SharingStarted.Eagerly,
-            NetworkState(true, SignalStrength.Unknown, ConnectionType.Unknown)
+            SharingStarted.WhileSubscribed(),
+            NetworkState(connectivityManager.activeNetwork != null, SignalStrength.Unknown, ConnectionType.Unknown)
         ) // make state always available
 
     override val isConnected: Boolean

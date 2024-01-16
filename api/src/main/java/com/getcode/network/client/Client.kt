@@ -8,8 +8,10 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -33,6 +35,7 @@ class Client @Inject constructor(
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
+    internal val networkObserver: NetworkConnectivityListener,
 ) {
 
     private val TAG = "PollTimer"
@@ -72,19 +75,21 @@ class Client @Inject constructor(
     }
 
     private suspend fun poll() {
-        balanceController.fetchBalanceSuspend()
-        exchange.fetchRatesIfNeeded()
-        fetchLimits()
-        fetchPrivacyUpgrades()
+        if (networkObserver.isConnected) {
+            balanceController.fetchBalanceSuspend()
+            exchange.fetchRatesIfNeeded()
+            fetchLimits()
+            fetchPrivacyUpgrades()
+        }
     }
 
     fun startTimer() {
         startPollTimerWhenAuthenticated()
     }
 
-    fun pollOnce() {
+    fun pollOnce(delay: Long = 2_000L) {
         scope.launch {
-            delay(2000)
+            delay(delay)
             Timber.tag(TAG).i("Poll Once")
             poll()
         }

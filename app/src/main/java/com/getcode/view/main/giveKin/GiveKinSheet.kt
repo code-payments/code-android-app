@@ -30,22 +30,20 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
-import com.getcode.view.main.connectivity.NetworkConnectionViewModel
 import kotlinx.coroutines.launch
 
 @Preview
 @Composable
 fun GiveKinSheet(
     viewModel: GiveKinSheetViewModel = hiltViewModel(),
-    connectionViewModel: NetworkConnectionViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
-    val connectionState by connectionViewModel.connectionStatus.collectAsState()
     val composeScope = rememberCoroutineScope()
 
     val networkObserver = LocalNetworkObserver.current
+    val networkState by networkObserver.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -68,8 +66,8 @@ fun GiveKinSheet(
                 altCaptionColor = color,
                 currencyResId = dataState.currencyModel.selectedCurrencyResId,
                 uiModel = dataState.amountAnimatedModel,
-                connectionState = connectionState,
                 isAnimated = true,
+                networkState = networkState,
                 modifier = Modifier.align(Alignment.Center)
             ) {
                 navigator.show(CurrencySelectionModal)

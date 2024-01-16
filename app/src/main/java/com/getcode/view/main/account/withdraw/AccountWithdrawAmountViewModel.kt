@@ -14,6 +14,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountUiModel
 import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
@@ -40,6 +41,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
+    networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,
@@ -48,7 +50,8 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     balanceRepository,
     localeHelper,
     currencyUtils,
-    resources
+    resources,
+    networkObserver
 ) {
     val uiFlow = MutableStateFlow(AccountWithdrawAmountUiModel())
 

@@ -14,12 +14,11 @@ import com.getcode.network.core.NetworkOracleImpl
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
-import com.getcode.view.main.connectivity.ConnectionRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.AccountAuthenticator
-import com.getcode.util.AndroidLocale
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -133,7 +132,8 @@ object ApiModule {
         analyticsManager: AnalyticsManager,
         prefRepository: PrefRepository,
         transactionReceiver: TransactionReceiver,
-        exchange: Exchange
+        exchange: Exchange,
+        networkObserver: NetworkConnectivityListener,
     ): Client {
         return Client(
             context,
@@ -144,6 +144,7 @@ object ApiModule {
             prefRepository,
             exchange,
             transactionReceiver,
+            networkObserver
         )
     }
 
@@ -167,11 +168,4 @@ object ApiModule {
     ): TransactionRepository {
         return TransactionRepository(transactionApi = transactionApi, context = context)
     }
-
-    @Singleton
-    @Provides
-    fun provideConnectionRepository(@ApplicationContext context: Context): ConnectionRepository {
-        return ConnectionRepository(context)
-    }
-
 }

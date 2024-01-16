@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.BottomCenter
+import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Alignment.Companion.TopCenter
@@ -145,8 +147,16 @@ fun BalanceContent(
         when {
             state.historicalTransactionsLoading -> {
                 item {
-                    Box(modifier = Modifier.fillParentMaxSize()) {
-                        CodeCircularProgressIndicator(modifier = Modifier.align(TopCenter))
+                    Column(modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2, CenterVertically),
+                    ) {
+                        CodeCircularProgressIndicator()
+                        Text(
+                            modifier = Modifier.fillMaxWidth(0.6f),
+                            text = "Loading your balance and transaction history",
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -272,6 +282,7 @@ fun BalanceTop(
         amountText = state.amountText,
         isAltCaption = false,
         isAltCaptionKinIcon = false,
+        isLoading = state.historicalTransactionsLoading,
         currencyResId = state.currencyFlag,
         isClickable = isClickable,
         onClick = onClick

@@ -19,17 +19,20 @@ import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import timber.log.Timber
 import kotlin.math.min
 
 sealed class CurrencyListItem {
@@ -67,6 +70,7 @@ abstract class BaseAmountCurrencyViewModel(
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     private val resources: ResourceHelper,
+    private val networkObserver: NetworkConnectivityListener,
 ) : BaseViewModel(resources), AmountInputViewModel {
     protected val numberInputHelper = NumberInputHelper()
     abstract fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel)
@@ -81,6 +85,7 @@ abstract class BaseAmountCurrencyViewModel(
 
         balanceRepository.balanceFlow
             .onEach { balance ->
+                Timber.d("balance=$balance")
                 setAmountUiModel(getAmountUiModel().copy(balanceKin = balance))
             }.launchIn(viewModelScope)
 
@@ -92,7 +97,8 @@ abstract class BaseAmountCurrencyViewModel(
                     PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
                 ).flowOn(Dispatchers.IO)
                 .distinctUntilChanged(),
-        ) { currencies, selectedCode ->
+            networkObserver.state
+        ) { currencies, selectedCode, _ ->
             val currency = currencies.firstOrNull { it.code == selectedCode }
             getModelsWithSelectedCurrency(
                 currencies,

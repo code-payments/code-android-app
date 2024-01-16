@@ -17,13 +17,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.rememberedClickable
-import com.getcode.view.main.connectivity.ConnectionState
+import com.getcode.utils.network.NetworkState
 import com.getcode.view.main.connectivity.ConnectionStatus
+import com.getcode.view.main.connectivity.NetworkStateProvider
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -38,9 +40,10 @@ fun AmountArea(
     altCaptionColor: Color? = null,
     currencyResId: Int?,
     isClickable: Boolean = true,
+    isLoading: Boolean = false,
     isAnimated: Boolean = false,
     uiModel: AmountAnimatedInputUiModel? = null,
-    connectionState: ConnectionState = ConnectionState(ConnectionStatus.CONNECTED),
+    networkState: NetworkState = LocalNetworkObserver.current.state.value,
     onClick: () -> Unit = {}
 ) {
     Column(
@@ -49,21 +52,23 @@ fun AmountArea(
             .let { if (isClickable) it.rememberedClickable { onClick() } else it },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (!isAnimated) {
-                AmountText(
-                    currencyResId = currencyResId,
-                    "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
-                )
-            } else {
-                AmountTextAnimated(
-                    uiModel = uiModel,
-                    currencyResId = currencyResId,
-                    amountPrefix = amountPrefix.orEmpty(),
-                    amountSuffix = amountSuffix.orEmpty()
-                )
+        if (!isLoading) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (!isAnimated) {
+                    AmountText(
+                        currencyResId = currencyResId,
+                        "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
+                    )
+                } else {
+                    AmountTextAnimated(
+                        uiModel = uiModel,
+                        currencyResId = currencyResId,
+                        amountPrefix = amountPrefix.orEmpty(),
+                        amountSuffix = amountSuffix.orEmpty()
+                    )
+                }
             }
         }
         Row(
@@ -84,8 +89,8 @@ fun AmountArea(
                     contentDescription = ""
                 )
             }
-            if (connectionState.status == ConnectionStatus.DISCONNECTED) {
-                ConnectionStatus(state = connectionState)
+            if (!networkState.connected) {
+                ConnectionStatus(state = networkState)
             } else if (captionText != null) {
                 Text(
                     modifier = Modifier
@@ -102,7 +107,7 @@ fun AmountArea(
     }
 }
 
-
+private val networkStateValues = NetworkStateProvider().values
 @Preview
 @Composable
 fun AmountPreview() {
@@ -112,7 +117,8 @@ fun AmountPreview() {
         amountSuffix = "suffix",
         captionText = "The value of kin fluctuates",
         currencyResId = R.drawable.ic_flag_ca,
-        isAnimated = false
+        isAnimated = false,
+        networkState = networkStateValues.last()
     )
 }
 
@@ -125,7 +131,7 @@ fun AmountPreviewDisconnected() {
         amountSuffix = "suffix",
         captionText = "The value of kin fluctuates",
         currencyResId = R.drawable.ic_flag_ca,
-        connectionState = ConnectionState(ConnectionStatus.DISCONNECTED),
+        networkState = networkStateValues.first(),
         isAnimated = false
     )
 }
