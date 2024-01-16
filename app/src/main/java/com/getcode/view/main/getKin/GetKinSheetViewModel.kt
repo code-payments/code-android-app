@@ -13,7 +13,7 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.NetworkUtils
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel
 import com.getcode.view.main.home.HomeViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,7 +34,7 @@ class GetKinSheetViewModel @Inject constructor(
     private val prefsRepository: PrefRepository,
     private val balanceController: BalanceController,
     private val client: Client,
-    private val networkUtils: NetworkUtils,
+    private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(GetKinSheetUiModel())
@@ -55,7 +55,7 @@ class GetKinSheetViewModel @Inject constructor(
     }
 
     internal fun requestFirstKinAirdrop(upPress: () -> Unit = {}, homeViewModel: HomeViewModel) {
-        if (!networkUtils.isAvailable()) {
+        if (!networkObserver.isConnected) {
             return ErrorUtils.showNetworkError(resources)
         }
 

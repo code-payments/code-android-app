@@ -20,6 +20,7 @@ import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.catchSafely
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.main.currency.CurrencyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel

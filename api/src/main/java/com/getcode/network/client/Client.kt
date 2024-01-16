@@ -32,7 +32,7 @@ class Client @Inject constructor(
     internal val analyticsManager: AnalyticsManager,
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,
-    internal val transactionReceiver: TransactionReceiver
+    internal val transactionReceiver: TransactionReceiver,
 ) {
 
     private val TAG = "PollTimer"

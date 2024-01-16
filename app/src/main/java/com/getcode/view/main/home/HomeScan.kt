@@ -107,7 +107,6 @@ enum class HomeBottomSheet {
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
-    connectionViewModel: NetworkConnectionViewModel,
     deepLink: String? = null,
     requestPayload: String? = null,
 ) {
@@ -125,7 +124,6 @@ fun HomeScreen(
         null -> {
             HomeScan(
                 homeViewModel = homeViewModel,
-                connectionViewModel = connectionViewModel,
                 dataState = dataState,
                 deepLink = deepLink,
                 requestPayload = requestPayload,
@@ -156,7 +154,6 @@ fun HomeScreen(
 private fun HomeScan(
     homeViewModel: HomeViewModel,
     dataState: HomeUiModel,
-    connectionViewModel: NetworkConnectionViewModel,
     deepLink: String?,
     requestPayload: String?,
 ) {
@@ -219,7 +216,6 @@ private fun HomeScan(
         isPaused = isPaused,
         dataState = dataState,
         homeViewModel = homeViewModel,
-        connectionViewModel = connectionViewModel,
         scannerView = {
             AndroidView(
                 modifier = Modifier
@@ -299,7 +295,6 @@ private fun BillContainer(
     isCameraReady: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
-    connectionViewModel: NetworkConnectionViewModel,
     scannerView: @Composable () -> Unit,
     showBottomSheet: (HomeBottomSheet) -> Unit,
 ) {
@@ -309,7 +304,6 @@ private fun BillContainer(
         }
 
     val launcher = getPermissionLauncher(onPermissionResult)
-    val connectionState by connectionViewModel.connectionStatus.collectAsState()
 
     SideEffect {
         PermissionCheck.requestPermission(
@@ -399,7 +393,7 @@ private fun BillContainer(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(updatedState, connectionState, isPaused) { showBottomSheet(it) }
+            DecorView(updatedState, isPaused) { showBottomSheet(it) }
         }
 
         Column(
