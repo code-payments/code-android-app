@@ -39,6 +39,9 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -61,8 +64,10 @@ class TransactionRepository @Inject constructor(
 
     var maxDeposit: Long = 0
 
-    var transactionCache = mutableListOf<HistoricalTransaction>()
-        private set
+    private var _transactionCache = MutableStateFlow<List<HistoricalTransaction>>(emptyList())
+    val transactionCache: Flow<List<HistoricalTransaction>>
+        get() = _transactionCache
+
 
     fun setMaximumDeposit(deposit: Long) {
         maxDeposit = deposit
@@ -74,6 +79,7 @@ class TransactionRepository @Inject constructor(
 
     fun clear() {
         maxDeposit = 0
+        _transactionCache.value = emptyList()
     }
 
     fun createAccounts(organizer: Organizer): Single<IntentType> {
@@ -449,7 +455,7 @@ class TransactionRepository @Inject constructor(
                 val response = fetchPaymentHistoryPage(owner, after).blockingGet()
                 if (response.isEmpty()) break
                 container.addAll(response)
-                transactionCache = transactionCache
+                _transactionCache.value = _transactionCache.value
                     .filterNot { item -> response.contains(item) }
                     .plus(response)
                     .toMutableList()
@@ -516,7 +522,7 @@ class TransactionRepository @Inject constructor(
                 } else {
                     listOf()
                 }
-            }
+            }.doOnError { it.printStackTrace()  }
     }
 
     fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {

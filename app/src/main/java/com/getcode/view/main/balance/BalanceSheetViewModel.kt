@@ -21,13 +21,17 @@ import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.catchSafely
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.main.currency.CurrencyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -35,16 +39,19 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
     private val client: Client,
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     private val resources: ResourceHelper,
+    private val networkObserver: NetworkConnectivityListener,
     exchange: Exchange,
     balanceRepository: BalanceRepository,
     prefsRepository: PrefRepository,
@@ -111,15 +118,7 @@ class BalanceSheetViewModel @Inject constructor(
             dispatchEvent(Dispatchers.Main, Event.OnBalanceChanged(marketValue, amountText))
         }.launchIn(viewModelScope)
 
-        client.observeTransactions(owner = SessionManager.getKeyPair()!!)
-            .flowOn(Dispatchers.IO)
-            .onStart {
-                if (client.historicalTransactions().isEmpty()) {
-                    dispatchEvent(Dispatchers.Main, Event.OnTransactionsLoading(true))
-                    delay(300)
-                }
-            }
-
+        client.historicalTransactions()
             .map { it.map { transaction -> transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) } }
             .onEach { update ->
                 dispatchEvent(Dispatchers.Main, Event.OnTransactionsUpdated(update))

@@ -384,14 +384,14 @@ fun Client.fetchTransactionLimits(
     return transactionRepository.fetchTransactionLimits(owner, seconds)
 }
 
-fun Client.historicalTransactions() = transactionRepository.transactionCache.toList()
-    .sortedByDescending { it.date }
+fun Client.historicalTransactions() = transactionRepository.transactionCache
 
 @OptIn(ExperimentalCoroutinesApi::class)
 fun Client.observeTransactions(
     owner: KeyPair,
 ): Flow<List<HistoricalTransaction>> {
-    return flowOf(historicalTransactions())
+    return transactionRepository.transactionCache
+        .map { it.sortedByDescending { trx -> trx.date } }
         .flatMapConcat { initialList ->
             fetchPaymentHistoryDelta(owner, initialList.firstOrNull()?.id?.toByteArray())
                 .toObservable().asFlow()
