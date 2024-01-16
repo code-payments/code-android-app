@@ -130,7 +130,7 @@ fun PhoneConfirm(
         ) {
 
             ProvideTextStyle(
-                CodeTheme.typography.overline.copy(textAlign = TextAlign.Center, color = BrandLight)
+                CodeTheme.typography.body2.copy(textAlign = TextAlign.Center, color = BrandLight)
             ) {
                 Text(
                     text = stringResource(id = R.string.subtitle_smsWasSent)
