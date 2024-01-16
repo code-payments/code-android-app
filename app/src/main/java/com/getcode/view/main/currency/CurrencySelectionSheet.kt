@@ -269,7 +269,7 @@ private fun ListRowItem(
                     modifier = Modifier
                         .padding(end = CodeTheme.dimens.grid.x3)
                         .requiredSize(CodeTheme.dimens.staticGrid.x6)
-                        .clip(RoundedCornerShape(15.dp))
+                        .clip(CodeTheme.shapes.large)
                         .align(Alignment.CenterVertically),
                     painter = painterResource(resId),
                     contentDescription = ""

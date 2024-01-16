@@ -20,13 +20,18 @@ import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.catchSafely
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.main.currency.CurrencyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -34,19 +39,22 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.*
 import javax.inject.Inject
 
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
-    private val client: Client,
+    client: Client,
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     private val resources: ResourceHelper,
     exchange: Exchange,
     balanceRepository: BalanceRepository,
     prefsRepository: PrefRepository,
+    networkObserver: NetworkConnectivityListener,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -55,7 +63,7 @@ class BalanceSheetViewModel @Inject constructor(
         val marketValue: Double = 0.0,
         val selectedRate: Rate? = null,
         val currencyFlag: Int? = null,
-        val historicalTransactionsLoading: Boolean = false,
+        val historicalTransactionsLoading: Boolean = true,
         val historicalTransactions: List<HistoricalTransactionUiModel> = listOf(),
         val isDebugBucketsEnabled: Boolean = false,
         val isDebugBucketsVisible: Boolean = false,
@@ -91,6 +99,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         combine(
             exchange.observeRates()
+                .flowOn(Dispatchers.IO)
                 .map { getCurrency(it) }
                 .onEach {
                     dispatchEvent(Event.OnCurrencyFlagChanged(it.resId))
@@ -100,8 +109,9 @@ class BalanceSheetViewModel @Inject constructor(
                     exchange.fetchRatesIfNeeded()
                     exchange.rateFor(it)
                 },
-            balanceRepository.balanceFlow
-        ) { rate, balance ->
+            balanceRepository.balanceFlow,
+            networkObserver.state
+        ) { rate, balance, _ ->
             rate to balance
         }.map { (rate, balance) ->
             dispatchEvent(Dispatchers.Main, Event.OnLatestRateChanged(rate))
@@ -110,20 +120,21 @@ class BalanceSheetViewModel @Inject constructor(
             dispatchEvent(Dispatchers.Main, Event.OnBalanceChanged(marketValue, amountText))
         }.launchIn(viewModelScope)
 
-        client.observeTransactions(owner = SessionManager.getKeyPair()!!)
+        client.historicalTransactions()
             .flowOn(Dispatchers.IO)
-            .onStart {
-                if (client.historicalTransactions().isEmpty()) {
-                    dispatchEvent(Dispatchers.Main, Event.OnTransactionsLoading(true))
-                    delay(300)
+            .map {
+                when {
+                    it == null -> null // await for confirmation it's empty
+                    it.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+                    else -> it
                 }
             }
-
-            .map { it.map { transaction -> transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) } }
+            .mapNotNull { historical -> historical?.map { transaction ->
+                transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) }
+            }
             .onEach { update ->
                 dispatchEvent(Dispatchers.Main, Event.OnTransactionsUpdated(update))
             }.onEach {
-                delay(300)
                 dispatchEvent(Dispatchers.Main, Event.OnTransactionsLoading(false))
             }.launchIn(viewModelScope)
     }

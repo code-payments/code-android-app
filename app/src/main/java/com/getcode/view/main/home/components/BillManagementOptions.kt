@@ -30,8 +30,8 @@ internal fun BillManagementOptions(
     modifier: Modifier = Modifier,
     showSend: Boolean = true,
     isSending: Boolean = false,
-    sendEnabled: Boolean = true,
     showCancel: Boolean = true,
+    canCancel: Boolean = true,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -91,7 +91,7 @@ internal fun BillManagementOptions(
                     modifier = Modifier
                         .background(Gray50, RoundedCornerShape(30.dp))
                         .clip(RoundedCornerShape(30.dp))
-                        .rememberedClickable {
+                        .rememberedClickable(enabled = canCancel) {
                             onCancel()
                         }
                         .padding(vertical = 15.dp, horizontal = 20.dp),

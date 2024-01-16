@@ -7,9 +7,6 @@ import android.content.Intent
 import android.view.WindowManager
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.model.ScreenModel
-import com.kik.kikx.kikcodes.KikCodeScanner
-import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
-import com.kik.kikx.models.ScannableKikCode
 import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
@@ -30,24 +27,25 @@ import com.getcode.network.BalanceController
 import com.getcode.network.client.*
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.*
-import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
-import com.getcode.utils.ErrorUtils
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
-import com.getcode.utils.NetworkUtils
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.base64EncodedData
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.vendor.Base58
-import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.BaseViewModel
 import com.getcode.view.camera.CameraController
+import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.camera.LegacyCameraController
+import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
+import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -108,7 +106,7 @@ class HomeViewModel @Inject constructor(
     private val prefRepository: PrefRepository,
     private val analyticsManager: AnalyticsManager,
     private val authManager: AuthManager,
-    private val networkUtils: NetworkUtils,
+    private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
@@ -170,9 +168,9 @@ class HomeViewModel @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             SessionManager.authState
-                .distinctUntilChangedBy { it?.isTimelockUnlocked }
+                .distinctUntilChangedBy { it.isTimelockUnlocked }
                 .collectLatest {
-                    it?.let { state ->
+                    it.let { state ->
                         if (state.isTimelockUnlocked) {
                             uiFlow.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
                         }
@@ -193,7 +191,7 @@ class HomeViewModel @Inject constructor(
         if (amountFloor.fiat == 0.0 || bill.amount.kin.toKinTruncatingLong() == 0L) return
         val owner = SessionManager.getKeyPair() ?: return
 
-        if (!networkUtils.isAvailable()) {
+        if (!networkObserver.isConnected) {
             return ErrorUtils.showNetworkError(resources)
         }
 
@@ -302,8 +300,6 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-    fun canSwipeBill() = uiFlow.value.billState.canSwipeToDismiss
-
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
         Timber.d("cancelsend")
         billDismissTimer?.cancel()
@@ -314,7 +310,6 @@ class HomeViewModel @Inject constructor(
 
         uiFlow.update {
             it.copy(
-                presentationStyle = PresentationStyle.Hidden,
                 billState = it.billState.copy(
                     bill = null,
                     valuation = null,
@@ -427,7 +422,7 @@ class HomeViewModel @Inject constructor(
 
         scannedRendezvous.add(codePayload.rendezvous.publicKey)
 
-        if (!networkUtils.isAvailable()) {
+        if (!networkObserver.isConnected) {
             scannedRendezvous.remove(codePayload.rendezvous.publicKey)
             return ErrorUtils.showNetworkError(resources)
         }
@@ -746,7 +741,7 @@ class HomeViewModel @Inject constructor(
         val amount = sendTransactionRepository.getAmount()
         var loadingIndicatorTimer: TimerTask? = null
 
-        if (!networkUtils.isAvailable()) {
+        if (!networkObserver.isConnected) {
             ErrorUtils.showNetworkError(resources)
             return
         }

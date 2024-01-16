@@ -10,7 +10,7 @@ import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
 import com.getcode.LocalCurrencyUtils
 import com.getcode.LocalDeeplinks
-import com.getcode.LocalNetwork
+import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
 import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.AuthManager
@@ -23,7 +23,7 @@ import com.getcode.util.PhoneUtils
 import com.getcode.util.handleUncaughtException
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
-import com.getcode.utils.NetworkUtils
+import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -49,7 +49,7 @@ class MainActivity : FragmentActivity() {
     lateinit var deeplinkHandler: DeeplinkHandler
 
     @Inject
-    lateinit var networkUtils: NetworkUtils
+    lateinit var networkObserver: NetworkConnectivityListener
 
     @Inject
     lateinit var phoneUtils: PhoneUtils
@@ -90,7 +90,7 @@ class MainActivity : FragmentActivity() {
             CompositionLocalProvider(
                 LocalAnalytics provides analyticsManager,
                 LocalDeeplinks provides deeplinkHandler,
-                LocalNetwork provides networkUtils,
+                LocalNetworkObserver provides networkObserver,
                 LocalPhoneFormatter provides phoneUtils,
                 LocalVibrator provides vibrator,
                 LocalCurrencyUtils provides currencyUtils,

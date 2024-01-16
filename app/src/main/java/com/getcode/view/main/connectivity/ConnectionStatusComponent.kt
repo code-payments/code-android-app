@@ -11,13 +11,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.utils.network.ConnectionType
+import com.getcode.utils.network.NetworkState
 import com.getcode.view.components.CodeCircularProgressIndicator
 
 @Composable
-fun ConnectionStatus(state: ConnectionState) {
+fun ConnectionStatus(state: NetworkState) {
     Row {
-        when(state.status) {
-            ConnectionStatus.CONNECTING -> {
+        when  {
+            !state.connected && state.type != ConnectionType.Unknown -> {
                 CodeCircularProgressIndicator(modifier = Modifier.height(CodeTheme.dimens.grid.x2))
                 Text(
                     modifier = Modifier.align(Alignment.CenterVertically),
@@ -27,9 +29,7 @@ fun ConnectionStatus(state: ConnectionState) {
                     textAlign = TextAlign.Center))
             }
 
-            ConnectionStatus.CONNECTED -> { }
-
-            ConnectionStatus.DISCONNECTED -> Text(
+            !state.connected -> Text(
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = "No network connection",
                 color = CodeTheme.colors.errorText,
@@ -42,6 +42,6 @@ fun ConnectionStatus(state: ConnectionState) {
 
 @Preview
 @Composable
-fun ConnectionReconnectingPreview(@PreviewParameter(ConnectionStatusProvider::class) state: ConnectionState) {
+fun ConnectionReconnectingPreview(@PreviewParameter(NetworkStateProvider::class) state: NetworkState) {
     ConnectionStatus(state)
 }

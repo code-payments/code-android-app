@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -36,19 +37,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 import com.getcode.util.rememberedClickable
-import com.getcode.view.main.connectivity.ConnectionState
-import com.getcode.view.main.connectivity.ConnectionStatus
 import com.getcode.view.main.home.components.HomeBottom
 
 @Composable
 internal fun DecorView(
     dataState: HomeUiModel,
-    connectionState: ConnectionState,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
     showBottomSheet: (HomeBottomSheet) -> Unit,
@@ -120,10 +119,12 @@ internal fun DecorView(
                 }
             }
 
+            val networkState by LocalNetworkObserver.current.state.collectAsState()
+
             AnimatedVisibility(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally),
-                visible = dataState.showNetworkOffline && connectionState.status != ConnectionStatus.CONNECTED,
+                visible = dataState.showNetworkOffline && !networkState.connected,
                 enter = fadeIn(animationSpec = tween(500, 100)),
                 exit = fadeOut(animationSpec = tween(500, 100)),
             ) {

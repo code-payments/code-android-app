@@ -4,9 +4,10 @@ import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,13 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.ZeroCornerSize
-import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
-import androidx.compose.material.contentColorFor
-import androidx.compose.material.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -52,7 +50,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
@@ -65,7 +62,6 @@ import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.navigation.screens.HomeScreen
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
@@ -79,20 +75,17 @@ import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OnLifecycleEvent
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.getPermissionLauncher
-import com.getcode.view.main.connectivity.NetworkConnectionViewModel
 import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 
@@ -107,7 +100,6 @@ enum class HomeBottomSheet {
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
-    connectionViewModel: NetworkConnectionViewModel,
     deepLink: String? = null,
     requestPayload: String? = null,
 ) {
@@ -125,7 +117,6 @@ fun HomeScreen(
         null -> {
             HomeScan(
                 homeViewModel = homeViewModel,
-                connectionViewModel = connectionViewModel,
                 dataState = dataState,
                 deepLink = deepLink,
                 requestPayload = requestPayload,
@@ -156,7 +147,6 @@ fun HomeScreen(
 private fun HomeScan(
     homeViewModel: HomeViewModel,
     dataState: HomeUiModel,
-    connectionViewModel: NetworkConnectionViewModel,
     deepLink: String?,
     requestPayload: String?,
 ) {
@@ -219,7 +209,6 @@ private fun HomeScan(
         isPaused = isPaused,
         dataState = dataState,
         homeViewModel = homeViewModel,
-        connectionViewModel = connectionViewModel,
         scannerView = {
             AndroidView(
                 modifier = Modifier
@@ -290,7 +279,7 @@ private fun HomeScan(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalAnimationApi::class)
 @Composable
 private fun BillContainer(
     modifier: Modifier = Modifier,
@@ -299,7 +288,6 @@ private fun BillContainer(
     isCameraReady: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
-    connectionViewModel: NetworkConnectionViewModel,
     scannerView: @Composable () -> Unit,
     showBottomSheet: (HomeBottomSheet) -> Unit,
 ) {
@@ -309,7 +297,6 @@ private fun BillContainer(
         }
 
     val launcher = getPermissionLauncher(onPermissionResult)
-    val connectionState by connectionViewModel.connectionStatus.collectAsState()
 
     SideEffect {
         PermissionCheck.requestPermission(
@@ -399,7 +386,7 @@ private fun BillContainer(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(updatedState, connectionState, isPaused) { showBottomSheet(it) }
+            DecorView(updatedState, isPaused) { showBottomSheet(it) }
         }
 
         Column(
@@ -434,14 +421,27 @@ private fun BillContainer(
                 enter = fadeIn(),
                 exit = fadeOut(),
             ) {
+                var canCancel by remember {
+                    mutableStateOf(false)
+                }
                 BillManagementOptions(
                     modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
                     isSending = updatedState.isRemoteSendLoading,
                     onSend = { homeViewModel.onRemoteSend(context) },
+                    canCancel = canCancel,
                     onCancel = {
                         homeViewModel.cancelSend()
                     }
                 )
+
+                LaunchedEffect(transition.isRunning, transition.targetState) {
+                    // wait for spring settle to enable cancel to not prematurely cancel
+                    // the enter. doing so causing the exit of the bill to not run
+                    if (transition.targetState == EnterExitState.Visible && !transition.isRunning) {
+                        delay(300)
+                        canCancel = true
+                    }
+                }
             }
         }
 

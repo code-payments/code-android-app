@@ -83,7 +83,10 @@ class BalanceController @Inject constructor(
             }
     }
 
+
+
     suspend fun fetchBalanceSuspend() {
+        Timber.d("fetchBalance")
         if (SessionManager.isAuthenticated() != true) {
             Timber.d("FetchBalance - Not authenticated")
             return
@@ -95,6 +98,7 @@ class BalanceController @Inject constructor(
                 val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
                 val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
+                Timber.d("updating balance and organizer")
                 organizer.setAccountInfo(accountInfo)
                 balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
                 transactionReceiver.receiveFromIncomingIfRotationRequired(organizer)

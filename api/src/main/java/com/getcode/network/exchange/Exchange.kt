@@ -12,6 +12,7 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,7 +50,7 @@ class Exchange @Inject constructor(
         }
 
     fun rates() = rates.rates
-    fun observeRates(): StateFlow<Map<CurrencyCode, Rate>> = _rates.asStateFlow()
+    fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
 
     private val isStale: Boolean
         get() {

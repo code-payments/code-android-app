@@ -47,7 +47,7 @@ data class HomeScreen(
     @Composable
     override fun Content() {
         val vm = getActivityScopedViewModel<HomeViewModel>()
-        HomeScreen(vm, getActivityScopedViewModel(), cashLink, requestPayload)
+        HomeScreen(vm, cashLink, requestPayload)
 
         OnScreenResult<Bill> {
             Timber.d("onShowBill=${it.amount.fiat}")
@@ -101,7 +101,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getViewModel(), getActivityScopedViewModel())
+            GiveKinSheet(getViewModel())
         }
 
 
