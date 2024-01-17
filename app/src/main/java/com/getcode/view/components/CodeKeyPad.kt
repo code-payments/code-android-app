@@ -59,13 +59,13 @@ fun CodeKeyPad(
         modifier = Modifier
             .widthIn(min = 100.dp)
             .then(modifier),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1),
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1),
         verticalAlignment = Alignment.Bottom
     ) {
         for (column in 1..3) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.staticGrid.x1)
             ) {
                 for (row in 1..4) {
                     val number = (row - 1) * 3 + column
@@ -174,7 +174,7 @@ private fun KeyBoardButton(
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = CodeTheme.dimens.grid.x2)
+                                .padding(vertical = CodeTheme.dimens.staticGrid.x1)
                                 .graphicsLayer(
                                     scaleX = scale,
                                     scaleY = scale
