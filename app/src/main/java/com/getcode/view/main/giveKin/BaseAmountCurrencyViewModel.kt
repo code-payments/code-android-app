@@ -83,12 +83,6 @@ abstract class BaseAmountCurrencyViewModel(
     open fun init() {
         numberInputHelper.reset()
 
-        balanceRepository.balanceFlow
-            .onEach { balance ->
-                Timber.d("balance=$balance")
-                setAmountUiModel(getAmountUiModel().copy(balanceKin = balance))
-            }.launchIn(viewModelScope)
-
         combine(
             exchange.observeRates()
                 .map { currencyUtils.getCurrenciesWithRates(it) },
@@ -98,12 +92,13 @@ abstract class BaseAmountCurrencyViewModel(
                 ).flowOn(Dispatchers.IO)
                 .distinctUntilChanged(),
             networkObserver.state,
-        ) { currencies, selectedCode, _ ->
+            balanceRepository.balanceFlow
+        ) { currencies, selectedCode, _, balance ->
             val currency = currencies.firstOrNull { it.code == selectedCode }
             getModelsWithSelectedCurrency(
                 currencies,
                 getCurrencyUiModel(),
-                getAmountUiModel(),
+                getAmountUiModel().copy(balanceKin = balance),
                 selectedCode,
                 currency?.resId,
                 numberInputHelper.amount,

@@ -2,6 +2,7 @@ package com.getcode.view.main.giveKin
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,6 +27,7 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.util.debugBounds
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.components.ButtonState
@@ -46,14 +49,14 @@ fun GiveKinSheet(
     val networkState by networkObserver.state.collectAsState()
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize()
+            .padding(bottom = CodeTheme.dimens.grid.x4),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
             if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
-
         Box(
-            modifier = Modifier.weight(0.35f)
+            modifier = Modifier.weight(0.5f)
         ) {
             AmountArea(
                 amountPrefix = dataState.amountModel.amountPrefix,
@@ -72,20 +75,16 @@ fun GiveKinSheet(
             }
         }
 
-        Box(
-        ) {
-            CodeKeyPad(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = CodeTheme.dimens.inset)
-                    .align(Alignment.BottomCenter),
-                onNumber = viewModel::onNumber,
-                onClear = viewModel::onBackspace,
-                onDecimal = viewModel::onDot,
-                isDecimal = true
-            )
-        }
-
+        CodeKeyPad(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = CodeTheme.dimens.inset)
+                .weight(1f),
+            onNumber = viewModel::onNumber,
+            onClear = viewModel::onBackspace,
+            onDecimal = viewModel::onDot,
+            isDecimal = true
+        )
 
         CodeButton(
             modifier = Modifier

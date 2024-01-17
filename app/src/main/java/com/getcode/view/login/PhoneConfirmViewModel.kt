@@ -59,7 +59,6 @@ data class PhoneConfirmUiModel(
 class PhoneConfirmViewModel @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val phoneRepository: PhoneRepository,
-    private val sessionManager: SessionManager,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
@@ -332,7 +331,7 @@ class PhoneConfirmViewModel @Inject constructor(
             .subscribe(
                 {
                     when {
-                        isPhoneLinking -> navigator?.push(PhoneNumberScreen)
+                        isPhoneLinking -> navigator?.popUntil { it is PhoneNumberScreen }
 
                         isNewAccount -> {
                             navigator?.push(

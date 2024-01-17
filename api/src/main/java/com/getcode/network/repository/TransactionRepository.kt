@@ -454,8 +454,10 @@ class TransactionRepository @Inject constructor(
             while (true) {
                 val response = fetchPaymentHistoryPage(owner, after).blockingGet()
                 if (response.isEmpty()) {
-                    // let cache know we're empty here
-                    _transactionCache.value = emptyList()
+                    // let cache know we're empty here, if it's not initialized yet
+                    if (_transactionCache.value == null) {
+                        _transactionCache.value = emptyList()
+                    }
                     break
                 }
                 container.addAll(response)
