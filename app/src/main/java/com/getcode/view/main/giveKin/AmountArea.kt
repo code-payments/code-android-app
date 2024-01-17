@@ -95,10 +95,13 @@ fun AmountArea(
                 Text(
                     modifier = Modifier
                         .align(CenterVertically)
-                        .padding(bottom = CodeTheme.dimens.grid.x3),
+                        .padding(
+                            top = CodeTheme.dimens.grid.x2,
+                            bottom = CodeTheme.dimens.grid.x3
+                        ),
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-                    style = CodeTheme.typography.body1.copy(
+                    style = CodeTheme.typography.body2.copy(
                         textAlign = TextAlign.Center
                     )
                 )

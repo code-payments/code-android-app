@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
 
@@ -111,6 +112,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         client.historicalTransactions()
             .flowOn(Dispatchers.IO)
+            .onEach { Timber.d("trx=$it") }
             .map {
                 when {
                     it == null -> null // await for confirmation it's empty

@@ -2,6 +2,7 @@ package com.getcode.view.main.account.withdraw
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,15 +17,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
+import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.util.showNetworkError
+import com.getcode.utils.ErrorUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
 import com.getcode.view.main.giveKin.AmountArea
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountWithdrawAmount(
@@ -35,14 +40,15 @@ fun AccountWithdrawAmount(
 
     Column(
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .padding(bottom = CodeTheme.dimens.grid.x4),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
             if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
 
         Box(
-            modifier = Modifier.weight(0.35f)
+            modifier = Modifier.weight(0.5f)
         ) {
             AmountArea(
                 modifier = Modifier.align(Alignment.Center),
@@ -60,20 +66,16 @@ fun AccountWithdrawAmount(
             }
         }
 
-        Box(
-        ) {
-            CodeKeyPad(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = CodeTheme.dimens.inset)
-                    .align(Alignment.BottomCenter),
-                onNumber = viewModel::onNumber,
-                onClear = viewModel::onBackspace,
-                onDecimal = viewModel::onDot,
-                isDecimal = true
-            )
-        }
-
+        CodeKeyPad(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = CodeTheme.dimens.inset)
+                .weight(1f),
+            onNumber = viewModel::onNumber,
+            onClear = viewModel::onBackspace,
+            onDecimal = viewModel::onDot,
+            isDecimal = true
+        )
 
         CodeButton(
             modifier = Modifier
