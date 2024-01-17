@@ -94,7 +94,8 @@ fun AmountArea(
             } else if (captionText != null) {
                 Text(
                     modifier = Modifier
-                        .align(CenterVertically),
+                        .align(CenterVertically)
+                        .padding(bottom = CodeTheme.dimens.grid.x3),
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
                     style = CodeTheme.typography.body1.copy(

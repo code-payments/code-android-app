@@ -35,15 +35,14 @@ fun AccountWithdrawAmount(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
             if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
 
         Box(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(0.35f)
         ) {
             AmountArea(
                 modifier = Modifier.align(Alignment.Center),
@@ -62,7 +61,6 @@ fun AccountWithdrawAmount(
         }
 
         Box(
-            modifier = Modifier.weight(1f)
         ) {
             CodeKeyPad(
                 modifier = Modifier

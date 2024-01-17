@@ -10,9 +10,12 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
 import com.getcode.util.getActivityScopedViewModel
+import com.getcode.util.getStackScopedViewModel
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
+import com.getcode.view.main.account.withdraw.AccountWithdrawAmountViewModel
 import com.getcode.view.main.account.withdraw.AccountWithdrawSummary
+import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -30,8 +33,9 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph, ModalContent {
 
     @Composable
     override fun Content() {
+        val vm = AccountModal.getStackScopedViewModel<AccountWithdrawAmountViewModel>()
         ModalContainer(backButton = { it is WithdrawalAmountScreen }) {
-            AccountWithdrawAmount(viewModel = getViewModel())
+            AccountWithdrawAmount(viewModel = vm)
         }
 
         AnalyticsScreenWatcher(

@@ -1,50 +1,39 @@
 package com.getcode.view.main.balance
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.R
 import com.getcode.data.transactions.HistoricalTransactionUiModel
 import com.getcode.data.transactions.toUi
-import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.client.Client
 import com.getcode.network.client.historicalTransactions
-import com.getcode.network.client.observeTransactions
 import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.*
+import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
-import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
-import com.getcode.view.main.currency.CurrencyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.withContext
-import timber.log.Timber
-import java.util.*
+import java.util.Locale
 import javax.inject.Inject
 
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
     client: Client,

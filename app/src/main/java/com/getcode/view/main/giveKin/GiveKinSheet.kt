@@ -46,16 +46,14 @@ fun GiveKinSheet(
     val networkState by networkObserver.state.collectAsState()
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
             if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
 
         Box(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(0.35f)
         ) {
             AmountArea(
                 amountPrefix = dataState.amountModel.amountPrefix,
@@ -75,7 +73,6 @@ fun GiveKinSheet(
         }
 
         Box(
-            modifier = Modifier.weight(1f)
         ) {
             CodeKeyPad(
                 modifier = Modifier

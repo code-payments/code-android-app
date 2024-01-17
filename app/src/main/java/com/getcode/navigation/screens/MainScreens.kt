@@ -14,18 +14,18 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
-import com.getcode.manager.SessionManager
 import com.getcode.models.Bill
-import com.getcode.models.DeepLinkPaymentRequest
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.getActivityScopedViewModel
+import com.getcode.util.getStackScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
+import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterNotNull
@@ -91,7 +91,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-
+        val vm = HomeScreen().getStackScopedViewModel<GiveKinSheetViewModel>()
         ModalContainer(
             closeButton = {
                 if (navigator.isVisible) {
@@ -101,9 +101,8 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getViewModel())
+            GiveKinSheet(vm)
         }
-
 
         AnalyticsScreenWatcher(
             lifecycleOwner = LocalLifecycleOwner.current,
