@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,10 +31,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -51,10 +55,13 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.util.IntentUtils
 import com.getcode.util.measured
+import com.getcode.util.swallowClicks
+import com.getcode.view.components.AccessKeySelectionContainer
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.getPermissionLauncher
+import com.getcode.view.components.rememberSelectionState
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview
@@ -120,12 +127,15 @@ fun AccessKey(
         mutableStateOf(0.dp)
     }
 
-    Box(
+    val selectionState = rememberSelectionState(words = dataState.wordsFormatted)
+
+    AccessKeySelectionContainer(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x4)
+            .padding(vertical = CodeTheme.dimens.grid.x4),
+        state = selectionState,
     ) {
         Column(
             modifier = Modifier
@@ -144,10 +154,10 @@ fun AccessKey(
                     Image(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .scale(selectionState.scale.value),
                         bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "",
-                        contentScale = ContentScale.Inside
+                        contentDescription = dataState.wordsFormatted,
                     )
                 }
             }
@@ -219,7 +229,7 @@ fun AccessKey(
     }
 
     LaunchedEffect(dataState.accessKeyCroppedBitmap) {
-        isAccessKeyVisible.targetState = dataState.accessKeyBitmap != null
+        isAccessKeyVisible.targetState = dataState.accessKeyCroppedBitmap != null
     }
 }
 
