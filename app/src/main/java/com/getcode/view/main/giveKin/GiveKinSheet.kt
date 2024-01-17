@@ -27,7 +27,6 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.debugBounds
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.components.ButtonState
@@ -56,7 +55,7 @@ fun GiveKinSheet(
         val color =
             if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
         Box(
-            modifier = Modifier.weight(0.5f)
+            modifier = Modifier.weight(0.65f)
         ) {
             AmountArea(
                 amountPrefix = dataState.amountModel.amountPrefix,
@@ -69,7 +68,8 @@ fun GiveKinSheet(
                 uiModel = dataState.amountAnimatedModel,
                 isAnimated = true,
                 networkState = networkState,
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier
+                    .align(Alignment.Center)
             ) {
                 navigator.show(CurrencySelectionModal)
             }
