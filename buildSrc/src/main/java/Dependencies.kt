@@ -203,4 +203,6 @@ object Libs {
 
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
     const val bugsnag = "com.bugsnag:bugsnag-android:5.+"
+
+    const val cloudy = "com.github.skydoves:cloudy:0.1.2"
 }

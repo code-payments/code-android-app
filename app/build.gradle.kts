@@ -170,6 +170,8 @@ dependencies {
     implementation(Libs.firebase_messaging)
     implementation(Libs.mixpanel)
 
+    implementation(Libs.cloudy)
+
     androidTestImplementation(Libs.androidx_test_runner)
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)
