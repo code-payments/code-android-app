@@ -97,7 +97,7 @@ abstract class BaseAmountCurrencyViewModel(
                     PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
                 ).flowOn(Dispatchers.IO)
                 .distinctUntilChanged(),
-            networkObserver.state
+            networkObserver.state,
         ) { currencies, selectedCode, _ ->
             val currency = currencies.firstOrNull { it.code == selectedCode }
             getModelsWithSelectedCurrency(

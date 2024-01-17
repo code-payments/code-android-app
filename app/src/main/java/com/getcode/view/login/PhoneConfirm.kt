@@ -1,6 +1,7 @@
 package com.getcode.view.login
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,13 +23,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -37,7 +38,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalPhoneFormatter
 import com.getcode.R
@@ -46,7 +46,6 @@ import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.topBarHeight
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OtpRow
@@ -63,7 +62,6 @@ fun PhoneConfirm(
     val navigator = LocalCodeNavigator.current
 
     val dataState by viewModel.uiFlow.collectAsState()
-    val inputService = LocalTextInputService.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = FocusRequester()
 
@@ -73,114 +71,112 @@ fun PhoneConfirm(
             OTP_LENGTH
         )).filter { it.isDigit() }
 
-    ConstraintLayout(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .imePadding()
             .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(top = topBarHeight)
             .padding(bottom = CodeTheme.dimens.grid.x4)
+            .imePadding()
     ) {
-        val (captionText, input, buttonAction, otpRow) = createRefs()
-
-        TextField(
-            modifier = Modifier
-                .constrainAs(input) {
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                }
-                .width(CodeTheme.dimens.grid.x1)
-                .alpha(0f)
-                .focusRequester(focusRequester),
-            value = dataState.otpInputTextFieldValue,
-            onValueChange = {
-                viewModel.onOtpInputChange(cleanInputString(it.text))
-            },
-            readOnly = dataState.otpInputTextFieldValue.text.length == OTP_LENGTH,
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-        )
-
-        OtpRow(
-            modifier = Modifier
-                .padding(top = CodeTheme.dimens.grid.x1)
-                .constrainAs(otpRow) {
-                    top.linkTo(parent.top)
-                    bottom.linkTo(buttonAction.top)
-                },
-            length = OTP_LENGTH,
-            values = dataState.otpInput.orEmpty().toCharArray(),
-            onClick = {
-                focusRequester.requestFocus()
-                inputService?.showSoftwareKeyboard()
-            }
-        )
-
-        Column(
-            Modifier
-                .padding(top = CodeTheme.dimens.inset)
-                .wrapContentHeight()
-                .fillMaxWidth()
-                .constrainAs(captionText) {
-                    top.linkTo(otpRow.bottom)
-                }
-                .padding(vertical = CodeTheme.dimens.grid.x2),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
-        ) {
-
-            ProvideTextStyle(
-                CodeTheme.typography.body2.copy(textAlign = TextAlign.Center, color = BrandLight)
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = stringResource(id = R.string.subtitle_smsWasSent)
-                )
-                if (dataState.isResendTimerRunning) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = stringResource(R.string.subtitle_didntGetCode)
-                            .replaceParam(LocalPhoneFormatter.current?.formatNumber(dataState.phoneNumberFormatted.orEmpty())) +
-                                "\n" +
-                                stringResource(R.string.subtitle_requestNewOneIn)
-                                    .replaceParam(
-                                        "0:${if (dataState.resetTimerTime < 10) "0" else ""}${dataState.resetTimerTime}"
-                                    )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    TextField(
+                        modifier = Modifier
+                            .alpha(0f)
+                            .focusRequester(focusRequester),
+                        value = dataState.otpInputTextFieldValue,
+                        onValueChange = {
+                            viewModel.onOtpInputChange(cleanInputString(it.text))
+                        },
+                        readOnly = dataState.otpInputTextFieldValue.text.length == OTP_LENGTH,
+                        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
                     )
-                } else {
-                    val text = buildAnnotatedString {
-                        append(stringResource(id = R.string.subtitle_didntGetCodeResend))
-                        append(" ")
-                        pushStringAnnotation(
-                            tag = "resend",
-                            annotation = "resend code trigger"
-                        )
-                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                            append(stringResource(R.string.subtitle_resend))
-                        }
-                        pop()
-                    }
 
-                    ClickableText(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = text,
-                        style = LocalTextStyle.current
-                    ) { offset ->
-                        text.getStringAnnotations(tag = "resend", start = offset, end = offset)
-                            .firstOrNull()?.let {
-                                viewModel.resendCode()
+                    OtpRow(
+                        modifier = Modifier
+                            .padding(top = CodeTheme.dimens.grid.x1),
+                        length = OTP_LENGTH,
+                        values = dataState.otpInput.orEmpty().toCharArray(),
+                        onClick = {
+                            focusRequester.requestFocus()
+                            keyboardController?.show()
+                        }
+                    )
+                }
+
+                Column(
+                    Modifier
+                        .padding(top = CodeTheme.dimens.inset)
+                        .wrapContentHeight()
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+                ) {
+
+                    ProvideTextStyle(
+                        CodeTheme.typography.body2.copy(
+                            textAlign = TextAlign.Center,
+                            color = BrandLight
+                        )
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.subtitle_smsWasSent)
+                        )
+                        if (dataState.isResendTimerRunning) {
+                            Text(
+                                modifier = Modifier.fillMaxWidth(),
+                                text = stringResource(R.string.subtitle_didntGetCode)
+                                    .replaceParam(
+                                        LocalPhoneFormatter.current?.formatNumber(
+                                            dataState.phoneNumberFormatted.orEmpty()
+                                        )
+                                    ) +
+                                        "\n" +
+                                        stringResource(R.string.subtitle_requestNewOneIn)
+                                            .replaceParam(
+                                                "0:${if (dataState.resetTimerTime < 10) "0" else ""}${dataState.resetTimerTime}"
+                                            )
+                            )
+                        } else {
+                            val text = buildAnnotatedString {
+                                append(stringResource(id = R.string.subtitle_didntGetCodeResend))
+                                append(" ")
+                                pushStringAnnotation(
+                                    tag = "resend",
+                                    annotation = "resend code trigger"
+                                )
+                                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                                    append(stringResource(R.string.subtitle_resend))
+                                }
+                                pop()
                             }
+
+                            ClickableText(
+                                modifier = Modifier.fillMaxWidth(),
+                                text = text,
+                                style = LocalTextStyle.current
+                            ) { offset ->
+                                text.getStringAnnotations(
+                                    tag = "resend",
+                                    start = offset,
+                                    end = offset
+                                )
+                                    .firstOrNull()?.let {
+                                        viewModel.resendCode()
+                                    }
+                            }
+                        }
                     }
                 }
             }
         }
 
-
         CodeButton(
-            modifier = Modifier
-                .constrainAs(buttonAction) {
-                    //linkTo(buttonAction.bottom, parent.bottom, bias = 1.0F)
-                    bottom.linkTo(parent.bottom)
-                },
             onClick = {
                 viewModel.onSubmit()
             },
