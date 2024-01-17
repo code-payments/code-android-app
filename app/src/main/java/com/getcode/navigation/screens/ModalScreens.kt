@@ -1,14 +1,6 @@
 package com.getcode.navigation.screens
 
-import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -23,7 +15,7 @@ import com.getcode.util.getStackScopedViewModel
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
-import com.getcode.view.main.account.AccountAccessKey
+import com.getcode.view.main.account.BackupKey
 import com.getcode.view.main.account.AccountDebugOptions
 import com.getcode.view.main.account.AccountDeposit
 import com.getcode.view.main.account.AccountDetails
@@ -34,9 +26,6 @@ import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.currency.CurrencySelectionSheet
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.ReferFriend
-import com.google.android.gms.auth.api.credentials.Credential
-import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
-import com.google.android.gms.auth.api.identity.Identity
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -128,7 +117,7 @@ data object AccountDetailsScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data object AccountAccessKeyScreen : MainGraph, ModalContent {
+data object BackupScreen : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -137,8 +126,8 @@ data object AccountAccessKeyScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is AccountAccessKeyScreen }) {
-            AccountAccessKey(getViewModel())
+        ModalContainer(backButton = { it is BackupScreen }) {
+            BackupKey(getViewModel())
         }
 
 

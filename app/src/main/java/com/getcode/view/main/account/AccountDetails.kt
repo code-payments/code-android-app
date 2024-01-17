@@ -10,10 +10,9 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.navigation.screens.AccountAccessKeyScreen
+import com.getcode.navigation.screens.BackupScreen
 import com.getcode.navigation.screens.DeleteCodeScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.PhoneNumberScreen
@@ -35,7 +34,7 @@ fun AccountDetails(
                         subtitle = context.getString(R.string.prompt_description_viewAccessKey),
                         positiveText = context.getString(R.string.action_viewAccessKey),
                         negativeText = context.getString(R.string.action_cancel),
-                        onPositive = { navigator.push(AccountAccessKeyScreen) },
+                        onPositive = { navigator.push(BackupScreen) },
                         onNegative = {}
                     )
                 )

@@ -11,11 +11,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,7 +39,7 @@ import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.getPermissionLauncher
 
 @Composable
-fun AccountAccessKey(
+fun BackupKey(
     viewModel: AccountAccessKeyViewModel,
 ) {
     val navigator = LocalCodeNavigator.current
@@ -95,17 +93,31 @@ fun AccountAccessKey(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = CodeTheme.dimens.inset)
+            .padding(bottom = CodeTheme.dimens.grid.x4)
     ) {
         val (seedView, captionText, buttonAction) = createRefs()
 
+        Text(
+            modifier = Modifier
+                .constrainAs(captionText) {
+                    //top.linkTo(seedView.bottom)
+                    top.linkTo(parent.top)
+                    start.linkTo(parent.start)
+                    end.linkTo(parent.end)
+                }
+                .padding(vertical = CodeTheme.dimens.grid.x2),
+            style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
+            color = BrandLight,
+            text = stringResource(R.string.subtitle_accessKeyDescription)
+        )
         AnimatedVisibility(
             modifier = Modifier
                 .fillMaxHeight()
                 .constrainAs(seedView) {
-                    top.linkTo(parent.top)
+                    top.linkTo(captionText.bottom)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                    bottom.linkTo(captionText.top)
+                    bottom.linkTo(buttonAction.top)
                     height = Dimension.fillToConstraints
                 },
             visibleState = isAccessKeyVisible,
@@ -120,20 +132,6 @@ fun AccountAccessKey(
                 )
             }
         }
-
-        Text(
-            modifier = Modifier
-                .constrainAs(captionText) {
-                    //top.linkTo(seedView.bottom)
-                    bottom.linkTo(buttonAction.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                }
-                .padding(vertical = CodeTheme.dimens.grid.x2),
-            style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
-            color = BrandLight,
-            text = stringResource(R.string.subtitle_accessKeyDescription)
-        )
 
         CodeButton(
             modifier = Modifier
