@@ -2,11 +2,8 @@ package com.getcode.models
 
 import androidx.compose.runtime.Composable
 import com.getcode.model.CodePayload
-import com.getcode.model.Currency
-import com.getcode.model.CurrencyCode
+import com.getcode.model.Domain
 import com.getcode.model.KinAmount
-import com.getcode.network.repository.Request
-import com.getcode.util.format
 import com.getcode.util.formatted
 
 data class BillState(
@@ -15,6 +12,7 @@ data class BillState(
     val toast: BillToast? = null,
     val valuation: Valuation? = null,
     val paymentConfirmation: PaymentConfirmation? = null,
+    val loginConfirmation: LoginConfirmation? = null,
     val hideBillButtons: Boolean = false
 ) {
     val canSwipeToDismiss: Boolean
@@ -22,6 +20,18 @@ data class BillState(
             is Bill.Cash -> true
             else -> false
         }
+
+    companion object {
+        val Default = BillState(
+            bill = null,
+            showToast = false,
+            toast = null,
+            valuation = null,
+            paymentConfirmation = null,
+            loginConfirmation = null,
+            hideBillButtons = false
+        )
+    }
 }
 
 sealed interface Bill {
@@ -44,7 +54,13 @@ sealed interface Bill {
                 is Payment -> Metadata(
                     kinAmount = amount,
                     data = payload.codeData.toList(),
-                    request = paymentRequest,
+                    request = request,
+                )
+
+                is Login -> Metadata(
+                    kinAmount = amount,
+                    data = payload.codeData.toList(),
+                    request = request,
                 )
             }
         }
@@ -59,7 +75,16 @@ sealed interface Bill {
     data class Payment(
         override val amount: KinAmount,
         val payload: CodePayload,
-        val paymentRequest: DeepLinkPaymentRequest? = null
+        val request: DeepLinkPaymentRequest? = null
+    ) : Bill {
+        override val didReceive: Boolean = false
+        override val data: List<Byte> = payload.codeData.toList()
+    }
+
+    data class Login(
+        override val amount: KinAmount,
+        val payload: CodePayload,
+        val request: DeepLinkPaymentRequest? = null
     ) : Bill {
         override val didReceive: Boolean = false
         override val data: List<Byte> = payload.codeData.toList()
@@ -89,6 +114,11 @@ data class PaymentConfirmation(
     val payload: CodePayload,
     val requestedAmount: KinAmount,
     val localAmount: KinAmount,
+)
+
+data class LoginConfirmation(
+    val payload: CodePayload,
+    val domain: Domain,
 )
 
 sealed interface PaymentState {

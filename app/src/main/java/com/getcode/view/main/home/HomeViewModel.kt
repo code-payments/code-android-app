@@ -19,6 +19,7 @@ import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
 import com.getcode.models.DeepLinkPaymentRequest
+import com.getcode.models.LoginConfirmation
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
 import com.getcode.models.Valuation
@@ -80,14 +81,14 @@ data class HomeUiModel(
     val isCameraReady: Boolean = false,
     val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
-    val billState: BillState = BillState(null, false, null, null, null, false),
+    val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val isDeepLinkHandled: Boolean = false,
 )
 
 sealed interface HomeEvent {
-    data class OpenUrl(val url: String): HomeEvent
+    data class OpenUrl(val url: String) : HomeEvent
 }
 
 enum class RestrictionType {
@@ -400,8 +401,7 @@ class HomeViewModel @Inject constructor(
             }
             // wait for animation to run
             Timer().schedule(500.milliseconds.inWholeMilliseconds) {
-                uiFlow.update {
-                        uiModel ->
+                uiFlow.update { uiModel ->
                     val billState = uiModel.billState
                     uiModel.copy(
                         billState = billState.copy(
@@ -444,6 +444,8 @@ class HomeViewModel @Inject constructor(
             Kind.GiftCard -> attemptReceive(organizer, codePayload)
 
             Kind.RequestPayment -> attemptPayment(codePayload)
+
+            Kind.Login -> attemptLogin(codePayload)
         }
     }
 
@@ -454,7 +456,46 @@ class HomeViewModel @Inject constructor(
         presentRequest(amount, p, request = request)
     }
 
-    private fun presentRequest(amount: KinAmount, payload: CodePayload, request: DeepLinkPaymentRequest? = null) {
+    private fun attemptLogin(codePayload: CodePayload, request: DeepLinkPaymentRequest? = null) {
+        val (payload, loginAttempt) = paymentRepository.attemptLogin(codePayload) ?: return
+        BottomBarManager.clear()
+
+        presentLoginCard(
+            payload = payload,
+            domain = loginAttempt.domain,
+            request = request,
+        )
+    }
+
+    private fun presentLoginCard(
+        payload: CodePayload,
+        domain: Domain,
+        request: DeepLinkPaymentRequest? = null
+    ) {
+        uiFlow.update {
+            it.copy(
+                presentationStyle = PresentationStyle.Pop,
+                billState = it.billState.copy(
+                    bill = Bill.Login(
+                        amount = KinAmount.newInstance(Kin.fromKin(0), Rate.oneToOne),
+                        payload = payload,
+                        request = request,
+                    ),
+                    loginConfirmation = LoginConfirmation(
+                        payload = payload,
+                        domain = domain
+                    ),
+                    hideBillButtons = true
+                )
+            )
+        }
+    }
+
+    private fun presentRequest(
+        amount: KinAmount,
+        payload: CodePayload,
+        request: DeepLinkPaymentRequest? = null
+    ) {
         uiFlow.update {
             it.copy(
                 presentationStyle = PresentationStyle.Pop,
@@ -474,7 +515,8 @@ class HomeViewModel @Inject constructor(
         analyticsManager.requestShown(amount = amount)
 
         if (DEBUG_SCAN_TIMES) {
-            Timber.tag("codescan").d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
+            Timber.tag("codescan")
+                .d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
             scanProcessingTime = 0
         }
 
@@ -505,34 +547,34 @@ class HomeViewModel @Inject constructor(
                 paymentConfirmation.payload.rendezvous
             )
         }.onSuccess {
-                showToast(paymentConfirmation.localAmount, false)
+            showToast(paymentConfirmation.localAmount, false)
 
-                withContext(Dispatchers.Main) {
-                    uiFlow.update {
-                        val billState = it.billState
-                        val confirmation = it.billState.paymentConfirmation ?: return@update it
-
-                        it.copy(
-                            billState = billState.copy(
-                                paymentConfirmation = confirmation.copy(state = PaymentState.Sent),
-                            ),
-                        )
-                    }
-                }
-
-                delay(500)
+            withContext(Dispatchers.Main) {
                 uiFlow.update {
+                    val billState = it.billState
+                    val confirmation = it.billState.paymentConfirmation ?: return@update it
+
                     it.copy(
-                        presentationStyle = PresentationStyle.Hidden,
-                        billState = it.billState.copy(
-                            bill = null,
-                            paymentConfirmation = null,
-                            valuation = null,
-                            hideBillButtons = false,
-                        )
+                        billState = billState.copy(
+                            paymentConfirmation = confirmation.copy(state = PaymentState.Sent),
+                        ),
                     )
                 }
             }
+
+            delay(500)
+            uiFlow.update {
+                it.copy(
+                    presentationStyle = PresentationStyle.Hidden,
+                    billState = it.billState.copy(
+                        bill = null,
+                        paymentConfirmation = null,
+                        valuation = null,
+                        hideBillButtons = false,
+                    )
+                )
+            }
+        }
             .onFailure { error ->
                 error.printStackTrace()
                 TopBarManager.showMessage(
@@ -563,7 +605,7 @@ class HomeViewModel @Inject constructor(
 
         if (rejected) {
             if (!ignoreRedirect) {
-                bill.paymentRequest?.cancelUrl?.let {
+                bill.request?.cancelUrl?.let {
                     viewModelScope.launch {
                         _eventFlow.emit(HomeEvent.OpenUrl(it))
                     }
@@ -573,7 +615,7 @@ class HomeViewModel @Inject constructor(
             showToast(amount, isDeposit = false)
 
             if (!ignoreRedirect) {
-                bill.paymentRequest?.successUrl?.let {
+                bill.request?.successUrl?.let {
                     viewModelScope.launch {
                         _eventFlow.emit(HomeEvent.OpenUrl(it))
                     }
@@ -635,7 +677,8 @@ class HomeViewModel @Inject constructor(
                     vibrate = true
                 )
                 if (DEBUG_SCAN_TIMES) {
-                    Timber.tag("codescan").d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
+                    Timber.tag("codescan")
+                        .d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
                     scanProcessingTime = 0
                 }
             }

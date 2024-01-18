@@ -7,6 +7,7 @@ import com.getcode.manager.AnalyticsManager
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.KinAmount
+import com.getcode.model.LoginRequest
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.establishRelationship
@@ -36,7 +37,23 @@ class PaymentRepository @Inject constructor(
     private val client: Client,
     private val analytics: AnalyticsManager,
     private val balanceController: BalanceController,
-): CoroutineScope by CoroutineScope(Dispatchers.IO) {
+) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    fun attemptLogin(payload: CodePayload): Pair<CodePayload, LoginRequest>? {
+        return runCatching {
+            // 1. Fetch message metadata for this payload to get the
+            // domain for which we'll need to establish a relationship
+            val loginAttempt = messagingRepository
+                .fetchMessages(payload.rendezvous)
+                .getOrNull()
+                ?.takeIf { it.isNotEmpty() && it.first().receiveRequest != null }
+                ?.firstOrNull()?.loginRequest
+                ?: throw PaymentError.MessageForRendezvousNotFound()
+
+            return payload to loginAttempt
+        }.getOrNull()
+    }
+
     fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
         codeScanned(payload.rendezvous)
 
@@ -67,7 +84,7 @@ class PaymentRepository @Inject constructor(
             .onSuccess {
                 Timber.d("code scanned message sent successfully")
             }.onFailure {
-                Timber.e(t = it, message= "code scanned message sent unsuccessfully")
+                Timber.e(t = it, message = "code scanned message sent unsuccessfully")
             }
     }
 
@@ -110,14 +127,17 @@ class PaymentRepository @Inject constructor(
                 val message = messages.first()
                 val receiveRequest = message.receiveRequest!!
 
-                // 4. Establish a relationship if a domain is provided and is verified
-                val domain = receiveRequest.domain
                 val organizer =
                     SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
-                if (domain != null && organizer.relationshipFor(domain) != null) {
-                    if (receiveRequest.verifier != null) {
-                        client.establishRelationship(organizer, domain)
-                    }
+
+                /// 4. Establish a relationship if a domain is provided. If a verifier
+                // is present that means the domain has been verified by the server.
+                val domain = receiveRequest.domain
+                if (domain != null &&
+                    receiveRequest.verifier != null &&
+                    organizer.relationshipFor(domain) != null
+                ) {
+                    client.establishRelationship(organizer, domain)
                 }
 
                 // 5. Complete the transfer.
@@ -144,7 +164,8 @@ class PaymentRepository @Inject constructor(
                     }.subscribe()
                 } else {
                     // pass exception down to onFailure for isolated handling
-                    throw transferResult.exceptionOrNull() ?: Throwable("Unable to complete payment")
+                    throw transferResult.exceptionOrNull()
+                        ?: Throwable("Unable to complete payment")
                 }
             }.onFailure { error ->
                 analytics.transfer(

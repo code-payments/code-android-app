@@ -1,9 +1,6 @@
 package com.getcode.network.repository
 
 import android.content.Context
-import android.util.Base64
-import com.getcode.codeScanner.CodeScanner
-import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.AnalyticsManager
 import com.getcode.solana.keys.PublicKey
@@ -55,7 +52,7 @@ class SendTransactionRepository @Inject constructor(
                 // verifying the signature matches one that has been signed
                 // with the rendezvous key.
 
-                val isValid = messagingRepository.verifyRequestForPayment(
+                val isValid = messagingRepository.verifyRequestToGrabBill(
                     destination = paymentRequest.account,
                     rendezvousKey = rendezvousKey,
                     signature = paymentRequest.signature

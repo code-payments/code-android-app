@@ -3,12 +3,12 @@ package com.getcode.network.repository
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
 import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
-import com.codeinc.gen.messaging.v1.MessagingService.MessageId
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.google.protobuf.ByteString
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.model.Domain
 import com.getcode.solana.keys.Signature
 import com.getcode.model.PaymentRequest
 import com.getcode.model.StreamMessage
@@ -26,7 +26,6 @@ import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
-import kotlin.math.sign
 
 private const val TAG = "MessagingRepository"
 
@@ -102,16 +101,25 @@ class MessagingRepository @Inject constructor(
             }
     }
 
-    fun verifyRequestForPayment(
+    fun verifyRequestToGrabBill(
         destination: PublicKey,
         rendezvousKey: KeyPair,
         signature: Signature
     ): Boolean {
-        val messageData = requestForPayment(destination = destination).build().toByteArray()
+        val messageData = sendRequestToGrabBill(destination = destination).build().toByteArray()
         return rendezvousKey.verify(signature.byteArray, messageData)
     }
 
-    fun sendRequestForPayment(
+    suspend fun sendRequestToLogin(
+        domain: Domain,
+        verifier: KeyPair,
+        rendezvous: KeyPair,
+    ): Result<MessagingService.SendMessageResponse> {
+        val message = requestToLogin(domain, verifier, rendezvous)
+        return sendRendezvousMessage(message, rendezvous)
+    }
+
+    fun sendRequestToGrabBill(
         destination: ByteArray,
         rendezvousKeyPair: KeyPair,
     ): Flowable<MessagingService.SendMessageResponse> {
@@ -165,13 +173,33 @@ class MessagingRepository @Inject constructor(
         return sendRendezvousMessage(message, rendezvous)
     }
 
-    private fun requestForPayment(destination: PublicKey): MessagingService.Message.Builder {
+    private fun sendRequestToGrabBill(destination: PublicKey): MessagingService.Message.Builder {
         return MessagingService.Message
             .newBuilder()
             .setRequestToGrabBill(
                 MessagingService.RequestToGrabBill
                     .newBuilder()
                     .setRequestorAccount(destination.bytes.toSolanaAccount())
+            )
+    }
+
+    private fun requestToLogin(domain: Domain, verifier: KeyPair, rendezvous: KeyPair): MessagingService.Message.Builder {
+        return MessagingService.Message
+            .newBuilder()
+            .setRequestToLogin(
+                MessagingService.RequestToLogin
+                    .newBuilder()
+                    .setDomain(Model.Domain.newBuilder()
+                        .setValue(domain.relationshipHost))
+                    .setRendezvousKey(
+                        RendezvousKey.newBuilder()
+                            .setValue(ByteString.copyFrom(rendezvous.publicKeyBytes))
+                    ).setVerifier(verifier.publicKeyBytes.toSolanaAccount())
+                    .let {
+                        val bos = ByteArrayOutputStream()
+                        it.buildPartial().writeTo(bos)
+                        it.setSignature(Ed25519.sign(bos.toByteArray(), rendezvous).toSignature())
+                    }
             )
     }
 
