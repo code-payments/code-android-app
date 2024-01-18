@@ -2,6 +2,7 @@ package com.getcode.navigation.core
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.ExperimentalMaterialApi
@@ -9,7 +10,6 @@ import androidx.compose.material.ModalBottomSheetDefaults
 import androidx.compose.material.ModalBottomSheetLayout
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.material.ModalBottomSheetValue
-import androidx.compose.material.SwipeableDefaults
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -36,7 +36,6 @@ import cafe.adriel.voyager.navigator.compositionUniqueId
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -58,7 +57,7 @@ fun BottomSheetNavigator(
     sheetContentColor: Color = CodeTheme.colors.onSurface,
     sheetGesturesEnabled: Boolean = true,
     skipHalfExpanded: Boolean = true,
-    animationSpec: AnimationSpec<Float> = SwipeableDefaults.AnimationSpec,
+    animationSpec: AnimationSpec<Float> =  tween(),
     key: String = compositionUniqueId(),
     sheetContent: BottomSheetNavigatorContent = { CurrentScreen() },
     content: BottomSheetNavigatorContent
