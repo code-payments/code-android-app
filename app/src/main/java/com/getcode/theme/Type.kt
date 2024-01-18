@@ -1,6 +1,7 @@
 package com.getcode.theme
 
 import androidx.compose.material.Typography
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -14,6 +15,13 @@ private val Avenir = FontFamily(
     Font(R.font.avenir_next_regular, FontWeight.Normal),
     Font(R.font.avenir_next_demi, FontWeight.Medium),
     Font(R.font.avenir_next_demi, FontWeight.SemiBold)
+)
+
+private val RobotoMono = FontFamily(
+    Font(R.font.roboto_mono_variable, FontWeight.Light),
+    Font(R.font.roboto_mono_variable, FontWeight.Normal),
+    Font(R.font.roboto_mono_variable, FontWeight.Medium),
+    Font(R.font.roboto_mono_variable, FontWeight.SemiBold)
 )
 
 internal val typography = Typography(
@@ -100,3 +108,9 @@ internal val typography = Typography(
 //        letterSpacing = 1.sp
     )
 )
+
+val Typography.robotoMono: FontFamily
+    @Composable get() = RobotoMono
+
+fun TextStyle.withRobotoMono(weight: FontWeight? = this.fontWeight) = with(RobotoMono, weight)
+fun TextStyle.with(fontFamily: FontFamily, weight: FontWeight? = this.fontWeight): TextStyle = copy(fontFamily = fontFamily, fontWeight = weight)
