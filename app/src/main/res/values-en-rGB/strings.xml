@@ -234,8 +234,27 @@
   <string name="title_unknown">Unknown</string>
   <string name="title_updateRequired">Update Required</string>
   <string name="title_verifyPhoneNumber">Verify Phone Number</string>
+  <string name="title_welcomeBonus">Welcome Bonus</string>
   <string name="title_withdrawKin">Withdraw Kin</string>
   <string name="title_withdrewKin">Withdrew</string>
   <string name="title_yourAccessKey">Your Access Key</string>
   <string name="title_myAccount">My Account</string>
+
+  <string name="title_deleteAccount">Delete Code Account</string>
+  <string name="title_buyAndSellKin">Buy &amp; Sell Kin</string>
+
+  <string name="sdk_payments_insufficient_funds_title">Insufficient Funds</string>
+  <string name="sdk_payments_insufficient_funds_description">Please get more Kin and then try paying again.</string>
+  <string name="button_get_more_kin">Get More Kin</string>
+
+  <string name="title_badge_no_connection">No Connection</string>
+  <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
+  <string name="withdraw_address_invalid_destination">Invalid destination account</string>
+  <string name="withdraw_address_valid_owner_account">Valid owner account</string>
+  <string name="withdraw_address_valid_token_account">Valid token account</string>
+  <string name="settings_bucket_debugger_description">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
+  <string name="settings_network_connectivity_description">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
+  <string name="settings_vibrate_on_scan_description">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
+  <string name="settings_scan_times_description">If enabled, the device will log additional processing information while grabbing bills.</string>
+
 </resources>

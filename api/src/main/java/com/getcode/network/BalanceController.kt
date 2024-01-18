@@ -10,6 +10,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
@@ -24,6 +25,8 @@ class BalanceController @Inject constructor(
     private val privacyMigration: PrivacyMigration,
     private val transactionReceiver: TransactionReceiver
 ) {
+
+    fun observe(): Flow<Double> = balanceRepository.balanceFlow
 
     fun setTray(organizer: Organizer, tray: Tray) {
         organizer.set(tray)

@@ -73,6 +73,7 @@ sealed interface PresentationStyle {
 data class HomeUiModel(
     val isCameraPermissionGranted: Boolean? = null,
     val vibrateOnScan: Boolean = false,
+    val balance: KinAmount? = null,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
@@ -135,6 +136,17 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
                 }
             }
+
+        combine(
+            exchange.observeLocalRate(),
+            balanceController.observe(),
+        ) { rate, balance ->
+            KinAmount.newInstance(Kin.fromKin(balance), rate)
+        }.onEach { balanceInKin ->
+            uiFlow.update {
+                it.copy(balance = balanceInKin)
+            }
+        }.launchIn(viewModelScope)
 
         prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_SCAN_TIMES, false)
             .flowOn(Dispatchers.IO)

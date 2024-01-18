@@ -1,7 +1,6 @@
 package com.getcode.view.main.bill
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -23,10 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -43,7 +39,7 @@ import com.getcode.view.main.home.components.PriceWithFlag
 import com.kik.kikx.kincodes.KikCodeContentView
 
 @Composable
-internal fun PaymentBill(
+internal fun PaymentReceipt(
     modifier: Modifier = Modifier,
     data: List<Byte>,
     amount: KinAmount,
@@ -51,39 +47,21 @@ internal fun PaymentBill(
 ) {
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     BoxWithConstraints(
-        modifier = Modifier
+        modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(horizontal = CodeTheme.dimens.inset)
-            .requiredHeight(screenHeight * 0.8f)
-            .background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.receipt())
-            .then(modifier)
+            .padding(
+                top = screenHeight * 0.10f,
+                bottom = CodeTheme.dimens.grid.x12
+            )
     ) {
-        Image(
-            painter = painterResource(
-                R.drawable.payment_bill_pattern
-            ),
-            contentDescription = "",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
-
         val mW = maxWidth
         val size = remember { mW * 0.65f }
 
-        Image(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(CodeTheme.dimens.grid.x3),
-            painter = painterResource(
-                R.drawable.ic_code_logo_offwhite_small
-            ),
-            contentDescription = "",
-        )
-
-
-
         Column(
-            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x12),
+            modifier = Modifier
+                .background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.receipt())
+                .padding(top = CodeTheme.dimens.grid.x12),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5)
         ) {
@@ -112,15 +90,17 @@ internal fun PaymentBill(
                 }
             }
 
-
-
             if (currencyCode != null) {
                 Column(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(top = CodeTheme.dimens.grid.x8)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            top = CodeTheme.dimens.grid.x8,
+                            bottom = CodeTheme.dimens.grid.x17,
+                        )
                         .padding(horizontal = CodeTheme.dimens.inset),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8)
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x9)
                 ) {
                     DoubleDashedLine()
                     ProvideTextStyle(
