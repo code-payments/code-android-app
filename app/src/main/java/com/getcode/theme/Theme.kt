@@ -23,6 +23,7 @@ private val DarkColorPalette = CodeColors(
     brand = Brand,
     brandLight = BrandLight,
     brandSubtle = BrandSubtle,
+    brandMuted = BrandMuted,
     background = Brand,
     onBackground = White,
     surface = Brand,
@@ -77,6 +78,7 @@ class CodeColors(
     brand: Color,
     brandLight: Color,
     brandSubtle: Color,
+    brandMuted: Color,
     background: Color,
     onBackground: Color,
     surface: Color,
@@ -89,6 +91,8 @@ class CodeColors(
     var brandLight by mutableStateOf(brandLight)
         private set
     var brandSubtle by mutableStateOf(brandSubtle)
+        private set
+    var brandMuted by mutableStateOf(brandMuted)
         private set
     var background by mutableStateOf(background)
         private set
@@ -106,6 +110,8 @@ class CodeColors(
     fun update(other: CodeColors) {
         brand = other.brand
         brandLight = other.brandLight
+        brandSubtle = other.brandSubtle
+        brandMuted = other.brandMuted
         background = other.background
         onBackground = other.onBackground
         surface = other.surface
@@ -118,6 +124,7 @@ class CodeColors(
         brand = brand,
         brandLight = brandLight,
         brandSubtle = brandSubtle,
+        brandMuted = brandMuted,
         background = background,
         onBackground = onBackground,
         surface = surface,
