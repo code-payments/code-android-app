@@ -271,6 +271,10 @@
   <string name="title_deleteAccount">Delete Code Account</string>
   <string name="title_buyAndSellKin">Buy &amp; Sell Kin</string>
 
+  <string name="sdk_payments_insufficient_funds_title">Insufficient Funds</string>
+  <string name="sdk_payments_insufficient_funds_description">Please get more Kin and then try paying again.</string>
+  <string name="button_get_more_kin">Get More Kin</string>
+
   <string name="title_badge_no_connection">No Connection</string>
   <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
   <string name="withdraw_address_invalid_destination">Invalid destination account</string>

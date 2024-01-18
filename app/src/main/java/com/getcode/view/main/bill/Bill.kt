@@ -1,9 +1,7 @@
 package com.getcode.view.main.bill
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,11 +13,7 @@ import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.models.Bill
-import com.getcode.network.repository.Request
 import com.getcode.theme.CodeTheme
-import com.getcode.util.formatted
-import com.getcode.utils.FormatUtils
-import timber.log.Timber
 
 @Composable
 fun Bill(
@@ -34,7 +28,7 @@ fun Bill(
             payloadData = bill.data,
             amount = bill.amount
         )
-        is Bill.Payment -> PaymentBill(
+        is Bill.Payment -> PaymentReceipt(
             modifier = modifier,
             data = bill.data,
             currencyCode = bill.payload.fiat?.currency,
@@ -79,7 +73,7 @@ fun Preview_PaymentBill() {
         )
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            PaymentBill(
+            PaymentReceipt(
                 amount = KinAmount.fromFiatAmount(
                     fiat = 0.25,
                     fx = 0.00001585,

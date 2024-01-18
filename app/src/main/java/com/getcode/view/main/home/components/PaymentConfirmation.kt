@@ -35,8 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.getcode.R
 import com.getcode.model.CodePayload
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
@@ -51,13 +53,17 @@ import com.getcode.models.PaymentState
 import com.getcode.network.repository.Request
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
+import com.getcode.view.components.ButtonState
+import com.getcode.view.components.CodeButton
 import com.getcode.view.components.SlideToConfirm
 import kotlinx.coroutines.delay
 
 @Composable
 internal fun PaymentConfirmation(
     modifier: Modifier = Modifier,
+    balance: KinAmount?,
     confirmation: PaymentConfirmation?,
+    onAddKin: () -> Unit = { },
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -83,25 +89,19 @@ internal fun PaymentConfirmation(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
-        if (state != null) {
-            requestedAmount?.let { amount ->
-                PriceWithFlag(
-                    currencyCode = amount.rate.currency,
+        val amount = requestedAmount
+        val bal = balance
+        if (state != null && amount != null && bal != null) {
+            if (bal.kin >= amount.kin) {
+                PaymentConfirmationContent(
                     amount = amount,
-                    iconSize = 24.dp
-                ) {
-                    Text(
-                        text = it,
-                        color = Color.White,
-                        style = CodeTheme.typography.h1
-                    )
-                }
+                    isSending = isSending,
+                    state = state,
+                    onApproved = onSend
+                )
+            } else {
+                InsufficientFundsModalContent(onAddKin)
             }
-            SlideToConfirm(
-                isLoading = isSending,
-                isSuccess = state is PaymentState.Sent,
-                onConfirm = { onSend() },
-            )
             AnimatedContent(
                 targetState = !isSending && state !is PaymentState.Sent,
                 transitionSpec = { fadeIn() togetherWith fadeOut() },
@@ -112,7 +112,7 @@ internal fun PaymentConfirmation(
                         shape = RoundedCornerShape(percent = 50),
                         onClick = { onCancel() }) {
                         Text(
-                            text = "Cancel",
+                            text = stringResource(id = android.R.string.cancel),
                             style = CodeTheme.typography.caption,
                             color = White50
                         )
@@ -124,6 +124,9 @@ internal fun PaymentConfirmation(
         }
     }
 }
+
+private val usd_fx = 0.00001585
+private val USD_Rate = Rate(usd_fx, CurrencyCode.USD)
 
 private val payload = CodePayload(
     Kind.RequestPayment,
@@ -138,15 +141,16 @@ private fun confirmationWithState(state: PaymentState) = PaymentConfirmation(
     payload = payload,
     requestedAmount = KinAmount.fromFiatAmount(
         fiat = 0.25,
-        fx = 0.00001585,
+        fx = usd_fx,
         CurrencyCode.USD
     ),
     localAmount = KinAmount.fromFiatAmount(
         fiat = 0.25,
-        fx = 0.00001585,
+        fx = usd_fx,
         CurrencyCode.USD
     ),
 )
+
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Awaiting() {
@@ -159,6 +163,7 @@ fun Preview_PaymentConfirmModal_Awaiting() {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 confirmation = confirmationWithState(PaymentState.AwaitingConfirmation),
+                balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                 onSend = { }
             ) {
 
@@ -179,6 +184,7 @@ fun Preview_PaymentConfirmModal_Sending() {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 confirmation = confirmationWithState(PaymentState.Sending),
+                balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                 onSend = { }
             ) {
 
@@ -199,6 +205,7 @@ fun Preview_PaymentConfirmModal_Sent() {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 confirmation = confirmationWithState(PaymentState.Sent),
+                balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                 onSend = { }
             ) {
 
@@ -223,12 +230,12 @@ fun Preview_PaymentConfirmModal_Interactive() {
                         payload = payload,
                         requestedAmount = KinAmount.fromFiatAmount(
                             fiat = 0.25,
-                            fx = 0.00001585,
+                            fx = usd_fx,
                             CurrencyCode.USD
                         ),
                         localAmount = KinAmount.fromFiatAmount(
                             fiat = 0.25,
-                            fx = 0.00001585,
+                            fx = usd_fx,
                             CurrencyCode.USD
                         ),
                     )
@@ -253,6 +260,7 @@ fun Preview_PaymentConfirmModal_Interactive() {
                     ) {
                         PaymentConfirmation(
                             confirmation = confirmation,
+                            balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                             onSend = {
                                 confirmation = confirmation?.copy(state = PaymentState.Sending)
                             },
@@ -274,4 +282,48 @@ fun Preview_PaymentConfirmModal_Interactive() {
             }
         }
     }
+}
+
+@Composable
+private fun PaymentConfirmationContent(
+    amount: KinAmount,
+    isSending: Boolean,
+    state: PaymentState?,
+    onApproved: () -> Unit
+) {
+    PriceWithFlag(
+        currencyCode = amount.rate.currency,
+        amount = amount,
+        iconSize = 24.dp
+    ) {
+        Text(
+            text = it,
+            color = Color.White,
+            style = CodeTheme.typography.h1
+        )
+    }
+    SlideToConfirm(
+        isLoading = isSending,
+        isSuccess = state is PaymentState.Sent,
+        onConfirm = { onApproved() },
+    )
+}
+
+@Composable
+private fun InsufficientFundsModalContent(onClick: () -> Unit) {
+    Text(
+        text = stringResource(R.string.sdk_payments_insufficient_funds_title),
+        color = Color.White,
+        style = CodeTheme.typography.h3
+    )
+    Text(
+        text = stringResource(R.string.sdk_payments_insufficient_funds_description),
+        color = Color.White,
+        style = CodeTheme.typography.body2
+    )
+    CodeButton(
+        onClick = onClick,
+        text = stringResource(R.string.button_get_more_kin),
+        buttonState = ButtonState.Filled
+    )
 }

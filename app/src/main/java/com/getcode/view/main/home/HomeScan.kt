@@ -57,6 +57,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.models.Bill
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
@@ -153,12 +154,10 @@ private fun HomeScan(
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
 
-
     var isPaused by rememberSaveable { mutableStateOf(false) }
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 
-    val context = LocalContext.current as Activity
 
     val focusManager = LocalFocusManager.current
     LaunchedEffect(dataState.isCameraScanEnabled) {
@@ -205,7 +204,7 @@ private fun HomeScan(
     }
 
     BillContainer(
-        context = context,
+        navigator = navigator,
         isPaused = isPaused,
         dataState = dataState,
         homeViewModel = homeViewModel,
@@ -274,6 +273,7 @@ private fun HomeScan(
         }
     }
 
+    val context = LocalContext.current as Activity
     LaunchedEffect(dataState.billState.bill) {
         homeViewModel.resetScreenTimeout(context)
     }
@@ -283,7 +283,7 @@ private fun HomeScan(
 @Composable
 private fun BillContainer(
     modifier: Modifier = Modifier,
-    context: Context,
+    navigator: CodeNavigator,
     isPaused: Boolean,
     isCameraReady: Boolean,
     dataState: HomeUiModel,
@@ -297,6 +297,8 @@ private fun BillContainer(
         }
 
     val launcher = getPermissionLauncher(onPermissionResult)
+    val context = LocalContext.current as Activity
+    val composeScope = rememberCoroutineScope()
 
     SideEffect {
         PermissionCheck.requestPermission(
@@ -362,7 +364,8 @@ private fun BillContainer(
             DismissState(
                 initialValue = DismissValue.Default,
                 confirmStateChange = {
-                    val canDismiss = it == DismissValue.DismissedToEnd && updatedState.billState.canSwipeToDismiss
+                    val canDismiss =
+                        it == DismissValue.DismissedToEnd && updatedState.billState.canSwipeToDismiss
                     if (canDismiss) {
                         homeViewModel.cancelSend()
                         dismissed = true
@@ -520,6 +523,11 @@ private fun BillContainer(
                 ) {
                     PaymentConfirmation(
                         confirmation = updatedState.billState.paymentConfirmation,
+                        balance = dataState.balance,
+                        onAddKin = {
+                            homeViewModel.rejectPayment()
+                            navigator.show(GetKinModal)
+                        },
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {
                             homeViewModel.rejectPayment()

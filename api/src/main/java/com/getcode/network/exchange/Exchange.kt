@@ -35,8 +35,11 @@ class Exchange @Inject constructor(
     private val db = Database.getInstance()
 
     private var entryRate: Rate = Rate.oneToOne
-    var localRate: Rate = Rate.oneToOne
-        private set
+
+    private val _localRate = MutableStateFlow(Rate.oneToOne)
+    val localRate = _localRate.value
+
+    fun observeLocalRate(): Flow<Rate> = _localRate
 
     private var rateDate: Long = System.currentTimeMillis()
 
@@ -120,7 +123,7 @@ class Exchange @Inject constructor(
 
         val localCurrency = defaultCurrency()
         val rate = localCurrency?.let { rates.rateFor(it) }
-        localRate = if (rate != null) {
+        _localRate.value = if (rate != null) {
             Timber.d("Updated the entry currency: $localCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${Date(rates.dateMillis)}")
             rate
         } else {
