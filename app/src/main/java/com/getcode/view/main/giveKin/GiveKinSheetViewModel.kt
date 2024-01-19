@@ -1,10 +1,13 @@
 package com.getcode.view.main.giveKin
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.model.BetaFlags
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
+import com.getcode.model.PrefsBool
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
@@ -19,11 +22,16 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class GiveKinSheetUiModel(
+    val giveRequestsEnabled: Boolean = false,
     val currencyModel: CurrencyUiModel = CurrencyUiModel(),
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val amountModel: AmountUiModel = AmountUiModel(),
@@ -32,6 +40,7 @@ data class GiveKinSheetUiModel(
 
 @HiltViewModel
 class GiveKinSheetViewModel @Inject constructor(
+    private val savedStateHandle: SavedStateHandle,
     client: Client,
     private val exchange: Exchange,
     prefsRepository: PrefRepository,
@@ -58,6 +67,15 @@ class GiveKinSheetViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
+
+        prefsRepository.observeOrDefault(PrefsBool.GIVE_REQUESTS_ENABLED, false)
+            .filter { BetaFlags.isAvailable(PrefsBool.GIVE_REQUESTS_ENABLED) }
+            .map { it }
+            .onEach { enabled ->
+                uiFlow.update {
+                    it.copy(giveRequestsEnabled = enabled)
+                }
+            }.launchIn(viewModelScope)
     }
 
     fun reset() {

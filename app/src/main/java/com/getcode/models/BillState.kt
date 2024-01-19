@@ -18,6 +18,7 @@ data class BillState(
     val canSwipeToDismiss: Boolean
         get() = when (bill) {
             is Bill.Cash -> true
+            is Bill.Login -> true
             else -> false
         }
 

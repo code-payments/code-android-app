@@ -101,7 +101,7 @@ fun AmountArea(
                         ),
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-                    style = CodeTheme.typography.body2.copy(
+                    style = CodeTheme.typography.body1.copy(
                         textAlign = TextAlign.Center
                     )
                 )

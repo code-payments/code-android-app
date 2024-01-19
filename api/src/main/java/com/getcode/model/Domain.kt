@@ -2,19 +2,25 @@ package com.getcode.model
 
 import android.net.Uri
 import androidx.core.net.toUri
+import timber.log.Timber
 
 
-data class Domain(
+class Domain private constructor(
     val relationshipHost: String,
     val urlString: String
 ) { companion object {
         fun from(uri: Uri, supportSubdomains: Boolean = false): Domain? {
-            val url =  if (uri.scheme == null) uri.buildUpon().scheme("https").build() else uri
+            val url =  if (uri.scheme == null)
+                Uri.Builder()
+                    .scheme("https")
+                    .authority(uri.path)
+                    .build()
+            else uri
 
             val hostName = url.host
             val baseHost = baseDomain(hostName, supportSubdomains)
 
-            if (!(hostName != null && baseHost != null)) {
+            if (!(!hostName.isNullOrEmpty() && !baseHost.isNullOrEmpty())) {
                return null
             }
 

@@ -39,7 +39,7 @@ import com.getcode.view.main.home.components.PriceWithFlag
 import com.kik.kikx.kincodes.KikCodeContentView
 
 @Composable
-internal fun PaymentReceipt(
+internal fun Receipt(
     modifier: Modifier = Modifier,
     data: List<Byte>,
     amount: KinAmount,

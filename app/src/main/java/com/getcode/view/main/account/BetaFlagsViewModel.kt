@@ -2,8 +2,8 @@ package com.getcode.view.main.account
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.model.PrefsBool
-import com.getcode.network.repository.AccountDebugRepository
-import com.getcode.network.repository.AccountDebugSettings
+import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.PrefRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel2
@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
-class AccountDebugOptionsViewModel @Inject constructor(
-    accountDebugRepository: AccountDebugRepository,
+class BetaFlagsViewModel @Inject constructor(
+    accountDebugRepository: BetaFlagsRepository,
     prefRepository: PrefRepository,
-) : BaseViewModel2<AccountDebugOptionsViewModel.State, AccountDebugOptionsViewModel.Event>(
+) : BaseViewModel2<BetaFlagsViewModel.State, BetaFlagsViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -30,17 +30,18 @@ class AccountDebugOptionsViewModel @Inject constructor(
         val debugScanTimesEnabled: Boolean = false,
         val displayErrors: Boolean = false,
         val remoteSendEnabled: Boolean = false,
-        val incentivesEnabled: Boolean = false,
+        val giveRequestsEnabled: Boolean = false,
     )
 
     sealed interface Event {
-        data class UpdateSettings(val settings: AccountDebugSettings) : Event
+        data class UpdateSettings(val settings: BetaOptions) : Event
 
         data class ShowErrors(val display: Boolean) : Event
         data class ShowNetworkDropOff(val show: Boolean): Event
         data class SetLogScanTimes(val log: Boolean) : Event
         data class SetVibrateOnScan(val vibrate: Boolean) : Event
         data class UseDebugBuckets(val enabled: Boolean) : Event
+        data class EnableGiveRequests(val enabled: Boolean): Event
     }
 
     init {
@@ -54,7 +55,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .filterIsInstance<Event.ShowErrors>()
             .map { it.display }
             .onEach {
-                prefRepository.set(PrefsBool.IS_DEBUG_DISPLAY_ERRORS, it)
+                prefRepository.set(PrefsBool.DISPLAY_ERRORS, it)
                 ErrorUtils.setDisplayErrors(it)
             }
             .launchIn(viewModelScope)
@@ -63,7 +64,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .filterIsInstance<Event.SetVibrateOnScan>()
             .map { it.vibrate }
             .onEach {
-                prefRepository.set(PrefsBool.IS_DEBUG_VIBRATE_ON_SCAN, it)
+                prefRepository.set(PrefsBool.VIBRATE_ON_SCAN, it)
             }
             .launchIn(viewModelScope)
 
@@ -71,7 +72,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .filterIsInstance<Event.ShowNetworkDropOff>()
             .map { it.show }
             .onEach {
-                prefRepository.set(PrefsBool.IS_DEBUG_NETWORK_NO_CONNECTION, it)
+                prefRepository.set(PrefsBool.SHOW_CONNECTIVITY_STATUS, it)
             }
             .launchIn(viewModelScope)
 
@@ -79,7 +80,7 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .filterIsInstance<Event.SetLogScanTimes>()
             .map { it.log }
             .onEach {
-                prefRepository.set(PrefsBool.IS_DEBUG_SCAN_TIMES, it)
+                prefRepository.set(PrefsBool.LOG_SCAN_TIMES, it)
             }
             .launchIn(viewModelScope)
 
@@ -87,7 +88,15 @@ class AccountDebugOptionsViewModel @Inject constructor(
             .filterIsInstance<Event.UseDebugBuckets>()
             .map { it.enabled }
             .onEach {
-                prefRepository.set(PrefsBool.IS_DEBUG_BUCKETS, it)
+                prefRepository.set(PrefsBool.BUCKET_DEBUGGER_ENABLED, it)
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.EnableGiveRequests>()
+            .map { it.enabled }
+            .onEach {
+                prefRepository.set(PrefsBool.GIVE_REQUESTS_ENABLED, it)
             }
             .launchIn(viewModelScope)
     }
@@ -104,11 +113,12 @@ class AccountDebugOptionsViewModel @Inject constructor(
                             debugScanTimesEnabled = debugScanTimesEnabled,
                             displayErrors = displayErrors,
                             remoteSendEnabled = remoteSendEnabled,
-                            incentivesEnabled = incentivesEnabled,
+                            giveRequestsEnabled = giveRequestsEnabled,
                         )
                     }
                 }
 
+                is Event.EnableGiveRequests,
                 is Event.ShowNetworkDropOff,
                 is Event.UseDebugBuckets,
                 is Event.SetLogScanTimes,

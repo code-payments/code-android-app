@@ -16,7 +16,7 @@ import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
 import com.getcode.view.main.account.BackupKey
-import com.getcode.view.main.account.AccountDebugOptions
+import com.getcode.view.main.account.BetaFlagsScreen
 import com.getcode.view.main.account.AccountDeposit
 import com.getcode.view.main.account.AccountDetails
 import com.getcode.view.main.account.AccountFaq
@@ -90,12 +90,12 @@ data object AccountDebugOptionsScreen : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_myAccount)
+        @Composable get() = stringResource(id = R.string.title_betaFlags)
 
     @Composable
     override fun Content() {
         ModalContainer(backButton = { it is AccountDebugOptionsScreen }) {
-            AccountDebugOptions(getViewModel())
+            BetaFlagsScreen(getViewModel())
         }
     }
 }

@@ -12,52 +12,65 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
+import com.getcode.model.BetaFlags
+import com.getcode.model.PrefsBool
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeSwitch
 
 @Composable
-fun AccountDebugOptions(
-    viewModel: AccountDebugOptionsViewModel,
+fun BetaFlagsScreen(
+    viewModel: BetaFlagsViewModel,
 ) {
-    data class DebugOption(
+    data class BetaFeature(
+        val flag: PrefsBool,
         val titleResId: Int,
         val subtitleText: String,
         val dataState: Boolean,
         val onChange: (Boolean) -> Unit
     )
 
-    val dataState by viewModel.stateFlow.collectAsState()
+    val state by viewModel.stateFlow.collectAsState()
 
     val options = listOf(
-        DebugOption(
-            R.string.account_debug_vibrate_on_scan,
-            stringResource(R.string.settings_vibrate_on_scan_description),
-            dataState.isVibrateOnScan
-        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.SetVibrateOnScan(it)) },
-        DebugOption(
-            R.string.account_debug_network_dropoff,
-            stringResource(R.string.settings_network_connectivity_description),
-            dataState.showNetworkDropOff
-        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.ShowNetworkDropOff(it)) },
-        DebugOption(
-            R.string.account_debug_scan_times,
-            stringResource(R.string.settings_scan_times_description),
-            dataState.debugScanTimesEnabled
-        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.SetLogScanTimes(it)) },
-        DebugOption(
-            R.string.account_debug_bucket_debugger,
-            stringResource(R.string.settings_bucket_debugger_description),
-            dataState.canViewBuckets
-        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.UseDebugBuckets(it)) },
-        DebugOption(
-            R.string.account_debug_display_errors,
+        BetaFeature(
+            PrefsBool.VIBRATE_ON_SCAN,
+            R.string.beta_vibrate_on_scan,
+            stringResource(R.string.beta_vibrate_on_scan_description),
+            state.isVibrateOnScan
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.SetVibrateOnScan(it)) },
+        BetaFeature(
+            PrefsBool.SHOW_CONNECTIVITY_STATUS,
+            R.string.beta_network_dropoff,
+            stringResource(R.string.beta_network_connectivity_description),
+            state.showNetworkDropOff
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowNetworkDropOff(it)) },
+        BetaFeature(
+            PrefsBool.LOG_SCAN_TIMES,
+            R.string.beta_scan_times,
+            stringResource(R.string.beta_scan_times_description),
+            state.debugScanTimesEnabled
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.SetLogScanTimes(it)) },
+        BetaFeature(
+            PrefsBool.BUCKET_DEBUGGER_ENABLED,
+            R.string.beta_bucket_debugger,
+            stringResource(R.string.beta_bucket_debugger_description),
+            state.canViewBuckets
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.UseDebugBuckets(it)) },
+        BetaFeature(
+            PrefsBool.GIVE_REQUESTS_ENABLED,
+            R.string.beta_give_requests_mode,
+            stringResource(id = R.string.beta_give_requests_description),
+            state.giveRequestsEnabled
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableGiveRequests(it)) },
+        BetaFeature(
+            PrefsBool.DISPLAY_ERRORS,
+            R.string.beta_display_errors,
             "",
-            dataState.displayErrors,
-        ) { viewModel.dispatchEvent(AccountDebugOptionsViewModel.Event.ShowErrors(it)) }
-
-    )
+            state.displayErrors,
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowErrors(it)) }
+    ).filter { BetaFlags.isAvailable(it.flag) }
 
     Column {
         for (option in options) {

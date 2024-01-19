@@ -37,7 +37,8 @@ class Exchange @Inject constructor(
     private var entryRate: Rate = Rate.oneToOne
 
     private val _localRate = MutableStateFlow(Rate.oneToOne)
-    val localRate = _localRate.value
+    val localRate
+        get() = _localRate.value
 
     fun observeLocalRate(): Flow<Rate> = _localRate
 

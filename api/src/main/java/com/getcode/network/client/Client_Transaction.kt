@@ -588,6 +588,14 @@ fun Client.receiveFromRelationships(domain: Domain, amount: Kin, organizer: Orga
 
 @SuppressLint("CheckResult")
 @Throws
-fun Client.establishRelationship(organizer: Organizer, domain: Domain) {
-    transactionRepository.establishRelationship(organizer, domain).ignoreElement()
+fun Client.establishRelationship(organizer: Organizer, domain: Domain): Completable {
+    return transactionRepository.establishRelationship(organizer, domain).ignoreElement()
+}
+
+@Suppress("RedundantSuspendModifier")
+@SuppressLint("CheckResult")
+@Throws
+suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Domain) {
+    establishRelationship(organizer, domain)
+        .blockingAwait()
 }

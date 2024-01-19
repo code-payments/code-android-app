@@ -6,6 +6,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
+import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -29,6 +30,7 @@ class Client @Inject constructor(
     @ApplicationContext
     internal val context: Context,
     internal val transactionRepository: TransactionRepository,
+    internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
     internal val analyticsManager: AnalyticsManager,

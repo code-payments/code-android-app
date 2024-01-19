@@ -8,6 +8,7 @@ import com.getcode.model.*
 import com.getcode.network.client.*
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.nonce
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.rx3.asFlowable
@@ -36,7 +37,7 @@ class SendTransactionRepository @Inject constructor(
         this.payload = CodePayload(
             kind = Kind.Cash,
             value = amount.kin,
-            nonce = Random.nextBytes(11).toList()
+            nonce = nonce,
         )
 
         this.payloadData = payload.codeData.toList()

@@ -4,7 +4,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,7 +11,6 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.displayLarge
 import com.getcode.util.NumberInputHelper
 import com.getcode.util.NumberInputHelper.Companion.DECIMAL_SEPARATOR
 import com.getcode.util.NumberInputHelper.Companion.GROUPING_SEPARATOR
@@ -158,9 +157,10 @@ fun AmountTextAnimated(
     var firstDigit by remember { mutableStateOf("") }
 
     //Font states
-    var textSize by remember { mutableStateOf(45.sp) }
+    val displayLarge = CodeTheme.typography.displayLarge
+    var textSize by remember { mutableStateOf(displayLarge.fontSize) }
     val fontDecreasePoints = remember { HashMap<Int, Float>() }
-    val maxFontSize = 45.sp
+    val maxFontSize = displayLarge.fontSize
 
     val commaVisibility = uiModel.amountData.commaVisibility
     val amountSplit = uiModel.amountData.amount.split(DECIMAL_SEPARATOR)

@@ -35,6 +35,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
@@ -70,6 +72,7 @@ import com.getcode.util.ChromeTabsUtils
 import com.getcode.util.addIf
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
+import com.getcode.util.measured
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
@@ -392,6 +395,18 @@ private fun BillContainer(
             DecorView(updatedState, isPaused) { showBottomSheet(it) }
         }
 
+        var managementHeight by remember {
+            mutableStateOf(0.dp)
+        }
+
+        val showManagementOptions by remember(updatedState.billState) {
+            derivedStateOf {
+                billDismissState.targetValue == DismissValue.Default &&
+                        updatedState.billState.bill != null &&
+                        !updatedState.billState.hideBillButtons
+            }
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize(),
@@ -399,6 +414,7 @@ private fun BillContainer(
             HomeBill(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .addIf(showManagementOptions) { Modifier.padding(bottom = managementHeight) }
                     .weight(1f),
                 dismissState = billDismissState,
                 dismissed = dismissed,
@@ -415,35 +431,38 @@ private fun BillContainer(
                     }
                 }
             )
+        }
 
-            //Bill management options
-            AnimatedVisibility(
-                visible = billDismissState.targetValue == DismissValue.Default &&
-                        updatedState.billState.bill != null &&
-                        !updatedState.billState.hideBillButtons,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                var canCancel by remember {
-                    mutableStateOf(false)
+        //Bill management options
+        AnimatedVisibility(
+            modifier = Modifier
+                .align(BottomCenter)
+                .measured { managementHeight = it.height },
+            visible = showManagementOptions,
+            enter = fadeIn(),
+            exit = fadeOut(),
+        ) {
+            var canCancel by remember {
+                mutableStateOf(false)
+            }
+            BillManagementOptions(
+                modifier = Modifier
+                    .windowInsetsPadding(WindowInsets.navigationBars),
+                showSend = !updatedState.giveRequestsEnabled,
+                isSending = updatedState.isRemoteSendLoading,
+                onSend = { homeViewModel.onRemoteSend(context) },
+                canCancel = canCancel,
+                onCancel = {
+                    homeViewModel.cancelSend()
                 }
-                BillManagementOptions(
-                    modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
-                    isSending = updatedState.isRemoteSendLoading,
-                    onSend = { homeViewModel.onRemoteSend(context) },
-                    canCancel = canCancel,
-                    onCancel = {
-                        homeViewModel.cancelSend()
-                    }
-                )
+            )
 
-                LaunchedEffect(transition.isRunning, transition.targetState) {
-                    // wait for spring settle to enable cancel to not prematurely cancel
-                    // the enter. doing so causing the exit of the bill to not run
-                    if (transition.targetState == EnterExitState.Visible && !transition.isRunning) {
-                        delay(300)
-                        canCancel = true
-                    }
+            LaunchedEffect(transition.isRunning, transition.targetState) {
+                // wait for spring settle to enable cancel to not prematurely cancel
+                // the enter. doing so causing the exit of the bill to not run
+                if (transition.targetState == EnterExitState.Visible && !transition.isRunning) {
+                    delay(300)
+                    canCancel = true
                 }
             }
         }
@@ -523,7 +542,7 @@ private fun BillContainer(
                 ) {
                     PaymentConfirmation(
                         confirmation = updatedState.billState.paymentConfirmation,
-                        balance = dataState.balance,
+                        balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
                             navigator.show(GetKinModal)

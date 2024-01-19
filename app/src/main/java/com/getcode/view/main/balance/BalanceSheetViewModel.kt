@@ -80,7 +80,7 @@ class BalanceSheetViewModel @Inject constructor(
     }
 
     init {
-        prefsRepository.observeOrDefault(PrefsBool.IS_DEBUG_BUCKETS, false)
+        prefsRepository.observeOrDefault(PrefsBool.BUCKET_DEBUGGER_ENABLED, false)
             .flowOn(Dispatchers.IO)
             .distinctUntilChanged()
             .onEach { enabled ->
