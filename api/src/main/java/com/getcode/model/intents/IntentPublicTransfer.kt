@@ -7,6 +7,7 @@ import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.keys.*
+import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
@@ -15,6 +16,7 @@ import timber.log.Timber
 class IntentPublicTransfer(
     override val id: PublicKey,
     private val organizer: Organizer,
+    private val sourceCluster: AccountCluster,
     private val destination: PublicKey,
     private val amount: KinAmount,
 
@@ -26,6 +28,7 @@ class IntentPublicTransfer(
         return TransactionService.Metadata.newBuilder()
             .setSendPublicPayment(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
+                    .setSource(sourceCluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
                     .setDestination(destination.bytes.toSolanaAccount())
                     .setIsWithdrawal(true)
                     .setExchangeData(
@@ -42,12 +45,13 @@ class IntentPublicTransfer(
     companion object {
         fun newInstance(
             organizer: Organizer,
+            source: AccountType,
             destination: PublicKey,
             amount: KinAmount,
         ): IntentPublicTransfer {
             val id = PublicKey.generate()
             val currentTray = organizer.tray.copy()
-            val startBalance = currentTray.availableBalance.toKinTruncating()
+            val sourceCluster = organizer.tray.cluster(source)
 
             // 1. Transfer all funds in the primary account
             // directly to the destination. This is a public
@@ -58,25 +62,16 @@ class IntentPublicTransfer(
                 kind = ActionTransfer.Kind.NoPrivacyTransfer,
                 intentId = id,
                 amount = amount.kin,
-                source = currentTray.owner.getCluster(),
+                source = sourceCluster,
                 destination = destination
             )
 
             currentTray.decrement(AccountType.Primary, kin = amount.kin)
 
-            val endBalance = currentTray.availableBalance.toKinTruncating()
-
-            if (startBalance - endBalance != amount.kin)  {
-                Timber.e(
-                    "Expected: ${amount.kin}; actual = ${startBalance - endBalance}; " +
-                            "difference: ${startBalance.quarks - currentTray.availableBalance.quarks - amount.kin.quarks}"
-                )
-                throw IntentPublicTransferException.BalanceMismatchException()
-            }
-
             return IntentPublicTransfer(
                 id = id,
                 organizer = organizer,
+                sourceCluster = sourceCluster,
                 destination = destination,
                 amount = amount,
                 actionGroup = ActionGroup().apply {

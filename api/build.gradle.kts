@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
@@ -13,6 +15,11 @@ android {
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
+
+        val propertiesFile = project.rootProject.file("local.properties")
+        val properties = Properties()
+        properties.load(propertiesFile.inputStream())
+        buildConfigField("String", "SDK_LOGIN_PRIVATE_KEY", "\"${properties.getProperty("SDK_LOGIN_PRIVATE_KEY")}\"")
 
         javaCompileOptions {
             annotationProcessorOptions {

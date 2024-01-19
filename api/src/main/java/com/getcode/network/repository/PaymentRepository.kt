@@ -50,13 +50,12 @@ class PaymentRepository @Inject constructor(
                 ?.firstOrNull()?.loginRequest
                 ?: throw PaymentError.MessageForRendezvousNotFound()
 
+            codeScanned(payload.rendezvous)
             return payload to loginAttempt
         }.getOrNull()
     }
 
     fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
-        codeScanned(payload.rendezvous)
-
         val fiat = payload.fiat
         if (fiat == null) {
             Timber.d("payload does not contain Fiat value")
@@ -75,6 +74,8 @@ class PaymentRepository @Inject constructor(
         val amount = KinAmount.fromFiatAmount(fiat.amount, rate.fx, fiat.currency)
 
         Timber.d("amount=${amount.fiat}, ${amount.kin}, ${amount.rate}")
+
+        codeScanned(payload.rendezvous)
 
         return amount to payload
     }

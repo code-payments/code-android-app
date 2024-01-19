@@ -171,7 +171,8 @@ class TransactionRepository @Inject constructor(
         val intent = IntentPublicTransfer.newInstance(
             organizer = organizer,
             amount = amount,
-            destination = destination
+            destination = destination,
+            source = AccountType.Primary,
         )
 
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
