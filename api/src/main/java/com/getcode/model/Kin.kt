@@ -23,7 +23,10 @@ data class Kin(val quarks: Long): Value {
     fun toFiat(fx: Double) = toKinValueDouble() * fx
     fun hasWholeKin() = toKinTruncatingLong() > 0
     operator fun plus(other: Kin): Kin = Kin(this.quarks + other.quarks)
-    operator fun minus(other: Kin): Kin = Kin(this.quarks - other.quarks)
+    operator fun minus(other: Kin): Kin {
+        if (this <= other) return fromKin(0)
+        return Kin(this.quarks - other.quarks)
+    }
     operator fun div(other: Kin): Kin = Kin(this.quarks / other.quarks)
     operator fun div(other: Int): Kin = this / fromQuarks(other.toLong())
     operator fun times(other: Kin): Kin = Kin(this.quarks * other.quarks)
