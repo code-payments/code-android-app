@@ -140,7 +140,7 @@ class AccountSheetViewModel @Inject constructor(
             ),
             AccountMainItem(
                 type = AccountPage.ACCOUNT_DEBUG_OPTIONS,
-                name = R.string.account_debug_options,
+                name = R.string.title_betaFlags,
                 icon = R.drawable.ic_bug,
             ),
             AccountMainItem(

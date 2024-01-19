@@ -28,7 +28,15 @@ fun Bill(
             payloadData = bill.data,
             amount = bill.amount
         )
-        is Bill.Payment -> PaymentReceipt(
+
+        is Bill.Payment -> Receipt(
+            modifier = modifier,
+            data = bill.data,
+            currencyCode = bill.payload.fiat?.currency,
+            amount = bill.amount
+        )
+
+        is Bill.Login -> Receipt(
             modifier = modifier,
             data = bill.data,
             currencyCode = bill.payload.fiat?.currency,
@@ -73,7 +81,7 @@ fun Preview_PaymentBill() {
         )
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            PaymentReceipt(
+            Receipt(
                 amount = KinAmount.fromFiatAmount(
                     fiat = 0.25,
                     fx = 0.00001585,

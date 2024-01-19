@@ -35,6 +35,9 @@ class Key16(bytes: List<Byte>) : KeyType(bytes) {
     override val size: Int get() = LENGTH_16
 }
 open class Key32(bytes: List<Byte>) : KeyType(bytes) {
+
+    constructor(base58: String) : this(Base58.decode(base58).toList())
+
     override val size: Int get() = LENGTH_32
 
     companion object {

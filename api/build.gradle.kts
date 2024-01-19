@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)

@@ -5,8 +5,6 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.minimumInteractiveComponentSize
@@ -42,15 +39,12 @@ import com.getcode.R
 import com.getcode.model.CodePayload
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
-import com.getcode.model.Kin
 import com.getcode.model.Kin.Companion.fromFiat
-import com.getcode.model.Kin.Companion.fromKin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.Rate
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
-import com.getcode.network.repository.Request
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
 import com.getcode.view.components.ButtonState
@@ -75,7 +69,7 @@ internal fun PaymentConfirmation(
         derivedStateOf { state is PaymentState.Sending }
     }
 
-    val requestedAmount by remember(confirmation?.localAmount) {
+    val requestedAmount by remember(confirmation?.localAmount?.kin?.quarks) {
         derivedStateOf { confirmation?.localAmount }
     }
 
@@ -90,9 +84,8 @@ internal fun PaymentConfirmation(
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
         val amount = requestedAmount
-        val bal = balance
-        if (state != null && amount != null && bal != null) {
-            if (bal.kin >= amount.kin) {
+        if (state != null && amount != null && balance != null) {
+            if (balance.kin >= amount.kin) {
                 PaymentConfirmationContent(
                     amount = amount,
                     isSending = isSending,

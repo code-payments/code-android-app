@@ -112,5 +112,11 @@ internal val typography = Typography(
 val Typography.robotoMono: FontFamily
     @Composable get() = RobotoMono
 
+/**
+ * custom displayLarge until M3 migration
+ */
+val Typography.displayLarge: TextStyle
+    @Composable get() = h1.copy(fontSize = 55.sp)
+
 fun TextStyle.withRobotoMono(weight: FontWeight? = this.fontWeight) = with(RobotoMono, weight)
 fun TextStyle.with(fontFamily: FontFamily, weight: FontWeight? = this.fontWeight): TextStyle = copy(fontFamily = fontFamily, fontWeight = weight)

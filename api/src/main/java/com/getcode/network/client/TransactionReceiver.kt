@@ -60,7 +60,7 @@ class TransactionReceiver @Inject constructor(
         }
     }
 
-    fun receiveFromRelationship( organizer: Organizer, limit: Kin? = null) {
+    fun receiveFromRelationship( organizer: Organizer, limit: Kin? = null): Kin {
         var receivedTotal = Kin.fromKin(0)
 
         run loop@{
@@ -83,6 +83,8 @@ class TransactionReceiver @Inject constructor(
                 }
             }
         }
+
+        return receivedTotal
     }
 
     fun receiveFromIncomingIfRotationRequired(organizer: Organizer): Completable {

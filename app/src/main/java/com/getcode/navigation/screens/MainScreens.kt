@@ -14,7 +14,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.manager.AnalyticsManager
-import com.getcode.models.Bill
+import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.getActivityScopedViewModel
@@ -36,6 +36,11 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 
+sealed interface GiveResult {
+    data class Bill(val bill: com.getcode.models.Bill): GiveResult
+    data class Request(val amount: KinAmount): GiveResult
+}
+
 @Parcelize
 data class HomeScreen(
     val cashLink: String? = null,
@@ -49,9 +54,18 @@ data class HomeScreen(
         val vm = getActivityScopedViewModel<HomeViewModel>()
         HomeScreen(vm, cashLink, requestPayload)
 
-        OnScreenResult<Bill> {
-            Timber.d("onShowBill=${it.amount.fiat}")
-            vm.showBill(it)
+        OnScreenResult<GiveResult> { result ->
+            when (result) {
+                is GiveResult.Bill -> {
+                    Timber.d("onShowBill=${result.bill.amount.fiat}")
+                    vm.showBill(result.bill)
+                }
+                is GiveResult.Request -> {
+                    Timber.d("presentRequest=${result.amount.fiat}")
+                    vm.presentRequest(amount = result.amount, payload = null, request = null)
+                }
+            }
+
         }
     }
 }
@@ -91,7 +105,6 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-        val vm = HomeScreen().getStackScopedViewModel<GiveKinSheetViewModel>()
         ModalContainer(
             closeButton = {
                 if (navigator.isVisible) {
@@ -101,7 +114,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(vm)
+            GiveKinSheet(getViewModel())
         }
 
         AnalyticsScreenWatcher(

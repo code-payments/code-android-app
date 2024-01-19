@@ -24,6 +24,7 @@ import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
+import com.getcode.navigation.screens.GiveResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -97,7 +98,12 @@ fun GiveKinSheet(
 
                 composeScope.launch {
                     val amount = viewModel.onSubmit() ?: return@launch
-                    navigator.hideWithResult(Bill.Cash(amount))
+                    val result = if (dataState.giveRequestsEnabled) {
+                        GiveResult.Request(amount)
+                    } else {
+                        GiveResult.Bill(Bill.Cash(amount))
+                    }
+                    navigator.hideWithResult(result)
                 }
             },
             enabled = dataState.continueEnabled,

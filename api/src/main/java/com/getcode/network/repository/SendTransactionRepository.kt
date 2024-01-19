@@ -1,9 +1,6 @@
 package com.getcode.network.repository
 
 import android.content.Context
-import android.util.Base64
-import com.getcode.codeScanner.CodeScanner
-import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.AnalyticsManager
 import com.getcode.solana.keys.PublicKey
@@ -11,6 +8,7 @@ import com.getcode.model.*
 import com.getcode.network.client.*
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.nonce
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.rx3.asFlowable
@@ -39,7 +37,7 @@ class SendTransactionRepository @Inject constructor(
         this.payload = CodePayload(
             kind = Kind.Cash,
             value = amount.kin,
-            nonce = Random.nextBytes(11).toList()
+            nonce = nonce,
         )
 
         this.payloadData = payload.codeData.toList()
@@ -55,7 +53,7 @@ class SendTransactionRepository @Inject constructor(
                 // verifying the signature matches one that has been signed
                 // with the rendezvous key.
 
-                val isValid = messagingRepository.verifyRequestForPayment(
+                val isValid = messagingRepository.verifyRequestToGrabBill(
                     destination = paymentRequest.account,
                     rendezvousKey = rendezvousKey,
                     signature = paymentRequest.signature

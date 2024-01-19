@@ -9,10 +9,12 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
         class ReceiveRequestKind(val receiveRequest: ReceiveRequest): Kind
         class PaymentRequestKind(val paymentRequest: PaymentRequest) : Kind
         class AirdropKind(val airdrop: Airdrop) : Kind
+        data class LoginRequestKind(val loginRequest: LoginRequest): Kind
     }
 
     val receiveRequest: ReceiveRequest? = (kind as? Kind.ReceiveRequestKind)?.receiveRequest
     val paymentRequest: PaymentRequest? = (kind as? Kind.PaymentRequestKind)?.paymentRequest
+    val loginRequest: LoginRequest? = (kind as? Kind.LoginRequestKind)?.loginRequest
     val airdrop: Airdrop? = (kind as? Kind.AirdropKind)?.airdrop
 
     companion object {
@@ -114,6 +116,17 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                     return null
                 }
 
+                MessagingService.Message.KindCase.REQUEST_TO_LOGIN -> {
+                    val request = message.requestToLogin
+                    val domain = request.domain?.let { Domain.from(it.value) } ?: return null
+                    val verifier = PublicKey(request.verifier.value.toByteArray().toList())
+                    val rendezvous = PublicKey(request.rendezvousKey.toByteArray().toList())
+                    val signature = Signature(request.signature.value.toByteArray().toList())
+
+                    Kind.LoginRequestKind(
+                        LoginRequest(domain, verifier, rendezvous, signature)
+                    )
+                }
                 else -> return null
             }
             return StreamMessage(
@@ -138,5 +151,12 @@ data class ReceiveRequest(
 }
 
 data class PaymentRequest(val account: PublicKey, val signature: Signature)
+
+data class LoginRequest(
+    val domain: Domain,
+    val verifier: PublicKey,
+    val rendezous: PublicKey,
+    val signature: Signature,
+)
 
 data class Airdrop(val type: AirdropType, val date: Long, val kinAmount: KinAmount)

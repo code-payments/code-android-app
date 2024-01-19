@@ -3,12 +3,15 @@ package com.getcode.network.repository
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
 import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
-import com.codeinc.gen.messaging.v1.MessagingService.MessageId
+import com.codeinc.gen.messaging.v1.MessagingService.LoginRejected
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
+import com.codeinc.gen.transaction.v2.TransactionService
 import com.google.protobuf.ByteString
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.model.Domain
+import com.getcode.model.Fiat
 import com.getcode.solana.keys.Signature
 import com.getcode.model.PaymentRequest
 import com.getcode.model.StreamMessage
@@ -26,7 +29,6 @@ import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
-import kotlin.math.sign
 
 private const val TAG = "MessagingRepository"
 
@@ -102,16 +104,25 @@ class MessagingRepository @Inject constructor(
             }
     }
 
-    fun verifyRequestForPayment(
+    fun verifyRequestToGrabBill(
         destination: PublicKey,
         rendezvousKey: KeyPair,
         signature: Signature
     ): Boolean {
-        val messageData = requestForPayment(destination = destination).build().toByteArray()
+        val messageData = sendRequestToGrabBill(destination = destination).build().toByteArray()
         return rendezvousKey.verify(signature.byteArray, messageData)
     }
 
-    fun sendRequestForPayment(
+    suspend fun sendRequestToLogin(
+        domain: Domain,
+        verifier: KeyPair,
+        rendezvous: KeyPair,
+    ): Result<MessagingService.SendMessageResponse> {
+        val message = requestToLogin(domain, verifier, rendezvous)
+        return sendRendezvousMessage(message, rendezvous)
+    }
+
+    fun sendRequestToGrabBill(
         destination: ByteArray,
         rendezvousKeyPair: KeyPair,
     ): Flowable<MessagingService.SendMessageResponse> {
@@ -125,6 +136,26 @@ class MessagingRepository @Inject constructor(
             .doOnEach {
                 Timber.i("sendRequestForPayment: result: ${it.value?.result}")
             }
+    }
+
+    suspend fun sendRequestToReceiveBill(
+        destination: PublicKey,
+        fiat: Fiat,
+        rendezvous: KeyPair
+    ): Result<MessagingService.SendMessageResponse> {
+        val message = MessagingService.Message.newBuilder()
+            .setRequestToReceiveBill(
+                MessagingService.RequestToReceiveBill.newBuilder()
+                    .setRequestorAccount(destination.byteArray.toSolanaAccount())
+                    .setPartial(
+                        TransactionService.ExchangeDataWithoutRate.newBuilder()
+                            .setCurrency(fiat.currency.name)
+                            .setNativeAmount(fiat.amount)
+                    )
+                    .build()
+            )
+
+        return sendRendezvousMessage(message, rendezvous)
     }
 
     fun fetchMessages(rendezvous: KeyPair): Result<List<StreamMessage>> {
@@ -148,8 +179,12 @@ class MessagingRepository @Inject constructor(
 
     suspend fun codeScanned(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
         val message = MessagingService.Message.newBuilder()
-            .setCodeScanned(CodeScanned.newBuilder()
-                .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)))
+            .setCodeScanned(
+                CodeScanned.newBuilder()
+                    .setTimestamp(
+                        Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)
+                    )
+            )
 
         return sendRendezvousMessage(message, rendezvous)
     }
@@ -165,13 +200,52 @@ class MessagingRepository @Inject constructor(
         return sendRendezvousMessage(message, rendezvous)
     }
 
-    private fun requestForPayment(destination: PublicKey): MessagingService.Message.Builder {
+    suspend fun rejectLogin(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
+        val message = MessagingService.Message
+            .newBuilder()
+            .setLoginRejected(
+                LoginRejected.newBuilder()
+                    .setTimestamp(
+                        Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)
+                    )
+            )
+
+        return sendRendezvousMessage(message, rendezvous)
+    }
+
+    private fun sendRequestToGrabBill(destination: PublicKey): MessagingService.Message.Builder {
         return MessagingService.Message
             .newBuilder()
             .setRequestToGrabBill(
                 MessagingService.RequestToGrabBill
                     .newBuilder()
                     .setRequestorAccount(destination.bytes.toSolanaAccount())
+            )
+    }
+
+    private fun requestToLogin(
+        domain: Domain,
+        verifier: KeyPair,
+        rendezvous: KeyPair
+    ): MessagingService.Message.Builder {
+        return MessagingService.Message
+            .newBuilder()
+            .setRequestToLogin(
+                MessagingService.RequestToLogin
+                    .newBuilder()
+                    .setDomain(
+                        Model.Domain.newBuilder()
+                            .setValue(domain.relationshipHost)
+                    )
+                    .setRendezvousKey(
+                        RendezvousKey.newBuilder()
+                            .setValue(ByteString.copyFrom(rendezvous.publicKeyBytes))
+                    ).setVerifier(verifier.publicKeyBytes.toSolanaAccount())
+                    .let {
+                        val bos = ByteArrayOutputStream()
+                        it.buildPartial().writeTo(bos)
+                        it.setSignature(Ed25519.sign(bos.toByteArray(), rendezvous).toSignature())
+                    }
             )
     }
 
@@ -201,7 +275,13 @@ class MessagingRepository @Inject constructor(
                 .asFlow()
                 .firstOrNull() ?: throw IllegalArgumentException()
         }.onSuccess {
-            Timber.i("message sent: ${it.messageId.value.toList().hexEncodedString()}: result: ${it.result}")
+            Timber.i(
+                "message sent: ${
+                    it.messageId.value.toList().hexEncodedString()
+                }: result: ${it.result}"
+            )
+        }.onFailure {
+            Timber.e(t = it, message = "Failed to send rendezvous message.")
         }
     }
 

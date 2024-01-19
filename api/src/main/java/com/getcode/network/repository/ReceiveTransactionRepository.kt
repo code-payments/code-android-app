@@ -16,7 +16,7 @@ class ReceiveTransactionRepository @Inject constructor(
     private val client: Client
 ) {
     fun start(organizer: Organizer, rendezvous: KeyPair, debug: Boolean = false): Flowable<IntentMetadata> {
-        return messagingRepository.sendRequestForPayment(
+        return messagingRepository.sendRequestToGrabBill(
             destination = organizer.incomingVault.byteArray,
             rendezvousKeyPair = rendezvous
         )

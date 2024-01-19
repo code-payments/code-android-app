@@ -9,21 +9,20 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextAlign
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.util.debugBounds
+import com.getcode.theme.displayLarge
 
 @Composable
 fun AmountText(
     currencyResId: Int?,
     amountText: String
 ) {
-    val textStyleH1 = CodeTheme.typography.h1.copy(textAlign = TextAlign.Center)
-    var scaledTextStyle by remember { mutableStateOf(textStyleH1) }
+    val displayLarge = CodeTheme.typography.displayLarge.copy(textAlign = TextAlign.Center)
+    var scaledTextStyle by remember { mutableStateOf(displayLarge) }
     var isReadyToDraw by remember { mutableStateOf(false) }
 
 

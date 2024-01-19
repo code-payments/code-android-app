@@ -14,6 +14,7 @@ import com.getcode.network.core.NetworkOracleImpl
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.AccountAuthenticator
@@ -127,6 +128,7 @@ object ApiModule {
     fun provideClient(
         @ApplicationContext context: Context,
         transactionRepository: TransactionRepository,
+        messagingRepository: MessagingRepository,
         accountRepository: AccountRepository,
         balanceController: BalanceController,
         analyticsManager: AnalyticsManager,
@@ -138,6 +140,7 @@ object ApiModule {
         return Client(
             context,
             transactionRepository,
+            messagingRepository,
             balanceController,
             accountRepository,
             analyticsManager,

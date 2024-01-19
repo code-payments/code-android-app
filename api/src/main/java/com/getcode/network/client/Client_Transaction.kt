@@ -232,6 +232,8 @@ fun Client.withdrawExternally(
 
     val intent = PublicKey.generate()
 
+    val steps = mutableListOf<String>()
+    steps.add("Attempting withdrawal...")
     val primaryBalance = organizer.availableDepositBalance.toKinTruncating()
 
     // If the primary account has less Kin than the amount
@@ -239,35 +241,62 @@ fun Client.withdrawExternally(
     // private transfer to the primary account before we
     // can make a public transfer to destination
     return if (primaryBalance < amount.kin) {
-        val missingBalance = amount.kin - primaryBalance
+        var missingBalance = amount.kin - primaryBalance
+        steps.add("Amount exceeds primary balance.")
+        steps.add("Missing balance: $missingBalance")
 
-        // It's possible that there's funds still left in
-        // an incoming account. If the amount requested for
-        // withdrawal is greater than primary + buckets, we
-        // have to receive from incoming first
-        if (missingBalance > organizer.slotsBalance) {
-            transactionReceiver.receiveFromIncoming(
-                amount = organizer.availableIncomingBalance.toKinTruncating(),
+        // 1. If we're missing funds, we'll pull funds
+        // from relationship accounts first.
+        if (missingBalance > 0) {
+            val receivedFromRelationships =
+                transactionReceiver.receiveFromRelationship(organizer, limit = missingBalance)
+            missingBalance -= receivedFromRelationships
+
+            steps.add("Pulled from relationships: $receivedFromRelationships")
+            steps.add("Missing balance: $missingBalance")
+        }
+
+        // 2. It's possible that there's funds still left in
+        // an incoming account. If we're still missing funds
+        // for withdrawal, we'll pull from incoming.
+        if (missingBalance > 0) {
+            val receivedFromIncoming = transactionReceiver.receiveFromIncoming(
                 organizer = organizer
             )
-        } else {
-            Completable.complete()
+            missingBalance -= receivedFromIncoming
+
+            steps.add("Pulled from incoming: $receivedFromIncoming")
+            steps.add("Missing balance: $missingBalance")
         }
-            .concatWith(
-                // Move funds into primary from buckets
-                transfer(
-                    context = context,
-                    amount = KinAmount.newInstance(kin = missingBalance, rate = Rate.oneToOne),
-                    organizer = organizer,
-                    rendezvousKey = intent,
-                    destination = organizer.primaryVault,
-                    isWithdrawal = true
-                )
-            )
-            .concatWith(balanceController.fetchBalance())
+
+
+        // 3. In the event that it's a full withdrawal or if
+        // more funds are required, we'll need to do a private
+        // transfer from bucket accounts.
+        if (missingBalance > 0) {
+            // Move funds into primary from buckets
+            transfer(
+                context = context,
+                amount = KinAmount.newInstance(kin = missingBalance, rate = Rate.oneToOne),
+                organizer = organizer,
+                rendezvousKey = intent,
+                destination = organizer.primaryVault,
+                isWithdrawal = true
+            ).doOnComplete {
+                steps.add("Pulled from buckets: $missingBalance")
+            }.concatWith(fetchLimits()).concatWith(balanceController.fetchBalance())
+        } else {
+            // 4. Update balances and limits after the withdrawal since
+            // it's likely that this withdrawal affected both but at the
+            // very least, we need updated balances for all accounts.
+            balanceController.fetchBalance()
+        }
     } else {
         Completable.complete()
+    }.doOnComplete {
+        Timber.d(steps.joinToString("\n"))
     }
+        // 5. Execute withdrawal
         .concatWith(
             withdraw(
                 amount = amount,
@@ -559,6 +588,14 @@ fun Client.receiveFromRelationships(domain: Domain, amount: Kin, organizer: Orga
 
 @SuppressLint("CheckResult")
 @Throws
-fun Client.establishRelationship(organizer: Organizer, domain: Domain) {
-    transactionRepository.establishRelationship(organizer, domain).ignoreElement()
+fun Client.establishRelationship(organizer: Organizer, domain: Domain): Completable {
+    return transactionRepository.establishRelationship(organizer, domain).ignoreElement()
+}
+
+@Suppress("RedundantSuspendModifier")
+@SuppressLint("CheckResult")
+@Throws
+suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Domain) {
+    establishRelationship(organizer, domain)
+        .blockingAwait()
 }

@@ -33,9 +33,8 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        val vm = AccountModal.getStackScopedViewModel<AccountWithdrawAmountViewModel>()
         ModalContainer(backButton = { it is WithdrawalAmountScreen }) {
-            AccountWithdrawAmount(viewModel = vm)
+            AccountWithdrawAmount(viewModel = getViewModel())
         }
 
         AnalyticsScreenWatcher(
