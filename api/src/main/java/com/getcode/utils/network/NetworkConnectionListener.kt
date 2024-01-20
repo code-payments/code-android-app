@@ -59,14 +59,16 @@ data class NetworkState(
     val connected: Boolean,
     val signalStrength: SignalStrength,
     val type: ConnectionType
-)
+) {
+    companion object {
+        val Default = NetworkState(false, SignalStrength.Unknown, ConnectionType.Unknown)
+    }
+}
 
 class NetworkObserverStub : NetworkConnectivityListener {
     override val isConnected: Boolean = false
     override val type: ConnectionType = ConnectionType.Unknown
-    override val state: StateFlow<NetworkState> = MutableStateFlow(
-        NetworkState(false, SignalStrength.Unknown, ConnectionType.Unknown)
-    ).asStateFlow()
+    override val state: StateFlow<NetworkState> = MutableStateFlow(NetworkState.Default).asStateFlow()
 }
 
 

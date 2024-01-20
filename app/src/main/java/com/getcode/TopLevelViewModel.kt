@@ -54,7 +54,7 @@ class TopLevelViewModel @Inject constructor(
             .filter { it }
             .onEach { client.pollOnce(delay = 0) }
             .flatMapLatest {
-                client.observeTransactions(owner = SessionManager.getKeyPair()!!)
+                client.observeTransactions()
                     .flowOn(Dispatchers.IO)
             }.launchIn(viewModelScope)
     }

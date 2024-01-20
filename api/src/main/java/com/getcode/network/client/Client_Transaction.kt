@@ -25,8 +25,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.cancellable
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -417,26 +420,32 @@ fun Client.historicalTransactions() = transactionRepository.transactionCache
 
 @OptIn(ExperimentalCoroutinesApi::class)
 fun Client.observeTransactions(
-    owner: KeyPair,
 ): Flow<List<HistoricalTransaction>> {
-    return transactionRepository.transactionCache
-        .map { it.orEmpty() }
-        .map { it.sortedByDescending { trx -> trx.date } }
-        .flatMapConcat { initialList ->
+    return SessionManager.authState
+        .map { it.keyPair }
+        .flatMapLatest { owner ->
+            transactionRepository.transactionCache
+                .map { it to owner }
+        }.map { (trx, owner) -> trx.orEmpty().sortedByDescending { it.date } to owner }
+        .flatMapConcat { (initialList, owner) ->
+            owner ?: return@flatMapConcat emptyFlow()
             fetchPaymentHistoryDelta(owner, initialList.firstOrNull()?.id?.toByteArray())
                 .toObservable().asFlow()
+                .filter { it.isNotEmpty() }
                 .scan(initialList) { previous, update ->
+                    Timber.d("prev=${previous.count()}, update=${update.count()}")
                     previous
                         .filterNot { update.contains(it) }
                         .plus(update)
                         .sortedByDescending { it.date }
+                        .also { Timber.d("now ${it.count()}") }
                 }
         }
 }
 
 fun Client.fetchPaymentHistoryDelta(
     owner: KeyPair,
-    afterId: ByteArray? = null
+    afterId: ByteArray? = transactionRepository.transactionCache.value?.firstOrNull()?.id?.toByteArray()
 ): Single<List<HistoricalTransaction>> {
     return transactionRepository.fetchPaymentHistoryDelta(owner, afterId)
 }
@@ -447,7 +456,6 @@ fun Client.fetchDestinationMetadata(destination: PublicKey): Single<TransactionR
 
 // -----
 private var lastLimitsFetch: Long = 0L
-private var lastReceive: Long = 0L
 
 fun Client.fetchLimits(isForce: Boolean = false): Completable {
     val owner = SessionManager.getKeyPair() ?: return Completable.complete()
@@ -553,7 +561,8 @@ fun Client.fetchPrivacyUpgrades(): Completable {
 
 fun Client.getTransferPreflightAction(amount: Kin): Completable {
     val organizer = SessionManager.getOrganizer() ?: return Completable.complete()
-    val neededKin = if (amount > organizer.slotsBalance) amount - organizer.slotsBalance else Kin.fromKin(0)
+    val neededKin =
+        if (amount > organizer.slotsBalance) amount - organizer.slotsBalance else Kin.fromKin(0)
 
     // If the there's insufficient funds in the slots
     // we'll need to top them up from incoming, relationship

@@ -43,6 +43,7 @@ import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
+import com.getcode.network.client.fetchPaymentHistoryDelta
 import com.getcode.network.client.receiveRemoteSuspend
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
@@ -292,7 +293,8 @@ class HomeViewModel @Inject constructor(
                 .flatMapCompletable {
                     Completable.concatArray(
                         balanceController.fetchBalance(),
-                        client.fetchLimits(isForce = true)
+                        client.fetchLimits(isForce = true),
+                        client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!).ignoreElement()
                     )
                 }
                 .subscribe({
@@ -815,7 +817,8 @@ class HomeViewModel @Inject constructor(
             .flatMapCompletable {
                 Completable.concatArray(
                     balanceController.fetchBalance(),
-                    client.fetchLimits(isForce = true)
+                    client.fetchLimits(isForce = true),
+                    client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!).ignoreElement()
                 )
             }
             .subscribe({ }, {
@@ -917,7 +920,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun logout(activity: Activity) {
-        authManager.logout(activity)
+        authManager.logout(activity, onComplete = {})
     }
 
     @SuppressLint("CheckResult")
