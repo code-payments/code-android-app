@@ -95,6 +95,7 @@ fun BottomBarView(
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x2),
                         style = CodeTheme.typography.button,
+                        color = White,
                         text = it
                     )
                 }
