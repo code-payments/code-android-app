@@ -58,6 +58,7 @@ import com.getcode.util.measured
 import com.getcode.util.swallowClicks
 import com.getcode.view.components.AccessKeySelectionContainer
 import com.getcode.view.components.ButtonState
+import com.getcode.view.components.Cloudy
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.getPermissionLauncher
@@ -127,109 +128,118 @@ fun AccessKey(
         mutableStateOf(0.dp)
     }
 
-    val selectionState = rememberSelectionState(words = dataState.wordsFormatted)
+    val selectionState = rememberSelectionState(
+        words = dataState.words.joinToString(" ")
+    )
 
     AccessKeySelectionContainer(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x4),
+            .windowInsetsPadding(WindowInsets.navigationBars),
         state = selectionState,
     ) {
-        Column(
+        Cloudy(
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxHeight()
-                .padding(bottom = buttonHeight),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxSize()
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(vertical = CodeTheme.dimens.grid.x4),
+            enabled = selectionState.shown
         ) {
-            AnimatedVisibility(
-                visibleState = isAccessKeyVisible,
-                enter = fadeIn(animationSpec = tween(300, 0)),
-                exit = fadeOut(animationSpec = tween(300, 0))
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .fillMaxHeight()
+                    .padding(bottom = buttonHeight),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                dataState.accessKeyCroppedBitmap?.let { bitmap ->
-                    Image(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .scale(selectionState.scale.value),
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = dataState.wordsFormatted,
-                    )
+                AnimatedVisibility(
+                    visibleState = isAccessKeyVisible,
+                    enter = fadeIn(animationSpec = tween(300, 0)),
+                    exit = fadeOut(animationSpec = tween(300, 0))
+                ) {
+                    dataState.accessKeyCroppedBitmap?.let { bitmap ->
+                        Image(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .scale(selectionState.scale.value),
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = dataState.wordsFormatted,
+                        )
+                    }
                 }
+
+                Text(
+                    modifier = Modifier
+                        .padding(vertical = CodeTheme.dimens.grid.x2),
+                    style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                    color = White,
+                    text = stringResource(R.string.subtitle_accessKeyDescription)
+                )
             }
 
-            Text(
-                modifier = Modifier
-                    .padding(vertical = CodeTheme.dimens.grid.x2),
-                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
-                color = White,
-                text = stringResource(R.string.subtitle_accessKeyDescription)
-            )
-        }
+            Column(modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .measured { buttonHeight = it.height }) {
+                CodeButton(
+                    modifier = Modifier,
+                    onClick = {
+                        onExportClick()
+                    },
+                    text = stringResource(R.string.action_saveAccessKey),
+                    buttonState = ButtonState.Filled,
+                    isLoading = dataState.isLoading,
+                    enabled = dataState.isEnabled,
+                    isSuccess = dataState.isSuccess,
+                )
 
-        Column(modifier = Modifier.align(Alignment.BottomCenter)
-            .measured { buttonHeight = it.height }) {
-            CodeButton(
-                modifier = Modifier,
-                onClick = {
-                    onExportClick()
-                },
-                text = stringResource(R.string.action_saveAccessKey),
-                buttonState = ButtonState.Filled,
-                isLoading = dataState.isLoading,
-                enabled = dataState.isEnabled,
-                isSuccess = dataState.isSuccess,
-            )
-
-            CodeButton(
-                modifier = Modifier,
-                onClick = {
-                    BottomBarManager.showMessage(
-                        BottomBarManager.BottomBarMessage(
-                            title = context.getString(R.string.prompt_title_wroteThemDown),
-                            subtitle = context
-                                .getString(R.string.prompt_description_wroteThemDown),
-                            positiveText = context
-                                .getString(R.string.action_yesWroteThemDown),
-                            negativeText = context.getString(R.string.action_cancel),
-                            onPositive = { onSkipClick() },
-                            onNegative = {}
+                CodeButton(
+                    modifier = Modifier,
+                    onClick = {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(R.string.prompt_title_wroteThemDown),
+                                subtitle = context
+                                    .getString(R.string.prompt_description_wroteThemDown),
+                                positiveText = context
+                                    .getString(R.string.action_yesWroteThemDown),
+                                negativeText = context.getString(R.string.action_cancel),
+                                onPositive = { onSkipClick() },
+                                onNegative = {}
+                            )
                         )
-                    )
-                },
-                text = stringResource(R.string.action_wroteThemDownInstead),
-                buttonState = ButtonState.Subtle,
-                enabled = dataState.isEnabled,
-                isPaddedVertical = false,
+                    },
+                    text = stringResource(R.string.action_wroteThemDownInstead),
+                    buttonState = ButtonState.Subtle,
+                    enabled = dataState.isEnabled,
+                    isPaddedVertical = false,
+                )
+            }
+        }
+
+        BackHandler {
+            BottomBarManager.showMessage(
+                BottomBarManager.BottomBarMessage(
+                    title = context.getString(R.string.prompt_title_exitAccountCreation),
+                    subtitle = context
+                        .getString(R.string.prompt_description_exitAccountCreation),
+                    positiveText = context.getString(R.string.action_exit),
+                    negativeText = context.getString(R.string.action_cancel),
+                    onPositive = { navigator.popAll() },
+                    onNegative = {}
+                )
             )
         }
-    }
 
-    BackHandler {
-        BottomBarManager.showMessage(
-            BottomBarManager.BottomBarMessage(
-                title = context.getString(R.string.prompt_title_exitAccountCreation),
-                subtitle = context
-                    .getString(R.string.prompt_description_exitAccountCreation),
-                positiveText = context.getString(R.string.action_exit),
-                negativeText = context.getString(R.string.action_cancel),
-                onPositive = { navigator.popAll() },
-                onNegative = {}
-            )
-        )
-    }
+        LaunchedEffect(viewModel) {
+            arguments.signInEntropy
+                ?.let { viewModel.initWithEntropy(it) }
+        }
 
-    LaunchedEffect(viewModel) {
-        arguments.signInEntropy
-            ?.let { viewModel.initWithEntropy(it) }
-    }
-
-    LaunchedEffect(dataState.accessKeyCroppedBitmap) {
-        isAccessKeyVisible.targetState = dataState.accessKeyCroppedBitmap != null
+        LaunchedEffect(dataState.accessKeyCroppedBitmap) {
+            isAccessKeyVisible.targetState = dataState.accessKeyCroppedBitmap != null
+        }
     }
 }
 
