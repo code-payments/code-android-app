@@ -32,11 +32,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
@@ -56,22 +59,25 @@ import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.components.SwipeableView
 import com.getcode.view.main.giveKin.CurrencyListItem
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun CurrencySelectionSheet(
     viewModel: CurrencyViewModel,
 ) {
     val navigator = LocalCodeNavigator.current
     val state by viewModel.stateFlow.collectAsState()
-
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val composeScope = rememberCoroutineScope()
     var searchQuery by remember {
         mutableStateOf(TextFieldValue())
     }
@@ -89,7 +95,11 @@ fun CurrencySelectionSheet(
             .map { it.currency }
             .distinctUntilChanged()
             .onEach {
-                navigator.hideWithResult(it)
+                composeScope.launch {
+                    keyboardController?.hide()
+                    delay(500)
+                    navigator.hideWithResult(it)
+                }
             }.launchIn(this)
     }
 
