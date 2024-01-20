@@ -8,6 +8,7 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.Re
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*
 import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
@@ -41,6 +42,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
@@ -65,8 +68,8 @@ class TransactionRepository @Inject constructor(
     var maxDeposit: Long = 0
 
     private var _transactionCache = MutableStateFlow<List<HistoricalTransaction>?>(null)
-    val transactionCache: Flow<List<HistoricalTransaction>?>
-        get() = _transactionCache
+    val transactionCache: StateFlow<List<HistoricalTransaction>?>
+        get() = _transactionCache.asStateFlow()
 
 
     fun setMaximumDeposit(deposit: Long) {
@@ -78,8 +81,9 @@ class TransactionRepository @Inject constructor(
     }
 
     fun clear() {
+        Timber.d("clearing transactions")
         maxDeposit = 0
-        _transactionCache.value = emptyList()
+        _transactionCache.value = null
     }
 
     fun createAccounts(organizer: Organizer): Single<IntentType> {
@@ -453,7 +457,10 @@ class TransactionRepository @Inject constructor(
             var after: ByteArray? = afterId
 
             while (true) {
-                val response = fetchPaymentHistoryPage(owner, after).blockingGet()
+                val response = runCatching {
+                    fetchPaymentHistoryPage(owner, after).blockingGet()
+                }.getOrDefault(emptyList())
+
                 if (response.isEmpty()) {
                     // let cache know we're empty here, if it's not initialized yet
                     if (_transactionCache.value == null) {
@@ -470,7 +477,7 @@ class TransactionRepository @Inject constructor(
             }
             container.reverse()
             it.onSuccess(container)
-        }.subscribeOn(Schedulers.io())
+        }.subscribeOn(Schedulers.io()).onErrorReturn { emptyList() }
     }
 
     private fun fetchPaymentHistoryPage(
@@ -527,9 +534,9 @@ class TransactionRepository @Inject constructor(
                         )
                     }.filterNotNull()
                 } else {
-                    listOf()
+                    emptyList()
                 }
-            }.doOnError { it.printStackTrace()  }
+            }
     }
 
     fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {

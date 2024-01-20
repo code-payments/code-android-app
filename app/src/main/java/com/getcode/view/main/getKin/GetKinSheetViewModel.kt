@@ -1,5 +1,6 @@
 package com.getcode.view.main.getKin
 
+import android.annotation.SuppressLint
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
@@ -7,6 +8,8 @@ import com.getcode.model.PrefsBool
 import com.getcode.models.Bill
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
+import com.getcode.network.client.fetchPaymentHistoryDelta
+import com.getcode.network.client.fetchTransactionLimits
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -17,6 +20,7 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel
 import com.getcode.view.main.home.HomeViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -54,6 +58,7 @@ class GetKinSheetViewModel @Inject constructor(
             }
     }
 
+    @SuppressLint("CheckResult")
     internal fun requestFirstKinAirdrop(upPress: () -> Unit = {}, homeViewModel: HomeViewModel) {
         if (!networkObserver.isConnected) {
             return ErrorUtils.showNetworkError(resources)
@@ -87,7 +92,10 @@ class GetKinSheetViewModel @Inject constructor(
 
                 prefsRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false) }
             .flatMapCompletable {
-                balanceController.fetchBalance()
+                Completable.concatArray(
+                    balanceController.fetchBalance(),
+                    client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!).ignoreElement()
+                )
             }
             .subscribe({}, {
                 uiFlow.update {model -> model.copy(isGetFirstKinAirdropLoading = false) }

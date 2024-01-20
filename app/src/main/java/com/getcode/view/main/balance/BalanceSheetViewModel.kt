@@ -89,6 +89,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         combine(
             exchange.observeRates()
+                .distinctUntilChanged()
                 .flowOn(Dispatchers.IO)
                 .map { getCurrency(it) }
                 .onEach {
@@ -106,12 +107,11 @@ class BalanceSheetViewModel @Inject constructor(
         }.map { (rate, balance) ->
             dispatchEvent(Dispatchers.Main, Event.OnLatestRateChanged(rate))
             refreshBalance(balance, rate.fx)
-        }.onEach { (marketValue, amountText) ->
+        }.distinctUntilChanged().onEach { (marketValue, amountText) ->
             dispatchEvent(Dispatchers.Main, Event.OnBalanceChanged(marketValue, amountText))
         }.launchIn(viewModelScope)
 
         client.historicalTransactions()
-            .flowOn(Dispatchers.IO)
             .onEach { Timber.d("trx=$it") }
             .map {
                 when {
@@ -120,6 +120,8 @@ class BalanceSheetViewModel @Inject constructor(
                     else -> it
                 }
             }
+            .distinctUntilChanged()
+            .map { it?.sortedByDescending { t -> t.date } }
             .mapNotNull { historical -> historical?.map { transaction ->
                 transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) }
             }

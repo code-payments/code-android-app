@@ -36,6 +36,8 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Singleton
 class AuthManager @Inject constructor(
@@ -154,11 +156,25 @@ class AuthManager @Inject constructor(
         AccountUtils.removeAccounts(activity)
             .doOnSuccess { res: Boolean ->
                 if (res) {
+                    // reset session state
+                    SessionManager.update { SessionManager.SessionState() }
                     clearToken()
                     onComplete()
                 }
             }
             .subscribe()
+    }
+
+    suspend fun logout(activity: Activity): Result<Unit> = suspendCoroutine { cont ->
+        AccountUtils.removeAccounts(activity)
+            .doOnSuccess { success ->
+                if (success) {
+                    // reset session state
+                    SessionManager.update { SessionManager.SessionState() }
+                    clearToken()
+                    cont.resume(Result.success(Unit))
+                }
+            }.doOnError { cont.resume(Result.failure(it)) }.subscribe()
     }
 
 
