@@ -201,7 +201,7 @@ internal fun PhoneVerify(
                 }
 
                 Text(
-                    modifier = Modifier,
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x2),
                     style = CodeTheme.typography.body2,
                     textAlign = TextAlign.Center,
                     color = BrandLight,

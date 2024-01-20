@@ -128,17 +128,23 @@ fun BackupKey(
         mutableStateOf(0.dp)
     }
 
-    val selectionState = rememberSelectionState(words = dataState.wordsFormatted)
+    val selectionState = rememberSelectionState(
+        words = dataState.words.joinToString(" ")
+    )
 
     AccessKeySelectionContainer(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(vertical = CodeTheme.dimens.grid.x4),
+            .windowInsetsPadding(WindowInsets.navigationBars),
         state = selectionState,
     ) {
-        Cloudy(modifier = Modifier.fillMaxSize(), enabled = selectionState.shown) {
+        Cloudy(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .padding(vertical = CodeTheme.dimens.grid.x4),
+            enabled = selectionState.shown
+        ) {
             Text(
                 modifier = Modifier
                     .padding(vertical = CodeTheme.dimens.grid.x2)

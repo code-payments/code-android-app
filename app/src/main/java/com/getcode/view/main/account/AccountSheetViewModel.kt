@@ -74,7 +74,7 @@ class AccountSheetViewModel @Inject constructor(
 
     // TODO: handle this differently
     fun logout(activity: Activity) {
-        authManager.logout(activity)
+        authManager.logout(activity, onComplete = {})
     }
 
     init {
