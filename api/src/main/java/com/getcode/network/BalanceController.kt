@@ -28,6 +28,9 @@ class BalanceController @Inject constructor(
 
     fun observe(): Flow<Double> = balanceRepository.balanceFlow
 
+    val balance: Double
+        get() = balanceRepository.balanceFlow.value
+
     fun setTray(organizer: Organizer, tray: Tray) {
         organizer.set(tray)
         balanceRepository.setBalance(organizer.availableBalance.toKinTruncatingLong().toDouble())
