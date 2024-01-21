@@ -295,12 +295,6 @@ class AnalyticsManager @Inject constructor(
         VoidingSend("Voiding Send"),
 
         PercentDelta("Percent Delta"),
-
-    }
-
-    enum class ValidationType(val value: String) {
-        Transfer("Transfer"),
-        CreateAccount("Create Account")
     }
 
     enum class Screen(val value: String) {
@@ -316,7 +310,6 @@ class AnalyticsManager @Inject constructor(
         Withdraw("Withdraw Screen"),
         Debug("Debug Screen"),
         ForceUpgrade("Force Upgrade"),
-        None("NONE"),
     }
 
     enum class BillPresentationStyle(val value: String) {

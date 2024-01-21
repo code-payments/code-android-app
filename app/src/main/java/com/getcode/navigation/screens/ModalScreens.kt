@@ -39,6 +39,11 @@ data object BuySellScreen : MainGraph, ModalContent {
         ModalContainer(backButton = { it is BuySellScreen }) {
             BuyAndSellKin(getViewModel())
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.BuyAndSellKin
+        )
     }
 }
 
@@ -97,6 +102,11 @@ data object AccountDebugOptionsScreen : MainGraph, ModalContent {
         ModalContainer(backButton = { it is AccountDebugOptionsScreen }) {
             BetaFlagsScreen(getViewModel())
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.Debug
+        )
     }
 }
 
