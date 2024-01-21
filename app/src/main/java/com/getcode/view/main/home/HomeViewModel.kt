@@ -10,9 +10,10 @@ import cafe.adriel.voyager.core.model.ScreenModel
 import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
+import com.getcode.analytics.AnalyticsManager
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
@@ -153,7 +154,7 @@ class HomeViewModel @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
     private val prefRepository: PrefRepository,
-    private val analyticsManager: AnalyticsManager,
+    private val analytics: AnalyticsService,
     private val authManager: AuthManager,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
@@ -294,7 +295,6 @@ class HomeViewModel @Inject constructor(
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true),
-                        client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!).ignoreElement()
                     )
                 }
                 .subscribe({
@@ -313,7 +313,7 @@ class HomeViewModel @Inject constructor(
             billDismissTimer?.cancel()
             billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
                 cancelSend()
-                analyticsManager.billTimeoutReached(
+                analytics.billTimeoutReached(
                     bill.amount.kin,
                     bill.amount.rate.currency,
                     AnalyticsManager.BillPresentationStyle.Slide
@@ -357,7 +357,7 @@ class HomeViewModel @Inject constructor(
             }
 
             if (style is PresentationStyle.Visible) {
-                analyticsManager.billShown(
+                analytics.billShown(
                     bill.amountFloored.kin,
                     bill.amountFloored.rate.currency,
                     when (style) {
@@ -568,7 +568,7 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        analyticsManager.requestShown(amount = amount)
+        analytics.requestShown(amount = amount)
 
         if (DEBUG_SCAN_TIMES) {
             Timber.tag("codescan")
@@ -658,7 +658,7 @@ class HomeViewModel @Inject constructor(
         val amount = bill.amount
         val request = bill.metadata.request
 
-        analyticsManager.requestHidden(amount = amount)
+        analytics.requestHidden(amount = amount)
 
         if (rejected) {
             if (!ignoreRedirect) {
@@ -782,7 +782,7 @@ class HomeViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     private fun attemptReceive(organizer: Organizer, payload: CodePayload) {
-        analyticsManager.grabStart()
+        analytics.grabStart()
         receiveTransactionRepository.start(organizer, payload.rendezvous)
             .doOnNext { metadata ->
                 Timber.d("metadata=$metadata")
@@ -792,7 +792,7 @@ class HomeViewModel @Inject constructor(
                     else -> return@doOnNext
                 }
 
-                analyticsManager.grab(kin = kinAmount.kin, currencyCode = kinAmount.rate.currency)
+                analytics.grab(kin = kinAmount.kin, currencyCode = kinAmount.rate.currency)
 
                 val exchangeCurrency = kinAmount.rate.currency.name
                 val exchangeRate = kinAmount.rate.fx
@@ -818,7 +818,6 @@ class HomeViewModel @Inject constructor(
                 Completable.concatArray(
                     balanceController.fetchBalance(),
                     client.fetchLimits(isForce = true),
-                    client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!).ignoreElement()
                 )
             }
             .subscribe({ }, {
@@ -828,7 +827,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onCashLinkGrabStart() {
-        analyticsManager.cashLinkGrabStart()
+        analytics.cashLinkGrabStart()
     }
 
     fun startScan(view: KikCodeScannerView) {
@@ -947,6 +946,10 @@ class HomeViewModel @Inject constructor(
                 loadingIndicatorTimer = Timer().schedule(1000) {
                     uiFlow.update { it.copy(isRemoteSendLoading = false) }
                 }
+                analytics.remoteSendOutgoing(
+                    kin = amount.kin,
+                    currencyCode = amount.rate.currency
+                )
             }
             .doOnError {
                 loadingIndicatorTimer?.cancel()
@@ -959,9 +962,14 @@ class HomeViewModel @Inject constructor(
             )
     }
 
-    private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) {
-        val organizer = SessionManager.getOrganizer() ?: return
+    private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) = viewModelScope.launch {
+        val organizer = SessionManager.getOrganizer() ?: return@launch
         client.cancelRemoteSend(giftCard, amount.kin, organizer)
+        analytics.remoteSendIncoming(
+            kin = amount.kin,
+            currencyCode = amount.rate.currency,
+            isVoiding = true
+        )
     }
 
     private fun showRemoteSendDialog(
@@ -1045,8 +1053,13 @@ class HomeViewModel @Inject constructor(
                         try {
                             //Get the amount on the card
                             val amount = client.receiveRemoteSuspend(giftCardAccount)
-                            analyticsManager.cashLinkGrab(amount.kin, amount.rate.currency)
-                            analyticsManager.onBillReceived()
+                            analytics.remoteSendIncoming(
+                                kin = amount.kin,
+                                currencyCode = amount.rate.currency,
+                                isVoiding = false
+                            )
+                            analytics.cashLinkGrab(amount.kin, amount.rate.currency)
+                            analytics.onBillReceived()
                             viewModelScope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()
                                 showBill(
@@ -1106,7 +1119,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onDrawn() {
-        analyticsManager.onAppStarted()
+        analytics.onAppStarted()
     }
 
     private fun setDeepLinkHandled(withDelay: Long = 2000) {

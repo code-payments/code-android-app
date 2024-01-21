@@ -199,17 +199,21 @@ suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
         return@withContext kinAmount
     }
 
-fun Client.cancelRemoteSend(
+@SuppressLint("CheckResult")
+suspend fun Client.cancelRemoteSend(
     giftCard: GiftCardAccount,
     amount: Kin,
     organizer: Organizer
-) {
+): Double {
     transactionReceiver.receiveRemotely(
         amount = amount,
         organizer = organizer,
         giftCard = giftCard,
         isVoiding = true
-    )
+    ).blockingAwait()
+
+    balanceController.fetchBalanceSuspend()
+    return balanceController.balance
 }
 
 
