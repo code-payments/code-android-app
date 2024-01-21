@@ -7,6 +7,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
@@ -21,11 +22,13 @@ import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.getActivity
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 const val AUTH_NAV = "Authentication Navigation"
@@ -47,6 +50,7 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
+        Timber.tag(AUTH_NAV).d("authenticated=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
             //Allow the seed input screen to complete and avoid
             //premature navigation
@@ -72,7 +76,9 @@ fun AuthCheck(
 
     val context = LocalContext.current
     deeplinkHandler ?: return
+
     LaunchedEffect(deeplinkHandler) {
+        val scope = this
         deeplinkHandler.intent
             .filterNotNull()
             .onEach {
@@ -96,7 +102,20 @@ fun AuthCheck(
                             deeplinkRouted = true
                             context.getActivity()?.intent = null
                             deeplinkHandler.debounceIntent = null
-                            showLogoutMessage(context, entropy, onSwitchAccounts)
+                            showLogoutMessage(
+                                context = context,
+                                entropyB64 = entropy,
+                                onSwitchAccounts = {
+                                    scope.launch {
+                                        delay(300)
+                                        onSwitchAccounts(it)
+                                        deeplinkRouted = false
+                                    }
+                                },
+                                onCancel = {
+                                    deeplinkRouted = false
+                                }
+                            )
                             return@mapNotNull null
                         }
                     }
@@ -117,7 +136,8 @@ fun AuthCheck(
 private fun showLogoutMessage(
     context: Context,
     entropyB64: String,
-    onSwitchAccounts: (String) -> Unit
+    onSwitchAccounts: (String) -> Unit,
+    onCancel: () -> Unit,
 ) {
     BottomBarManager.showMessage(
         BottomBarManager.BottomBarMessage(
@@ -129,7 +149,7 @@ private fun showLogoutMessage(
             onPositive = {
                 onSwitchAccounts(entropyB64)
             },
-            onNegative = { }
+            onNegative = { onCancel() }
         )
     )
 }
