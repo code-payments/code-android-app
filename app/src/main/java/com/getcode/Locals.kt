@@ -2,8 +2,8 @@ package com.getcode
 
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.getcode.manager.AnalyticsService
-import com.getcode.manager.AnalyticsServiceNull
+import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils

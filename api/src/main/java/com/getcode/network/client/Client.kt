@@ -1,7 +1,7 @@
 package com.getcode.network.client
 
 import android.content.Context
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
@@ -12,7 +12,6 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -33,7 +32,7 @@ class Client @Inject constructor(
     internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
-    internal val analyticsManager: AnalyticsManager,
+    internal val analyticsManager: AnalyticsService,
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,

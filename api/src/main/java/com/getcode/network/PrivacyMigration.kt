@@ -1,10 +1,9 @@
 package com.getcode.network
 
 import android.content.Context
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentType
-import com.getcode.network.client.Client
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.organizer.Organizer
 import io.reactivex.rxjava3.core.Single
@@ -15,7 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class PrivacyMigration @Inject constructor(
     internal val transactionRepository: TransactionRepository,
-    private val analyticsManager: AnalyticsManager,
+    private val analyticsManager: AnalyticsService,
 ) {
 
     fun migrateToPrivacy(

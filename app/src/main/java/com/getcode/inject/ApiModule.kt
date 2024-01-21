@@ -2,7 +2,7 @@ package com.getcode.inject
 
 import android.content.Context
 import com.getcode.BuildConfig
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
@@ -131,7 +131,7 @@ object ApiModule {
         messagingRepository: MessagingRepository,
         accountRepository: AccountRepository,
         balanceController: BalanceController,
-        analyticsManager: AnalyticsManager,
+        analytics: AnalyticsService,
         prefRepository: PrefRepository,
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
@@ -143,7 +143,7 @@ object ApiModule {
             messagingRepository,
             balanceController,
             accountRepository,
-            analyticsManager,
+            analytics,
             prefRepository,
             exchange,
             transactionReceiver,
@@ -155,11 +155,11 @@ object ApiModule {
     @Provides
     fun providePrivacyMigration(
         transactionRepository: TransactionRepository,
-        analyticsManager: AnalyticsManager,
+        analytics: AnalyticsService,
     ): PrivacyMigration {
         return PrivacyMigration(
             transactionRepository,
-            analyticsManager
+            analytics
         )
     }
 

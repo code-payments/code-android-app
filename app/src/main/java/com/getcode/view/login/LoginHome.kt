@@ -37,6 +37,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
@@ -53,9 +54,7 @@ import kotlinx.coroutines.launch
 
 @Preview
 @Composable
-fun LoginHome(
-    viewModel: LoginViewModel = hiltViewModel()
-) {
+fun LoginHome() {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
 
@@ -191,11 +190,11 @@ fun LoginHome(
     }
 
     val focusManager = LocalFocusManager.current
-
+    val analytics = LocalAnalytics.current
     val scope = rememberCoroutineScope()
     DisposableEffect(Unit) {
         focusManager.clearFocus()
-        viewModel.onInit()
+        analytics.onAppStarted()
         scope.launch {
             delay(750)
             show = false

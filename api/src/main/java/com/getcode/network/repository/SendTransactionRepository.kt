@@ -2,7 +2,7 @@ package com.getcode.network.repository
 
 import android.content.Context
 import com.getcode.ed25519.Ed25519
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.model.*
 import com.getcode.network.client.*
@@ -13,12 +13,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject
-import kotlin.random.Random
 
 
 class SendTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
-    private val analyticsManager: AnalyticsManager,
+    private val analyticsManager: AnalyticsService,
     private val client: Client,
     @ApplicationContext private val context: Context
 ) {

@@ -13,19 +13,17 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsManager
 import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.getActivityScopedViewModel
-import com.getcode.util.getStackScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
-import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterNotNull
@@ -36,9 +34,9 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import timber.log.Timber
 
-sealed interface GiveResult {
-    data class Bill(val bill: com.getcode.models.Bill): GiveResult
-    data class Request(val amount: KinAmount): GiveResult
+sealed interface HomeResult {
+    data class Bill(val bill: com.getcode.models.Bill): HomeResult
+    data class Request(val amount: KinAmount): HomeResult
 }
 
 @Parcelize
@@ -54,13 +52,13 @@ data class HomeScreen(
         val vm = getActivityScopedViewModel<HomeViewModel>()
         HomeScreen(vm, cashLink, requestPayload)
 
-        OnScreenResult<GiveResult> { result ->
+        OnScreenResult<HomeResult> { result ->
             when (result) {
-                is GiveResult.Bill -> {
+                is HomeResult.Bill -> {
                     Timber.d("onShowBill=${result.bill.amount.fiat}")
                     vm.showBill(result.bill)
                 }
-                is GiveResult.Request -> {
+                is HomeResult.Request -> {
                     Timber.d("presentRequest=${result.amount.fiat}")
                     vm.presentRequest(amount = result.amount, payload = null, request = null)
                 }
@@ -88,8 +86,13 @@ data object GetKinModal : MainGraph, ModalRoot {
                 }
             },
         ) {
-            GetKinSheet(getViewModel(), getActivityScopedViewModel())
+            GetKinSheet(getViewModel())
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.GetKin
+        )
     }
 }
 

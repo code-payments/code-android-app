@@ -51,7 +51,7 @@ dependencies {
     implementation(Libs.rxjava)
     api(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_coroutines_core)
-    implementation(Libs.kotlinx_coroutines_rx3)
+    api(Libs.kotlinx_coroutines_rx3)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)
 

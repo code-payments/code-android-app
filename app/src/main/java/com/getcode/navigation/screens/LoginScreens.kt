@@ -4,7 +4,6 @@ import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
@@ -43,7 +42,7 @@ data class LoginScreen(val seed: String? = null) : LoginGraph {
         if (seed != null) {
             SeedDeepLink(getViewModel(), seed)
         } else {
-            LoginHome(getViewModel())
+            LoginHome()
         }
     }
 }

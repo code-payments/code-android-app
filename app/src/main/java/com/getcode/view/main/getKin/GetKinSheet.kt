@@ -1,6 +1,5 @@
 package com.getcode.view.main.getKin
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -25,17 +24,24 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.lifecycle.Lifecycle
 import com.getcode.R
+import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuySellScreen
+import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.ReferFriendScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.addIf
 import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeCircularProgressIndicator
-import com.getcode.view.main.home.HomeViewModel
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 
 data class GetKinItem(
     val imageResId: Int,
@@ -52,10 +58,9 @@ data class GetKinItem(
 @Composable
 fun GetKinSheet(
     viewModel: GetKinSheetViewModel,
-    homeViewModel: HomeViewModel
 ) {
     val navigator = LocalCodeNavigator.current
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.stateFlow.collectAsState()
 
     val items = listOf(
         GetKinItem(
@@ -72,7 +77,7 @@ fun GetKinSheet(
                     return@GetKinItem
                 }
 
-                viewModel.requestFirstKinAirdrop({ navigator.hide() }, homeViewModel)
+                viewModel.dispatchEvent(GetKinSheetViewModel.Event.RequestedFirstKin)
             },
         ),
         GetKinItem(
@@ -90,8 +95,6 @@ fun GetKinSheet(
                 }
 
                 navigator.push(ReferFriendScreen)
-//                navigator.push()
-//                navController.navigate(SheetSections.REFER_FRIEND.route)
             },
         ),
         GetKinItem(
@@ -107,6 +110,23 @@ fun GetKinSheet(
             },
         ),
     )
+
+    RepeatOnLifecycle(Lifecycle.State.RESUMED) {
+        viewModel.eventFlow
+            .filterIsInstance<GetKinSheetViewModel.Event.OnKinReadyToGrab>()
+            .map { it.amount }
+            .onEach {
+                navigator.hideWithResult(
+                    HomeResult.Bill(
+                        Bill.Cash(
+                            kind = Bill.Kind.firstKin,
+                            amount = it,
+                            didReceive = true
+                        )
+                    )
+                )
+            }.launchIn(this)
+    }
 
     ConstraintLayout(
         modifier = Modifier
@@ -172,7 +192,10 @@ fun GetKinSheet(
                             ) {
                                 Modifier.rememberedClickable { item.onClick() }
                             }
-                            .padding(vertical = CodeTheme.dimens.grid.x4, horizontal = CodeTheme.dimens.grid.x2),
+                            .padding(
+                                vertical = CodeTheme.dimens.grid.x4,
+                                horizontal = CodeTheme.dimens.grid.x2
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Image(
@@ -228,11 +251,6 @@ fun GetKinSheet(
                     .height(1.dp)
                     .background(White05),
             )
-
-            // TODO: need a better way to reload model
-            AnimatedVisibility(visible = true) {
-                viewModel.reset()
-            }
         }
     }
 }
