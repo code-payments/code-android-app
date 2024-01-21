@@ -12,7 +12,7 @@ import com.getcode.LocalCurrencyUtils
 import com.getcode.LocalDeeplinks
 import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.client.Client
@@ -43,7 +43,7 @@ class MainActivity : FragmentActivity() {
     lateinit var client: Client
 
     @Inject
-    lateinit var analyticsManager: AnalyticsManager
+    lateinit var analyticsManager: AnalyticsService
 
     @Inject
     lateinit var deeplinkHandler: DeeplinkHandler

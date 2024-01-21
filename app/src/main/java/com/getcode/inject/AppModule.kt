@@ -8,6 +8,8 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
+import com.getcode.analytics.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidPermissions
 import com.getcode.util.AndroidResources
@@ -23,6 +25,7 @@ import com.getcode.utils.network.Api22NetworkObserver
 import com.getcode.utils.network.Api23NetworkObserver
 import com.getcode.utils.network.Api29NetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,6 +47,10 @@ object AppModule {
         currencyUtils: CurrencyUtils,
     ): LocaleHelper = AndroidLocale(context, currencyUtils)
 
+    @Provides
+    fun providesAnalyticsService(
+        mixpanelAPI: MixpanelAPI
+    ): AnalyticsService = AnalyticsManager(mixpanelAPI)
 
     @Provides
     fun providesWifiManager(

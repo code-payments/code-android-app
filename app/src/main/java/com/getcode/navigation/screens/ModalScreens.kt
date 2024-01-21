@@ -8,7 +8,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.getActivityScopedViewModel
 import com.getcode.util.getStackScopedViewModel

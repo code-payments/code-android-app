@@ -4,7 +4,7 @@ import android.app.Activity
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.PhoneRepository
@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 import javax.inject.Inject
@@ -47,7 +46,7 @@ enum class AccountPage {
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val prefRepository: PrefRepository,
-    private val analyticsManager: AnalyticsManager,
+    private val analytics: AnalyticsService,
     phoneRepository: PhoneRepository,
 ) : BaseViewModel2<AccountSheetViewModel.State, AccountSheetViewModel.Event>(
     initialState = State(),
@@ -98,21 +97,6 @@ class AccountSheetViewModel @Inject constructor(
             .map { stateFlow.value.isDebug }
             .onEach {
                 prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, !it)
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.Navigate>()
-            .map { it.page }
-            .mapNotNull { page ->
-                when (page) {
-                    AccountPage.DEPOSIT -> AnalyticsManager.Screen.Deposit
-                    AccountPage.WITHDRAW -> AnalyticsManager.Screen.Withdraw
-                    AccountPage.ACCESS_KEY -> AnalyticsManager.Screen.Backup
-                    AccountPage.FAQ -> AnalyticsManager.Screen.Faq
-                    else -> null
-                }
-            }.onEach {
-                analyticsManager.open(it)
             }.launchIn(viewModelScope)
     }
 

@@ -1,9 +1,11 @@
 package com.getcode.manager
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.BuildConfig
+import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
@@ -12,7 +14,6 @@ import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
-import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
@@ -22,7 +23,6 @@ import com.getcode.network.repository.encodeBase64
 import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,7 +31,6 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -50,12 +49,11 @@ class AuthManager @Inject constructor(
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val inMemoryDao: InMemoryDao,
-    private val analyticsManager: AnalyticsManager,
-    private val client: Client,
-    private val resources: ResourceHelper,
+    private val analytics: AnalyticsService,
 ): CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
+    @SuppressLint("CheckResult")
     fun init(activity: Activity) {
         AccountUtils
             .getToken(activity)
@@ -221,7 +219,7 @@ class AuthManager @Inject constructor(
     private fun loginAnalytics(entropyB64: String) {
         val owner = MnemonicPhrase.fromEntropyB64(context, entropyB64)
             .getSolanaKeyPair(context)
-        analyticsManager.login(
+        analytics.login(
             ownerPublicKey = owner.getPublicKeyBase58(),
             autoCompleteCount = 0,
             inputChangeCount = 0
@@ -230,7 +228,7 @@ class AuthManager @Inject constructor(
 
     private fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
-        analyticsManager.logout()
+        analytics.logout()
         sessionManager.clear()
         Database.close()
         inMemoryDao.clear()

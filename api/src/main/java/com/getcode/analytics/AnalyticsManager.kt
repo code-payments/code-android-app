@@ -1,4 +1,4 @@
-package com.getcode.manager
+package com.getcode.analytics
 
 import com.getcode.api.BuildConfig
 import com.getcode.model.CurrencyCode
@@ -15,30 +15,28 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-interface AnalyticsService {
-    fun open(screen: AnalyticsManager.Screen)
-    fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int)
-    fun logout()
-    fun track(event: AnalyticsManager.Name, vararg properties: Pair<AnalyticsManager.Property, String>)
-}
-
-class AnalyticsServiceNull : AnalyticsService {
-    override fun open(screen: AnalyticsManager.Screen) = Unit
-
-    override fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int) = Unit
-
-    override fun logout() = Unit
-
-    override fun track(
-        event: AnalyticsManager.Name,
-        vararg properties: Pair<AnalyticsManager.Property, String>
-    ) = Unit
-}
-
 @Singleton
-class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI): AnalyticsService {
+class AnalyticsManager @Inject constructor(
+    private val mixpanelAPI: MixpanelAPI
+) : AnalyticsService {
     private var grabStartMillis: Long = 0L
     private var cashLinkGrabStartMillis: Long = 0L
+
+    private var traceAppInit: Trace? = null
+    private var timeAppInit: Long? = null
+
+    override fun onAppStart() {
+        timeAppInit = System.currentTimeMillis()
+        traceAppInit = Firebase.performance.newTrace("Init")
+        traceAppInit?.start()
+    }
+
+    override fun onAppStarted() {
+        traceAppInit ?: return
+        traceAppInit?.stop()
+        traceAppInit = null
+        Timber.i("App init time: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
+    }
 
     override fun open(screen: Screen) {
         track(Name.Open, Pair(Property.Screen, screen.value))
@@ -57,7 +55,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?) {
+    override fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?) {
         track(
             Name.CreateAccount,
             Pair(Property.Result, isSuccessful.toString()),
@@ -65,7 +63,11 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun billTimeoutReached(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
+    override fun billTimeoutReached(
+        kin: Kin,
+        currencyCode: CurrencyCode,
+        animation: BillPresentationStyle
+    ) {
         track(
             Name.Bill,
             Pair(Property.State, StringValue.TimedOut.value),
@@ -75,7 +77,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun billShown(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
+    override fun billShown(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
         track(
             Name.Bill,
             Pair(Property.State, StringValue.Shown.value),
@@ -85,7 +87,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun billHidden(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
+    override fun billHidden(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
         track(
             Name.Bill,
             Pair(Property.State, StringValue.Hidden.value),
@@ -95,7 +97,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun transfer(amount: KinAmount, successful: Boolean) {
+    override fun transfer(amount: KinAmount, successful: Boolean) {
         track(
             Name.Transfer,
             Property.State to if (successful) StringValue.Success.value else StringValue.Failure.value,
@@ -106,7 +108,35 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun recomputed(fxIn: Double, fxOut: Double) {
+    override fun transferForRequest(amount: KinAmount, successful: Boolean) {
+        track(
+            Name.RequestPayment,
+            Property.State to if (successful) StringValue.Success.value else StringValue.Failure.value,
+            Property.Amount to amount.kin.toKin().toInt().toString(),
+            Property.Fiat to amount.fiat.toString(),
+            Property.Fx to amount.rate.fx.toString(),
+            Property.Currency to amount.rate.currency.name,
+        )
+    }
+
+    override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) {
+        track(
+            Name.RemoteSendOutgoing,
+            Property.Amount to kin.toKin().toInt().toString(),
+            Property.Currency to currencyCode.name
+        )
+    }
+
+    override fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean) {
+        track(
+            Name.RemoteSendIncoming,
+            Property.VoidingSend to if (isVoiding) StringValue.Yes.value else StringValue.No.value,
+            Property.Amount to kin.toKin().toInt().toString(),
+            Property.Currency to currencyCode.name
+        )
+    }
+
+    override fun recomputed(fxIn: Double, fxOut: Double) {
         val delta = ((fxOut / fxIn) - 1) * 100
         track(
             Name.Recompute,
@@ -114,11 +144,11 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun grabStart() {
+    override fun grabStart() {
         grabStartMillis = System.currentTimeMillis()
     }
 
-    fun grab(kin: Kin, currencyCode: CurrencyCode) {
+    override fun grab(kin: Kin, currencyCode: CurrencyCode) {
         if (grabStartMillis == 0L) return
         val millisecondsToGrab = System.currentTimeMillis() - grabStartMillis
         track(
@@ -130,7 +160,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         grabStartMillis = 0
     }
 
-    fun requestShown(amount: KinAmount) {
+    override fun requestShown(amount: KinAmount) {
         track(
             Name.Request,
             Property.State to StringValue.Shown.value,
@@ -140,7 +170,7 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun requestHidden(amount: KinAmount) {
+    override fun requestHidden(amount: KinAmount) {
         track(
             Name.Request,
             Property.State to StringValue.Hidden.value,
@@ -150,11 +180,11 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         )
     }
 
-    fun cashLinkGrabStart() {
+    override fun cashLinkGrabStart() {
         cashLinkGrabStartMillis = System.currentTimeMillis()
     }
 
-    fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode) {
+    override fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode) {
         if (cashLinkGrabStartMillis == 0L) return
         val millisecondsToGrab = System.currentTimeMillis() - cashLinkGrabStartMillis
         track(
@@ -166,43 +196,30 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         cashLinkGrabStartMillis = 0
     }
 
-    fun migration(amount: Kin) {
+    override fun migration(amount: Kin) {
         track(
             Name.PrivacyMigration,
             Pair(Property.Amount, amount.toKin().toInt().toString())
         )
     }
 
-    fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) {
+    override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) {
         track(
             Name.UpgradePrivacy,
-            Pair(Property.State, if (successful) StringValue.Success.value else StringValue.Failure.value),
+            Pair(
+                Property.State,
+                if (successful) StringValue.Success.value else StringValue.Failure.value
+            ),
             Pair(Property.IntentId, intentId.base58()),
             Pair(Property.ActionCount, actionCount.toString())
         )
     }
 
-    private var traceAppInit: Trace? = null
-    private var timeAppInit: Long? = null
-
-    fun onAppStart() {
-        timeAppInit = System.currentTimeMillis()
-        traceAppInit = Firebase.performance.newTrace("Init")
-        traceAppInit?.start()
-    }
-
-    fun onAppStarted() {
-        traceAppInit ?: return
-        traceAppInit?.stop()
-        traceAppInit = null
-        Timber.i("App init time: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
-    }
-
-    fun onBillReceived() {
+    override fun onBillReceived() {
         Timber.i("Bill scanned. From start: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
     }
 
-    override fun track(event: Name, vararg properties: Pair<Property, String>) {
+    private fun track(event: Name, vararg properties: Pair<Property, String>) {
         if (BuildConfig.DEBUG) {
             Timber.d("debug track $event, ${properties.map { "${it.first.name}, ${it.second}" }}")
             return
@@ -231,14 +248,16 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         //Transfer
         Transfer("Transfer"),
         RequestPayment("Request Payment"),
+        RemoteSendOutgoing("Remote Send Outgoing"),
+        RemoteSendIncoming("Remote Send Incoming"),
         Grab("Grab"),
         CashLinkGrab("CashLinkGrab"),
-        Validation("Validation"),
-
-        PrivacyMigration("Privacy Migration"),
         UpgradePrivacy("Upgrade Privacy"),
-        ErrorRequest("Error Request"),
+        ClaimGetFreeKin("Claim Get Free Kin"),
+        PrivacyMigration("Privacy Migration"),
 
+        // Errors
+        ErrorRequest("Error Request"),
 
         Recompute("Recompute"),
     }
@@ -271,6 +290,9 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
         // Privacy Upgrade
         IntentId("Intent ID"),
         ActionCount("Action Count"),
+
+        // Remote Send
+        VoidingSend("Voiding Send"),
 
         PercentDelta("Percent Delta"),
 
@@ -305,6 +327,8 @@ class AnalyticsManager @Inject constructor(private val mixpanelAPI: MixpanelAPI)
     enum class StringValue(val value: String) {
         Success("Success"),
         Failure("Failure"),
+        Yes("Yes"),
+        No("No"),
         Shown("Shown"),
         Hidden("Hidden"),
         TimedOut("Timed Out"),

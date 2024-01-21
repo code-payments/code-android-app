@@ -2,13 +2,11 @@ package com.getcode.view.login
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.os.Build
-import androidx.core.content.ContextCompat
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.getcode.App
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.core.CodeNavigator
@@ -28,7 +26,7 @@ import java.util.concurrent.TimeUnit
 @HiltViewModel
 class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
-    private val analyticsManager: AnalyticsManager,
+    private val analytics: AnalyticsService,
     private val permissions: PermissionChecker,
     resources: ResourceHelper,
 ) : BaseAccessKeyViewModel(resources) {
@@ -63,7 +61,7 @@ class AccessKeyViewModel @Inject constructor(
                 },
                 {
                     onSubmitError(it)
-                    analyticsManager.createAccount(false, null)
+                    analytics.createAccount(false, null)
                     uiFlow.value = uiFlow.value.copy(isLoading = false)
                     navigator.replaceAll(LoginScreen())
                 }
@@ -73,7 +71,7 @@ class AccessKeyViewModel @Inject constructor(
     private fun onComplete(navigator: CodeNavigator, entropyB64: String) {
         val owner = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64)
             .getSolanaKeyPair(App.getInstance())
-        analyticsManager.createAccount(true, owner.getPublicKeyBase58())
+        analytics.createAccount(true, owner.getPublicKeyBase58())
 
         val cameraPermissionDenied = permissions.isDenied(Manifest.permission.CAMERA)
 
