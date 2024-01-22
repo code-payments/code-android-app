@@ -53,20 +53,20 @@ fun CodeApp() {
                 backgroundColor = Brand,
                 scaffoldState = appState.scaffoldState
             ) { innerPaddingModifier ->
+                val codeNavigator = LocalCodeNavigator.current
+                var replacingStackFromDeepLink by remember {
+                    mutableStateOf(false)
+                }
+
                 Navigator(
                     screen = MainRoot,
                 ) { navigator ->
-                    val codeNavigator = LocalCodeNavigator.current
                     appState.navigator = codeNavigator
 
                     LaunchedEffect(navigator.lastItem) {
                         // update global navigator for platform access to support push/pop from a single
                         // navigator current
                         codeNavigator.screensNavigator = navigator
-                    }
-
-                    var replacingStackFromDeepLink by remember {
-                        mutableStateOf(false)
                     }
 
                     val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
@@ -97,23 +97,23 @@ fun CodeApp() {
                             }
                         }
                     }
+                }
 
-                    //Listen for authentication changes here
-                    AuthCheck(
-                        navigator = codeNavigator,
-                        onNavigate = { screens, fromDeeplink ->
-                            replacingStackFromDeepLink = fromDeeplink
-                            codeNavigator.replaceAll(screens, inSheet = false)
-                        },
-                        onSwitchAccounts = { seed ->
-                            activity?.let {
-                                tlvm.logout(it) {
-                                    appState.navigator.replaceAll(LoginScreen(seed))
-                                }
+                //Listen for authentication changes here
+                AuthCheck(
+                    navigator = codeNavigator,
+                    onNavigate = { screens, fromDeeplink ->
+                        replacingStackFromDeepLink = fromDeeplink
+                        codeNavigator.replaceAll(screens, inSheet = false)
+                    },
+                    onSwitchAccounts = { seed ->
+                        activity?.let {
+                            tlvm.logout(it) {
+                                appState.navigator.replaceAll(LoginScreen(seed))
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
 

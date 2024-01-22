@@ -154,8 +154,6 @@ class AuthManager @Inject constructor(
         AccountUtils.removeAccounts(activity)
             .doOnSuccess { res: Boolean ->
                 if (res) {
-                    // reset session state
-                    SessionManager.update { SessionManager.SessionState() }
                     clearToken()
                     onComplete()
                 }
@@ -167,8 +165,6 @@ class AuthManager @Inject constructor(
         AccountUtils.removeAccounts(activity)
             .doOnSuccess { success ->
                 if (success) {
-                    // reset session state
-                    SessionManager.update { SessionManager.SessionState() }
                     clearToken()
                     cont.resume(Result.success(Unit))
                 }
