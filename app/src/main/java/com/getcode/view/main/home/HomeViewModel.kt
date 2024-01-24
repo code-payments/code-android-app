@@ -295,6 +295,7 @@ class HomeViewModel @Inject constructor(
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true),
+                        client.fetchPaymentHistoryDelta(owner).ignoreElement()
                     )
                 }
                 .subscribe({
@@ -818,6 +819,7 @@ class HomeViewModel @Inject constructor(
                 Completable.concatArray(
                     balanceController.fetchBalance(),
                     client.fetchLimits(isForce = true),
+                    client.fetchPaymentHistoryDelta(organizer.ownerKeyPair).ignoreElement()
                 )
             }
             .subscribe({ }, {

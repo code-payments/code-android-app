@@ -195,6 +195,9 @@ suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
         )
 
         balanceController.fetchBalanceSuspend()
+        transactionRepository.fetchPaymentHistoryDelta(organizer.ownerKeyPair)
+            .ignoreElement()
+            .subscribe()
 
         return@withContext kinAmount
     }
