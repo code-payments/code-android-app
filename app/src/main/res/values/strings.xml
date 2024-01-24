@@ -286,4 +286,11 @@
     <string name="beta_vibrate_on_scan_description">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
     <string name="beta_scan_times_description">If enabled, the device will log additional processing information while grabbing bills.</string>
     <string name="beta_give_requests_description">If enabled, Give Kin screen will show requests for entered amounts instead of cash bills.</string>
+
+    <string name="title_chat_payments">Web Payments</string>
+    <string name="title_chat_cashTransactions">Cash Payments</string>
+    <string name="title_chat_codeTeam">Code Team</string>
+    <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
+    <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
+
 </resources>

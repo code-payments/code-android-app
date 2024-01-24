@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
@@ -15,7 +14,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
-import com.getcode.utils.catchSafely
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -23,28 +21,19 @@ import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.cancellable
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.rx3.asFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.*
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
@@ -213,7 +202,7 @@ suspend fun Client.cancelRemoteSend(
     ).blockingAwait()
 
     balanceController.fetchBalanceSuspend()
-    return balanceController.balance
+    return balanceController.rawBalance
 }
 
 

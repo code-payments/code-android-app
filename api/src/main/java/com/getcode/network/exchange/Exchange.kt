@@ -150,7 +150,6 @@ class Exchange @Inject constructor(
         currencyApi.getRates()
             .let { networkOracle.managedRequest(it) }
             .subscribe({ response ->
-                Timber.d("rates=${response.ratesMap.count()}")
                 val rates = response.ratesMap.mapNotNull { (key, value) ->
                     val currency = CurrencyCode.tryValueOf(key) ?: return@mapNotNull null
                     Rate(fx = value, currency = currency)

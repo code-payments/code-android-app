@@ -140,7 +140,7 @@ data object BalanceModal : MainGraph, ModalRoot {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
 
-        val viewModel = getViewModel<BalanceSheetViewModel>()
+        val viewModel = getActivityScopedViewModel<BalanceSheetViewModel>()
         val state by viewModel.stateFlow.collectAsState()
         val isViewingBuckets by remember(state.isDebugBucketsVisible) {
             derivedStateOf { state.isDebugBucketsVisible }

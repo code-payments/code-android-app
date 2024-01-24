@@ -11,6 +11,7 @@ object Versions {
     const val kotlin = "1.9.10"
     const val kotlinx_coroutines = "1.7.3"
     const val kotlinx_serialization = "1.6.2"
+    const val kotlinx_datetime = "0.5.0"
     const val android_gradle_build_tools = "8.1.0"
     const val google_services = "4.3.15"
 
@@ -20,6 +21,7 @@ object Versions {
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
     const val androidx_material = "1.5.0"
+    const val androidx_paging = "3.2.1"
     const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
 
@@ -27,6 +29,7 @@ object Versions {
     const val compose_activities: String = "1.4.0"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
+    const val compose_paging = "3.3.0-alpha02"
 
     const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
@@ -106,8 +109,8 @@ object Libs {
     const val androidx_navigation_ui =
         "androidx.navigation:navigation-ui-ktx:${Versions.androidx_navigation}"
     const val androidx_browser = "androidx.browser:browser:${Versions.androidx_browser}"
-    const val android_material =
-        "com.google.android.material:material:${Versions.androidx_material}"
+    const val androidx_paging_runtime = "androidx.paging:paging-runtime-ktx:${Versions.androidx_paging}"
+
     const val androidx_room_runtime = "androidx.room:room-runtime:${Versions.androidx_room}"
     const val androidx_room_rxjava3 = "androidx.room:room-rxjava3:${Versions.androidx_room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
@@ -127,8 +130,8 @@ object Libs {
     const val kotlinx_coroutines_test =
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
     const val kotlinx_collections_immutable = "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
+    const val kotlinx_datetime = "org.jetbrains.kotlinx:kotlinx-datetime:${Versions.kotlinx_datetime}"
     const val kotlinx_serialization_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinx_serialization}"
-
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val okhttp_logging_interceptor =
@@ -151,6 +154,7 @@ object Libs {
     const val compose_livedata = "androidx.compose.runtime:runtime-livedata:${Versions.compose}"
     const val compose_navigation =
         "androidx.navigation:navigation-compose:${Versions.compose_navigation}"
+    const val compose_paging = "androidx.paging:paging-compose:${Versions.compose_paging}"
     const val compose_voyager_navigation = "cafe.adriel.voyager:voyager-navigator:${Versions.voyager}"
     const val compose_voyager_navigation_hilt = "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
     const val compose_voyager_navigation_bottomsheet = "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"

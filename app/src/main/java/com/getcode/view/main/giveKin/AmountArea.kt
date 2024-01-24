@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import com.getcode.util.rememberedClickable
 import com.getcode.utils.network.NetworkState
 import com.getcode.view.main.connectivity.ConnectionStatus
 import com.getcode.view.main.connectivity.NetworkStateProvider
+import timber.log.Timber
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -52,15 +54,18 @@ fun AmountArea(
             .let { if (isClickable) it.rememberedClickable { onClick() } else it },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Timber.d("a=$$isLoading")
         if (!isLoading) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (!isAnimated) {
-                    AmountText(
-                        currencyResId = currencyResId,
-                        "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
-                    )
+                    key(hashCode()) {
+                        AmountText(
+                            currencyResId = currencyResId,
+                            amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
+                        )
+                    }
                 } else {
                     AmountTextAnimated(
                         uiModel = uiModel,

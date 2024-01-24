@@ -1,5 +1,6 @@
 package com.getcode.view.main.balance
 
+import android.content.Context
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.togetherWith
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Divider
@@ -35,11 +37,13 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -52,16 +56,22 @@ import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PaymentType
 import com.getcode.model.Rate
+import com.getcode.model.Title
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.theme.White10
 import com.getcode.theme.extraSmall
+import com.getcode.util.DateUtils
 import com.getcode.util.Kin
+import com.getcode.util.rememberedClickable
 import com.getcode.view.components.CodeCircularProgressIndicator
+import com.getcode.view.components.chat.ChatNode
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.view.main.giveKin.AmountText
 import com.getcode.view.previewComponent.PreviewColumn
 
 
@@ -97,7 +107,6 @@ fun BalanceSheet(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BalanceContent(
     state: BalanceSheetViewModel.State,
@@ -107,14 +116,17 @@ fun BalanceContent(
 ) {
     val lazyListState = rememberLazyListState()
 
-    val transactionsEmpty by remember(state.historicalTransactions) {
-        derivedStateOf { state.historicalTransactions.isEmpty() }
+    val transactionsEmpty by remember(state.chats) {
+        derivedStateOf { state.chats.isEmpty() }
+    }
+
+    val canClickBalance by remember(state.isDebugBucketsEnabled) {
+        derivedStateOf { state.isDebugBucketsVisible }
     }
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
+            .fillMaxWidth(),
         state = lazyListState
     ) {
         item {
@@ -129,27 +141,40 @@ fun BalanceContent(
             ) {
                 BalanceTop(
                     state,
-                    state.isDebugBucketsEnabled
+                    canClickBalance,
                 ) {
                     dispatch(BalanceSheetViewModel.Event.OnDebugBucketsVisible(true))
                 }
-                if (!transactionsEmpty && !state.historicalTransactionsLoading) {
+                if (!transactionsEmpty && !state.chatsLoading) {
                     KinValueHint(faqOpen)
                 }
             }
         }
-        items(state.historicalTransactions, key = { it.id }, contentType = { it }) { event ->
-            Row(Modifier.animateItemPlacement()) {
-                TransactionItem(event)
+        itemsIndexed(
+            state.chats,
+            key = { _, item -> item.id },
+            contentType = { _, item -> item }) { index, event ->
+            ChatNode(chat = event) {
+
+            }
+            if (index < state.chats.lastIndex) {
+                Divider(
+                    modifier = Modifier.padding(start = CodeTheme.dimens.inset),
+                    color = White10,
+                )
             }
         }
 
         when {
-            state.historicalTransactionsLoading -> {
+            state.chatsLoading -> {
                 item {
-                    Column(modifier = Modifier.fillMaxSize(),
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2, CenterVertically),
+                        verticalArrangement = Arrangement.spacedBy(
+                            CodeTheme.dimens.grid.x2,
+                            CenterVertically
+                        ),
                     ) {
                         CodeCircularProgressIndicator()
                         Text(
@@ -278,15 +303,13 @@ fun BalanceTop(
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
-    AmountArea(
-        amountText = state.amountText,
-        isAltCaption = false,
-        isAltCaptionKinIcon = false,
-        isLoading = state.historicalTransactionsLoading,
-        currencyResId = state.currencyFlag,
-        isClickable = isClickable,
-        onClick = onClick
-    )
+    if (!state.chatsLoading) {
+        AmountText(
+            modifier = Modifier.rememberedClickable(enabled = isClickable) { onClick() },
+            currencyResId = state.currencyFlag,
+            amountText = state.amountText
+        )
+    }
 }
 
 @Composable
@@ -422,7 +445,8 @@ private fun TopPreview() {
         amountText = "$12.34 of Kin",
         marketValue = 1.0,
         selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
-        historicalTransactions = emptyList(),
+        chatsLoading = false,
+        chats = emptyList(),
         isDebugBucketsEnabled = false,
         isDebugBucketsVisible = false,
     )
@@ -456,5 +480,11 @@ private fun ItemPreview() {
     }
 }
 
+@Composable
+operator fun Title?.invoke(): String = when (this) {
+    is Title.Domain -> this.value
+    is Title.Localized -> this.value
+    else -> ""
+}
 
 

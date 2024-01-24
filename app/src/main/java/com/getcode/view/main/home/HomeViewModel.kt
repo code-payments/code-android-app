@@ -44,7 +44,6 @@ import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
-import com.getcode.network.client.fetchPaymentHistoryDelta
 import com.getcode.network.client.receiveRemoteSuspend
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
@@ -188,7 +187,7 @@ class HomeViewModel @Inject constructor(
 
         combine(
             exchange.observeLocalRate(),
-            balanceController.observe(),
+            balanceController.observeRawBalance(),
         ) { rate, balance ->
             KinAmount.newInstance(Kin.fromKin(balance), rate)
         }.onEach { balanceInKin ->

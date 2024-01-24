@@ -24,6 +24,7 @@ import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
+import com.getcode.network.core.NetworkOracle
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
@@ -60,7 +61,7 @@ private const val TAG = "TransactionRepositoryV2"
 @Singleton
 class TransactionRepository @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val transactionApi: TransactionApiV2
+    private val transactionApi: TransactionApiV2,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     var sendLimit = mutableListOf<SendLimit>()

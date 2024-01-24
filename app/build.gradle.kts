@@ -65,9 +65,9 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-//            isMinifyEnabled = true
-//            isShrinkResources = true
-//            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
@@ -113,6 +113,7 @@ dependencies {
     implementation(Libs.kotlin_stdlib)
     implementation(Libs.kotlinx_collections_immutable)
     implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_datetime)
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)

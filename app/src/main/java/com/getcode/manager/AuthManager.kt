@@ -14,6 +14,7 @@ import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
@@ -48,6 +49,8 @@ class AuthManager @Inject constructor(
     private val prefRepository: PrefRepository,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
+    private val historyController: HistoryController,
+
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
 ): CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -208,6 +211,9 @@ class AuthManager @Inject constructor(
                 savePrefs(phone!!, user!!)
                 updateFcmToken(owner, user!!.dataContainerId.toByteArray())
                 launch { exchange.fetchRatesIfNeeded() }
+
+//                launch { historyController.fetchAllTransactions() }
+                launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
             }
     }
