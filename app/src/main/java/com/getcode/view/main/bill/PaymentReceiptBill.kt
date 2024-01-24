@@ -5,11 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
@@ -38,6 +40,7 @@ import com.getcode.theme.withRobotoMono
 import com.getcode.view.main.home.components.PriceWithFlag
 import com.kik.kikx.kincodes.KikCodeContentView
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun Receipt(
     modifier: Modifier = Modifier,
@@ -48,7 +51,7 @@ internal fun Receipt(
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     BoxWithConstraints(
         modifier = modifier
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
             .padding(horizontal = CodeTheme.dimens.inset)
             .padding(
                 top = screenHeight * 0.10f,
