@@ -561,7 +561,7 @@ class HomeViewModel @Inject constructor(
         val presentationStyle = if (isReceived) PresentationStyle.Pop else PresentationStyle.Slide
         withContext(Dispatchers.Main) {
             uiFlow.update {
-                var billState= it.billState.copy(
+                var billState = it.billState.copy(
                     bill = Bill.Payment(amount, code, request),
                 )
 
@@ -587,9 +587,11 @@ class HomeViewModel @Inject constructor(
         analytics.requestShown(amount = amount)
 
         if (DEBUG_SCAN_TIMES) {
-            Timber.tag("codescan")
-                .d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
-            scanProcessingTime = 0
+            if (scanProcessingTime > 0) {
+                Timber.tag("codescan")
+                    .d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
+                scanProcessingTime = 0
+            }
         }
 
 
@@ -634,39 +636,27 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            delay(500)
-            uiFlow.update {
-                it.copy(
+            cancelPayment(false)
+        }.onFailure { error ->
+            error.printStackTrace()
+            TopBarManager.showMessage(
+                "Payment Failed",
+                "This payment request could not be paid at this time. Please try again later."
+            )
+            uiFlow.update { uiModel ->
+                uiModel.copy(
                     presentationStyle = PresentationStyle.Hidden,
-                    billState = it.billState.copy(
+                    billState = uiModel.billState.copy(
                         bill = null,
+                        showToast = false,
                         paymentConfirmation = null,
+                        toast = null,
                         valuation = null,
                         hideBillButtons = false,
                     )
                 )
             }
         }
-            .onFailure { error ->
-                error.printStackTrace()
-                TopBarManager.showMessage(
-                    "Payment Failed",
-                    "This payment request could not be paid at this time. Please try again later."
-                )
-                uiFlow.update { uiModel ->
-                    uiModel.copy(
-                        presentationStyle = PresentationStyle.Hidden,
-                        billState = uiModel.billState.copy(
-                            bill = null,
-                            showToast = false,
-                            paymentConfirmation = null,
-                            toast = null,
-                            valuation = null,
-                            hideBillButtons = false,
-                        )
-                    )
-                }
-            }
     }
 
     fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
@@ -979,15 +969,16 @@ class HomeViewModel @Inject constructor(
             )
     }
 
-    private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) = viewModelScope.launch {
-        val organizer = SessionManager.getOrganizer() ?: return@launch
-        client.cancelRemoteSend(giftCard, amount.kin, organizer)
-        analytics.remoteSendIncoming(
-            kin = amount.kin,
-            currencyCode = amount.rate.currency,
-            isVoiding = true
-        )
-    }
+    private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) =
+        viewModelScope.launch {
+            val organizer = SessionManager.getOrganizer() ?: return@launch
+            client.cancelRemoteSend(giftCard, amount.kin, organizer)
+            analytics.remoteSendIncoming(
+                kin = amount.kin,
+                currencyCode = amount.rate.currency,
+                isVoiding = true
+            )
+        }
 
     private fun showRemoteSendDialog(
         context: Context,
@@ -1046,6 +1037,13 @@ class HomeViewModel @Inject constructor(
                 value = request.fiat,
                 nonce = request.clientSecret
             )
+
+            if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                return
+            }
+
+            scannedRendezvous.add(payload.rendezvous.publicKey)
             attemptPayment(payload, request)
         }
     }

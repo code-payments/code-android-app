@@ -89,6 +89,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlin.time.Duration.Companion.seconds
 
 
 enum class HomeBottomSheet {
@@ -175,6 +176,7 @@ private fun HomeScan(
         }
 
         if (!requestPayload.isNullOrBlank()) {
+            delay(500)
             homeViewModel.handlePaymentRequest(requestPayload)
         }
     }
