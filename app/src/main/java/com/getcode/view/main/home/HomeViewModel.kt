@@ -351,6 +351,7 @@ class HomeViewModel @Inject constructor(
                                 amount = bill.amount,
                                 didReceive = bill.didReceive
                             ),
+                            valuation = Valuation(bill.amount),
                             showToast = bill.didReceive
                         )
                     )
@@ -385,10 +386,24 @@ class HomeViewModel @Inject constructor(
                 presentationStyle = style,
                 billState = it.billState.copy(
                     bill = null,
-                    valuation = null,
-                    hideBillButtons = false,
                 )
             )
+        }
+
+        viewModelScope.launch {
+            if (shown) {
+                delay(300)
+            }
+            withContext(Dispatchers.Main) {
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(
+                            valuation = null,
+                            hideBillButtons = false
+                        )
+                    )
+                }
+            }
         }
 
         viewModelScope.launch {

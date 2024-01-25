@@ -2,14 +2,13 @@ package com.getcode.util
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.navigation.NavBackStackEntry
 
 
 object AnimationUtils {
     const val animationTime = 350
 
 
-    val animationBillEnter = slideInVertically(
+    val animationBillEnterGive = slideInVertically(
         initialOffsetY = { it },
         animationSpec = spring(
             dampingRatio = 0.6f,
@@ -17,7 +16,7 @@ object AnimationUtils {
         )
     )
 
-    val animationBillEnterSpring = scaleIn(
+    val animationBillEnterGrabbed = scaleIn(
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = 1500f
@@ -25,11 +24,19 @@ object AnimationUtils {
         initialScale = 0.5f
     )
 
-    val animationBillExit = slideOutVertically(
+    val animationBillExitReturned = slideOutVertically(
         targetOffsetY = { it },
         animationSpec = tween(
             durationMillis = 600,
             easing = FastOutSlowInEasing
         )
+    )
+
+    val animationBillExitGrabbed = fadeOut(tween(durationMillis = 400)) + scaleOut(
+        animationSpec = spring(
+            dampingRatio = 0.4f,
+            stiffness = 400f
+        ),
+        targetScale = 1.1f
     )
 }
