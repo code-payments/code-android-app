@@ -28,11 +28,12 @@ import kotlin.random.Random
 class TriangleCutShape(private val cutStep: Dp = 10.dp) : androidx.compose.ui.graphics.Shape {
 
     private fun makeCutPath(size: Size, stepX: Float, height: Float, topClosed: Boolean): Path {
-        val localHeight = if (topClosed) height else -height;
+        val localHeight = if (topClosed) height else -height
         val startPt = PointF(0f, if (topClosed) 0f else height)
-        val seq = generateSequence(startPt) {
+        val seq = listOf(PointF(0f, startPt.y)) + generateSequence(startPt) {
             PointF(it.x.plus(stepX), if (it.y == startPt.y) startPt.y + localHeight else startPt.y)
         }.takeWhile { it.x <= (size.width + stepX) }
+
         return Path().apply {
             moveTo(startPt.x, startPt.y)
             seq.forEach { lineTo(it.x, it.y) }
