@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.minimumInteractiveComponentSize
@@ -31,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,11 +47,13 @@ import com.getcode.model.Kind
 import com.getcode.model.Rate
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
+import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.SlideToConfirm
+import com.getcode.view.components.SlideToConfirmDefaults
 import kotlinx.coroutines.delay
 
 @Composable
@@ -77,7 +81,13 @@ internal fun PaymentConfirmation(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(Color.Black)
+            .clip(
+                CodeTheme.shapes.medium.copy(
+                    bottomStart = ZeroCornerSize,
+                    bottomEnd = ZeroCornerSize
+                )
+            )
+            .background(Brand)
             .padding(horizontal = 20.dp, vertical = 30.dp)
             .windowInsetsPadding(WindowInsets.navigationBars),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -85,7 +95,11 @@ internal fun PaymentConfirmation(
     ) {
         val amount = requestedAmount
         if (state != null && amount != null && balance != null) {
-            if (balance.kin >= amount.kin) {
+            val balanceAmount = remember {
+                balance.kin
+            }
+
+            if (balanceAmount >= amount.kin) {
                 PaymentConfirmationContent(
                     amount = amount,
                     isSending = isSending,
@@ -297,6 +311,7 @@ private fun PaymentConfirmationContent(
     }
     SlideToConfirm(
         isLoading = isSending,
+        trackColor = SlideToConfirmDefaults.BlueTrackColor,
         isSuccess = state is PaymentState.Sent,
         onConfirm = { onApproved() },
     )

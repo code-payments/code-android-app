@@ -87,6 +87,9 @@ object SlideToConfirmDefaults {
             modifier = modifier,
         )
     }
+
+    val BlueTrackColor = Track.BlueColor
+    val BlackTrackColor = Track.BlackColor
 }
 
 private object Thumb {
@@ -101,7 +104,9 @@ private object Track {
     val VelocityThreshold = SwipeableDefaults.VelocityThreshold * 10
     val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
-    val Color = Color(0xFF201D1D)
+
+    val BlueColor = Color(0xFF11142A)
+    val BlackColor = Color(0xFF201D1D)
 }
 
 
@@ -110,6 +115,7 @@ fun SlideToConfirm(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     trackShape: Shape = Track.Shape,
+    trackColor: Color = Track.BlackColor,
     thumbShape: Shape = Thumb.Shape,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
@@ -152,6 +158,7 @@ fun SlideToConfirm(
         enabled = !loading,
         modifier = modifier,
         shape = trackShape,
+        color = trackColor,
     ) {
         if (!isSuccess) {
             hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2))
@@ -212,6 +219,7 @@ private fun Track(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     shape: Shape = Track.Shape,
+    color: Color = Track.BlackColor,
     content: @Composable (BoxScope.() -> Unit),
 ) {
     val density = LocalDensity.current
@@ -251,7 +259,7 @@ private fun Track(
                 velocityThreshold = Track.VelocityThreshold,
             )
             .background(
-                color = Track.Color,
+                color = color,
                 shape = shape,
             )
             .padding(
