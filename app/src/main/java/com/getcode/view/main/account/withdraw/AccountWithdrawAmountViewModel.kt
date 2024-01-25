@@ -1,18 +1,29 @@
 package com.getcode.view.main.account.withdraw
 
-import androidx.navigation.NavController
-import com.getcode.App
+import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.WithdrawalAddressScreen
 import com.getcode.network.client.Client
+import com.getcode.network.client.receiveIfNeeded
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
-import com.getcode.network.repository.CurrencyRepository
 import com.getcode.network.repository.PrefRepository
-import com.getcode.view.*
-import com.getcode.view.main.giveKin.*
+import com.getcode.util.CurrencyUtils
+import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
+import com.getcode.view.main.giveKin.AmountUiModel
+import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
+import com.getcode.view.main.giveKin.CurrencyUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AccountWithdrawAmountUiModel(
@@ -20,35 +31,53 @@ data class AccountWithdrawAmountUiModel(
     val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
     val amountModel: AmountUiModel = AmountUiModel(),
     val continueEnabled: Boolean = false,
-    val currencySelectorVisible: Boolean = false
 )
 
 @HiltViewModel
 class AccountWithdrawAmountViewModel @Inject constructor(
     client: Client,
-    currencyRepository: CurrencyRepository,
+    exchange: Exchange,
     prefsRepository: PrefRepository,
-    balanceRepository: BalanceRepository
-) : BaseAmountCurrencyViewModel(client, prefsRepository, currencyRepository, balanceRepository) {
+    balanceRepository: BalanceRepository,
+    localeHelper: LocaleHelper,
+    currencyUtils: CurrencyUtils,
+    networkObserver: NetworkConnectivityListener,
+    private val resources: ResourceHelper,
+) : BaseAmountCurrencyViewModel(
+    client,
+    prefsRepository,
+    exchange,
+    balanceRepository,
+    localeHelper,
+    currencyUtils,
+    resources,
+    networkObserver
+) {
     val uiFlow = MutableStateFlow(AccountWithdrawAmountUiModel())
 
-    override fun init() {
-        super.init()
-        uiFlow.update {
-            it.copy(
-                currencySelectorVisible = false,
-                currencyModel = it.currencyModel.copy(currencySearchText = ""),
-                continueEnabled = false
-            )
+    init {
+        init()
+        viewModelScope.launch(Dispatchers.IO) {
+            client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
 
-    fun onSubmit(navController: NavController) {
+    fun reset() {
+        numberInputHelper.reset()
+        onAmountChanged(true)
+        viewModelScope.launch {
+            uiFlow.update {
+                it.copy(continueEnabled = false)
+            }
+        }
+    }
+
+    fun onSubmit(navigator: CodeNavigator) {
         val uiModel = uiFlow.value
         if (uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin) {
             TopBarManager.showMessage(
-                App.getInstance().getString(R.string.error_title_insuffiecientKin),
-                App.getInstance().getString(R.string.error_description_insuffiecientKin)
+                resources.getString(R.string.error_title_insuffiecientKin),
+                resources.getString(R.string.error_description_insuffiecientKin)
             )
             return
         }
@@ -59,24 +88,24 @@ class AccountWithdrawAmountViewModel @Inject constructor(
         val currencyCode = uiModel.currencyModel.selectedCurrencyCode ?: return
         val currencyResId = uiModel.currencyModel.selectedCurrencyResId ?: return
 
-        navController.navigate(
-            SheetSections.WITHDRAW_ADDRESS.route
-                .replace("{$ARG_WITHDRAW_AMOUNT_FIAT}", uiModel.amountModel.amountDouble.toString())
-                .replace("{$ARG_WITHDRAW_AMOUNT_KIN}", uiModel.amountModel.amountKin.quarks.toString())
-                .replace("{$ARG_WITHDRAW_AMOUNT_TEXT}", uiModel.amountModel.amountText)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_CODE}", currencyCode)
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_RES_ID}", currencyResId.toString())
-                .replace("{$ARG_WITHDRAW_AMOUNT_CURRENCY_RATE}", uiModel.currencyModel.currenciesMap[currencyCode]?.rate?.toString().orEmpty())
+        navigator.push(
+            WithdrawalAddressScreen(
+                uiModel.amountModel.amountDouble,
+                uiModel.amountModel.amountKin.quarks,
+                uiModel.amountModel.amountText,
+                currencyCode,
+                currencyResId,
+                uiModel.currencyModel.currencies.firstOrNull { it.code == currencyCode }?.rate
+            )
         )
     }
 
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
         super.onAmountChanged(lastPressedBackspace)
-        uiFlow.update { it.copy(continueEnabled = numberInputHelper.amount != 0.0) }
-    }
-
-    override fun setCurrencySelectorVisible(isVisible: Boolean) {
-        uiFlow.update { it.copy(currencySelectorVisible = isVisible) }
+        uiFlow.update {
+            // only enable if sufficient balance and non-zero
+            it.copy(continueEnabled = !it.amountModel.isInsufficient && numberInputHelper.amount != 0.0)
+        }
     }
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {

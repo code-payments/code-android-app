@@ -3,10 +3,7 @@ package com.getcode.view.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,7 +13,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.BrandLight
-import com.getcode.util.WindowSize
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.WindowSizeClass
+import com.getcode.util.rememberedClickable
 
 @Composable
 fun OtpBox(
@@ -25,30 +24,29 @@ fun OtpBox(
     isHighlighted: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val windowSize = windowSizeCheck()
 
-    val height = when (windowSize) {
-        WindowSize.SMALL -> 45
-        WindowSize.REGULAR -> 60
+    val height = when (CodeTheme.dimens.heightWindowSizeClass) {
+        WindowSizeClass.COMPACT -> 45
+        else -> 60
     }
-    val width = when (windowSize) {
-        WindowSize.SMALL -> 30
-        WindowSize.REGULAR -> 42
+    val width = when (CodeTheme.dimens.widthWindowSizeClass) {
+        WindowSizeClass.COMPACT -> 30
+        else -> 42
     }
 
     Box(
         modifier = modifier
-            .padding(5.dp)
+            .padding(CodeTheme.dimens.grid.x1)
             .height(height.dp)
             .width(width.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
+            .clip(CodeTheme.shapes.small)
+            .rememberedClickable(onClick = onClick)
             .border(
                 border = if (isHighlighted)
-                    BorderStroke(2.dp, color = BrandLight.copy(alpha = 0.8f))
+                    BorderStroke(CodeTheme.dimens.thickBorder, color = BrandLight.copy(alpha = 0.8f))
                 else
-                    BorderStroke(1.dp, color = BrandLight.copy(alpha = 0.4f)),
-                shape = RoundedCornerShape(8.dp)
+                    BorderStroke(CodeTheme.dimens.border, color = BrandLight.copy(alpha = 0.4f)),
+                shape = CodeTheme.shapes.small
             )
             .background(Color.White.copy(alpha = 0.1f)),
     ) {
@@ -56,7 +54,7 @@ fun OtpBox(
             text = character,
             modifier = Modifier
                 .align(Alignment.Center),
-            style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.Normal),
+            style = CodeTheme.typography.h6.copy(fontWeight = FontWeight.Normal),
             color = Color.White,
         )
     }

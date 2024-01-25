@@ -11,8 +11,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 import com.getcode.util.nonScaledSp
 
 @Composable
@@ -26,18 +26,19 @@ fun BillAmount(modifier: Modifier = Modifier, text: String = "") {
         ) {
             Image(
                 modifier = Modifier
-                    .padding(end = 10.dp)
-                    .height(18.dp)
-                    .width(18.dp)
+                    .padding(end = CodeTheme.dimens.grid.x2)
+                    .height(CodeTheme.dimens.grid.x3)
+                    .width(CodeTheme.dimens.grid.x3)
                     .align(Alignment.CenterVertically),
                 painter = painterResource(id = R.drawable.ic_kin_white),
                 contentDescription = ""
             )
             Text(
                 text = text,
-                style = MaterialTheme.typography.h1.copy(
+                style = CodeTheme.typography.h1.copy(
                     fontSize = 40.nonScaledSp
-                )
+                ),
+                color = CodeTheme.colors.onBackground
             )
         }
     }

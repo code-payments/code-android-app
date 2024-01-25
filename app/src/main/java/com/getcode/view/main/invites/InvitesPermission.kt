@@ -11,10 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 
 @Preview
 @Composable
@@ -37,18 +37,18 @@ fun InvitesPermission(inviteCount: Int = 0, onButtonClick: () -> Unit = {}) {
                 modifier = Modifier
                     .wrapContentWidth()
                     .wrapContentHeight()
-                    .padding(vertical = 50.dp)
+                    .padding(vertical = CodeTheme.dimens.grid.x10)
             )
             Text(
                 text = stringResource(id = R.string.subtitle_inviteCount, inviteCount),
-                style = MaterialTheme.typography.h1,
-                modifier = Modifier.padding(bottom = 15.dp)
+                style = CodeTheme.typography.h1,
+                modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3)
             )
 
             Text(
                 text = stringResource(id = R.string.subtitle_youHaveInvitesLeft, inviteCount),
-                style = MaterialTheme.typography.body1,
-                modifier = Modifier.padding(bottom = 15.dp)
+                style = CodeTheme.typography.body1,
+                modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3)
             )
         }
 
@@ -57,7 +57,7 @@ fun InvitesPermission(inviteCount: Int = 0, onButtonClick: () -> Unit = {}) {
             text = stringResource(id = R.string.action_allowContacts),
             buttonState = ButtonState.Filled,
             modifier = Modifier
-                .padding(bottom = 15.dp)
+                .padding(bottom = CodeTheme.dimens.grid.x3)
         )
     }
 }

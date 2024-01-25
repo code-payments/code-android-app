@@ -1,7 +1,10 @@
+import java.util.Properties
+
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_serialization)
 }
 
 android {
@@ -48,6 +51,8 @@ dependencies {
     implementation(Libs.rxjava)
     api(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_coroutines_core)
+    api(Libs.kotlinx_coroutines_rx3)
+    implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)
 
     implementation(Libs.grpc_okhttp)

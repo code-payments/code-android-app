@@ -4,7 +4,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.floor
 
-data class Kin(val quarks: Long) {
+data class Kin(val quarks: Long): Value {
     init {
         if (quarks < 0) {
             throw IllegalStateException()
@@ -23,7 +23,10 @@ data class Kin(val quarks: Long) {
     fun toFiat(fx: Double) = toKinValueDouble() * fx
     fun hasWholeKin() = toKinTruncatingLong() > 0
     operator fun plus(other: Kin): Kin = Kin(this.quarks + other.quarks)
-    operator fun minus(other: Kin): Kin = Kin(this.quarks - other.quarks)
+    operator fun minus(other: Kin): Kin {
+        if (this <= other) return fromKin(0)
+        return Kin(this.quarks - other.quarks)
+    }
     operator fun div(other: Kin): Kin = Kin(this.quarks / other.quarks)
     operator fun div(other: Int): Kin = this / fromQuarks(other.toLong())
     operator fun times(other: Kin): Kin = Kin(this.quarks * other.quarks)
@@ -34,7 +37,7 @@ data class Kin(val quarks: Long) {
 
 
     companion object {
-        private const val QUARK_CONVERSION_RATE = 100000
+        private const val QUARK_CONVERSION_RATE = 100_000
         fun fromKin(kin: Int) = fromKin(kin.toDouble())
         fun fromKin(kin: Long) = fromKin(kin.toDouble())
         fun fromKin(kin: Double): Kin {

@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="true" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
@@ -16,7 +20,7 @@
 
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <intent>
@@ -29,64 +33,104 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:theme="@style/Theme.Code"
         android:largeHeap="true"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.Code">
         <activity
             android:name="com.getcode.view.MainActivity"
             android:exported="true"
+            android:hardwareAccelerated="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:resizeableActivity="false"
             android:screenOrientation="portrait"
-            android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize"
-            android:launchMode="singleTop">
+            android:windowSoftInputMode="adjustResize">
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="app.getcode.com"
+                    android:pathPattern="/login.*"
+                    android:scheme="https" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="@string/root_url_app_no_protocol"
+                    android:pathPattern="/cash/.*"
+                    android:scheme="https" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="@string/root_url_app_no_protocol"
+                    android:pathPattern="/c/.*"
+                    android:scheme="https" />
+            </intent-filter>
+
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="cash.getcode.com"
+                    android:pathPattern="/cash/.*"
+                    android:scheme="https" />
+            </intent-filter>
+
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
+
                 <data
-                    android:scheme="https"
-                    android:host="@string/root_url_app_no_protocol"
-                    android:pathPattern="/login.*" />
-                <data
-                    android:scheme="https"
-                    android:host="@string/root_url_app_no_protocol"
-                    android:pathPattern="/cash/.*" />
-                <data
-                    android:scheme="https"
-                    android:host="@string/root_url_app_no_protocol"
-                    android:pathPattern="/c/.*" />
-                <data
-                    android:scheme="https"
                     android:host="@string/root_url_cash_no_protocol"
-                    android:pathPattern="/cash/.*" />
-                <data
-                    android:scheme="https"
-                    android:host="@string/root_url_cash_no_protocol"
-                    android:pathPattern="/c/.*" />
+                    android:pathPattern="/c/.*"
+                    android:scheme="https" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:scheme="codewallet"
                     android:host="@string/root_url_cash_no_protocol"
-                    android:pathPattern="/c/.*" />
+                    android:pathPattern="/c/.*"
+                    android:scheme="codewallet" />
             </intent-filter>
+
+            <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+
+            <data
+                android:host="@string/root_url_sdk_no_protocol"
+                android:pathPattern="/v1/elements/.*/"
+                android:scheme="codewallet" />
+            </intent-filter>
+
         </activity>
 
         <service
             android:name="com.getcode.util.AuthenticatorService"
-            android:exported="false" >
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
@@ -96,10 +140,12 @@
                 android:resource="@xml/authenticator" />
         </service>
 
-        <receiver android:name=".util.OtpSmsBroadcastReceiver" android:exported="true"
+        <receiver
+            android:name=".util.OtpSmsBroadcastReceiver"
+            android:exported="true"
             android:permission="com.google.android.gms.auth.api.phone.permission.SEND">
             <intent-filter>
-                <action android:name="com.google.android.gms.auth.api.phone.SMS_RETRIEVED"/>
+                <action android:name="com.google.android.gms.auth.api.phone.SMS_RETRIEVED" />
             </intent-filter>
         </receiver>
 
@@ -107,8 +153,9 @@
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_code_logo_outline" />
 
-        <meta-data android:name="com.bugsnag.android.API_KEY"
-            android:value="${BUGSNAG_API_KEY}"/>
+        <meta-data
+            android:name="com.bugsnag.android.API_KEY"
+            android:value="${BUGSNAG_API_KEY}" />
 
     </application>
 

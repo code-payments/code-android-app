@@ -1,6 +1,8 @@
 package com.getcode.crypt
 
-class DerivePath(val indexes: List<Index>) {
+import com.getcode.model.Domain
+
+class DerivePath(val indexes: List<Index>, val password: String? = null) {
     fun stringRepresentation(): String {
         val components = indexes.joinToString(separator) { it.stringRepresentation() }
         return "$identifier$separator$components"
@@ -27,7 +29,7 @@ class DerivePath(val indexes: List<Index>) {
     }
 
     companion object {
-        fun newInstance(string: String): DerivePath? {
+        fun newInstance(string: String, password: String? = null): DerivePath? {
             val strings = string.split(separator)
             if (strings.firstOrNull() != identifier) return null
             val indexStrings = strings.drop(1)
@@ -40,7 +42,7 @@ class DerivePath(val indexes: List<Index>) {
 
             if (indexes.size != indexStrings.count()) return null
 
-            return DerivePath(indexes)
+            return DerivePath(indexes, password)
         }
 
         val bucket1    = newInstance("m/44'/501'/0'/0'/0'/1")!!
@@ -58,6 +60,10 @@ class DerivePath(val indexes: List<Index>) {
 
         fun getBucketOutgoing(index: Int): DerivePath {
             return newInstance("m/44'/501'/0'/0'/$index'/3")!!
+        }
+
+        fun relationship(domain: Domain): DerivePath {
+            return newInstance("m/44'/501'/0'/0'/0'/0", password = domain.relationshipHost)!!
         }
 
         private const val identifier = "m"

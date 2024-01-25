@@ -2,50 +2,79 @@ package com.getcode.view.login
 
 import android.Manifest
 import android.os.Build
-import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.MaterialTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.util.IntentUtils
-import com.getcode.view.ARG_SIGN_IN_ENTROPY_B64
-import com.getcode.view.components.*
+import com.getcode.util.addIf
+import com.getcode.util.measured
+import com.getcode.util.swallowClicks
+import com.getcode.view.components.AccessKeySelectionContainer
+import com.getcode.view.components.ButtonState
+import com.getcode.view.components.Cloudy
+import com.getcode.view.components.CodeButton
+import com.getcode.view.components.PermissionCheck
+import com.getcode.view.components.getPermissionLauncher
+import com.getcode.view.components.rememberSelectionState
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview
 @Composable
 fun AccessKey(
-    navController: NavController? = null,
-    upPress: () -> Unit = {},
-    arguments: Bundle? = null
+    viewModel: AccessKeyViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs(),
 ) {
-    val viewModel = hiltViewModel<AccessKeyViewModel>()
+    val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -64,7 +93,7 @@ fun AccessKey(
                     title = context.getString(R.string.error_title_failedToSave),
                     message = context.getString(R.string.error_description_failedToSave),
                     type = TopBarManager.TopBarMessageType.ERROR,
-                    secondaryText = App.getInstance().getString(R.string.action_openSettings),
+                    secondaryText = context.getString(R.string.action_openSettings),
                     secondaryAction = { IntentUtils.launchAppSettings() }
                 )
             )
@@ -74,7 +103,7 @@ fun AccessKey(
     val launcher = getPermissionLauncher(onPermissionResult)
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navController, true)
+        viewModel.onSubmit(navigator, true)
         isExportSeedRequested = false
     }
 
@@ -95,126 +124,143 @@ fun AccessKey(
 
     }
     val onSkipClick = {
-        viewModel.onSubmit(navController, false)
+        viewModel.onSubmit(navigator, false)
     }
 
-    ConstraintLayout(
+    var buttonHeight by remember {
+        mutableStateOf(0.dp)
+    }
+
+    val selectionState = rememberSelectionState(
+        words = dataState.words.joinToString(" ")
+    )
+
+    var textHeight by remember {
+        mutableStateOf(0.dp)
+    }
+
+    AccessKeySelectionContainer(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
-            .padding(top = 85.dp)
+            .windowInsetsPadding(WindowInsets.navigationBars),
+        state = selectionState,
     ) {
-        val (seedView, captionText, buttonAction, buttonSkip) = createRefs()
-
-        AnimatedVisibility(
+        Cloudy(
             modifier = Modifier
-                .fillMaxHeight()
-                .constrainAs(seedView) {
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                    bottom.linkTo(captionText.top)
-                    height = Dimension.fillToConstraints
-                },
-            visibleState = isAccessKeyVisible,
-            enter = fadeIn(animationSpec = tween(300, 0)),
-            exit = fadeOut(animationSpec = tween(300, 0))
+                .fillMaxSize(),
+            enabled = selectionState.shown
         ) {
-            dataState.accessKeyCroppedBitmap?.let { bitmap ->
-                Image(
-                    modifier = Modifier
-                        .constrainAs(seedView) {
-                            top.linkTo(parent.top)
-                            start.linkTo(parent.start)
-                            end.linkTo(parent.end)
-                            bottom.linkTo(captionText.top)
-                            height = Dimension.fillToConstraints
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(vertical = CodeTheme.dimens.grid.x4),
+            ) {
+                Column(modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .measured { buttonHeight = it.height }) {
+                    CodeButton(
+                        modifier = Modifier,
+                        onClick = {
+                            onExportClick()
                         },
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "",
-                    contentScale = ContentScale.Inside
-                )
+                        text = stringResource(R.string.action_saveAccessKey),
+                        buttonState = ButtonState.Filled,
+                        isLoading = dataState.isLoading,
+                        enabled = dataState.isEnabled,
+                        isSuccess = dataState.isSuccess,
+                    )
+
+                    CodeButton(
+                        modifier = Modifier,
+                        onClick = {
+                            BottomBarManager.showMessage(
+                                BottomBarManager.BottomBarMessage(
+                                    title = context.getString(R.string.prompt_title_wroteThemDown),
+                                    subtitle = context
+                                        .getString(R.string.prompt_description_wroteThemDown),
+                                    positiveText = context
+                                        .getString(R.string.action_yesWroteThemDown),
+                                    negativeText = context.getString(R.string.action_cancel),
+                                    onPositive = { onSkipClick() },
+                                    onNegative = {}
+                                )
+                            )
+                        },
+                        text = stringResource(R.string.action_wroteThemDownInstead),
+                        buttonState = ButtonState.Subtle,
+                        enabled = dataState.isEnabled,
+                        isPaddedVertical = false,
+                    )
+                }
             }
         }
 
-        Text(
+        Column(
             modifier = Modifier
-                .constrainAs(captionText) {
-                    //top.linkTo(seedView.bottom)
-                    bottom.linkTo(buttonAction.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                }
-                .padding(vertical = 10.dp),
-            style = MaterialTheme.typography.body2.copy(textAlign = TextAlign.Center),
-            color = BrandLight,
-            text = stringResource(R.string.subtitle_accessKeyDescription)
-        )
-
-        CodeButton(
-            modifier = Modifier
-                .constrainAs(buttonAction) {
-                    top.linkTo(captionText.bottom)
-                    linkTo(buttonAction.bottom, buttonSkip.top, bias = 1.0F)
-                },
-            onClick = {
-                onExportClick()
-            },
-            text = stringResource(R.string.action_saveAccessKey),
-            buttonState = ButtonState.Filled,
-            isLoading = dataState.isLoading,
-            enabled = dataState.isEnabled,
-            isSuccess = dataState.isSuccess,
-        )
-
-        CodeButton(
-            modifier = Modifier
-                .padding(bottom = 10.dp)
-                .constrainAs(buttonSkip) {
-                    linkTo(buttonSkip.bottom, parent.bottom, bias = 1.0F)
-                },
-            onClick = {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = App.getInstance().getString(R.string.prompt_title_wroteThemDown),
-                        subtitle = App.getInstance()
-                            .getString(R.string.prompt_description_wroteThemDown),
-                        positiveText = App.getInstance()
-                            .getString(R.string.action_yesWroteThemDown),
-                        negativeText = App.getInstance().getString(R.string.action_cancel),
-                        onPositive = { onSkipClick() },
-                        onNegative = {}
+                .align(Alignment.TopCenter)
+                .fillMaxHeight()
+                .padding(bottom = buttonHeight)
+            ,
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            AnimatedVisibility(
+                visibleState = isAccessKeyVisible,
+                enter = fadeIn(animationSpec = tween(300, 0)),
+                exit = fadeOut(animationSpec = tween(300, 0))
+            ) {
+                dataState.accessKeyCroppedBitmap?.let { bitmap ->
+                    Image(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .scale(selectionState.scale.value),
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = dataState.wordsFormatted,
                     )
-                )
-            },
-            text = stringResource(R.string.action_wroteThemDownInstead),
-            buttonState = ButtonState.Subtle,
-            enabled = dataState.isEnabled,
-            isPaddedVertical = false,
-        )
-    }
+                }
+            }
 
-    BackHandler {
-        BottomBarManager.showMessage(
-            BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.prompt_title_exitAccountCreation),
-                subtitle = App.getInstance()
-                    .getString(R.string.prompt_description_exitAccountCreation),
-                positiveText = App.getInstance().getString(R.string.action_exit),
-                negativeText = App.getInstance().getString(R.string.action_cancel),
-                onPositive = { navController?.navigateUp() },
-                onNegative = {}
+            val textAlpha by animateFloatAsState(
+                if (selectionState.shown) 0f else 1f,
+                label = "text alpha"
             )
-        )
-    }
 
-    LaunchedEffect(rememberUpdatedState(Unit)) {
-        arguments?.getString(ARG_SIGN_IN_ENTROPY_B64)
-            ?.let { viewModel.initWithEntropy(it) }
-    }
+            Text(
+                modifier = Modifier
+                    .alpha(textAlpha)
+                    .padding(vertical = CodeTheme.dimens.grid.x2),
+                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                color = White,
+                text = stringResource(R.string.subtitle_accessKeyDescription)
+                    .replace(". ", ".\n")
+            )
+        }
 
-    LaunchedEffect(dataState.accessKeyCroppedBitmap) {
-        isAccessKeyVisible.targetState = dataState.accessKeyBitmap != null
+
+        BackHandler {
+            BottomBarManager.showMessage(
+                BottomBarManager.BottomBarMessage(
+                    title = context.getString(R.string.prompt_title_exitAccountCreation),
+                    subtitle = context
+                        .getString(R.string.prompt_description_exitAccountCreation),
+                    positiveText = context.getString(R.string.action_exit),
+                    negativeText = context.getString(R.string.action_cancel),
+                    onPositive = { navigator.popAll() },
+                    onNegative = {}
+                )
+            )
+        }
+
+        LaunchedEffect(viewModel) {
+            arguments.signInEntropy
+                ?.let { viewModel.initWithEntropy(it) }
+        }
+
+        LaunchedEffect(dataState.accessKeyCroppedBitmap) {
+            isAccessKeyVisible.targetState = dataState.accessKeyCroppedBitmap != null
+        }
     }
 }
 

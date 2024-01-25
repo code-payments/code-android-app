@@ -9,19 +9,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.view.MainSections
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun NotificationPermission(navController: NavController? = null) {
+fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
-            navController?.navigate(MainSections.HOME.route)
+            navigator.replaceAll(HomeScreen())
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })
@@ -33,6 +34,7 @@ fun NotificationPermission(navController: NavController? = null) {
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.navigationBars),
     ) {
         val (image, caption, button, buttonSkip) = createRefs()
 
@@ -40,8 +42,8 @@ fun NotificationPermission(navController: NavController? = null) {
             painter = painterResource(id = R.drawable.ic_notification_request),
             contentDescription = "",
             modifier = Modifier
-                .padding(horizontal = 40.dp)
-                .padding(top = 50.dp)
+                .padding(horizontal = CodeTheme.dimens.grid.x8)
+                .padding(top = CodeTheme.dimens.grid.x10)
                 .fillMaxHeight(0.6f)
                 .fillMaxWidth()
                 .constrainAs(image) {
@@ -54,7 +56,7 @@ fun NotificationPermission(navController: NavController? = null) {
 
         Text(
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(caption) {
                     top.linkTo(image.bottom)
                     bottom.linkTo(button.top)
@@ -62,7 +64,7 @@ fun NotificationPermission(navController: NavController? = null) {
                     end.linkTo(parent.end)
                 },
             text = stringResource(R.string.permissions_description_push),
-            style = MaterialTheme.typography.body1
+            style = CodeTheme.typography.body1
                 .copy(textAlign = TextAlign.Center),
         )
 
@@ -71,7 +73,7 @@ fun NotificationPermission(navController: NavController? = null) {
             text = stringResource(R.string.action_allowPushNotifications),
             buttonState = ButtonState.Filled,
             modifier = Modifier
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(button) {
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
@@ -81,8 +83,8 @@ fun NotificationPermission(navController: NavController? = null) {
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 10.dp)
-                .padding(horizontal = 20.dp)
+                .padding(bottom = CodeTheme.dimens.grid.x2)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(buttonSkip) {
                     linkTo(buttonSkip.bottom, parent.bottom, bias = 1.0F)
                     start.linkTo(parent.start)

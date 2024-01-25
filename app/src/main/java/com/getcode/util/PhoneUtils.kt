@@ -2,23 +2,33 @@ package com.getcode.util
 
 import android.content.Context
 import android.telephony.PhoneNumberUtils
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.App
-import com.getcode.util.CurrencyUtils.getFlag
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.michaelrocks.libphonenumber.android.NumberParseException
 import io.michaelrocks.libphonenumber.android.PhoneNumberUtil
+import timber.log.Timber
 import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object PhoneUtils {
+
+@Singleton
+class PhoneUtils @Inject constructor(
+    @ApplicationContext private val context: Context,
+    currencyUtils: CurrencyUtils
+) {
     var countryLocales: List<CountryLocale> = listOf()
     private var countryCodesMap: Map<Int, CountryLocale> = mapOf()
     var defaultCountryLocale: CountryLocale
 
-    init {
-        val phoneNumberUtil = PhoneNumberUtil.createInstance(App.getInstance())
+    private val phoneNumberUtil = PhoneNumberUtil.createInstance(context)
 
-        phoneNumberUtil.supportedRegions.map { region ->
+    init {
+        countryLocales = phoneNumberUtil.supportedRegions.map { region ->
             val countryCode = phoneNumberUtil.getCountryCodeForRegion(region)
-            val resId: Int? = getFlag(region)
+            val resId: Int? = currencyUtils.getFlag(region)
             val displayCountry = Locale(Locale.getDefault().language, region).displayCountry
 
             CountryLocale(
@@ -29,9 +39,7 @@ object PhoneUtils {
             )
         }
             .sortedBy { it.name }
-            .let {
-                countryLocales = it
-            }
+            .filter { it.resId != null }
 
         countryCodesMap = countryLocales.map { it }.associateBy { it.phoneCode }
         val isoCountry = Locale.getDefault().country
@@ -56,8 +64,7 @@ object PhoneUtils {
         return Locale.getDefault().country
     }
 
-    fun isPhoneNumberValid(context: Context, number: String, countryCode: String): Boolean {
-        val phoneNumberUtil: PhoneNumberUtil = PhoneNumberUtil.createInstance(context)
+    fun isPhoneNumberValid(number: String, countryCode: String): Boolean {
         var isValid = false
         var numberType: PhoneNumberUtil.PhoneNumberType? = null
 
@@ -75,11 +82,7 @@ object PhoneUtils {
             //e.printStackTrace()
         }
 
-        if (isValid && (PhoneNumberUtil.PhoneNumberType.UNKNOWN !== numberType)
-        ) {
-            return true
-        }
-        return false
+        return isValid && (PhoneNumberUtil.PhoneNumberType.UNKNOWN !== numberType)
     }
 
     fun formatNumber(

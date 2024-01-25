@@ -1,8 +1,6 @@
 package com.getcode.view.main.account.withdraw
 
-import android.os.Bundle
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
+import android.annotation.SuppressLint
 import com.getcode.App
 import com.getcode.R
 import com.getcode.solana.keys.PublicKey
@@ -13,7 +11,11 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.network.client.*
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.*
@@ -37,28 +39,19 @@ data class AccountWithdrawSummaryUiModel(
 
 @HiltViewModel
 class AccountWithdrawSummaryViewModel @Inject constructor(
-    private val client: Client
-) : BaseViewModel() {
+    private val client: Client,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawSummaryUiModel())
 
-    fun setArguments(n: NavController, arguments: Bundle?) {
-        arguments ?: return goBack(n)
-        val amountFiat =
-            arguments.getString(ARG_WITHDRAW_AMOUNT_FIAT)?.toDoubleOrNull() ?: return goBack(n)
-        val amountKin =
-            arguments.getString(ARG_WITHDRAW_AMOUNT_KIN)?.toLongOrNull() ?: return goBack(n)
-        val amountText = arguments.getString(ARG_WITHDRAW_AMOUNT_TEXT) ?: return goBack(n)
-        val currencyCode =
-            arguments.getString(ARG_WITHDRAW_AMOUNT_CURRENCY_CODE) ?: return goBack(n)
-        val currencyResId =
-            arguments.getString(ARG_WITHDRAW_AMOUNT_CURRENCY_RES_ID)?.toIntOrNull()
-                ?: return goBack(n)
-        val currencyRate =
-            arguments.getString(ARG_WITHDRAW_AMOUNT_CURRENCY_RATE)?.toFloatOrNull()
-                ?: return goBack(n)
-        val resolvedDestination =
-            arguments.getString(ARG_WITHDRAW_RESOLVED_DESTINATION)
-                ?: return goBack(n)
+    fun setArguments(n: CodeNavigator, arguments: WithdrawalArgs) {
+        val amountFiat = arguments.amountFiat ?: return goBack(n)
+        val amountKin = arguments.amountKinQuarks ?: return goBack(n)
+        val amountText = arguments.amountText ?: return goBack(n)
+        val currencyCode = arguments.currencyCode ?: return goBack(n)
+        val currencyResId = arguments.currencyResId ?: return goBack(n)
+        val currencyRate = arguments.currencyRate?.toFloat() ?: return goBack(n)
+        val resolvedDestination = arguments.resolvedDestination ?: return goBack(n)
 
         uiFlow.value =
             AccountWithdrawSummaryUiModel(
@@ -73,24 +66,25 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
     }
 
     fun onSubmit(
-        navController: NavController,
-        arguments: Bundle,
+        navigator: CodeNavigator,
+        arguments: WithdrawalArgs,
     ) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.prompt_title_confirmWithdrawal),
-                subtitle = App.getInstance().getString(R.string.prompt_description_confirmWithdrawal),
-                positiveText = App.getInstance().getString(R.string.action_withdrawKin),
-                negativeText = App.getInstance().getString(R.string.action_cancel),
-                onPositive = { startWithdraw(navController) }
+                title = resources.getString(R.string.prompt_title_confirmWithdrawal),
+                subtitle = resources.getString(R.string.prompt_description_confirmWithdrawal),
+                positiveText = resources.getString(R.string.action_withdrawKin),
+                negativeText = resources.getString(R.string.action_cancel),
+                onPositive = { startWithdraw(navigator) }
             ))
     }
 
-    private fun goBack(navController: NavController) {
-        navController.popBackStack()
+    private fun goBack(navigator: CodeNavigator) {
+        navigator.popAll()
     }
     
-    private fun startWithdraw(navController: NavController?) {
+    @SuppressLint("CheckResult")
+    private fun startWithdraw(navigator: CodeNavigator) {
         val uiModel = uiFlow.value
         val currencyRate = uiModel.currencyRate?.toDouble() ?: return
         val kin = uiModel.amountKin ?: return
@@ -108,7 +102,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
         val organizer = SessionManager.getOrganizer() ?: return
         val destination = PublicKey(Base58.decode(uiModel.resolvedDestination).toList())
 
-        client.withdrawExternally(App.getInstance(), amount, organizer, destination)
+        client.withdrawExternally(amount, organizer, destination)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
                 TopBarManager.showMessage(
@@ -119,14 +113,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
                     )
                 )
 
-                navController?.navigate(
-                    SheetSections.HOME.route,
-                    NavOptions.Builder().setPopUpTo(
-                        SheetSections.HOME.route,
-                        inclusive = false,
-                        saveState = false
-                    ).build()
-                )
+                navigator.replaceAll(HomeScreen(), inSheet = false)
 
                 uiFlow.value = uiFlow.value.copy(isSuccess = true)
             }, {

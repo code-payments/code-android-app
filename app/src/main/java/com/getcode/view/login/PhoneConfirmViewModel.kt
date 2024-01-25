@@ -1,10 +1,8 @@
 package com.getcode.view.login
 
+import android.annotation.SuppressLint
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.lifecycle.viewModelScope
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.App
@@ -12,9 +10,14 @@ import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.*
+import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.PhoneNumberScreen
 import com.getcode.network.repository.*
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,7 +31,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -57,18 +59,19 @@ data class PhoneConfirmUiModel(
 class PhoneConfirmViewModel @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val phoneRepository: PhoneRepository,
-    private val sessionManager: SessionManager
-) : BaseViewModel() {
+    private val phoneUtils: PhoneUtils,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(PhoneConfirmUiModel())
-    private var navController: NavController? = null
+    private var navigator: CodeNavigator? = null
     private var timer: Timer? = null
     private var otpSmsCodeDisposable: Disposable? = null
 
-    fun reset(navController: NavController?) {
+    fun reset(navigator: CodeNavigator) {
         uiFlow.update {
             PhoneConfirmUiModel()
         }
-        this.navController = navController
+        this.navigator = navigator
 
         startTimer()
         otpSmsCodeDisposable?.dispose()
@@ -77,7 +80,7 @@ class PhoneConfirmViewModel @Inject constructor(
 
     fun onSubmit() {
         CoroutineScope(Dispatchers.IO).launch {
-            performConfirm(navController)
+            performConfirm(navigator)
         }
     }
 
@@ -85,7 +88,7 @@ class PhoneConfirmViewModel @Inject constructor(
         uiFlow.update {
             it.copy(
                 phoneNumber = phoneNumber,
-                phoneNumberFormatted = PhoneUtils.formatNumber(phoneNumber)
+                phoneNumberFormatted = phoneUtils.formatNumber(phoneNumber)
             )
         }
     }
@@ -151,7 +154,13 @@ class PhoneConfirmViewModel @Inject constructor(
     }
 
     private fun startTimer() {
-        uiFlow.update { it.copy(isCodeResent = false, isResendTimerRunning = true, resetTimerTime = 60) }
+        uiFlow.update {
+            it.copy(
+                isCodeResent = false,
+                isResendTimerRunning = true,
+                resetTimerTime = 60
+            )
+        }
         timer?.cancel()
         timer = fixedRateTimer("timer", false, 0L, 1000) {
             uiFlow.update {
@@ -202,8 +211,10 @@ class PhoneConfirmViewModel @Inject constructor(
                         PhoneVerificationService.CheckVerificationCodeResponse.Result.OK -> null
                         PhoneVerificationService.CheckVerificationCodeResponse.Result.INVALID_CODE ->
                             getInvalidCodeError()
+
                         PhoneVerificationService.CheckVerificationCodeResponse.Result.NO_VERIFICATION ->
                             getTimeoutError()
+
                         else ->
                             getGenericError()
                     }?.let { message -> TopBarManager.showMessage(message) }
@@ -224,6 +235,7 @@ class PhoneConfirmViewModel @Inject constructor(
                     IdentityService.LinkAccountResponse.Result.OK -> null
                     IdentityService.LinkAccountResponse.Result.INVALID_TOKEN ->
                         getInvalidCodeError()
+
                     else ->
                         getGenericError()
                 }?.let { message -> TopBarManager.showMessage(message) }
@@ -238,7 +250,8 @@ class PhoneConfirmViewModel @Inject constructor(
             }
     }
 
-    private fun performConfirm(navController: NavController?) {
+    @SuppressLint("CheckResult")
+    private fun performConfirm(navigator: CodeNavigator?) {
         val phoneNumber = uiFlow.value.phoneNumber ?: return
         val otpInput = uiFlow.value.otpInput ?: return
         val entropyB64 = uiFlow.value.entropyB64
@@ -254,10 +267,16 @@ class PhoneConfirmViewModel @Inject constructor(
         val keyPair: Ed25519.KeyPair
 
         try {
-            seedB64 =
-                if (isNewAccount) Ed25519.createSeed16().encodeBase64() else entropyB64.orEmpty()
-            keyPair = MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64).getSolanaKeyPair(App.getInstance())
+            keyPair = if (isNewAccount) {
+                seedB64 = Ed25519.createSeed16().encodeBase64()
+                MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64)
+                    .getSolanaKeyPair(App.getInstance())
+            } else {
+                seedB64 = ""
+                SessionManager.getOrganizer()?.mnemonic?.getSolanaKeyPair(App.getInstance())!!
+            }
         } catch (e: Exception) {
+            e.printStackTrace()
             TopBarManager.showMessage(getGenericError())
             return
         }
@@ -265,7 +284,7 @@ class PhoneConfirmViewModel @Inject constructor(
         if (attempts + 1 >= 3) {
             TopBarManager.showMessage(getMaximumAttemptsReachedError())
             CoroutineScope(Dispatchers.Main).launch {
-                navController?.popBackStack()
+                navigator?.popAll()
             }
             return
         }
@@ -278,7 +297,13 @@ class PhoneConfirmViewModel @Inject constructor(
             .toFlowable()
             .observeOn(AndroidSchedulers.mainThread())
             .doOnSubscribe { setIsLoading(true) }
-            .flatMapSingle { isSuccess -> if (isSuccess) linkAccount(keyPair, phoneNumber, otpInput) else Single.just(isSuccess) }
+            .flatMapSingle { isSuccess ->
+                if (isSuccess) linkAccount(
+                    keyPair,
+                    phoneNumber,
+                    otpInput
+                ) else Single.just(isSuccess)
+            }
             .flatMap { isSuccess ->
                 when {
                     isPhoneLinking && isSuccess -> getAssociatedPhoneNumber(keyPair)
@@ -306,32 +331,19 @@ class PhoneConfirmViewModel @Inject constructor(
             .subscribe(
                 {
                     when {
-                        isPhoneLinking -> {
-                            navController?.navigate(
-                                SheetSections.PHONE.route,
-                                NavOptions.Builder().setPopUpTo(
-                                    SheetSections.HOME.route,
-                                    inclusive = false,
-                                    saveState = false
-                                ).build()
-                            )
-                        }
+                        isPhoneLinking -> navigator?.popUntil { it is PhoneNumberScreen }
+
                         isNewAccount -> {
-                            navController?.navigate(
-                                LoginSections.SEED_VIEW.route
-                                    .replace(
-                                        "{$ARG_SIGN_IN_ENTROPY_B64}",
-                                        seedB64.urlEncode()
-                                    ),
-                                NavOptions.Builder().setPopUpTo(
-                                    LoginSections.LOGIN.route, inclusive = false, saveState = false
+                            navigator?.push(
+                                AccessKeyScreen(
+                                    signInEntropy = seedB64,
+                                    isNewAccount = true,
+                                    phoneNumber = phoneNumber
                                 )
-                                    .build()
                             )
                         }
-                        isSeedInput -> {
-                            navController?.navigate(MainSections.HOME.route)
-                        }
+
+                        else -> navigator?.replaceAll(HomeScreen())
                     }
                 }, {
                     setIsLoading(false)
@@ -347,22 +359,22 @@ class PhoneConfirmViewModel @Inject constructor(
     }
 
     private fun getInvalidCodeError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_invalidVerificationCode),
-        App.getInstance().getString(R.string.error_description_invalidVerificationCode)
+        resources.getString(R.string.error_title_invalidVerificationCode),
+        resources.getString(R.string.error_description_invalidVerificationCode)
     )
 
     private fun getTimeoutError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_codeTimedOut),
-        App.getInstance().getString(R.string.error_description_codeTimedOut),
+        resources.getString(R.string.error_title_codeTimedOut),
+        resources.getString(R.string.error_description_codeTimedOut),
     )
 
     private fun getGenericError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToVerifyPhone),
-        App.getInstance().getString(R.string.error_description_failedToVerifyPhone),
+        resources.getString(R.string.error_title_failedToVerifyPhone),
+        resources.getString(R.string.error_description_failedToVerifyPhone),
     )
 
     private fun getMaximumAttemptsReachedError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_maxAttemptsReached),
-        App.getInstance().getString(R.string.error_description_maxAttemptsReached),
+        resources.getString(R.string.error_title_maxAttemptsReached),
+        resources.getString(R.string.error_description_maxAttemptsReached),
     )
 }

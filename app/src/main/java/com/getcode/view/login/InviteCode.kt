@@ -1,50 +1,61 @@
 package com.getcode.view.login
 
-import android.os.Bundle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.theme.*
-import com.getcode.util.getActivity
-import com.getcode.view.ARG_PHONE_NUMBER
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
+import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
+import com.getcode.theme.White50
+import com.getcode.theme.extraSmall
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Preview
 @Composable
 fun InviteCode(
-    navController: NavController? = null,
-    arguments: Bundle? = null
+    viewModel: InviteCodeViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs()
 ) {
-    val viewModel = hiltViewModel<InviteCodeViewModel>()
+    val navigator = LocalCodeNavigator.current
     val dataState: InviteCodeUiModel by viewModel.uiFlow.collectAsState()
     val focusRequester = FocusRequester()
 
     ConstraintLayout(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 50.dp, bottom = 20.dp)
-            .padding(horizontal = 20.dp)
+            .padding(top = CodeTheme.dimens.grid.x10, bottom = CodeTheme.dimens.grid.x4)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
         val (inviteCodeRow, captionText, buttonAction) = createRefs()
@@ -63,12 +74,12 @@ fun InviteCode(
 
                 .fillMaxWidth()
                 .focusRequester(focusRequester)
-                .padding(top = 2.dp)
-                .height(60.dp)
-                .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(5.dp))
+                .padding(top = CodeTheme.dimens.grid.x1)
+                .height(CodeTheme.dimens.grid.x12)
+                .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.extraSmall)
                 .background(White05),
             value = dataState.inviteCode,
-            textStyle = MaterialTheme.typography.subtitle1,
+            textStyle = CodeTheme.typography.subtitle1,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text),
             colors = TextFieldDefaults.textFieldColors(
                 backgroundColor = Color.Transparent,
@@ -79,7 +90,7 @@ fun InviteCode(
             ),
             singleLine = true,
             keyboardActions = KeyboardActions(
-                onDone = { viewModel.onSubmit(navController) }
+                onDone = { viewModel.onSubmit(navigator) }
             ),
             onValueChange = {
                 if (!dataState.isLoading) {
@@ -96,11 +107,12 @@ fun InviteCode(
             }
         )
 
+        val x4 = CodeTheme.dimens.grid.x4
         Text(
             modifier = Modifier.constrainAs(captionText) {
-                linkTo(inviteCodeRow.bottom, captionText.top, topMargin = 20.dp)
+                linkTo(inviteCodeRow.bottom, captionText.top, topMargin = x4)
             },
-            style = MaterialTheme.typography.body2.copy(
+            style = CodeTheme.typography.body2.copy(
                 textAlign = TextAlign.Center
             ),
             color = BrandLight,
@@ -113,7 +125,7 @@ fun InviteCode(
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                viewModel.onSubmit(navController)
+                viewModel.onSubmit(navigator)
             },
             enabled = dataState.isContinue,
             isLoading = dataState.isLoading,
@@ -129,9 +141,9 @@ fun InviteCode(
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
         viewModel.reset()
-        arguments?.getString(ARG_PHONE_NUMBER)
-            ?.let { viewModel.setPhoneNumber(it) }
+        arguments.phoneNumber?.let {
+            viewModel.setPhoneNumber(it)
+        }
     }
-
 }
 

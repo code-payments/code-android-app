@@ -1,6 +1,6 @@
 package com.getcode.solana.builder
 
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Signature
 import com.getcode.mocks.SolanaTransaction
 import com.getcode.model.Kin
 import com.getcode.model.intents.actions.ActionType.Companion.kreIndex

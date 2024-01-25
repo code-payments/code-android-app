@@ -13,9 +13,12 @@ import androidx.compose.ui.unit.dp
 import com.getcode.manager.SessionManager
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
+import com.getcode.solana.organizer.SlotType
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.MiddleEllipsisText
+import com.getcode.view.main.balance.BalanceSheetViewModel
 
 
 @Composable
@@ -23,12 +26,23 @@ fun AccountDebugBuckets() {
     val accountInfo = SessionManager.getOrganizer()?.getAccountInfo()?.values?.toList() ?: return
 
     val accountList = accountInfo.toList().sortedBy {
-        when (it.accountType) {
+        when (val type = it.accountType) {
             AccountType.Primary -> 0
             AccountType.Incoming -> 1
             AccountType.Outgoing -> 2
-            is AccountType.Bucket -> (it.accountType as AccountType.Bucket).type.ordinal + 3
-            AccountType.RemoteSend -> 100
+            is AccountType.Bucket -> {
+                when (val slotType = type.type) {
+                    SlotType.Bucket1 -> 3
+                    SlotType.Bucket10 -> 4
+                    SlotType.Bucket100 -> 5
+                    SlotType.Bucket1k -> 6
+                    SlotType.Bucket10k -> 7
+                    SlotType.Bucket100k -> 8
+                    SlotType.Bucket1m -> 9
+                }
+            }
+            is AccountType.Relationship -> 10
+            AccountType.RemoteSend -> 11
         }
     }
 
@@ -40,25 +54,26 @@ fun AccountDebugBuckets() {
                 AccountType.Outgoing -> "Outgoing ${info.index}"
                 AccountType.Primary -> "Primary"
                 AccountType.RemoteSend -> "Remote Send"
+                is AccountType.Relationship -> "${accountType.domain.relationshipHost}"
             }
 
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 15.dp)
+                    .padding(horizontal = CodeTheme.dimens.grid.x3)
             ) {
                 Row(
-                    modifier = Modifier.padding(vertical = 5.dp)
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1)
                 ) {
                     Text(
                         modifier = Modifier
                             .weight(1f),
                         text = name,
-                        style = MaterialTheme.typography.body1,
+                        style = CodeTheme.typography.body1,
                     )
                 }
 
                 Row(
-                    modifier = Modifier.padding(vertical = 5.dp)
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1)
                 ) {
                     MiddleEllipsisText(
                         modifier = Modifier
@@ -67,7 +82,7 @@ fun AccountDebugBuckets() {
                             .padding(end = 100.dp),
                         text = info.address.base58(),
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
 
                     val kinValue = info.balance.toKinValueDouble()
@@ -76,28 +91,28 @@ fun AccountDebugBuckets() {
                     Text(
                         text = "K ${String.format(format, info.balance.toKinValueDouble())}",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
                 }
 
                 Row(
-                    modifier = Modifier.padding(vertical = 5.dp)
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1)
                 ) {
                     Text(
                         modifier = Modifier.weight(1f),
                         text = "${info.managementState.name}  •  ${info.blockchainState.name}",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
                     Text(
                         text = "",
                         color = BrandLight,
-                        style = MaterialTheme.typography.body2
+                        style = CodeTheme.typography.body2
                     )
                 }
 
                 Spacer(modifier = Modifier
-                    .padding(vertical = 10.dp)
+                    .padding(vertical = CodeTheme.dimens.grid.x2)
                     .background(BrandLight)
                     .fillMaxWidth()
                     .height(1.dp))

@@ -2,10 +2,7 @@ package com.getcode.solana.keys
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
-import com.getcode.keys.Hash
 import com.getcode.model.Kin
-import com.getcode.network.repository.toByteArray
-import com.getcode.network.repository.toByteList
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.instructions.programs.*
 import com.getcode.vendor.Base58

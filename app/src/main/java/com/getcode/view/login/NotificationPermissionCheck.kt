@@ -21,7 +21,7 @@ fun notificationPermissionCheck(isShowError: Boolean = true, onResult: (Boolean)
                 title = context.getString(R.string.action_allowPushNotifications),
                 message = context.getString(R.string.permissions_description_push),
                 type = TopBarManager.TopBarMessageType.ERROR,
-                secondaryText = App.getInstance().getString(R.string.action_openSettings),
+                secondaryText = context.getString(R.string.action_openSettings),
                 secondaryAction = { IntentUtils.launchAppSettings() }
             )
         )

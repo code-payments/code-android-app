@@ -1,17 +1,20 @@
 package com.getcode.view.login
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import com.getcode.crypt.MnemonicCode
 import dagger.hilt.android.lifecycle.HiltViewModel
-import androidx.navigation.NavController
-import androidx.navigation.NavOptions
 import com.getcode.App
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.utils.ErrorUtils
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.LoginPhoneVerificationScreen
+import com.getcode.navigation.screens.PhoneVerificationScreen
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -34,8 +37,9 @@ data class SeedInputUiModel(
 
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
-    val authManager: AuthManager
-) : BaseViewModel() {
+    private val authManager: AuthManager,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = MnemonicCode(App.getInstance().resources)
 
@@ -56,7 +60,7 @@ class SeedInputViewModel @Inject constructor(
         }
     }
 
-    fun onSubmit(navController: NavController?) {
+    fun onSubmit(navigator: CodeNavigator) {
         val userWordList =
             uiFlow.value.wordsString.trim().replace(Regex("(\\s)+"), " ").lowercase(Locale.getDefault()).split(" ")
         val mnemonic = MnemonicPhrase.newInstance(userWordList) ?: return
@@ -67,19 +71,20 @@ class SeedInputViewModel @Inject constructor(
             try {
                 entropyB64 = mnemonic.getBase64EncodedEntropy(App.getInstance())
             } catch (e: Exception) {
-                showError(navController)
+                showError(navigator)
                 return@launch
             }
 
-            performLogin(navController, entropyB64)
+            performLogin(navigator, entropyB64)
         }
     }
 
     fun logout(activity: Activity, onComplete: () -> Unit = {}) =
         authManager.logout(activity, onComplete)
 
-    fun performLogin(navController: NavController?, entropyB64: String) {
-        authManager.login(App.getInstance(), entropyB64)
+    @SuppressLint("CheckResult")
+    fun performLogin(navigator: CodeNavigator, entropyB64: String) {
+        authManager.login(entropyB64)
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
                 setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
@@ -94,16 +99,16 @@ class SeedInputViewModel @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
-                    navController?.navigate(MainSections.HOME.route)
+                    navigator.replaceAll(HomeScreen())
                 }, {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(
                             getString(R.string.error_title_timelockUnlocked),
                             getString(R.string.error_description_timelockUnlocked)
                         )
-                        navController?.popBackStack()
+                        navigator.popAll()
                     } else {
-                        showError(navController)
+                        showError(navigator)
                     }
                     setState(isLoading = false, isSuccess = false, isContinueEnabled = true)
                 }
@@ -133,20 +138,15 @@ class SeedInputViewModel @Inject constructor(
         return userWordList.filter { it in mnemonicWordList }.size
     }
 
-    private fun showError(navController: NavController?) {
+    private fun showError(navigator: CodeNavigator) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = App.getInstance().getString(R.string.prompt_title_notCodeAccount),
-                subtitle = App.getInstance().getString(R.string.prompt_description_notCodeAccount),
-                positiveText = App.getInstance().getString(R.string.action_createNewCodeAccount),
-                negativeText = App.getInstance().getString(R.string.action_tryDifferentCodeAccount),
+                title = resources.getString(R.string.prompt_title_notCodeAccount),
+                subtitle = resources.getString(R.string.prompt_description_notCodeAccount),
+                positiveText = resources.getString(R.string.action_createNewCodeAccount),
+                negativeText = resources.getString(R.string.action_tryDifferentCodeAccount),
                 onPositive = {
-                    navController?.navigate(
-                        LoginSections.PHONE_VERIFY.route,
-                        NavOptions.Builder().setPopUpTo(
-                            LoginSections.LOGIN.route, inclusive = false, saveState = false
-                        ).build()
-                    )
+                    navigator.push(LoginPhoneVerificationScreen())
                 }
             )
         )

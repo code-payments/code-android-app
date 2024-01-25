@@ -1,88 +1,107 @@
 package com.getcode.view.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.KeyboardArrowLeft
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import com.getcode.R
 import com.getcode.theme.Brand
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.topBarHeight
+import com.getcode.util.rememberedClickable
+import com.getcode.util.unboundedClickable
 
 @Composable
 fun SheetTitle(
     modifier: Modifier = Modifier,
-    title: String? = null,
+    title: (@Composable () -> String?)? = null,
+    displayLogo: Boolean = false,
+    onLogoClicked: () -> Unit = { },
     backButton: Boolean = false,
     onBackIconClicked: () -> Unit = {},
-    closeButton: Boolean = true,
+    closeButton: Boolean = !backButton,
     onCloseIconClicked: () -> Unit = {},
 ) {
     Surface(
-        elevation = 0.dp,
-        modifier = modifier.background(Brand)
+        modifier = modifier,
+        color = Brand,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brand)
-                .padding(top = 10.dp, bottom = 10.dp)
+                .padding(vertical = CodeTheme.dimens.grid.x2)
                 .fillMaxWidth()
                 .height(topBarHeight),
         ) {
             if (closeButton) {
-                IconButton(
-                    onClick = onCloseIconClicked,
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = "",
+                    tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .size(35.dp)
-                    )
-                }
+                        .padding(end = CodeTheme.dimens.inset)
+                        .wrapContentWidth()
+                        .size(CodeTheme.dimens.staticGrid.x6)
+                        .unboundedClickable { onCloseIconClicked() }
+                )
             }
 
             if (backButton) {
-                IconButton(
-                    onClick = onBackIconClicked,
+                Icon(
+                    imageVector = Icons.Outlined.ArrowBack,
+                    contentDescription = "",
+                    tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.KeyboardArrowLeft,
-                        contentDescription = "",
-                        tint = Color.White,
-                        modifier = Modifier
-                            .wrapContentWidth()
-                            .size(35.dp)
-                    )
-                }
+                        .padding(start = CodeTheme.dimens.inset)
+                        .wrapContentWidth()
+                        .size(CodeTheme.dimens.staticGrid.x6)
+                        .unboundedClickable { onBackIconClicked() }
+                )
             }
 
-            Text(
-                text = title.orEmpty(),
-                color = Color.White,
-                style = MaterialTheme.typography.h6.copy(
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                ),
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .fillMaxWidth()
-            )
+            if (displayLogo) {
+                Image(
+                    painterResource(
+                        R.drawable.ic_code_logo_near_white
+                    ),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .requiredHeight(CodeTheme.dimens.staticGrid.x8)
+                        .align(Alignment.Center)
+                        .rememberedClickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { onLogoClicked() }
+                )
+            } else {
+                Text(
+                    text = title?.invoke().orEmpty(),
+                    color = Color.White,
+                    style = CodeTheme.typography.h6.copy(
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -91,6 +110,6 @@ fun SheetTitle(
 @Composable
 fun TitlePreview() {
     SheetTitle(
-        title = "Sheet Title"
+        title = { "Sheet Title" }
     )
 }

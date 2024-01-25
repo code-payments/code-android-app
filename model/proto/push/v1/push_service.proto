@@ -1,10 +1,9 @@
 syntax = "proto3";
 package code.push.v1;
-option go_package = "github.com/code-wallet/code-api/genproto/push/v1;push";
+option go_package = "github.com/code-payments/code-protobuf-api/generated/go/push/v1;push";
 option java_package = "com.codeinc.gen.push.v1";
 option objc_class_prefix = "APBPushV1";
 import "common/v1/model.proto";
-
 service Push {
     // AddToken stores a push token in a data container. The call is idempotent
     // and adding an existing valid token will not fail. Token types will be
@@ -12,7 +11,6 @@ service Push {
     // INVALID_ARGUMENT status error.
     rpc AddToken(AddTokenRequest) returns (AddTokenResponse);
 }
-
 enum TokenType {
     UNKNOWN = 0;
     // FCM registration token for an Android device
@@ -20,7 +18,6 @@ enum TokenType {
     // FCM registration token or an iOS device
     FCM_APNS = 2;
 }
-
 message AddTokenRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -34,8 +31,10 @@ message AddTokenRequest {
     string push_token = 4;
     // The type of push token
     TokenType token_type = 5;
+    // The instance of the app install where the push token was generated. Ideally,
+    // the push token is unique to the install.
+    common.v1.AppInstallId app_install = 6;
 }
-
 message AddTokenResponse {
     Result result = 1;
     enum Result {
@@ -43,6 +42,4 @@ message AddTokenResponse {
         // The push token is invalid and wasn't stored.
         INVALID_PUSH_TOKEN = 1;
     }
-
 }
-

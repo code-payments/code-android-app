@@ -1,12 +1,12 @@
 package com.getcode.manager
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import com.bugsnag.android.Bugsnag
-import com.getcode.App
 import com.getcode.BuildConfig
+import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
-import com.google.firebase.messaging.FirebaseMessaging
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
 import com.getcode.ed25519.Ed25519
@@ -14,34 +14,46 @@ import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
-import com.getcode.network.client.Client
-import com.getcode.network.repository.*
+import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.IdentityRepository
+import com.getcode.network.repository.PhoneRepository
+import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.PushRepository
+import com.getcode.network.repository.encodeBase64
+import com.getcode.network.repository.getPublicKeyBase58
+import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
-import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
+import com.google.firebase.messaging.FirebaseMessaging
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 @Singleton
 class AuthManager @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
     private val phoneRepository: PhoneRepository,
     private val identityRepository: IdentityRepository,
     private val pushRepository: PushRepository,
     private val prefRepository: PrefRepository,
-    private val currencyRepository: CurrencyRepository,
+    private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val inMemoryDao: InMemoryDao,
-    private val analyticsManager: AnalyticsManager,
-    private val client: Client
-) {
+    private val analytics: AnalyticsService,
+): CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
+    @SuppressLint("CheckResult")
     fun init(activity: Activity) {
         AccountUtils
             .getToken(activity)
@@ -53,10 +65,10 @@ class AuthManager @Inject constructor(
 
     private fun softLogin(entropyB64: String): Completable {
         if (softLoginDisabled) return Completable.complete()
-        return login(App.getInstance(), entropyB64, isSoftLogin = true)
+        return login(entropyB64, isSoftLogin = true)
     }
 
-    fun login(context: Context, entropyB64: String, isSoftLogin: Boolean = false, rollbackOnError: Boolean = false): Completable {
+    fun login(entropyB64: String, isSoftLogin: Boolean = false, rollbackOnError: Boolean = false): Completable {
         Timber.i("Login: entropyB64: $entropyB64, isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
@@ -67,21 +79,25 @@ class AuthManager @Inject constructor(
         return Single.create<SessionManager.SessionState> {
             if (!isSoftLogin) softLoginDisabled = true
 
-            Database.init(App.getInstance(), entropyB64)
+            if (!Database.isOpen()) {
+                Database.init(context, entropyB64)
+            }
 
             val originalSessionState = SessionManager.authState.value
-            sessionManager.set(App.getInstance(), entropyB64)
+            sessionManager.set(context, entropyB64)
 
             if (!isSoftLogin) {
                 loginAnalytics(entropyB64)
             }
-            it.onSuccess(originalSessionState ?: SessionManager.SessionState())
+            it.onSuccess(originalSessionState)
         }
             .flatMapCompletable {
                 val fetchData = fetchAdditionalAccountData(context, entropyB64, isSoftLogin, rollbackOnError, it)
                 if (isSoftLogin) {
-                    fetchData.subscribe({}, ErrorUtils::handleError)
-                    Completable.complete()
+                    fetchData.onErrorComplete {
+                        ErrorUtils.handleError(it)
+                        true
+                    }
                 } else {
                     fetchData
                 }
@@ -105,7 +121,7 @@ class AuthManager @Inject constructor(
                     val (phone, _) = it
 
                     AccountUtils.addAccount(
-                        context = App.getInstance(),
+                        context = context,
                         name = phone.phoneNumber,
                         password = entropyB64,
                         token = entropyB64
@@ -116,16 +132,13 @@ class AuthManager @Inject constructor(
                 val isTimelockUnlockedException = it is AuthManagerException.TimelockUnlockedException
                 if (!isSoftLogin) {
                     if (rollbackOnError) {
-                        login(context, originalSessionState?.entropyB64.orEmpty(), isSoftLogin, rollbackOnError = false)
+                        login(originalSessionState?.entropyB64.orEmpty(), isSoftLogin, rollbackOnError = false)
                     } else {
                         clearToken()
                     }
                 } else {
                     if (isTimelockUnlockedException) {
-                        SessionManager.authStateMutable.update { state -> state?.copy(isTimelockUnlocked = true) }
-                    }
-                    if (ErrorUtils.isNetworkError(it) || ErrorUtils.isRuntimeError(it)) {
-                        ErrorUtils.showNetworkError()
+                        SessionManager.update { state -> state.copy(isTimelockUnlocked = true) }
                     }
                 }
             }
@@ -146,6 +159,16 @@ class AuthManager @Inject constructor(
                 }
             }
             .subscribe()
+    }
+
+    suspend fun logout(activity: Activity): Result<Unit> = suspendCoroutine { cont ->
+        AccountUtils.removeAccounts(activity)
+            .doOnSuccess { success ->
+                if (success) {
+                    clearToken()
+                    cont.resume(Result.success(Unit))
+                }
+            }.doOnError { cont.resume(Result.failure(it)) }.subscribe()
     }
 
 
@@ -176,7 +199,7 @@ class AuthManager @Inject constructor(
             .flatMap {
                 user = it
                 if (SessionManager.authState.value?.entropyB64 != entropyB64) {
-                    sessionManager.set(App.getInstance(), entropyB64)
+                    sessionManager.set(context, entropyB64)
                 }
                 balanceController.fetchBalance()
                     .toSingleDefault(Pair(phone!!, user!!))
@@ -184,14 +207,15 @@ class AuthManager @Inject constructor(
             .doOnSuccess {
                 savePrefs(phone!!, user!!)
                 updateFcmToken(owner, user!!.dataContainerId.toByteArray())
-                currencyRepository.fetchRates()
+                launch { exchange.fetchRatesIfNeeded() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
             }
     }
 
     private fun loginAnalytics(entropyB64: String) {
-        val owner = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64).getSolanaKeyPair(App.getInstance())
-        analyticsManager.login(
+        val owner = MnemonicPhrase.fromEntropyB64(context, entropyB64)
+            .getSolanaKeyPair(context)
+        analytics.login(
             ownerPublicKey = owner.getPublicKeyBase58(),
             autoCompleteCount = 0,
             inputChangeCount = 0
@@ -200,11 +224,11 @@ class AuthManager @Inject constructor(
 
     private fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
-        analyticsManager.logout()
+        analytics.logout()
         sessionManager.clear()
         Database.close()
         inMemoryDao.clear()
-        Database.delete(App.getInstance())
+        Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

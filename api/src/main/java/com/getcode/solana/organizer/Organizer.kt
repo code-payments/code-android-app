@@ -5,6 +5,7 @@ import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
+import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.solana.keys.*
 import timber.log.Timber
@@ -51,6 +52,7 @@ class Organizer(
 
     fun setAccountInfo(infos: Map<PublicKey, AccountInfo>) {
         this.accountInfos = infos
+        tray.createRelationships(context, infos)
         propagateBalances()
     }
 
@@ -84,7 +86,10 @@ class Organizer(
                         }
                         balances[info.accountType] = info.balance
                     }
-                    AccountType.Primary, is AccountType.Bucket, AccountType.RemoteSend -> {
+                    AccountType.Primary,
+                    is AccountType.Bucket,
+                    AccountType.RemoteSend,
+                    is AccountType.Relationship -> {
                         Timber.i("Non-indexed account mismatch. Account doesn't match server-provided account. Something is definitely wrong")
                     }
                 }
@@ -92,6 +97,14 @@ class Organizer(
         }
 
         setBalances(balances)
+    }
+
+    fun relationshipFor(domain: Domain): Relationship? {
+        return tray.relationships.relationshipWith(domain)
+    }
+
+    fun relationshipsLargestFirst(): List<Relationship> {
+        return tray.relationships.relationships(largestFirst = true)
     }
 
     companion object {

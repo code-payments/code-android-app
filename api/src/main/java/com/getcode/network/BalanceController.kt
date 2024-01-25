@@ -10,6 +10,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
@@ -24,6 +25,11 @@ class BalanceController @Inject constructor(
     private val privacyMigration: PrivacyMigration,
     private val transactionReceiver: TransactionReceiver
 ) {
+
+    fun observe(): Flow<Double> = balanceRepository.balanceFlow
+
+    val balance: Double
+        get() = balanceRepository.balanceFlow.value
 
     fun setTray(organizer: Organizer, tray: Tray) {
         organizer.set(tray)
@@ -83,7 +89,10 @@ class BalanceController @Inject constructor(
             }
     }
 
+
+
     suspend fun fetchBalanceSuspend() {
+        Timber.d("fetchBalance")
         if (SessionManager.isAuthenticated() != true) {
             Timber.d("FetchBalance - Not authenticated")
             return
@@ -95,6 +104,7 @@ class BalanceController @Inject constructor(
                 val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
                 val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
+                Timber.d("updating balance and organizer")
                 organizer.setAccountInfo(accountInfo)
                 balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
                 transactionReceiver.receiveFromIncomingIfRotationRequired(organizer)

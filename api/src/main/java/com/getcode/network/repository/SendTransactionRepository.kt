@@ -1,25 +1,25 @@
 package com.getcode.network.repository
 
 import android.content.Context
-import android.util.Base64
-import com.getcode.codeScanner.CodeScanner
-import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.model.*
 import com.getcode.network.client.*
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.nonce
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
+import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject
-import kotlin.random.Random
 
 
 class SendTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
-    private val analyticsManager: AnalyticsManager,
-    private val client: Client
+    private val analyticsManager: AnalyticsService,
+    private val client: Client,
+    @ApplicationContext private val context: Context
 ) {
     private lateinit var amount: KinAmount
     private lateinit var owner: Ed25519.KeyPair
@@ -35,17 +35,16 @@ class SendTransactionRepository @Inject constructor(
 
         this.payload = CodePayload(
             kind = Kind.Cash,
-            kin = amount.kin,
-            nonce = Random.nextBytes(11).toList()
+            value = amount.kin,
+            nonce = nonce,
         )
 
-        val payloadEncoded = payload.encode().toByteArray()
-        this.payloadData = CodeScanner.Encode(payloadEncoded).toList()
-        this.rendezvousKey = Ed25519.createKeyPair(Base64.encodeToString(Sha256Hash.hash(payloadEncoded), Base64.DEFAULT))
+        this.payloadData = payload.codeData.toList()
+        this.rendezvousKey = payload.rendezvous
         this.receivingAccount = null
     }
 
-    fun startTransaction(context: Context, organizer: Organizer): Flowable<IntentMetadata> {
+    fun startTransaction(organizer: Organizer): Flowable<IntentMetadata> {
         return messagingRepository.openMessageStream(rendezvousKey)
             .firstOrError()
             .flatMapPublisher { paymentRequest ->
@@ -53,7 +52,7 @@ class SendTransactionRepository @Inject constructor(
                 // verifying the signature matches one that has been signed
                 // with the rendezvous key.
 
-                val isValid = messagingRepository.verifyRequestForPayment(
+                val isValid = messagingRepository.verifyRequestToGrabBill(
                     destination = paymentRequest.account,
                     rendezvousKey = rendezvousKey,
                     signature = paymentRequest.signature
@@ -61,16 +60,14 @@ class SendTransactionRepository @Inject constructor(
 
                 if (!isValid) {
                     analyticsManager.transfer(
-                        kin = amount.kin,
-                        currencyCode = amount.rate.currency,
+                        amount = amount,
                         successful = false
                     )
 
                     Flowable.error(SendTransactionException.DestinationSignatureInvalidException())
                 } else {
                     analyticsManager.transfer(
-                        kin = amount.kin,
-                        currencyCode = amount.rate.currency,
+                        amount = amount,
                         successful = true
                     )
 
@@ -80,8 +77,7 @@ class SendTransactionRepository @Inject constructor(
             }
             .doOnError {
                 analyticsManager.transfer(
-                    kin = amount.kin,
-                    currencyCode = amount.rate.currency,
+                    amount = amount,
                     successful = false
                 )
                 ErrorUtils.handleError(it)
@@ -115,7 +111,7 @@ class SendTransactionRepository @Inject constructor(
                 client.pollIntentMetadata(
                     owner = organizer.ownerKeyPair,
                     intentId = rendezvousKey.publicKeyBytes.toPublicKey()
-                )
+                ).asFlowable()
             )
     }
 

@@ -25,6 +25,8 @@ import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
 import com.getcode.util.getActivity
 import com.getcode.view.components.ButtonState
@@ -32,19 +34,20 @@ import com.getcode.view.components.CodeButton
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun ConfirmDeleteAccount(navController: NavController) {
-    val viewModel = hiltViewModel<DeleteAccountViewModel>()
+fun ConfirmDeleteAccount(
+    viewModel: DeleteAccountViewModel
+) {
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
     Column(
         Modifier
-            .padding(20.dp)
+            .padding(CodeTheme.dimens.grid.x4)
             .imePadding(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
         Text(
             text = stringResource(id = R.string.subtitle_deleteAccountDescription),
-            style = MaterialTheme.typography.subtitle2
+            style = CodeTheme.typography.subtitle2
         )
         TextField(
             modifier = Modifier
@@ -53,46 +56,34 @@ fun ConfirmDeleteAccount(navController: NavController) {
             placeholder = {
                 Text(
                     stringResource(id = R.string.subtitle_typeDelete).format(viewModel.requiredPhrase),
-                    style = MaterialTheme.typography.subtitle1.copy(
-                        fontSize = 16.sp,
-                    )
+                    style = CodeTheme.typography.caption
                 )
             },
             value = viewModel.typedText.collectAsState().value,
             onValueChange = {
                 viewModel.onTextUpdated(it)
             },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
-                fontSize = 16.sp,
-            ),
+            textStyle = CodeTheme.typography.caption,
             singleLine = true,
             colors = inputColors(),
-            shape = RoundedCornerShape(size = 5.dp)
+            shape = CodeTheme.shapes.extraSmall
         )
         Spacer(modifier = Modifier.weight(1f))
         CodeButton(
             onClick = {
                 keyboardController?.hide()
-                showConfirmDeletionBanner(onConfirm = {
-                    context.getActivity()?.let { viewModel.onConfirmDelete(it) }
-                })
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = context.getString(R.string.prompt_title_deleteAccount),
+                        positiveText = context.getString(R.string.action_deleteAccount),
+                        negativeText = context.getString(R.string.action_cancel),
+                        onPositive = { context.getActivity()?.let { viewModel.onConfirmDelete(it) } },
+                        onNegative = { }
+                    ))
             },
             text = stringResource(R.string.action_deleteAccount),
             buttonState = ButtonState.Filled,
             enabled = viewModel.isDeletionAllowed()
         )
     }
-}
-
-fun showConfirmDeletionBanner(onConfirm: () -> Unit) {
-    BottomBarManager.showMessage(
-        BottomBarManager.BottomBarMessage(
-            title = App.getInstance()
-                .getString(R.string.prompt_title_deleteAccount),
-            positiveText = App.getInstance()
-                .getString(R.string.action_deleteAccount),
-            negativeText = App.getInstance().getString(R.string.action_cancel),
-            onPositive = onConfirm,
-            onNegative = { }
-        ))
 }

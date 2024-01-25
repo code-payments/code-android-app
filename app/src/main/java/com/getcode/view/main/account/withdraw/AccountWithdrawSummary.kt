@@ -1,6 +1,5 @@
 package com.getcode.view.main.account.withdraw
 
-import android.os.Bundle
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,29 +11,34 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
 import com.getcode.R
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.Brand01
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.main.giveKin.AmountArea
 
 @Composable
-fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onClose: () -> Unit) {
-    val viewModel = hiltViewModel<AccountWithdrawSummaryViewModel>()
+fun AccountWithdrawSummary(
+    viewModel: AccountWithdrawSummaryViewModel,
+    arguments: WithdrawalArgs,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
         val (centerColumn, nextButton) = createRefs()
@@ -49,9 +53,9 @@ fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onC
         ) {
             Box(
                 modifier = Modifier
-                    .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(10.dp))
+                    .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.medium)
                     .background(Brand01)
-                    .padding(20.dp)
+                    .padding(CodeTheme.dimens.grid.x4)
             ) {
                 AmountArea(
                     currencyResId = dataState.currencyResId,
@@ -65,7 +69,7 @@ fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onC
 
             Image(
                 modifier = Modifier
-                    .padding(vertical = 20.dp)
+                    .padding(vertical = CodeTheme.dimens.inset)
                     .align(CenterHorizontally),
                 painter = painterResource(id = R.drawable.ic_arrow_down),
                 contentDescription = ""
@@ -73,40 +77,39 @@ fun AccountWithdrawSummary(navController: NavController, arguments: Bundle?, onC
 
             Box(
                 modifier = Modifier
-                    .border(width = 1.dp, color = BrandLight, shape = RoundedCornerShape(10.dp))
+                    .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.medium)
                     .background(Brand01)
-                    .padding(20.dp)
+                    .padding(CodeTheme.dimens.grid.x4)
             ) {
                 Text(
                     text = dataState.resolvedDestination,
-                    style = MaterialTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
+                    style = CodeTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
                 )
             }
         }
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(nextButton) {
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                arguments ?: return@CodeButton
-                viewModel.onSubmit(navController, arguments)
+                viewModel.onSubmit(navigator, arguments)
             },
             enabled = true,
-            text = App.getInstance().getString(R.string.action_withdrawKin),
+            text = stringResource(R.string.action_withdrawKin),
             buttonState = ButtonState.Filled,
         )
     }
 
     LaunchedEffect(rememberUpdatedState(Unit)) {
-        viewModel.setArguments(navController, arguments)
+        viewModel.setArguments(navigator, arguments)
     }
 
     LaunchedEffect(dataState.isSuccess) {
         if (dataState.isSuccess == true) {
-            onClose()
+            navigator.hide()
         }
     }
 }

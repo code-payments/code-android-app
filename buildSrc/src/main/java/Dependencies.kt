@@ -10,6 +10,7 @@ object Versions {
     const val java = "17"
     const val kotlin = "1.9.10"
     const val kotlinx_coroutines = "1.7.3"
+    const val kotlinx_serialization = "1.6.2"
     const val android_gradle_build_tools = "8.1.0"
     const val google_services = "4.3.15"
 
@@ -19,15 +20,15 @@ object Versions {
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
     const val androidx_material = "1.5.0"
-    const val androidx_room = "2.4.2"
+    const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "1.5.4"
-    const val compose_activities: String = "1.4.0"
+    const val compose = "2024.01.00"
+    const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
 
-    const val hilt = "2.48.1"
+    const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
     const val rxjava: String = "3.1.3"
@@ -60,6 +61,7 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
+    const val voyager = "1.0.0-rc10"
 }
 
 object Classpath {
@@ -67,6 +69,7 @@ object Classpath {
     const val kotlin_hilt_plugin = "com.google.dagger:hilt-android-gradle-plugin:${Versions.hilt}"
     const val androidx_navigation_safeargs = "androidx.navigation:navigation-safe-args-gradle-plugin:${Versions.androidx_navigation}"
     const val kotlin_gradle_plugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
+    const val kotlin_serialization_plugin = "org.jetbrains.kotlin:kotlin-serialization:${Versions.kotlin}"
     const val google_services = "com.google.gms:google-services:${Versions.google_services}"
 
     const val crashlytics_gradle = "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
@@ -83,6 +86,7 @@ object Plugins {
     const val kotlin_parcelize = "kotlin-parcelize"
     const val kotlin_jvm = "org.jetbrains.kotlin.jvm"
     const val kotlin_kapt = "kotlin-kapt"
+    const val kotlin_serialization = "org.jetbrains.kotlin.plugin.serialization"
     const val hilt = "dagger.hilt.android.plugin"
     const val google_services = "com.google.gms.google-services"
     const val firebase_crashlytics = "com.google.firebase.crashlytics"
@@ -118,9 +122,12 @@ object Libs {
     const val kotlin_stdlib = "org.jetbrains.kotlin:kotlin-stdlib:${Versions.kotlin}"
     const val kotlinx_coroutines_core =
         "org.jetbrains.kotlinx:kotlinx-coroutines-core:${Versions.kotlinx_coroutines}"
+    const val kotlinx_coroutines_rx3 =
+        "org.jetbrains.kotlinx:kotlinx-coroutines-rx3:${Versions.kotlinx_coroutines}"
     const val kotlinx_coroutines_test =
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
     const val kotlinx_collections_immutable = "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
+    const val kotlinx_serialization_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinx_serialization}"
 
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
@@ -128,22 +135,27 @@ object Libs {
         "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
 
     const val androidx_constraint_layout_compose =
-        "androidx.constraintlayout:constraintlayout-compose:1.0.0"
+        "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     //const val androidx_lifecycle_compose = androidx.lifecycle-viewmodel-compose:${Versions.androidx_lifecycle}"
 
-    const val compose_ui = "androidx.compose.ui:ui:1.5.3"
-    const val compose_ui_tools = "androidx.compose.ui:ui-tooling:1.5.3"
+    const val compose_bom = "androidx.compose:compose-bom:${Versions.compose}"
+    const val compose_ui = "androidx.compose.ui:ui"
+    const val compose_ui_tools = "androidx.compose.ui:ui-tooling"
     const val compose_ui_tools_preview =
-        "androidx.compose.ui:ui-tooling-preview:1.5.3"
-    const val compose_foundation = "androidx.compose.foundation:foundation:${Versions.compose}"
-    const val compose_material = "androidx.compose.material:material:${Versions.compose}"
+        "androidx.compose.ui:ui-tooling-preview"
+    const val compose_foundation = "androidx.compose.foundation:foundation"
+    const val compose_material = "androidx.compose.material:material"
     const val compose_activities =
         "androidx.activity:activity-compose:${Versions.compose_activities}"
     const val compose_view_models =
         "androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.compose_view_models}"
-    const val compose_livedata = "androidx.compose.runtime:runtime-livedata:${Versions.compose}"
+    const val compose_livedata = "androidx.compose.runtime:runtime-livedata"
     const val compose_navigation =
         "androidx.navigation:navigation-compose:${Versions.compose_navigation}"
+    const val compose_voyager_navigation = "cafe.adriel.voyager:voyager-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_hilt = "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
+    const val compose_voyager_navigation_bottomsheet = "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_transitions = "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
 
     const val rxjava = "io.reactivex.rxjava3:rxjava:${Versions.rxjava}"
     const val rxandroid = "io.reactivex.rxjava3:rxandroid:${Versions.rxandroid}"
@@ -192,4 +204,6 @@ object Libs {
 
     const val timber = "com.jakewharton.timber:timber:${Versions.timber}"
     const val bugsnag = "com.bugsnag:bugsnag-android:5.+"
+
+    const val cloudy = "com.github.skydoves:cloudy:0.1.2"
 }

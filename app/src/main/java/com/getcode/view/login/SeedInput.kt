@@ -1,11 +1,10 @@
 package com.getcode.view.login
 
 import android.Manifest
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
@@ -25,16 +24,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.navigation.NavController
 import com.getcode.R
 import com.getcode.theme.*
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.LoginArgs
 import com.getcode.view.components.*
 
+@SuppressLint("InlinedApi")
 @Preview
 @Composable
-fun SeedInput(navController: NavController? = null) {
-    val viewModel = hiltViewModel<SeedInputViewModel>()
+fun SeedInput(
+    viewModel: SeedInputViewModel = hiltViewModel(),
+    arguments: LoginArgs = LoginArgs(),
+) {
+    val navigator: CodeNavigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
@@ -45,9 +50,10 @@ fun SeedInput(navController: NavController? = null) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .windowInsetsPadding(WindowInsets.systemBars)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .padding(top = topBarHeight)
-            .statusBarsPadding()
+            .padding(bottom = CodeTheme.dimens.grid.x4)
             .verticalScroll(rememberScrollState())
             .imePadding(),
     ) {
@@ -63,8 +69,8 @@ fun SeedInput(navController: NavController? = null) {
                     .constrainAs(captionText) {
                         top.linkTo(parent.top)
                     }
-                    .padding(top = 40.dp),
-                style = MaterialTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                    .padding(top = CodeTheme.dimens.grid.x4),
+                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 color = BrandLight,
                 text = stringResource(R.string.subtitle_loginDescription)
             )
@@ -74,16 +80,15 @@ fun SeedInput(navController: NavController? = null) {
                     .constrainAs(input) {
                         top.linkTo(captionText.bottom)
                     }
-                    .padding(top = 20.dp)
+                    .padding(top = CodeTheme.dimens.inset)
                     .fillMaxWidth()
                     .height(120.dp)
-                    .padding(vertical = 5.dp)
                     .focusRequester(focusRequester),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 visualTransformation = VisualTransformation.None,
                 value = dataState.wordsString,
                 onValueChange = { viewModel.onTextChange(it) },
-                textStyle = MaterialTheme.typography.subtitle1.copy(
+                textStyle = CodeTheme.typography.subtitle1.copy(
                     fontSize = 16.sp,
                 ),
                 colors = inputColors(),
@@ -98,7 +103,7 @@ fun SeedInput(navController: NavController? = null) {
                     .constrainAs(wordCount) {
                         bottom.linkTo(input.bottom)
                     }
-                    .padding(bottom = 10.dp, start = 8.dp)
+                    .padding(bottom = CodeTheme.dimens.grid.x2, start = CodeTheme.dimens.grid.x2)
             )
 
             if (dataState.isValid) {
@@ -110,8 +115,8 @@ fun SeedInput(navController: NavController? = null) {
                             top.linkTo(wordCount.top)
                             bottom.linkTo(wordCount.bottom)
                         }
-                        .padding(bottom = 12.dp, start = 6.dp)
-                        .height(12.dp),
+                        .padding(bottom = CodeTheme.dimens.grid.x2, start = CodeTheme.dimens.grid.x1)
+                        .height(CodeTheme.dimens.grid.x3),
                     contentDescription = ""
                 )
             }
@@ -129,10 +134,13 @@ fun SeedInput(navController: NavController? = null) {
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 20.dp),
+                .padding(
+                    top = CodeTheme.dimens.grid.x3,
+                    bottom = CodeTheme.dimens.grid.x4
+                ),
             onClick = {
                 focusManager.clearFocus()
-                viewModel.onSubmit(navController)
+                viewModel.onSubmit(navigator)
             },
             isLoading = dataState.isLoading,
             isSuccess = dataState.isSuccess,

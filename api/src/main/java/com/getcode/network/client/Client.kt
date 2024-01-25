@@ -1,13 +1,15 @@
 package com.getcode.network.client
 
 import android.content.Context
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
-import com.getcode.network.repository.CurrencyRepository
+import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +17,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.*
+import java.util.Timer
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.fixedRateTimer
@@ -27,12 +29,14 @@ class Client @Inject constructor(
     @ApplicationContext
     internal val context: Context,
     internal val transactionRepository: TransactionRepository,
+    internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
-    internal val analyticsManager: AnalyticsManager,
+    internal val analyticsManager: AnalyticsService,
     internal val prefRepository: PrefRepository,
-    internal val currencyRepository: CurrencyRepository,
-    internal val transactionReceiver: TransactionReceiver
+    internal val exchange: Exchange,
+    internal val transactionReceiver: TransactionReceiver,
+    internal val networkObserver: NetworkConnectivityListener,
 ) {
 
     private val TAG = "PollTimer"
@@ -45,12 +49,10 @@ class Client @Inject constructor(
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
             SessionManager.authState.collect {
-                if (it != null) {
-                    if (it.isAuthenticated) {
-                        Timber.tag(TAG).i("User Authenticated - starting timer")
-                        startPollTimer()
-                        this.cancel()
-                    }
+                if (it.isAuthenticated == true) {
+                    Timber.tag(TAG).i("User Authenticated - starting timer")
+                    startPollTimer()
+                    this.cancel()
                 }
             }
         }
@@ -74,19 +76,21 @@ class Client @Inject constructor(
     }
 
     private suspend fun poll() {
-        balanceController.fetchBalanceSuspend()
-        currencyRepository.fetchRates()
-        fetchLimits()
-        fetchPrivacyUpgrades()
+        if (networkObserver.isConnected) {
+            balanceController.fetchBalanceSuspend()
+            exchange.fetchRatesIfNeeded()
+            fetchLimits()
+            fetchPrivacyUpgrades()
+        }
     }
 
     fun startTimer() {
         startPollTimerWhenAuthenticated()
     }
 
-    fun pollOnce() {
+    fun pollOnce(delay: Long = 2_000L) {
         scope.launch {
-            delay(2000)
+            delay(delay)
             Timber.tag(TAG).i("Poll Once")
             poll()
         }

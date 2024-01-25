@@ -1,11 +1,14 @@
 package com.getcode.view.main.connectivity
 
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
+import com.getcode.utils.network.ConnectionType
+import com.getcode.utils.network.NetworkState
+import com.getcode.utils.network.SignalStrength
 
-internal class ConnectionStatusProvider (
-    override val values: Sequence<ConnectionState> = sequenceOf(
-        ConnectionState(connectionState = ConnectionStatus.CONNECTING),
-        ConnectionState(connectionState = ConnectionStatus.CONNECTED),
-        ConnectionState(connectionState = ConnectionStatus.DISCONNECTED)
+internal class NetworkStateProvider (
+    override val values: Sequence<NetworkState> = sequenceOf(
+        NetworkState(connected = false, type = ConnectionType.Unknown, signalStrength = SignalStrength.Unknown),
+        NetworkState(connected = false, type = ConnectionType.Wifi, signalStrength = SignalStrength.Great),
+        NetworkState(connected = true, type = ConnectionType.Wifi, signalStrength = SignalStrength.Great),
     )
-): PreviewParameterProvider<ConnectionState>
+): PreviewParameterProvider<NetworkState>

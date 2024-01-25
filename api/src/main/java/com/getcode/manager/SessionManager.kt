@@ -19,7 +19,7 @@ class SessionManager @Inject constructor(
     data class SessionState(
         val entropyB64: String? = null,
         val keyPair: Ed25519.KeyPair? = null,
-        val isAuthenticated: Boolean = false,
+        val isAuthenticated: Boolean? = null,
         val isTimelockUnlocked: Boolean = false,
         val organizer: Organizer? = null
     )
@@ -32,7 +32,7 @@ class SessionManager @Inject constructor(
             mnemonic = mnemonic
         )
 
-        authStateMutable.update {
+        update {
             SessionState(
                 entropyB64 = entropyB64,
                 keyPair = organizer.ownerKeyPair,
@@ -44,18 +44,26 @@ class SessionManager @Inject constructor(
 
     fun clear() {
         Timber.d("Clearing session state")
-        authStateMutable.update {
+        update {
             SessionState(entropyB64 = null, keyPair = null, isAuthenticated = false)
         }
     }
 
     companion object {
-        val authStateMutable: MutableStateFlow<SessionState?> = MutableStateFlow(null)
-        val authState: StateFlow<SessionState?> get() = authStateMutable.asStateFlow()
+        private val authStateMutable: MutableStateFlow<SessionState> = MutableStateFlow(SessionState())
+        val authState: StateFlow<SessionState>
+            get() = authStateMutable.asStateFlow()
 
-        fun getKeyPair(): Ed25519.KeyPair? = authState.value?.keyPair
-        fun getOrganizer(): Organizer? = authState.value?.organizer
-        fun getCurrentBalance() = authState.value?.organizer?.availableBalance
-        fun isAuthenticated() = authState.value?.isAuthenticated
+        fun update(function: (SessionState) -> SessionState) {
+            authStateMutable.update(function)
+        }
+
+        fun getKeyPair(): Ed25519.KeyPair? = authState.value.keyPair
+        fun getOrganizer(): Organizer? = authState.value.organizer
+        fun getCurrentBalance() = authState.value.organizer?.availableBalance
+        fun isAuthenticated() = authState.value.isAuthenticated
+
+        val entropyB64: String?
+            get() = authState.value.entropyB64
     }
 }

@@ -22,5 +22,5 @@ interface PrefStringDao {
     fun getMaybe(key: String): Maybe<PrefString>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(item: PrefString)
+    suspend fun insert(item: PrefString)
 }

@@ -41,6 +41,7 @@ class IntentDepositTest {
         )
 
         val intent = IntentDeposit.newInstance(
+            source = AccountType.Primary,
             organizer = organizer,
             amount = amount
         )

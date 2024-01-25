@@ -6,4 +6,6 @@ data class Currency(
     val resId: Int? = null,
     val symbol: String = "",
     val rate: Double = 0.0
-)
+) {
+    companion object
+}

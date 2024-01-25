@@ -1,213 +1,194 @@
 package com.getcode.view.main.balance
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.R
-import com.getcode.manager.SessionManager
-import com.getcode.model.AirdropType
-import com.getcode.utils.FormatUtils
+import com.getcode.data.transactions.HistoricalTransactionUiModel
+import com.getcode.data.transactions.toUi
 import com.getcode.model.Currency
-import com.getcode.model.HistoricalTransaction
-import com.getcode.model.Kin
-import com.getcode.model.PaymentType
+import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsBool
-import com.getcode.network.BalanceController
+import com.getcode.model.Rate
 import com.getcode.network.client.Client
-import com.getcode.network.client.fetchPaymentHistoryDelta
-import com.getcode.network.repository.*
+import com.getcode.network.client.historicalTransactions
+import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.DateUtils
-import com.getcode.util.FormatAmountUtils
-import com.getcode.utils.ErrorUtils
-import com.getcode.utils.LocaleUtils
-import com.getcode.view.BaseViewModel
-import com.getcode.view.main.connectivity.ConnectionRepository
+import com.getcode.util.Kin
+import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.FormatUtils
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.lang.StringBuilder
-import java.util.*
+import java.util.Locale
 import javax.inject.Inject
 
 
-data class BalanceSheetUiModel(
-    val amountText: String = "",
-    val marketValue: Double = 0.0,
-    val selectedCurrency: Currency? = null,
-    val historicalTransactionSize: Int = 0,
-    val historicalTransactions: List<HistoricalTransaction> = listOf(),
-    val historicalTransactionsUiModel: List<HistoricalTransactionUIModel> = listOf(),
-    val isDebugBucketsEnabled: Boolean = false,
-    val isDebugBucketsVisible: Boolean = false,
-)
-
-data class HistoricalTransactionUIModel(
-    val id: List<Byte>,
-    val amountText: String = "",
-    val dateText: String = "",
-    val isKin: Boolean = false,
-    val kinAmountText: String = "",
-    val paymentType: PaymentType,
-    val currencyResourceId: Int? = 0,
-    val isWithdrawal: Boolean = false,
-    val isRemoteSend: Boolean = false,
-    val isDeposit: Boolean = false,
-    val isReturned: Boolean = false,
-    val airdropType: AirdropType?
-)
-
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
-    private val client: Client,
-    private val currencyRepository: CurrencyRepository,
-    private val balanceRepository: BalanceRepository,
-    private val prefsRepository: PrefRepository,
-    private val connectionRepository: ConnectionRepository
-) : BaseViewModel() {
-    val uiFlow = MutableStateFlow(BalanceSheetUiModel())
+    client: Client,
+    private val localeHelper: LocaleHelper,
+    private val currencyUtils: CurrencyUtils,
+    private val resources: ResourceHelper,
+    exchange: Exchange,
+    balanceRepository: BalanceRepository,
+    prefsRepository: PrefRepository,
+    networkObserver: NetworkConnectivityListener,
+) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
+    initialState = State(),
+    updateStateForEvent = updateStateForEvent
+) { data class State(
+        val amountText: String = "",
+        val marketValue: Double = 0.0,
+        val selectedRate: Rate? = null,
+        val currencyFlag: Int? = null,
+        val historicalTransactionsLoading: Boolean = true,
+        val historicalTransactions: List<HistoricalTransactionUiModel> = listOf(),
+        val isDebugBucketsEnabled: Boolean = false,
+        val isDebugBucketsVisible: Boolean = false,
+    )
+
+    sealed interface Event {
+        data class OnDebugBucketsEnabled(val enabled: Boolean) : Event
+        data class OnDebugBucketsVisible(val show: Boolean) : Event
+        data class OnLatestRateChanged(
+            val rate: Rate,
+            ) : Event
+
+        data class OnCurrencyFlagChanged(
+            val flagResId: Int?,
+        ) : Event
+        data class OnBalanceChanged(
+            val marketValue: Double,
+            val display: String,
+        ) : Event
+
+        data class OnTransactionsLoading(val loading: Boolean) : Event
+        data class OnTransactionsUpdated(val transactions: List<HistoricalTransactionUiModel>) :
+            Event
+    }
 
     init {
-        //setup observers
-        viewModelScope.launch(Dispatchers.IO) {
-            setupObservers()
-            updateData()
-        }
-    }
+        prefsRepository.observeOrDefault(PrefsBool.BUCKET_DEBUGGER_ENABLED, false)
+            .flowOn(Dispatchers.IO)
+            .distinctUntilChanged()
+            .onEach { enabled ->
+                dispatchEvent(Dispatchers.Main, Event.OnDebugBucketsEnabled(enabled))
+            }.launchIn(viewModelScope)
 
-    //TODO extract history rxjava for a repository and observe its changes
-    fun reset() {
-        viewModelScope.launch(Dispatchers.IO) {
-            updateData()
-        }
-    }
-
-    private suspend fun setupObservers() {
-        viewModelScope.launch(Dispatchers.Default) {
-            combine(
-                currencyRepository.getRates(),
-                balanceRepository.balanceFlow
-            ) { rates, balance ->
-                val currency = getCurrency(rates)
-                refreshBalance(balance, currency)
-                uiFlow.update {
-                    it.copy(selectedCurrency = currency)
+        combine(
+            exchange.observeRates()
+                .distinctUntilChanged()
+                .flowOn(Dispatchers.IO)
+                .map { getCurrency(it) }
+                .onEach {
+                    dispatchEvent(Event.OnCurrencyFlagChanged(it.resId))
                 }
-            }.collect()
-        }
+                .mapNotNull { currency -> CurrencyCode.tryValueOf(currency.code) }
+                .mapNotNull {
+                    exchange.fetchRatesIfNeeded()
+                    exchange.rateFor(it)
+                },
+            balanceRepository.balanceFlow,
+            networkObserver.state
+        ) { rate, balance, _ ->
+            rate to balance
+        }.map { (rate, balance) ->
+            dispatchEvent(Dispatchers.Main, Event.OnLatestRateChanged(rate))
+            refreshBalance(balance, rate.fx)
+        }.distinctUntilChanged().onEach { (marketValue, amountText) ->
+            dispatchEvent(Dispatchers.Main, Event.OnBalanceChanged(marketValue, amountText))
+        }.launchIn(viewModelScope)
+
+        client.historicalTransactions()
+            .onEach { Timber.d("trx=$it") }
+            .map {
+                when {
+                    it == null -> null // await for confirmation it's empty
+                    it.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+                    else -> it
+                }
+            }
+            .distinctUntilChanged()
+            .map { it?.sortedByDescending { t -> t.date } }
+            .mapNotNull { historical -> historical?.map { transaction ->
+                transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) }
+            }
+            .onEach { update ->
+                dispatchEvent(Dispatchers.Main, Event.OnTransactionsUpdated(update))
+            }.onEach {
+                dispatchEvent(Dispatchers.Main, Event.OnTransactionsLoading(false))
+            }.launchIn(viewModelScope)
     }
 
     //TODO manage currency with a repository rather than a static class
-    private suspend fun getCurrency(rates: Map<String, Double>): Currency =
+    private suspend fun getCurrency(rates: Map<CurrencyCode, Rate>): Currency =
         withContext(Dispatchers.Default) {
-            val defaultCurrencyCode = LocaleUtils.getDefaultCurrency(App.getInstance())
-            return@withContext CurrencyUtils.getCurrenciesWithRates(rates)
+            val defaultCurrencyCode = localeHelper.getDefaultCurrency()?.code
+            return@withContext currencyUtils.getCurrenciesWithRates(rates)
                 .firstOrNull { p ->
                     p.code == defaultCurrencyCode
-                } ?: CurrencyUtils.currencyKin
+                } ?: Currency.Kin
         }
 
-    private suspend fun updateData() {
-        uiFlow.update {
-            it.copy(isDebugBucketsVisible = false)
-        }
-
-        viewModelScope.launch(Dispatchers.Default) {
-            prefsRepository.get(PrefsBool.IS_DEBUG_BUCKETS)
-                .subscribe { isDebugBuckets ->
-                    uiFlow.update {
-                        it.copy(isDebugBucketsEnabled = isDebugBuckets)
-                    }
-                }
-        }
-
-        viewModelScope.launch(Dispatchers.Default) {
-            launch {
-                val keyPair = SessionManager.getKeyPair()!!
-                val currentTransactions = uiFlow.value.historicalTransactions
-
-                client.fetchPaymentHistoryDelta(
-                    keyPair,
-                    currentTransactions.firstOrNull()?.id?.toByteArray()
-                ).map { newTransactions ->
-                    newTransactions.plus(currentTransactions)
-                }.toFlowable().doOnNext { updatedHistoricalTransactions ->
-                    uiFlow.update { uiModel ->
-                        uiModel.copy(
-                            historicalTransactionsUiModel = updatedHistoricalTransactions.map { transaction ->
-                                transactionToUiModel(transaction)
-                            })
-                    }
-
-                }.subscribe({}, { ErrorUtils.handleError(it) })
-            }
-        }
-    }
-
-    private fun refreshBalance(balance: Double, currency: Currency) {
-        val fiatValue = FormatUtils.getFiatValue(balance, currency.rate)
+    private fun refreshBalance(balance: Double, rate: Double): Pair<Double, String> {
+        val fiatValue = FormatUtils.getFiatValue(balance, rate)
         val locale = Locale(
             Locale.getDefault().language,
-            LocaleUtils.getDefaultCountry(App.getInstance())
+            localeHelper.getDefaultCountry()
         )
         val fiatValueFormatted = FormatUtils.formatCurrency(fiatValue, locale)
         val amountText = StringBuilder().apply {
             append(fiatValueFormatted)
             append(" ")
-            append(App.getInstance().getString(R.string.core_ofKin))
+            append(resources.getString(R.string.core_ofKin))
         }.toString()
 
-        uiFlow.update {
-            it.copy(
-                marketValue = fiatValue,
-                amountText = amountText
-            )
+        return fiatValue to amountText
+    }
+
+    companion object {
+        val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            when (event) {
+                is Event.OnDebugBucketsEnabled -> { state ->
+                    state.copy(isDebugBucketsEnabled = event.enabled)
+                }
+
+                is Event.OnDebugBucketsVisible -> { state ->
+                    state.copy(isDebugBucketsVisible = event.show)
+                }
+
+                is Event.OnLatestRateChanged -> { state ->
+                    state.copy(selectedRate = event.rate)
+                }
+
+                is Event.OnCurrencyFlagChanged -> { state ->
+                    state.copy(currencyFlag = event.flagResId)
+                }
+                is Event.OnBalanceChanged -> { state ->
+                    state.copy(
+                        marketValue = event.marketValue,
+                        amountText = event.display,
+                    )
+                }
+                is Event.OnTransactionsLoading -> { state ->
+                    state.copy(historicalTransactionsLoading = event.loading)
+                }
+                is Event.OnTransactionsUpdated -> { state ->
+                    state.copy(historicalTransactions = event.transactions)
+                }
+            }
         }
-    }
-
-    fun setDebugBucketsVisible(isVisible: Boolean) {
-        uiFlow.update { it.copy(isDebugBucketsVisible = isVisible) }
-    }
-
-    private fun transactionToUiModel(
-        transaction: HistoricalTransaction
-    ): HistoricalTransactionUIModel {
-
-        val currency = CurrencyUtils.getCurrency(
-            transaction.transactionRateCurrency?.uppercase().orEmpty()
-        ) ?: CurrencyUtils.currencyKin
-
-        val isKin = currency.code == "KIN"
-        val currencyResId = CurrencyUtils.getFlagByCurrency(currency.code)
-
-        val kinAmount = Kin.fromQuarks(transaction.transactionAmountQuarks)
-        val amount: Double =
-            if (isKin) kinAmount.toKinTruncatingLong().toDouble()
-            else transaction.nativeAmount
-
-        val amountText = FormatAmountUtils.formatAmountString(currency, amount)
-
-        return HistoricalTransactionUIModel(
-            id = transaction.id,
-            amountText = amountText,
-            dateText = DateUtils.getDateWithToday(transaction.date * 1000L),
-            isKin = isKin,
-            kinAmountText = FormatUtils.formatWholeRoundDown(
-                kinAmount.toKinTruncatingLong().toDouble()
-            ),
-            paymentType = transaction.paymentType,
-            currencyResourceId = currencyResId,
-            isWithdrawal = transaction.isWithdrawal,
-            isRemoteSend = transaction.isRemoteSend,
-            isDeposit = transaction.isDeposit,
-            isReturned = transaction.isReturned,
-            airdropType = transaction.airdropType
-        )
     }
 }

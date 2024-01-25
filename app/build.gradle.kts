@@ -5,6 +5,7 @@ plugins {
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_parcelize)
     id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_serialization)
     id(Plugins.androidx_navigation_safeargs)
     id(Plugins.hilt)
     id(Plugins.google_services)
@@ -13,6 +14,8 @@ plugins {
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
 }
+
+val contributorsSigningConfig = ContributorsSignatory(rootProject)
 
 android {
     namespace = "com.getcode"
@@ -35,6 +38,12 @@ android {
     }
 
     signingConfigs {
+        create("contributors") {
+            storeFile = contributorsSigningConfig.keystore
+            storePassword = contributorsSigningConfig.keystorePassword
+            keyAlias = contributorsSigningConfig.keyAlias
+            keyPassword = contributorsSigningConfig.keyPassword
+        }
     }
 
     buildFeatures {
@@ -51,15 +60,14 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            //signingConfig = signingConfigs.getByName("debug")
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
+            signingConfig = signingConfigs.getByName("contributors")
 
-
-            //isMinifyEnabled = true
-            //isShrinkResources = true
-            //proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+//            isMinifyEnabled = true
+//            isShrinkResources = true
+//            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
@@ -104,6 +112,7 @@ dependencies {
     //standard libraries
     implementation(Libs.kotlin_stdlib)
     implementation(Libs.kotlinx_collections_immutable)
+    implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)
@@ -123,16 +132,22 @@ dependencies {
     androidTestImplementation("io.mockk:mockk:1.13.5")
 
     //Jetpack compose
+    implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     debugImplementation(Libs.compose_ui_tools)
     implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
-    implementation("androidx.activity:activity-compose:1.8.0")
+    implementation(Libs.compose_activities)
     implementation(Libs.compose_view_models)
     implementation(Libs.compose_livedata)
     implementation(Libs.compose_navigation)
     implementation(Libs.androidx_constraint_layout_compose)
+
+    implementation(Libs.compose_voyager_navigation)
+    implementation(Libs.compose_voyager_navigation_transitions)
+    implementation(Libs.compose_voyager_navigation_bottomsheet)
+    implementation(Libs.compose_voyager_navigation_hilt)
 
     implementation(Libs.rxjava)
     implementation(Libs.rxandroid)
@@ -155,6 +170,8 @@ dependencies {
     implementation(Libs.firebase_crashlytics)
     implementation(Libs.firebase_messaging)
     implementation(Libs.mixpanel)
+
+    implementation(Libs.cloudy)
 
     androidTestImplementation(Libs.androidx_test_runner)
     androidTestImplementation(Libs.androidx_junit)

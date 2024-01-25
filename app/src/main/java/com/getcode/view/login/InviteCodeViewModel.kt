@@ -1,14 +1,17 @@
 package com.getcode.view.login
 
-import androidx.navigation.NavController
+import android.annotation.SuppressLint
 import com.codeinc.gen.invite.v2.InviteService
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.network.repository.InviteRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.urlEncode
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.view.*
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Flowable
@@ -32,18 +35,19 @@ data class InviteCodeUiModel(
 class InviteCodeViewModel @Inject constructor(
     private val inviteRepository: InviteRepository,
     private val phoneRepository: PhoneRepository,
-) : BaseViewModel() {
+    resources: ResourceHelper,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(InviteCodeUiModel())
 
     fun reset() {
         uiFlow.update { InviteCodeUiModel() }
     }
 
-    fun onSubmit(navController: NavController?) {
+    fun onSubmit(navigator: CodeNavigator) {
         if (!uiFlow.value.isContinue) return
         TopBarManager.setMessageShown()
         CoroutineScope(Dispatchers.IO).launch {
-            performVerify(navController)
+            performVerify(navigator)
         }
     }
 
@@ -59,7 +63,8 @@ class InviteCodeViewModel @Inject constructor(
         }
     }
 
-    private fun performVerify(navController: NavController?) {
+    @SuppressLint("CheckResult")
+    private fun performVerify(navigator: CodeNavigator) {
         inviteRepository.redeem(uiFlow.value.phoneNumber, uiFlow.value.inviteCode)
             .flatMap {
                 if (
@@ -76,24 +81,13 @@ class InviteCodeViewModel @Inject constructor(
             .doOnComplete { uiFlow.update { it.copy(isLoading = false) } }
             .doOnError { uiFlow.update { it.copy(isLoading = false) } }
             .subscribe({
-                navController?.navigate(
-                    route = LoginSections.PHONE_CONFIRM.route
-                        .replace(
-                            "{${ARG_PHONE_NUMBER}}",
-                            uiFlow.value.phoneNumber.urlEncode()
-                        )
-                        .replace(
-                            "{${ARG_SIGN_IN_ENTROPY_B64}}",
-                            ""
-                        )
-                        .replace(
-                            "{${ARG_IS_PHONE_LINKING}}",
-                            false.toString()
-                        )
-                        .replace(
-                            "{${ARG_IS_NEW_ACCOUNT}}",
-                            true.toString()
-                        )
+                navigator.push(
+                    LoginPhoneConfirmationScreen(
+                        phoneNumber =  uiFlow.value.phoneNumber.urlEncode(),
+                        signInEntropy = "",
+                        isPhoneLinking = false,
+                        isNewAccount = true
+                    )
                 )
             }, {
                 if (it is InvalidInviteCodeException) {

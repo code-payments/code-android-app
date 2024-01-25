@@ -1,22 +1,31 @@
 package com.getcode.util
 
-import com.getcode.App
+import android.annotation.SuppressLint
+import android.content.Context
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
+import com.getcode.model.Rate
 import com.getcode.model.RegionCode
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.*
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object CurrencyUtils {
 
-    val currencyKin = Currency("KIN", "Kin", R.drawable.ic_currency_kin, "K", 1.00)
-    val currencies: List<Currency> by lazy { runBlocking {
+// TODO: see if Exchange can absorb this?
+@Singleton
+class CurrencyUtils @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+
+    private val currencies: List<Currency> by lazy { runBlocking {
         initCurrencies()
     } }
 
@@ -24,13 +33,13 @@ object CurrencyUtils {
         currencies.associateBy { it.code }
     }
 
-    suspend fun getCurrenciesWithRates(rates: Map<String, Double>): List<Currency> = withContext(Dispatchers.Default) {
+    suspend fun getCurrenciesWithRates(rates: Map<CurrencyCode, Rate>): List<Currency> = withContext(Dispatchers.Default) {
         return@withContext currencies
-            .map { it.copy(rate = rates.getOrElse(it.code) { 0.0 }) }
-    }
-
-    suspend fun getCurrenciesMapWithRates(rates: Map<String, Double>): Map<String, Currency> {
-        return getCurrenciesWithRates(rates).associateBy { it.code }
+            .mapNotNull {
+                val code = CurrencyCode.tryValueOf(it.code) ?: return@mapNotNull null
+                val rate = rates[code]?.fx ?: 0.0
+                it.copy(rate = rate)
+            }
     }
 
     fun getCurrency(code: String) = currenciesMap[code]
@@ -50,10 +59,11 @@ object CurrencyUtils {
         }
     }
 
+    @SuppressLint("DiscouragedApi")
     fun getFlag(countryCode: String): Int? {
         if (countryCode.isEmpty()) return null
         val resourceName = "ic_flag_${countryCode.lowercase()}"
-        return App.getInstance().resources.getIdentifier(
+        return context.resources.getIdentifier(
             resourceName,
             "drawable",
             BuildConfig.APPLICATION_ID
@@ -65,20 +75,18 @@ object CurrencyUtils {
     }
 
     private suspend fun getCurrency(code: CurrencyCode, scope: CoroutineScope): Currency {
-        if (code != CurrencyCode.KIN) {
-            val resId = scope.async { getFlagByCurrency(code.name) }
-            val currencyJava = scope.async { java.util.Currency.getInstance(code.name) }
-            val locale = scope.async { getLocale(code.getRegion()) }
+        if (code == CurrencyCode.KIN) return Currency.Kin
 
-            return Currency(
-                code = currencyJava.await().currencyCode,
-                name = currencyJava.await().displayName,
-                resId = resId.await(),
-                symbol = currencyJava.await().getSymbol(locale.await())
-            )
-        } else {
-            return currencyKin
-        }
+        val resId = scope.async { getFlagByCurrency(code.name) }
+        val currencyJava = scope.async { java.util.Currency.getInstance(code.name) }
+        val locale = scope.async { getLocale(code.getRegion()) }
+
+        return Currency(
+            code = currencyJava.await().currencyCode,
+            name = currencyJava.await().displayName,
+            resId = resId.await(),
+            symbol = currencyJava.await().getSymbol(locale.await())
+        )
     }
 
     /**
@@ -90,7 +98,7 @@ object CurrencyUtils {
         val scope = CoroutineScope(Dispatchers.Default)
 
         val chunk1 = scope.async {
-            CurrencyCode.values().copyOfRange(0, 75).map { currencyCode ->
+            CurrencyCode.entries.toTypedArray().copyOfRange(0, 75).map { currencyCode ->
             try {
                 getCurrency(currencyCode, scope)
             } catch (_: Exception) {
@@ -102,7 +110,8 @@ object CurrencyUtils {
         }
 
         val chunk2 = scope.async {
-            CurrencyCode.values().copyOfRange(75, CurrencyCode.values().size).map { currencyCode ->
+            CurrencyCode.entries.toTypedArray()
+                .copyOfRange(75, CurrencyCode.entries.size).map { currencyCode ->
                 try {
                     getCurrency(currencyCode, scope)
                 } catch (_: Exception) {

@@ -4,7 +4,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,13 +11,14 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.getcode.R
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.displayLarge
 import com.getcode.util.NumberInputHelper
 import com.getcode.util.NumberInputHelper.Companion.DECIMAL_SEPARATOR
 import com.getcode.util.NumberInputHelper.Companion.GROUPING_SEPARATOR
@@ -38,6 +38,8 @@ data class AmountAnimatedInputUiModel(
     val lastPressedBackspace: Boolean = false
 )
 
+private val AnimationMaxY = 120.dp
+
 @Composable
 fun Digit(
     isVisible: Boolean,
@@ -49,11 +51,13 @@ fun Digit(
     color: Color = Color.White,
 ) {
     Row {
+        val staticX4 = CodeTheme.dimens.staticGrid.x4
+
         AnimatedVisibility(
             visible = isVisible,
             enter = enter
                 ?: (slideInVertically(
-                    initialOffsetY = { with(density) { -20.dp.roundToPx() } },
+                    initialOffsetY = { with(density) { -(staticX4).roundToPx() } },
                     animationSpec = tween(
                         durationMillis = 300,
                         delayMillis = 80,
@@ -67,7 +71,7 @@ fun Digit(
                 + fadeIn()),
             exit = exit
                 ?: (slideOutVertically(
-                    targetOffsetY = { with(density) { -20.dp.roundToPx() } },
+                    targetOffsetY = { with(density) { -(staticX4).roundToPx() } },
                     animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)
                 )
                 + shrinkHorizontally(
@@ -137,8 +141,8 @@ fun AmountTextAnimated(
     uiModel ?: return
 
     val density = LocalDensity.current
-    val configuration = LocalConfiguration.current
-    val screenWidth: Int = configuration.screenWidthDp
+
+    val staticX8 = CodeTheme.dimens.staticGrid.x8
 
     //Maximum possible values
     val maxDigits = 10
@@ -153,9 +157,10 @@ fun AmountTextAnimated(
     var firstDigit by remember { mutableStateOf("") }
 
     //Font states
-    var textSize by remember { mutableStateOf(45.sp) }
+    val displayLarge = CodeTheme.typography.displayLarge
+    var textSize by remember { mutableStateOf(displayLarge.fontSize) }
     val fontDecreasePoints = remember { HashMap<Int, Float>() }
-    val maxFontSize = 45.sp
+    val maxFontSize = displayLarge.fontSize
 
     val commaVisibility = uiModel.amountData.commaVisibility
     val amountSplit = uiModel.amountData.amount.split(DECIMAL_SEPARATOR)
@@ -225,14 +230,14 @@ fun AmountTextAnimated(
                     digitDecimalZeroVisibility[1] = true
                 }
                 1 -> {
-                    digitDecimalZeroVisibility[length2-1] = false
-                    digitDecimalVisibility[length2-1] = true
+                    digitDecimalZeroVisibility[0] = false
+                    digitDecimalVisibility[0] = true
                 }
                 2 -> {
                         digitDecimalZeroVisibility[length2-1] = false
                         digitDecimalVisibility[length2-1] = true
-                        digitDecimalZeroVisibility[length2-2] = false
-                        digitDecimalVisibility[length2-2] = true
+                        digitDecimalZeroVisibility[0] = false
+                        digitDecimalVisibility[0] = true
                     }
                 }
         } else {
@@ -288,17 +293,17 @@ fun AmountTextAnimated(
         }
     }
 
-    val decimalEnter = slideInHorizontally(initialOffsetX = { with(density) { -40.dp.roundToPx() } }) +
+    val decimalEnter = slideInHorizontally(initialOffsetX = { with(density) { -(staticX8).roundToPx() } }) +
             expandHorizontally(expandFrom = Alignment.Start) +
             fadeIn(initialAlpha = 0.3f)
 
     val decimalZeroEnter =
         if (uiModel.lastPressedBackspace)
-            slideInVertically(initialOffsetY = { with(density) { 120.dp.roundToPx() } }) +
+            slideInVertically(initialOffsetY = { with(density) { AnimationMaxY.roundToPx() } }) +
                     expandVertically(expandFrom = Alignment.Bottom) +
                     fadeIn(initialAlpha = 0.3f)
         else
-            slideInHorizontally(initialOffsetX = { with(density) { -40.dp.roundToPx() } }) +
+            slideInHorizontally(initialOffsetX = { with(density) { -(staticX8).roundToPx() } }) +
                     expandHorizontally(expandFrom = Alignment.Start) +
                     fadeIn(initialAlpha = 0.3f)
 
@@ -312,7 +317,7 @@ fun AmountTextAnimated(
                     shrinkVertically() +
                     fadeOut()
 
-    val zeroEnter = slideInVertically(initialOffsetY = { with(density) { 120.dp.roundToPx() } }) +
+    val zeroEnter = slideInVertically(initialOffsetY = { with(density) { AnimationMaxY.roundToPx() } }) +
             expandVertically(expandFrom = Alignment.Bottom) +
             fadeIn(initialAlpha = 0.3f)
 
@@ -324,20 +329,20 @@ fun AmountTextAnimated(
     Box(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
-                .padding(top = 10.dp)
+                .padding(top = CodeTheme.dimens.grid.x2)
                 .align(Alignment.TopStart)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center) {
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(CodeTheme.dimens.staticGrid.x1))
 
                 if (currencyResId != null && currencyResId > 0) {
                     Image(
                         modifier = Modifier
-                            .size(25.dp)
-                            .clip(RoundedCornerShape(15.dp))
+                            .requiredSize(CodeTheme.dimens.grid.x5)
+                            .clip(CodeTheme.shapes.large)
                             .align(CenterVertically),
                         painter = painterResource(
                             currencyResId
@@ -346,7 +351,7 @@ fun AmountTextAnimated(
                     )
                     Image(
                         modifier = Modifier
-                            .width(20.dp)
+                            .width(CodeTheme.dimens.grid.x4)
                             .align(CenterVertically),
                         painter = painterResource(R.drawable.ic_dropdown),
                         contentDescription = ""
@@ -354,7 +359,7 @@ fun AmountTextAnimated(
 
                 }
 
-                Spacer(modifier = Modifier.width(7.dp))
+                Spacer(modifier = Modifier.width(CodeTheme.dimens.grid.x1))
                 Text(text = amountPrefix, fontSize = textSize, fontWeight = FontWeight.Bold)
 
                 AnimatedPlaceholderDigit(
@@ -416,7 +421,7 @@ fun AmountTextAnimated(
                 }
 
                 Text(
-                    modifier = Modifier.padding(end = 15.dp),
+                    modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3),
                     text = amountSuffix.ifEmpty { " " },
                     fontSize = textSize,
                     fontWeight = FontWeight.Bold,

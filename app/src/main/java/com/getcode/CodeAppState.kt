@@ -1,34 +1,26 @@
 package com.getcode
 
-import android.content.res.Resources
-import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.MutableLiveData
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination
-import androidx.navigation.NavGraph
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.view.LoginSections
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AccessKeyLoginScreen
+import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
+import com.getcode.navigation.screens.LoginPhoneVerificationScreen
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.NamedScreen
+import com.getcode.navigation.screens.PermissionRequestScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-
-object MainDestinations {
-    const val MAIN_GRAPH = "main"
-    const val SHEET_GRAPH = "sheet"
-}
+import timber.log.Timber
 
 /**
  * Remembers and creates an instance of [CodeAppState]
@@ -36,13 +28,11 @@ object MainDestinations {
 @Composable
 fun rememberCodeAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
-    navController: NavHostController = rememberNavController(),
-    sheetNavController: NavHostController = rememberNavController(),
-    resources: Resources = resources(),
+    navigator: CodeNavigator = LocalCodeNavigator.current,
     coroutineScope: CoroutineScope = rememberCoroutineScope()
 ) =
-    remember(scaffoldState, navController, resources, coroutineScope) {
-        CodeAppState(scaffoldState, navController, sheetNavController, resources, coroutineScope)
+    remember(scaffoldState, navigator , coroutineScope) {
+        CodeAppState(scaffoldState, navigator, coroutineScope)
     }
 
 /**
@@ -51,9 +41,7 @@ fun rememberCodeAppState(
 @Stable
 class CodeAppState(
     val scaffoldState: ScaffoldState,
-    val navController: NavHostController,
-    val sheetNavController: NavHostController,
-    private val resources: Resources,
+    var navigator: CodeNavigator,
     coroutineScope: CoroutineScope
 ) {
     init {
@@ -72,80 +60,39 @@ class CodeAppState(
     // Navigation state source of truth
     // ----------------------------------------------------------
 
-    private val currentRoute: String?
-        get() = navController.currentDestination?.route
-
     val currentTitle: String
-        get() {
-            LoginSections.values().forEach { v ->
-                if (v.route == currentRoute) {
-                    if (v.title == null) return ""
-                    return resources.getString(v.title)
-                }
-            }
-            return ""
+        @Composable get() {
+            val lastItem = navigator.lastItem
+            return (lastItem as? NamedScreen)?.name.orEmpty()
         }
 
     @Composable
-    fun getRoute() = navController.currentBackStackEntryAsState().value?.destination?.route
+    fun getScreen() = navigator.lastItem
 
     val isVisibleTopBar: Pair<Boolean, Boolean>
-        @Composable get() =
-            Pair(
-                getRoute() != LoginSections.LOGIN.route,
-                getRoute() != LoginSections.SEED_VIEW.route && getRoute() != LoginSections.SEED_DEEP_LINK.route
+        @Composable get() {
+            val screen = getScreen()
+            val isModalVisible = navigator.isVisible
+            val loginScreen = screen as? LoginScreen
+            val isLoginScreen = loginScreen != null
+            val isSeedInput = screen is AccessKeyLoginScreen
+            val isPhoneEntry = screen is LoginPhoneVerificationScreen
+            if (isModalVisible) {
+                return false to false
+            }
+            return Pair(
+                !isLoginScreen,
+                isSeedInput || isPhoneEntry
             )
+        }
 
     val topBarMessage = MutableLiveData<TopBarManager.TopBarMessage?>()
     val bottomBarMessage = MutableLiveData<BottomBarManager.BottomBarMessage?>()
 
 
     fun upPress() {
-        if (!sheetNavController.navigateUp()) navController.navigateUp()
-    }
-
-    fun navigateToRoute(route: String) {
-        if (route != currentRoute) {
-            navController.navigate(route) {
-                launchSingleTop = true
-                restoreState = true
-                // Pop up backstack to the first destination and save state. This makes going back
-                // to the start destination when pressing back in any other bottom tab.
-                popUpTo(findStartDestination(navController.graph).id) {
-                    saveState = true
-                }
-            }
+        if (navigator.pop().not()) {
+            navigator.hide()
         }
     }
-}
-
-/**
- * If the lifecycle is not resumed it means this NavBackStackEntry already processed a nav event.
- *
- * This is used to de-duplicate navigation events.
- */
-private fun NavBackStackEntry.lifecycleIsResumed() =
-    this.lifecycle.currentState == Lifecycle.State.RESUMED
-
-private val NavGraph.startDestination: NavDestination?
-    get() = findNode(startDestinationId)
-
-/**
- * Copied from similar function in NavigationUI.kt
- *
- * https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:navigation/navigation-ui/src/main/java/androidx/navigation/ui/NavigationUI.kt
- */
-private tailrec fun findStartDestination(graph: NavDestination): NavDestination {
-    return if (graph is NavGraph) findStartDestination(graph.startDestination!!) else graph
-}
-
-/**
- * A composable function that returns the [Resources]. It will be recomposed when `Configuration`
- * gets updated.
- */
-@Composable
-@ReadOnlyComposable
-private fun resources(): Resources {
-    LocalConfiguration.current
-    return LocalContext.current.resources
 }

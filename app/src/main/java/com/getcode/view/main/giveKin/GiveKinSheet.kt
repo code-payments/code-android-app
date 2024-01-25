@@ -1,174 +1,110 @@
 package com.getcode.view.main.giveKin
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import com.getcode.App
+import com.getcode.LocalNetworkObserver
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.manager.AnalyticsManager
+import com.getcode.models.Bill
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.CurrencySelectionModal
+import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
-import com.getcode.theme.sheetHeight
-import com.getcode.util.AnimationUtils
-import com.getcode.util.RepeatOnLifecycle
+import com.getcode.theme.CodeTheme
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.NetworkUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 import com.getcode.view.components.CodeKeyPad
-import com.getcode.view.components.SheetTitle
-import com.getcode.view.main.connectivity.NetworkConnectionViewModel
-import com.getcode.view.main.home.HomeViewModel
+import kotlinx.coroutines.launch
 
 @Preview
 @Composable
 fun GiveKinSheet(
-    onClose: () -> Unit = {},
-    onCloseQuickly: () -> Unit = {},
     viewModel: GiveKinSheetViewModel = hiltViewModel(),
-    connectionViewModel: NetworkConnectionViewModel = hiltViewModel(),
-    homeViewModel: HomeViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
-    val connectionState by connectionViewModel.connectionStatus.collectAsState()
-    val currencySelectorVisible = dataState.currencySelectorVisible
+    val composeScope = rememberCoroutineScope()
 
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.init()
-    }
-
-    AnalyticsScreenWatcher(
-        lifecycleOwner = LocalLifecycleOwner.current,
-        event = AnalyticsManager.Screen.GiveKin
-    )
+    val networkObserver = LocalNetworkObserver.current
+    val networkState by networkObserver.state.collectAsState()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(sheetHeight)
+        modifier = Modifier.fillMaxSize()
+            .padding(bottom = CodeTheme.dimens.grid.x4),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        SheetTitle(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            title = stringResource(id = if (currencySelectorVisible) R.string.title_selectCurrency else R.string.action_giveKin),
-            onCloseIconClicked = onClose,
-            onBackIconClicked = { viewModel.setCurrencySelectorVisible(false) },
-            backButton = currencySelectorVisible,
-            closeButton = !currencySelectorVisible
-        )
+        val color =
+            if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.weight(0.65f)
         ) {
-            androidx.compose.animation.AnimatedVisibility(
-                visible = !currencySelectorVisible,
-                modifier = Modifier.fillMaxSize(),
-                enter = AnimationUtils.animationBackEnter,
-                exit = AnimationUtils.animationBackExit
+            AmountArea(
+                amountPrefix = dataState.amountModel.amountPrefix,
+                amountSuffix = dataState.amountModel.amountSuffix,
+                amountText = dataState.amountModel.amountText,
+                captionText = dataState.amountModel.captionText,
+                isAltCaption = dataState.amountModel.isCaptionConversion,
+                altCaptionColor = color,
+                currencyResId = dataState.currencyModel.selectedCurrencyResId,
+                uiModel = dataState.amountAnimatedModel,
+                isAnimated = true,
+                networkState = networkState,
+                modifier = Modifier
+                    .align(Alignment.Center)
             ) {
-                Box {
-                    ConstraintLayout(
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        val (amountArea, keyPad, button) = createRefs()
+                navigator.show(CurrencySelectionModal)
+            }
+        }
 
-                        val color =
-                            if (dataState.amountModel.isInsufficient) Alert else BrandLight
+        CodeKeyPad(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = CodeTheme.dimens.inset)
+                .weight(1f),
+            onNumber = viewModel::onNumber,
+            onClear = viewModel::onBackspace,
+            onDecimal = viewModel::onDot,
+            isDecimal = true
+        )
 
-                        AmountArea(
-                            amountPrefix = dataState.amountModel.amountPrefix,
-                            amountSuffix = dataState.amountModel.amountSuffix,
-                            amountText = dataState.amountModel.amountText,
-                            captionText = dataState.amountModel.captionText,
-                            isAltCaption = dataState.amountModel.isCaptionConversion,
-                            altCaptionColor = color,
-                            currencyResId = dataState.currencyModel.selectedCurrencyResId,
-                            uiModel = dataState.amountAnimatedModel,
-                            connectionState = connectionState,
-                            isAnimated = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .constrainAs(amountArea) {
-                                    top.linkTo(parent.top)
-                                    bottom.linkTo(keyPad.top)
-                                    start.linkTo(parent.start)
-                                    end.linkTo(parent.end)
-                                }
-                        ) {
-                            viewModel.setCurrencySelectorVisible(true)
-                        }
-
-                        CodeKeyPad(
-                            modifier = Modifier
-                                .wrapContentSize()
-                                .padding(bottom = 5.dp)
-                                .constrainAs(keyPad) {
-                                    start.linkTo(parent.start)
-                                    end.linkTo(parent.end)
-                                    linkTo(keyPad.top, amountArea.bottom, bias = 0.0F)
-                                    linkTo(keyPad.bottom, button.top, bias = 1.0F)
-                                },
-                            onNumber = viewModel::onNumber,
-                            onClear = viewModel::onBackspace,
-                            onDecimal = viewModel::onDot,
-                            isDecimal = true
-                        )
-
-                        CodeButton(
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .constrainAs(button) {
-                                    bottom.linkTo(parent.bottom)
-                                    start.linkTo(parent.start)
-                                    end.linkTo(parent.end)
-                                    //top.linkTo(keyPad.bottom)
-                                },
-                            onClick = {
-                                if (!NetworkUtils.isNetworkAvailable(App.getInstance())) {
-                                    ErrorUtils.showNetworkError()
-                                    return@CodeButton
-                                }
-
-                                val amount = viewModel.onSubmit() ?: return@CodeButton
-                                onCloseQuickly()
-                                homeViewModel.showBill(amount)
-                            },
-                            enabled = dataState.continueEnabled,
-                            text = stringResource(R.string.action_next),
-                            buttonState = ButtonState.Filled,
-                        )
-                    }
+        CodeButton(
+            modifier = Modifier
+                .padding(horizontal = CodeTheme.dimens.inset),
+            onClick = {
+                if (!networkObserver.isConnected) {
+                    ErrorUtils.showNetworkError(context)
+                    return@CodeButton
                 }
-            }
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = currencySelectorVisible,
-                modifier = Modifier.fillMaxSize(),
-                enter = AnimationUtils.animationFrontEnter,
-                exit = AnimationUtils.animationFrontExit
-            ) {
-                CurrencyList(
-                    dataState.currencyModel,
-                    viewModel::onUpdateCurrencySearchFilter,
-                    viewModel::onSelectedCurrencyChanged,
-                    viewModel::setCurrencySelectorVisible,
-                    viewModel::onRecentCurrencyRemoved,
-                )
-            }
-        }
-    }
-    if (dataState.currencySelectorVisible) {
-        BackHandler {
-            viewModel.setCurrencySelectorVisible(false)
-        }
+                composeScope.launch {
+                    val amount = viewModel.onSubmit() ?: return@launch
+                    val result = if (dataState.giveRequestsEnabled) {
+                        HomeResult.Request(amount)
+                    } else {
+                        HomeResult.Bill(Bill.Cash(amount))
+                    }
+                    navigator.hideWithResult(result)
+                }
+            },
+            enabled = dataState.continueEnabled,
+            text = stringResource(R.string.action_next),
+            buttonState = ButtonState.Filled,
+        )
     }
 }

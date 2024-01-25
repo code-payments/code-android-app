@@ -1,16 +1,15 @@
 package com.getcode.model
 
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.getcode.solana.keys.PublicKey
 
 sealed class IntentMetadata {
-    object OpenAccounts : IntentMetadata()
+    data object OpenAccounts : IntentMetadata()
     data class SendPrivatePayment(val metadata: PaymentMetadata) : IntentMetadata()
     data class SendPublicPayment(val metadata: PaymentMetadata) : IntentMetadata()
-    object ReceivePaymentsPrivately : IntentMetadata()
+    data object ReceivePaymentsPrivately : IntentMetadata()
     data class ReceivePaymentsPublicly(val metadata: PaymentMetadata) : IntentMetadata()
-    object UpgradePrivacy : IntentMetadata()
-    object MigrateToPrivacy2022 : IntentMetadata()
+    data object UpgradePrivacy : IntentMetadata()
+    data object MigrateToPrivacy2022 : IntentMetadata()
 
     companion object {
         fun newInstance(metadata: TransactionService.Metadata): IntentMetadata? {
@@ -54,7 +53,7 @@ sealed class IntentMetadata {
 
             return PaymentMetadata(
                 amount = KinAmount.newInstance(
-                    kin = Kin(quarks = quarks),
+                    kin = Kin(quarks),
                     rate = Rate(
                         fx = exchangeRate,
                         currency = currency

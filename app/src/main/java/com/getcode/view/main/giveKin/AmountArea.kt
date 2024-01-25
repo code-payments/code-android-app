@@ -2,28 +2,30 @@ package com.getcode.view.main.giveKin
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.material.MaterialTheme
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import com.getcode.LocalNetworkObserver
+import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
-import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Alignment.Companion.CenterVertically
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-import com.getcode.util.WindowSize.*
-import com.getcode.view.components.windowSizeCheck
-import com.getcode.R
-import com.getcode.util.CurrencyUtils
-import com.getcode.view.main.connectivity.ConnectionState
+import com.getcode.theme.CodeTheme
+import com.getcode.util.rememberedClickable
+import com.getcode.utils.network.NetworkState
 import com.getcode.view.main.connectivity.ConnectionStatus
-import timber.log.Timber
+import com.getcode.view.main.connectivity.NetworkStateProvider
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
@@ -38,34 +40,35 @@ fun AmountArea(
     altCaptionColor: Color? = null,
     currencyResId: Int?,
     isClickable: Boolean = true,
+    isLoading: Boolean = false,
     isAnimated: Boolean = false,
     uiModel: AmountAnimatedInputUiModel? = null,
-    connectionState: ConnectionState = ConnectionState(ConnectionStatus.CONNECTED),
+    networkState: NetworkState = LocalNetworkObserver.current.state.value,
     onClick: () -> Unit = {}
 ) {
-    val windowSize = windowSizeCheck()
     Column(
         modifier
             .fillMaxWidth()
-            .let { if (isClickable) it.clickable { onClick() } else it },
+            .let { if (isClickable) it.rememberedClickable { onClick() } else it },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (!isAnimated) {
-                AmountText(
-                    windowSize = windowSize,
-                    currencyResId = currencyResId,
-                    "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
-                )
-            } else {
-                AmountTextAnimated(
-                    uiModel = uiModel,
-                    currencyResId = currencyResId,
-                    amountPrefix = amountPrefix.orEmpty(),
-                    amountSuffix = amountSuffix.orEmpty()
-                )
+        if (!isLoading) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (!isAnimated) {
+                    AmountText(
+                        currencyResId = currencyResId,
+                        "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
+                    )
+                } else {
+                    AmountTextAnimated(
+                        uiModel = uiModel,
+                        currencyResId = currencyResId,
+                        amountPrefix = amountPrefix.orEmpty(),
+                        amountSuffix = amountSuffix.orEmpty()
+                    )
+                }
             }
         }
         Row(
@@ -76,9 +79,8 @@ fun AmountArea(
             if (isAltCaption && isAltCaptionKinIcon) {
                 Image(
                     modifier = Modifier
-                        .padding(end = 5.dp)
-                        .height(10.dp)
-                        .width(10.dp)
+                        .padding(end = CodeTheme.dimens.staticGrid.x1)
+                        .requiredSize(CodeTheme.dimens.staticGrid.x2)
                         .align(CenterVertically),
                     painter = painterResource(
                         id = if (altCaptionColor == Alert) R.drawable.ic_kin_red
@@ -87,15 +89,19 @@ fun AmountArea(
                     contentDescription = ""
                 )
             }
-            if (connectionState.connectionState == ConnectionStatus.DISCONNECTED) {
-                ConnectionStatus(state = connectionState)
+            if (!networkState.connected) {
+                ConnectionStatus(state = networkState)
             } else if (captionText != null) {
                 Text(
                     modifier = Modifier
-                        .align(CenterVertically),
+                        .align(CenterVertically)
+                        .padding(
+                            top = CodeTheme.dimens.grid.x2,
+                            bottom = CodeTheme.dimens.grid.x3
+                        ),
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-                    style = MaterialTheme.typography.body1.copy(
+                    style = CodeTheme.typography.body1.copy(
                         textAlign = TextAlign.Center
                     )
                 )
@@ -105,7 +111,7 @@ fun AmountArea(
     }
 }
 
-
+private val networkStateValues = NetworkStateProvider().values
 @Preview
 @Composable
 fun AmountPreview() {
@@ -115,7 +121,8 @@ fun AmountPreview() {
         amountSuffix = "suffix",
         captionText = "The value of kin fluctuates",
         currencyResId = R.drawable.ic_flag_ca,
-        isAnimated = false
+        isAnimated = false,
+        networkState = networkStateValues.last()
     )
 }
 
@@ -128,7 +135,7 @@ fun AmountPreviewDisconnected() {
         amountSuffix = "suffix",
         captionText = "The value of kin fluctuates",
         currencyResId = R.drawable.ic_flag_ca,
-        connectionState = ConnectionState(ConnectionStatus.DISCONNECTED),
+        networkState = networkStateValues.first(),
         isAnimated = false
     )
 }

@@ -2,10 +2,9 @@ package com.getcode.model.intents
 
 import android.content.Context
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.getcode.crypt.DerivedKey.Companion.derive
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.keys.Hash
-import com.getcode.keys.Signature
+import com.getcode.solana.keys.Hash
+import com.getcode.solana.keys.Signature
 import com.getcode.model.Kin
 import com.getcode.model.UpgradeableIntent
 import com.getcode.model.intents.actions.ActionPrivacyUpgrade
@@ -14,7 +13,6 @@ import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.SplitterCommitmentAccounts
 import com.getcode.solana.organizer.AccountCluster
-import com.getcode.solana.organizer.AccountType
 
 class IntentUpgradePrivacy(
     override val id: PublicKey,

@@ -1,22 +1,26 @@
 package com.getcode.view.login
 
+import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.toLowerCase
-import androidx.navigation.NavController
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.AccessKeyLoginScreen
+import com.getcode.navigation.screens.InviteCodeScreen
+import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
+import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.replaceParam
+import com.getcode.network.repository.toPhoneNumber
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.makeE164
 import com.getcode.view.*
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -36,9 +41,9 @@ data class PhoneVerifyUiModel(
     val phoneNumberFormatted: String = "",
     val phoneNumberFormattedTextFieldValue: TextFieldValue = TextFieldValue(),
     val countryFlag: String = "",
-    val countryLocales: List<PhoneUtils.CountryLocale> = PhoneUtils.countryLocales,
-    val countryLocalesFiltered: List<PhoneUtils.CountryLocale> = PhoneUtils.countryLocales,
-    val countryLocale: PhoneUtils.CountryLocale = PhoneUtils.defaultCountryLocale,
+    val countryLocales: List<PhoneUtils.CountryLocale> = emptyList(), // PhoneUtils.countryLocales,
+    val countryLocalesFiltered: List<PhoneUtils.CountryLocale> = emptyList(), // PhoneUtils.countryLocales,
+    val countryLocale: PhoneUtils.CountryLocale = PhoneUtils.CountryLocale(name = "", phoneCode = 0, countryCode = ""), // PhoneUtils.defaultCountryLocale,
     val countrySearchFilterString: String = "",
     val continueEnabled: Boolean = false,
     val isLoading: Boolean = false,
@@ -51,41 +56,23 @@ data class PhoneVerifyUiModel(
 @HiltViewModel
 class PhoneVerifyViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
-) : BaseViewModel() {
-    val uiFlow = MutableStateFlow(PhoneVerifyUiModel())
+    private val phoneUtils: PhoneUtils,
+    private val resources: ResourceHelper,
+) : BaseViewModel(resources) {
+    val uiFlow = MutableStateFlow(
+        PhoneVerifyUiModel(
+            countryLocales = phoneUtils.countryLocales,
+            countryLocalesFiltered = phoneUtils.countryLocales,
+            countryLocale = phoneUtils.defaultCountryLocale,
+        )
+    )
 
-    fun reset() {
-        uiFlow.update {
-            PhoneVerifyUiModel()
-        }
-    }
-
-    fun onSubmit(navController: NavController?, activity: Activity?) {
+    fun onSubmit(navigator: CodeNavigator, activity: Activity?) {
         if (!uiFlow.value.continueEnabled) return
         TopBarManager.setMessageShown()
         CoroutineScope(Dispatchers.IO).launch {
-            performVerify(navController, activity)
+            performVerify(navigator, activity)
         }
-    }
-
-    fun onUpdateSearchFilter(filter: String) {
-        val locales = (uiFlow.value.countryLocales)
-        val localesFiltered =
-            if (filter.isBlank()) {
-                locales
-            } else {
-                (uiFlow.value.countryLocales)
-                    .filter {
-                        it.name
-                            .toLowerCase(Locale.current)
-                            .contains(filter)
-                    }
-            }
-
-        uiFlow.value = uiFlow.value.copy(
-            countrySearchFilterString = filter,
-            countryLocalesFiltered = localesFiltered
-        )
     }
 
     fun setSignInEntropy(entropyB64: String) {
@@ -108,15 +95,27 @@ class PhoneVerifyViewModel @Inject constructor(
         uiFlow.update { it.copy(isLoading = isLoading) }
     }
 
-    fun setIsSuccess(isSuccess: Boolean) {
+    private fun setIsSuccess(isSuccess: Boolean) {
         uiFlow.update { it.copy(isSuccess = isSuccess) }
     }
 
+    fun setPhoneFromHint(phoneNumber: String) {
+        val countryCode = phoneUtils.getCountryCode(phoneNumber)
+        val locale = phoneUtils.countryLocales
+            .firstOrNull { it.countryCode == countryCode } ?: phoneUtils.defaultCountryLocale
+        setCountryCode(locale)
+
+        setPhoneInput(
+            phoneInput = phoneNumber
+                .replace("+${locale.phoneCode}", "")
+
+        )
+    }
     fun setPhoneInput(phoneInput: String, selection_: TextRange? = null) {
         val countryCode = uiFlow.value.countryLocale.phoneCode.toString()
         val phoneInputFiltered = phoneInput.replace("+$countryCode", "")
         val phoneNumber = "+$countryCode$phoneInputFiltered"
-        val phoneFormatted = PhoneUtils.formatNumber(
+        val phoneFormatted = phoneUtils.formatNumber(
             number = phoneNumber,
             countryCode = countryCode,
             plus = false
@@ -136,9 +135,8 @@ class PhoneVerifyViewModel @Inject constructor(
                     text = phoneFormatted,
                     selection = selection
                 ),
-                countryFlag = PhoneUtils.toFlagEmoji(countryCode),
-                continueEnabled = phoneNumber.length > 7 && PhoneUtils.isPhoneNumberValid(
-                    App.getInstance(),
+                countryFlag = phoneUtils.toFlagEmoji(countryCode),
+                continueEnabled = phoneNumber.length > 7 && phoneUtils.isPhoneNumberValid(
                     phoneNumber,
                     countryCode
                 )
@@ -146,15 +144,16 @@ class PhoneVerifyViewModel @Inject constructor(
         }
     }
 
-    private fun performVerify(navController: NavController?, activity: Activity?) {
+    @SuppressLint("CheckResult")
+    private fun performVerify(navigator: CodeNavigator, activity: Activity?) {
         val areaCode = uiFlow.value.countryLocale.phoneCode
         val countryCode = uiFlow.value.countryLocale.countryCode
         val phoneInput = uiFlow.value.phoneInput
 
         val phoneNumberCombined = areaCode.toString() + phoneInput
 
-        val phoneNumber = com.getcode.utils.PhoneUtils.makeE164(
-            phoneNumberCombined,
+        Timber.d("phoneNumber=$phoneNumberCombined")
+        val phoneNumber = phoneNumberCombined.makeE164(
             java.util.Locale(java.util.Locale.getDefault().language, countryCode)
         )
 
@@ -175,10 +174,7 @@ class PhoneVerifyViewModel @Inject constructor(
                 when (res) {
                     PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
                     PhoneVerificationService.SendVerificationCodeResponse.Result.NOT_INVITED -> {
-                        navController?.navigate(
-                            LoginSections.INVITE_CODE.route
-                                .replace("{$ARG_PHONE_NUMBER}", phoneNumber.urlEncode())
-                        )
+                        navigator.push(InviteCodeScreen(phoneNumber.urlEncode()))
                         null
                     }
                     else ->
@@ -202,25 +198,25 @@ class PhoneVerifyViewModel @Inject constructor(
                         return@subscribe
                     }
 
-                    navController?.navigate(
-                        route = LoginSections.PHONE_CONFIRM.route
-                            .replace(
-                                "{${ARG_PHONE_NUMBER}}",
-                                phoneNumber.urlEncode()
+                    if (uiFlow.value.isNewAccount) {
+                        navigator.push(
+                            LoginPhoneConfirmationScreen(
+                                phoneNumber = phoneNumber,
+                                signInEntropy = uiFlow.value.entropyB64,
+                                isNewAccount = uiFlow.value.isNewAccount,
+                                isPhoneLinking = uiFlow.value.isPhoneLinking,
                             )
-                            .replace(
-                                "{${ARG_SIGN_IN_ENTROPY_B64}}",
-                                uiFlow.value.entropyB64.orEmpty().urlEncode()
+                        )
+                    } else {
+                        navigator.push(
+                            PhoneConfirmationScreen(
+                                phoneNumber = phoneNumber,
+                                signInEntropy = uiFlow.value.entropyB64,
+                                isNewAccount = uiFlow.value.isNewAccount,
+                                isPhoneLinking = uiFlow.value.isPhoneLinking,
                             )
-                            .replace(
-                                "{${ARG_IS_PHONE_LINKING}}",
-                                uiFlow.value.isPhoneLinking.toString()
-                            )
-                            .replace(
-                                "{${ARG_IS_NEW_ACCOUNT}}",
-                                uiFlow.value.isNewAccount.toString()
-                            )
-                    )
+                        )
+                    }
                 }, {
                     setIsLoading(false)
                     TopBarManager.showMessage(getGenericError())
@@ -233,7 +229,7 @@ class PhoneVerifyViewModel @Inject constructor(
     }
 
     private fun getGenericError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToSendCode),
-        App.getInstance().getString(R.string.error_description_failedToSendCode)
+        resources.getString(R.string.error_title_failedToSendCode),
+        resources.getString(R.string.error_description_failedToSendCode)
     )
 }

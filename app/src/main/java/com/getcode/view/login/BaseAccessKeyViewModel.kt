@@ -21,6 +21,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.network.repository.ApiDeniedException
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.*
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toAGColor
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.text.DateFormat
@@ -50,7 +52,7 @@ data class AccessKeyUiModel(
     val accessKeyCroppedBitmap: Bitmap? = null,
 )
 
-abstract class BaseAccessKeyViewModel : BaseViewModel() {
+abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
     @OptIn(InternalCoroutinesApi::class)
@@ -66,7 +68,7 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
 
     fun initWithEntropy(entropyB64: String) {
         if (uiFlow.value.entropyB64 == entropyB64) return
-
+        Timber.d("entropy=$entropyB64")
         val words = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")
 
@@ -132,27 +134,20 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
 
     private fun createBitmapForExport(words: List<String>, entropyB64: String): Bitmap {
         val accessKeyText = getAccessKeyText(words)
-        val context = App.getInstance()
 
-        val accessKeyBg =
-            AppCompatResources.getDrawable(context, R.drawable.ic_access_key_bg)
+        val accessKeyBg = resources.getDrawable(R.drawable.ic_access_key_bg)
                 ?.toBitmap(812, 1353)!!
 
         val imageLogo =
-            AppCompatResources.getDrawable(context, R.drawable.ic_code_logo_white)
+            resources.getDrawable(R.drawable.ic_code_logo_white)
                 ?.toBitmap(logoWidth, logoHeight)!!
 
         val imageOut = Bitmap.createBitmap(
             targetWidth, targetHeight,
             Bitmap.Config.ARGB_8888
         ).applyCanvas {
-            val paintBackground = Paint()
-            paintBackground.color = Brand.toAGColor()
-            paintBackground.style = Paint.Style.FILL
-            drawPaint(paintBackground)
-
             val accessBgActualWidth =
-                accessKeyBg.getScaledWidth(App.getInstance().resources.displayMetrics)
+                accessKeyBg.getScaledWidth(resources.displayMetrics)
             drawBitmap(
                 accessKeyBg,
                 (((targetWidth - accessBgActualWidth) / 2)).toFloat(),
@@ -213,7 +208,7 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
 
     internal fun getQrCode(entropyB64: String): Bitmap? {
         val base58 = Base58.encode(entropyB64.decodeBase64())
-        val url = "${App.getInstance().getString(R.string.root_url_app)}/login?data=$base58"
+        val url = "${resources.getString(R.string.root_url_app)}/login?data=$base58"
 
         val qrgEncoder = QRGEncoder(url, null, QRGContents.Type.TEXT, qrCodeSize)
         qrgEncoder.colorBlack = White.toAGColor()
@@ -233,7 +228,7 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
         textPaint.color = color
         textPaint.textSize = sizePx.toFloat()
         textPaint.typeface = Typeface.create(
-            ResourcesCompat.getFont(App.getInstance(), R.font.avenir),
+            resources.getFont(R.font.avenir),
             Typeface.BOLD
         )
 
@@ -244,18 +239,18 @@ abstract class BaseAccessKeyViewModel : BaseViewModel() {
     }
 
     internal fun getAccessKeySaveError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToSave),
-        App.getInstance().getString(R.string.error_description_failedToSave),
+        resources.getString(R.string.error_title_failedToSave),
+        resources.getString(R.string.error_description_failedToSave),
     )
 
     internal fun getDeniedError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_tooManyAccounts),
-        App.getInstance().getString(R.string.error_description_tooManyAccounts)
+        resources.getString(R.string.error_title_tooManyAccounts),
+        resources.getString(R.string.error_description_tooManyAccounts)
     )
 
     internal fun getGenericError() = TopBarManager.TopBarMessage(
-        App.getInstance().getString(R.string.error_title_failedToVerifyPhone),
-        App.getInstance().getString(R.string.error_description_failedToVerifyPhone),
+        resources.getString(R.string.error_title_failedToVerifyPhone),
+        resources.getString(R.string.error_description_failedToVerifyPhone),
     )
 
     internal fun onSubmitError(e: Throwable) {

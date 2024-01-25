@@ -8,8 +8,8 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 
 
 @Preview
@@ -45,12 +45,12 @@ private fun SeedItem(
     text: String,
     isVisible: Boolean
 ) {
-    Row(modifier = Modifier.padding(vertical = 10.dp)) {
+    Row(modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2)) {
         Text(
             text = "$number.",
-            modifier = Modifier.padding(end = 15.dp)
-                .width(30.dp),
-            style = MaterialTheme.typography.body1.copy(
+            modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3)
+                .width(CodeTheme.dimens.grid.x6),
+            style = CodeTheme.typography.body1.copy(
                 textAlign = TextAlign.End
             ),
             color = BrandLight
@@ -59,12 +59,12 @@ private fun SeedItem(
             Text(
                 modifier = Modifier.alpha(if (isVisible) 1f else 0f),
                 text = text,
-                style = MaterialTheme.typography.body1
+                style = CodeTheme.typography.body1
             )
             Text(
                 modifier = Modifier.alpha(if (!isVisible) 1f else 0f),
                 text = "-".repeat(text.length),
-                style = MaterialTheme.typography.body1
+                style = CodeTheme.typography.body1
             )
         }
     }

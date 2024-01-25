@@ -1,8 +1,8 @@
 package com.getcode.view.main.account
 
-import androidx.navigation.NavController
-import com.getcode.manager.TopBarManager
-import com.getcode.network.repository.ApiDeniedException
+import android.annotation.SuppressLint
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.login.BaseAccessKeyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -12,8 +12,11 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class AccountAccessKeyViewModel @Inject constructor() : BaseAccessKeyViewModel() {
-    fun onSubmit(navController: NavController?) {
+class AccountAccessKeyViewModel @Inject constructor(
+    resources: ResourceHelper,
+) : BaseAccessKeyViewModel(resources) {
+    @SuppressLint("CheckResult")
+    fun onSubmit(navigator: CodeNavigator) {
         Completable.create {
             val result = saveBitmapToFile()
             if (result) it.onComplete() else it.onError(IllegalStateException())

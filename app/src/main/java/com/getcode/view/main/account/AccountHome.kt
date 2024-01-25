@@ -1,34 +1,29 @@
 package com.getcode.view.main.account
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,139 +34,115 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.AccountDebugOptionsScreen
+import com.getcode.navigation.screens.AccountDetailsScreen
+import com.getcode.navigation.screens.BuySellScreen
+import com.getcode.navigation.screens.DepositKinScreen
+import com.getcode.navigation.screens.FaqScreen
+import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.util.getActivity
+import com.getcode.util.rememberedClickable
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountHome(
-    onPageSelected: (AccountPage) -> Unit,
-    viewModel: AccountSheetViewModel = hiltViewModel(),
+    viewModel: AccountSheetViewModel,
 ) {
-
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
     val context = LocalContext.current
 
-    Box(modifier = Modifier.fillMaxHeight()) {
-        Column(
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-        ) {
-            val actions: MutableList<AccountMainItem> = mutableListOf(
-                AccountMainItem(
-                    name = R.string.title_buyAndSellKin,
-                    icon = R.drawable.ic_currency_dollar_active
-                ) { onPageSelected(AccountPage.BUY_AND_SELL_KIN) },
-                AccountMainItem(
-                    name = R.string.title_depositKin,
-                    icon = R.drawable.ic_menu_deposit
-                ) { onPageSelected(AccountPage.DEPOSIT) },
-                AccountMainItem(
-                    name = R.string.title_withdrawKin,
-                    icon = R.drawable.ic_menu_withdraw
-                ) { onPageSelected(AccountPage.WITHDRAW) },
-                AccountMainItem(
-                    name = R.string.title_myAccount,
-                    icon = R.drawable.ic_menu_account
-                ) { onPageSelected(AccountPage.ACCOUNT_DETAILS) },
-                AccountMainItem(
-                    name = R.string.title_faq,
-                    icon = R.drawable.ic_faq,
-                ) { onPageSelected(AccountPage.FAQ) },
-                AccountMainItem(
-                    name = R.string.action_logout,
-                    icon = R.drawable.ic_menu_logout
-                ) {
-                    BottomBarManager.showMessage(
-                        BottomBarManager.BottomBarMessage(
-                            title = App.getInstance().getString(R.string.prompt_title_logout),
-                            subtitle = App.getInstance()
-                                .getString(R.string.prompt_description_logout),
-                            positiveText = App.getInstance().getString(R.string.action_logout),
-                            negativeText = App.getInstance().getString(R.string.action_cancel),
-                            onPositive = {
-                                context.getActivity()?.let {
-                                    viewModel.logout(it)
+    val composeScope = rememberCoroutineScope()
+
+    val handleItemClicked = remember {
+        { item: AccountPage ->
+            composeScope.launch {
+                when (item) {
+                    AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
+                    AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
+                    AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
+                    AccountPage.FAQ -> navigator.push(FaqScreen)
+                    AccountPage.ACCOUNT_DETAILS -> navigator.push(AccountDetailsScreen)
+                    AccountPage.ACCOUNT_DEBUG_OPTIONS -> navigator.push(AccountDebugOptionsScreen)
+                    AccountPage.LOGOUT -> {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(R.string.prompt_title_logout),
+                                subtitle = context
+                                    .getString(R.string.prompt_description_logout),
+                                positiveText = context.getString(R.string.action_logout),
+                                negativeText = context.getString(R.string.action_cancel),
+                                onPositive = {
+                                    context.getActivity()?.let {
+                                        viewModel.logout(it)
+                                    }
                                 }
-                            },
-                            onNegative = {
-                            }
+                            )
                         )
-                    )
-                }
-            )
-
-            if (dataState.isDebug) {
-                AccountMainItem(
-                    name = R.string.account_debug_options,
-                    icon = R.drawable.ic_bug,
-                ) { onPageSelected(AccountPage.ACCOUNT_DEBUG_OPTIONS) }
-                    .let { actions.add(4, it) }
-            }
-
-            Image(
-                painterResource(
-                    R.drawable.ic_code_logo_near_white
-                ),
-                contentDescription = "",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 20.dp)
-                    .height(50.dp)
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) {
-                        viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked)
                     }
-            )
 
-            for (action in actions) {
-                ListItem(action)
+                    AccountPage.PHONE -> Unit
+                    AccountPage.DELETE_ACCOUNT -> Unit
+                    AccountPage.ACCESS_KEY -> Unit
+                }
             }
+        }
+    }
 
-            Text(
-                modifier = Modifier
-                    .padding(top = 35.dp)
-                    .fillMaxWidth()
-                    .align(CenterHorizontally),
-                text = "v${BuildConfig.VERSION_NAME}",
-                color = BrandLight,
-                style = MaterialTheme.typography.body2.copy(
-                    textAlign = TextAlign.Center
-                ),
-            )
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(dataState.items, key = { it.type }, contentType = { it }) { item ->
+            ListItem(item = item) {
+                handleItemClicked(item.type)
+            }
+        }
+
+        item {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    modifier = Modifier
+                        .padding(top = CodeTheme.dimens.grid.x7)
+                        .fillMaxWidth()
+                        .align(Alignment.Center),
+                    text = "v${BuildConfig.VERSION_NAME}",
+                    color = BrandLight,
+                    style = CodeTheme.typography.body2.copy(
+                        textAlign = TextAlign.Center
+                    ),
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ListItem(item: AccountMainItem) {
+fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .clickable { item.onClick() }
-            .padding(vertical = 25.dp, horizontal = 25.dp)
+            .rememberedClickable { onClick() }
+            .padding(CodeTheme.dimens.grid.x5)
             .fillMaxWidth()
             .wrapContentHeight(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = CenterVertically
     ) {
         Image(
             modifier = Modifier
-                .padding(end = 20.dp)
-                .height(25.dp)
-                .width(25.dp),
+                .padding(end = CodeTheme.dimens.inset)
+                .height(CodeTheme.dimens.staticGrid.x5)
+                .width(CodeTheme.dimens.staticGrid.x5),
             painter = painterResource(id = item.icon),
             contentDescription = ""
         )
         Text(
             modifier = Modifier.align(CenterVertically),
             text = stringResource(item.name),
-            style = MaterialTheme.typography.subtitle1.copy(
+            style = CodeTheme.typography.subtitle1.copy(
                 fontWeight = FontWeight.Bold
             ),
         )
@@ -187,16 +158,16 @@ fun ListItem(item: AccountMainItem) {
                         imageVector = Icons.Filled.Check,
                         tint = Color.Green,
                         contentDescription = "Linked",
-                        modifier = Modifier.size(15.dp)
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x3)
                     )
                 }
                 Text(
                     modifier = Modifier
-                        .padding(start = 5.dp),
+                        .padding(start = CodeTheme.dimens.grid.x1),
                     text = if (isPhoneLinked) stringResource(id = R.string.title_linked)
                     else stringResource(id = R.string.title_notLinked),
                     color = BrandLight,
-                    style = MaterialTheme.typography.caption.copy(
+                    style = CodeTheme.typography.caption.copy(
                         fontSize = 12.sp
                     ),
                 )
@@ -205,7 +176,7 @@ fun ListItem(item: AccountMainItem) {
     }
 
     Divider(
-        modifier = Modifier.padding(horizontal = 20.dp),
+        modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
         color = White10,
         thickness = 0.5.dp
     )

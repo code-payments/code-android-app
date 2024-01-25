@@ -4,7 +4,11 @@ import android.content.Context
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
+import com.getcode.model.AccountInfo
+import com.getcode.model.Domain
 import com.getcode.model.Kin
+import com.getcode.model.RelationshipBox
+import com.getcode.solana.keys.PublicKey
 import kotlin.math.min
 
 class Tray(
@@ -19,15 +23,20 @@ class Tray(
         private set
 
     var availableBalance: Kin = Kin.fromKin(0)
-        get() = slotsBalance + availableDepositBalance + availableIncomingBalance
+        get() = slotsBalance + availableDepositBalance + availableIncomingBalance + availableRelationshipBalance
         private set
 
-    var availableDepositBalance: Kin = Kin.fromKin(0)
+    private val availableDepositBalance: Kin
         get() = owner.partialBalance
-        private set
 
-    var availableIncomingBalance: Kin = Kin.fromKin(0)
+    private val availableIncomingBalance: Kin
         get() = incoming.partialBalance
+
+    val relationships = RelationshipBox()
+
+    private var availableRelationshipBalance: Kin = Kin.fromKin(0)
+        get() = relationships.publicKeys.values.map { it.partialBalance }
+            .reduceOrNull { acc, slot -> acc + slot } ?: Kin.fromKin(0)
         private set
 
     fun slot(type: SlotType): Slot {
@@ -52,23 +61,39 @@ class Tray(
 
     fun increment(type: AccountType, kin: Kin) {
         when (type) {
-            AccountType.Primary -> owner.partialBalance = owner.partialBalance + kin
-            AccountType.Incoming -> incoming.partialBalance = incoming.partialBalance + kin
-            AccountType.Outgoing -> outgoing.partialBalance = outgoing.partialBalance + kin
-            is AccountType.Bucket -> slots[type.type.ordinal].partialBalance =
-                slots[type.type.ordinal].partialBalance + kin
+            AccountType.Primary -> owner.partialBalance += kin
+            AccountType.Incoming -> incoming.partialBalance += kin
+            AccountType.Outgoing -> outgoing.partialBalance += kin
+            is AccountType.Bucket -> slots[type.type.ordinal].partialBalance += kin
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
+            is AccountType.Relationship -> {
+                val relationship = relationships.relationshipWith(type.domain)
+                    ?: throw IllegalStateException("Relationship not found")
+                relationships.insert(
+                    relationship.apply {
+                        partialBalance += kin
+                    }
+                )
+            }
         }
     }
 
     fun decrement(type: AccountType, kin: Kin) {
         when (type) {
-            AccountType.Primary -> owner.partialBalance = owner.partialBalance - kin
-            AccountType.Incoming -> incoming.partialBalance = incoming.partialBalance - kin
-            AccountType.Outgoing -> outgoing.partialBalance = outgoing.partialBalance - kin
-            is AccountType.Bucket -> slots[type.type.ordinal].partialBalance =
-                slots[type.type.ordinal].partialBalance - kin
+            AccountType.Primary -> owner.partialBalance -= kin
+            AccountType.Incoming -> incoming.partialBalance -= kin
+            AccountType.Outgoing -> outgoing.partialBalance -= kin
+            is AccountType.Bucket -> slots[type.type.ordinal].partialBalance -= kin
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
+            is AccountType.Relationship -> {
+                val relationship = relationships.relationshipWith(type.domain)
+                    ?: throw IllegalStateException("Relationship not found")
+                relationships.insert(
+                    relationship.apply {
+                        partialBalance -= kin
+                    }
+                )
+            }
         }
     }
 
@@ -85,6 +110,22 @@ class Tray(
         slots[5].partialBalance = balances[AccountType.Bucket(SlotType.Bucket100k)] ?: slots[5].partialBalance
         slots[6].partialBalance = balances[AccountType.Bucket(SlotType.Bucket1m)]   ?: slots[6].partialBalance
 
+        balances.filter { (type, _) -> type is AccountType.Relationship }
+            .mapNotNull { (type, amount) ->
+                val relationshipType = type as? AccountType.Relationship ?: return@mapNotNull null
+                relationshipType to amount
+            }
+            .onEach { (relationship, amount) ->
+                val domain = relationship.domain
+                setBalance(domain, amount)
+            }
+    }
+
+    private fun setBalance(domain: Domain, balance: Kin) {
+        val relationship = relationships.relationshipWith(domain) ?: return
+        relationships.insert(relationship.apply {
+            partialBalance = balance
+        })
     }
 
     fun partialBalance(type: AccountType): Kin {
@@ -94,7 +135,26 @@ class Tray(
             is AccountType.Outgoing -> outgoing.partialBalance
             is AccountType.Bucket -> slot(type.type).partialBalance
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
+            is AccountType.Relationship -> {
+                val relationship = relationships.relationshipWith(type.domain)
+                    ?: throw IllegalStateException("Relationship not found")
+
+                return relationship.partialBalance
+            }
         }
+    }
+
+    fun createRelationships(context: Context, accountInfos: Map<PublicKey, AccountInfo>) {
+        val domains= accountInfos
+            .mapNotNull { it.value.relationship?.domain }
+
+        domains.onEach { createRelationship(context, it) }
+    }
+
+    fun createRelationship(context: Context, domain: Domain): Relationship {
+        val relationship = Relationship.newInstance(context, domain, mnemonic)
+        relationships.insert(relationship)
+        return relationship
     }
 
     fun incrementIncoming(context: Context) {
@@ -113,7 +173,13 @@ class Tray(
             AccountType.Outgoing -> {
                 outgoing = PartialAccount(cluster = outgoing(context, index, mnemonic))
             }
-            else -> throw IllegalStateException()
+
+            is AccountType.Bucket,
+            AccountType.Primary,
+            is AccountType.Relationship,
+            AccountType.RemoteSend -> {
+                throw IllegalStateException()
+            }
         }
     }
 
@@ -133,6 +199,9 @@ class Tray(
             AccountType.Outgoing -> outgoing.getCluster()
             is AccountType.Bucket -> slot(accountType.type).getCluster()
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
+            is AccountType.Relationship -> {
+                relationships.relationshipWith(domain = accountType.domain)!!.getCluster()
+            }
         }
     }
 

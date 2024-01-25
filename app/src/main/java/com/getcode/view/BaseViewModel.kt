@@ -2,7 +2,9 @@ package com.getcode.view
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cafe.adriel.voyager.core.model.ScreenModel
 import com.getcode.App
+import com.getcode.util.resources.ResourceHelper
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -18,7 +20,9 @@ import kotlin.coroutines.CoroutineContext
 @Deprecated(
     message = "Replaced With BaseViewModel2",
     replaceWith = ReplaceWith("Use BaseViewModel2", "com.getcode.view.BaseViewModel2"))
-abstract class BaseViewModel : ViewModel() {
+abstract class BaseViewModel(
+    private val resources: ResourceHelper,
+) : ViewModel() {
     private val compositeDisposable = CompositeDisposable()
 
     override fun onCleared() {
@@ -28,7 +32,7 @@ abstract class BaseViewModel : ViewModel() {
 
     open fun setIsLoading(isLoading: Boolean) {}
 
-    fun getString(resId: Int): String = App.getInstance().getString(resId)
+    fun getString(resId: Int): String = resources.getString(resId)
 }
 
 abstract class BaseViewModel2<ViewState : Any, Event : Any>(

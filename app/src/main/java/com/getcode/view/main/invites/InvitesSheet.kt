@@ -7,9 +7,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
+import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.SheetTitle
@@ -39,7 +39,7 @@ fun InvitesSheet(upPress: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(sheetHeight)
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
     ) {
         Column {
             val title =
@@ -51,7 +51,7 @@ fun InvitesSheet(upPress: () -> Unit = {}) {
                 else stringResource(id = R.string.title_inviteFriend)
 
             SheetTitle(
-                title = title,
+                title = { title },
                 onCloseIconClicked = upPress
             )
 

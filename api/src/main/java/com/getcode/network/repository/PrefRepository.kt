@@ -111,7 +111,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun set(key: PrefsString, value: String) {
-        set(Pair(key, value))
+        set(key to value)
     }
 
     fun set(key: String, value: Int) = set(key, value.toLong())

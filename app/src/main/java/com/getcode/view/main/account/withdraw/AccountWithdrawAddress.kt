@@ -1,14 +1,20 @@
 package com.getcode.view.main.account.withdraw
 
-import android.os.Bundle
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -16,26 +22,32 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import com.getcode.R
-import com.getcode.theme.*
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.WithdrawalArgs
+import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
+import com.getcode.theme.green
+import com.getcode.theme.inputColors
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
 
 @Composable
-fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
-    val viewModel = hiltViewModel<AccountWithdrawAddressViewModel>()
+fun AccountWithdrawAddress(
+    viewModel: AccountWithdrawAddressViewModel,
+    arguments: WithdrawalArgs,
+) {
+    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     ConstraintLayout(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
-            .padding(horizontal = 20.dp)
+            .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
         val (topText, addressField, resolveStatus, pasteButton, nextButton) = createRefs()
@@ -45,7 +57,7 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
                 end.linkTo(parent.end)
             },
             text = stringResource(R.string.subtitle_whereToWithdrawKin),
-            style = MaterialTheme.typography.body1.copy(textAlign = TextAlign.Center),
+            style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             color = BrandLight
         )
 
@@ -54,13 +66,13 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
                 .constrainAs(addressField) {
                     top.linkTo(topText.bottom)
                 }
-                .padding(top = 20.dp)
+                .padding(top = CodeTheme.dimens.grid.x4)
                 .fillMaxWidth()
-                .padding(vertical = 5.dp),
+                .padding(vertical = CodeTheme.dimens.grid.x1),
             placeholder = {
                 Text(
                     text = stringResource(R.string.subtitle_enterDestinationAddress),
-                    style = MaterialTheme.typography.subtitle1.copy(
+                    style = CodeTheme.typography.subtitle1.copy(
                         fontSize = 16.sp,
                     )
                 )
@@ -69,12 +81,12 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
             visualTransformation = VisualTransformation.None,
             value = dataState.addressText,
             onValueChange = { viewModel.setAddress(it) },
-            textStyle = MaterialTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.subtitle1.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,
             colors = inputColors(),
-            shape = RoundedCornerShape(size = 5.dp)
+            shape = CodeTheme.shapes.extraSmall
         )
 
         Row(
@@ -83,11 +95,12 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
                     top.linkTo(addressField.bottom)
                 }
                 .fillMaxWidth()
-                .padding(vertical = 5.dp)
+                .padding(vertical = CodeTheme.dimens.grid.x1),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             dataState.isValid?.let { isValid ->
                 Image(
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
                     painter = painterResource(
                         if (isValid) R.drawable.ic_checked_green else R.drawable.ic_xmark_red
                     ),
@@ -105,10 +118,10 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
 
                 Text(
                     modifier = Modifier
-                        .padding(start = 7.dp, top = 3.dp),
+                        .padding(start = CodeTheme.dimens.grid.x2),
                     text = text,
                     color = if (isValid) green else Color.Red,
-                    style = MaterialTheme.typography.caption.copy(
+                    style = CodeTheme.typography.caption.copy(
                         fontSize = 12.sp
                     )
                 )
@@ -117,7 +130,7 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(pasteButton) {
                     top.linkTo(resolveStatus.bottom)
                 },
@@ -129,13 +142,12 @@ fun AccountWithdrawAddress(navController: NavController, arguments: Bundle?) {
 
         CodeButton(
             modifier = Modifier
-                .padding(bottom = 20.dp)
+                .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(nextButton) {
                     bottom.linkTo(parent.bottom)
                 },
             onClick = {
-                arguments ?: return@CodeButton
-                viewModel.onSubmit(navController, arguments)
+                viewModel.onSubmit(navigator, arguments)
             },
             enabled = dataState.isNextEnabled,
             text = stringResource(R.string.action_next),

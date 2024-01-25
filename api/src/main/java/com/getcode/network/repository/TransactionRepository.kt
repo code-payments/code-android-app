@@ -1,27 +1,54 @@
 package com.getcode.network.repository
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.*
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*
-import com.getcode.model.intents.*
+import com.getcode.model.intents.ActionGroup
+import com.getcode.model.intents.IntentCreateAccounts
+import com.getcode.model.intents.IntentDeposit
+import com.getcode.model.intents.IntentEstablishRelationship
+import com.getcode.model.intents.IntentMigratePrivacy
+import com.getcode.model.intents.IntentPrivateTransfer
+import com.getcode.model.intents.IntentPublicTransfer
+import com.getcode.model.intents.IntentReceive
+import com.getcode.model.intents.IntentRemoteReceive
+import com.getcode.model.intents.IntentRemoteSend
+import com.getcode.model.intents.IntentType
+import com.getcode.model.intents.IntentUpgradePrivacy
+import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.solana.keys.AssociatedTokenAccount
-import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
+import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.grpc.stub.StreamObserver
-import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
-import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.SingleSubject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
@@ -32,12 +59,18 @@ private const val TAG = "TransactionRepositoryV2"
 
 @Singleton
 class TransactionRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val transactionApi: TransactionApiV2
-) {
+) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     var sendLimit = mutableListOf<SendLimit>()
 
     var maxDeposit: Long = 0
+
+    private var _transactionCache = MutableStateFlow<List<HistoricalTransaction>?>(null)
+    val transactionCache: StateFlow<List<HistoricalTransaction>?>
+        get() = _transactionCache.asStateFlow()
+
 
     fun setMaximumDeposit(deposit: Long) {
         maxDeposit = deposit
@@ -48,7 +81,9 @@ class TransactionRepository @Inject constructor(
     }
 
     fun clear() {
+        Timber.d("clearing transactions")
         maxDeposit = 0
+        _transactionCache.value = null
     }
 
     fun createAccounts(organizer: Organizer): Single<IntentType> {
@@ -68,6 +103,7 @@ class TransactionRepository @Inject constructor(
     fun transfer(
         context: Context,
         amount: KinAmount,
+        fee: Kin,
         organizer: Organizer,
         rendezvousKey: PublicKey,
         destination: PublicKey,
@@ -80,6 +116,7 @@ class TransactionRepository @Inject constructor(
                 organizer = organizer,
                 destination = destination,
                 amount = amount,
+                fee = fee,
                 resultTray = organizer.tray,
                 isWithdrawal = isWithdrawal
             ) as IntentType
@@ -92,6 +129,7 @@ class TransactionRepository @Inject constructor(
             organizer = organizer,
             destination = destination,
             amount = amount.copy(kin = amount.kin.toKinTruncating()),
+            fee = fee,
             isWithdrawal = isWithdrawal
         )
 
@@ -113,10 +151,20 @@ class TransactionRepository @Inject constructor(
 
     fun receiveFromPrimary(amount: Kin, organizer: Organizer): Single<IntentType> {
         val intent = IntentDeposit.newInstance(
+            source = AccountType.Primary,
             organizer = organizer,
             amount = amount.toKinTruncating()
         )
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
+    }
+
+    fun receiveFromRelationship(domain: Domain, amount: Kin, organizer: Organizer): Single<IntentType> {
+        val intent = IntentDeposit.newInstance(
+            source = AccountType.Relationship(domain),
+            organizer = organizer,
+            amount = amount,
+        )
+        return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
     fun withdraw(
@@ -127,7 +175,8 @@ class TransactionRepository @Inject constructor(
         val intent = IntentPublicTransfer.newInstance(
             organizer = organizer,
             amount = amount,
-            destination = destination
+            destination = destination,
+            source = AccountType.Primary,
         )
 
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
@@ -195,7 +244,7 @@ class TransactionRepository @Inject constructor(
     }
 
     private fun submit(intent: IntentType, owner: Ed25519.KeyPair): Single<IntentType> {
-        Timber.i("Submit ${intent.id}")
+        Timber.i("Submit ${intent.javaClass.simpleName}")
         val subject = SingleSubject.create<IntentType>()
 
         var serverMessageStream: StreamObserver<TransactionService.SubmitIntentRequest>? = null
@@ -255,6 +304,7 @@ class TransactionRepository @Inject constructor(
                             )
                         )
                     }
+
                     else -> {
                         Timber.i("Else case. ${value?.responseCase}")
                         serverMessageStream?.onCompleted()
@@ -281,6 +331,16 @@ class TransactionRepository @Inject constructor(
         return subject
     }
 
+    @SuppressLint("CheckResult")
+    fun establishRelationship(organizer: Organizer, domain: Domain): Single<IntentEstablishRelationship> {
+        val intent = IntentEstablishRelationship.newInstance(context, organizer, domain)
+
+        return submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)
+            .map { intent }
+            .doOnSuccess { Timber.d("established relationship") }
+            .doOnError { Timber.e(t = it, message = "failed to establish relationship") }
+    }
+
     // TODO: potentially make this more generic in the event we introduce more airdrop types
     //       that can be requested for
     fun requestFirstKinAirdrop(owner: Ed25519.KeyPair): Single<KinAmount> {
@@ -300,12 +360,15 @@ class TransactionRepository @Inject constructor(
                     Single.just(KinAmount.fromProtoExchangeData(it.exchangeData))
                         ?: Single.error(IllegalStateException())
                 }
+
                 TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> {
                     Single.error(AirdropException.AlreadyClaimedException())
                 }
+
                 TransactionService.AirdropResponse.Result.UNAVAILABLE -> {
                     Single.error(AirdropException.UnavailableException())
                 }
+
                 else -> {
                     Single.error(AirdropException.UnknownException())
                 }
@@ -313,7 +376,7 @@ class TransactionRepository @Inject constructor(
         }
     }
 
-    fun fetchIntentMetadata(owner: Ed25519.KeyPair, intentId: PublicKey): Single<IntentMetadata> {
+    suspend fun fetchIntentMetadata(owner: Ed25519.KeyPair, intentId: PublicKey): Result<IntentMetadata> {
         val request = TransactionService.GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.toIntentId())
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
@@ -324,16 +387,21 @@ class TransactionRepository @Inject constructor(
             }
             .build()
 
-        return transactionApi.getIntentMetadata(request)
-            .flatMap {
-                if (it.result != TransactionService.GetIntentMetadataResponse.Result.OK) {
-                    Single.error(IllegalStateException())
-                } else {
-                    IntentMetadata.newInstance(it.metadata)?.let { metadata ->
-                        Single.just(metadata)
-                    } ?: Single.error(IllegalStateException())
+        return runCatching {
+            transactionApi.getIntentMetadata(request)
+                .toFlowable()
+                .asFlow()
+                .flowOn(Dispatchers.IO)
+                .map {
+                    Timber.d("${it.result}")
+                    if (it.result != TransactionService.GetIntentMetadataResponse.Result.OK) {
+                        throw IllegalStateException()
+                    } else {
+                        IntentMetadata.newInstance(it.metadata) ?: throw IllegalStateException()
+                    }
                 }
-            }
+                .firstOrNull() ?: throw IllegalStateException()
+        }
     }
 
     fun fetchTransactionLimits(
@@ -360,10 +428,10 @@ class TransactionRepository @Inject constructor(
 
                     Limits.newInstance(
                         map = map,
-                        maxDeposit = Kin.fromQuarks(it.depositLimits.maxQuarks),
+                        maxDeposit = Kin.fromQuarks(it.depositLimit.maxQuarks),
                     ).let { limits ->
                         Single.just(limits)
-                    } ?: Single.error(IllegalStateException())
+                    }
                 }
             }
             .doOnSuccess {
@@ -378,23 +446,38 @@ class TransactionRepository @Inject constructor(
 
         return Flowable.just(sendLimit)
             .map { it.associateBy { i -> i.id } }
-            .distinctUntilChanged()
     }
 
-    fun fetchPaymentHistoryDelta(owner: Ed25519.KeyPair, afterId: ByteArray? = null): Single<List<HistoricalTransaction>> {
+    fun fetchPaymentHistoryDelta(
+        owner: Ed25519.KeyPair,
+        afterId: ByteArray? = null
+    ): Single<List<HistoricalTransaction>> {
         return Single.create<List<HistoricalTransaction>> {
             val container = mutableListOf<HistoricalTransaction>()
-            var afterId: ByteArray? = afterId
+            var after: ByteArray? = afterId
 
             while (true) {
-                val response = fetchPaymentHistoryPage(owner, afterId).blockingGet()
-                if (response.isEmpty()) break
+                val response = runCatching {
+                    fetchPaymentHistoryPage(owner, after).blockingGet()
+                }.getOrDefault(emptyList())
+
+                if (response.isEmpty()) {
+                    // let cache know we're empty here, if it's not initialized yet
+                    if (_transactionCache.value == null) {
+                        _transactionCache.value = emptyList()
+                    }
+                    break
+                }
                 container.addAll(response)
-                afterId = response.lastOrNull()?.id?.toByteArray()
+                _transactionCache.value = _transactionCache.value.orEmpty()
+                    .filterNot { item -> response.contains(item) }
+                    .plus(response)
+                    .toMutableList()
+                after = response.lastOrNull()?.id?.toByteArray()
             }
             container.reverse()
             it.onSuccess(container)
-        }.subscribeOn(Schedulers.io())
+        }.subscribeOn(Schedulers.io()).onErrorReturn { emptyList() }
     }
 
     private fun fetchPaymentHistoryPage(
@@ -444,11 +527,14 @@ class TransactionRepository @Inject constructor(
                             isWithdrawal = item.isWithdraw,
                             isRemoteSend = item.isRemoteSend,
                             isReturned = item.isReturned,
-                            airdropType = item.isAirdrop.ifElse(AirdropType.getInstance(item.airdropType), null),
+                            airdropType = item.isAirdrop.ifElse(
+                                AirdropType.getInstance(item.airdropType),
+                                null
+                            ),
                         )
                     }.filterNotNull()
                 } else {
-                    listOf()
+                    emptyList()
                 }
             }
     }
@@ -498,9 +584,11 @@ class TransactionRepository @Inject constructor(
                         Single.error(e)
                     }
                 }
+
                 TransactionService.GetPrioritizedIntentsForPrivacyUpgradeResponse.Result.NOT_FOUND -> {
                     Single.just(listOf())
                 }
+
                 else -> {
                     Single.error(FetchUpgradeableIntentsException.UnknownException())
                 }
@@ -546,6 +634,7 @@ class TransactionRepository @Inject constructor(
                         hasResolvedDestination = false
                         resolvedDestination = destination
                     }
+
                     Kind.OwnerAccount -> {
                         hasResolvedDestination = true
                         resolvedDestination =
@@ -599,6 +688,6 @@ class TransactionRepository @Inject constructor(
     sealed class AirdropException : Exception() {
         class AlreadyClaimedException : AirdropException()
         class UnavailableException : AirdropException()
-        class UnknownException: AirdropException()
+        class UnknownException : AirdropException()
     }
 }

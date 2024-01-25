@@ -1,3 +1,5 @@
+@file:Suppress("ClassName")
+
 package com.getcode.model
 
 import androidx.room.Entity
@@ -9,12 +11,33 @@ data class PrefBool(
     val value: Boolean
 )
 
-enum class PrefsBool(val value: String) {
-    IS_DEBUG_ACTIVE("debug_menu_active"),
-    IS_DEBUG_ALLOWED("debug_menu_allowed"),
-    IS_DEBUG_BUCKETS("debug_buckets"),
-    IS_DEBUG_VIBRATE_ON_SCAN("vibrate_on_scan"),
-    IS_DEBUG_DISPLAY_ERRORS("debug_display_errors"),
-    IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP("is_eligible_get_first_kin_airdrop"),
-    IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP("is_eligible_give_first_kin_airdrop")
+
+sealed interface BetaFlag
+sealed class PrefsBool(val value: String) {
+    // internal routing
+    data object IS_DEBUG_ACTIVE: PrefsBool("debug_menu_active")
+    data object IS_DEBUG_ALLOWED: PrefsBool("debug_menu_allowed")
+    data object IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP: PrefsBool("is_eligible_get_first_kin_airdrop")
+    data object IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP: PrefsBool("is_eligible_give_first_kin_airdrop")
+    data object HAS_REMOVED_LOCAL_CURRENCY: PrefsBool("removed_local_currency")
+
+    // beta flags
+    data object BUCKET_DEBUGGER_ENABLED: PrefsBool("debug_buckets"), BetaFlag
+    data object VIBRATE_ON_SCAN: PrefsBool("vibrate_on_scan"), BetaFlag
+    data object LOG_SCAN_TIMES: PrefsBool("debug_scan_times"), BetaFlag
+    data object DISPLAY_ERRORS: PrefsBool("debug_display_errors"), BetaFlag
+    data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
+    data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
+}
+
+object BetaFlags {
+    /**
+     * Override to disable beta flags in app while WIP.
+     */
+    fun isAvailable(flag: PrefsBool): Boolean {
+        return when (flag) {
+           PrefsBool.GIVE_REQUESTS_ENABLED -> false
+           else -> true
+        }
+    }
 }

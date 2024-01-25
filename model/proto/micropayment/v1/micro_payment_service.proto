@@ -1,22 +1,58 @@
 syntax = "proto3";
 package code.micropayment.v1;
-option go_package = "github.com/code-wallet/code-api/genproto/micropayment/v1;micropayment";
+option go_package = "github.com/code-payments/code-protobuf-api/generated/go/micropayment/v1;micropayment";
 option java_package = "com.codeinc.gen.micropayment.v1";
 option objc_class_prefix = "APBMicroPaymentV1";
 import "common/v1/model.proto";
-
 service MicroPayment {
-    // Codify adds a trial micro paywall to any url
+    // GetStatus gets basic micro payment status
+    rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+    // RegisterWebhook registers a webhook for a micro payment
+    //
+    // todo: Once Kik codes can encode the entire payment request details, we can
+    //       remove the messaging service component and have a Create RPC that
+    //       reserves the intent ID with payment details, plus registers the webhook
+    //       at the same time. Until that's possible, we're stuck with two RPC calls.
+    rpc RegisterWebhook(RegisterWebhookRequest) returns (RegisterWebhookResponse);
+    // Codify adds a trial micro paywall to any URL
     rpc Codify(CodifyRequest) returns (CodifyResponse);
     // GetPathMetadata gets codified website metadata for a given path
     //
     // Important Note: This RPC's current implementation is insecure and
-    // it's sole design is to enable a micro payment PoC.
+    // it's sole design is to enable PoC and trials.
     rpc GetPathMetadata(GetPathMetadataRequest) returns (GetPathMetadataResponse);
 }
-
+message GetStatusRequest {
+    common.v1.IntentId intent_id = 1;
+}
+message GetStatusResponse {
+    // Does the payment request exist?
+    bool exists = 1;
+    // Has the user scanned the code at least once?
+    bool code_scanned = 2;
+    // Has the user sumbmitted a payment?
+    bool intent_submitted = 3;
+}
+message RegisterWebhookRequest {
+    common.v1.IntentId intent_id = 1;
+    string url = 2;
+}
+message RegisterWebhookResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        // A webhook has already been registered
+        ALREADY_REGISTERED = 1;
+        // A payment request does not exist for the provided intent ID
+        PAYMENT_REQUEST_NOT_FOUND = 2;
+        // A user has already submitted a payment
+        INTENT_EXISTS = 3;
+        // The webhook URL is invalid
+        INVALID_URL = 4;
+    }
+}
 message CodifyRequest {
-    // The URL to codify
+    // The URL to Codify
     string url = 1;
     // ISO 4217 alpha-3 currency code the payment should be made in
     string currency = 2;
@@ -32,29 +68,31 @@ message CodifyRequest {
     // to the RPC and can be used to validate payment details.
     common.v1.Signature signature = 6;
 }
-
 message CodifyResponse {
     Result result = 1;
     enum Result {
         OK = 0;
+        // The URL to Codify is invalid
         INVALID_URL = 1;
+        // The primary account is invalid
         INVALID_ACCOUNT = 2;
+        // The currency isn't supported for micro payments
+        UNSUPPORTED_CURRENCY = 3;
+        // The payment amount exceeds the minimum/maximum allowed amount
+        NATIVE_AMOUNT_EXCEEDS_LIMIT = 4;
     }
-
+    // The URL to view the content with a Code micro paywall
     string codified_url = 2;
 }
-
 message GetPathMetadataRequest {
     string path = 1;
 }
-
 message GetPathMetadataResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         NOT_FOUND = 1;
     }
-
     // The account where the payment should be sent to
     common.v1.SolanaAccountId destination = 2;
     
@@ -65,4 +103,3 @@ message GetPathMetadataResponse {
     // The URL to redirect upon successful payment
     string redirct_url = 5;
 }
-

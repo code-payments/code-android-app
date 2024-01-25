@@ -1,20 +1,21 @@
 package com.getcode.view.login
 
 import android.Manifest
-import android.content.pm.PackageManager
+import android.annotation.SuppressLint
 import android.os.Build
-import androidx.core.content.ContextCompat
 import dagger.hilt.android.lifecycle.HiltViewModel
-import androidx.navigation.NavController
 import com.getcode.App
-import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.manager.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
-import com.getcode.manager.TopBarManager
-import com.getcode.network.repository.ApiDeniedException
+import com.getcode.navigation.screens.CodeLoginPermission
+import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58
-import com.getcode.view.*
+import com.getcode.util.permissions.PermissionChecker
+import com.getcode.util.resources.ResourceHelper
 import javax.inject.Inject
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -25,12 +26,15 @@ import java.util.concurrent.TimeUnit
 @HiltViewModel
 class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
-    private val analyticsManager: AnalyticsManager
-) : BaseAccessKeyViewModel() {
-    fun onSubmit(navController: NavController?, isSaveImage: Boolean, isDeepLink: Boolean = false) {
+    private val analytics: AnalyticsService,
+    private val permissions: PermissionChecker,
+    resources: ResourceHelper,
+) : BaseAccessKeyViewModel(resources) {
+    @SuppressLint("CheckResult")
+    fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return
 
-        authManager.login(App.getInstance(), entropyB64, rollbackOnError = isDeepLink)
+        authManager.login(entropyB64, rollbackOnError = isDeepLink)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
@@ -53,42 +57,38 @@ class AccessKeyViewModel @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(
                 {
-                    onComplete(navController, entropyB64)
+                    onComplete(navigator, entropyB64)
                 },
                 {
                     onSubmitError(it)
-                    analyticsManager.createAccount(false, null)
+                    analytics.createAccount(false, null)
                     uiFlow.value = uiFlow.value.copy(isLoading = false)
-                    navController?.navigate(LoginSections.LOGIN.route)
+                    navigator.replaceAll(LoginScreen())
                 }
             )
     }
 
-    private fun onComplete(navController: NavController?, entropyB64: String) {
+    private fun onComplete(navigator: CodeNavigator, entropyB64: String) {
         val owner = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64)
             .getSolanaKeyPair(App.getInstance())
-        analyticsManager.createAccount(true, owner.getPublicKeyBase58())
+        analytics.createAccount(true, owner.getPublicKeyBase58())
 
-        val cameraPermissionDenied = ContextCompat.checkSelfPermission(
-            App.getInstance(),
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_DENIED
+        val cameraPermissionDenied = permissions.isDenied(Manifest.permission.CAMERA)
 
         if (cameraPermissionDenied) {
-            navController?.navigate(LoginSections.PERMISSION_CAMERA_REQUEST.route)
+            navigator.push(PermissionRequestScreen(CodeLoginPermission.Camera))
         } else {
             if (Build.VERSION.SDK_INT < 33) {
-                navController?.navigate(MainSections.HOME.route)
+                navigator.replaceAll(HomeScreen())
             } else {
-                val notificationsPermissionDenied = ContextCompat.checkSelfPermission(
-                    App.getInstance(),
+                val notificationsPermissionDenied = permissions.isDenied(
                     Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_DENIED
+                )
 
                 if (notificationsPermissionDenied) {
-                    navController?.navigate(LoginSections.PERMISSION_NOTIFICATION_REQUEST.route)
+                    navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
                 } else {
-                    navController?.navigate(MainSections.HOME.route)
+                    navigator.replaceAll(HomeScreen())
                 }
             }
         }
