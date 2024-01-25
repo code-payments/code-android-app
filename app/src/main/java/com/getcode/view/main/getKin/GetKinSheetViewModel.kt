@@ -22,6 +22,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -52,7 +53,7 @@ class GetKinSheetViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnGetEligibilityChanged(val eligible: Boolean) : Event
+        data class OnGetEligibilityChanged(val eligible: Boolean, val fromEvent: Boolean = false) : Event
         data class OnGiveEligibilityChanged(val eligible: Boolean) : Event
         data class OnLoadingChanged(val loading: Boolean) : Event
 
@@ -103,14 +104,13 @@ class GetKinSheetViewModel @Inject constructor(
             }
             .catchSafely(
                 action = { amount ->
-                    dispatchEvent(Event.OnKinRequestSuccessful(amount))
-                    dispatchEvent(Event.OnGetEligibilityChanged(false))
+                    dispatchEvent(Event.OnGetEligibilityChanged(eligible = false, fromEvent = true))
                     dispatchEvent(Event.OnLoadingChanged(false))
+                    dispatchEvent(Event.OnKinRequestSuccessful(amount))
                 },
                 onFailure = {
                     if (it is TransactionRepository.AirdropException.AlreadyClaimedException) {
-                        prefsRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
-                        dispatchEvent(Event.OnGetEligibilityChanged(false))
+                        dispatchEvent(Event.OnGetEligibilityChanged(eligible = false, fromEvent = true))
                     } else {
                         TopBarManager.showMessage(
                             resources.getString(R.string.title_failed),
@@ -127,6 +127,13 @@ class GetKinSheetViewModel @Inject constructor(
                         .ignoreElement()
                 ).toFlowable<Any>().asFlow()
             }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnGetEligibilityChanged>()
+            .filter { it.fromEvent }
+            .map { it.eligible }
+            .onEach { prefsRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, it) }
             .launchIn(viewModelScope)
 
         eventFlow
