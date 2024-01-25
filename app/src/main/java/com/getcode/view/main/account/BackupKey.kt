@@ -141,32 +141,42 @@ fun BackupKey(
         Cloudy(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = CodeTheme.dimens.inset)
                 .padding(vertical = CodeTheme.dimens.grid.x4),
             enabled = selectionState.shown
         ) {
-            Text(
+            Box(
                 modifier = Modifier
-                    .padding(vertical = CodeTheme.dimens.grid.x2)
-                    .measured { textHeight = it.height },
-                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
-                color = BrandLight,
-                text = stringResource(R.string.subtitle_accessKeyDescription)
-            )
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .measured { buttonHeight = it.height }
-            ) {
-                CodeButton(
-                    onClick = { onExportClick() },
-                    text = stringResource(R.string.action_saveAccessKey),
-                    buttonState = ButtonState.Filled,
-                    isLoading = dataState.isLoading,
-                    enabled = dataState.isEnabled,
-                    isSuccess = dataState.isSuccess,
+                    .fillMaxSize()
+                    .padding(
+                        horizontal = CodeTheme.dimens.inset,
+                        vertical = CodeTheme.dimens.grid.x4
+                    )
+            )  {
+                Text(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(vertical = CodeTheme.dimens.grid.x2)
+                        .measured { textHeight = it.height },
+                    style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                    color = BrandLight,
+                    text = stringResource(R.string.subtitle_accessKeyDescription)
+                        .replace(". ", ".\n")
                 )
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .measured { buttonHeight = it.height }
+                ) {
+                    CodeButton(
+                        onClick = { onExportClick() },
+                        text = stringResource(R.string.action_saveAccessKey),
+                        buttonState = ButtonState.Filled,
+                        isLoading = dataState.isLoading,
+                        enabled = dataState.isEnabled,
+                        isSuccess = dataState.isSuccess,
+                    )
+                }
             }
         }
 
@@ -196,8 +206,6 @@ fun BackupKey(
                 }
             }
         }
-
-
     }
 
     LaunchedEffect(viewModel) {
