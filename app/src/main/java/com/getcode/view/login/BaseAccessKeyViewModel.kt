@@ -146,11 +146,6 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
             targetWidth, targetHeight,
             Bitmap.Config.ARGB_8888
         ).applyCanvas {
-            val paintBackground = Paint()
-            paintBackground.color = Brand.toAGColor()
-            paintBackground.style = Paint.Style.FILL
-            drawPaint(paintBackground)
-
             val accessBgActualWidth =
                 accessKeyBg.getScaledWidth(resources.displayMetrics)
             drawBitmap(
