@@ -2,7 +2,6 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -68,7 +67,6 @@ import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
-import com.getcode.util.ChromeTabsUtils
 import com.getcode.util.addIf
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
@@ -401,7 +399,7 @@ private fun BillContainer(
         val showManagementOptions by remember(updatedState.billState) {
             derivedStateOf {
                 billDismissState.targetValue == DismissValue.Default &&
-                        updatedState.billState.bill != null &&
+                        updatedState.billState.valuation != null &&
                         !updatedState.billState.hideBillButtons
             }
         }
@@ -420,13 +418,13 @@ private fun BillContainer(
                 bill = updatedState.billState.bill,
                 transitionSpec = {
                     if (updatedState.presentationStyle is PresentationStyle.Slide) {
-                        AnimationUtils.animationBillEnter
+                        AnimationUtils.animationBillEnterGive
                     } else {
-                        AnimationUtils.animationBillEnterSpring
+                        AnimationUtils.animationBillEnterGrabbed
                     } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
-                        AnimationUtils.animationBillExit
+                        AnimationUtils.animationBillExitReturned
                     } else {
-                        fadeOut()
+                        AnimationUtils.animationBillExitGrabbed
                     }
                 }
             )
