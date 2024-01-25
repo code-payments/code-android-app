@@ -66,6 +66,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
+import com.getcode.util.debugBounds
 import com.getcode.util.getActivity
 import com.getcode.util.rememberedClickable
 import com.getcode.view.components.ButtonState
@@ -127,7 +128,7 @@ internal fun PhoneVerify(
                                     delay(500)
                                     openCountrySelector()
                                 }
-                            }
+                            },
                     ) {
                         dataState.countryLocale.resId?.let { resId ->
                             Image(
@@ -140,17 +141,18 @@ internal fun PhoneVerify(
                                 contentDescription = "",
                             )
                         }
-                        Text(
+                        Box(
                             modifier = Modifier
                                 .height(CodeTheme.dimens.grid.x12)
                                 .align(CenterVertically)
-                                .padding(
-                                    horizontal = CodeTheme.dimens.grid.x3,
-                                    vertical = CodeTheme.dimens.grid.x4
-                                ),
-                            style = CodeTheme.typography.subtitle1,
-                            text = "+${dataState.countryLocale.phoneCode}"
-                        )
+                                .padding(horizontal = CodeTheme.dimens.grid.x3,),
+                            contentAlignment = Center
+                        ) {
+                            Text(
+                                style = CodeTheme.typography.subtitle1,
+                                text = "+${dataState.countryLocale.phoneCode}"
+                            )
+                        }
                     }
                     Spacer(
                         modifier = Modifier
@@ -162,8 +164,7 @@ internal fun PhoneVerify(
                         modifier = Modifier
                             .wrapContentWidth()
                             .weight(1f)
-                            .focusRequester(focusRequester)
-                            .padding(top = CodeTheme.dimens.grid.x1),
+                            .focusRequester(focusRequester),
                         value = dataState.phoneNumberFormattedTextFieldValue,
                         textStyle = CodeTheme.typography.subtitle1.copy(color = CodeTheme.colors.onBackground),
                         keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone),

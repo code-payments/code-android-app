@@ -1,6 +1,7 @@
 package com.getcode.view.main.bill
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
@@ -37,6 +39,7 @@ import com.getcode.util.nonScaledSp
 import com.getcode.util.toDp
 import com.kik.kikx.kincodes.KikCodeContentView
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun CashBill(
     modifier: Modifier = Modifier,
@@ -45,7 +48,7 @@ internal fun CashBill(
 ) {
     ConstraintLayout(
         modifier = modifier
-            .windowInsetsPadding(WindowInsets.statusBars)
+            .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
             .aspectRatio(0.555f)
             .heightIn(0.dp, 800.dp)
             .fillMaxHeight(0.85f)
