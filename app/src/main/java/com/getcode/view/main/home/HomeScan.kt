@@ -140,7 +140,6 @@ fun HomeScreen(
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
                             }
                         )
-                        ChromeTabsUtils.launchUrl(context, it)
                     }.launchIn(this)
             }
         }
