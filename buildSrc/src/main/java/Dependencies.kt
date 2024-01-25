@@ -149,7 +149,7 @@ object Libs {
         "androidx.activity:activity-compose:${Versions.compose_activities}"
     const val compose_view_models =
         "androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.compose_view_models}"
-    const val compose_livedata = "androidx.compose.runtime:runtime-livedata:${Versions.compose}"
+    const val compose_livedata = "androidx.compose.runtime:runtime-livedata"
     const val compose_navigation =
         "androidx.navigation:navigation-compose:${Versions.compose_navigation}"
     const val compose_voyager_navigation = "cafe.adriel.voyager:voyager-navigator:${Versions.voyager}"
