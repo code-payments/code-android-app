@@ -1,11 +1,6 @@
 package com.getcode.view.login
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,14 +11,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -36,20 +28,18 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
+import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.AnimationUtils
 import com.getcode.util.ChromeTabsUtils
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.getcode.view.components.ImageWithBackground
 
 
 @Preview
@@ -58,26 +48,7 @@ fun LoginHome() {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
 
-    var show by remember {
-        mutableStateOf(false)
-    }
     Box {
-
-        AnimatedVisibility(
-            modifier = Modifier.fillMaxSize(),
-            visible = show,
-            enter = fadeIn(
-                animationSpec = tween(AnimationUtils.animationTime)
-            ),
-            exit = fadeOut(tween(AnimationUtils.animationTime))
-        ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(CodeTheme.colors.background)
-            )
-        }
-
         ConstraintLayout(
             modifier = Modifier
                 .fillMaxSize()
@@ -85,18 +56,17 @@ fun LoginHome() {
         ) {
             val (bgImage, logo, buttonCreate, buttonLogin, toc) = createRefs()
 
-            Image(
-                painterResource(R.drawable.ic_code_splash_bg),
-                "",
+            ImageWithBackground(
                 modifier = Modifier
                     .constrainAs(bgImage) {
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
                         top.linkTo(parent.top)
-                        bottom.linkTo(parent.bottom)
                     }
                     .fillMaxSize(),
-                contentScale = ContentScale.Crop,
+                painter = ColorPainter(Brand),
+                backgroundDrawableResId = R.drawable.ic_code_splash_bg,
+                contentDescription = null
             )
 
             Image(
@@ -191,17 +161,9 @@ fun LoginHome() {
 
     val focusManager = LocalFocusManager.current
     val analytics = LocalAnalytics.current
-    val scope = rememberCoroutineScope()
-    DisposableEffect(Unit) {
+    LaunchedEffect(Unit) {
         focusManager.clearFocus()
         analytics.onAppStarted()
-        scope.launch {
-            delay(750)
-            show = false
-        }
 
-        onDispose { show = true }
     }
-
-
 }
