@@ -16,7 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
@@ -25,11 +24,8 @@ import cafe.adriel.voyager.transitions.SlideTransition
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.AccessKeyLoginScreen
-import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.MainRoot
-import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
@@ -50,7 +46,6 @@ fun CodeApp() {
         val appState = rememberCodeAppState()
         AppNavHost {
             CodeScaffold(
-                backgroundColor = Brand,
                 scaffoldState = appState.scaffoldState
             ) { innerPaddingModifier ->
                 val codeNavigator = LocalCodeNavigator.current

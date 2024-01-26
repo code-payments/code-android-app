@@ -250,7 +250,6 @@ private fun PhoneEntry(
         BasicTextField(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(top = CodeTheme.dimens.border)
                 .weight(1f)
                 .focusRequester(focusRequester),
             value = value,
