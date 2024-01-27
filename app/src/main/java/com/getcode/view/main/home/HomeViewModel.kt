@@ -640,8 +640,8 @@ class HomeViewModel @Inject constructor(
         }.onFailure { error ->
             error.printStackTrace()
             TopBarManager.showMessage(
-                "Payment Failed",
-                "This payment request could not be paid at this time. Please try again later."
+                resources.getString(R.string.error_title_payment_failed),
+                resources.getString(R.string.error_description_payment_failed),
             )
             uiFlow.update { uiModel ->
                 uiModel.copy(
@@ -659,46 +659,42 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
+    private fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
         val bill = uiFlow.value.billState.bill ?: return
         val amount = bill.amount
         val request = bill.metadata.request
 
         analytics.requestHidden(amount = amount)
 
-        if (rejected) {
-            if (!ignoreRedirect) {
-                request?.cancelUrl?.let {
-                    viewModelScope.launch {
-                        _eventFlow.emit(HomeEvent.OpenUrl(it))
-                    }
-                }
-            }
-        } else {
-            showToast(amount, isDeposit = false)
-
-            if (!ignoreRedirect) {
-                request?.successUrl?.let {
-                    viewModelScope.launch {
-                        _eventFlow.emit(HomeEvent.OpenUrl(it))
-                    }
-                }
-            }
-        }
-
         uiFlow.update {
             it.copy(
-                presentationStyle = PresentationStyle.Hidden,
+                presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
                     bill = null,
-                    showToast = false,
                     paymentConfirmation = null,
-                    loginConfirmation = null,
-                    toast = null,
                     valuation = null,
                     hideBillButtons = false,
                 )
             )
+        }
+
+        viewModelScope.launch {
+            delay(300)
+            if (rejected) {
+                if (!ignoreRedirect) {
+                    request?.cancelUrl?.let {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
+            } else {
+                showToast(amount, isDeposit = false)
+
+                if (!ignoreRedirect) {
+                    request?.successUrl?.let {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
+            }
         }
     }
 
