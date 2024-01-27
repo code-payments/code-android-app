@@ -152,6 +152,7 @@ internal fun PhoneVerify(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) {
         if (it.resultCode != Activity.RESULT_OK) {
+            viewModel.dismissedHint()
             return@rememberLauncherForActivityResult
         }
 
@@ -161,13 +162,13 @@ internal fun PhoneVerify(
         viewModel.setPhoneFromHint(phoneNum)
     }
 
-    LaunchedEffect(phoneNumberHintLauncher) {
+    LaunchedEffect(dataState.hasDismissedHint) {
         val request = GetPhoneNumberHintIntentRequest
             .builder()
             .build()
 
         val isSettled = navigator.lastItem == navigator.lastModalItem || arguments.isNewAccount
-        if (isSettled && dataState.phoneNumberFormatted.isEmpty()) {
+        if (isSettled && dataState.phoneNumberFormatted.isEmpty() && !dataState.hasDismissedHint) {
             Identity.getSignInClient(context)
                 .getPhoneNumberHintIntent(request)
                 .addOnSuccessListener {
