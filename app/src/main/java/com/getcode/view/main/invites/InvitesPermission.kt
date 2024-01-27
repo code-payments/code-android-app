@@ -57,6 +57,7 @@ fun InvitesPermission(inviteCount: Int = 0, onButtonClick: () -> Unit = {}) {
             text = stringResource(id = R.string.action_allowContacts),
             buttonState = ButtonState.Filled,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.grid.x3)
         )
     }

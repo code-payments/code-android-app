@@ -85,6 +85,7 @@ fun GiveKinSheet(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
                 if (!networkObserver.isConnected) {

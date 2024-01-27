@@ -103,6 +103,7 @@ fun BuyAndSellKin(
                 )
 
                 CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         viewModel.dispatchEvent(BuyAndSellKinViewModel.Event.OpenVideo(item.link))
                     },
@@ -111,7 +112,9 @@ fun BuyAndSellKin(
                 )
 
                 CodeButton(
-                    modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x6),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = CodeTheme.dimens.grid.x6),
                     onClick = {
                         viewModel.dispatchEvent(BuyAndSellKinViewModel.Event.ShareVideo(item.link))
                     },

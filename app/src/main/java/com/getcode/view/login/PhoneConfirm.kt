@@ -177,6 +177,7 @@ fun PhoneConfirm(
         }
 
         CodeButton(
+            modifier = Modifier.fillMaxWidth(),
             onClick = {
                 viewModel.onSubmit()
             },

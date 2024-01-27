@@ -134,6 +134,7 @@ fun SeedInput(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(
                     top = CodeTheme.dimens.grid.x3,
                     bottom = CodeTheme.dimens.grid.x4

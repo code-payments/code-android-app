@@ -90,6 +90,7 @@ fun HomeRestricted(
         }
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .padding(bottom = CodeTheme.dimens.grid.x5),
             text = buttonText,

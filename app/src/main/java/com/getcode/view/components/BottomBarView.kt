@@ -64,6 +64,7 @@ fun BottomBarView(
             }
             Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
                 CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         bottomBarMessage.onPositive()
                         onClose(BottomBarManager.BottomBarActionType.Positive)
@@ -77,6 +78,7 @@ fun BottomBarView(
                     text = bottomBarMessage.positiveText
                 )
                 CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         bottomBarMessage.onNegative()
                         onClose(BottomBarManager.BottomBarActionType.Negative)

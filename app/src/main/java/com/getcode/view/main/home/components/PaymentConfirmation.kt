@@ -330,6 +330,7 @@ private fun InsufficientFundsModalContent(onClick: () -> Unit) {
         style = CodeTheme.typography.body2
     )
     CodeButton(
+        modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
         text = stringResource(R.string.button_get_more_kin),
         buttonState = ButtonState.Filled

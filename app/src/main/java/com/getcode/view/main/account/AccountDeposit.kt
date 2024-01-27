@@ -97,6 +97,7 @@ fun AccountDeposit() {
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.grid.x2),
             onClick = {
                 localClipboardManager.setText(AnnotatedString(address))
