@@ -51,6 +51,7 @@ data class PhoneVerifyUiModel(
     val entropyB64: String? = null,
     val isPhoneLinking: Boolean = false,
     val isNewAccount: Boolean = false,
+    val hasDismissedHint: Boolean = false,
 )
 
 @HiltViewModel
@@ -86,6 +87,8 @@ class PhoneVerifyViewModel @Inject constructor(
     fun setIsNewAccount(isNewAccount: Boolean) {
         uiFlow.update { it.copy(isNewAccount = isNewAccount) }
     }
+
+    fun dismissedHint() = uiFlow.update { it.copy(hasDismissedHint = true) }
 
     fun setCountryCode(countryLocale: PhoneUtils.CountryLocale) {
         uiFlow.update { it.copy(countryLocale = countryLocale) }
