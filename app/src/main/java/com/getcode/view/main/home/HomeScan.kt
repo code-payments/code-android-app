@@ -514,6 +514,7 @@ private fun BillContainer(
 
                         }
                         CodeButton(
+                            modifier = Modifier.fillMaxWidth(),
                             onClick = { homeViewModel.cancelSend() },
                             buttonState = ButtonState.Filled,
                             text = stringResource(id = R.string.action_putInWallet)

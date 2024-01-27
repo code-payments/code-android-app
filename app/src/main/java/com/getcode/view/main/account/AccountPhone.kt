@@ -3,6 +3,7 @@ package com.getcode.view.main.account
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.MaterialTheme
@@ -96,6 +97,7 @@ fun AccountPhone(
             text = if (!dataState.isLinked) stringResource(R.string.action_linkPhoneNumber) else stringResource(R.string.action_removeYourPhoneNumber),
             buttonState = if (!dataState.isLinked) ButtonState.Filled else ButtonState.Filled10,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(button) {
                     bottom.linkTo(parent.bottom)

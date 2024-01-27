@@ -56,6 +56,7 @@ fun ReferFriend() {
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .constrainAs(button) {
                     bottom.linkTo(parent.bottom)
                 }

@@ -79,6 +79,7 @@ fun AccountWithdrawAmount(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
                 viewModel.onSubmit(navigator)
