@@ -82,6 +82,7 @@ import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
+import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -480,46 +481,10 @@ private fun BillContainer(
                 Box(
                     contentAlignment = BottomCenter
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .clip(
-                                CodeTheme.shapes.medium.copy(
-                                    bottomStart = ZeroCornerSize,
-                                    bottomEnd = ZeroCornerSize
-                                )
-                            )
-                            .background(Brand)
-                            .padding(
-                                horizontal = CodeTheme.dimens.inset,
-                                vertical = CodeTheme.dimens.grid.x3
-                            )
-                            .windowInsetsPadding(WindowInsets.navigationBars),
-                        horizontalAlignment = CenterHorizontally
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-                            style = CodeTheme.typography.subtitle1.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            text = stringResource(id = R.string.subtitle_youReceived)
-                        )
-
-                        Row {
-                            val bill = updatedState.billState.bill as Bill.Cash
-                            AmountArea(
-                                amountText = bill.amount.formatted(),
-                                currencyResId = bill.amount.rate.currency.flagResId,
-                                isClickable = false
-                            )
-
-                        }
-                        CodeButton(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { homeViewModel.cancelSend() },
-                            buttonState = ButtonState.Filled,
-                            text = stringResource(id = R.string.action_putInWallet)
-                        )
-                    }
+                    ReceivedKinConfirmation(
+                        bill = updatedState.billState.bill as Bill.Cash,
+                        onClaim = { homeViewModel.cancelSend() }
+                    )
                 }
             }
         }

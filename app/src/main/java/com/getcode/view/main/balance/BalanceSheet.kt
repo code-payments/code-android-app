@@ -285,7 +285,7 @@ fun BalanceTop(
         isLoading = state.historicalTransactionsLoading,
         currencyResId = state.currencyFlag,
         isClickable = isClickable,
-        onClick = onClick
+        onClick = onClick,
     )
 }
 

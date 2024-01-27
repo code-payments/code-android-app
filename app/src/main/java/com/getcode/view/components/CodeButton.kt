@@ -47,7 +47,6 @@ fun CodeButton(
     isTextSuccess: Boolean = false,
     enabled: Boolean = true,
     buttonState: ButtonState = ButtonState.Bordered,
-    isPaddedVertical: Boolean = true,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
 ) {
@@ -80,8 +79,8 @@ fun CodeButton(
             ),
             shape = shape,
             contentPadding = ButtonDefaults.ContentPadding.plus(
-                top = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
-                bottom = if (isPaddedVertical) CodeTheme.dimens.grid.x3 else 0.dp,
+                top = CodeTheme.dimens.grid.x3,
+                bottom = CodeTheme.dimens.grid.x3,
             )
         ) {
             when {

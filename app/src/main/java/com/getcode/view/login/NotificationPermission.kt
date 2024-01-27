@@ -97,7 +97,6 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             },
             text = stringResource(R.string.action_notNow),
             buttonState = ButtonState.Subtle,
-            isPaddedVertical = false,
         )
     }
 }

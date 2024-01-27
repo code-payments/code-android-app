@@ -190,7 +190,6 @@ fun AccessKey(
                         text = stringResource(R.string.action_wroteThemDownInstead),
                         buttonState = ButtonState.Subtle,
                         enabled = dataState.isEnabled,
-                        isPaddedVertical = false,
                     )
                 }
             }
