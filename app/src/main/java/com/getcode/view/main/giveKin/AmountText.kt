@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -19,9 +20,10 @@ import com.getcode.theme.displayLarge
 @Composable
 fun AmountText(
     currencyResId: Int?,
-    amountText: String
+    amountText: String,
+    textStyle: TextStyle = CodeTheme.typography.h1,
 ) {
-    val displayLarge = CodeTheme.typography.displayLarge.copy(textAlign = TextAlign.Center)
+    val displayLarge = textStyle.copy(textAlign = TextAlign.Center)
     var scaledTextStyle by remember { mutableStateOf(displayLarge) }
     var isReadyToDraw by remember { mutableStateOf(false) }
 
