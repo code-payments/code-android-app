@@ -48,7 +48,6 @@ internal fun PermissionsBlockingView(
             },
             modifier = Modifier.align(Alignment.CenterHorizontally),
             text = stringResource(id = R.string.action_allowCameraAccess),
-            isPaddedVertical = false,
             shape = RoundedCornerShape(45.dp),
             buttonState = ButtonState.Filled
         )

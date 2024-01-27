@@ -120,7 +120,6 @@ fun BuyAndSellKin(
                     },
                     text = stringResource(id = R.string.action_shareVideo),
                     buttonState = ButtonState.Subtle,
-                    isPaddedVertical = false,
                 )
             }
         }
