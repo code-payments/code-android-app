@@ -239,6 +239,7 @@ private fun PhoneEntry(
                 contentAlignment = Center
             ) {
                 Text(
+                    modifier = Modifier.padding(top = CodeTheme.dimens.border),
                     style = CodeTheme.typography.subtitle1,
                     text = "+${locale.phoneCode}"
                 )
@@ -254,7 +255,8 @@ private fun PhoneEntry(
             modifier = Modifier
                 .fillMaxHeight()
                 .weight(1f)
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .padding(top = CodeTheme.dimens.thickBorder),
             value = value,
             textStyle = CodeTheme.typography.subtitle1.copy(color = CodeTheme.colors.onBackground),
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone),
