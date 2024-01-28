@@ -36,8 +36,13 @@ class DeeplinkHandler @Inject constructor() {
 
     fun checkIntent(intent: Intent): Intent? {
         Timber.d("checking intent=${intent.data}")
-        handle(intent) ?: return null
-        return intent
+        val uri = intent.data ?: return null
+        return when (uri.deeplinkType) {
+            is Type.Cash,
+            is Type.Login,
+            is Type.Sdk -> intent
+            is Type.Unknown -> null
+        }
     }
 
     fun handle(intent: Intent? = debounceIntent): Pair<Type, List<Screen>>? {
@@ -48,6 +53,7 @@ class DeeplinkHandler @Inject constructor() {
             }
 
             is Type.Cash -> {
+                Timber.d("cash=${type.link}")
                 type to listOf(HomeScreen(cashLink = type.link))
             }
 
