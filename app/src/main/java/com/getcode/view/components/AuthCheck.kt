@@ -23,9 +23,14 @@ import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.getActivity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -50,23 +55,24 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
-        Timber.tag(AUTH_NAV).d("authenticated=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
-            //Allow the seed input screen to complete and avoid
-            //premature navigation
-            if (currentRoute is AccessKeyLoginScreen) {
-                Timber.tag(AUTH_NAV).d("No navigation within seed input")
-                return@LaunchedEffect
-            }
-            if (currentRoute is LoginGraph) {
-                Timber.tag(AUTH_NAV).d("No navigation within account creation and onboarding")
-            } else if (!deeplinkRouted) {
-                if (authenticated) {
-                    Timber.tag(AUTH_NAV).d("Navigating to home")
-                    onNavigate(listOf(HomeScreen()), false)
-                } else {
-                    Timber.tag(AUTH_NAV).d("Navigating to login")
-                    onNavigate(listOf(LoginScreen()), false)
+            if (!deeplinkRouted) {
+                // Allow the seed input screen to complete and avoid
+                // premature navigation
+                if (currentRoute is AccessKeyLoginScreen) {
+                    log("No navigation within seed input")
+                    return@LaunchedEffect
+                }
+                if (currentRoute is LoginGraph) {
+                    log("No navigation within account creation and onboarding")
+                } else  {
+                    if (authenticated) {
+                        log("Navigating to home")
+                        onNavigate(listOf(HomeScreen()), false)
+                    } else {
+                        log("Navigating to login")
+                        onNavigate(listOf(LoginScreen()), false)
+                    }
                 }
             } else {
                 deeplinkRouted = false
@@ -81,23 +87,21 @@ fun AuthCheck(
         val scope = this
         deeplinkHandler.intent
             .filterNotNull()
-            .onEach {
-                deeplinkRouted = false
-                Timber.tag(AUTH_NAV).d("intent=${it.data}")
-            }
+            .distinctUntilChanged()
             .mapNotNull { deeplinkHandler.handle() }
-            .onEach { Timber.d("${it.first}") }
-            .filter {
-                if (it.first is DeeplinkHandler.Type.Cash) {
-                    return@filter SessionManager.isAuthenticated() == true
+            .flatMapLatest { combine(flowOf(it), SessionManager.authState) { a, b -> a to b } }
+            .filter { (data, authState) ->
+                if (data.first is DeeplinkHandler.Type.Cash || data.first is DeeplinkHandler.Type.Sdk) {
+                    return@filter authState.isAuthenticated == true
                 }
                 return@filter true
             }
-            .mapNotNull { (type, screens) ->
+            .mapNotNull { (data, auth) ->
+                val (type, screens) = data
                 if (type is DeeplinkHandler.Type.Login) {
-                    if (SessionManager.isAuthenticated() == true) {
+                    if (auth.isAuthenticated == true) {
                         val entropy = (screens.first() as? LoginScreen)?.seed
-                        Timber.d("showing logout confirm")
+                        log("showing logout confirm")
                         if (entropy != null) {
                             deeplinkRouted = true
                             context.getActivity()?.intent = null
@@ -107,7 +111,7 @@ fun AuthCheck(
                                 entropyB64 = entropy,
                                 onSwitchAccounts = {
                                     scope.launch {
-                                        delay(300)
+                                        delay(300) // wait for dismiss
                                         onSwitchAccounts(it)
                                         deeplinkRouted = false
                                     }
@@ -124,14 +128,16 @@ fun AuthCheck(
             }
             .onEach { screens ->
                 deeplinkRouted = true
+                log("navigated")
                 onNavigate(screens, true)
                 deeplinkHandler.debounceIntent = null
                 context.getActivity()?.intent = null
-                deeplinkRouted = false
             }
             .launchIn(this)
     }
 }
+
+private fun log(message: String) = Timber.tag(AUTH_NAV).d(message)
 
 private fun showLogoutMessage(
     context: Context,
@@ -142,7 +148,6 @@ private fun showLogoutMessage(
     BottomBarManager.showMessage(
         BottomBarManager.BottomBarMessage(
             title = context.getString(R.string.subtitle_logoutAndLoginConfirmation),
-            subtitle = "",
             positiveText = context.getString(R.string.action_logIn),
             negativeText = context.getString(R.string.action_cancel),
             isDismissible = false,

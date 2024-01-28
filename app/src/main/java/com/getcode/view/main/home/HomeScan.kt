@@ -160,7 +160,6 @@ private fun HomeScan(
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 
-
     val focusManager = LocalFocusManager.current
     LaunchedEffect(dataState.isCameraScanEnabled) {
         if (dataState.isCameraScanEnabled) {
@@ -168,24 +167,31 @@ private fun HomeScan(
         }
     }
 
-    LaunchedEffect(homeViewModel) {
-        if (!deepLink.isNullOrBlank()) {
-            homeViewModel.onCashLinkGrabStart()
-        }
-        if (!deepLink.isNullOrBlank() && !dataState.isDeepLinkHandled) {
-            homeViewModel.openCashLink(deepLink)
-        }
+    LaunchedEffect(kikCodeScannerView?.previewing, deepLink, requestPayload) {
+        if (kikCodeScannerView?.previewing == true) {
+            if (!deepLink.isNullOrBlank()) {
+                delay(1_000)
+                homeViewModel.openCashLink(deepLink)
+            }
 
-        if (!requestPayload.isNullOrBlank()) {
-            delay(500)
-            homeViewModel.handlePaymentRequest(requestPayload)
+            if (!requestPayload.isNullOrBlank()) {
+                delay(1_000)
+                homeViewModel.handlePaymentRequest(requestPayload)
+            }
+        }
+    }
+
+    LaunchedEffect(kikCodeScannerView?.previewing) {
+        val view = kikCodeScannerView ?: return@LaunchedEffect
+        if (view.previewing) { // kick off preview scanning once preview established
+            homeViewModel.startScan(view)
         }
     }
 
     fun startScanPreview() {
         val view = kikCodeScannerView ?: return
+        // establish preview
         view.startPreview()
-        homeViewModel.startScan(view)
     }
 
     fun stopScanPreview() {
@@ -225,7 +231,7 @@ private fun HomeScan(
                 update = { }
             )
         },
-        isCameraReady = dataState.isCameraReady,
+        isCameraReady = kikCodeScannerView?.previewing == true,
         showBottomSheet = { showBottomSheet(it) }
     )
 
@@ -270,11 +276,6 @@ private fun HomeScan(
             homeViewModel.stopScan()
         }
     }
-    LaunchedEffect(dataState.isCameraScanEnabled) {
-        if (dataState.isCameraScanEnabled) {
-            startScanPreview()
-        }
-    }
 
     val context = LocalContext.current as Activity
     LaunchedEffect(dataState.billState.bill) {
@@ -301,7 +302,6 @@ private fun BillContainer(
 
     val launcher = getPermissionLauncher(onPermissionResult)
     val context = LocalContext.current as Activity
-    val composeScope = rememberCoroutineScope()
 
     SideEffect {
         PermissionCheck.requestPermission(
@@ -322,13 +322,9 @@ private fun BillContainer(
         if (dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null) {
             scannerView()
 
-            var show by rememberSaveable {
-                mutableStateOf(true)
-            }
-
             AnimatedVisibility(
                 modifier = Modifier.fillMaxSize(),
-                visible = show,
+                visible = !isCameraReady,
                 enter = fadeIn(
                     animationSpec = tween(AnimationUtils.animationTime)
                 ),
@@ -339,11 +335,6 @@ private fun BillContainer(
                         .fillMaxSize()
                         .background(CodeTheme.colors.background)
                 )
-                LaunchedEffect(isCameraReady) {
-                    if (isCameraReady) {
-                        show = false
-                    }
-                }
             }
         } else {
             PermissionsBlockingView(

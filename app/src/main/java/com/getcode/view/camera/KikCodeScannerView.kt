@@ -8,6 +8,7 @@ import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.processors.BehaviorProcessor
+import kotlinx.coroutines.flow.Flow
 import org.kin.sdk.base.tools.Optional
 
 class KikCodeScannerView @JvmOverloads constructor(
@@ -16,7 +17,7 @@ class KikCodeScannerView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : FrameLayout(context, attrs, defStyleAttr) {
 
-    private var previewing = false
+    var previewing = false
 
     private val cameraController: CameraController = LegacyCameraController(context)
 
@@ -44,9 +45,10 @@ class KikCodeScannerView @JvmOverloads constructor(
         cameraController.startPreview()
 
         previewSizeSubscription = Flowable
-            .combineLatest(cameraController.previewSize(), onLayoutChangeSubject.distinctUntilChanged(), BiFunction { previewSize: Optional<CameraController.PreviewSize>, _: Pair<Int, Int> ->
-                previewSize
-            })
+            .combineLatest(
+                cameraController.previewSize(),
+                onLayoutChangeSubject.distinctUntilChanged()
+            ) { previewSize: Optional<CameraController.PreviewSize>, _: Pair<Int, Int> -> previewSize }
             .filter { it.isPresent }
             .observeOn(UiThreadScheduler.uiThread())
             .subscribe {

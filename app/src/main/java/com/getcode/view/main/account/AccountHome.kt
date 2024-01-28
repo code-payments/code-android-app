@@ -49,6 +49,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.util.getActivity
 import com.getcode.util.rememberedClickable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -80,8 +81,11 @@ fun AccountHome(
                                 positiveText = context.getString(R.string.action_logout),
                                 negativeText = context.getString(R.string.action_cancel),
                                 onPositive = {
-                                    context.getActivity()?.let {
-                                        viewModel.logout(it)
+                                    composeScope.launch {
+                                        delay(150) // wait for dismiss
+                                        context.getActivity()?.let {
+                                            viewModel.logout(it)
+                                        }
                                     }
                                 }
                             )
