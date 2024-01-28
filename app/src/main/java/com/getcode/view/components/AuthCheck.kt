@@ -60,20 +60,22 @@ fun AuthCheck(
                 // Allow the seed input screen to complete and avoid
                 // premature navigation
                 if (currentRoute is AccessKeyLoginScreen) {
-                    Timber.tag(AUTH_NAV).d("No navigation within seed input")
+                    log("No navigation within seed input")
                     return@LaunchedEffect
                 }
                 if (currentRoute is LoginGraph) {
-                    Timber.tag(AUTH_NAV).d("No navigation within account creation and onboarding")
+                    log("No navigation within account creation and onboarding")
                 } else  {
                     if (authenticated) {
-                        Timber.tag(AUTH_NAV).d("Navigating to home")
+                        log("Navigating to home")
                         onNavigate(listOf(HomeScreen()), false)
                     } else {
-                        Timber.tag(AUTH_NAV).d("Navigating to login")
+                        log("Navigating to login")
                         onNavigate(listOf(LoginScreen()), false)
                     }
                 }
+            } else {
+                deeplinkRouted = false
             }
         }
     }
@@ -99,7 +101,7 @@ fun AuthCheck(
                 if (type is DeeplinkHandler.Type.Login) {
                     if (auth.isAuthenticated == true) {
                         val entropy = (screens.first() as? LoginScreen)?.seed
-                        Timber.tag(AUTH_NAV).d("showing logout confirm")
+                        log("showing logout confirm")
                         if (entropy != null) {
                             deeplinkRouted = true
                             context.getActivity()?.intent = null
@@ -109,7 +111,7 @@ fun AuthCheck(
                                 entropyB64 = entropy,
                                 onSwitchAccounts = {
                                     scope.launch {
-                                        delay(300)
+                                        delay(300) // wait for dismiss
                                         onSwitchAccounts(it)
                                         deeplinkRouted = false
                                     }
@@ -126,7 +128,7 @@ fun AuthCheck(
             }
             .onEach { screens ->
                 deeplinkRouted = true
-                Timber.tag(AUTH_NAV).d("navigated")
+                log("navigated")
                 onNavigate(screens, true)
                 deeplinkHandler.debounceIntent = null
                 context.getActivity()?.intent = null
@@ -134,6 +136,8 @@ fun AuthCheck(
             .launchIn(this)
     }
 }
+
+private fun log(message: String) = Timber.tag(AUTH_NAV).d(message)
 
 private fun showLogoutMessage(
     context: Context,
@@ -144,7 +148,6 @@ private fun showLogoutMessage(
     BottomBarManager.showMessage(
         BottomBarManager.BottomBarMessage(
             title = context.getString(R.string.subtitle_logoutAndLoginConfirmation),
-            subtitle = "",
             positiveText = context.getString(R.string.action_logIn),
             negativeText = context.getString(R.string.action_cancel),
             isDismissible = false,
