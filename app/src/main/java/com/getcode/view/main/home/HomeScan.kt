@@ -459,8 +459,8 @@ private fun BillContainer(
 
             LaunchedEffect(transition.isRunning, transition.targetState) {
                 // wait for spring settle to enable cancel to not prematurely cancel
-                // the enter. doing so causing the exit of the bill to not run
-                if (transition.targetState == EnterExitState.Visible && !transition.isRunning) {
+                // the enter. doing so causing the exit of the bill to not run, or run its own dismiss animation
+                if (transition.targetState == EnterExitState.Visible && transition.currentState == transition.targetState) {
                     delay(300)
                     canCancel = true
                 }
