@@ -67,7 +67,6 @@ class MainActivity : FragmentActivity() {
      */
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        Timber.d("onnewintent")
         if (intent != null) {
             val cachedIntent = deeplinkHandler.debounceIntent
             if (cachedIntent != null && cachedIntent.data == intent.data) {
@@ -85,7 +84,6 @@ class MainActivity : FragmentActivity() {
         handleUncaughtException()
         authManager.init(this)
         setFullscreen()
-        Timber.d("oncreate")
 
         setContent {
             CompositionLocalProvider(
