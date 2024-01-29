@@ -45,13 +45,11 @@ fun CodeApp() {
     CodeTheme {
         val appState = rememberCodeAppState()
         AppNavHost {
+            val codeNavigator = LocalCodeNavigator.current
+
             CodeScaffold(
                 scaffoldState = appState.scaffoldState
             ) { innerPaddingModifier ->
-                val codeNavigator = LocalCodeNavigator.current
-                var replacingStackFromDeepLink by remember {
-                    mutableStateOf(false)
-                }
 
                 Navigator(
                     screen = MainRoot,
@@ -77,39 +75,28 @@ fun CodeApp() {
                         modifier = Modifier
                             .padding(innerPaddingModifier)
                     ) {
-                        if (replacingStackFromDeepLink) {
-                            CurrentScreen()
-                            replacingStackFromDeepLink = false
-                        } else {
-                            when (navigator.lastItem) {
-                                is LoginScreen, is MainRoot -> {
-                                    CrossfadeTransition(navigator = navigator)
-                                }
-
-                                else -> {
-                                    SlideTransition(navigator = navigator)
-                                }
-                            }
+                        when (navigator.lastItem) {
+                            is LoginScreen, is MainRoot -> CrossfadeTransition(navigator = navigator)
+                            else -> SlideTransition(navigator = navigator)
                         }
                     }
                 }
+            }
 
-                //Listen for authentication changes here
-                AuthCheck(
-                    navigator = codeNavigator,
-                    onNavigate = { screens, fromDeeplink ->
-                        replacingStackFromDeepLink = fromDeeplink
-                        codeNavigator.replaceAll(screens, inSheet = false)
-                    },
-                    onSwitchAccounts = { seed ->
-                        activity?.let {
-                            tlvm.logout(it) {
-                                appState.navigator.replaceAll(LoginScreen(seed))
-                            }
+            //Listen for authentication changes here
+            AuthCheck(
+                navigator = codeNavigator,
+                onNavigate = { screens ->
+                    codeNavigator.replaceAll(screens, inSheet = false)
+                },
+                onSwitchAccounts = { seed ->
+                    activity?.let {
+                        tlvm.logout(it) {
+                            appState.navigator.replaceAll(LoginScreen(seed))
                         }
                     }
-                )
-            }
+                }
+            )
         }
 
         TopBarContainer(appState)
