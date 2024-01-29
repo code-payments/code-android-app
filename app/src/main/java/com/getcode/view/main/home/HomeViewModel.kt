@@ -633,6 +633,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
+            delay(1.seconds)
             cancelPayment(false)
         }.onFailure { error ->
             error.printStackTrace()
