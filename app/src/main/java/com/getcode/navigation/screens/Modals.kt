@@ -16,7 +16,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -26,6 +28,8 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
 import com.getcode.util.recomposeHighlighter
 import com.getcode.view.components.SheetTitle
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 internal interface ModalContent {
@@ -91,6 +95,16 @@ internal interface ModalContent {
                 derivedStateOf { closeButton(lastItem) }
             }
 
+            val keyboardController = LocalSoftwareKeyboardController.current
+            val composeScope = rememberCoroutineScope()
+
+            val hideSheet = {
+                composeScope.launch {
+                    keyboardController?.hide()
+                    delay(500)
+                    navigator.hide()
+                }
+            }
             SheetTitle(
                 modifier = Modifier,
                 title = {
@@ -106,7 +120,7 @@ internal interface ModalContent {
                 backButton = isBackEnabled,
                 closeButton = isCloseEnabled,
                 onBackIconClicked = onBackClicked?.let { { it() } } ?: { navigator.pop() },
-                onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { navigator.hide() }
+                onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { hideSheet() }
             )
             Box(
                 modifier = Modifier
