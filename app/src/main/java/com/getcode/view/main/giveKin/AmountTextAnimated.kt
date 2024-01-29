@@ -13,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
@@ -132,11 +133,12 @@ fun AnimatedPlaceholderDigit(
 
 @ExperimentalAnimationApi
 @Composable
-fun AmountTextAnimated(
+internal fun AmountTextAnimated(
     currencyResId: Int?,
     amountPrefix: String,
     amountSuffix: String,
     uiModel: AmountAnimatedInputUiModel?,
+    textStyle: TextStyle,
 ) {
     uiModel ?: return
 
@@ -157,10 +159,9 @@ fun AmountTextAnimated(
     var firstDigit by remember { mutableStateOf("") }
 
     //Font states
-    val displayLarge = CodeTheme.typography.displayLarge
-    var textSize by remember { mutableStateOf(displayLarge.fontSize) }
+    var textSize by remember { mutableStateOf(textStyle.fontSize) }
     val fontDecreasePoints = remember { HashMap<Int, Float>() }
-    val maxFontSize = displayLarge.fontSize
+    val maxFontSize = textStyle.fontSize
 
     val commaVisibility = uiModel.amountData.commaVisibility
     val amountSplit = uiModel.amountData.amount.split(DECIMAL_SEPARATOR)

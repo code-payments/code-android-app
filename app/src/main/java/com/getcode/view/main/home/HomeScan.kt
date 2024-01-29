@@ -16,7 +16,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,11 +23,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -44,19 +41,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -64,24 +57,20 @@ import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
 import com.getcode.util.addIf
-import com.getcode.util.flagResId
-import com.getcode.util.formatted
 import com.getcode.util.measured
 import com.getcode.view.camera.KikCodeScannerView
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OnLifecycleEvent
 import com.getcode.view.components.PermissionCheck
+import com.getcode.view.components.startupLog
 import com.getcode.view.components.getPermissionLauncher
-import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
+import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -89,7 +78,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import kotlin.time.Duration.Companion.seconds
 
 
 enum class HomeBottomSheet {
@@ -159,7 +147,6 @@ private fun HomeScan(
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 
-
     val focusManager = LocalFocusManager.current
     LaunchedEffect(dataState.isCameraScanEnabled) {
         if (dataState.isCameraScanEnabled) {
@@ -167,24 +154,31 @@ private fun HomeScan(
         }
     }
 
-    LaunchedEffect(homeViewModel) {
-        if (!deepLink.isNullOrBlank()) {
-            homeViewModel.onCashLinkGrabStart()
-        }
-        if (!deepLink.isNullOrBlank() && !dataState.isDeepLinkHandled) {
-            homeViewModel.openCashLink(deepLink)
-        }
+    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLink, requestPayload) {
+        if (kikCodeScannerView?.previewing == true) {
+            if (!deepLink.isNullOrBlank()) {
+                delay(500)
+                homeViewModel.openCashLink(deepLink)
+            }
 
-        if (!requestPayload.isNullOrBlank()) {
-            delay(500)
-            homeViewModel.handlePaymentRequest(requestPayload)
+            if (!requestPayload.isNullOrBlank() && dataState.balance != null) {
+                delay(500)
+                homeViewModel.handlePaymentRequest(requestPayload)
+            }
+        }
+    }
+
+    LaunchedEffect(kikCodeScannerView?.previewing) {
+        val view = kikCodeScannerView ?: return@LaunchedEffect
+        if (view.previewing) { // kick off preview scanning once preview established
+            homeViewModel.startScan(view)
         }
     }
 
     fun startScanPreview() {
         val view = kikCodeScannerView ?: return
+        // establish preview
         view.startPreview()
-        homeViewModel.startScan(view)
     }
 
     fun stopScanPreview() {
@@ -224,7 +218,7 @@ private fun HomeScan(
                 update = { }
             )
         },
-        isCameraReady = dataState.isCameraReady,
+        isCameraReady = kikCodeScannerView?.previewing == true,
         showBottomSheet = { showBottomSheet(it) }
     )
 
@@ -269,11 +263,6 @@ private fun HomeScan(
             homeViewModel.stopScan()
         }
     }
-    LaunchedEffect(dataState.isCameraScanEnabled) {
-        if (dataState.isCameraScanEnabled) {
-            startScanPreview()
-        }
-    }
 
     val context = LocalContext.current as Activity
     LaunchedEffect(dataState.billState.bill) {
@@ -300,7 +289,6 @@ private fun BillContainer(
 
     val launcher = getPermissionLauncher(onPermissionResult)
     val context = LocalContext.current as Activity
-    val composeScope = rememberCoroutineScope()
 
     SideEffect {
         PermissionCheck.requestPermission(
@@ -312,6 +300,12 @@ private fun BillContainer(
         )
     }
 
+
+    LaunchedEffect(isCameraReady) {
+        if (isCameraReady) {
+            startupLog("camera ready")
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -321,13 +315,9 @@ private fun BillContainer(
         if (dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null) {
             scannerView()
 
-            var show by rememberSaveable {
-                mutableStateOf(true)
-            }
-
             AnimatedVisibility(
                 modifier = Modifier.fillMaxSize(),
-                visible = show,
+                visible = !isCameraReady,
                 enter = fadeIn(
                     animationSpec = tween(AnimationUtils.animationTime)
                 ),
@@ -338,11 +328,6 @@ private fun BillContainer(
                         .fillMaxSize()
                         .background(CodeTheme.colors.background)
                 )
-                LaunchedEffect(isCameraReady) {
-                    if (isCameraReady) {
-                        show = false
-                    }
-                }
             }
         } else {
             PermissionsBlockingView(
@@ -458,8 +443,8 @@ private fun BillContainer(
 
             LaunchedEffect(transition.isRunning, transition.targetState) {
                 // wait for spring settle to enable cancel to not prematurely cancel
-                // the enter. doing so causing the exit of the bill to not run
-                if (transition.targetState == EnterExitState.Visible && !transition.isRunning) {
+                // the enter. doing so causing the exit of the bill to not run, or run its own dismiss animation
+                if (transition.targetState == EnterExitState.Visible && transition.currentState == transition.targetState) {
                     delay(300)
                     canCancel = true
                 }
@@ -480,45 +465,10 @@ private fun BillContainer(
                 Box(
                     contentAlignment = BottomCenter
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .clip(
-                                CodeTheme.shapes.medium.copy(
-                                    bottomStart = ZeroCornerSize,
-                                    bottomEnd = ZeroCornerSize
-                                )
-                            )
-                            .background(Brand)
-                            .padding(
-                                horizontal = CodeTheme.dimens.inset,
-                                vertical = CodeTheme.dimens.grid.x3
-                            )
-                            .windowInsetsPadding(WindowInsets.navigationBars),
-                        horizontalAlignment = CenterHorizontally
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-                            style = CodeTheme.typography.subtitle1.copy(
-                                fontWeight = FontWeight.Bold
-                            ),
-                            text = stringResource(id = R.string.subtitle_youReceived)
-                        )
-
-                        Row {
-                            val bill = updatedState.billState.bill as Bill.Cash
-                            AmountArea(
-                                amountText = bill.amount.formatted(),
-                                currencyResId = bill.amount.rate.currency.flagResId,
-                                isClickable = false
-                            )
-
-                        }
-                        CodeButton(
-                            onClick = { homeViewModel.cancelSend() },
-                            buttonState = ButtonState.Filled,
-                            text = stringResource(id = R.string.action_putInWallet)
-                        )
-                    }
+                    ReceivedKinConfirmation(
+                        bill = updatedState.billState.bill as Bill.Cash,
+                        onClaim = { homeViewModel.cancelSend() }
+                    )
                 }
             }
         }

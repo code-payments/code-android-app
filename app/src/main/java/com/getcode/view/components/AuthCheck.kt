@@ -7,7 +7,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
@@ -22,21 +21,29 @@ import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.getActivity
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-const val AUTH_NAV = "Authentication Navigation"
+private const val APP_STARTUP_TAG = "app-startup"
+private typealias DeeplinkFlowState = Pair<Pair<DeeplinkHandler.Type, List<Screen>>, SessionManager.SessionState>
 
 @Composable
 fun AuthCheck(
     navigator: CodeNavigator,
-    onNavigate: (List<Screen>, Boolean) -> Unit,
+    onNavigate: (List<Screen>) -> Unit,
     onSwitchAccounts: (String) -> Unit,
 ) {
     val deeplinkHandler = LocalDeeplinks.current
@@ -50,23 +57,24 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
-        Timber.tag(AUTH_NAV).d("authenticated=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
-            //Allow the seed input screen to complete and avoid
-            //premature navigation
-            if (currentRoute is AccessKeyLoginScreen) {
-                Timber.tag(AUTH_NAV).d("No navigation within seed input")
-                return@LaunchedEffect
-            }
-            if (currentRoute is LoginGraph) {
-                Timber.tag(AUTH_NAV).d("No navigation within account creation and onboarding")
-            } else if (!deeplinkRouted) {
-                if (authenticated) {
-                    Timber.tag(AUTH_NAV).d("Navigating to home")
-                    onNavigate(listOf(HomeScreen()), false)
+            if (!deeplinkRouted) {
+                // Allow the seed input screen to complete and avoid
+                // premature navigation
+                if (currentRoute is AccessKeyLoginScreen) {
+                    startupLog("No navigation within seed input")
+                    return@LaunchedEffect
+                }
+                if (currentRoute is LoginGraph) {
+                    startupLog("No navigation within account creation and onboarding")
                 } else {
-                    Timber.tag(AUTH_NAV).d("Navigating to login")
-                    onNavigate(listOf(LoginScreen()), false)
+                    if (authenticated) {
+                        startupLog("Navigating to home")
+                        onNavigate(listOf(HomeScreen()))
+                    } else {
+                        startupLog("Navigating to login")
+                        onNavigate(listOf(LoginScreen()))
+                    }
                 }
             } else {
                 deeplinkRouted = false
@@ -80,56 +88,78 @@ fun AuthCheck(
     LaunchedEffect(deeplinkHandler) {
         val scope = this
         deeplinkHandler.intent
-            .filterNotNull()
-            .onEach {
-                deeplinkRouted = false
-                Timber.tag(AUTH_NAV).d("intent=${it.data}")
+            .flatMapLatest { combine(flowOf(deeplinkHandler.handle(it)), SessionManager.authState) { a, b -> a to b } }
+            .filter { (result, authState) ->
+                startupLog("checking auth state=${authState.isAuthenticated}")
+                // wait for authentication
+                return@filter result != null && authState.isAuthenticated == true
+            }.mapNotNull { (result, state) ->
+                result ?: return@mapNotNull null
+                result to state
             }
-            .mapNotNull { deeplinkHandler.handle() }
-            .onEach { Timber.d("${it.first}") }
-            .filter {
-                if (it.first is DeeplinkHandler.Type.Cash) {
-                    return@filter SessionManager.isAuthenticated() == true
-                }
-                return@filter true
-            }
-            .mapNotNull { (type, screens) ->
-                if (type is DeeplinkHandler.Type.Login) {
-                    if (SessionManager.isAuthenticated() == true) {
-                        val entropy = (screens.first() as? LoginScreen)?.seed
-                        Timber.d("showing logout confirm")
-                        if (entropy != null) {
-                            deeplinkRouted = true
-                            context.getActivity()?.intent = null
-                            deeplinkHandler.debounceIntent = null
-                            showLogoutMessage(
-                                context = context,
-                                entropyB64 = entropy,
-                                onSwitchAccounts = {
-                                    scope.launch {
-                                        delay(300)
-                                        onSwitchAccounts(it)
-                                        deeplinkRouted = false
-                                    }
-                                },
-                                onCancel = {
-                                    deeplinkRouted = false
-                                }
-                            )
-                            return@mapNotNull null
-                        }
-                    }
-                }
-                screens
-            }
-            .onEach { screens ->
+            .mapSeedToHome()
+            .map { it.first }
+            .onEach { (_, screens) ->
                 deeplinkRouted = true
-                onNavigate(screens, true)
+                startupLog("navigating from deep link")
+                onNavigate(screens)
                 deeplinkHandler.debounceIntent = null
                 context.getActivity()?.intent = null
-                deeplinkRouted = false
             }
+            .showLogoutConfirmationIfNeeded(
+                context = context,
+                scope = scope,
+                onSwitchAccounts = {
+                    onSwitchAccounts(it)
+                    deeplinkRouted = false
+                },
+                onCancel = {
+                    deeplinkRouted = false
+                }
+            )
             .launchIn(this)
+    }
+}
+
+fun startupLog(message: String) = Timber.tag(APP_STARTUP_TAG).d(message)
+
+private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
+    map { (data, auth) ->
+        startupLog("checking type")
+        val (type, screens) = data
+        if (type is DeeplinkHandler.Type.Login && auth.isAuthenticated == true) {
+            // send the user to home screen
+            val entropy = (screens.first() as? LoginScreen)?.seed
+            val updatedData = type to listOf(HomeScreen(seed = entropy))
+            updatedData to auth
+        } else {
+            data to auth
+        }
+    }
+
+
+private fun Flow<Pair<DeeplinkHandler.Type, List<Screen>>>.showLogoutConfirmationIfNeeded(
+    context: Context,
+    scope: CoroutineScope,
+    onSwitchAccounts: (String) -> Unit,
+    onCancel: () -> Unit
+): Flow<Pair<DeeplinkHandler.Type, List<Screen>>> = onEach { (type, screens) ->
+    if (type is DeeplinkHandler.Type.Login) {
+        val entropy = (screens.first() as? HomeScreen)?.seed
+        startupLog("showing logout confirm")
+        if (entropy != null) {
+            showLogoutMessage(
+                context = context,
+                entropyB64 = entropy,
+                onSwitchAccounts = {
+                    scope.launch {
+                        delay(300) // wait for dismiss
+                        onSwitchAccounts(it)
+                    }
+                },
+                onCancel = onCancel
+            )
+        }
     }
 }
 
@@ -142,7 +172,6 @@ private fun showLogoutMessage(
     BottomBarManager.showMessage(
         BottomBarManager.BottomBarMessage(
             title = context.getString(R.string.subtitle_logoutAndLoginConfirmation),
-            subtitle = "",
             positiveText = context.getString(R.string.action_logIn),
             negativeText = context.getString(R.string.action_cancel),
             isDismissible = false,

@@ -73,6 +73,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             text = stringResource(R.string.action_allowPushNotifications),
             buttonState = ButtonState.Filled,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(button) {
                     start.linkTo(parent.start)
@@ -83,6 +84,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.grid.x2)
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(buttonSkip) {
@@ -95,7 +97,6 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             },
             text = stringResource(R.string.action_notNow),
             buttonState = ButtonState.Subtle,
-            isPaddedVertical = false,
         )
     }
 }

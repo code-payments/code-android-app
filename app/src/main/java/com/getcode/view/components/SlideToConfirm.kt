@@ -11,7 +11,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -66,8 +70,11 @@ import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White50
+import com.getcode.util.addIf
+import com.getcode.util.toPx
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 
 object SlideToConfirmDefaults {
     @Composable
@@ -88,6 +95,8 @@ object SlideToConfirmDefaults {
         )
     }
 
+
+    val SnapThreshold = 0.7f
     val BlueTrackColor = Track.BlueColor
     val BlackTrackColor = Track.BlackColor
 }
@@ -96,7 +105,7 @@ private object Thumb {
     val Size: Dp
         @Composable get() = CodeTheme.dimens.grid.x12
     val Color = androidx.compose.ui.graphics.Color.White
-    val Shape : Shape
+    val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
 }
 
@@ -135,18 +144,18 @@ fun SlideToConfirm(
     val hapticFeedback = LocalHapticFeedback.current
     val swipeState = rememberSwipeableState(
         initialValue = if (loading) Anchor.End else Anchor.Start,
-        confirmStateChange = { anchor ->
-            if (anchor == Anchor.End) {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                loading = true
-                onConfirm()
-            }
-            true
-        }
     )
 
     val swipeFraction by remember {
         derivedStateOf { calculateSwipeFraction(swipeState.progress) }
+    }
+
+    LaunchedEffect(swipeFraction) {
+        if (swipeFraction == 1f) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            loading = true
+            onConfirm()
+        }
     }
 
     LaunchedEffect(loading) {
@@ -174,6 +183,7 @@ fun SlideToConfirm(
                         .align(Alignment.Center),
                 )
             }
+
             loading -> {
                 CodeCircularProgressIndicator(
                     strokeWidth = CodeTheme.dimens.thickBorder,
@@ -209,9 +219,7 @@ private fun calculateSwipeFraction(progress: SwipeProgress<Anchor>): Float {
     } else {
         if (fromStart) progress.fraction else 1f - progress.fraction
     }
-}
-
-enum class Anchor { Start, End }
+}enum class Anchor { Start, End }
 
 @Composable
 private fun Track(
@@ -233,7 +241,7 @@ private fun Track(
         with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() }
     }
 
-    val snapThreshold = 0.8f
+    val snapThreshold = SlideToConfirmDefaults.SnapThreshold
     val thresholds = { from: Anchor, _: Anchor ->
         if (from == Anchor.Start) {
             FractionalThreshold(snapThreshold)
@@ -314,11 +322,20 @@ private fun Preview() {
             Column(
                 modifier = Modifier
                     .background(Color.Black)
-                    .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x6),
+                    .padding(
+                        horizontal = CodeTheme.dimens.inset,
+                        vertical = CodeTheme.dimens.grid.x6
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
             ) {
                 SlideToConfirm(
+                    modifier = Modifier.addIf(isSuccess) {
+                        Modifier.clickable {
+                            isLoading = false
+                            isSuccess = false
+                        }
+                    },
                     isLoading = isLoading,
                     isSuccess = isSuccess,
                     onConfirm = { isLoading = true },

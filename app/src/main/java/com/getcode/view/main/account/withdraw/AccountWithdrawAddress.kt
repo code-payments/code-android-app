@@ -130,6 +130,7 @@ fun AccountWithdrawAddress(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(pasteButton) {
                     top.linkTo(resolveStatus.bottom)
@@ -142,6 +143,7 @@ fun AccountWithdrawAddress(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(nextButton) {
                     bottom.linkTo(parent.bottom)

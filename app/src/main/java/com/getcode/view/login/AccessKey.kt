@@ -160,7 +160,7 @@ fun AccessKey(
                     .align(Alignment.BottomCenter)
                     .measured { buttonHeight = it.height }) {
                     CodeButton(
-                        modifier = Modifier,
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             onExportClick()
                         },
@@ -172,7 +172,7 @@ fun AccessKey(
                     )
 
                     CodeButton(
-                        modifier = Modifier,
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = {
                             BottomBarManager.showMessage(
                                 BottomBarManager.BottomBarMessage(
@@ -190,7 +190,6 @@ fun AccessKey(
                         text = stringResource(R.string.action_wroteThemDownInstead),
                         buttonState = ButtonState.Subtle,
                         enabled = dataState.isEnabled,
-                        isPaddedVertical = false,
                     )
                 }
             }

@@ -169,6 +169,7 @@ fun BackupKey(
                         .measured { buttonHeight = it.height }
                 ) {
                     CodeButton(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = { onExportClick() },
                         text = stringResource(R.string.action_saveAccessKey),
                         buttonState = ButtonState.Filled,

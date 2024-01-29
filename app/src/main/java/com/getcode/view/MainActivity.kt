@@ -84,7 +84,6 @@ class MainActivity : FragmentActivity() {
         handleUncaughtException()
         authManager.init(this)
         setFullscreen()
-        deeplinkHandler.debounceIntent = deeplinkHandler.checkIntent(intent)
 
         setContent {
             CompositionLocalProvider(
@@ -98,6 +97,8 @@ class MainActivity : FragmentActivity() {
                 CodeApp()
             }
         }
+
+        deeplinkHandler.debounceIntent = intent
     }
 
     override fun onResume() {

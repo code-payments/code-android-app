@@ -76,7 +76,11 @@ fun InviteCode(
                 .focusRequester(focusRequester)
                 .padding(top = CodeTheme.dimens.grid.x1)
                 .height(CodeTheme.dimens.grid.x12)
-                .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.extraSmall)
+                .border(
+                    width = CodeTheme.dimens.border,
+                    color = BrandLight,
+                    shape = CodeTheme.shapes.extraSmall
+                )
                 .background(White05),
             value = dataState.inviteCode,
             textStyle = CodeTheme.typography.subtitle1,
@@ -121,6 +125,7 @@ fun InviteCode(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .constrainAs(buttonAction) {
                     bottom.linkTo(parent.bottom)
                 },

@@ -115,15 +115,12 @@ internal fun PaymentConfirmation(
                 label = "show/hide cancel button"
             ) { show ->
                 if (show) {
-                    TextButton(
-                        shape = RoundedCornerShape(percent = 50),
-                        onClick = { onCancel() }) {
-                        Text(
-                            text = stringResource(id = android.R.string.cancel),
-                            style = CodeTheme.typography.caption,
-                            color = White50
-                        )
-                    }
+                    CodeButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        buttonState = ButtonState.Subtle,
+                        onClick = onCancel,
+                        text = stringResource(id = android.R.string.cancel),
+                    )
                 } else {
                     Spacer(modifier = Modifier.minimumInteractiveComponentSize())
                 }
@@ -330,6 +327,7 @@ private fun InsufficientFundsModalContent(onClick: () -> Unit) {
         style = CodeTheme.typography.body2
     )
     CodeButton(
+        modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
         text = stringResource(R.string.button_get_more_kin),
         buttonState = ButtonState.Filled

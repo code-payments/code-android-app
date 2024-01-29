@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -128,6 +129,7 @@ internal fun PhoneVerify(
 
 
         CodeButton(
+            modifier = Modifier.fillMaxWidth(),
             onClick = {
                 viewModel.onSubmit(navigator, context.getActivity())
             },
@@ -150,6 +152,7 @@ internal fun PhoneVerify(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) {
         if (it.resultCode != Activity.RESULT_OK) {
+            viewModel.dismissedHint()
             return@rememberLauncherForActivityResult
         }
 
@@ -159,13 +162,13 @@ internal fun PhoneVerify(
         viewModel.setPhoneFromHint(phoneNum)
     }
 
-    LaunchedEffect(phoneNumberHintLauncher) {
+    LaunchedEffect(dataState.hasDismissedHint) {
         val request = GetPhoneNumberHintIntentRequest
             .builder()
             .build()
 
         val isSettled = navigator.lastItem == navigator.lastModalItem || arguments.isNewAccount
-        if (isSettled && dataState.phoneNumberFormatted.isEmpty()) {
+        if (isSettled && dataState.phoneNumberFormatted.isEmpty() && !dataState.hasDismissedHint) {
             Identity.getSignInClient(context)
                 .getPhoneNumberHintIntent(request)
                 .addOnSuccessListener {
@@ -236,6 +239,7 @@ private fun PhoneEntry(
                 contentAlignment = Center
             ) {
                 Text(
+                    modifier = Modifier.padding(top = CodeTheme.dimens.border),
                     style = CodeTheme.typography.subtitle1,
                     text = "+${locale.phoneCode}"
                 )
@@ -250,9 +254,9 @@ private fun PhoneEntry(
         BasicTextField(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(top = CodeTheme.dimens.border)
                 .weight(1f)
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .padding(top = CodeTheme.dimens.thickBorder),
             value = value,
             textStyle = CodeTheme.typography.subtitle1.copy(color = CodeTheme.colors.onBackground),
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone),

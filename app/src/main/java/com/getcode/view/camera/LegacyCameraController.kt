@@ -6,7 +6,6 @@ import android.graphics.Rect
 import android.hardware.Camera
 import android.media.CamcorderProfile
 import android.media.MediaRecorder
-import android.util.Log
 import android.view.Surface
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -21,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.kin.sdk.base.tools.Optional
 import timber.log.Timber
-import java.lang.IllegalStateException
 import java.net.URL
 import kotlin.math.abs
 import kotlin.math.max
@@ -562,7 +560,7 @@ class LegacyCameraController(
         return Single.fromCallable {
             val videoOutputUrl = videoOutputUrl
             val mediaRecorder = mediaRecorder
-            val recordingStart = recordingStartSubject.value!!.get()!!
+            val recordingStart = recordingStartSubject.value!!.get()
 
             this@LegacyCameraController.videoOutputUrl = null
             this@LegacyCameraController.mediaRecorder = null
