@@ -14,6 +14,7 @@ import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.getcode.manager.BottomBarManager
@@ -30,6 +31,9 @@ fun BottomBarView(
 ) {
     bottomBarMessage ?: return
 
+    LaunchedEffect(bottomBarMessage) {
+        startupLog("bottom bar message shown=${bottomBarMessage.title}")
+    }
     BackHandler {
         onBackPressed()
     }

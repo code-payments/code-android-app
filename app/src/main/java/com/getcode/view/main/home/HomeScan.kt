@@ -16,7 +16,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,11 +23,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -44,19 +41,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
-import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -64,20 +57,15 @@ import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.AnimationUtils
 import com.getcode.util.addIf
-import com.getcode.util.flagResId
-import com.getcode.util.formatted
 import com.getcode.util.measured
 import com.getcode.view.camera.KikCodeScannerView
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
 import com.getcode.view.components.OnLifecycleEvent
 import com.getcode.view.components.PermissionCheck
+import com.getcode.view.components.startupLog
 import com.getcode.view.components.getPermissionLauncher
-import com.getcode.view.main.giveKin.AmountArea
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
@@ -90,7 +78,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import kotlin.time.Duration.Companion.seconds
 
 
 enum class HomeBottomSheet {
@@ -167,15 +154,15 @@ private fun HomeScan(
         }
     }
 
-    LaunchedEffect(kikCodeScannerView?.previewing, deepLink, requestPayload) {
+    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLink, requestPayload) {
         if (kikCodeScannerView?.previewing == true) {
             if (!deepLink.isNullOrBlank()) {
-                delay(1_000)
+                delay(500)
                 homeViewModel.openCashLink(deepLink)
             }
 
-            if (!requestPayload.isNullOrBlank()) {
-                delay(1_000)
+            if (!requestPayload.isNullOrBlank() && dataState.balance != null) {
+                delay(500)
                 homeViewModel.handlePaymentRequest(requestPayload)
             }
         }
@@ -313,6 +300,12 @@ private fun BillContainer(
         )
     }
 
+
+    LaunchedEffect(isCameraReady) {
+        if (isCameraReady) {
+            startupLog("camera ready")
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
