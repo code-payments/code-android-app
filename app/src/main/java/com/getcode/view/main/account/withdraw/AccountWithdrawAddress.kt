@@ -1,14 +1,16 @@
 package com.getcode.view.main.account.withdraw
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -20,21 +22,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
-import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.extraSmall
 import com.getcode.theme.green
-import com.getcode.theme.inputColors
+import com.getcode.util.debugBounds
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
+import com.getcode.view.components.TextInput
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AccountWithdrawAddress(
     viewModel: AccountWithdrawAddressViewModel,
@@ -43,59 +44,33 @@ fun AccountWithdrawAddress(
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
-    ConstraintLayout(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
             .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
-        val (topText, addressField, resolveStatus, pasteButton, nextButton) = createRefs()
         Text(
-            modifier = Modifier.constrainAs(topText) {
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-            },
+            modifier = Modifier
+                .fillMaxWidth(),
             text = stringResource(R.string.subtitle_whereToWithdrawKin),
             style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
             color = BrandLight
         )
 
-        OutlinedTextField(
+        TextInput(
             modifier = Modifier
-                .constrainAs(addressField) {
-                    top.linkTo(topText.bottom)
-                }
-                .padding(top = CodeTheme.dimens.grid.x4)
                 .fillMaxWidth()
-                .padding(vertical = CodeTheme.dimens.grid.x1),
-            placeholder = {
-                Text(
-                    text = stringResource(R.string.subtitle_enterDestinationAddress),
-                    style = CodeTheme.typography.subtitle1.copy(
-                        fontSize = 16.sp,
-                    )
-                )
-            },
+                .padding(vertical = CodeTheme.dimens.grid.x4),
+            state = dataState.addressText,
+            maxLines = 1,
+            placeholder = stringResource(R.string.subtitle_enterDestinationAddress),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = VisualTransformation.None,
-            value = dataState.addressText,
-            onValueChange = { viewModel.setAddress(it) },
-            textStyle = CodeTheme.typography.subtitle1.copy(
-                fontSize = 16.sp,
-            ),
-            singleLine = true,
-            colors = inputColors(),
-            shape = CodeTheme.shapes.extraSmall
         )
 
         Row(
-            modifier = Modifier
-                .constrainAs(resolveStatus) {
-                    top.linkTo(addressField.bottom)
-                }
-                .fillMaxWidth()
-                .padding(vertical = CodeTheme.dimens.grid.x1),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             dataState.isValid?.let { isValid ->
@@ -129,25 +104,19 @@ fun AccountWithdrawAddress(
         }
 
         CodeButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = CodeTheme.dimens.inset)
-                .constrainAs(pasteButton) {
-                    top.linkTo(resolveStatus.bottom)
-                },
+            modifier = Modifier.fillMaxWidth()
+                .padding(top = CodeTheme.dimens.grid.x2),
             onClick = { viewModel.pasteAddress() },
             enabled = dataState.isPasteEnabled,
             text = stringResource(R.string.action_pasteFromClipboard),
             buttonState = ButtonState.Filled,
         )
 
+        Spacer(modifier = Modifier.weight(1f))
         CodeButton(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = CodeTheme.dimens.inset)
-                .constrainAs(nextButton) {
-                    bottom.linkTo(parent.bottom)
-                },
+                .padding(bottom = CodeTheme.dimens.inset),
             onClick = {
                 viewModel.onSubmit(navigator, arguments)
             },
