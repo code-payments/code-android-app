@@ -11,6 +11,10 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class DeeplinkResult(
+    val type: DeeplinkHandler.Type,
+    val stack: List<Screen>,
+)
 /**
  * This class is used to manage intent state across navigation.
  *
@@ -45,21 +49,30 @@ class DeeplinkHandler @Inject constructor() {
         }
     }
 
-    fun handle(intent: Intent? = debounceIntent): Pair<Type, List<Screen>>? {
+    fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
         val uri = intent?.data ?: return null
         return when (val type = uri.deeplinkType) {
             is Type.Login -> {
-                type to listOf(LoginScreen(type.link))
+                DeeplinkResult(
+                    type,
+                    listOf(LoginScreen(type.link)),
+                )
             }
 
             is Type.Cash -> {
                 Timber.d("cash=${type.link}")
-                type to listOf(HomeScreen(cashLink = type.link))
+                DeeplinkResult(
+                    type,
+                    listOf(HomeScreen(cashLink = type.link)),
+                )
             }
 
             is Type.Sdk -> {
                 Timber.d("sdk=${type.payload}")
-                type to listOf(HomeScreen(requestPayload = type.payload))
+                DeeplinkResult(
+                    type,
+                    listOf(HomeScreen(requestPayload = type.payload)),
+                )
             }
 
             is Type.Unknown -> null
