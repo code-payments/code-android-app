@@ -404,10 +404,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                             it,
                             it
                         )
-                        .firstOrNull()?.let { _ ->
-                            upPress()
-                            faqOpen()
-                        }
+                        .firstOrNull()?.let { _ -> faqOpen() }
                 }
             )
         }
