@@ -20,6 +20,7 @@ import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
+import com.getcode.util.DeeplinkResult
 import com.getcode.util.getActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -38,7 +39,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 private const val APP_STARTUP_TAG = "app-startup"
-private typealias DeeplinkFlowState = Pair<Pair<DeeplinkHandler.Type, List<Screen>>, SessionManager.SessionState>
+private typealias DeeplinkFlowState = Pair<DeeplinkResult, SessionManager.SessionState>
 
 @Composable
 fun AuthCheck(
@@ -92,7 +93,12 @@ fun AuthCheck(
             .filter { (result, authState) ->
                 startupLog("checking auth state=${authState.isAuthenticated}")
                 // wait for authentication
-                return@filter result != null && authState.isAuthenticated == true
+                if (result == null) return@filter false
+                if( authState.isAuthenticated == null) {
+                    startupLog("awaiting auth state confirmation")
+                    return@filter false
+                }
+                return@filter true
             }.mapNotNull { (result, state) ->
                 result ?: return@mapNotNull null
                 result to state
@@ -128,9 +134,10 @@ private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
         startupLog("checking type")
         val (type, screens) = data
         if (type is DeeplinkHandler.Type.Login && auth.isAuthenticated == true) {
+            startupLog("mapping entropy to home screen")
             // send the user to home screen
             val entropy = (screens.first() as? LoginScreen)?.seed
-            val updatedData = type to listOf(HomeScreen(seed = entropy))
+            val updatedData = data.copy(stack = listOf(HomeScreen(seed = entropy)))
             updatedData to auth
         } else {
             data to auth
@@ -138,12 +145,12 @@ private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
     }
 
 
-private fun Flow<Pair<DeeplinkHandler.Type, List<Screen>>>.showLogoutConfirmationIfNeeded(
+private fun Flow<DeeplinkResult>.showLogoutConfirmationIfNeeded(
     context: Context,
     scope: CoroutineScope,
     onSwitchAccounts: (String) -> Unit,
     onCancel: () -> Unit
-): Flow<Pair<DeeplinkHandler.Type, List<Screen>>> = onEach { (type, screens) ->
+): Flow<DeeplinkResult> = onEach { (type, screens) ->
     if (type is DeeplinkHandler.Type.Login) {
         val entropy = (screens.first() as? HomeScreen)?.seed
         startupLog("showing logout confirm")
