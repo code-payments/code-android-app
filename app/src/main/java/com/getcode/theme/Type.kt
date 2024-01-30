@@ -2,19 +2,31 @@ package com.getcode.theme
 
 import androidx.compose.material.Typography
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.getcode.R
 
+@OptIn(ExperimentalTextApi::class)
 private val Avenir = FontFamily(
+    Font(R.font.avenir_next_regular, FontWeight.Thin),
+    Font(R.font.avenir_next_regular, FontWeight.ExtraLight),
     Font(R.font.avenir_next_regular, FontWeight.Light),
     Font(R.font.avenir_next_regular, FontWeight.Normal),
-    Font(R.font.avenir_next_demi, FontWeight.Medium),
-    Font(R.font.avenir_next_demi, FontWeight.SemiBold)
+    Font(R.font.avenir_next_medium, FontWeight.Medium),
+    Font(
+        resId = R.font.avenir_next_demi,
+        weight = FontWeight.SemiBold,
+    ),
+    Font(R.font.avenir_next_demi, FontWeight.Bold),
+    Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
+    Font(R.font.avenir_next_demi, FontWeight.Black)
 )
 
 private val RobotoMono = FontFamily(
@@ -65,7 +77,7 @@ internal val typography = Typography(
         fontFamily = Avenir,
         fontSize = 20.sp,
         fontWeight = FontWeight.SemiBold,
-        lineHeight = 26.sp
+        lineHeight = 26.sp,
     ),
     subtitle2 = TextStyle( //Screen Title
         fontFamily = Avenir,
@@ -120,3 +132,13 @@ val Typography.displayLarge: TextStyle
 
 fun TextStyle.withRobotoMono(weight: FontWeight? = this.fontWeight) = with(RobotoMono, weight)
 fun TextStyle.with(fontFamily: FontFamily, weight: FontWeight? = this.fontWeight): TextStyle = copy(fontFamily = fontFamily, fontWeight = weight)
+
+fun ascenderHeight(ascenderHeight: Float): FontVariation.Setting {
+    require(ascenderHeight in 649f..854f) { "'Ascender Height' must be in 649f..854f" }
+    return FontVariation.Setting("YTAS", ascenderHeight)
+}
+
+fun counterWidth(counterWidth: Int): FontVariation.Setting {
+    require(counterWidth in 323..603) { "'Counter width' must be in 323..603" }
+    return FontVariation.Setting("XTRA", counterWidth.toFloat())
+}
