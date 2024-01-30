@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
@@ -75,9 +76,16 @@ fun CodeApp() {
                         modifier = Modifier
                             .padding(innerPaddingModifier)
                     ) {
-                        when (navigator.lastItem) {
-                            is LoginScreen, is MainRoot -> CrossfadeTransition(navigator = navigator)
-                            else -> SlideTransition(navigator = navigator)
+                        when (navigator.lastEvent) {
+                            StackEvent.Push,
+                            StackEvent.Pop -> {
+                                when (navigator.lastItem) {
+                                    is LoginScreen, is MainRoot -> CrossfadeTransition(navigator = navigator)
+                                    else -> SlideTransition(navigator = navigator)
+                                }
+                            }
+                            StackEvent.Idle,
+                            StackEvent.Replace -> CurrentScreen()
                         }
                     }
                 }
