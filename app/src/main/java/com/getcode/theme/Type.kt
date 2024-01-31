@@ -13,17 +13,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.getcode.R
 
-@OptIn(ExperimentalTextApi::class)
 private val Avenir = FontFamily(
     Font(R.font.avenir_next_regular, FontWeight.Thin),
     Font(R.font.avenir_next_regular, FontWeight.ExtraLight),
     Font(R.font.avenir_next_regular, FontWeight.Light),
     Font(R.font.avenir_next_regular, FontWeight.Normal),
     Font(R.font.avenir_next_medium, FontWeight.Medium),
-    Font(
-        resId = R.font.avenir_next_demi,
-        weight = FontWeight.SemiBold,
-    ),
+    Font(R.font.avenir_next_demi, FontWeight.SemiBold),
     Font(R.font.avenir_next_demi, FontWeight.Bold),
     Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
     Font(R.font.avenir_next_demi, FontWeight.Black)
@@ -132,13 +128,3 @@ val Typography.displayLarge: TextStyle
 
 fun TextStyle.withRobotoMono(weight: FontWeight? = this.fontWeight) = with(RobotoMono, weight)
 fun TextStyle.with(fontFamily: FontFamily, weight: FontWeight? = this.fontWeight): TextStyle = copy(fontFamily = fontFamily, fontWeight = weight)
-
-fun ascenderHeight(ascenderHeight: Float): FontVariation.Setting {
-    require(ascenderHeight in 649f..854f) { "'Ascender Height' must be in 649f..854f" }
-    return FontVariation.Setting("YTAS", ascenderHeight)
-}
-
-fun counterWidth(counterWidth: Int): FontVariation.Setting {
-    require(counterWidth in 323..603) { "'Counter width' must be in 323..603" }
-    return FontVariation.Setting("XTRA", counterWidth.toFloat())
-}

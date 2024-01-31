@@ -217,7 +217,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
         return imageOut
     }
 
-    internal fun getQrCode(entropyB64: String): Bitmap? {
+    private fun getQrCode(entropyB64: String): Bitmap? {
         val base58 = Base58.encode(entropyB64.decodeBase64())
         val url = "${resources.getString(R.string.root_url_app)}/login?data=$base58"
 
@@ -239,7 +239,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
         textPaint.color = color
         textPaint.textSize = sizePx.toFloat()
         textPaint.typeface = Typeface.create(
-            resources.getFont(R.font.avenir),
+            resources.getFont(R.font.avenir_next_demi),
             Typeface.BOLD
         )
 
@@ -249,17 +249,17 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
         canvas.drawText(text, xV.toFloat(), y.toFloat(), textPaint)
     }
 
-    internal fun getAccessKeySaveError() = TopBarManager.TopBarMessage(
+    private fun getAccessKeySaveError() = TopBarManager.TopBarMessage(
         resources.getString(R.string.error_title_failedToSave),
         resources.getString(R.string.error_description_failedToSave),
     )
 
-    internal fun getDeniedError() = TopBarManager.TopBarMessage(
+    private fun getDeniedError() = TopBarManager.TopBarMessage(
         resources.getString(R.string.error_title_tooManyAccounts),
         resources.getString(R.string.error_description_tooManyAccounts)
     )
 
-    internal fun getGenericError() = TopBarManager.TopBarMessage(
+    private fun getGenericError() = TopBarManager.TopBarMessage(
         resources.getString(R.string.error_title_failedToVerifyPhone),
         resources.getString(R.string.error_description_failedToVerifyPhone),
     )
