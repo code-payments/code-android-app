@@ -3,6 +3,7 @@ package com.getcode.view.main.account
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
@@ -52,6 +53,7 @@ fun DeleteCodeAccount() {
             }
         }
         CodeButton(
+            modifier = Modifier.fillMaxWidth(),
             onClick = { navigator.push(DeleteConfirmationScreen) },
             text = stringResource(R.string.action_continue),
             buttonState = ButtonState.Filled,

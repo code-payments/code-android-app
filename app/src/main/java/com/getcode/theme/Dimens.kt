@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.BuildConfig
 
 val topBarHeight = 56.dp
-const val sheetHeight = 0.93f
+const val sheetHeight = 0.9f
 
 internal val LocalDimens = staticCompositionLocalOf<Dimensions> {
     error("No Dimensions provided")

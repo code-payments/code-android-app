@@ -59,13 +59,14 @@ class PaymentRepository @Inject constructor(
         messagingRepository.rejectLogin(rendezvousKey)
     }
 
-    fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
+    suspend fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
         val fiat = payload.fiat
         if (fiat == null) {
             Timber.d("payload does not contain Fiat value")
             return null
         }
 
+        exchange.fetchRatesIfNeeded()
         val rate = exchange.rateFor(fiat.currency)
         if (rate == null) {
             Timber.d("Unable to determine rate")

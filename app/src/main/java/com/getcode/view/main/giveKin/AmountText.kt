@@ -5,20 +5,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.sp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.theme.displayLarge
 
 
 object AmountSizeStore {
@@ -35,15 +32,13 @@ object AmountSizeStore {
 fun AmountText(
     modifier: Modifier = Modifier,
     currencyResId: Int?,
-    amountText: String
+    amountText: String,
+    textStyle: TextStyle = CodeTheme.typography.h1,
 ) {
-    val displayLarge = CodeTheme.typography.displayLarge.copy(textAlign = TextAlign.Center)
-    var scaledTextStyle by remember(amountText) {
-        val cachedSize = AmountSizeStore.lookup(amountText)
-        val style = displayLarge.copy(fontSize = cachedSize ?: displayLarge.fontSize)
-        mutableStateOf(style)
-    }
-    var isReadyToDraw by rememberSaveable(amountText) { mutableStateOf(AmountSizeStore.hasCachedSize(amountText)) }
+    val centeredText = textStyle.copy(textAlign = TextAlign.Center)
+    var scaledTextStyle by remember { mutableStateOf(centeredText) }
+    var isReadyToDraw by remember { mutableStateOf(false) }
+
 
     Row(
         modifier = Modifier.fillMaxWidth().then(modifier),

@@ -118,7 +118,7 @@ fun AccountWithdrawAddress(
 
                 Text(
                     modifier = Modifier
-                        .padding(start = CodeTheme.dimens.grid.x2, top = CodeTheme.dimens.grid.x1),
+                        .padding(start = CodeTheme.dimens.grid.x2),
                     text = text,
                     color = if (isValid) green else Color.Red,
                     style = CodeTheme.typography.caption.copy(
@@ -130,6 +130,7 @@ fun AccountWithdrawAddress(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(pasteButton) {
                     top.linkTo(resolveStatus.bottom)
@@ -142,6 +143,7 @@ fun AccountWithdrawAddress(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(bottom = CodeTheme.dimens.inset)
                 .constrainAs(nextButton) {
                     bottom.linkTo(parent.bottom)

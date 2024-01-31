@@ -24,6 +24,7 @@ import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.displayLarge
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.components.ButtonState
@@ -65,6 +66,7 @@ fun GiveKinSheet(
                 uiModel = dataState.amountAnimatedModel,
                 isAnimated = true,
                 networkState = networkState,
+                textStyle = CodeTheme.typography.displayLarge,
                 modifier = Modifier
                     .align(Alignment.Center)
             ) {
@@ -85,6 +87,7 @@ fun GiveKinSheet(
 
         CodeButton(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset),
             onClick = {
                 if (!networkObserver.isConnected) {

@@ -44,6 +44,7 @@ import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
+import com.getcode.network.client.fetchPaymentHistoryDelta
 import com.getcode.network.client.receiveRemoteSuspend
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
@@ -125,13 +126,10 @@ data class HomeUiModel(
     val showNetworkOffline: Boolean = false,
     val giveRequestsEnabled: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
-    val isCameraReady: Boolean = false,
-    val selectedBottomSheet: HomeBottomSheet? = null,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
-    val isDeepLinkHandled: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -350,6 +348,7 @@ class HomeViewModel @Inject constructor(
                                 amount = bill.amount,
                                 didReceive = bill.didReceive
                             ),
+                            valuation = Valuation(bill.amount),
                             showToast = bill.didReceive
                         )
                     )
@@ -384,10 +383,24 @@ class HomeViewModel @Inject constructor(
                 presentationStyle = style,
                 billState = it.billState.copy(
                     bill = null,
-                    valuation = null,
-                    hideBillButtons = false,
                 )
             )
+        }
+
+        viewModelScope.launch {
+            if (shown) {
+                delay(300)
+            }
+            withContext(Dispatchers.Main) {
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(
+                            valuation = null,
+                            hideBillButtons = false
+                        )
+                    )
+                }
+            }
         }
 
         viewModelScope.launch {
@@ -510,8 +523,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) {
-        val (amount, p) = paymentRepository.attemptRequest(payload) ?: return
+    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) = viewModelScope.launch {
+        val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
         BottomBarManager.clear()
 
         presentRequest(amount = amount, payload = p, request = request)
@@ -545,7 +558,7 @@ class HomeViewModel @Inject constructor(
         val presentationStyle = if (isReceived) PresentationStyle.Pop else PresentationStyle.Slide
         withContext(Dispatchers.Main) {
             uiFlow.update {
-                var billState= it.billState.copy(
+                var billState = it.billState.copy(
                     bill = Bill.Payment(amount, code, request),
                 )
 
@@ -571,9 +584,11 @@ class HomeViewModel @Inject constructor(
         analytics.requestShown(amount = amount)
 
         if (DEBUG_SCAN_TIMES) {
-            Timber.tag("codescan")
-                .d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
-            scanProcessingTime = 0
+            if (scanProcessingTime > 0) {
+                Timber.tag("codescan")
+                    .d("scan processing took ${System.currentTimeMillis() - scanProcessingTime}")
+                scanProcessingTime = 0
+            }
         }
 
 
@@ -618,81 +633,66 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            delay(500)
-            uiFlow.update {
-                it.copy(
+            delay(1.seconds)
+            cancelPayment(false)
+        }.onFailure { error ->
+            error.printStackTrace()
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_payment_failed),
+                resources.getString(R.string.error_description_payment_failed),
+            )
+            uiFlow.update { uiModel ->
+                uiModel.copy(
                     presentationStyle = PresentationStyle.Hidden,
-                    billState = it.billState.copy(
+                    billState = uiModel.billState.copy(
                         bill = null,
+                        showToast = false,
                         paymentConfirmation = null,
+                        toast = null,
                         valuation = null,
                         hideBillButtons = false,
                     )
                 )
             }
         }
-            .onFailure { error ->
-                error.printStackTrace()
-                TopBarManager.showMessage(
-                    "Payment Failed",
-                    "This payment request could not be paid at this time. Please try again later."
-                )
-                uiFlow.update { uiModel ->
-                    uiModel.copy(
-                        presentationStyle = PresentationStyle.Hidden,
-                        billState = uiModel.billState.copy(
-                            bill = null,
-                            showToast = false,
-                            paymentConfirmation = null,
-                            toast = null,
-                            valuation = null,
-                            hideBillButtons = false,
-                        )
-                    )
-                }
-            }
     }
 
-    fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
+    private fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
         val bill = uiFlow.value.billState.bill ?: return
         val amount = bill.amount
         val request = bill.metadata.request
 
         analytics.requestHidden(amount = amount)
 
-        if (rejected) {
-            if (!ignoreRedirect) {
-                request?.cancelUrl?.let {
-                    viewModelScope.launch {
-                        _eventFlow.emit(HomeEvent.OpenUrl(it))
-                    }
-                }
-            }
-        } else {
-            showToast(amount, isDeposit = false)
-
-            if (!ignoreRedirect) {
-                request?.successUrl?.let {
-                    viewModelScope.launch {
-                        _eventFlow.emit(HomeEvent.OpenUrl(it))
-                    }
-                }
-            }
-        }
-
         uiFlow.update {
             it.copy(
-                presentationStyle = PresentationStyle.Hidden,
+                presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
                     bill = null,
-                    showToast = false,
                     paymentConfirmation = null,
-                    loginConfirmation = null,
-                    toast = null,
                     valuation = null,
                     hideBillButtons = false,
                 )
             )
+        }
+
+        viewModelScope.launch {
+            delay(300)
+            if (rejected) {
+                if (!ignoreRedirect) {
+                    request?.cancelUrl?.let {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
+            } else {
+                showToast(amount, isDeposit = false)
+
+                if (!ignoreRedirect) {
+                    request?.successUrl?.let {
+                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    }
+                }
+            }
         }
     }
 
@@ -827,10 +827,6 @@ class HomeViewModel @Inject constructor(
             })
     }
 
-    fun onCashLinkGrabStart() {
-        analytics.cashLinkGrabStart()
-    }
-
     fun startScan(view: KikCodeScannerView) {
         if (cameraStarted) {
             return
@@ -875,6 +871,9 @@ class HomeViewModel @Inject constructor(
         view: KikCodeScannerView,
         scanner: KikCodeScanner
     ): Flowable<ScannableKikCode> {
+        if (!view.previewing) {
+            view.startPreview()
+        }
         return Single.defer {
             view.previewSize()
                 .subscribeOn(Schedulers.computation())
@@ -884,13 +883,6 @@ class HomeViewModel @Inject constructor(
                 .filter { it.isPresent }
                 .map { it.get()!! }
                 .firstOrError()
-                .doOnSuccess {
-                    if (!uiFlow.value.isCameraReady) {
-                        uiFlow.update {
-                            it.copy(isCameraReady = true)
-                        }
-                    }
-                }
                 .flatMap { previewSize: CameraController.PreviewSize? ->
                     view.getPreviewBuffer()
                         .flatMap { imageData ->
@@ -963,15 +955,16 @@ class HomeViewModel @Inject constructor(
             )
     }
 
-    private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) = viewModelScope.launch {
-        val organizer = SessionManager.getOrganizer() ?: return@launch
-        client.cancelRemoteSend(giftCard, amount.kin, organizer)
-        analytics.remoteSendIncoming(
-            kin = amount.kin,
-            currencyCode = amount.rate.currency,
-            isVoiding = true
-        )
-    }
+    private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) =
+        viewModelScope.launch {
+            val organizer = SessionManager.getOrganizer() ?: return@launch
+            client.cancelRemoteSend(giftCard, amount.kin, organizer)
+            analytics.remoteSendIncoming(
+                kin = amount.kin,
+                currencyCode = amount.rate.currency,
+                isVoiding = true
+            )
+        }
 
     private fun showRemoteSendDialog(
         context: Context,
@@ -1030,14 +1023,30 @@ class HomeViewModel @Inject constructor(
                 value = request.fiat,
                 nonce = request.clientSecret
             )
+
+            if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                return
+            }
+
+            scannedRendezvous.add(payload.rendezvous.publicKey)
             attemptPayment(payload, request)
         }
     }
 
     fun openCashLink(deepLink: String?) {
+        Timber.d("openCashLink: deep link=$deepLink")
         val cashLink = deepLink?.trim()?.replace("\n", "") ?: return
-        if (cashLink.isEmpty()) return
-        if (openedLinks.contains(cashLink)) return
+        if (cashLink.isEmpty()) {
+            Timber.d("cash link empty")
+            return
+        }
+        if (openedLinks.contains(cashLink)) {
+            Timber.d("cash link already opened in session")
+            return
+        }
+
+        analytics.cashLinkGrabStart()
 
         openedLinks.add(cashLink)
 
@@ -1050,7 +1059,7 @@ class HomeViewModel @Inject constructor(
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {
                     withTimeout(15000) {
-                        balanceController.fetchBalance().blockingAwait()
+                        balanceController.fetchBalanceSuspend()
                         try {
                             //Get the amount on the card
                             val amount = client.receiveRemoteSuspend(giftCardAccount)
@@ -1072,15 +1081,14 @@ class HomeViewModel @Inject constructor(
                                     vibrate = true
                                 )
                                 removeLinkWithDelay(cashLink)
-                                setDeepLinkHandled()
                             }
                         } catch (ex: Exception) {
+                            ex.printStackTrace()
                             Timber.e(ex)
                             when (ex) {
                                 is RemoteSendException -> {
                                     onRemoteSendError(ex)
                                     removeLinkWithDelay(cashLink)
-                                    setDeepLinkHandled(withDelay = 0)
                                 }
 
                                 else -> {
@@ -1121,13 +1129,6 @@ class HomeViewModel @Inject constructor(
 
     fun onDrawn() {
         analytics.onAppStarted()
-    }
-
-    private fun setDeepLinkHandled(withDelay: Long = 2000) {
-        CoroutineScope(Dispatchers.IO).launch {
-            delay(withDelay)
-            uiFlow.update { it.copy(isDeepLinkHandled = true) }
-        }
     }
 
     companion object {

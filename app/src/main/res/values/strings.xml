@@ -63,6 +63,7 @@
     <string name="deleteAccount_title_wontDo">What deleting won\'t do</string>
     <string name="error_description_alreadyCollected">This Kin was already collected by someone else.</string>
     <string name="error_description_alreadyCollectedBySomeone">This Kin was already collected by someone.</string>
+    <string name="error_description_payment_failed">This payment request could not be paid at this time. Please try again later.</string>
     <string name="error_description_cameraAccessRequired">Please allow access to the camera in Settings to use Code.</string>
     <string name="error_description_codeTimedOut">Please re-enter your phone number and try again.</string>
     <string name="error_description_contactsAccessRequired">Please allow access to the contacts in Settings to send invites.</string>
@@ -87,6 +88,7 @@
     <string name="error_description_tooManyAccounts">You can only create so many new accounts each day.</string>
     <string name="error_title_alreadyCollected">Kin Already Collected</string>
     <string name="error_title_alreadyCollectedBySomeone">Kin Already Collected</string>
+    <string name="error_title_payment_failed">Payment Failed</string>
     <string name="error_title_cameraAccessRequired">Camera Access Required</string>
     <string name="error_title_codeTimedOut">Verification Code Timed Out</string>
     <string name="error_title_contactsAccessRequired">Contacts Access Required</string>

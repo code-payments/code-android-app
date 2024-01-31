@@ -70,6 +70,7 @@ fun ConfirmDeleteAccount(
         )
         Spacer(modifier = Modifier.weight(1f))
         CodeButton(
+            modifier = Modifier.fillMaxWidth(),
             onClick = {
                 keyboardController?.hide()
                 BottomBarManager.showMessage(

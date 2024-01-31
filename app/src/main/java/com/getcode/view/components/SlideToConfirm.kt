@@ -11,7 +11,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -66,8 +70,11 @@ import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White50
+import com.getcode.util.addIf
+import com.getcode.util.toPx
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 
 object SlideToConfirmDefaults {
     @Composable
@@ -87,13 +94,18 @@ object SlideToConfirmDefaults {
             modifier = modifier,
         )
     }
+
+
+    val SnapThreshold = 0.7f
+    val BlueTrackColor = Track.BlueColor
+    val BlackTrackColor = Track.BlackColor
 }
 
 private object Thumb {
     val Size: Dp
         @Composable get() = CodeTheme.dimens.grid.x12
     val Color = androidx.compose.ui.graphics.Color.White
-    val Shape : Shape
+    val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
 }
 
@@ -101,7 +113,9 @@ private object Track {
     val VelocityThreshold = SwipeableDefaults.VelocityThreshold * 10
     val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
-    val Color = Color(0xFF201D1D)
+
+    val BlueColor = Color(0xFF11142A)
+    val BlackColor = Color(0xFF201D1D)
 }
 
 
@@ -110,6 +124,7 @@ fun SlideToConfirm(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     trackShape: Shape = Track.Shape,
+    trackColor: Color = Track.BlackColor,
     thumbShape: Shape = Thumb.Shape,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
@@ -129,18 +144,18 @@ fun SlideToConfirm(
     val hapticFeedback = LocalHapticFeedback.current
     val swipeState = rememberSwipeableState(
         initialValue = if (loading) Anchor.End else Anchor.Start,
-        confirmStateChange = { anchor ->
-            if (anchor == Anchor.End) {
-                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                loading = true
-                onConfirm()
-            }
-            true
-        }
     )
 
     val swipeFraction by remember {
         derivedStateOf { calculateSwipeFraction(swipeState.progress) }
+    }
+
+    LaunchedEffect(swipeFraction) {
+        if (swipeFraction == 1f) {
+            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+            loading = true
+            onConfirm()
+        }
     }
 
     LaunchedEffect(loading) {
@@ -152,6 +167,7 @@ fun SlideToConfirm(
         enabled = !loading,
         modifier = modifier,
         shape = trackShape,
+        color = trackColor,
     ) {
         if (!isSuccess) {
             hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2))
@@ -167,6 +183,7 @@ fun SlideToConfirm(
                         .align(Alignment.Center),
                 )
             }
+
             loading -> {
                 CodeCircularProgressIndicator(
                     strokeWidth = CodeTheme.dimens.thickBorder,
@@ -202,9 +219,7 @@ private fun calculateSwipeFraction(progress: SwipeProgress<Anchor>): Float {
     } else {
         if (fromStart) progress.fraction else 1f - progress.fraction
     }
-}
-
-enum class Anchor { Start, End }
+}enum class Anchor { Start, End }
 
 @Composable
 private fun Track(
@@ -212,6 +227,7 @@ private fun Track(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     shape: Shape = Track.Shape,
+    color: Color = Track.BlackColor,
     content: @Composable (BoxScope.() -> Unit),
 ) {
     val density = LocalDensity.current
@@ -225,7 +241,7 @@ private fun Track(
         with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() }
     }
 
-    val snapThreshold = 0.8f
+    val snapThreshold = SlideToConfirmDefaults.SnapThreshold
     val thresholds = { from: Anchor, _: Anchor ->
         if (from == Anchor.Start) {
             FractionalThreshold(snapThreshold)
@@ -251,7 +267,7 @@ private fun Track(
                 velocityThreshold = Track.VelocityThreshold,
             )
             .background(
-                color = Track.Color,
+                color = color,
                 shape = shape,
             )
             .padding(
@@ -306,11 +322,20 @@ private fun Preview() {
             Column(
                 modifier = Modifier
                     .background(Color.Black)
-                    .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x6),
+                    .padding(
+                        horizontal = CodeTheme.dimens.inset,
+                        vertical = CodeTheme.dimens.grid.x6
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
             ) {
                 SlideToConfirm(
+                    modifier = Modifier.addIf(isSuccess) {
+                        Modifier.clickable {
+                            isLoading = false
+                            isSuccess = false
+                        }
+                    },
                     isLoading = isLoading,
                     isSuccess = isSuccess,
                     onConfirm = { isLoading = true },

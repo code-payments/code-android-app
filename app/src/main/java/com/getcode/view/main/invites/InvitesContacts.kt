@@ -79,6 +79,7 @@ fun InvitesContacts(
                 )
             )
             CodeButton(
+                modifier = Modifier.fillMaxWidth(),
                 onClick = { onCustomInputInvite() },
                 enabled = true,
                 text = "${stringResource(R.string.action_invite)} ${dataState.contactFilterString}",

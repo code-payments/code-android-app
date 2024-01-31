@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId = "com.getcode"
-        versionCode = 296
+        versionCode = 299
         versionName = "1.1.$versionCode"
 
         minSdk = Android.minSdkVersion
@@ -133,12 +133,13 @@ dependencies {
     androidTestImplementation("io.mockk:mockk:1.13.5")
 
     //Jetpack compose
+    implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     debugImplementation(Libs.compose_ui_tools)
     implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
-    implementation("androidx.activity:activity-compose:1.8.0")
+    implementation(Libs.compose_activities)
     implementation(Libs.compose_view_models)
     implementation(Libs.compose_livedata)
     implementation(Libs.compose_navigation)

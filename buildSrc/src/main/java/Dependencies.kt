@@ -25,8 +25,8 @@ object Versions {
     const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "1.5.4"
-    const val compose_activities: String = "1.4.0"
+    const val compose = "2024.01.00"
+    const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
     const val compose_paging = "3.3.0-alpha02"
@@ -141,17 +141,18 @@ object Libs {
         "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     //const val androidx_lifecycle_compose = androidx.lifecycle-viewmodel-compose:${Versions.androidx_lifecycle}"
 
-    const val compose_ui = "androidx.compose.ui:ui:1.5.3"
-    const val compose_ui_tools = "androidx.compose.ui:ui-tooling:1.5.3"
+    const val compose_bom = "androidx.compose:compose-bom:${Versions.compose}"
+    const val compose_ui = "androidx.compose.ui:ui"
+    const val compose_ui_tools = "androidx.compose.ui:ui-tooling"
     const val compose_ui_tools_preview =
-        "androidx.compose.ui:ui-tooling-preview:1.5.3"
-    const val compose_foundation = "androidx.compose.foundation:foundation:${Versions.compose}"
-    const val compose_material = "androidx.compose.material:material:${Versions.compose}"
+        "androidx.compose.ui:ui-tooling-preview"
+    const val compose_foundation = "androidx.compose.foundation:foundation"
+    const val compose_material = "androidx.compose.material:material"
     const val compose_activities =
         "androidx.activity:activity-compose:${Versions.compose_activities}"
     const val compose_view_models =
         "androidx.lifecycle:lifecycle-viewmodel-compose:${Versions.compose_view_models}"
-    const val compose_livedata = "androidx.compose.runtime:runtime-livedata:${Versions.compose}"
+    const val compose_livedata = "androidx.compose.runtime:runtime-livedata"
     const val compose_navigation =
         "androidx.navigation:navigation-compose:${Versions.compose_navigation}"
     const val compose_paging = "androidx.paging:paging-compose:${Versions.compose_paging}"

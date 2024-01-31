@@ -16,8 +16,10 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.Alert
@@ -44,6 +46,7 @@ fun AmountArea(
     isClickable: Boolean = true,
     isLoading: Boolean = false,
     isAnimated: Boolean = false,
+    textStyle: TextStyle = CodeTheme.typography.h1,
     uiModel: AmountAnimatedInputUiModel? = null,
     networkState: NetworkState = LocalNetworkObserver.current.state.value,
     onClick: () -> Unit = {}
@@ -60,18 +63,18 @@ fun AmountArea(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (!isAnimated) {
-                    key(hashCode()) {
-                        AmountText(
-                            currencyResId = currencyResId,
-                            amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}"
-                        )
-                    }
+                    AmountText(
+                        currencyResId = currencyResId,
+                        amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
+                        textStyle = textStyle,
+                    )
                 } else {
                     AmountTextAnimated(
                         uiModel = uiModel,
                         currencyResId = currencyResId,
                         amountPrefix = amountPrefix.orEmpty(),
-                        amountSuffix = amountSuffix.orEmpty()
+                        amountSuffix = amountSuffix.orEmpty(),
+                        textStyle = textStyle,
                     )
                 }
             }

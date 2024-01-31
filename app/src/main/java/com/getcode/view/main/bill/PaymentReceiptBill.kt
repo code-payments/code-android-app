@@ -7,10 +7,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -52,32 +53,31 @@ internal fun Receipt(
     BoxWithConstraints(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
-            .padding(horizontal = CodeTheme.dimens.inset)
-            .padding(
-                top = screenHeight * 0.10f,
-                bottom = CodeTheme.dimens.grid.x12
-            )
+            .padding(horizontal = CodeTheme.dimens.inset),
+        contentAlignment = Alignment.Center
     ) {
         val mW = maxWidth
-        val size = remember { mW * 0.65f }
+        val codeSize = remember { mW * 0.65f }
 
         Column(
             modifier = Modifier
+                .padding(bottom = screenHeight * 0.10f)
                 .background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.receipt())
-                .padding(top = CodeTheme.dimens.grid.x12),
+                .padding(top = CodeTheme.dimens.grid.x12)
+                .heightIn(0.dp, 800.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5)
         ) {
             if (data.isNotEmpty()) {
                 BoxWithConstraints(
                     modifier = Modifier
-                        .size(size)
+                        .size(codeSize)
                         .background(CodeTheme.colors.brandMuted, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     AndroidView(
                         modifier = Modifier
-                            .width(size),
+                            .fillMaxWidth(),
                         factory = { context ->
                             KikCodeContentView(context).apply {
                                 this.logo =

@@ -18,6 +18,7 @@ import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.util.RepeatOnLifecycle
 import com.getcode.util.getActivityScopedViewModel
+import com.getcode.view.components.startupLog
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceSheet
@@ -41,6 +42,7 @@ sealed interface HomeResult {
 
 @Parcelize
 data class HomeScreen(
+    val seed: String? = null,
     val cashLink: String? = null,
     val requestPayload: String? = null,
 ) : AppScreen(), MainGraph {
@@ -50,6 +52,7 @@ data class HomeScreen(
     @Composable
     override fun Content() {
         val vm = getActivityScopedViewModel<HomeViewModel>()
+        startupLog("home rendered")
         HomeScreen(vm, cashLink, requestPayload)
 
         OnScreenResult<HomeResult> { result ->

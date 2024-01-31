@@ -303,13 +303,15 @@ fun BalanceTop(
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
-    if (!state.chatsLoading) {
-        AmountText(
-            modifier = Modifier.rememberedClickable(enabled = isClickable) { onClick() },
-            currencyResId = state.currencyFlag,
-            amountText = state.amountText
-        )
-    }
+    AmountArea(
+        amountText = state.amountText,
+        isAltCaption = false,
+        isAltCaptionKinIcon = false,
+        isLoading = state.chatsLoading,
+        currencyResId = state.currencyFlag,
+        isClickable = isClickable,
+        onClick = onClick,
+    )
 }
 
 @Composable
@@ -427,10 +429,7 @@ private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
                             it,
                             it
                         )
-                        .firstOrNull()?.let { _ ->
-                            upPress()
-                            faqOpen()
-                        }
+                        .firstOrNull()?.let { _ -> faqOpen() }
                 }
             )
         }

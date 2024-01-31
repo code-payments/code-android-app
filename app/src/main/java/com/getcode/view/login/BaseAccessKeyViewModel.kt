@@ -52,17 +52,15 @@ data class AccessKeyUiModel(
     val accessKeyCroppedBitmap: Bitmap? = null,
 )
 
-abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : BaseViewModel(resources) {
+abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
+    BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
-    @OptIn(InternalCoroutinesApi::class)
     fun init() {
         viewModelScope.launch {
             SessionManager.authState
-                .distinctUntilChangedBy { it?.entropyB64 }
-                .collect(
-                    FlowCollector { it?.entropyB64?.let { e -> initWithEntropy(e) } }
-                )
+                .distinctUntilChangedBy { it.entropyB64 }
+                .collect { it.entropyB64?.let { e -> initWithEntropy(e) } }
         }
     }
 
@@ -79,8 +77,9 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
         )
 
         CoroutineScope(Dispatchers.IO).launch {
-            val accessKeyBitmap = createBitmapForExport(words, entropyB64)
-            val accessKeyCroppedBitmap = Bitmap.createBitmap(accessKeyBitmap, 0, 300, 1200, 1450)
+            val accessKeyBitmap = createBitmapForExport(words = words, entropyB64 = entropyB64)
+            val accessKeyBitmapDisplay = createBitmapForExport(drawBackground = false, words, entropyB64)
+            val accessKeyCroppedBitmap = Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 300, 1200, 1450)
 
             uiFlow.value = uiFlow.value.copy(
                 accessKeyBitmap = accessKeyBitmap,
@@ -132,11 +131,15 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
         return true
     }
 
-    private fun createBitmapForExport(words: List<String>, entropyB64: String): Bitmap {
+    private fun createBitmapForExport(
+        drawBackground: Boolean = true,
+        words: List<String>,
+        entropyB64: String
+    ): Bitmap {
         val accessKeyText = getAccessKeyText(words)
 
         val accessKeyBg = resources.getDrawable(R.drawable.ic_access_key_bg)
-                ?.toBitmap(812, 1353)!!
+            ?.toBitmap(812, 1353)!!
 
         val imageLogo =
             resources.getDrawable(R.drawable.ic_code_logo_white)
@@ -146,13 +149,16 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) : B
             targetWidth, targetHeight,
             Bitmap.Config.ARGB_8888
         ).applyCanvas {
-            val paintBackground = Paint()
-            paintBackground.color = Brand.toAGColor()
-            paintBackground.style = Paint.Style.FILL
-            drawPaint(paintBackground)
-
             val accessBgActualWidth =
                 accessKeyBg.getScaledWidth(resources.displayMetrics)
+
+            if (drawBackground) {
+                val paintBackground = Paint()
+                paintBackground.color = Brand.toAGColor()
+                paintBackground.style = Paint.Style.FILL
+                drawPaint(paintBackground)
+            }
+
             drawBitmap(
                 accessKeyBg,
                 (((targetWidth - accessBgActualWidth) / 2)).toFloat(),

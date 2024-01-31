@@ -92,6 +92,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
             text = stringResource(R.string.action_allowCameraAccess),
             buttonState = ButtonState.Filled,
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .constrainAs(button) {
                     linkTo(button.bottom, parent.bottom, bias = 1.0F)
