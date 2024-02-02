@@ -143,7 +143,7 @@ private fun HomeScan(
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
 
-    var isPaused by rememberSaveable { mutableStateOf(false) }
+    var isPaused by remember { mutableStateOf(false) }
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 

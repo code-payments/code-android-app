@@ -91,9 +91,9 @@ fun AuthCheck(
         deeplinkHandler.intent
             .flatMapLatest { combine(flowOf(deeplinkHandler.handle(it)), SessionManager.authState) { a, b -> a to b } }
             .filter { (result, authState) ->
-                startupLog("checking auth state=${authState.isAuthenticated}")
-                // wait for authentication
                 if (result == null) return@filter false
+                // wait for authentication
+                startupLog("checking auth state=${authState.isAuthenticated}")
                 if( authState.isAuthenticated == null) {
                     startupLog("awaiting auth state confirmation")
                     return@filter false
