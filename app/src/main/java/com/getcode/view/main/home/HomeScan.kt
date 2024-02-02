@@ -143,7 +143,7 @@ private fun HomeScan(
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
 
-    var isPaused by rememberSaveable { mutableStateOf(false) }
+    var isPaused by remember { mutableStateOf(false) }
 
     var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
 
@@ -391,31 +391,25 @@ private fun BillContainer(
             }
         }
 
-        Column(
+        HomeBill(
             modifier = Modifier
-                .fillMaxSize(),
-        ) {
-            HomeBill(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .addIf(showManagementOptions) { Modifier.padding(bottom = managementHeight) }
-                    .weight(1f),
-                dismissState = billDismissState,
-                dismissed = dismissed,
-                bill = updatedState.billState.bill,
-                transitionSpec = {
-                    if (updatedState.presentationStyle is PresentationStyle.Slide) {
-                        AnimationUtils.animationBillEnterGive
-                    } else {
-                        AnimationUtils.animationBillEnterGrabbed
-                    } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
-                        AnimationUtils.animationBillExitReturned
-                    } else {
-                        AnimationUtils.animationBillExitGrabbed
-                    }
+                .fillMaxSize()
+                .addIf(showManagementOptions) { Modifier.padding(bottom = managementHeight) },
+            dismissState = billDismissState,
+            dismissed = dismissed,
+            bill = updatedState.billState.bill,
+            transitionSpec = {
+                if (updatedState.presentationStyle is PresentationStyle.Slide) {
+                    AnimationUtils.animationBillEnterGive
+                } else {
+                    AnimationUtils.animationBillEnterGrabbed
+                } togetherWith if (updatedState.presentationStyle is PresentationStyle.Slide) {
+                    AnimationUtils.animationBillExitReturned
+                } else {
+                    AnimationUtils.animationBillExitGrabbed
                 }
-            )
-        }
+            }
+        )
 
         //Bill management options
         AnimatedVisibility(

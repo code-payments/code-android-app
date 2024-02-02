@@ -115,7 +115,7 @@ fun PhoneConfirm(
                         .padding(top = CodeTheme.dimens.inset)
                         .wrapContentHeight()
                         .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+                    verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
 
                     ProvideTextStyle(
