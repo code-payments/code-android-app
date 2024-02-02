@@ -180,8 +180,7 @@ class PhoneVerifyViewModel @Inject constructor(
                         navigator.push(InviteCodeScreen(phoneNumber.urlEncode()))
                         null
                     }
-                    else ->
-                        getGenericError()
+                    else -> getGenericError()
                 }?.let { message -> TopBarManager.showMessage(message) }
                 res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
             }
