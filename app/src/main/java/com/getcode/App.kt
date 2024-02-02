@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.bugsnag.android.Bugsnag
 import com.getcode.manager.AuthManager
 import com.getcode.utils.ErrorUtils
+import com.getcode.view.main.bill.CashBillAssets
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import timber.log.Timber
@@ -19,6 +20,8 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+
+        CashBillAssets.load(this)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 

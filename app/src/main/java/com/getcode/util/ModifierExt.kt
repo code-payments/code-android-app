@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -27,11 +28,13 @@ import androidx.compose.ui.unit.dp
 
 inline fun Modifier.addIf(
     predicate: Boolean,
-    crossinline whenTrue: () -> Modifier,
-): Modifier = if (predicate) {
-    this.then(whenTrue())
-} else {
-    this
+    crossinline whenTrue: @Composable () -> Modifier,
+): Modifier = composed {
+    if (predicate) {
+        this.then(whenTrue())
+    } else {
+        this
+    }
 }
 
 fun Modifier.unboundedClickable(
