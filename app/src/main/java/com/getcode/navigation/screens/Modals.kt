@@ -26,6 +26,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
+import com.getcode.util.keyboardAsState
 import com.getcode.view.components.SheetTitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -144,6 +145,8 @@ data object MainRoot : Screen {
         // TODO: potentially add a loading state here
         //  so app doesn't appear stuck in a dead state
         //  while we wait for auth check to complete
-        Box(modifier = Modifier.fillMaxSize().background(CodeTheme.colors.background))
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(CodeTheme.colors.background))
     }
 }
