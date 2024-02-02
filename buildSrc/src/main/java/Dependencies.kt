@@ -3,7 +3,7 @@ object Android {
     const val minSdkVersion = 22
     const val targetSdkVersion = 33
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    const val buildToolsVersion = "33.0.1"
+    const val buildToolsVersion = "34.0.0"
 }
 
 object Versions {
