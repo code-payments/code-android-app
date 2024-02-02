@@ -45,3 +45,10 @@ object DateUtils {
 
     private fun isYesterday(millis: Long) = DateUtils.isToday(millis + DateUtils.DAY_IN_MILLIS)
 }
+
+fun Long?.toInstantFromMillis() = this?.let { Instant.fromEpochMilliseconds(it) }
+fun Long?.toInstantFromSeconds() = this?.let { Instant.fromEpochSeconds(it) }
+
+fun Instant.formatRelatively(): String {
+    return com.getcode.util.DateUtils.getDateRelatively(toEpochMilliseconds())
+}

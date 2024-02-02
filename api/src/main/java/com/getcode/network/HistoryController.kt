@@ -1,32 +1,30 @@
 package com.getcode.network
 
 import android.annotation.SuppressLint
-import com.codeinc.gen.chat.v1.ChatService.ChatId
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
 import com.getcode.model.HistoricalTransaction
+import com.getcode.model.ID
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchChats
 import com.getcode.network.client.fetchMessagesFor
-import com.getcode.network.client.observeTransactions
-import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.encodeBase64
+import com.getcode.network.source.ChatMessagePagingSource
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.reactive.asFlow
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
@@ -52,6 +50,10 @@ class HistoryController @Inject constructor(
     private val _chats = MutableStateFlow<List<Chat>?>(null)
     val chats: StateFlow<List<Chat>?>
         get() = _chats.asStateFlow()
+
+    fun chatMessagePager(chatId: ID) = Pager(
+        PagingConfig(pageSize = 20)
+    ) { ChatMessagePagingSource(client, owner()!!, chatId) }
 
     val unreadCount = chats
         .filterNotNull()
@@ -93,11 +95,13 @@ class HistoryController @Inject constructor(
 
         val updatedWithMessages= mutableListOf<Chat>()
         containers.onEach { chat ->
-            val result = fetchMessagesForChat(chat.id)
-            result.onSuccess { messages ->
-                    updatedWithMessages.add(chat.copy(messages = messages))
-                }.onFailure {
-                    updatedWithMessages.add(chat)
+            val result = fetchLatestMessageForChat(chat.id)
+            result.onSuccess { message ->
+                if (message != null) {
+                    updatedWithMessages.add(chat.copy(messages = listOf(message)))
+                }
+            }.onFailure {
+                updatedWithMessages.add(chat)
             }
         }
 
@@ -112,6 +116,16 @@ class HistoryController @Inject constructor(
             .onFailure {
                 Timber.e(t = it, "Failed to fetch messages for $encodedId.")
             }
+    }
+
+    private suspend fun fetchLatestMessageForChat(id: List<Byte>): Result<ChatMessage?> {
+        val encodedId = id.toByteArray().encodeBase64()
+        Timber.d("fetching messages for $encodedId")
+        val owner = owner() ?: return Result.success(null)
+        return client.fetchMessagesFor(owner, id, limit = 1)
+            .onFailure {
+                Timber.e(t = it, "Failed to fetch messages for $encodedId.")
+            }.map { it.getOrNull(0) }
     }
 
     private suspend fun fetchChatsWithoutMessages(): List<Chat> {

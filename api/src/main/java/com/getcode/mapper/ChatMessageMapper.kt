@@ -14,8 +14,9 @@ class ChatMessageMapper @Inject constructor(
     override fun map(from: ChatService.ChatMessage): ChatMessage {
         return ChatMessage(
             id = from.messageId.value.toByteArray().toList(),
-            date = from.ts.seconds  * 1_000L,
-            contents = from.contentList.mapNotNull { MessageContent(it) }
+            cursor = from.cursor.value.toList(),
+            dateMillis = from.ts.seconds  * 1_000L,
+            contents = from.contentList.mapNotNull { MessageContent(it) },
         )
     }
 }

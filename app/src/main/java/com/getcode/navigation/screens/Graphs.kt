@@ -53,3 +53,12 @@ data class WithdrawalArgs(
     val currencyRate: Double? = null,
     val resolvedDestination: String? = null,
 ): Parcelable
+
+/**
+ * Nested graph for the on-chain messaging screens (balance)
+ */
+@Parcelize
+internal sealed interface ChatGraph : Screen, Parcelable, NamedScreen {
+
+    fun readResolve(): Any = this
+}

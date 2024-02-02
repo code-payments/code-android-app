@@ -26,11 +26,9 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
-import com.getcode.util.recomposeHighlighter
 import com.getcode.view.components.SheetTitle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 internal interface ModalContent {
 
@@ -44,6 +42,7 @@ internal interface ModalContent {
             displayLogo = false,
             backButton = { false },
             onLogoClicked = {},
+            title = { null },
             closeButton = closeButton,
             screenContent = screenContent,
         )
@@ -53,6 +52,7 @@ internal interface ModalContent {
     fun Screen.ModalContainer(
         displayLogo: Boolean = false,
         onLogoClicked: () -> Unit = { },
+        title: @Composable (Screen?) -> String? = { null },
         closeButton: (Screen?) -> Boolean = { false },
         screenContent: @Composable () -> Unit
     ) {
@@ -60,6 +60,7 @@ internal interface ModalContent {
             navigator = LocalCodeNavigator.current,
             displayLogo = displayLogo,
             backButton = { false },
+            title = title,
             onLogoClicked = onLogoClicked,
             closeButton = closeButton,
             screenContent = screenContent,
@@ -71,6 +72,7 @@ internal interface ModalContent {
     fun Screen.ModalContainer(
         navigator: CodeNavigator = LocalCodeNavigator.current,
         displayLogo: Boolean = false,
+        title: @Composable (Screen?) -> String? = { null },
         backButton: (Screen?) -> Boolean = { false },
         onBackClicked: (() -> Unit)? = null,
         closeButton: (Screen?) -> Boolean = { false },
@@ -98,6 +100,7 @@ internal interface ModalContent {
             val keyboardController = LocalSoftwareKeyboardController.current
             val composeScope = rememberCoroutineScope()
 
+
             val hideSheet = {
                 composeScope.launch {
                     keyboardController?.hide()
@@ -108,11 +111,12 @@ internal interface ModalContent {
             SheetTitle(
                 modifier = Modifier,
                 title = {
-                    val name = (lastItem as? NamedScreen)?.name
+                    val screenName = (lastItem as? NamedScreen)?.name
                     val sheetName by remember(lastItem) {
-                        derivedStateOf { name }
+                        derivedStateOf { screenName }
                     }
-                    sheetName.takeIf { !displayLogo && lastItem == this@ModalContainer }
+                    val name = title(lastItem) ?: sheetName
+                    name.takeIf { !displayLogo && lastItem == this@ModalContainer }
                 },
                 displayLogo = displayLogo,
                 onLogoClicked = onLogoClicked,
@@ -147,6 +151,8 @@ data object MainRoot : Screen {
         // TODO: potentially add a loading state here
         //  so app doesn't appear stuck in a dead state
         //  while we wait for auth check to complete
-        Box(modifier = Modifier.fillMaxSize().background(CodeTheme.colors.background))
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(CodeTheme.colors.background))
     }
 }

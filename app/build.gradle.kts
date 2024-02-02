@@ -117,6 +117,7 @@ dependencies {
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)
+    implementation(Libs.androidx_lifecycle_viewmodel)
     implementation(Libs.androidx_navigation_fragment)
     implementation(Libs.androidx_navigation_ui)
 
@@ -143,6 +144,8 @@ dependencies {
     implementation(Libs.compose_view_models)
     implementation(Libs.compose_livedata)
     implementation(Libs.compose_navigation)
+    implementation(Libs.compose_paging)
+
     implementation(Libs.androidx_constraint_layout_compose)
 
     implementation(Libs.compose_voyager_navigation)

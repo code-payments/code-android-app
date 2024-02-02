@@ -131,56 +131,6 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
 }
 
 @Parcelize
-data object BalanceModal : MainGraph, ModalRoot {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-
-    override val name: String
-        @Composable get() = stringResource(id = R.string.title_balance)
-
-    @Composable
-    override fun Content() {
-        val navigator = LocalCodeNavigator.current
-
-        val viewModel = getActivityScopedViewModel<BalanceSheetViewModel>()
-        val state by viewModel.stateFlow.collectAsState()
-        val isViewingBuckets by remember(state.isDebugBucketsVisible) {
-            derivedStateOf { state.isDebugBucketsVisible }
-        }
-
-        ModalContainer(
-            navigator = navigator,
-            onLogoClicked = {},
-            backButton = { isViewingBuckets },
-            onBackClicked = isViewingBuckets.takeIf { it }?.let {
-                {
-                    viewModel.dispatchEvent(
-                        BalanceSheetViewModel.Event.OnDebugBucketsVisible(false)
-                    )
-                }
-            },
-            closeButton = close@{
-                if (viewModel.stateFlow.value.isDebugBucketsVisible) return@close false
-                if (navigator.isVisible) {
-                    it is BalanceModal
-                } else {
-                    navigator.progress > 0f
-                }
-            },
-            onCloseClicked = null,
-        ) {
-            BalanceSheet(state = state, dispatch = viewModel::dispatchEvent)
-        }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Balance
-        )
-    }
-}
-
-@Parcelize
 data object AccountModal : MainGraph, ModalRoot {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -191,6 +141,7 @@ data object AccountModal : MainGraph, ModalRoot {
         val viewModel = getActivityScopedViewModel<AccountSheetViewModel>()
         ModalContainer(
             displayLogo = true,
+            title = { null },
             onLogoClicked = { viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked) },
             closeButton = {
                 if (navigator.isVisible) {

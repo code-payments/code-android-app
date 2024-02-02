@@ -6,6 +6,7 @@ import com.getcode.mapper.ChatMessageMapper
 import com.getcode.mapper.ChatMetadataMapper
 import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
+import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.network.api.ChatApi
 import com.getcode.network.core.NetworkOracle
@@ -58,8 +59,8 @@ class ChatService @Inject constructor(
         return observeChats(owner).first()
     }
 
-    suspend fun fetchMessagesFor(owner: KeyPair, chatId: ID): Result<List<ChatMessage>> {
-        return networkOracle.managedRequest(api.fetchChatMessages(owner, chatId))
+    suspend fun fetchMessagesFor(owner: KeyPair, chatId: ID, cursor: Cursor? = null, limit: Int? = null): Result<List<ChatMessage>> {
+        return networkOracle.managedRequest(api.fetchChatMessages(owner, chatId, cursor, limit))
             .map { response ->
                 when (response.result) {
                     ChatService.GetMessagesResponse.Result.OK -> {

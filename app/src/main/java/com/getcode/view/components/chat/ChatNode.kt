@@ -31,6 +31,7 @@ import com.getcode.util.DateUtils
 import com.getcode.util.Kin
 import com.getcode.util.formatted
 import com.getcode.utils.FormatUtils
+import com.getcode.view.components.Badge
 import java.util.Locale
 
 object ChatNodeDefaults {
@@ -74,6 +75,7 @@ fun ChatNode(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
+                modifier = Modifier.weight(1f),
                 text = chat.messagePreview,
                 style = CodeTheme.typography.body1,
                 color = CodeTheme.colors.brandLight,
@@ -82,16 +84,9 @@ fun ChatNode(
                 overflow = TextOverflow.Ellipsis
             )
             AnimatedVisibility(visible = hasUnreadMessages) {
-                Text(
-                    modifier = Modifier
-                        .background(
-                            color = ChatNodeDefaults.UnreadIndicator,
-                            shape = CircleShape
-                        )
-                        .padding(CodeTheme.dimens.staticGrid.x1),
-                    text = chat.unreadCount.toString(),
-                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W700),
-                    color = Color.White
+                Badge(
+                    count = chat.unreadCount,
+                    color = ChatNodeDefaults.UnreadIndicator
                 )
             }
         }
@@ -101,25 +96,28 @@ fun ChatNode(
 
 private val Chat.localizedTitle: String
     @Composable get() {
-        return when (val t = title) {
-            is Title.Domain -> {
-                t.value.capitalize(Locale.getDefault())
-            }
+        return title.localized
+    }
 
-            is Title.Localized -> {
-                with(LocalContext.current) {
-                    val resId = resources.getIdentifier(
-                        t.value,
-                        "string",
-                        BuildConfig.APPLICATION_ID
-                    ).let { if (it == 0) null else it }
-
-                    resId?.let { getString(it) }.orEmpty()
-                }
-            }
-
-            else -> "Anonymous"
+val Title?.localized: String
+    @Composable get() = when (val t = this) {
+        is Title.Domain -> {
+            t.value.capitalize(Locale.getDefault())
         }
+
+        is Title.Localized -> {
+            with(LocalContext.current) {
+                val resId = resources.getIdentifier(
+                    t.value,
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+
+                resId?.let { getString(it) }.orEmpty()
+            }
+        }
+
+        else -> "Anonymous"
     }
 
 private val Chat.messagePreview: String
@@ -134,7 +132,7 @@ private val Chat.messagePreview: String
         return filtered.map { it.localizedText }.joinToString(" ")
     }
 
-private val MessageContent.localizedText: String
+val MessageContent.localizedText: String
     @Composable get() {
         return when (val content = this) {
             is MessageContent.Exchange -> {

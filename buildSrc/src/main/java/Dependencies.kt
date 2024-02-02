@@ -12,7 +12,7 @@ object Versions {
     const val kotlinx_coroutines = "1.7.3"
     const val kotlinx_serialization = "1.6.2"
     const val kotlinx_datetime = "0.5.0"
-    const val android_gradle_build_tools = "8.1.0"
+    const val android_gradle_build_tools = "8.2.2"
     const val google_services = "4.3.15"
 
     const val androidx_core = "1.12.0"
@@ -20,7 +20,6 @@ object Versions {
     const val androidx_lifecycle = "2.6.2"
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
-    const val androidx_material = "1.5.0"
     const val androidx_paging = "3.2.1"
     const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
@@ -87,7 +86,6 @@ object Plugins {
     const val androidx_navigation_safeargs = "androidx.navigation.safeargs.kotlin"
     const val kotlin_android = "kotlin-android"
     const val kotlin_parcelize = "kotlin-parcelize"
-    const val kotlin_jvm = "org.jetbrains.kotlin.jvm"
     const val kotlin_kapt = "kotlin-kapt"
     const val kotlin_serialization = "org.jetbrains.kotlin.plugin.serialization"
     const val hilt = "dagger.hilt.android.plugin"
@@ -139,7 +137,7 @@ object Libs {
 
     const val androidx_constraint_layout_compose =
         "androidx.constraintlayout:constraintlayout-compose:1.0.1"
-    //const val androidx_lifecycle_compose = androidx.lifecycle-viewmodel-compose:${Versions.androidx_lifecycle}"
+    const val androidx_lifecycle_viewmodel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.androidx_lifecycle}"
 
     const val compose_bom = "androidx.compose:compose-bom:${Versions.compose}"
     const val compose_ui = "androidx.compose.ui:ui"

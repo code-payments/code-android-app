@@ -2,9 +2,6 @@ package com.getcode.model
 
 import com.codeinc.gen.chat.v1.ChatService
 import com.codeinc.gen.chat.v1.ChatService.Content
-import java.time.Instant
-import java.util.Date
-import java.util.Locale
 
 typealias ID = List<Byte>
 typealias Cursor = List<Byte>
@@ -43,7 +40,7 @@ data class Chat(
     fun toggleMute() = copy(isMuted = !isMuted)
 
     val lastMessageMillis: Long?
-        get() = messages.maxOfOrNull { it.date }
+        get() = messages.maxOfOrNull { it.dateMillis }
 }
 
 sealed interface Pointer {
@@ -113,7 +110,8 @@ sealed interface Verb {
 
 data class ChatMessage(
     val id: ID,
-    val date: Long,
+    val cursor: Cursor?,
+    val dateMillis: Long,
     val contents: List<MessageContent>
 )
 

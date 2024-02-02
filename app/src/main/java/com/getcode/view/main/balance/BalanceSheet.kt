@@ -54,10 +54,12 @@ import com.getcode.data.transactions.HistoricalTransactionUiModel
 import com.getcode.model.AirdropType
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
+import com.getcode.model.ID
 import com.getcode.model.PaymentType
 import com.getcode.model.Rate
 import com.getcode.model.Title
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ChatScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -101,7 +103,8 @@ fun BalanceSheet(
                 state = state,
                 dispatch = dispatch,
                 upPress = { navigator.hide() },
-                faqOpen = { navigator.push(FaqScreen) }
+                faqOpen = { navigator.push(FaqScreen) },
+                openChat = { navigator.push(ChatScreen(it)) }
             )
         }
     }
@@ -112,7 +115,8 @@ fun BalanceContent(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
     upPress: () -> Unit,
-    faqOpen: () -> Unit
+    faqOpen: () -> Unit,
+    openChat: (ID) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
 
@@ -154,9 +158,7 @@ fun BalanceContent(
             state.chats,
             key = { _, item -> item.id },
             contentType = { _, item -> item }) { index, event ->
-            ChatNode(chat = event) {
-
-            }
+            ChatNode(chat = event, onClick = { openChat(event.id) })
             if (index < state.chats.lastIndex) {
                 Divider(
                     modifier = Modifier.padding(start = CodeTheme.dimens.inset),
