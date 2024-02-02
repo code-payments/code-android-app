@@ -26,6 +26,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.sheetHeight
+import com.getcode.util.keyboardAsState
 import com.getcode.util.recomposeHighlighter
 import com.getcode.view.components.SheetTitle
 import kotlinx.coroutines.delay
@@ -98,13 +99,18 @@ internal interface ModalContent {
             val keyboardController = LocalSoftwareKeyboardController.current
             val composeScope = rememberCoroutineScope()
 
+            val keyboardVisible by keyboardAsState()
+
             val hideSheet = {
                 composeScope.launch {
-                    keyboardController?.hide()
-                    delay(500)
+                    if (keyboardVisible) {
+                        keyboardController?.hide()
+                        delay(500)
+                    }
                     navigator.hide()
                 }
             }
+
             SheetTitle(
                 modifier = Modifier,
                 title = {
