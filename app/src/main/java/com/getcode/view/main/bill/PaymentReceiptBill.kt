@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ProvideTextStyle
@@ -29,9 +27,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import com.getcode.R
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
@@ -39,7 +34,6 @@ import com.getcode.theme.DashEffect
 import com.getcode.theme.receipt
 import com.getcode.theme.withRobotoMono
 import com.getcode.view.main.home.components.PriceWithFlag
-import com.kik.kikx.kincodes.KikCodeContentView
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -69,28 +63,12 @@ internal fun Receipt(
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x5)
         ) {
             if (data.isNotEmpty()) {
-                BoxWithConstraints(
+                ScannableCode(
                     modifier = Modifier
                         .size(codeSize)
                         .background(CodeTheme.colors.brandMuted, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AndroidView(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        factory = { context ->
-                            KikCodeContentView(context).apply {
-                                this.logo =
-                                    ContextCompat.getDrawable(
-                                        context,
-                                        R.drawable.ic_logo_round_white
-                                    )
-                                this.encodedKikCode = data.toByteArray()
-                            }
-                        },
-                        update = { }
-                    )
-                }
+                    data = data
+                )
             }
 
             if (currencyCode != null) {
