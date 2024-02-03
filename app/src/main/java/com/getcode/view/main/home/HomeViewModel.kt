@@ -658,9 +658,14 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
+        val paymentRendezous = uiFlow.value.billState.paymentConfirmation
         val bill = uiFlow.value.billState.bill ?: return
         val amount = bill.amount
         val request = bill.metadata.request
+
+        paymentRendezous?.let {
+            scannedRendezvous.remove(it.payload.rendezvous.publicKey)
+        }
 
         analytics.requestHidden(amount = amount)
 

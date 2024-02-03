@@ -26,26 +26,22 @@ fun OtpBox(
 ) {
 
     val height = when (CodeTheme.dimens.heightWindowSizeClass) {
-        WindowSizeClass.COMPACT -> 45
-        else -> 60
-    }
-    val width = when (CodeTheme.dimens.widthWindowSizeClass) {
-        WindowSizeClass.COMPACT -> 30
-        else -> 42
+        WindowSizeClass.COMPACT -> CodeTheme.dimens.grid.x9
+        else -> CodeTheme.dimens.grid.x11
     }
 
     Box(
         modifier = modifier
             .padding(CodeTheme.dimens.grid.x1)
-            .height(height.dp)
-            .width(width.dp)
+            .height(height)
+            .width(CodeTheme.dimens.grid.x7)
             .clip(CodeTheme.shapes.small)
             .rememberedClickable(onClick = onClick)
             .border(
                 border = if (isHighlighted)
-                    BorderStroke(CodeTheme.dimens.thickBorder, color = BrandLight.copy(alpha = 0.8f))
+                    BorderStroke(CodeTheme.dimens.thickBorder, color = BrandLight.copy(alpha = 0.7f))
                 else
-                    BorderStroke(CodeTheme.dimens.border, color = BrandLight.copy(alpha = 0.4f)),
+                    BorderStroke(CodeTheme.dimens.border, color = BrandLight.copy(alpha = 0.3f)),
                 shape = CodeTheme.shapes.small
             )
             .background(Color.White.copy(alpha = 0.1f)),

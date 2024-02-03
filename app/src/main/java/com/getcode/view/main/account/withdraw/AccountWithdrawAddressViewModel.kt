@@ -3,6 +3,11 @@ package com.getcode.view.main.account.withdraw
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
 import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.text2.input.TextFieldState
+import androidx.compose.foundation.text2.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.text2.input.textAsFlow
+import androidx.lifecycle.viewModelScope
 import com.getcode.App
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
@@ -20,12 +25,20 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.kin.sdk.base.tools.Base58
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(ExperimentalFoundationApi::class)
 data class AccountWithdrawAddressUiModel(
-    val addressText: String = "",
+    val addressText: TextFieldState = TextFieldState(""),
     val isPasteEnabled: Boolean = false,
     val isNextEnabled: Boolean = false,
     val isValid: Boolean? = null,
@@ -34,6 +47,7 @@ data class AccountWithdrawAddressUiModel(
 )
 
 @HiltViewModel
+@OptIn(ExperimentalFoundationApi::class)
 class AccountWithdrawAddressViewModel @Inject constructor(
     private val client: Client,
     private val clipboard: ClipboardManager,
@@ -41,6 +55,15 @@ class AccountWithdrawAddressViewModel @Inject constructor(
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawAddressUiModel())
 
+
+    init {
+        uiFlow.map { it.addressText }
+            .flatMapLatest { it.textAsFlow() }
+            .map { it.toString() }
+            .debounce(300.milliseconds)
+            .onEach { updated -> setAddress(updated) }
+            .launchIn(viewModelScope)
+    }
     private fun getClipboardValue(): String {
         return clipboard.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
     }
@@ -64,33 +87,24 @@ class AccountWithdrawAddressViewModel @Inject constructor(
     }
 
     fun pasteAddress() {
-        uiFlow.value = uiFlow.value.copy(isPasteEnabled = false)
-
         val addressText = getClipboardValue()
         if (isAddressValid(addressText)) {
             setAddress(addressText)
         }
     }
 
-    fun setAddress(addressText: String) {
+    private fun setAddress(text: String) {
         val publicKey: PublicKey? = try {
-            val decoded = Base58.decode(addressText)
+            val decoded = Base58.decode(text)
             val isValid = decoded.size == 32
             if (isValid) PublicKey(decoded.toList()) else null
         } catch (e: Exception) {
             null
         }
-        val isChanged = addressText != uiFlow.value.addressText
 
-        if (isChanged) {
-            uiFlow.value = uiFlow.value.copy(
-                addressText = addressText.replace("\n", ""),
-                isValid = null,
-                isNextEnabled = false
-            )
-        }
+        uiFlow.value.addressText.setTextAndPlaceCursorAtEnd(text)
 
-        if (publicKey != null && isChanged) {
+        if (publicKey != null) {
             getDestinationMetaData(publicKey)
         }
     }

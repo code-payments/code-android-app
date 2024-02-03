@@ -25,121 +25,119 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.sheetHeight
 import com.getcode.view.components.SheetTitle
+import com.getcode.view.components.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-internal interface ModalContent {
 
-    @Composable
-    fun Screen.ModalContainer(
-        closeButton: (Screen?) -> Boolean = { false },
-        screenContent: @Composable () -> Unit
+@Composable
+internal fun Screen.ModalContainer(
+    closeButton: (Screen?) -> Boolean = { false },
+    screenContent: @Composable () -> Unit
+) {
+    ModalContainer(
+        navigator = LocalCodeNavigator.current,
+        displayLogo = false,
+        backButton = { false },
+        onLogoClicked = {},
+        closeButton = closeButton,
+        screenContent = screenContent,
+    )
+}
+
+@Composable
+internal fun Screen.ModalContainer(
+    displayLogo: Boolean = false,
+    onLogoClicked: () -> Unit = { },
+    closeButton: (Screen?) -> Boolean = { false },
+    screenContent: @Composable () -> Unit
+) {
+    ModalContainer(
+        navigator = LocalCodeNavigator.current,
+        displayLogo = displayLogo,
+        backButton = { false },
+        onLogoClicked = onLogoClicked,
+        closeButton = closeButton,
+        screenContent = screenContent,
+    )
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun Screen.ModalContainer(
+    navigator: CodeNavigator = LocalCodeNavigator.current,
+    displayLogo: Boolean = false,
+    title: @Composable (Screen?) -> String? = { null },
+    backButton: (Screen?) -> Boolean = { false },
+    onBackClicked: (() -> Unit)? = null,
+    closeButton: (Screen?) -> Boolean = { false },
+    onCloseClicked: (() -> Unit)? = null,
+    onLogoClicked: () -> Unit = { },
+    screenContent: @Composable () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
     ) {
-        ModalContainer(
-            navigator = LocalCodeNavigator.current,
-            displayLogo = false,
-            backButton = { false },
-            onLogoClicked = {},
-            title = { null },
-            closeButton = closeButton,
-            screenContent = screenContent,
-        )
-    }
+        val lastItem by remember(navigator.lastModalItem) {
+            derivedStateOf { navigator.lastModalItem }
+        }
 
-    @Composable
-    fun Screen.ModalContainer(
-        displayLogo: Boolean = false,
-        onLogoClicked: () -> Unit = { },
-        title: @Composable (Screen?) -> String? = { null },
-        closeButton: (Screen?) -> Boolean = { false },
-        screenContent: @Composable () -> Unit
-    ) {
-        ModalContainer(
-            navigator = LocalCodeNavigator.current,
-            displayLogo = displayLogo,
-            backButton = { false },
-            title = title,
-            onLogoClicked = onLogoClicked,
-            closeButton = closeButton,
-            screenContent = screenContent,
-        )
-    }
+        val isBackEnabled by remember(backButton, lastItem) {
+            derivedStateOf { backButton(lastItem) }
+        }
 
-    @OptIn(ExperimentalFoundationApi::class)
-    @Composable
-    fun Screen.ModalContainer(
-        navigator: CodeNavigator = LocalCodeNavigator.current,
-        displayLogo: Boolean = false,
-        title: @Composable (Screen?) -> String? = { null },
-        backButton: (Screen?) -> Boolean = { false },
-        onBackClicked: (() -> Unit)? = null,
-        closeButton: (Screen?) -> Boolean = { false },
-        onCloseClicked: (() -> Unit)? = null,
-        onLogoClicked: () -> Unit = { },
-        screenContent: @Composable () -> Unit
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(sheetHeight)
-        ) {
-            val lastItem by remember(navigator.lastModalItem) {
-                derivedStateOf { navigator.lastModalItem }
-            }
+        val isCloseEnabled by remember(closeButton, lastItem) {
+            derivedStateOf { closeButton(lastItem) }
+        }
 
-            val isBackEnabled by remember(backButton, lastItem) {
-                derivedStateOf { backButton(lastItem) }
-            }
+        val keyboardVisible by keyboardAsState()
+        val keyboardController = LocalSoftwareKeyboardController.current
+        val composeScope = rememberCoroutineScope()
 
-            val isCloseEnabled by remember(closeButton, lastItem) {
-                derivedStateOf { closeButton(lastItem) }
-            }
-
-            val keyboardController = LocalSoftwareKeyboardController.current
-            val composeScope = rememberCoroutineScope()
-
-
-            val hideSheet = {
-                composeScope.launch {
+        val hideSheet = {
+            composeScope.launch {
+                if (keyboardVisible) {
                     keyboardController?.hide()
                     delay(500)
-                    navigator.hide()
                 }
+                navigator.hide()
             }
-            SheetTitle(
-                modifier = Modifier,
-                title = {
-                    val screenName = (lastItem as? NamedScreen)?.name
-                    val sheetName by remember(lastItem) {
-                        derivedStateOf { screenName }
-                    }
-                    val name = title(lastItem) ?: sheetName
-                    name.takeIf { !displayLogo && lastItem == this@ModalContainer }
-                },
-                displayLogo = displayLogo,
-                onLogoClicked = onLogoClicked,
-                // hide while transitioning to/from other destinations
-                backButton = isBackEnabled,
-                closeButton = isCloseEnabled,
-                onBackIconClicked = onBackClicked?.let { { it() } } ?: { navigator.pop() },
-                onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { hideSheet() }
-            )
-            Box(
-                modifier = Modifier
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-            ) {
-                CompositionLocalProvider(
-                    LocalOverscrollConfiguration provides null
-                ) {
-                    screenContent()
+        }
+        SheetTitle(
+            modifier = Modifier,
+            title = {
+                val screenName = (lastItem as? NamedScreen)?.name
+                val sheetName by remember(lastItem) {
+                    derivedStateOf { screenName }
                 }
+                val name = title(lastItem) ?: sheetName
+                name.takeIf { !displayLogo && lastItem == this@ModalContainer }
+            },
+            displayLogo = displayLogo,
+            onLogoClicked = onLogoClicked,
+            // hide while transitioning to/from other destinations
+            backButton = isBackEnabled,
+            closeButton = isCloseEnabled,
+            onBackIconClicked = onBackClicked?.let { { it() } } ?: { navigator.pop() },
+            onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { hideSheet() }
+        )
+        Box(
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.navigationBars)
+        ) {
+            CompositionLocalProvider(
+                LocalOverscrollConfiguration provides null
+            ) {
+                screenContent()
             }
         }
     }
 }
 
+internal interface ModalContent
 internal sealed interface ModalRoot : ModalContent
 
 data object MainRoot : Screen {

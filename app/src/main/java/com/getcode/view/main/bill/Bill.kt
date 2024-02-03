@@ -22,9 +22,7 @@ fun Bill(
 ) {
     when (bill) {
         is Bill.Cash -> CashBill(
-            modifier = Modifier
-                .padding(bottom = CodeTheme.dimens.inset)
-                .then(modifier),
+            modifier = modifier,
             payloadData = bill.data,
             amount = bill.amount
         )

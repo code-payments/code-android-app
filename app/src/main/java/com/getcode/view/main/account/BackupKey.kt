@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,6 +57,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.util.IntentUtils
+import com.getcode.util.debugBounds
 import com.getcode.util.measured
 import com.getcode.util.rememberedClickable
 import com.getcode.util.rememberedLongClickable
@@ -140,22 +142,19 @@ fun BackupKey(
     ) {
         Cloudy(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(vertical = CodeTheme.dimens.grid.x4),
+                .fillMaxSize(),
             enabled = selectionState.shown
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(
-                        horizontal = CodeTheme.dimens.inset,
-                        vertical = CodeTheme.dimens.grid.x4
-                    )
+                    .padding(horizontal = CodeTheme.dimens.inset,)
+                    .padding(vertical = CodeTheme.dimens.grid.x4),
             )  {
                 Text(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(vertical = CodeTheme.dimens.grid.x2)
+                        .padding(bottom = CodeTheme.dimens.grid.x2)
                         .measured { textHeight = it.height },
                     style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                     color = BrandLight,
@@ -166,7 +165,7 @@ fun BackupKey(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .measured { buttonHeight = it.height }
+                        .measured { buttonHeight = it.height },
                 ) {
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
@@ -184,7 +183,10 @@ fun BackupKey(
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
+                // highly specific aspect ratio from iOS :)
+                .aspectRatio(0.607f, matchHeightConstraintsFirst = true)
                 .fillMaxHeight()
+                .padding(vertical = CodeTheme.dimens.grid.x4)
                 .padding(top = textHeight)
                 .padding(bottom = buttonHeight),
             verticalArrangement = Arrangement.Center,
