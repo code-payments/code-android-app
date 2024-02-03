@@ -4,6 +4,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
@@ -16,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -33,6 +35,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.util.getActivity
 import com.getcode.util.getActivityScopedViewModel
+import com.getcode.util.measured
 import com.getcode.view.components.AuthCheck
 import com.getcode.view.components.BottomBarContainer
 import com.getcode.view.components.CodeScaffold
@@ -63,29 +66,38 @@ fun CodeApp() {
                         codeNavigator.screensNavigator = navigator
                     }
 
+                    var topBarHeight by remember {
+                        mutableStateOf(0.dp)
+                    }
                     val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
                     if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
                         TitleBar(
+                            modifier = Modifier.measured { topBarHeight = it.height },
                             title = appState.currentTitle,
                             backButton = isVisibleBackButton,
                             onBackIconClicked = appState::upPress
                         )
+                    } else {
+                        topBarHeight = 0.dp
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .padding(innerPaddingModifier)
-                    ) {
-                        when (navigator.lastEvent) {
-                            StackEvent.Push,
-                            StackEvent.Pop -> {
-                                when (navigator.lastItem) {
-                                    is LoginScreen, is MainRoot -> CrossfadeTransition(navigator = navigator)
-                                    else -> SlideTransition(navigator = navigator)
+                    CompositionLocalProvider(value = LocalTopBarPadding provides PaddingValues(top = topBarHeight)) {
+                        Box(
+                            modifier = Modifier
+                                .padding(innerPaddingModifier)
+                        ) {
+                            when (navigator.lastEvent) {
+                                StackEvent.Push,
+                                StackEvent.Pop -> {
+                                    when (navigator.lastItem) {
+                                        is LoginScreen, is MainRoot -> CrossfadeTransition(navigator = navigator)
+                                        else -> SlideTransition(navigator = navigator)
+                                    }
                                 }
+
+                                StackEvent.Idle,
+                                StackEvent.Replace -> CurrentScreen()
                             }
-                            StackEvent.Idle,
-                            StackEvent.Replace -> CurrentScreen()
                         }
                     }
 
