@@ -10,7 +10,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.sheetHeight
 import com.getcode.view.components.PermissionCheck
 import com.getcode.view.components.SheetTitle
 import com.getcode.view.components.getPermissionLauncher
@@ -38,7 +37,7 @@ fun InvitesSheet(upPress: () -> Unit = {}) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(sheetHeight)
+            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
             .padding(horizontal = CodeTheme.dimens.inset)
     ) {
         Column {

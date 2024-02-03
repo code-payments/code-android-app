@@ -1,5 +1,6 @@
 package com.getcode
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.analytics.AnalyticsService
@@ -15,3 +16,4 @@ val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener
 val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }
 val LocalCurrencyUtils: ProvidableCompositionLocal<CurrencyUtils?> = staticCompositionLocalOf { null }
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
+val LocalTopBarPadding: ProvidableCompositionLocal<PaddingValues> = staticCompositionLocalOf { PaddingValues() }
