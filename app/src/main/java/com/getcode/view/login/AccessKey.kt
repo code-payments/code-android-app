@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -47,6 +48,7 @@ import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.LocalTopBarPadding
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
@@ -57,6 +59,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.util.IntentUtils
 import com.getcode.util.addIf
+import com.getcode.util.debugBounds
 import com.getcode.util.measured
 import com.getcode.util.swallowClicks
 import com.getcode.view.components.AccessKeySelectionContainer
@@ -135,10 +138,6 @@ fun AccessKey(
         words = dataState.words.joinToString(" ")
     )
 
-    var textHeight by remember {
-        mutableStateOf(0.dp)
-    }
-
     AccessKeySelectionContainer(
         modifier = Modifier
             .fillMaxSize()
@@ -154,7 +153,8 @@ fun AccessKey(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(vertical = CodeTheme.dimens.grid.x4),
+                    .padding(vertical = CodeTheme.dimens.grid.x4)
+                    .measured { buttonHeight = it.height },
             ) {
                 Column(modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -199,25 +199,36 @@ fun AccessKey(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxHeight()
-                .padding(bottom = buttonHeight)
-            ,
-            verticalArrangement = Arrangement.Center,
+                .padding(LocalTopBarPadding.current)
+                .padding(bottom = buttonHeight + CodeTheme.dimens.grid.x4),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AnimatedVisibility(
-                visibleState = isAccessKeyVisible,
-                enter = fadeIn(animationSpec = tween(300, 0)),
-                exit = fadeOut(animationSpec = tween(300, 0))
+            Column(
+                modifier = Modifier
+                    // highly specific aspect ratio from iOS :)
+                    .aspectRatio(0.607f, matchHeightConstraintsFirst = true)
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                dataState.accessKeyCroppedBitmap?.let { bitmap ->
-                    Image(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .scale(selectionState.scale.value),
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = dataState.wordsFormatted,
-                    )
+                AnimatedVisibility(
+                    visibleState = isAccessKeyVisible,
+                    enter = fadeIn(animationSpec = tween(300, 0)),
+                    exit = fadeOut(animationSpec = tween(300, 0))
+                ) {
+                    dataState.accessKeyCroppedBitmap?.let { bitmap ->
+                        Image(
+                            modifier = Modifier
+                                .aspectRatio(0.607f, matchHeightConstraintsFirst = true)
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .scale(selectionState.scale.value),
+                            bitmap = bitmap.asImageBitmap(),
+                            contentScale = ContentScale.Crop,
+                            contentDescription = dataState.wordsFormatted,
+                        )
+                    }
                 }
             }
 

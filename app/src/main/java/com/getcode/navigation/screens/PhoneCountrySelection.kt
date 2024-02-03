@@ -57,7 +57,7 @@ private fun PhoneCountrySelection(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
                             .padding(start = CodeTheme.dimens.inset)
-                            .size(CodeTheme.dimens.staticGrid.x5)
+                            .size(CodeTheme.dimens.grid.x5)
                             .clip(CodeTheme.shapes.large),
                         painter = painterResource(id = resId),
                         contentDescription = ""

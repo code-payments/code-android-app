@@ -25,9 +25,8 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.sheetHeight
-import com.getcode.util.keyboardAsState
 import com.getcode.view.components.SheetTitle
+import com.getcode.view.components.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -79,7 +78,7 @@ internal fun Screen.ModalContainer(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(sheetHeight)
+            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
     ) {
         val lastItem by remember(navigator.lastModalItem) {
             derivedStateOf { navigator.lastModalItem }
@@ -93,13 +92,16 @@ internal fun Screen.ModalContainer(
             derivedStateOf { closeButton(lastItem) }
         }
 
+        val keyboardVisible by keyboardAsState()
         val keyboardController = LocalSoftwareKeyboardController.current
         val composeScope = rememberCoroutineScope()
 
         val hideSheet = {
             composeScope.launch {
-                keyboardController?.hide()
-                delay(500)
+                if (keyboardVisible) {
+                    keyboardController?.hide()
+                    delay(500)
+                }
                 navigator.hide()
             }
         }

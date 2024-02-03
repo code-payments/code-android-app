@@ -26,15 +26,15 @@ fun OtpBox(
 ) {
 
     val height = when (CodeTheme.dimens.heightWindowSizeClass) {
-        WindowSizeClass.COMPACT -> CodeTheme.dimens.staticGrid.x9
-        else -> CodeTheme.dimens.staticGrid.x11
+        WindowSizeClass.COMPACT -> CodeTheme.dimens.grid.x9
+        else -> CodeTheme.dimens.grid.x11
     }
 
     Box(
         modifier = modifier
             .padding(CodeTheme.dimens.grid.x1)
             .height(height)
-            .width(CodeTheme.dimens.staticGrid.x7)
+            .width(CodeTheme.dimens.grid.x7)
             .clip(CodeTheme.shapes.small)
             .rememberedClickable(onClick = onClick)
             .border(
