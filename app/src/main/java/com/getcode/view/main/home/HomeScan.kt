@@ -258,7 +258,7 @@ private fun HomeScan(
 
     LaunchedEffect(navigator.isVisible) {
         if (!navigator.isVisible) {
-            startScanPreview()
+            kikCodeScannerView?.let(homeViewModel::startScan)
         } else {
             homeViewModel.stopScan()
         }
