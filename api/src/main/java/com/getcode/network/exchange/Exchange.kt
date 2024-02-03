@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
@@ -26,21 +27,63 @@ import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.minutes
 
-class Exchange @Inject constructor(
+interface Exchange {
+    val localRate: Rate
+    fun observeLocalRate(): Flow<Rate>
+
+    fun rates(): Map<CurrencyCode, Rate>
+    fun observeRates(): Flow<Map<CurrencyCode, Rate>>
+
+    suspend fun fetchRatesIfNeeded()
+
+    fun rateFor(currencyCode: CurrencyCode): Rate?
+
+    fun rateForUsd(): Rate?
+}
+
+class ExchangeNull: Exchange {
+    override val localRate: Rate
+        get() = Rate.oneToOne
+
+    override fun observeLocalRate(): Flow<Rate> {
+        return emptyFlow()
+    }
+
+    override fun rates(): Map<CurrencyCode, Rate> {
+        return emptyMap()
+    }
+
+    override fun observeRates(): Flow<Map<CurrencyCode, Rate>> {
+        return emptyFlow()
+    }
+
+    override suspend fun fetchRatesIfNeeded() = Unit
+
+    override fun rateFor(currencyCode: CurrencyCode): Rate? {
+        return null
+    }
+
+    override fun rateForUsd(): Rate? {
+        return null
+    }
+
+}
+
+class CodeExchange @Inject constructor(
     private val currencyApi: CurrencyApi,
     private val networkOracle: NetworkOracle,
     private val defaultCurrency: () -> Currency?,
-): CoroutineScope by CoroutineScope(Dispatchers.IO) {
+): Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val db = Database.getInstance()
 
     private var entryRate: Rate = Rate.oneToOne
 
     private val _localRate = MutableStateFlow(Rate.oneToOne)
-    val localRate
+    override val localRate
         get() = _localRate.value
 
-    fun observeLocalRate(): Flow<Rate> = _localRate
+    override fun observeLocalRate(): Flow<Rate> = _localRate
 
     private var rateDate: Long = System.currentTimeMillis()
 
@@ -53,8 +96,8 @@ class Exchange @Inject constructor(
             _rates.value = value.rates
         }
 
-    fun rates() = rates.rates
-    fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
+    override fun rates() = rates.rates
+    override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
 
     private val isStale: Boolean
         get() {
@@ -78,7 +121,7 @@ class Exchange @Inject constructor(
         }
     }
 
-    suspend fun fetchRatesIfNeeded() {
+    override suspend fun fetchRatesIfNeeded() {
         if (isStale) {
             runCatching { fetchExchangeRates() }
                 .onSuccess { (updatedRates, date) ->
@@ -90,7 +133,7 @@ class Exchange @Inject constructor(
         }
     }
 
-    fun set(currency: CurrencyCode) {
+    private fun set(currency: CurrencyCode) {
         entryCurrency = currency
         updateRates()
     }
@@ -113,9 +156,9 @@ class Exchange @Inject constructor(
         entryCurrency = CurrencyCode.tryValueOf(localRegionCurrency.code)
     }
 
-    fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
+    override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
 
-    fun rateForUsd(): Rate? = rates.rateForUsd()
+    override fun rateForUsd(): Rate? = rates.rateForUsd()
 
     private fun updateRates() {
         if (rates.isEmpty) {

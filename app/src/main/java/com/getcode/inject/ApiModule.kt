@@ -14,6 +14,7 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.core.NetworkOracleImpl
+import com.getcode.network.exchange.CodeExchange
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
@@ -147,7 +148,7 @@ object ApiModule {
         currencyApi: CurrencyApi,
         networkOracle: NetworkOracle,
         locale: LocaleHelper
-    ) = Exchange(currencyApi, networkOracle) {
+    ): Exchange = CodeExchange(currencyApi, networkOracle) {
         locale.getDefaultCurrency()
     }
 

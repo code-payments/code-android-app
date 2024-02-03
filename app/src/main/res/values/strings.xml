@@ -294,5 +294,13 @@
     <string name="title_chat_codeTeam">Code Team</string>
     <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
     <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
-
+    <string name="subtitle_verb_gave">You gave</string>
+    <string name="subtitle_verb_received">You received</string>
+    <string name="subtitle_verb_withdrew">You withdrew</string>
+    <string name="subtitle_verb_deposited">You deposited</string>
+    <string name="subtitle_verb_sent">You sent</string>
+    <string name="subtitle_verb_returned">You returned</string>
+    <string name="subtitle_verb_spent">You spent</string>
+    <string name="subtitle_verb_paid">You paid</string>
+    <string name="subtitle_verb_purchased">You purchased</string>
 </resources>

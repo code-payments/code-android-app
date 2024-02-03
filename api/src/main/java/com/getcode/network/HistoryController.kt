@@ -108,16 +108,6 @@ class HistoryController @Inject constructor(
         _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
     }
 
-    private suspend fun fetchMessagesForChat(id: List<Byte>): Result<List<ChatMessage>> {
-        val encodedId = id.toByteArray().encodeBase64()
-        Timber.d("fetching messages for $encodedId")
-        val owner = owner() ?: return Result.success(emptyList())
-        return client.fetchMessagesFor(owner, id)
-            .onFailure {
-                Timber.e(t = it, "Failed to fetch messages for $encodedId.")
-            }
-    }
-
     private suspend fun fetchLatestMessageForChat(id: List<Byte>): Result<ChatMessage?> {
         val encodedId = id.toByteArray().encodeBase64()
         Timber.d("fetching messages for $encodedId")

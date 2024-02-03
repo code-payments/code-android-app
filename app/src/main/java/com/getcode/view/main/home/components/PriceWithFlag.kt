@@ -57,7 +57,6 @@ internal fun PriceWithFlag(
                 tint = Color.Unspecified,
                 contentDescription = currencyCodeName.let { "$it flag" }
             )
-            Timber.d("amount=$amount")
             text(amount.formatted())
         }
     }
