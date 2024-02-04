@@ -150,6 +150,7 @@ object Libs {
         "androidx.compose.ui:ui-tooling-preview"
     const val compose_foundation = "androidx.compose.foundation:foundation"
     const val compose_material = "androidx.compose.material:material"
+    const val compose_materialIconsExtended = "androidx.compose.material:material-icons-extended-android"
     const val compose_activities =
         "androidx.activity:activity-compose:${Versions.compose_activities}"
     const val compose_view_models =

@@ -4,6 +4,8 @@ import com.codeinc.gen.chat.v1.ChatGrpc
 import com.codeinc.gen.chat.v1.ChatService
 import com.codeinc.gen.chat.v1.ChatService.GetChatsRequest
 import com.codeinc.gen.chat.v1.ChatService.GetMessagesRequest
+import com.codeinc.gen.chat.v1.ChatService.SetMuteStateRequest
+import com.codeinc.gen.chat.v1.ChatService.SetMuteStateResponse
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
@@ -62,6 +64,21 @@ class ChatApi @Inject constructor(
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }
+
+    fun setMuteState(owner: KeyPair, chatId: ID, muted: Boolean): Flow<SetMuteStateResponse> {
+        val request = SetMuteStateRequest.newBuilder()
+            .setChatId(ChatService.ChatId.newBuilder()
+                .setValue(chatId.toByteArray().toByteString())
+                .build()
+            ).setIsMuted(muted)
+            .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .setSignature(owner)
+            .build()
+
+        return api::setMuteState
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
 }
 
 fun GetChatsRequest.Builder.setSignature(owner: KeyPair): GetChatsRequest.Builder {
@@ -73,6 +90,14 @@ fun GetChatsRequest.Builder.setSignature(owner: KeyPair): GetChatsRequest.Builde
 }
 
 fun GetMessagesRequest.Builder.setSignature(owner: KeyPair): GetMessagesRequest.Builder {
+    val bos = ByteArrayOutputStream()
+    buildPartial().writeTo(bos)
+    setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
+
+    return this
+}
+
+fun SetMuteStateRequest.Builder.setSignature(owner: KeyPair): SetMuteStateRequest.Builder {
     val bos = ByteArrayOutputStream()
     buildPartial().writeTo(bos)
     setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())

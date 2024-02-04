@@ -1,13 +1,15 @@
 package com.getcode.view.components.chat
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,49 +18,89 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.getcode.BuildConfig
 import com.getcode.LocalExchange
 import com.getcode.R
-import com.getcode.model.GenericAmount
-import com.getcode.model.Kin
-import com.getcode.model.Kin.Companion.fromKin
 import com.getcode.model.KinAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Rate
 import com.getcode.model.Verb
-import com.getcode.network.exchange.Exchange
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatTimeRelatively
-import com.getcode.view.components.chat.MessageNodeDefaults.widthFraction
 import com.getcode.view.main.home.components.PriceWithFlag
 import kotlinx.datetime.Instant
-import timber.log.Timber
 
 object MessageNodeDefaults {
-    val MessageContent.widthFraction: Float
-        get() = when (this) {
-            is MessageContent.Exchange -> 0.895f
-            is MessageContent.Localized -> 0.8358f
-            MessageContent.SodiumBox -> 0.8358f
+
+    @Composable
+    fun verticalPadding(
+        isPreviousSameMessage: Boolean,
+        isNextSameMessage: Boolean
+    ): PaddingValues {
+        return when {
+            isPreviousSameMessage && isNextSameMessage -> PaddingValues(vertical = CodeTheme.dimens.grid.x1 / 2)
+            isPreviousSameMessage -> PaddingValues(top = CodeTheme.dimens.grid.x1 / 2)
+            isNextSameMessage -> PaddingValues(bottom = CodeTheme.dimens.grid.x1 / 2)
+            else -> PaddingValues(vertical = CodeTheme.dimens.grid.x1)
         }
+    }
+
+    val DefaultShape: CornerBasedShape
+        @Composable get() = CodeTheme.shapes.small
+    val PreviousSameShape: CornerBasedShape
+        @Composable get() = DefaultShape.copy(topStart = CornerSize(3.dp))
+
+    val NextSameShape: CornerBasedShape
+        @Composable get() = DefaultShape.copy(bottomStart = CornerSize(3.dp))
+
+    val MiddleSameShape: CornerBasedShape
+        @Composable get() = DefaultShape.copy(
+            topStart = CornerSize(3.dp),
+            bottomStart = CornerSize(3.dp)
+        )
 }
+
+private val MessageContent.widthFraction: Float
+    get() = when (this) {
+        is MessageContent.Exchange -> 0.895f
+        is MessageContent.Localized -> 0.8358f
+        MessageContent.SodiumBox -> 0.8358f
+    }
 
 @Composable
 fun MessageNode(
     modifier: Modifier = Modifier,
     contents: MessageContent,
-    date: Instant
+    date: Instant,
+    isPreviousSameMessage: Boolean,
+    isNextSameMessage: Boolean
 ) {
-    Box(modifier = modifier) {
-
+    Box(
+        modifier = modifier
+            .padding(
+                MessageNodeDefaults.verticalPadding(
+                    isPreviousSameMessage = isPreviousSameMessage,
+                    isNextSameMessage = isNextSameMessage
+                )
+            )
+    ) {
         val exchange = LocalExchange.current
 
         Box(
             modifier = Modifier
                 .fillMaxWidth(contents.widthFraction)
-                .background(color = BrandDark, shape = CodeTheme.shapes.small)
+                .background(
+                    color = BrandDark,
+                    shape = when {
+                        isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
+                        isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
+                        isNextSameMessage -> MessageNodeDefaults.NextSameShape
+                        else -> MessageNodeDefaults.DefaultShape
+                    }
+                )
                 .padding(CodeTheme.dimens.grid.x2),
             contentAlignment = Alignment.Center
         ) {
@@ -142,7 +184,8 @@ private fun MessageText(modifier: Modifier = Modifier, text: String, date: Insta
     }
 }
 
-val Verb.localizedText: String
+private val Verb.localizedText: String
+    @SuppressLint("DiscouragedApi")
     @Composable get() = with(LocalContext.current) context@{
         if (this@localizedText == Verb.Unknown) stringResource(id = R.string.title_unknown)
         val resId = resources.getIdentifier(

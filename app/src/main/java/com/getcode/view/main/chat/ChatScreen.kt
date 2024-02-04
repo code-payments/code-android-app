@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -15,20 +16,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.paging.LoadState
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
+import com.getcode.R
+import com.getcode.manager.BottomBarManager
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
 import com.getcode.util.formatDateRelatively
 import com.getcode.view.components.ButtonState
 import com.getcode.view.components.CodeButton
-import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.components.Pill
 import com.getcode.view.components.chat.MessageNode
+import com.getcode.view.components.chat.localized
 
 @Composable
 fun ChatScreen(
@@ -37,6 +41,7 @@ fun ChatScreen(
     dispatch: (ChatViewModel.Event) -> Unit,
 ) {
     val listState = rememberLazyListState()
+
     Column(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -46,7 +51,7 @@ fun ChatScreen(
                 horizontal = CodeTheme.dimens.inset,
                 vertical = CodeTheme.dimens.grid.x6,
             ),
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2, Alignment.Top),
+            verticalArrangement = Arrangement.Top,
         ) {
             items(
                 count = messages.itemCount,
@@ -59,12 +64,28 @@ fun ChatScreen(
                 }
             ) { index ->
                 when (val item = messages[index]) {
-                    is ChatItem.Date -> DateBubble(item.date)
+                    is ChatItem.Date -> DateBubble(
+                        modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                        date = item.date
+                    )
                     is ChatItem.Message -> {
+                        // reverse layout so +1 to get previous
+                        val prev = runCatching { messages[index + 1] }
+                            .map { it as? ChatItem.Message }
+                            .map { it?.chatMessageId }
+                            .getOrNull()
+                        // reverse layout so -1 to get next
+                        val next = runCatching { messages[index - 1] }
+                            .map { it as? ChatItem.Message }
+                            .map { it?.chatMessageId }
+                            .getOrNull()
+
                         MessageNode(
                             modifier = Modifier.fillMaxWidth(),
                             contents = item.message,
-                            date = item.date
+                            date = item.date,
+                            isPreviousSameMessage = prev == item.chatMessageId,
+                            isNextSameMessage = next == item.chatMessageId,
                         )
                     }
 
@@ -73,25 +94,29 @@ fun ChatScreen(
             }
             // add last separator
             // this isn't handled by paging separators due to no `beforeItem` to reference against
-            // at end of list
+            // at end of list due to reverseLayout
             if (messages.itemCount > 0) {
                 (messages[messages.itemCount - 1] as? ChatItem.Message)?.date?.let { date ->
                     item {
                         val dateString = remember(date) {
                             date.formatDateRelatively()
                         }
-                        DateBubble(dateString)
+                        DateBubble(
+                            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                            date = dateString
+                        )
                     }
                 }
             }
         }
 
-        val borderWidth = CodeTheme.dimens.border
+        val context = LocalContext.current
+        val title = state.title.localized
         CodeButton(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .drawBehind {
-
-                    val strokeWidth = borderWidth.toPx()
+                    val strokeWidth = Dp.Hairline.toPx()
                     drawLine(
                         color = BrandLight,
                         Offset(0f, 0f),
@@ -99,10 +124,21 @@ fun ChatScreen(
                         strokeWidth
                     )
                 },
-            onClick = { },
+            onClick = {
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = context.getString(if (state.isMuted) R.string.prompt_title_unmute_chat else R.string.prompt_title_mute_chat, title),
+                        subtitle = context.getString(if (state.isMuted) R.string.prompt_description_unmute_chat else R.string.prompt_description_mute_chat, title),
+                        positiveText = context.getString(if (state.isMuted) R.string.action_unmute else R.string.action_mute),
+                        negativeText = context.getString(R.string.action_nevermind),
+                        onPositive = { dispatch(ChatViewModel.Event.OnMuteToggled) },
+                        isDismissible = false,
+                    )
+                )
+            },
             shape = RectangleShape,
             buttonState = ButtonState.Subtle,
-            text = if (state.isMuted) "Unmute" else "Mute"
+            text = stringResource(if (state.isMuted) R.string.action_unmute else R.string.action_mute)
         )
     }
 }
@@ -110,8 +146,9 @@ fun ChatScreen(
 
 @Composable
 private fun DateBubble(
+    modifier: Modifier = Modifier,
     date: String,
-) = Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+) = Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Pill(
         text = date,
         backgroundColor = BrandDark

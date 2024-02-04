@@ -41,11 +41,13 @@ class ChatService @Inject constructor(
                         Timber.e(t = error)
                         Result.failure(error)
                     }
+
                     ChatService.GetChatsResponse.Result.UNRECOGNIZED -> {
                         val error = Throwable("Error: Unrecognized request.")
                         Timber.e(t = error)
                         Result.failure(error)
                     }
+
                     else -> {
                         val error = Throwable("Error: Unknown")
                         Timber.e(t = error)
@@ -54,12 +56,53 @@ class ChatService @Inject constructor(
                 }
             }
     }
+
     @Throws(NoSuchElementException::class)
     suspend fun fetchChats(owner: KeyPair): Result<List<Chat>> {
         return observeChats(owner).first()
     }
 
-    suspend fun fetchMessagesFor(owner: KeyPair, chatId: ID, cursor: Cursor? = null, limit: Int? = null): Result<List<ChatMessage>> {
+    suspend fun setMuteState(owner: KeyPair, chatId: ID, muted: Boolean): Result<Boolean> {
+        return networkOracle.managedRequest(api.setMuteState(owner, chatId, muted))
+            .map { response ->
+                when (response.result) {
+                    ChatService.SetMuteStateResponse.Result.OK -> {
+                        Result.success(muted)
+                    }
+
+                    ChatService.SetMuteStateResponse.Result.CHAT_NOT_FOUND -> {
+                        val error = Throwable("Error: chat not found for $chatId")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    ChatService.SetMuteStateResponse.Result.CANT_MUTE -> {
+                        val error = Throwable("Error: Unable to change mute state for $chatId.")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    ChatService.SetMuteStateResponse.Result.UNRECOGNIZED -> {
+                        val error = Throwable("Error: Unrecognized request.")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    else -> {
+                        val error = Throwable("Error: Unknown")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                }
+            }.first()
+    }
+
+    suspend fun fetchMessagesFor(
+        owner: KeyPair,
+        chatId: ID,
+        cursor: Cursor? = null,
+        limit: Int? = null
+    ): Result<List<ChatMessage>> {
         return networkOracle.managedRequest(api.fetchChatMessages(owner, chatId, cursor, limit))
             .map { response ->
                 when (response.result) {
@@ -72,11 +115,13 @@ class ChatService @Inject constructor(
                         Timber.e(t = error)
                         Result.failure(error)
                     }
+
                     ChatService.GetMessagesResponse.Result.UNRECOGNIZED -> {
                         val error = Throwable("Error: Unrecognized request.")
                         Timber.e(t = error)
                         Result.failure(error)
                     }
+
                     else -> {
                         val error = Throwable("Error: Unknown")
                         Timber.e(t = error)

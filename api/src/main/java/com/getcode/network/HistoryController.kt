@@ -7,11 +7,13 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
+import com.getcode.model.Cursor
 import com.getcode.model.HistoricalTransaction
 import com.getcode.model.ID
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchChats
 import com.getcode.network.client.fetchMessagesFor
+import com.getcode.network.client.setMuted
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.reactive.asFlow
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
@@ -45,7 +48,6 @@ class HistoryController @Inject constructor(
             .value.orEmpty()
             .sortedByDescending { it.date }
             .toImmutableList()
-
 
     private val _chats = MutableStateFlow<List<Chat>?>(null)
     val chats: StateFlow<List<Chat>?>
@@ -93,7 +95,7 @@ class HistoryController @Inject constructor(
         Timber.d("chats fetched = ${containers.count()}")
         _chats.value = containers
 
-        val updatedWithMessages= mutableListOf<Chat>()
+        val updatedWithMessages = mutableListOf<Chat>()
         containers.onEach { chat ->
             val result = fetchLatestMessageForChat(chat.id)
             result.onSuccess { message ->
@@ -106,6 +108,37 @@ class HistoryController @Inject constructor(
         }
 
         _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
+    }
+
+    suspend fun setMuted(chatId: ID, muted: Boolean): Result<Boolean> {
+        val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
+
+        _chats.update {
+            it?.toMutableList()?.apply chats@{
+                indexOfFirst { chat -> chat.id == chatId }
+                    .takeIf { index -> index >= 0 }
+                    ?.let { index ->
+                        val chat = this[index]
+                        Timber.d("changing mute state for chat locally")
+                        this[index] = chat.copy(isMuted = muted)
+                    }
+            }?.toList()
+        }
+
+        return client.setMuted(owner, chatId, muted)
+    }
+
+    suspend fun fetchMessagesForChat(
+        id: List<Byte>,
+        cursor: Cursor? = null,
+        limit: Int? = null
+    ): Result<ChatMessage?> {
+        val encodedId = id.toByteArray().encodeBase64()
+        val owner = owner() ?: return Result.success(null)
+        return client.fetchMessagesFor(owner, id, cursor, limit)
+            .onFailure {
+                Timber.e(t = it, "Failed to fetch messages for $encodedId.")
+            }.map { it.getOrNull(0) }
     }
 
     private suspend fun fetchLatestMessageForChat(id: List<Byte>): Result<ChatMessage?> {

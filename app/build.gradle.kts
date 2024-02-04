@@ -140,6 +140,7 @@ dependencies {
     implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
+    implementation(Libs.compose_materialIconsExtended)
     implementation(Libs.compose_activities)
     implementation(Libs.compose_view_models)
     implementation(Libs.compose_livedata)
