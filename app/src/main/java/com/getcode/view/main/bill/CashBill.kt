@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
@@ -41,11 +40,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.getcode.R
@@ -56,26 +60,25 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
 import com.getcode.util.formattedRaw
 import com.getcode.ui.utils.nonScaledSp
+import com.getcode.ui.utils.punchCircle
+import com.getcode.ui.utils.punchRectangle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 
+@Suppress("ConstPropertyName")
 object CashBillDefaults {
-    val AspectRatio = 0.555f
+    const val AspectRatio = 0.555f
     val BillColor: Color = Color(red = 44, green = 42, blue = 65)
 
+    const val CodeBackgroundOpacity = 0.65f
 
-    val CodeBackgroundOpacity = 0.7f
-
-    val SecurityStripCount = 3
+    const val SecurityStripCount = 3
 }
 
 object CashBillAssets {
-
-    var hexagons: ImageBitmap? = null
-        private set
 
     var globe: ImageBitmap? = null
         private set
@@ -83,17 +86,8 @@ object CashBillAssets {
     var grid: ImageBitmap? = null
         private set
 
-    var waves: ImageBitmap? = null
-        private set
-
     fun load(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
-            hexagons = getBitmapFromImage(
-                context = context,
-                drawable = R.drawable.ic_bill_hexagons,
-                ratio = 0.15f,
-                alpha = 0.6f
-            ).asImageBitmap()
 
             globe = getBitmapFromImage(
                 context = context,
@@ -105,15 +99,58 @@ object CashBillAssets {
                 context = context,
                 ratio = 0.3f,
                 drawable = R.drawable.ic_bill_grid,
-                alpha = 0.5f
-            ).asImageBitmap()
-
-            waves = getBitmapFromImage(
-                context = context,
-                ratio = 0.3f,
-                drawable = R.drawable.ic_bill_waves,
             ).asImageBitmap()
         }
+    }
+
+    private fun getBitmapFromImage(
+        context: Context,
+        drawable: Int,
+        ratio: Float = 1f,
+        alpha: Float = 1f
+    ): Bitmap {
+
+        // on below line we are getting drawable
+        val db = ContextCompat.getDrawable(context, drawable)
+
+        // in below line we are creating our bitmap and initializing it.
+        val bit = Bitmap.createBitmap(
+            db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.ARGB_8888
+        )
+
+        var width = bit.width
+        var height = bit.height
+        val bitmapRatio = width.toFloat() / height.toFloat()
+
+        if (bitmapRatio > 1) {
+            width = bit.width
+            height = (width / bitmapRatio).toInt()
+        } else {
+            height = bit.height
+            width = (height * bitmapRatio).toInt()
+        }
+
+        val compressed: Bitmap = Bitmap.createScaledBitmap(
+            bit, (width * ratio).roundToInt(), (height * ratio).roundToInt(), false
+        )
+
+
+        // on below line we are
+        // creating a variable for canvas.
+        val canvas = android.graphics.Canvas(compressed)
+
+        // on below line we are setting bounds for our bitmap.
+        db.setBounds(0, 0, canvas.width, canvas.height)
+
+        db.alpha = (255 * alpha).roundToInt()
+
+        // on below line we are simply
+        // calling draw to draw our canvas.
+        db.draw(canvas)
+
+        // on below line we are
+        // returning our bitmap.
+        return compressed
     }
 }
 
@@ -123,6 +160,7 @@ private class CashBillGeometry(width: Dp, height: Dp) {
 
     val brandWidth: Dp
         get() = ceil(size.width.value * 0.18f).dp
+
     val codeSize: Dp
         get() = size.width * 0.6f
 
@@ -187,35 +225,51 @@ internal fun CashBill(
                 CashBillGeometry(maxWidth, maxHeight)
             }
 
+            // Hexagons
+            BillImage(
+                modifier = Modifier
+                    .fillMaxSize(),
+                image = ImageBitmap.imageResource(R.drawable.ic_bill_hexagons),
+                blendMode = BlendMode.Multiply,
+                alpha = 0.6f,
+                fill = true,
+            )
+
+            // Waves
+            BillImage(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clipToBounds(),
+                image = ImageBitmap.imageResource(R.drawable.ic_bill_waves),
+                fill = true,
+                topLeft = Offset(
+                    x = 0f,
+                    y = with(LocalDensity.current) { geometry.securityStripPosition.y.toPx() }),
+            )
+
+            // Globe
+            BillImage(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clipToBounds(),
+                image = CashBillAssets.globe,
+                topLeft = geometry.globePosition
+            )
+
+            // Grid pattern
+            BillImage(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clipToBounds(),
+                image = CashBillAssets.grid,
+                alpha = 0.5f,
+                topLeft = Offset(
+                    x = 0f,
+                    y = with(LocalDensity.current) { geometry.securityStripPosition.y.toPx() }),
+            )
+
             // Security strip
             SecurityStrip(geometry = geometry)
-
-            Canvas(modifier = Modifier
-                .matchParentSize()
-                .clipToBounds()) {
-                // Hexagons
-                CashBillAssets.hexagons?.let {
-                    drawImage(
-                        image = it,
-                        blendMode = BlendMode.Multiply,
-                    )
-                }
-
-                // Grid pattern
-                CashBillAssets.grid?.let {
-                    drawImage(image = it,)
-                }
-
-                // Globe
-                CashBillAssets.globe?.let {
-                    drawImage(image = it, topLeft = geometry.globePosition)
-                }
-
-                // Waves
-                CashBillAssets.waves?.let {
-                    drawImage(image = it)
-                }
-            }
 
 
             // Bill Value Top Left
@@ -292,14 +346,7 @@ internal fun CashBill(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .drawWithContent {
-                        drawCircle(
-                            CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity),
-                            blendMode = BlendMode.Src
-                        )
-
-                        drawContent()
-                    },
+                    .punchCircle(CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity)),
                 contentAlignment = Alignment.Center
             ) {
                 if (payloadData.isNotEmpty()) {
@@ -323,18 +370,7 @@ private fun SecurityStrip(
         modifier = modifier
             .size(geometry.securityStripSize)
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
-            .drawWithContent {
-                drawRect(
-                    CashBillDefaults.BillColor,
-                    blendMode = BlendMode.Clear
-                )
-                drawRect(
-                    Color.Black.copy(alpha = 0.4f),
-                    blendMode = BlendMode.SrcOut
-                )
-
-                drawContent()
-            },
+            .punchRectangle(Color.Black.copy(0.6f)),
     ) {
         for (i in 0 until CashBillDefaults.SecurityStripCount) {
             Image(
@@ -366,52 +402,36 @@ private fun Lines(
     }
 }
 
-private fun getBitmapFromImage(
-    context: Context,
-    drawable: Int,
-    ratio: Float,
-    alpha: Float = 1f
-): Bitmap {
-
-    // on below line we are getting drawable
-    val db = ContextCompat.getDrawable(context, drawable)
-
-    // in below line we are creating our bitmap and initializing it.
-    val bit = Bitmap.createBitmap(
-        db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.ARGB_8888
-    )
-
-    var width = bit.width
-    var height = bit.height
-    val bitmapRatio = width.toFloat() / height.toFloat()
-
-    if (bitmapRatio > 1) {
-        width = bit.width
-        height = (width / bitmapRatio).toInt()
-    } else {
-        height = bit.height
-        width = (height * bitmapRatio).toInt()
+@Composable
+private fun BillImage(
+    modifier: Modifier = Modifier,
+    image: ImageBitmap?,
+    alpha: Float = 1f,
+    topLeft: Offset = Offset.Zero,
+    blendMode: BlendMode = DrawScope.DefaultBlendMode,
+    fill: Boolean = false,
+) {
+    Canvas(
+        modifier = modifier,
+    ) {
+        // Hexagons
+        image?.let {
+            if (fill) {
+                drawImage(
+                    image = it,
+                    dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                    alpha = alpha,
+                    dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
+                    blendMode = blendMode,
+                )
+            } else {
+                drawImage(
+                    image = it,
+                    alpha = alpha,
+                    dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
+                    blendMode = blendMode,
+                )
+            }
+        }
     }
-
-    val compressed: Bitmap = Bitmap.createScaledBitmap(
-        bit, (width * ratio).roundToInt(), (height * ratio).roundToInt(), false
-    )
-
-
-    // on below line we are
-    // creating a variable for canvas.
-    val canvas = android.graphics.Canvas(compressed)
-
-    // on below line we are setting bounds for our bitmap.
-    db.setBounds(0, 0, canvas.width, canvas.height)
-
-    db.alpha = (255 * alpha).roundToInt()
-
-    // on below line we are simply
-    // calling draw to draw our canvas.
-    db.draw(canvas)
-
-    // on below line we are
-    // returning our bitmap.
-    return compressed
 }

@@ -14,7 +14,9 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -58,7 +60,8 @@ fun Modifier.unboundedClickable(
 }
 
 
-fun Modifier.debugBounds(color: Color = Color.Magenta, shape: Shape = RectangleShape) = this.border(1.dp, color, shape)
+fun Modifier.debugBounds(color: Color = Color.Magenta, shape: Shape = RectangleShape) =
+    this.border(1.dp, color, shape)
 
 fun Modifier.rememberedClickable(
     enabled: Boolean = true,
@@ -155,9 +158,30 @@ fun Modifier.circleBackground(color: Color, padding: Dp): Modifier {
         // Assign the dimension and the center position
         layout(newDiameter, newDiameter) {
             // Place the composable at the calculated position
-            placeable.placeRelative((newDiameter - currentWidth) / 2, (newDiameter - currentHeight) / 2)
+            placeable.placeRelative(
+                (newDiameter - currentWidth) / 2,
+                (newDiameter - currentHeight) / 2
+            )
         }
     }
 
     return this then backgroundModifier then layoutModifier
+}
+
+fun Modifier.punchRectangle(color: Color) = this.drawWithContent {
+    drawRect(
+        color,
+        blendMode = BlendMode.Src
+    )
+
+    drawContent()
+}
+
+fun Modifier.punchCircle(color: Color) = this.drawWithContent {
+    drawCircle(
+        color,
+        blendMode = BlendMode.Src
+    )
+
+    drawContent()
 }
