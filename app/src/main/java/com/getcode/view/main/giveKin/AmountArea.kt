@@ -55,7 +55,6 @@ fun AmountArea(
             .let { if (isClickable) it.rememberedClickable { onClick() } else it },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Timber.d("a=$$isLoading")
         if (!isLoading) {
             Row(
                 verticalAlignment = Alignment.CenterVertically

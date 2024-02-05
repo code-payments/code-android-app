@@ -50,7 +50,6 @@ class AuthManager @Inject constructor(
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val historyController: HistoryController,
-
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
 ): CoroutineScope by CoroutineScope(Dispatchers.IO) {

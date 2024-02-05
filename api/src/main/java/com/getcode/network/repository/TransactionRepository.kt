@@ -24,7 +24,6 @@ import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
-import com.getcode.network.core.NetworkOracle
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
@@ -41,11 +40,10 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -68,10 +66,6 @@ class TransactionRepository @Inject constructor(
 
     var maxDeposit: Long = 0
 
-    private var _transactionCache = MutableStateFlow<List<HistoricalTransaction>?>(null)
-    val transactionCache: StateFlow<List<HistoricalTransaction>?>
-        get() = _transactionCache.asStateFlow()
-
 
     fun setMaximumDeposit(deposit: Long) {
         maxDeposit = deposit
@@ -84,7 +78,6 @@ class TransactionRepository @Inject constructor(
     fun clear() {
         Timber.d("clearing transactions")
         maxDeposit = 0
-        _transactionCache.value = null
     }
 
     fun createAccounts(organizer: Organizer): Single<IntentType> {
@@ -159,7 +152,11 @@ class TransactionRepository @Inject constructor(
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
-    fun receiveFromRelationship(domain: Domain, amount: Kin, organizer: Organizer): Single<IntentType> {
+    fun receiveFromRelationship(
+        domain: Domain,
+        amount: Kin,
+        organizer: Organizer
+    ): Single<IntentType> {
         val intent = IntentDeposit.newInstance(
             source = AccountType.Relationship(domain),
             organizer = organizer,
@@ -244,7 +241,7 @@ class TransactionRepository @Inject constructor(
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
-    private fun submit(intent: IntentType, owner: Ed25519.KeyPair): Single<IntentType> {
+    private fun submit(intent: IntentType, owner: KeyPair): Single<IntentType> {
         Timber.i("Submit ${intent.javaClass.simpleName}")
         val subject = SingleSubject.create<IntentType>()
 
@@ -333,7 +330,10 @@ class TransactionRepository @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    fun establishRelationship(organizer: Organizer, domain: Domain): Single<IntentEstablishRelationship> {
+    fun establishRelationship(
+        organizer: Organizer,
+        domain: Domain
+    ): Single<IntentEstablishRelationship> {
         val intent = IntentEstablishRelationship.newInstance(context, organizer, domain)
 
         return submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)
@@ -344,7 +344,7 @@ class TransactionRepository @Inject constructor(
 
     // TODO: potentially make this more generic in the event we introduce more airdrop types
     //       that can be requested for
-    fun requestFirstKinAirdrop(owner: Ed25519.KeyPair): Single<KinAmount> {
+    suspend fun requestFirstKinAirdrop(owner: KeyPair): Result<KinAmount> {
         val request = TransactionService.AirdropRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setAirdropType(TransactionService.AirdropType.GET_FIRST_KIN)
@@ -355,29 +355,37 @@ class TransactionRepository @Inject constructor(
             }
             .build()
 
-        return transactionApi.airdrop(request).flatMap {
-            when (it.result) {
-                TransactionService.AirdropResponse.Result.OK -> {
-                    Single.just(KinAmount.fromProtoExchangeData(it.exchangeData))
-                        ?: Single.error(IllegalStateException())
-                }
+        return runCatching {
+            transactionApi.airdrop(request)
+                .toFlowable()
+                .asFlow()
+                .flowOn(Dispatchers.IO)
+                .map {
+                    when (it.result) {
+                        TransactionService.AirdropResponse.Result.OK -> {
+                            KinAmount.fromProtoExchangeData(it.exchangeData)
+                        }
 
-                TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> {
-                    Single.error(AirdropException.AlreadyClaimedException())
-                }
+                        TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> {
+                            throw AirdropException.AlreadyClaimedException()
+                        }
 
-                TransactionService.AirdropResponse.Result.UNAVAILABLE -> {
-                    Single.error(AirdropException.UnavailableException())
-                }
+                        TransactionService.AirdropResponse.Result.UNAVAILABLE -> {
+                            throw AirdropException.UnavailableException()
+                        }
 
-                else -> {
-                    Single.error(AirdropException.UnknownException())
-                }
-            }
+                        else -> {
+                            throw AirdropException.UnknownException()
+                        }
+                    }
+                }.first()
         }
     }
 
-    suspend fun fetchIntentMetadata(owner: Ed25519.KeyPair, intentId: PublicKey): Result<IntentMetadata> {
+    suspend fun fetchIntentMetadata(
+        owner: KeyPair,
+        intentId: PublicKey
+    ): Result<IntentMetadata> {
         val request = TransactionService.GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.toIntentId())
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
@@ -405,8 +413,9 @@ class TransactionRepository @Inject constructor(
         }
     }
 
+    @SuppressLint("CheckResult")
     fun fetchTransactionLimits(
-        owner: Ed25519.KeyPair,
+        owner: KeyPair,
         timestamp: Long
     ): Flowable<Map<String, SendLimit>> {
         val request = TransactionService.GetLimitsRequest.newBuilder()
@@ -449,97 +458,6 @@ class TransactionRepository @Inject constructor(
             .map { it.associateBy { i -> i.id } }
     }
 
-    fun fetchPaymentHistoryDelta(
-        owner: Ed25519.KeyPair,
-        afterId: ByteArray? = null
-    ): Single<List<HistoricalTransaction>> {
-        return Single.create<List<HistoricalTransaction>> {
-            val container = mutableListOf<HistoricalTransaction>()
-            var after: ByteArray? = afterId
-
-            while (true) {
-                val response = runCatching {
-                    fetchPaymentHistoryPage(owner, after).blockingGet()
-                }.getOrDefault(emptyList())
-
-                if (response.isEmpty()) {
-                    // let cache know we're empty here, if it's not initialized yet
-                    if (_transactionCache.value == null) {
-                        _transactionCache.value = emptyList()
-                    }
-                    break
-                }
-                container.addAll(response)
-                _transactionCache.value = _transactionCache.value.orEmpty()
-                    .filterNot { item -> response.contains(item) }
-                    .plus(response)
-                    .toMutableList()
-                after = response.lastOrNull()?.id?.toByteArray()
-            }
-            container.reverse()
-            it.onSuccess(container)
-        }.subscribeOn(Schedulers.io()).onErrorReturn { emptyList() }
-    }
-
-    private fun fetchPaymentHistoryPage(
-        owner: Ed25519.KeyPair,
-        afterId: ByteArray? = null,
-        pageSize: Int = 100
-    ): Single<List<HistoricalTransaction>> {
-        val request = TransactionService.GetPaymentHistoryRequest.newBuilder()
-            .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setDirection(TransactionService.GetPaymentHistoryRequest.Direction.ASC)
-            .setPageSize(pageSize)
-            .let {
-                if (afterId != null) {
-                    it.setCursor(
-                        TransactionService.Cursor.newBuilder()
-                            .setValue(ByteString.copyFrom(afterId))
-                    )
-                } else {
-                    it
-                }
-            }
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
-            .build()
-
-        return transactionApi.getPaymentHistory(request)
-            .map { response ->
-                if (response.result == TransactionService.GetPaymentHistoryResponse.Result.OK) {
-                    response.itemsList.map Response@{ item ->
-                        val currency =
-                            CurrencyCode.tryValueOf(item.exchangeData.currency.uppercase())
-                                ?: return@Response null
-
-                        HistoricalTransaction(
-                            id = item.cursor.value.toByteArray().toList(),
-                            paymentType = PaymentType.tryValueOf(item.paymentType.name)
-                                ?: PaymentType.Unknown,
-                            date = item.timestamp.seconds,
-                            transactionRateFx = item.exchangeData.exchangeRate,
-                            transactionRateCurrency = currency.name,
-                            transactionAmountQuarks = item.exchangeData.quarks,
-                            nativeAmount = item.exchangeData.nativeAmount,
-                            isDeposit = item.isDeposit,
-                            isWithdrawal = item.isWithdraw,
-                            isRemoteSend = item.isRemoteSend,
-                            isReturned = item.isReturned,
-                            airdropType = item.isAirdrop.ifElse(
-                                AirdropType.getInstance(item.airdropType),
-                                null
-                            ),
-                        )
-                    }.filterNotNull()
-                } else {
-                    emptyList()
-                }
-            }
-    }
-
     fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {
         val request = TransactionService.CanWithdrawToAccountRequest.newBuilder()
             .setAccount(destination.bytes.toSolanaAccount())
@@ -562,7 +480,7 @@ class TransactionRepository @Inject constructor(
             }
     }
 
-    fun fetchUpgradeableIntents(owner: Ed25519.KeyPair): Single<List<UpgradeableIntent>> {
+    fun fetchUpgradeableIntents(owner: KeyPair): Single<List<UpgradeableIntent>> {
         val request = TransactionService.GetPrioritizedIntentsForPrivacyUpgradeRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setLimit(100) //TODO: implement paging

@@ -62,6 +62,7 @@ fun Client.transfer(
         isWithdrawal
     ).flatMapCompletable {
         if (it.isSuccess) {
+            Timber.d("transfer successful")
             Completable.complete()
         } else {
             Completable.error(it.exceptionOrNull() ?: Throwable("Failed to complete transfer"))
@@ -184,9 +185,7 @@ suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
         )
 
         balanceController.fetchBalanceSuspend()
-        transactionRepository.fetchPaymentHistoryDelta(organizer.ownerKeyPair)
-            .ignoreElement()
-            .subscribe()
+        // TODO: fetch chats here somehow?
 
         return@withContext kinAmount
     }
@@ -344,9 +343,9 @@ fun Client.sendRemotely(
 }
 
 
-fun Client.requestFirstKinAirdrop(
+suspend fun Client.requestFirstKinAirdrop(
     owner: KeyPair,
-): Single<KinAmount> {
+): Result<KinAmount> {
     return transactionRepository.requestFirstKinAirdrop(owner)
 }
 
@@ -412,40 +411,6 @@ fun Client.fetchTransactionLimits(
     return transactionRepository.fetchTransactionLimits(owner, seconds)
 }
 
-fun Client.historicalTransactions() = transactionRepository.transactionCache
-
-@OptIn(ExperimentalCoroutinesApi::class)
-fun Client.observeTransactions(
-): Flow<List<HistoricalTransaction>> {
-    return SessionManager.authState
-        .map { it.keyPair }
-        .flatMapLatest { owner ->
-            transactionRepository.transactionCache
-                .map { it to owner }
-        }.map { (trx, owner) -> trx.orEmpty().sortedByDescending { it.date } to owner }
-        .flatMapConcat { (initialList, owner) ->
-            owner ?: return@flatMapConcat emptyFlow()
-            fetchPaymentHistoryDelta(owner, initialList.firstOrNull()?.id?.toByteArray())
-                .toObservable().asFlow()
-                .filter { it.isNotEmpty() }
-                .scan(initialList) { previous, update ->
-                    Timber.d("prev=${previous.count()}, update=${update.count()}")
-                    previous
-                        .filterNot { update.contains(it) }
-                        .plus(update)
-                        .sortedByDescending { it.date }
-                        .also { Timber.d("now ${it.count()}") }
-                }
-        }
-}
-
-fun Client.fetchPaymentHistoryDelta(
-    owner: KeyPair,
-    afterId: ByteArray? = transactionRepository.transactionCache.value?.firstOrNull()?.id?.toByteArray()
-): Single<List<HistoricalTransaction>> {
-    return transactionRepository.fetchPaymentHistoryDelta(owner, afterId)
-}
-
 fun Client.fetchDestinationMetadata(destination: PublicKey): Single<TransactionRepository.DestinationMetadata> {
     return transactionRepository.fetchDestinationMetadata(destination)
 }
@@ -469,10 +434,14 @@ fun Client.receiveIfNeeded(): Completable {
 }
 
 fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
+    Timber.d("receive within limits")
     val depositBalance = organizer.availableDepositBalance.toKinTruncating()
 
     // Nothing to deposit
-    if (!depositBalance.hasWholeKin()) return Completable.complete()
+    if (!depositBalance.hasWholeKin()) {
+        Timber.d("nothing to deposit ($depositBalance)")
+        return Completable.complete()
+    }
 
     // We want to deposit the smaller of the two: balance in the
     // primary account or the max allowed amount provided by server
@@ -485,7 +454,7 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
         }
         .filter { pair ->
             val (depositAmount, _) = pair
-            depositAmount.hasWholeKin()
+            depositAmount.hasWholeKin().also { Timber.d("hasWholeKin=$it") }
         }
         .flatMapSingle { pair ->
             val (depositAmount, maxDeposit) = pair

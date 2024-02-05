@@ -9,7 +9,7 @@ import com.getcode.model.PrefsBool
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.client.Client
-import com.getcode.network.client.fetchPaymentHistoryDelta
+import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -21,7 +21,6 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -30,11 +29,11 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.asFlow
-import java.util.concurrent.TimeUnit
+import timber.log.Timber
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class GetKinSheetViewModel @Inject constructor(
@@ -96,20 +95,20 @@ class GetKinSheetViewModel @Inject constructor(
                     ErrorUtils.showNetworkError(resources)
                     return@mapNotNull null
                 }
-
                 SessionManager.getKeyPair()
             }.onEach { dispatchEvent(Event.OnLoadingChanged(true)) }
-            .flatMapLatest { owner ->
-                client.requestFirstKinAirdrop(owner)
-                    .subscribeOn(Schedulers.computation())
-                    .delay(1, TimeUnit.SECONDS)
-                    .toFlowable().asFlow()
-            }
             .catchSafely(
-                action = { amount ->
+                action = { owner ->
+                    delay(1.seconds)
+                    val amount = client.requestFirstKinAirdrop(owner).getOrThrow()
+
                     dispatchEvent(Event.OnGetEligibilityChanged(eligible = false, fromEvent = true))
                     dispatchEvent(Event.OnLoadingChanged(false))
                     dispatchEvent(Event.OnKinRequestSuccessful(amount))
+
+                    balanceController.fetchBalanceSuspend()
+
+                    historyController.fetchChats()
                 },
                 onFailure = {
                     if (it is TransactionRepository.AirdropException.AlreadyClaimedException) {
@@ -124,8 +123,13 @@ class GetKinSheetViewModel @Inject constructor(
                 }
             )
             .flatMapLatest {
-                Completable.concatArray(balanceController.fetchBalance()).toFlowable<Any>().asFlow()
-            }.onEach { historyController.fetchDelta() }
+                val organizer = SessionManager.getOrganizer()
+                val receiveWithinLimits = organizer?.let {
+                    client.receiveFromPrimaryIfWithinLimits(it)
+                } ?: Completable.complete()
+
+                receiveWithinLimits.toFlowable<Any>().asFlow()
+            }.onEach { historyController.fetchChats() }
             .launchIn(viewModelScope)
 
         eventFlow

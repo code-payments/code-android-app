@@ -14,8 +14,7 @@ import javax.inject.Singleton
 
 
 @Singleton
-class SessionManager @Inject constructor(
-) {
+class SessionManager @Inject constructor() {
     data class SessionState(
         val entropyB64: String? = null,
         val keyPair: Ed25519.KeyPair? = null,

@@ -80,7 +80,6 @@ class SendTransactionRepository @Inject constructor(
                     amount = amount,
                     successful = false
                 )
-                ErrorUtils.handleError(it)
             }
     }
 

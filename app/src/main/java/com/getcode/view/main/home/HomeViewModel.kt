@@ -46,6 +46,7 @@ import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.receiveRemoteSuspend
+import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
@@ -67,6 +68,7 @@ import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.base64EncodedData
+import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
 import com.getcode.vendor.Base58
@@ -95,12 +97,15 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
@@ -175,6 +180,7 @@ class HomeViewModel @Inject constructor(
     private var sendTransactionDisposable: Disposable? = null
 
     init {
+        onDrawn()
         Database.isInit
             .flatMap { prefRepository.get(PrefsBool.DISPLAY_ERRORS) }
             .subscribe(ErrorUtils::setDisplayErrors)
@@ -186,6 +192,23 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
                 }
             }
+
+        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
+            .map { it }
+            .filter { it }
+            .mapNotNull { SessionManager.getKeyPair() }
+            .catchSafely(
+                action = { owner ->
+                    val amount = client.requestFirstKinAirdrop(owner).getOrThrow()
+                    balanceController.fetchBalanceSuspend()
+
+                    showToast(amount = amount, isDeposit = true)
+
+                    historyController.fetchChats()
+                    prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
+                },
+            )
+            .launchIn(viewModelScope)
 
         combine(
             exchange.observeLocalRate(),
@@ -308,7 +331,7 @@ class HomeViewModel @Inject constructor(
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
                     vibrator.vibrate()
-                    viewModelScope.launch { historyController.fetchDelta() }
+                    viewModelScope.launch { historyController.fetchChats() }
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -837,7 +860,7 @@ class HomeViewModel @Inject constructor(
                     client.fetchLimits(isForce = true),
                 )
             }
-            .subscribe({ viewModelScope.launch { historyController.fetchDelta() } }, {
+            .subscribe({ viewModelScope.launch { historyController.fetchChats() } }, {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
             })
