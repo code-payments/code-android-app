@@ -78,7 +78,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
 }
 
 @Parcelize
-data class ChatScreen(val chatId: ID): ChatGraph, ModalContent {
+data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 

@@ -3,6 +3,9 @@ package com.getcode.network
 import android.annotation.SuppressLint
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.PagingSource
+import androidx.paging.cachedIn
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.Chat
@@ -20,6 +23,8 @@ import com.getcode.network.source.ChatMessagePagingSource
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,9 +58,21 @@ class HistoryController @Inject constructor(
     val chats: StateFlow<List<Chat>?>
         get() = _chats.asStateFlow()
 
-    fun chatMessagePager(chatId: ID) = Pager(
+
+    private val pagerMap = mutableMapOf<ID, PagingSource<Cursor, ChatMessage>>()
+    private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
+
+    private fun chatMessagePager(chatId: ID) = Pager(
         PagingConfig(pageSize = 20)
-    ) { ChatMessagePagingSource(client, owner()!!, chatId) }
+    ) {
+        pagerMap[chatId] ?: ChatMessagePagingSource(client, owner()!!, chatId).also {
+            pagerMap[chatId] = it
+        }
+    }
+
+    fun chatFlow(chatId: ID) = chatFlows[chatId] ?: chatMessagePager(chatId).flow.cachedIn(GlobalScope).also {
+        chatFlows[chatId] = it
+    }
 
     val unreadCount = chats
         .filterNotNull()
@@ -143,7 +160,7 @@ class HistoryController @Inject constructor(
 
     private suspend fun fetchLatestMessageForChat(id: List<Byte>): Result<ChatMessage?> {
         val encodedId = id.toByteArray().encodeBase64()
-        Timber.d("fetching messages for $encodedId")
+        Timber.d("fetching last message for $encodedId")
         val owner = owner() ?: return Result.success(null)
         return client.fetchMessagesFor(owner, id, limit = 1)
             .onFailure {

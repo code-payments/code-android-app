@@ -22,6 +22,7 @@ import com.getcode.view.main.home.PresentationStyle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -66,7 +67,7 @@ class ChatViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnChatIdChanged(val id: ID) : Event
+        data class OnChatIdChanged(val id: ID?) : Event
         data class OnChatChanged(val title: Title?) : Event
         data object OnMuteToggled : Event
         data class SetMuted(val muted: Boolean) : Event
@@ -110,7 +111,7 @@ class ChatViewModel @Inject constructor(
     val chatMessages = stateFlow
         .map { it.chatId }
         .filterNotNull()
-        .flatMapLatest { historyController.chatMessagePager(it).flow }
+        .flatMapLatest { historyController.chatFlow(it) }
         .mapLatest { page ->
             page.flatMap { chat ->
                 chat.contents
