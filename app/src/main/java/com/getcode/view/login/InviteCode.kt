@@ -38,8 +38,8 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.extraSmall
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 
 @Preview
 @Composable

@@ -10,9 +10,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.PermissionCheck
-import com.getcode.view.components.SheetTitle
-import com.getcode.view.components.getPermissionLauncher
+import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.SheetTitle
+import com.getcode.ui.components.getPermissionLauncher
 
 @Preview
 @Composable

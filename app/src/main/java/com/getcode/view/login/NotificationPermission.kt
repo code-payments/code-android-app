@@ -15,8 +15,8 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 
 @Composable
 fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {

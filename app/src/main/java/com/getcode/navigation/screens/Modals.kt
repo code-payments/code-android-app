@@ -25,8 +25,8 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.SheetTitle
-import com.getcode.view.components.keyboardAsState
+import com.getcode.ui.components.SheetTitle
+import com.getcode.ui.components.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

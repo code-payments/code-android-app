@@ -27,9 +27,9 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.displayLarge
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.CodeKeyPad
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.CodeKeyPad
 import kotlinx.coroutines.launch
 
 @Preview

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,11 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
-import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
-import com.getcode.util.rememberedClickable
-import com.getcode.view.components.Pill
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.components.Pill
 import com.getcode.view.main.home.components.HomeBottom
 
 @Composable

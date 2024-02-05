@@ -7,8 +7,8 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.util.IntentUtils
-import com.getcode.view.components.PermissionCheck
-import com.getcode.view.components.getPermissionLauncher
+import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.getPermissionLauncher
 
 @Composable
 fun cameraPermissionCheck(isShowError: Boolean = true, onResult: (Boolean) -> Unit): (Boolean) -> Unit {

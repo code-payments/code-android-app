@@ -30,17 +30,16 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.MainRoot
 import com.getcode.navigation.transitions.SheetSlideTransition
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
-import com.getcode.util.getActivity
-import com.getcode.util.getActivityScopedViewModel
-import com.getcode.util.measured
-import com.getcode.view.components.AuthCheck
-import com.getcode.view.components.BottomBarContainer
-import com.getcode.view.components.CodeScaffold
-import com.getcode.view.components.TitleBar
-import com.getcode.view.components.TopBarContainer
+import com.getcode.ui.utils.getActivity
+import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.ui.utils.measured
+import com.getcode.ui.components.AuthCheck
+import com.getcode.ui.components.BottomBarContainer
+import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.components.TitleBar
+import com.getcode.ui.components.TopBarContainer
 
 @Composable
 fun CodeApp() {

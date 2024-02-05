@@ -1,11 +1,7 @@
 package com.getcode.navigation.screens
 
 import android.os.Parcelable
-import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.screen.Screen
-import com.getcode.util.getActivityScopedViewModel
-import com.getcode.view.main.currency.CurrencyViewModel
-import com.getcode.view.main.home.HomeViewModel
 import kotlinx.parcelize.Parcelize
 
 /**

@@ -17,7 +17,7 @@ import com.getcode.solana.organizer.SlotType
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.MiddleEllipsisText
+import com.getcode.ui.components.MiddleEllipsisText
 import com.getcode.view.main.balance.BalanceSheetViewModel
 
 

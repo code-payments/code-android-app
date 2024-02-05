@@ -22,12 +22,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.util.heightOrZero
-import com.getcode.util.rememberedClickable
-import com.getcode.util.widthOrZero
-import com.getcode.view.components.Badge
-import com.getcode.view.components.Row
-import com.getcode.view.components.chat.ChatNodeDefaults
+import com.getcode.ui.utils.heightOrZero
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.utils.widthOrZero
+import com.getcode.ui.components.Badge
+import com.getcode.ui.components.Row
+import com.getcode.ui.components.chat.ChatNodeDefaults
 import com.getcode.view.main.home.HomeBottomSheet
 import com.getcode.view.main.home.HomeUiModel
 

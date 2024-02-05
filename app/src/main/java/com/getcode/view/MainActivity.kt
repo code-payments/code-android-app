@@ -22,7 +22,7 @@ import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
-import com.getcode.util.handleUncaughtException
+import com.getcode.ui.utils.handleUncaughtException
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.NetworkConnectivityListener

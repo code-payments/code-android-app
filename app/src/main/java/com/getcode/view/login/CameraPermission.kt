@@ -17,8 +17,8 @@ import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 
 @Composable
 fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {

@@ -55,7 +55,7 @@ import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
 import com.getcode.util.formattedRaw
-import com.getcode.util.nonScaledSp
+import com.getcode.ui.utils.nonScaledSp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

@@ -17,8 +17,8 @@ import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.ID
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.util.getActivityScopedViewModel
-import com.getcode.view.components.chat.localized
+import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.ui.components.chat.localized
 import com.getcode.view.main.balance.BalanceSheet
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.chat.ChatScreen

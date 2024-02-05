@@ -24,7 +24,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.util.PhoneUtils
-import com.getcode.util.rememberedClickable
+import com.getcode.ui.utils.rememberedClickable
 import com.getcode.view.login.PhoneVerifyUiModel
 import com.getcode.view.login.PhoneVerifyViewModel
 

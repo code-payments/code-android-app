@@ -54,10 +54,10 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
-import com.getcode.util.RepeatOnLifecycle
-import com.getcode.util.rememberedClickable
-import com.getcode.view.components.CodeCircularProgressIndicator
-import com.getcode.view.components.SwipeableView
+import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.SwipeableView
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -67,7 +67,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable

@@ -27,9 +27,9 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.util.rememberedClickable
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn

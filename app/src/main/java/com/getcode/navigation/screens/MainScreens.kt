@@ -1,10 +1,6 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -12,17 +8,15 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.analytics.AnalyticsManager
+import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.util.RepeatOnLifecycle
-import com.getcode.util.getActivityScopedViewModel
-import com.getcode.view.components.startupLog
+import com.getcode.ui.components.startupLog
+import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
-import com.getcode.view.main.balance.BalanceSheet
-import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScreen

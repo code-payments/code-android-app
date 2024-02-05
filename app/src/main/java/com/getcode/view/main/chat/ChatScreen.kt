@@ -28,11 +28,11 @@ import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatDateRelatively
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.Pill
-import com.getcode.view.components.chat.MessageNode
-import com.getcode.view.components.chat.localized
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.Pill
+import com.getcode.ui.components.chat.MessageNode
+import com.getcode.ui.components.chat.localized
 
 @Composable
 fun ChatScreen(

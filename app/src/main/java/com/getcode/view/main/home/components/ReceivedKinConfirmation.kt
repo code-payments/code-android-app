@@ -22,8 +22,8 @@ import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 import com.getcode.view.main.giveKin.AmountArea
 
 @Composable
