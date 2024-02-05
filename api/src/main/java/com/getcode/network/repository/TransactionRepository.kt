@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -343,7 +344,7 @@ class TransactionRepository @Inject constructor(
 
     // TODO: potentially make this more generic in the event we introduce more airdrop types
     //       that can be requested for
-    fun requestFirstKinAirdrop(owner: Ed25519.KeyPair): Single<KinAmount> {
+    suspend fun requestFirstKinAirdrop(owner: KeyPair): Result<KinAmount> {
         val request = TransactionService.AirdropRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setAirdropType(TransactionService.AirdropType.GET_FIRST_KIN)
@@ -354,25 +355,30 @@ class TransactionRepository @Inject constructor(
             }
             .build()
 
-        return transactionApi.airdrop(request).flatMap {
-            when (it.result) {
-                TransactionService.AirdropResponse.Result.OK -> {
-                    Single.just(KinAmount.fromProtoExchangeData(it.exchangeData))
-                        ?: Single.error(IllegalStateException())
-                }
+        return runCatching {
+            transactionApi.airdrop(request)
+                .toFlowable()
+                .asFlow()
+                .flowOn(Dispatchers.IO)
+                .map {
+                    when (it.result) {
+                        TransactionService.AirdropResponse.Result.OK -> {
+                            KinAmount.fromProtoExchangeData(it.exchangeData)
+                        }
 
-                TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> {
-                    Single.error(AirdropException.AlreadyClaimedException())
-                }
+                        TransactionService.AirdropResponse.Result.ALREADY_CLAIMED -> {
+                            throw AirdropException.AlreadyClaimedException()
+                        }
 
-                TransactionService.AirdropResponse.Result.UNAVAILABLE -> {
-                    Single.error(AirdropException.UnavailableException())
-                }
+                        TransactionService.AirdropResponse.Result.UNAVAILABLE -> {
+                            throw AirdropException.UnavailableException()
+                        }
 
-                else -> {
-                    Single.error(AirdropException.UnknownException())
-                }
-            }
+                        else -> {
+                            throw AirdropException.UnknownException()
+                        }
+                    }
+                }.first()
         }
     }
 

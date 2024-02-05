@@ -9,6 +9,7 @@ import com.getcode.model.PrefsBool
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchPaymentHistoryDelta
+import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -33,6 +34,7 @@ import kotlinx.coroutines.reactive.asFlow
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class GetKinSheetViewModel @Inject constructor(
@@ -96,17 +98,16 @@ class GetKinSheetViewModel @Inject constructor(
 
                 SessionManager.getKeyPair()
             }.onEach { dispatchEvent(Event.OnLoadingChanged(true)) }
-            .flatMapLatest { owner ->
-                client.requestFirstKinAirdrop(owner)
-                    .subscribeOn(Schedulers.computation())
-                    .delay(1, TimeUnit.SECONDS)
-                    .toFlowable().asFlow()
-            }
             .catchSafely(
-                action = { amount ->
+                action = { owner ->
+                    delay(1.seconds)
+                    val amount = client.requestFirstKinAirdrop(owner).getOrThrow()
+
                     dispatchEvent(Event.OnGetEligibilityChanged(eligible = false, fromEvent = true))
                     dispatchEvent(Event.OnLoadingChanged(false))
                     dispatchEvent(Event.OnKinRequestSuccessful(amount))
+
+                    balanceController.fetchBalanceSuspend()
                 },
                 onFailure = {
                     if (it is TransactionRepository.AirdropException.AlreadyClaimedException) {
@@ -121,11 +122,12 @@ class GetKinSheetViewModel @Inject constructor(
                 }
             )
             .flatMapLatest {
-                Completable.concatArray(
-                    balanceController.fetchBalance(),
-                    client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!)
-                        .ignoreElement()
-                ).toFlowable<Any>().asFlow()
+                val organizer = SessionManager.getOrganizer()
+                val receiveWithinLimits = organizer?.let {
+                    client.receiveFromPrimaryIfWithinLimits(it)
+                } ?: Completable.complete()
+
+                receiveWithinLimits.toFlowable<Any>().asFlow()
             }
             .launchIn(viewModelScope)
 
