@@ -14,13 +14,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.util.heightOrZero
 import com.getcode.util.rememberedClickable
+import com.getcode.util.widthOrZero
 import com.getcode.view.components.Badge
 import com.getcode.view.components.Row
 import com.getcode.view.components.chat.ChatNodeDefaults
@@ -49,7 +53,7 @@ internal fun HomeBottom(
                 top = CodeTheme.dimens.grid.x1,
                 bottom = CodeTheme.dimens.grid.x2,
             ),
-            imageSize = CodeTheme.dimens.grid.x6,
+            imageSize = CodeTheme.dimens.grid.x7,
             painter = painterResource(R.drawable.ic_wallet),
             onClick = { onPress(HomeBottomSheet.GET_KIN) }
         )
@@ -88,28 +92,51 @@ private fun BottomBarAction(
     badge: @Composable () -> Unit = { },
     onClick: () -> Unit,
 ) {
-    Box(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .clip(CodeTheme.shapes.medium)
-                .rememberedClickable { onClick() },
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
+    Layout(
+        modifier = modifier,
+        content = {
+            Column(
                 modifier = Modifier
-                    .padding(contentPadding)
-                    .size(imageSize),
-                painter = painter,
-                contentDescription = null,
-            )
-            Text(
-                text = label,
-                style = CodeTheme.typography.body2
-            )
+                    .clip(CodeTheme.shapes.medium)
+                    .rememberedClickable { onClick() }
+                    .layoutId("action"),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Image(
+                    modifier = Modifier
+                        .padding(contentPadding)
+                        .size(imageSize),
+                    painter = painter,
+                    contentDescription = null,
+                )
+                Text(
+                    text = label,
+                    style = CodeTheme.typography.body2
+                )
+            }
+
+            Box(modifier = Modifier.layoutId("badge")) {
+                badge()
+            }
         }
-        Box(modifier = Modifier.align(Alignment.TopEnd)) {
-            badge()
+    ) { measurables, incomingConstraints ->
+        val constraints = incomingConstraints.copy(minWidth = 0, minHeight = 0)
+        val actionPlaceable =
+            measurables.find { it.layoutId == "action" }?.measure(constraints)
+        val badgePlaceable =
+            measurables.find { it.layoutId == "badge" }?.measure(constraints)
+
+        val maxWidth = widthOrZero(actionPlaceable)
+        val maxHeight = heightOrZero(actionPlaceable) // + heightOrZero(badgePlaceable) / 2
+        layout(
+            width = maxWidth,
+            height = maxHeight,
+        ) {
+            actionPlaceable?.placeRelative(0, 0)
+            badgePlaceable?.placeRelative(
+                x = maxWidth - widthOrZero(badgePlaceable),
+                y = -(heightOrZero(badgePlaceable) / 2)
+            )
         }
     }
 }
