@@ -1,5 +1,6 @@
 package com.getcode.view.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,7 +17,7 @@ fun Badge(
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
 ) {
-    if (count > 0) {
+    AnimatedVisibility(visible = count > 0) {
         val text = when {
             count in 1..99 -> "$count"
             else -> "99+"

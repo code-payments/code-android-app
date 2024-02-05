@@ -146,9 +146,9 @@ internal fun DecorView(
 
             HomeBottom(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(bottom = CodeTheme.dimens.grid.x3),
+                state = dataState,
                 onPress = {
                     showBottomSheet(it)
                 },

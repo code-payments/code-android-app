@@ -39,6 +39,7 @@ import com.getcode.models.PaymentState
 import com.getcode.models.Valuation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
@@ -92,10 +93,12 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -130,6 +133,7 @@ data class HomeUiModel(
     val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
+    val chatUnreadCount: Int = 0,
 )
 
 sealed interface HomeEvent {
@@ -150,6 +154,7 @@ class HomeViewModel @Inject constructor(
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
+    private val historyController: HistoryController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
     private val authManager: AuthManager,
@@ -193,6 +198,13 @@ class HomeViewModel @Inject constructor(
                 it.copy(balance = balanceInKin)
             }
         }.launchIn(viewModelScope)
+
+        historyController.unreadCount
+            .distinctUntilChanged()
+            .map { it }
+            .onEach { count ->
+                uiFlow.update { it.copy(chatUnreadCount = count) }
+            }.launchIn(viewModelScope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
             .flowOn(Dispatchers.IO)

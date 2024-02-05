@@ -90,12 +90,10 @@ fun ChatNode(
                     tint = BrandLight
                 )
             } else {
-                AnimatedVisibility(visible = hasUnreadMessages) {
-                    Badge(
-                        count = chat.unreadCount,
-                        color = ChatNodeDefaults.UnreadIndicator
-                    )
-                }
+                Badge(
+                    count = chat.unreadCount,
+                    color = ChatNodeDefaults.UnreadIndicator
+                )
             }
         }
     }
