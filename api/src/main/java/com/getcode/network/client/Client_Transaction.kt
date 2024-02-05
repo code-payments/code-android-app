@@ -355,9 +355,9 @@ fun Client.sendRemotely(
 }
 
 
-fun Client.requestFirstKinAirdrop(
+suspend fun Client.requestFirstKinAirdrop(
     owner: KeyPair,
-): Single<KinAmount> {
+): Result<KinAmount> {
     return transactionRepository.requestFirstKinAirdrop(owner)
 }
 
