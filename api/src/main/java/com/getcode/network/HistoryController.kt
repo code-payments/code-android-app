@@ -6,6 +6,7 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.cachedIn
+import androidx.paging.map
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.Chat
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.reactive.asFlow
@@ -62,17 +64,18 @@ class HistoryController @Inject constructor(
     private val pagerMap = mutableMapOf<ID, PagingSource<Cursor, ChatMessage>>()
     private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
 
-    private fun chatMessagePager(chatId: ID) = Pager(
-        PagingConfig(pageSize = 20)
-    ) {
+    private val pagingConfig = PagingConfig(pageSize = 20)
+
+    private fun chatMessagePager(chatId: ID) = Pager(pagingConfig) {
         pagerMap[chatId] ?: ChatMessagePagingSource(client, owner()!!, chatId).also {
             pagerMap[chatId] = it
         }
     }
 
-    fun chatFlow(chatId: ID) = chatFlows[chatId] ?: chatMessagePager(chatId).flow.cachedIn(GlobalScope).also {
-        chatFlows[chatId] = it
-    }
+    fun chatFlow(chatId: ID) =
+        chatFlows[chatId] ?: chatMessagePager(chatId).flow.cachedIn(GlobalScope).also {
+            chatFlows[chatId] = it
+        }
 
     val unreadCount = chats
         .filterNotNull()
@@ -95,6 +98,12 @@ class HistoryController @Inject constructor(
             owner = owner,
             afterId = latestTransaction.id.toByteArray()
         )
+
+        fetchChats()
+
+        pagerMap.entries.onEach { (id, pagingSource) ->
+            pagingSource.invalidate()
+        }
     }
 
     @SuppressLint("CheckResult")

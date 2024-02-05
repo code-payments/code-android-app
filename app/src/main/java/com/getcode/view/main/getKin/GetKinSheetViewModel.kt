@@ -7,6 +7,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.KinAmount
 import com.getcode.model.PrefsBool
 import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchPaymentHistoryDelta
 import com.getcode.network.client.requestFirstKinAirdrop
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.asFlow
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -41,6 +43,7 @@ class GetKinSheetViewModel @Inject constructor(
     private val client: Client,
     private val networkObserver: NetworkConnectivityListener,
     private val resources: ResourceHelper,
+    private val historyController: HistoryController,
 ) : BaseViewModel2<GetKinSheetViewModel.State, GetKinSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -121,12 +124,8 @@ class GetKinSheetViewModel @Inject constructor(
                 }
             )
             .flatMapLatest {
-                Completable.concatArray(
-                    balanceController.fetchBalance(),
-                    client.fetchPaymentHistoryDelta(owner = SessionManager.getKeyPair()!!)
-                        .ignoreElement()
-                ).toFlowable<Any>().asFlow()
-            }
+                Completable.concatArray(balanceController.fetchBalance()).toFlowable<Any>().asFlow()
+            }.onEach { historyController.fetchDelta() }
             .launchIn(viewModelScope)
 
         eventFlow

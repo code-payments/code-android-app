@@ -45,7 +45,6 @@ import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
-import com.getcode.network.client.fetchPaymentHistoryDelta
 import com.getcode.network.client.receiveRemoteSuspend
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
@@ -304,12 +303,12 @@ class HomeViewModel @Inject constructor(
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true),
-                        client.fetchPaymentHistoryDelta(owner).ignoreElement()
                     )
                 }
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
                     vibrator.vibrate()
+                    viewModelScope.launch { historyController.fetchDelta() }
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -535,12 +534,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) = viewModelScope.launch {
-        val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
-        BottomBarManager.clear()
+    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) =
+        viewModelScope.launch {
+            val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
+            BottomBarManager.clear()
 
-        presentRequest(amount = amount, payload = p, request = request)
-    }
+            presentRequest(amount = amount, payload = p, request = request)
+        }
 
     fun presentRequest(
         amount: KinAmount,
@@ -835,10 +835,9 @@ class HomeViewModel @Inject constructor(
                 Completable.concatArray(
                     balanceController.fetchBalance(),
                     client.fetchLimits(isForce = true),
-                    client.fetchPaymentHistoryDelta(organizer.ownerKeyPair).ignoreElement()
                 )
             }
-            .subscribe({ }, {
+            .subscribe({ viewModelScope.launch { historyController.fetchDelta() } }, {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
             })

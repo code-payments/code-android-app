@@ -110,7 +110,7 @@ sealed interface Verb {
 
 data class ChatMessage(
     val id: ID,
-    val cursor: Cursor?,
+    val cursor: Cursor,
     val dateMillis: Long,
     val contents: List<MessageContent>
 )
