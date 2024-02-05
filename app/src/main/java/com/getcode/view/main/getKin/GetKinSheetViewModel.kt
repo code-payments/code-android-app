@@ -129,7 +129,7 @@ class GetKinSheetViewModel @Inject constructor(
                 } ?: Completable.complete()
 
                 receiveWithinLimits.toFlowable<Any>().asFlow()
-            }.onEach { historyController.fetchChats() }
+            }
             .launchIn(viewModelScope)
 
         eventFlow
