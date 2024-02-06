@@ -45,6 +45,7 @@ import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
+import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.client.receiveRemoteSuspend
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
@@ -182,7 +183,7 @@ class HomeViewModel @Inject constructor(
     init {
         onDrawn()
         Database.isInit
-            .flatMap { prefRepository.get(PrefsBool.DISPLAY_ERRORS) }
+            .flatMap { prefRepository.getFlowable(PrefsBool.DISPLAY_ERRORS) }
             .subscribe(ErrorUtils::setDisplayErrors)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
@@ -193,20 +194,31 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
+        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, true)
             .map { it }
+            .distinctUntilChanged()
+            .onEach { Timber.d("airdrop eligible=$it") }
             .filter { it }
             .mapNotNull { SessionManager.getKeyPair() }
             .catchSafely(
                 action = { owner ->
                     val amount = client.requestFirstKinAirdrop(owner).getOrThrow()
+                    prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
                     balanceController.fetchBalanceSuspend()
+
+                    val organizer = SessionManager.getOrganizer()
+                    val receiveWithinLimits = organizer?.let {
+                        client.receiveFromPrimaryIfWithinLimits(it)
+                    } ?: Completable.complete()
+                    receiveWithinLimits.subscribe({}, {})
 
                     showToast(amount = amount, isDeposit = true)
 
                     historyController.fetchChats()
-                    prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
                 },
+                onFailure = {
+                    Timber.e(t = it, message = "Auto airdrop failed")
+                }
             )
             .launchIn(viewModelScope)
 

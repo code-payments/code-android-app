@@ -177,8 +177,8 @@ class AuthManager @Inject constructor(
     private fun fetchData(context: Context, entropyB64: String):
             Single<Pair<PhoneRepository.GetAssociatedPhoneNumberResponse, IdentityRepository.GetUserResponse>> {
 
-        var owner = SessionManager.authState.value?.keyPair
-        if (owner == null || SessionManager.authState.value?.entropyB64 != entropyB64) {
+        var owner = SessionManager.authState.value.keyPair
+        if (owner == null || SessionManager.authState.value.entropyB64 != entropyB64) {
             owner = MnemonicPhrase.fromEntropyB64(context, entropyB64).getSolanaKeyPair(context)
         }
 
@@ -200,7 +200,7 @@ class AuthManager @Inject constructor(
             }
             .flatMap {
                 user = it
-                if (SessionManager.authState.value?.entropyB64 != entropyB64) {
+                if (SessionManager.authState.value.entropyB64 != entropyB64) {
                     sessionManager.set(context, entropyB64)
                 }
                 balanceController.fetchBalance()
@@ -210,8 +210,6 @@ class AuthManager @Inject constructor(
                 savePrefs(phone!!, user!!)
                 updateFcmToken(owner, user!!.dataContainerId.toByteArray())
                 launch { exchange.fetchRatesIfNeeded() }
-
-//                launch { historyController.fetchAllTransactions() }
                 launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
             }
@@ -232,15 +230,16 @@ class AuthManager @Inject constructor(
         analytics.logout()
         sessionManager.clear()
         Database.close()
+        historyController.reset()
         inMemoryDao.clear()
         Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
-
     private fun savePrefs(
         phone: PhoneRepository.GetAssociatedPhoneNumberResponse,
         user: IdentityRepository.GetUserResponse
     ) {
+        Timber.d("saving prefs")
         phoneRepository.phoneNumber = phone.phoneNumber
         prefRepository.set(
             Pair(
@@ -258,6 +257,8 @@ class AuthManager @Inject constructor(
             PrefsBool.IS_DEBUG_ALLOWED,
             user.enableDebugOptions,
         )
+
+        Timber.d("airdrops eligible = ${user.eligibleAirdrops.joinToString { it.name }}")
         prefRepository.set(
             PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP,
             user.eligibleAirdrops.contains(AirdropType.GetFirstKin),

@@ -26,7 +26,7 @@ class SessionManager @Inject constructor() {
     fun set(context: Context, entropyB64: String) {
         val mnemonic = MnemonicPhrase.fromEntropyB64(context, entropyB64)
         if (getOrganizer()?.mnemonic?.words == mnemonic.words
-            && getOrganizer()?.ownerKeyPair == authState.value?.keyPair
+            && getOrganizer()?.ownerKeyPair == authState.value.keyPair
         ) return
         val organizer = Organizer.newInstance(
             context = context,
@@ -38,7 +38,7 @@ class SessionManager @Inject constructor() {
                 entropyB64 = entropyB64,
                 keyPair = organizer.ownerKeyPair,
                 isAuthenticated = true,
-                organizer = organizer
+                organizer = organizer,
             )
         }
     }

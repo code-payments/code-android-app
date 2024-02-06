@@ -15,6 +15,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.getKin.GetKinSheet
@@ -45,7 +46,7 @@ data class HomeScreen(
 
     @Composable
     override fun Content() {
-        val vm = getActivityScopedViewModel<HomeViewModel>()
+        val vm = getViewModel<HomeViewModel>()
         startupLog("home rendered")
         HomeScreen(vm, cashLink, requestPayload)
 

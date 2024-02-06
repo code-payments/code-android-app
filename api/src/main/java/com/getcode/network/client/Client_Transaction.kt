@@ -346,6 +346,7 @@ fun Client.sendRemotely(
 suspend fun Client.requestFirstKinAirdrop(
     owner: KeyPair,
 ): Result<KinAmount> {
+    Timber.d("requesting airdrop")
     return transactionRepository.requestFirstKinAirdrop(owner)
 }
 

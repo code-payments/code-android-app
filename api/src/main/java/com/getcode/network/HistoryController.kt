@@ -51,6 +51,12 @@ class HistoryController @Inject constructor(
 
     private val pagingConfig = PagingConfig(pageSize = 20)
 
+
+    fun reset() {
+        pagerMap.clear()
+        chatFlows.clear()
+    }
+
     private fun chatMessagePager(chatId: ID) = Pager(pagingConfig) {
         pagerMap[chatId] ?: ChatMessagePagingSource(client, owner()!!, chatId).also {
             pagerMap[chatId] = it
