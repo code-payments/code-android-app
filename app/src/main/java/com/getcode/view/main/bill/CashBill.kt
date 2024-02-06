@@ -57,7 +57,9 @@ import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.theme.White50
+import com.getcode.ui.utils.debugBounds
 import com.getcode.util.formattedRaw
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
@@ -330,10 +332,11 @@ internal fun CashBill(
                     Image(
                         modifier = Modifier
                             .width(geometry.brandWidth),
+                        contentScale = ContentScale.FillWidth,
                         painter = painterResource(
                             R.drawable.ic_code_logo_offwhite_small
                         ),
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground.copy(alpha = 0.60f)),
+                        colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground),
                         contentDescription = "",
                     )
                     Spacer(modifier = Modifier.weight(1f))
