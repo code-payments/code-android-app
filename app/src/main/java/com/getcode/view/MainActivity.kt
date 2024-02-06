@@ -10,17 +10,19 @@ import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
 import com.getcode.LocalCurrencyUtils
 import com.getcode.LocalDeeplinks
+import com.getcode.LocalExchange
 import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.client.Client
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
-import com.getcode.util.handleUncaughtException
+import com.getcode.ui.utils.handleUncaughtException
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -60,6 +62,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var currencyUtils: CurrencyUtils
 
+    @Inject
+    lateinit var exchange: Exchange
+
     /**
      * The compose navigation controller does not play nice with single task activities.
      * Invoking the navigation controller here will cause the intent to be fired
@@ -93,6 +98,7 @@ class MainActivity : FragmentActivity() {
                 LocalPhoneFormatter provides phoneUtils,
                 LocalVibrator provides vibrator,
                 LocalCurrencyUtils provides currencyUtils,
+                LocalExchange provides exchange,
             ) {
                 CodeApp()
             }

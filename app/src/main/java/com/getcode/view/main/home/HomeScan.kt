@@ -15,7 +15,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,7 +36,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
@@ -58,14 +56,15 @@ import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.CodeTheme
-import com.getcode.util.AnimationUtils
-import com.getcode.util.addIf
-import com.getcode.util.measured
+import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.getPermissionLauncher
+import com.getcode.ui.components.startupLog
+import com.getcode.ui.utils.AnimationUtils
+import com.getcode.ui.utils.addIf
+import com.getcode.util.isEmulator
+import com.getcode.ui.utils.measured
 import com.getcode.view.camera.KikCodeScannerView
-import com.getcode.view.components.OnLifecycleEvent
-import com.getcode.view.components.PermissionCheck
-import com.getcode.view.components.startupLog
-import com.getcode.view.components.getPermissionLauncher
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.PaymentConfirmation
@@ -317,7 +316,9 @@ private fun BillContainer(
 
             AnimatedVisibility(
                 modifier = Modifier.fillMaxSize(),
-                visible = !isCameraReady,
+                // camera isn't really usable on an emulator so don't fade in wacky
+                // camera feed
+                visible = isEmulator || !isCameraReady,
                 enter = fadeIn(
                     animationSpec = tween(AnimationUtils.animationTime)
                 ),

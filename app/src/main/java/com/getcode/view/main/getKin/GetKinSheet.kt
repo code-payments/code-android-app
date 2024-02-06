@@ -34,10 +34,10 @@ import com.getcode.navigation.screens.ReferFriendScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
-import com.getcode.util.RepeatOnLifecycle
-import com.getcode.util.addIf
-import com.getcode.util.rememberedClickable
-import com.getcode.view.components.CodeCircularProgressIndicator
+import com.getcode.ui.utils.RepeatOnLifecycle
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.components.CodeCircularProgressIndicator
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map

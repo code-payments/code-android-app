@@ -13,7 +13,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.network.ConnectionType
 import com.getcode.utils.network.NetworkState
-import com.getcode.view.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.CodeCircularProgressIndicator
 
 @Composable
 fun ConnectionStatus(state: NetworkState) {

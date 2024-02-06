@@ -8,8 +8,6 @@ import android.media.MediaScannerConnection
 import android.os.Environment
 import androidmads.library.qrgenearator.QRGContents
 import androidmads.library.qrgenearator.QRGEncoder
-import androidx.appcompat.content.res.AppCompatResources
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
@@ -22,14 +20,12 @@ import com.getcode.network.repository.ApiDeniedException
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.*
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.util.toAGColor
+import com.getcode.ui.utils.toAGColor
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.InternalCoroutinesApi
-import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch

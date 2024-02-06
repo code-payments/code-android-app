@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 

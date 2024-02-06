@@ -7,6 +7,11 @@ import io.grpc.stub.StreamObserver
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.reactive.asFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.reflect.KFunction2
 
 abstract class GrpcApi(protected val managedChannel: ManagedChannel) {
@@ -23,6 +28,16 @@ abstract class GrpcApi(protected val managedChannel: ManagedChannel) {
         request: Request,
         backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
     ): Flowable<Response> = internalCallAsCancellableFlowable(request, backpressureStrategy)
+
+    fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<Response>, Unit>.callAsFlow(
+        request: Request,
+        backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
+    ): Flow<Response> = internalCallAsFlow(request, backpressureStrategy)
+
+    fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<Response>, Unit>.callAsCancellableFlow(
+        request: Request,
+        backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
+    ): Flow<Response> = internalCallAsCancellableFlow(request, backpressureStrategy)
 }
 
 internal fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<Response>, Unit>.internalCallAsSingle(
@@ -66,6 +81,13 @@ internal fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<
     }, backpressureStrategy)
 }
 
+internal  fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<Response>, Unit>.internalCallAsFlow(
+    request: Request,
+    backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
+): Flow<Response> {
+    return internalCallAsFlowable(request, backpressureStrategy).asFlow()
+}
+
 internal fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<Response>, Unit>.internalCallAsCancellableFlowable(
     request: Request,
     backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
@@ -107,4 +129,11 @@ internal fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<
         .doOnCancel {
             streamObserver?.cancel("subscription disposed, cancelling stream", null)
         }
+}
+
+internal fun <Request : Any, Response : Any> KFunction2<Request, StreamObserver<Response>, Unit>.internalCallAsCancellableFlow(
+    request: Request,
+    backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
+): Flow<Response> {
+    return internalCallAsCancellableFlowable(request, backpressureStrategy).asFlow()
 }

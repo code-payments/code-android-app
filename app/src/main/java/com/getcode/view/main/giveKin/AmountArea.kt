@@ -18,16 +18,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.rememberedClickable
+import com.getcode.ui.utils.rememberedClickable
 import com.getcode.utils.network.NetworkState
 import com.getcode.view.main.connectivity.ConnectionStatus
 import com.getcode.view.main.connectivity.NetworkStateProvider
+import timber.log.Timber
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

@@ -4,12 +4,14 @@ import android.content.Context
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.network.service.ChatService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +39,7 @@ class Client @Inject constructor(
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
     internal val networkObserver: NetworkConnectivityListener,
+    internal val chatService: ChatService,
 ) {
 
     private val TAG = "PollTimer"

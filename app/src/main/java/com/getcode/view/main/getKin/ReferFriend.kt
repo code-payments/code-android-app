@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 
 @Composable
 fun ReferFriend() {

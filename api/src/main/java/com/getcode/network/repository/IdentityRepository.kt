@@ -3,7 +3,6 @@ package com.getcode.network.repository
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.db.Database
-import com.getcode.db.InMemoryDao
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
@@ -92,11 +91,11 @@ class IdentityRepository @Inject constructor(
 
     fun getUserLocal(): Flowable<GetUserResponse> {
         return Flowable.zip(
-            prefRepository.get(PrefsString.KEY_USER_ID),
-            prefRepository.get(PrefsString.KEY_DATA_CONTAINER_ID),
-            prefRepository.get(PrefsBool.IS_DEBUG_ALLOWED),
-            prefRepository.get(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP),
-            prefRepository.get(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP),
+            prefRepository.getFlowable(PrefsString.KEY_USER_ID),
+            prefRepository.getFlowable(PrefsString.KEY_DATA_CONTAINER_ID),
+            prefRepository.getFlowable(PrefsBool.IS_DEBUG_ALLOWED),
+            prefRepository.getFlowable(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP),
+            prefRepository.getFlowable(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP),
             Flowable.just(phoneRepository.phoneLinked)
         ) { userId, dataContainerId, isDebugAllowed, isEligibleGetFirstKinAirdrop, isEligibleGiveFirstKinAirdrop, isPhoneNumberLinked ->
             var eligibleAirdrops = Sets.newHashSet<AirdropType>()

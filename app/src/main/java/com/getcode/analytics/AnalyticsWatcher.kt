@@ -8,7 +8,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.getcode.LocalAnalytics
-import com.getcode.util.RepeatOnLifecycle
+import com.getcode.ui.utils.RepeatOnLifecycle
 
 @Composable
 fun AnalyticsWatcher(

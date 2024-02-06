@@ -27,9 +27,9 @@ import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
-import com.getcode.util.getActivity
+import com.getcode.ui.utils.getActivity
 import com.getcode.vendor.Base58
-import com.getcode.view.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.CodeCircularProgressIndicator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

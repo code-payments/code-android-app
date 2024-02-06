@@ -9,7 +9,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.util.getStackScopedViewModel
+import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
 import com.getcode.view.login.CameraPermission

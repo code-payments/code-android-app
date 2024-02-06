@@ -10,6 +10,8 @@ import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
+import com.getcode.network.exchange.CodeExchange
+import com.getcode.network.exchange.Exchange
 import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidPermissions
 import com.getcode.util.AndroidResources

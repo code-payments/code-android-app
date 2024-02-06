@@ -2,8 +2,11 @@ package com.getcode.inject
 
 import android.content.Context
 import com.getcode.BuildConfig
+import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.model.Currency
 import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.api.TransactionApiV2
@@ -11,6 +14,7 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.core.NetworkOracleImpl
+import com.getcode.network.exchange.CodeExchange
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
@@ -20,6 +24,10 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.network.service.ChatService
+import com.getcode.util.CurrencyUtils
+import com.getcode.util.Kin
+import com.getcode.util.resources.ResourceHelper
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -31,6 +39,8 @@ import io.grpc.android.AndroidChannelBuilder
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -95,22 +105,41 @@ object ApiModule {
     @Singleton
     @Provides
     fun provideBalanceController(
+        exchange: Exchange,
         @ApplicationContext context: Context,
         balanceRepository: BalanceRepository,
         transactionRepository: TransactionRepository,
         accountRepository: AccountRepository,
         privacyMigration: PrivacyMigration,
-        transactionReceiver: TransactionReceiver
+        transactionReceiver: TransactionReceiver,
+        networkObserver: NetworkConnectivityListener,
+        locale: LocaleHelper,
+        resources: ResourceHelper,
+        currencyUtils: CurrencyUtils,
     ): BalanceController {
         return BalanceController(
-            context,
-            balanceRepository,
-            transactionRepository,
-            accountRepository,
-            privacyMigration,
-            transactionReceiver,
-
-            )
+            exchange = exchange,
+            context = context,
+            balanceRepository = balanceRepository,
+            transactionRepository = transactionRepository,
+            accountRepository = accountRepository,
+            privacyMigration = privacyMigration,
+            transactionReceiver = transactionReceiver,
+            networkObserver = networkObserver,
+            getCurrency = { rates ->
+                withContext(Dispatchers.Default) {
+                    val defaultCurrencyCode = locale.getDefaultCurrency()?.code
+                    return@withContext currencyUtils.getCurrenciesWithRates(rates)
+                        .firstOrNull { p ->
+                            p.code == defaultCurrencyCode
+                        } ?: Currency.Kin
+                }
+            },
+            getDefaultCountry = {
+                locale.getDefaultCountry()
+            },
+            suffix = { resources.getString(R.string.core_ofKin) }
+        )
     }
 
     @Singleton
@@ -119,7 +148,7 @@ object ApiModule {
         currencyApi: CurrencyApi,
         networkOracle: NetworkOracle,
         locale: LocaleHelper
-    ) = Exchange(currencyApi, networkOracle) {
+    ): Exchange = CodeExchange(currencyApi, networkOracle) {
         locale.getDefaultCurrency()
     }
 
@@ -136,6 +165,7 @@ object ApiModule {
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
         networkObserver: NetworkConnectivityListener,
+        chatService: ChatService,
     ): Client {
         return Client(
             context,
@@ -147,7 +177,8 @@ object ApiModule {
             prefRepository,
             exchange,
             transactionReceiver,
-            networkObserver
+            networkObserver,
+            chatService,
         )
     }
 

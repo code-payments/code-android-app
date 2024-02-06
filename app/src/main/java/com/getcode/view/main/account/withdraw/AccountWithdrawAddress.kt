@@ -30,10 +30,9 @@ import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.green
-import com.getcode.util.debugBounds
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.TextInput
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.TextInput
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

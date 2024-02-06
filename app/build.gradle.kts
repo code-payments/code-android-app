@@ -65,9 +65,9 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-//            isMinifyEnabled = true
-//            isShrinkResources = true
-//            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
@@ -113,9 +113,11 @@ dependencies {
     implementation(Libs.kotlin_stdlib)
     implementation(Libs.kotlinx_collections_immutable)
     implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_datetime)
     implementation(Libs.androidx_core)
     implementation(Libs.androidx_constraint_layout)
     implementation(Libs.androidx_lifecycle_runtime)
+    implementation(Libs.androidx_lifecycle_viewmodel)
     implementation(Libs.androidx_navigation_fragment)
     implementation(Libs.androidx_navigation_ui)
 
@@ -138,10 +140,13 @@ dependencies {
     implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
+    implementation(Libs.compose_materialIconsExtended)
     implementation(Libs.compose_activities)
     implementation(Libs.compose_view_models)
     implementation(Libs.compose_livedata)
     implementation(Libs.compose_navigation)
+    implementation(Libs.compose_paging)
+
     implementation(Libs.androidx_constraint_layout_compose)
 
     implementation(Libs.compose_voyager_navigation)

@@ -28,7 +28,7 @@ object ErrorUtils {
                 throwable.cause ?: throwable
             else throwable
 
-        if (BuildConfig.DEBUG || isDisplayErrors && !isSuppressibleError(throwable)) {
+        if (BuildConfig.DEBUG || (isDisplayErrors && !isSuppressibleError(throwable))) {
             Timber.e(throwable)
 
             TopBarManager.showMessage(
