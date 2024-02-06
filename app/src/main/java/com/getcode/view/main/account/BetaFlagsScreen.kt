@@ -16,8 +16,8 @@ import com.getcode.model.BetaFlags
 import com.getcode.model.PrefsBool
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.rememberedClickable
-import com.getcode.view.components.CodeSwitch
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.components.CodeSwitch
 
 @Composable
 fun BetaFlagsScreen(

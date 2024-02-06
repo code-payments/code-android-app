@@ -16,10 +16,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.PermissionCheck
-import com.getcode.view.components.PermissionsLauncher
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.PermissionsLauncher
 
 @Composable
 internal fun PermissionsBlockingView(

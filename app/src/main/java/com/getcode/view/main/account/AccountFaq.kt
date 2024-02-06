@@ -17,7 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.view.components.MarkdownText
+import com.getcode.ui.components.MarkdownText
 
 @Preview
 @Composable

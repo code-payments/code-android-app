@@ -1,6 +1,7 @@
 package com.getcode.model
 
 import com.codeinc.gen.transaction.v2.TransactionService.ExchangeData
+import com.getcode.model.Kin.Companion.fromKin
 import com.getcode.utils.FormatUtils
 
 data class KinAmount(
@@ -19,6 +20,10 @@ data class KinAmount(
     }
 
     companion object {
+        fun newInstance(kin: Int, rate: Rate): KinAmount {
+            return newInstance(fromKin(kin), rate)
+        }
+
         fun newInstance(kin: Kin, rate: Rate): KinAmount {
             return KinAmount(
                 kin = kin,

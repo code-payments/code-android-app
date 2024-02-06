@@ -25,8 +25,8 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.SheetTitle
-import com.getcode.view.components.keyboardAsState
+import com.getcode.ui.components.SheetTitle
+import com.getcode.ui.components.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -68,6 +68,7 @@ internal fun Screen.ModalContainer(
 internal fun Screen.ModalContainer(
     navigator: CodeNavigator = LocalCodeNavigator.current,
     displayLogo: Boolean = false,
+    title: @Composable (Screen?) -> String? = { null },
     backButton: (Screen?) -> Boolean = { false },
     onBackClicked: (() -> Unit)? = null,
     closeButton: (Screen?) -> Boolean = { false },
@@ -108,11 +109,12 @@ internal fun Screen.ModalContainer(
         SheetTitle(
             modifier = Modifier,
             title = {
-                val name = (lastItem as? NamedScreen)?.name
+                val screenName = (lastItem as? NamedScreen)?.name
                 val sheetName by remember(lastItem) {
-                    derivedStateOf { name }
+                    derivedStateOf { screenName }
                 }
-                sheetName.takeIf { !displayLogo && lastItem == this@ModalContainer }
+                val name = title(lastItem) ?: sheetName
+                name.takeIf { !displayLogo && lastItem == this@ModalContainer }
             },
             displayLogo = displayLogo,
             onLogoClicked = onLogoClicked,

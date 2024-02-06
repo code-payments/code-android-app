@@ -21,11 +21,11 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.theme.inputColors
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.CodeCircularProgressIndicator
-import com.getcode.view.components.getButtonBorder
-import com.getcode.view.components.getButtonColors
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.getButtonBorder
+import com.getcode.ui.components.getButtonColors
 
 @Preview
 @Composable

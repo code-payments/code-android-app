@@ -15,9 +15,9 @@ import com.getcode.R
 import com.getcode.navigation.screens.DeleteConfirmationScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.TextSection
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.TextSection
 
 @Composable
 fun DeleteCodeAccount() {

@@ -39,13 +39,15 @@ import com.getcode.models.PaymentState
 import com.getcode.models.Valuation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
-import com.getcode.network.client.fetchPaymentHistoryDelta
+import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.client.receiveRemoteSuspend
+import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
@@ -67,6 +69,7 @@ import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.base64EncodedData
+import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
 import com.getcode.vendor.Base58
@@ -92,13 +95,18 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
@@ -130,6 +138,7 @@ data class HomeUiModel(
     val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
+    val chatUnreadCount: Int = 0,
 )
 
 sealed interface HomeEvent {
@@ -150,6 +159,7 @@ class HomeViewModel @Inject constructor(
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
+    private val historyController: HistoryController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
     private val authManager: AuthManager,
@@ -171,8 +181,9 @@ class HomeViewModel @Inject constructor(
     private var sendTransactionDisposable: Disposable? = null
 
     init {
+        onDrawn()
         Database.isInit
-            .flatMap { prefRepository.get(PrefsBool.DISPLAY_ERRORS) }
+            .flatMap { prefRepository.getFlowable(PrefsBool.DISPLAY_ERRORS) }
             .subscribe(ErrorUtils::setDisplayErrors)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
@@ -183,9 +194,37 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
+        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, true)
+            .map { it }
+            .distinctUntilChanged()
+            .onEach { Timber.d("airdrop eligible=$it") }
+            .filter { it }
+            .mapNotNull { SessionManager.getKeyPair() }
+            .catchSafely(
+                action = { owner ->
+                    val amount = client.requestFirstKinAirdrop(owner).getOrThrow()
+                    prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
+                    balanceController.fetchBalanceSuspend()
+
+                    val organizer = SessionManager.getOrganizer()
+                    val receiveWithinLimits = organizer?.let {
+                        client.receiveFromPrimaryIfWithinLimits(it)
+                    } ?: Completable.complete()
+                    receiveWithinLimits.subscribe({}, {})
+
+                    showToast(amount = amount, isDeposit = true)
+
+                    historyController.fetchChats()
+                },
+                onFailure = {
+                    Timber.e(t = it, message = "Auto airdrop failed")
+                }
+            )
+            .launchIn(viewModelScope)
+
         combine(
             exchange.observeLocalRate(),
-            balanceController.observe(),
+            balanceController.observeRawBalance(),
         ) { rate, balance ->
             KinAmount.newInstance(Kin.fromKin(balance), rate)
         }.onEach { balanceInKin ->
@@ -193,6 +232,13 @@ class HomeViewModel @Inject constructor(
                 it.copy(balance = balanceInKin)
             }
         }.launchIn(viewModelScope)
+
+        historyController.unreadCount
+            .distinctUntilChanged()
+            .map { it }
+            .onEach { count ->
+                uiFlow.update { it.copy(chatUnreadCount = count) }
+            }.launchIn(viewModelScope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
             .flowOn(Dispatchers.IO)
@@ -292,12 +338,12 @@ class HomeViewModel @Inject constructor(
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true),
-                        client.fetchPaymentHistoryDelta(owner).ignoreElement()
                     )
                 }
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
                     vibrator.vibrate()
+                    viewModelScope.launch { historyController.fetchChats() }
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -523,12 +569,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) = viewModelScope.launch {
-        val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
-        BottomBarManager.clear()
+    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) =
+        viewModelScope.launch {
+            val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
+            BottomBarManager.clear()
 
-        presentRequest(amount = amount, payload = p, request = request)
-    }
+            presentRequest(amount = amount, payload = p, request = request)
+        }
 
     fun presentRequest(
         amount: KinAmount,
@@ -823,10 +870,9 @@ class HomeViewModel @Inject constructor(
                 Completable.concatArray(
                     balanceController.fetchBalance(),
                     client.fetchLimits(isForce = true),
-                    client.fetchPaymentHistoryDelta(organizer.ownerKeyPair).ignoreElement()
                 )
             }
-            .subscribe({ }, {
+            .subscribe({ viewModelScope.launch { historyController.fetchChats() } }, {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
             })

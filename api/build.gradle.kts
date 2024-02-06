@@ -63,6 +63,8 @@ dependencies {
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)
 
+    implementation(Libs.androidx_paging_runtime)
+
     kapt(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
 

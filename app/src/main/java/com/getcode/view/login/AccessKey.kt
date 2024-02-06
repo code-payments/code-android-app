@@ -38,15 +38,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalTextToolbar
-import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalTopBarPadding
 import com.getcode.R
@@ -54,21 +49,17 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.util.IntentUtils
-import com.getcode.util.addIf
-import com.getcode.util.debugBounds
-import com.getcode.util.measured
-import com.getcode.util.swallowClicks
-import com.getcode.view.components.AccessKeySelectionContainer
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.Cloudy
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.PermissionCheck
-import com.getcode.view.components.getPermissionLauncher
-import com.getcode.view.components.rememberSelectionState
+import com.getcode.ui.utils.measured
+import com.getcode.ui.components.AccessKeySelectionContainer
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.Cloudy
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.getPermissionLauncher
+import com.getcode.ui.components.rememberSelectionState
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview

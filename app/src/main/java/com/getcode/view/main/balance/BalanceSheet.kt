@@ -3,10 +3,7 @@ package com.getcode.view.main.balance
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -14,11 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Divider
@@ -27,16 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Alignment.Companion.BottomCenter
-import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
-import androidx.compose.ui.Alignment.Companion.TopCenter
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -46,23 +34,21 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
-import com.getcode.data.transactions.HistoricalTransactionUiModel
-import com.getcode.model.AirdropType
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
-import com.getcode.model.PaymentType
+import com.getcode.model.ID
 import com.getcode.model.Rate
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ChatScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.theme.extraSmall
+import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.chat.ChatNode
 import com.getcode.util.Kin
-import com.getcode.view.components.CodeCircularProgressIndicator
 import com.getcode.view.main.account.AccountDebugBuckets
 import com.getcode.view.main.giveKin.AmountArea
-import com.getcode.view.previewComponent.PreviewColumn
 
 
 @Composable
@@ -90,31 +76,33 @@ fun BalanceSheet(
             BalanceContent(
                 state = state,
                 dispatch = dispatch,
-                upPress = { navigator.hide() },
-                faqOpen = { navigator.push(FaqScreen) }
+                faqOpen = { navigator.push(FaqScreen) },
+                openChat = { navigator.push(ChatScreen(it)) }
             )
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BalanceContent(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
-    upPress: () -> Unit,
-    faqOpen: () -> Unit
+    faqOpen: () -> Unit,
+    openChat: (ID) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
 
-    val transactionsEmpty by remember(state.historicalTransactions) {
-        derivedStateOf { state.historicalTransactions.isEmpty() }
+    val chatsEmpty by remember(state.chats) {
+        derivedStateOf { state.chats.isEmpty() }
+    }
+
+    val canClickBalance by remember(state.isDebugBucketsEnabled) {
+        derivedStateOf { state.isDebugBucketsVisible }
     }
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
+            .fillMaxWidth(),
         state = lazyListState
     ) {
         item {
@@ -129,27 +117,38 @@ fun BalanceContent(
             ) {
                 BalanceTop(
                     state,
-                    state.isDebugBucketsEnabled
+                    canClickBalance,
                 ) {
                     dispatch(BalanceSheetViewModel.Event.OnDebugBucketsVisible(true))
                 }
-                if (!transactionsEmpty && !state.historicalTransactionsLoading) {
+                if (!chatsEmpty && !state.chatsLoading) {
                     KinValueHint(faqOpen)
                 }
             }
         }
-        items(state.historicalTransactions, key = { it.id }, contentType = { it }) { event ->
-            Row(Modifier.animateItemPlacement()) {
-                TransactionItem(event)
+        itemsIndexed(
+            state.chats,
+            key = { _, item -> item.id },
+            contentType = { _, item -> item }) { index, event ->
+            ChatNode(chat = event, onClick = { openChat(event.id) })
+            if (index < state.chats.lastIndex) {
+                Divider(
+                    modifier = Modifier.padding(start = CodeTheme.dimens.inset),
+                    color = White10,
+                )
             }
         }
 
         when {
-            state.historicalTransactionsLoading -> {
+            state.chatsLoading -> {
                 item {
-                    Column(modifier = Modifier.fillMaxSize(),
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2, CenterVertically),
+                        verticalArrangement = Arrangement.spacedBy(
+                            CodeTheme.dimens.grid.x2,
+                            CenterVertically
+                        ),
                     ) {
                         CodeCircularProgressIndicator()
                         Text(
@@ -161,114 +160,12 @@ fun BalanceContent(
                 }
             }
 
-            transactionsEmpty -> {
+            chatsEmpty -> {
                 item {
-                    EmptyTransactionsHint(upPress, faqOpen)
+                    EmptyTransactionsHint(faqOpen)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun TransactionItem(event: HistoricalTransactionUiModel) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(CodeTheme.dimens.grid.x12)
-    ) {
-        Column(
-            modifier = Modifier
-                .wrapContentWidth()
-                .align(Alignment.CenterStart)
-                .padding(horizontal = CodeTheme.dimens.inset)
-        ) {
-            Text(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .padding(bottom = CodeTheme.dimens.grid.x1),
-                text = when (event.paymentType) {
-                    PaymentType.Send ->
-                        when {
-                            event.isWithdrawal -> stringResource(R.string.title_withdrewKin)
-                            event.isRemoteSend -> stringResource(R.string.title_sent)
-                            else -> stringResource(R.string.title_gaveKin)
-                        }
-
-                    PaymentType.Receive ->
-                        when {
-                            event.airdropType == AirdropType.GiveFirstKin -> stringResource(R.string.title_referralBonus)
-                            event.airdropType == AirdropType.GetFirstKin -> stringResource(R.string.title_welcomeBonus)
-                            event.isDeposit -> stringResource(R.string.title_deposited)
-                            event.isRemoteSend && event.isReturned -> stringResource(R.string.title_returned)
-                            else -> stringResource(R.string.title_received)
-                        }
-
-                    else -> stringResource(R.string.title_unknown)
-                },
-                style = CodeTheme.typography.body1
-            )
-            Text(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .padding(top = CodeTheme.dimens.grid.x1),
-                text = event.dateText,
-                color = BrandLight,
-                style = CodeTheme.typography.body2
-            )
-        }
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(horizontal = CodeTheme.dimens.inset),
-            horizontalAlignment = Alignment.End
-        ) {
-            Row {
-                event.currencyResourceId?.let {
-                    Image(
-                        modifier = Modifier
-                            .padding(end = CodeTheme.dimens.grid.x2)
-                            .size(CodeTheme.dimens.grid.x3)
-                            .clip(CodeTheme.shapes.extraSmall)
-                            .align(CenterVertically),
-                        painter = painterResource(id = event.currencyResourceId),
-                        contentDescription = ""
-                    )
-                }
-                Text(
-                    text = event.amountText,
-                    style = CodeTheme.typography.body1
-                )
-            }
-            if (!event.isKin) {
-                Row(
-                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3)
-                ) {
-                    Image(
-                        modifier = Modifier
-                            .padding(end = CodeTheme.dimens.grid.x1)
-                            .size(CodeTheme.dimens.staticGrid.x2)
-                            .align(CenterVertically),
-                        painter = painterResource(id = R.drawable.ic_kin_brand),
-                        contentDescription = ""
-                    )
-                    Text(
-                        text = event.kinAmountText,
-                        style = CodeTheme.typography.body1,
-                        color = BrandLight
-                    )
-                }
-            }
-        }
-
-        Divider(
-            color = White10,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.inset)
-                .height(0.5.dp)
-                .align(BottomCenter)
-        )
     }
 }
 
@@ -282,7 +179,7 @@ fun BalanceTop(
         amountText = state.amountText,
         isAltCaption = false,
         isAltCaptionKinIcon = false,
-        isLoading = state.historicalTransactionsLoading,
+        isLoading = state.chatsLoading,
         currencyResId = state.currencyFlag,
         isClickable = isClickable,
         onClick = onClick,
@@ -342,7 +239,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
 }
 
 @Composable
-private fun EmptyTransactionsHint(upPress: () -> Unit, faqOpen: () -> Unit) {
+private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
@@ -419,7 +316,8 @@ private fun TopPreview() {
         amountText = "$12.34 of Kin",
         marketValue = 1.0,
         selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
-        historicalTransactions = emptyList(),
+        chatsLoading = false,
+        chats = emptyList(),
         isDebugBucketsEnabled = false,
         isDebugBucketsVisible = false,
     )
@@ -429,29 +327,3 @@ private fun TopPreview() {
         isClickable = false
     )
 }
-
-@Preview
-@Composable
-private fun ItemPreview() {
-    val transaction = HistoricalTransactionUiModel(
-        id = emptyList(),
-        amountText = "$1.23 of Kin",
-        dateText = "2023-10-10 10:10 p.m.",
-        isKin = false,
-        kinAmountText = "1,234",
-        currencyResourceId = R.drawable.ic_currency_kin,
-        paymentType = PaymentType.Send,
-        isDeposit = true,
-        isWithdrawal = false,
-        isRemoteSend = false,
-        isReturned = false,
-        airdropType = null
-    )
-
-    PreviewColumn {
-        TransactionItem(event = transaction)
-    }
-}
-
-
-

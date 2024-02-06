@@ -50,6 +50,9 @@
     <string name="action_withdrawKin">Withdraw Kin</string>
     <string name="action_wroteThemDownInstead">Wrote the 12 Words Down Instead?</string>
     <string name="action_yes">Yes</string>
+    <string name="action_mute">Mute</string>
+    <string name="action_unmute">Unmute</string>
+    <string name="action_nevermind">Nevermind</string>
     <string name="action_yesWithdrawConfirm">Yes, Withdraw Kin</string>
     <string name="action_yesWroteThemDown">Yes, I Wrote Them Down</string>
     <string name="core_and">and</string>
@@ -155,6 +158,10 @@
     <string name="prompt_title_unlinkPhoneNumber">Are you sure?</string>
     <string name="prompt_title_viewAccessKey">View Your Access Key?</string>
     <string name="prompt_title_wroteThemDown">Are You Sure?</string>
+    <string name="prompt_title_mute_chat">Mute %1$s?</string>
+    <string name="prompt_title_unmute_chat">Unmute %1$s?</string>
+    <string name="prompt_description_mute_chat">You will be notified of any new messages from %1$s. You can unmute at any time.</string>
+    <string name="prompt_description_unmute_chat">You will not be notified of any new messages from %1$s. You can mute at any time.</string>
     <string name="push_subtitle_depositReceived">%s Kin was deposited into your account.</string>
     <string name="push_subtitle_kinReturned">The %s you sent yesterday wasn\'t collected. It has been automatically returned to your balance.</string>
     <string name="push_subtitle_newGetFriendStarted">Get a friend started on Code and get $5</string>
@@ -288,4 +295,19 @@
     <string name="beta_vibrate_on_scan_description">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
     <string name="beta_scan_times_description">If enabled, the device will log additional processing information while grabbing bills.</string>
     <string name="beta_give_requests_description">If enabled, Give Kin screen will show requests for entered amounts instead of cash bills.</string>
+
+    <string name="title_chat_payments">Web Payments</string>
+    <string name="title_chat_cashTransactions">Cash Payments</string>
+    <string name="title_chat_codeTeam">Code Team</string>
+    <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
+    <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
+    <string name="subtitle_verb_gave">You gave</string>
+    <string name="subtitle_verb_received">You received</string>
+    <string name="subtitle_verb_withdrew">You withdrew</string>
+    <string name="subtitle_verb_deposited">You deposited</string>
+    <string name="subtitle_verb_sent">You sent</string>
+    <string name="subtitle_verb_returned">You returned</string>
+    <string name="subtitle_verb_spent">You spent</string>
+    <string name="subtitle_verb_paid">You paid</string>
+    <string name="subtitle_verb_purchased">You purchased</string>
 </resources>

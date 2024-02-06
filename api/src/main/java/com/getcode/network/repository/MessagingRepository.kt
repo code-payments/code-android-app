@@ -53,15 +53,19 @@ class MessagingRepository @Inject constructor(
         return messagingApi.openMessageStream(request)
             .let { networkOracle.managedRequest(it, INFINITE_STREAM_TIMEOUT) }
             .map {
+                Timber.d("message stream response received")
                 it.messagesList
                     .filter { message ->
                         message.kindCase == MessagingService.Message.KindCase.REQUEST_TO_GRAB_BILL
                     }
             }
             .doOnNext { messagesList ->
-                if (messagesList.isEmpty()) return@doOnNext
+                if (messagesList.isEmpty()) {
+                    Timber.e("message list is empty")
+                    return@doOnNext
+                }
                 ackMessages(rendezvousKeyPair, messagesList.map { it.id })
-                    .subscribe({}, ErrorUtils::handleError)
+                    .subscribe({ Timber.d("acked") }, ErrorUtils::handleError)
             }
             .filter { it.isNotEmpty() }
             .map { messagesList ->
@@ -73,11 +77,11 @@ class MessagingRepository @Inject constructor(
                     PaymentRequest(account, signature)
                 }.first()
             }
-            .retry(10L)
+            .retry(10L) {
+                it.printStackTrace()
+                true
+            }
             .subscribeOn(Schedulers.computation())
-        //.subscribe({}, { error ->
-        //})
-        //.disposeBy(lifecycle)
     }
 
     private fun ackMessages(

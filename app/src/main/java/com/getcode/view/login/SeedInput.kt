@@ -30,7 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.view.components.*
+import com.getcode.ui.components.*
 
 @SuppressLint("InlinedApi")
 @Preview

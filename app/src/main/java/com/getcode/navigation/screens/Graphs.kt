@@ -1,11 +1,7 @@
 package com.getcode.navigation.screens
 
 import android.os.Parcelable
-import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.screen.Screen
-import com.getcode.util.getActivityScopedViewModel
-import com.getcode.view.main.currency.CurrencyViewModel
-import com.getcode.view.main.home.HomeViewModel
 import kotlinx.parcelize.Parcelize
 
 /**
@@ -53,3 +49,12 @@ data class WithdrawalArgs(
     val currencyRate: Double? = null,
     val resolvedDestination: String? = null,
 ): Parcelable
+
+/**
+ * Nested graph for the on-chain messaging screens (balance)
+ */
+@Parcelize
+internal sealed interface ChatGraph : Screen, Parcelable, NamedScreen {
+
+    fun readResolve(): Any = this
+}

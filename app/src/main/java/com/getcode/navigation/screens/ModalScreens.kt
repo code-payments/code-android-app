@@ -10,8 +10,8 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.util.getActivityScopedViewModel
-import com.getcode.util.getStackScopedViewModel
+import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel

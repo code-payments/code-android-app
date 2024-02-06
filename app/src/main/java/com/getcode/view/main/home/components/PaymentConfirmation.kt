@@ -50,10 +50,10 @@ import com.getcode.models.PaymentState
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.SlideToConfirm
-import com.getcode.view.components.SlideToConfirmDefaults
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.SlideToConfirm
+import com.getcode.ui.components.SlideToConfirmDefaults
 import kotlinx.coroutines.delay
 
 @Composable

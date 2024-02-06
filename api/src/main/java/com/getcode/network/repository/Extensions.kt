@@ -14,6 +14,7 @@ import java.net.URLEncoder
 
 fun isMock() = false
 
+fun List<Byte>.toByteString(): ByteString = ByteString.copyFrom(this.toByteArray())
 fun ByteArray.toByteString(): ByteString = ByteString.copyFrom(this)
 
 fun ByteArray.toUserId(): Model.UserId {

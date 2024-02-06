@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,10 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
-import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
-import com.getcode.util.rememberedClickable
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.components.Pill
 import com.getcode.view.main.home.components.HomeBottom
 
 @Composable
@@ -98,25 +97,15 @@ internal fun DecorView(
                             fadeOut(animationSpec = tween(500, 100))
                 else fadeOut(animationSpec = tween(0)),
             ) {
-                Row(
-                    modifier = Modifier
-                        .wrapContentSize()
-                        .clip(CodeTheme.shapes.xxl)
-                        .background(Black50)
-                        .padding(
-                            horizontal = CodeTheme.dimens.grid.x2,
-                            vertical = CodeTheme.dimens.grid.x1
-                        ),
-                ) {
-                    val toast by
-                        remember(dataState.billState.toast) { derivedStateOf { dataState.billState.toast } }
-                    Text(
-                        text = toast?.formattedAmount.orEmpty(),
-                        style = CodeTheme.typography.body2.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
+                val toast by remember(dataState.billState.toast) {
+                    derivedStateOf { dataState.billState.toast }
                 }
+                Pill(
+                    text = toast?.formattedAmount.orEmpty(),
+                    textStyle = CodeTheme.typography.body2.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
             }
 
             val networkState by LocalNetworkObserver.current.state.collectAsState()
@@ -155,9 +144,9 @@ internal fun DecorView(
 
             HomeBottom(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.navigationBars)
                     .padding(bottom = CodeTheme.dimens.grid.x3),
+                state = dataState,
                 onPress = {
                     showBottomSheet(it)
                 },

@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
@@ -15,7 +14,6 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
-import com.getcode.utils.catchSafely
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -23,28 +21,19 @@ import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.cancellable
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.rx3.asFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.*
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
@@ -73,6 +62,7 @@ fun Client.transfer(
         isWithdrawal
     ).flatMapCompletable {
         if (it.isSuccess) {
+            Timber.d("transfer successful")
             Completable.complete()
         } else {
             Completable.error(it.exceptionOrNull() ?: Throwable("Failed to complete transfer"))
@@ -195,9 +185,7 @@ suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
         )
 
         balanceController.fetchBalanceSuspend()
-        transactionRepository.fetchPaymentHistoryDelta(organizer.ownerKeyPair)
-            .ignoreElement()
-            .subscribe()
+        // TODO: fetch chats here somehow?
 
         return@withContext kinAmount
     }
@@ -216,7 +204,7 @@ suspend fun Client.cancelRemoteSend(
     ).blockingAwait()
 
     balanceController.fetchBalanceSuspend()
-    return balanceController.balance
+    return balanceController.rawBalance
 }
 
 
@@ -358,6 +346,7 @@ fun Client.sendRemotely(
 suspend fun Client.requestFirstKinAirdrop(
     owner: KeyPair,
 ): Result<KinAmount> {
+    Timber.d("requesting airdrop")
     return transactionRepository.requestFirstKinAirdrop(owner)
 }
 
@@ -423,40 +412,6 @@ fun Client.fetchTransactionLimits(
     return transactionRepository.fetchTransactionLimits(owner, seconds)
 }
 
-fun Client.historicalTransactions() = transactionRepository.transactionCache
-
-@OptIn(ExperimentalCoroutinesApi::class)
-fun Client.observeTransactions(
-): Flow<List<HistoricalTransaction>> {
-    return SessionManager.authState
-        .map { it.keyPair }
-        .flatMapLatest { owner ->
-            transactionRepository.transactionCache
-                .map { it to owner }
-        }.map { (trx, owner) -> trx.orEmpty().sortedByDescending { it.date } to owner }
-        .flatMapConcat { (initialList, owner) ->
-            owner ?: return@flatMapConcat emptyFlow()
-            fetchPaymentHistoryDelta(owner, initialList.firstOrNull()?.id?.toByteArray())
-                .toObservable().asFlow()
-                .filter { it.isNotEmpty() }
-                .scan(initialList) { previous, update ->
-                    Timber.d("prev=${previous.count()}, update=${update.count()}")
-                    previous
-                        .filterNot { update.contains(it) }
-                        .plus(update)
-                        .sortedByDescending { it.date }
-                        .also { Timber.d("now ${it.count()}") }
-                }
-        }
-}
-
-fun Client.fetchPaymentHistoryDelta(
-    owner: KeyPair,
-    afterId: ByteArray? = transactionRepository.transactionCache.value?.firstOrNull()?.id?.toByteArray()
-): Single<List<HistoricalTransaction>> {
-    return transactionRepository.fetchPaymentHistoryDelta(owner, afterId)
-}
-
 fun Client.fetchDestinationMetadata(destination: PublicKey): Single<TransactionRepository.DestinationMetadata> {
     return transactionRepository.fetchDestinationMetadata(destination)
 }
@@ -480,10 +435,14 @@ fun Client.receiveIfNeeded(): Completable {
 }
 
 fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
+    Timber.d("receive within limits")
     val depositBalance = organizer.availableDepositBalance.toKinTruncating()
 
     // Nothing to deposit
-    if (!depositBalance.hasWholeKin()) return Completable.complete()
+    if (!depositBalance.hasWholeKin()) {
+        Timber.d("nothing to deposit ($depositBalance)")
+        return Completable.complete()
+    }
 
     // We want to deposit the smaller of the two: balance in the
     // primary account or the max allowed amount provided by server
@@ -496,7 +455,7 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
         }
         .filter { pair ->
             val (depositAmount, _) = pair
-            depositAmount.hasWholeKin()
+            depositAmount.hasWholeKin().also { Timber.d("hasWholeKin=$it") }
         }
         .flatMapSingle { pair ->
             val (depositAmount, maxDeposit) = pair

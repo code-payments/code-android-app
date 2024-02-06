@@ -1,10 +1,15 @@
 package com.getcode.db
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.getcode.model.*
 import com.getcode.network.repository.decodeBase64
 import com.getcode.vendor.Base58
@@ -16,7 +21,6 @@ import java.io.File
 
 @Database(
     entities = [
-        HistoricalTransaction::class,
         CurrencyRate::class,
         FaqItem::class,
         PrefInt::class,
@@ -27,7 +31,10 @@ import java.io.File
         GiftCard::class,
         ExchangeRate::class,
     ],
-    version = 7
+    autoMigrations = [
+        AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class)
+    ],
+    version = 8
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -37,6 +44,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun prefDoubleDao(): PrefDoubleDao
     abstract fun giftCardDao(): GiftCardDao
     abstract fun exchangeDao(): ExchangeDao
+
+    @DeleteTable(tableName = "HistoricalTransaction")
+    class Migration7To8 : AutoMigrationSpec
 }
 
 object Database {

@@ -47,8 +47,8 @@ import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.util.getActivity
-import com.getcode.util.rememberedClickable
+import com.getcode.ui.utils.getActivity
+import com.getcode.ui.utils.rememberedClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

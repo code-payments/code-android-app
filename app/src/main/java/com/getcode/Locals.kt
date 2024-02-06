@@ -5,6 +5,8 @@ import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.analytics.AnalyticsService
 import com.getcode.analytics.AnalyticsServiceNull
+import com.getcode.network.exchange.Exchange
+import com.getcode.network.exchange.ExchangeNull
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
@@ -15,5 +17,7 @@ val LocalAnalytics: ProvidableCompositionLocal<AnalyticsService> = staticComposi
 val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener> = staticCompositionLocalOf { NetworkObserverStub() }
 val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }
 val LocalCurrencyUtils: ProvidableCompositionLocal<CurrencyUtils?> = staticCompositionLocalOf { null }
+val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
 val LocalTopBarPadding: ProvidableCompositionLocal<PaddingValues> = staticCompositionLocalOf { PaddingValues() }
+

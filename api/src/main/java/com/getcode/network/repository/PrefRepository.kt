@@ -8,12 +8,15 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -22,7 +25,23 @@ import javax.inject.Inject
 
 class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    fun get(key: PrefsString): Flowable<String> {
+    suspend fun get(key: PrefsString, default: String): String {
+        return observeOrDefault(key, default).firstOrNull() ?: default
+    }
+
+    suspend fun get(key: PrefsBool, default: Boolean): Boolean {
+        return observeOrDefault(key, default).firstOrNull() ?: default
+    }
+
+    suspend fun get(key: PrefDouble, default: Double): Double {
+        return observeOrDefault(key, default).firstOrNull() ?: default
+    }
+
+    suspend fun get(key: PrefInt, default: Long): Long {
+        return observeOrDefault(key, default).firstOrNull() ?: default
+    }
+
+    fun getFlowable(key: PrefsString): Flowable<String> {
         val db = Database.getInstance() ?: return Flowable.empty()
         return db.prefStringDao().get(key.value)
             .subscribeOn(Schedulers.computation())
@@ -30,7 +49,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
             .distinctUntilChanged()
     }
 
-    fun get(key: PrefsBool): Flowable<Boolean> {
+    fun getFlowable(key: PrefsBool): Flowable<Boolean> {
         val db = Database.getInstance() ?: return Flowable.empty()
         return db.prefBoolDao().get(key.value)
             .subscribeOn(Schedulers.computation())
@@ -39,11 +58,10 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun observeOrDefault(key: PrefsBool, default: Boolean): Flow<Boolean> {
-        val db = Database.getInstance() ?: return flowOf(default)
+        val db = Database.getInstance() ?: return flowOf(default).also { Timber.e("observe bool ; DB not available") }
         return db.prefBoolDao().observe(key.value)
             .flowOn(Dispatchers.IO)
             .map { it?.value ?: default }
-            .distinctUntilChanged()
     }
 
     fun observeOrDefault(key: PrefsString, default: String): Flow<String> {
@@ -70,7 +88,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
             .distinctUntilChanged()
     }
 
-    fun get(key: String): Flowable<Long> {
+    fun getFlowable(key: String): Flowable<Long> {
         val db = Database.getInstance() ?: return Flowable.empty()
         return db.prefIntDao().get(key)
             .subscribeOn(Schedulers.computation())
@@ -124,7 +142,10 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
 
     fun set(key: PrefsBool, value: Boolean) {
         launch {
-            Database.getInstance()?.prefBoolDao()?.insert(PrefBool(key.value, value))
+            runCatching {
+                val db = Database.getInstance() ?: throw IllegalStateException("No DB")
+                db.prefBoolDao().insert(PrefBool(key.value, value))
+            }.onFailure { Timber.d(it.message) }.onSuccess { Timber.d("saved ${key.value} => $value") }
         }
     }
 

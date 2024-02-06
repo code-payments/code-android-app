@@ -1,60 +1,46 @@
 package com.getcode.view.main.balance
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.R
-import com.getcode.data.transactions.HistoricalTransactionUiModel
-import com.getcode.data.transactions.toUi
-import com.getcode.model.Currency
-import com.getcode.model.CurrencyCode
+import com.getcode.model.Chat
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
-import com.getcode.network.client.Client
-import com.getcode.network.client.historicalTransactions
-import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.BalanceController
+import com.getcode.network.HistoryController
 import com.getcode.network.repository.PrefRepository
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
-import com.getcode.util.locale.LocaleHelper
-import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.shareIn
 import timber.log.Timber
-import java.util.Locale
 import javax.inject.Inject
 
 
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
-    client: Client,
-    private val localeHelper: LocaleHelper,
-    private val currencyUtils: CurrencyUtils,
-    private val resources: ResourceHelper,
-    exchange: Exchange,
-    balanceRepository: BalanceRepository,
+    balanceController: BalanceController,
+    historyController: HistoryController,
     prefsRepository: PrefRepository,
     networkObserver: NetworkConnectivityListener,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
-) { data class State(
+) {
+    data class State(
         val amountText: String = "",
         val marketValue: Double = 0.0,
         val selectedRate: Rate? = null,
         val currencyFlag: Int? = null,
-        val historicalTransactionsLoading: Boolean = true,
-        val historicalTransactions: List<HistoricalTransactionUiModel> = listOf(),
+        val chatsLoading: Boolean = false,
+        val chats: List<Chat> = emptyList(),
         val isDebugBucketsEnabled: Boolean = false,
         val isDebugBucketsVisible: Boolean = false,
     )
@@ -66,17 +52,14 @@ class BalanceSheetViewModel @Inject constructor(
             val rate: Rate,
             ) : Event
 
-        data class OnCurrencyFlagChanged(
-            val flagResId: Int?,
-        ) : Event
         data class OnBalanceChanged(
+            val flagResId: Int?,
             val marketValue: Double,
             val display: String,
         ) : Event
 
-        data class OnTransactionsLoading(val loading: Boolean) : Event
-        data class OnTransactionsUpdated(val transactions: List<HistoricalTransactionUiModel>) :
-            Event
+        data class OnChatsLoading(val loading: Boolean) : Event
+        data class OnChatsUpdated(val chats: List<Chat>) : Event
     }
 
     init {
@@ -87,79 +70,45 @@ class BalanceSheetViewModel @Inject constructor(
                 dispatchEvent(Dispatchers.Main, Event.OnDebugBucketsEnabled(enabled))
             }.launchIn(viewModelScope)
 
-        combine(
-            exchange.observeRates()
-                .distinctUntilChanged()
-                .flowOn(Dispatchers.IO)
-                .map { getCurrency(it) }
-                .onEach {
-                    dispatchEvent(Event.OnCurrencyFlagChanged(it.resId))
-                }
-                .mapNotNull { currency -> CurrencyCode.tryValueOf(currency.code) }
-                .mapNotNull {
-                    exchange.fetchRatesIfNeeded()
-                    exchange.rateFor(it)
-                },
-            balanceRepository.balanceFlow,
-            networkObserver.state
-        ) { rate, balance, _ ->
-            rate to balance
-        }.map { (rate, balance) ->
-            dispatchEvent(Dispatchers.Main, Event.OnLatestRateChanged(rate))
-            refreshBalance(balance, rate.fx)
-        }.distinctUntilChanged().onEach { (marketValue, amountText) ->
-            dispatchEvent(Dispatchers.Main, Event.OnBalanceChanged(marketValue, amountText))
-        }.launchIn(viewModelScope)
-
-        client.historicalTransactions()
-            .onEach { Timber.d("trx=$it") }
-            .map {
-                when {
-                    it == null -> null // await for confirmation it's empty
-                    it.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
-                    else -> it
-                }
-            }
-            .distinctUntilChanged()
-            .map { it?.sortedByDescending { t -> t.date } }
-            .mapNotNull { historical -> historical?.map { transaction ->
-                transaction.toUi({ currencyUtils.getCurrency(it) }, resources = resources) }
-            }
-            .onEach { update ->
-                dispatchEvent(Dispatchers.Main, Event.OnTransactionsUpdated(update))
-            }.onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnTransactionsLoading(false))
+        balanceController.formattedBalance
+            .onEach { Timber.d("b=$it") }
+            .filterNotNull()
+            .onEach {
+                dispatchEvent(
+                    Dispatchers.Main,
+                    Event.OnBalanceChanged(
+                        flagResId = it.flag,
+                        marketValue = it.marketValue,
+                        display = it.formattedValue
+                    )
+                )
             }.launchIn(viewModelScope)
-    }
 
-    //TODO manage currency with a repository rather than a static class
-    private suspend fun getCurrency(rates: Map<CurrencyCode, Rate>): Currency =
-        withContext(Dispatchers.Default) {
-            val defaultCurrencyCode = localeHelper.getDefaultCurrency()?.code
-            return@withContext currencyUtils.getCurrenciesWithRates(rates)
-                .firstOrNull { p ->
-                    p.code == defaultCurrencyCode
-                } ?: Currency.Kin
-        }
-
-    private fun refreshBalance(balance: Double, rate: Double): Pair<Double, String> {
-        val fiatValue = FormatUtils.getFiatValue(balance, rate)
-        val locale = Locale(
-            Locale.getDefault().language,
-            localeHelper.getDefaultCountry()
-        )
-        val fiatValueFormatted = FormatUtils.formatCurrency(fiatValue, locale)
-        val amountText = StringBuilder().apply {
-            append(fiatValueFormatted)
-            append(" ")
-            append(resources.getString(R.string.core_ofKin))
-        }.toString()
-
-        return fiatValue to amountText
+        historyController.chats
+            .onEach {
+                if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
+                    dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
+                }
+            }
+            .map { chats ->
+                when {
+                    chats == null -> null // await for confirmation it's empty
+                    chats.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+                    chats.any { it.messages.isEmpty() } -> null // remain loading while fetching messages
+                    else -> chats
+                }
+            }
+            .filterNotNull()
+            .onEach { update ->
+                dispatchEvent(Dispatchers.Main, Event.OnChatsUpdated(update))
+            }.onEach {
+                dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
+            }.launchIn(viewModelScope)
     }
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
+            Timber.d("event=${event.javaClass.simpleName}")
             when (event) {
                 is Event.OnDebugBucketsEnabled -> { state ->
                     state.copy(isDebugBucketsEnabled = event.enabled)
@@ -173,20 +122,18 @@ class BalanceSheetViewModel @Inject constructor(
                     state.copy(selectedRate = event.rate)
                 }
 
-                is Event.OnCurrencyFlagChanged -> { state ->
-                    state.copy(currencyFlag = event.flagResId)
-                }
                 is Event.OnBalanceChanged -> { state ->
                     state.copy(
+                        currencyFlag = event.flagResId,
                         marketValue = event.marketValue,
                         amountText = event.display,
                     )
                 }
-                is Event.OnTransactionsLoading -> { state ->
-                    state.copy(historicalTransactionsLoading = event.loading)
+                is Event.OnChatsLoading -> { state ->
+                    state.copy(chatsLoading = event.loading)
                 }
-                is Event.OnTransactionsUpdated -> { state ->
-                    state.copy(historicalTransactions = event.transactions)
+                is Event.OnChatsUpdated -> { state ->
+                    state.copy(chats = event.chats)
                 }
             }
         }

@@ -33,11 +33,11 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
-import com.getcode.util.rememberedClickable
+import com.getcode.ui.utils.rememberedClickable
 import com.getcode.vendor.Base58
-import com.getcode.view.components.ButtonState
-import com.getcode.view.components.CodeButton
-import com.getcode.view.components.MiddleEllipsisText
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.MiddleEllipsisText
 
 @Composable
 fun AccountDeposit() {
