@@ -30,3 +30,11 @@ suspend fun Client.fetchMessagesFor(owner: KeyPair, chatId: ID, cursor: Cursor? 
             Timber.e(t = it, "Failed fetching messages.")
         }
 }
+
+suspend fun Client.advancePointer(
+    owner: KeyPair,
+    chatId: ID,
+    to: ID,
+): Result<Unit> {
+    return chatService.advancePointer(owner, chatId, to)
+}

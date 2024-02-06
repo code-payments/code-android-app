@@ -2,8 +2,11 @@ package com.getcode.network.api
 
 import com.codeinc.gen.chat.v1.ChatGrpc
 import com.codeinc.gen.chat.v1.ChatService
+import com.codeinc.gen.chat.v1.ChatService.AdvancePointerRequest
+import com.codeinc.gen.chat.v1.ChatService.AdvancePointerResponse
 import com.codeinc.gen.chat.v1.ChatService.GetChatsRequest
 import com.codeinc.gen.chat.v1.ChatService.GetMessagesRequest
+import com.codeinc.gen.chat.v1.ChatService.Pointer.Kind
 import com.codeinc.gen.chat.v1.ChatService.SetMuteStateRequest
 import com.codeinc.gen.chat.v1.ChatService.SetMuteStateResponse
 import com.getcode.ed25519.Ed25519
@@ -65,6 +68,25 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    fun advancePointer(owner: KeyPair, chatId: ID, to: ID): Flow<AdvancePointerResponse> {
+        val request = AdvancePointerRequest.newBuilder()
+            .setChatId(ChatService.ChatId.newBuilder()
+                .setValue(chatId.toByteArray().toByteString())
+                .build()
+            ).setPointer(ChatService.Pointer.newBuilder()
+                .setKindValue(Kind.READ_VALUE)
+                .setValue(ChatService.ChatMessageId.newBuilder()
+                    .setValue(to.toByteArray().toByteString())
+                )
+            ).setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .setSignature(owner)
+            .build()
+
+        return api::advancePointer
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
     fun setMuteState(owner: KeyPair, chatId: ID, muted: Boolean): Flow<SetMuteStateResponse> {
         val request = SetMuteStateRequest.newBuilder()
             .setChatId(ChatService.ChatId.newBuilder()
@@ -81,7 +103,7 @@ class ChatApi @Inject constructor(
     }
 }
 
-fun GetChatsRequest.Builder.setSignature(owner: KeyPair): GetChatsRequest.Builder {
+private fun GetChatsRequest.Builder.setSignature(owner: KeyPair): GetChatsRequest.Builder {
     val bos = ByteArrayOutputStream()
     buildPartial().writeTo(bos)
     setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
@@ -89,7 +111,7 @@ fun GetChatsRequest.Builder.setSignature(owner: KeyPair): GetChatsRequest.Builde
     return this
 }
 
-fun GetMessagesRequest.Builder.setSignature(owner: KeyPair): GetMessagesRequest.Builder {
+private fun GetMessagesRequest.Builder.setSignature(owner: KeyPair): GetMessagesRequest.Builder {
     val bos = ByteArrayOutputStream()
     buildPartial().writeTo(bos)
     setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
@@ -97,7 +119,15 @@ fun GetMessagesRequest.Builder.setSignature(owner: KeyPair): GetMessagesRequest.
     return this
 }
 
-fun SetMuteStateRequest.Builder.setSignature(owner: KeyPair): SetMuteStateRequest.Builder {
+private fun SetMuteStateRequest.Builder.setSignature(owner: KeyPair): SetMuteStateRequest.Builder {
+    val bos = ByteArrayOutputStream()
+    buildPartial().writeTo(bos)
+    setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
+
+    return this
+}
+
+private fun AdvancePointerRequest.Builder.setSignature(owner: KeyPair): AdvancePointerRequest.Builder {
     val bos = ByteArrayOutputStream()
     buildPartial().writeTo(bos)
     setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())

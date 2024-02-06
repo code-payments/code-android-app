@@ -39,8 +39,11 @@ data class Chat(
     fun resetUnreadCount() = copy(unreadCount = 0)
     fun toggleMute() = copy(isMuted = !isMuted)
 
+    val newestMessage: ChatMessage?
+        get() = messages.maxByOrNull { it.dateMillis }
+
     val lastMessageMillis: Long?
-        get() = messages.maxOfOrNull { it.dateMillis }
+        get() = newestMessage?.dateMillis
 }
 
 sealed interface Pointer {

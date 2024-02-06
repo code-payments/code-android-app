@@ -130,4 +130,39 @@ class ChatService @Inject constructor(
                 }
             }.first()
     }
+
+    suspend fun advancePointer(
+        owner: KeyPair,
+        chatId: ID,
+        to: ID,
+    ): Result<Unit> {
+        return networkOracle.managedRequest(api.advancePointer(owner, chatId, to))
+            .map { response ->
+                when (response.result) {
+                    ChatService.AdvancePointerResponse.Result.OK -> {
+                        Result.success(Unit)
+                    }
+                    ChatService.AdvancePointerResponse.Result.CHAT_NOT_FOUND -> {
+                        val error = Throwable("Error: chat not found $chatId")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                    ChatService.AdvancePointerResponse.Result.MESSAGE_NOT_FOUND -> {
+                        val error = Throwable("Error: message not found $to")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                    ChatService.AdvancePointerResponse.Result.UNRECOGNIZED -> {
+                        val error = Throwable("Error: Unrecognized request.")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                    else -> {
+                        val error = Throwable("Error: Unknown")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                }
+            }.first()
+    }
 }

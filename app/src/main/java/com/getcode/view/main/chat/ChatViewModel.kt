@@ -77,6 +77,7 @@ class ChatViewModel @Inject constructor(
         stateFlow
             .map { it.chatId }
             .filterNotNull()
+            .onEach { historyController.advanceReadPointer(it) }
             .flatMapLatest { historyController.chats }
             .flowOn(Dispatchers.IO)
             .filterNotNull()

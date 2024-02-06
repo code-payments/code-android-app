@@ -12,6 +12,7 @@ import com.getcode.model.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.network.client.Client
+import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchChats
 import com.getcode.network.client.fetchMessagesFor
 import com.getcode.network.client.setMuted
@@ -89,6 +90,27 @@ class HistoryController @Inject constructor(
 
         pagerMap.entries.onEach { (id, pagingSource) ->
             pagingSource.invalidate()
+        }
+    }
+
+    suspend fun advanceReadPointer(chatId: ID) {
+        val owner = owner() ?: return
+
+        _chats.update {
+            it?.toMutableList()?.apply chats@{
+                indexOfFirst { chat -> chat.id == chatId }
+                    .takeIf { index -> index >= 0 }
+                    ?.let { index ->
+                        val chat = this[index]
+                        val newestMessage = chat.newestMessage
+                        if (newestMessage != null) {
+                            client.advancePointer(owner, chatId, newestMessage.id)
+                                .onSuccess {
+                                    this[index] = chat.resetUnreadCount()
+                                }
+                        }
+                    }
+            }?.toList()
         }
     }
 
