@@ -990,6 +990,7 @@ class HomeViewModel @Inject constructor(
                 loadingIndicatorTimer = Timer().schedule(1000) {
                     uiFlow.update { it.copy(isRemoteSendLoading = false) }
                 }
+
                 analytics.remoteSendOutgoing(
                     kin = amount.kin,
                     currencyCode = amount.rate.currency
@@ -1051,7 +1052,10 @@ class HomeViewModel @Inject constructor(
                     positiveText = getString(R.string.action_yes),
                     negativeText = getString(R.string.action_noTryAgain),
                     tertiaryText = getString(R.string.action_cancelSend),
-                    onPositive = { cancelSend(style = PresentationStyle.Pop) },
+                    onPositive = {
+                        cancelSend(style = PresentationStyle.Pop)
+                        vibrator.vibrate()
+                    },
                     onNegative = { showRemoteSendDialog(context, giftCard, amount) },
                     onTertiary = {
                         cancelRemoteSend(giftCard, amount)
