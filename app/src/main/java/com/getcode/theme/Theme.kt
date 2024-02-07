@@ -180,5 +180,4 @@ fun inputColors() = TextFieldDefaults.textFieldColors(
     focusedIndicatorColor = Color.Transparent,
     unfocusedIndicatorColor = Color.Transparent,
     cursorColor = Color.White,
-
 )

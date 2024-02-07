@@ -151,8 +151,8 @@ private fun Flow<DeeplinkResult>.showLogoutConfirmationIfNeeded(
 ): Flow<DeeplinkResult> = onEach { (type, screens) ->
     if (type is DeeplinkHandler.Type.Login) {
         val entropy = (screens.first() as? HomeScreen)?.seed
-        startupLog("showing logout confirm")
         if (entropy != null) {
+            startupLog("showing logout confirm")
             showLogoutMessage(
                 context = context,
                 entropyB64 = entropy,
