@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
@@ -33,6 +34,7 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Pill
 import com.getcode.ui.components.chat.MessageNode
 import com.getcode.ui.components.chat.localized
+import timber.log.Timber
 
 @Composable
 fun ChatScreen(
@@ -49,7 +51,7 @@ fun ChatScreen(
             reverseLayout = true,
             contentPadding = PaddingValues(
                 horizontal = CodeTheme.dimens.inset,
-                vertical = CodeTheme.dimens.grid.x6,
+                vertical = CodeTheme.dimens.inset,
             ),
             verticalArrangement = Arrangement.Top,
         ) {
@@ -102,7 +104,7 @@ fun ChatScreen(
                             date.formatDateRelatively()
                         }
                         DateBubble(
-                            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                            modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
                             date = dateString
                         )
                     }
