@@ -78,6 +78,8 @@ object CashBillDefaults {
     const val CodeBackgroundOpacity = 0.65f
 
     const val SecurityStripCount = 3
+
+    val DecorColor: Color = Color(0xFFA9A9B1)
 }
 
 object CashBillAssets {
@@ -319,7 +321,7 @@ internal fun CashBill(
                     Text(
                         text = kinMint.base58(),
                         fontSize = 8.nonScaledSp,
-                        color = CodeTheme.colors.onBackground.copy(alpha = 0.60f)
+                        color = CashBillDefaults.DecorColor,
                     )
                 }
 
@@ -336,7 +338,7 @@ internal fun CashBill(
                         painter = painterResource(
                             R.drawable.ic_code_logo_offwhite_small
                         ),
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground),
+                        colorFilter = ColorFilter.tint(CashBillDefaults.DecorColor),
                         contentDescription = "",
                     )
                     Spacer(modifier = Modifier.weight(1f))
@@ -397,7 +399,7 @@ private fun Lines(
             Box(
                 modifier = Modifier
                     .rotate(-18f)
-                    .background(White50)
+                    .background(CashBillDefaults.DecorColor)
                     .fillMaxHeight()
                     .width(1.dp)
             )
