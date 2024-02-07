@@ -1,6 +1,10 @@
 package com.getcode.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,7 +21,7 @@ fun Badge(
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
 ) {
-    AnimatedVisibility(visible = count > 0) {
+    AnimatedVisibility(visible = count > 0, enter = scaleIn() + fadeIn(), exit = fadeOut() + scaleOut()) {
         val text = when {
             count in 1..99 -> "$count"
             else -> "99+"
