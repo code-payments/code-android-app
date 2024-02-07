@@ -67,7 +67,7 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
-    const val voyager = "1.0.0-rc10"
+    const val voyager = "1.0.0"
 }
 
 object Classpath {

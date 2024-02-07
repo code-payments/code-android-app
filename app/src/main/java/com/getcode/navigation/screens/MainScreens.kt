@@ -49,8 +49,7 @@ data class HomeScreen(
 
     @Composable
     override fun Content() {
-        val vm = getActivityScopedViewModel<HomeViewModel>()
-        val tlvm = getActivityScopedViewModel<TopLevelViewModel>()
+        val vm = getViewModel<HomeViewModel>()
 
         startupLog("home rendered")
         HomeScreen(vm, cashLink, requestPayload)
@@ -66,13 +65,6 @@ data class HomeScreen(
                     vm.presentRequest(amount = result.amount, payload = null, request = null)
                 }
             }
-        }
-
-        LaunchedEffect(tlvm) {
-            tlvm.eventFlow
-                .filterIsInstance<TopLevelViewModel.Event.LogoutCompleted>()
-                .onEach { vm.reset() }
-                .launchIn(this)
         }
     }
 }
