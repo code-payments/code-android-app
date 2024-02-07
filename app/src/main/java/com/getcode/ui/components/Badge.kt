@@ -27,7 +27,7 @@ fun Badge(
             text = text,
             color = contentColor,
             style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W700),
-            modifier = modifier.circleBackground(color = color, padding = CodeTheme.dimens.grid.x1)
+            modifier = modifier.circleBackground(color = color, padding = CodeTheme.dimens.staticGrid.x1)
         )
     }
 }
