@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.core.content.ContextCompat
 import com.getcode.R
 import com.getcode.model.KinAmount
@@ -169,7 +170,7 @@ private class CashBillGeometry(width: Dp, height: Dp) {
     val globePosition: Offset
         get() = Offset(
             x = -(size.width.value * 1.25f),
-            y = size.height.value * 1.2f
+            y = size.height.value * 0.5f
         )
 
 
@@ -254,6 +255,7 @@ internal fun CashBill(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
+                size = DpSize(width = geometry.size.width * 1.45f, height = Dp.Unspecified),
                 image = CashBillAssets.globe,
                 topLeft = geometry.globePosition
             )
@@ -368,7 +370,9 @@ private fun SecurityStrip(
     ) {
         for (i in 0 until CashBillDefaults.SecurityStripCount) {
             Image(
-                modifier = Modifier.weight(1f).alpha(0.5f),
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(0.5f),
                 contentScale = ContentScale.FillBounds,
                 painter = painterResource(id = R.drawable.ic_bill_security_strip),
                 contentDescription = null
@@ -401,6 +405,7 @@ private fun BillDecorImage(
     modifier: Modifier = Modifier,
     image: ImageBitmap?,
     alpha: Float = 1f,
+    size: DpSize = DpSize.Unspecified,
     topLeft: Offset = Offset.Zero,
     blendMode: BlendMode = DrawScope.DefaultBlendMode,
     fill: Boolean = false,
@@ -413,7 +418,10 @@ private fun BillDecorImage(
             if (fill) {
                 drawImage(
                     image = it,
-                    dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                    dstSize = IntSize(
+                        width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
+                        height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
+                    ),
                     alpha = alpha,
                     dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
                     blendMode = blendMode,
@@ -422,6 +430,10 @@ private fun BillDecorImage(
                 drawImage(
                     image = it,
                     alpha = alpha,
+                    dstSize = IntSize(
+                        width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
+                        height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
+                    ),
                     dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
                     blendMode = blendMode,
                 )
