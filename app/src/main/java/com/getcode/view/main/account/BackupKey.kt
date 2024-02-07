@@ -34,7 +34,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import com.getcode.LocalTopBarPadding
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -49,6 +52,8 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.rememberSelectionState
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.debugBounds
 
 @Composable
 fun BackupKey(
@@ -103,11 +108,11 @@ fun BackupKey(
 
 
     var buttonHeight by remember {
-        mutableStateOf(0.dp)
+        mutableStateOf(Dp.Unspecified)
     }
 
     var textHeight by remember {
-        mutableStateOf(0.dp)
+        mutableStateOf(Dp.Unspecified)
     }
 
     val selectionState = rememberSelectionState(
@@ -163,29 +168,35 @@ fun BackupKey(
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                // highly specific aspect ratio from iOS :)
-                .aspectRatio(0.607f, matchHeightConstraintsFirst = true)
                 .fillMaxHeight()
-                .padding(vertical = CodeTheme.dimens.grid.x4)
-                .padding(top = textHeight)
-                .padding(bottom = buttonHeight),
-            verticalArrangement = Arrangement.Center,
+                .addIf(textHeight.isSpecified) { Modifier.padding(top = textHeight) }
+                .addIf(buttonHeight.isSpecified) { Modifier.padding(bottom = buttonHeight + CodeTheme.dimens.grid.x4) },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AnimatedVisibility(
-                visibleState = isAccessKeyVisible,
-                enter = fadeIn(animationSpec = tween(300, 0)),
-                exit = fadeOut(animationSpec = tween(300, 0))
+            Column(
+                modifier = Modifier
+                    // highly specific aspect ratio from iOS :)
+                    .aspectRatio(0.607f, matchHeightConstraintsFirst = true)
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                dataState.accessKeyCroppedBitmap?.let { bitmap ->
-                    Image(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .scale(selectionState.scale.value),
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = dataState.wordsFormatted,
-                    )
+                AnimatedVisibility(
+                    visibleState = isAccessKeyVisible,
+                    enter = fadeIn(animationSpec = tween(300, 0)),
+                    exit = fadeOut(animationSpec = tween(300, 0))
+                ) {
+                    dataState.accessKeyCroppedBitmap?.let { bitmap ->
+                        Image(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .scale(selectionState.scale.value),
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = dataState.wordsFormatted,
+                        )
+                    }
                 }
             }
         }

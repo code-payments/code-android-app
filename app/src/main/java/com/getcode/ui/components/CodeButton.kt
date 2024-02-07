@@ -11,15 +11,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.isUnspecified
 import com.getcode.R
 import com.getcode.theme.*
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.plus
 
 enum class ButtonState {
@@ -60,9 +68,16 @@ fun CodeButton(
         LocalMinimumInteractiveComponentEnforcement provides false,
         LocalRippleTheme provides ripple
     ) {
+
+        var size by remember {
+            mutableStateOf(DpSize.Unspecified)
+        }
+
         Button(
             onClick = onClick,
-            modifier = modifier,
+            modifier = Modifier
+                .addIf(size.isSpecified) { Modifier.size(size) }
+                .addIf(size.isUnspecified) { Modifier.measured { size = it }}.then(modifier),
             colors = colors,
             border = border,
             enabled = isEnabled,
@@ -177,7 +192,7 @@ fun getButtonBorder(buttonState: ButtonState, isEnabled: Boolean = true): Border
         if (buttonState == ButtonState.Bordered && isEnabled) {
             BorderStroke(border, White50)
         } else {
-            null
+            BorderStroke(border, Transparent)
         }
     }
 }
