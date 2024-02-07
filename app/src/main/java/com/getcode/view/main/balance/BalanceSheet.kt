@@ -97,7 +97,7 @@ fun BalanceContent(
     }
 
     val canClickBalance by remember(state.isDebugBucketsEnabled) {
-        derivedStateOf { state.isDebugBucketsVisible }
+        derivedStateOf { state.isDebugBucketsEnabled }
     }
 
     LazyColumn(
@@ -131,12 +131,10 @@ fun BalanceContent(
             key = { _, item -> item.id },
             contentType = { _, item -> item }) { index, event ->
             ChatNode(chat = event, onClick = { openChat(event.id) })
-            if (index < state.chats.lastIndex) {
-                Divider(
-                    modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                    color = White10,
-                )
-            }
+            Divider(
+                modifier = Modifier.padding(start = CodeTheme.dimens.inset),
+                color = White10,
+            )
         }
 
         when {
