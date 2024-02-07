@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +34,7 @@ import com.getcode.ui.components.CodeCircularProgressIndicator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Preview
 @Composable
@@ -44,9 +46,10 @@ fun SeedDeepLink(
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val authState by SessionManager.authState.collectAsState()
-    var isMessageShown by remember { mutableStateOf(false) }
 
-    fun navigateMain() = navigator.replaceAll(HomeScreen())
+    fun navigateMain() {
+        navigator.replaceAll(HomeScreen())
+    }
     fun navigateLogin() = navigator.replace(LoginScreen())
 
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
@@ -68,33 +71,12 @@ fun SeedDeepLink(
         navigateLogin()
     }
 
-    fun showLogoutMessage(entropyB64: String) {
-        if (isMessageShown) return
-        isMessageShown = true
-
-        BottomBarManager.showMessage(
-            BottomBarManager.BottomBarMessage(
-                title = context.getString(R.string.subtitle_logoutAndLoginConfirmation),
-                subtitle = "",
-                positiveText = context.getString(R.string.action_logIn),
-                negativeText = context.getString(R.string.action_cancel),
-                isDismissible = false,
-                onPositive = {
-                    context.getActivity()?.let { activity ->
-                        CoroutineScope(Dispatchers.IO).launch {
-                            viewModel.logout(activity) {
-                                viewModel.performLogin(navigator, entropyB64)
-                            }
-
-                        }
-                    }
-                },
-                onNegative = { navigateLogin() }
-            )
-        )
+    var authHandled by rememberSaveable {
+        mutableStateOf(false)
     }
 
     LaunchedEffect(authState.isAuthenticated) {
+        if (authHandled) return@LaunchedEffect
         seed
             ?.let { entropyB58 ->
                 val entropy: ByteArray
@@ -110,17 +92,17 @@ fun SeedDeepLink(
                     onError()
                     return@let
                 }
-                val isAuthenticated = authState.isAuthenticated ?: return@LaunchedEffect
                 val isSame = entropy.toList() == authState.entropyB64?.decodeBase64()?.toList()
+                Timber.d("seed isAuth=${authState.isAuthenticated}, same=$isSame")
                 if (isSame) {
                     notificationPermissionCheck(false)
-                } else if (isAuthenticated) {
-                    showLogoutMessage(entropyB64)
                 } else {
-                    try {
-                        viewModel.performLogin(navigator, entropyB64)
+                    authHandled = try {
+                        viewModel.performLogin(navigator, entropyB64, deeplink = true)
+                        true
                     } catch (e: Exception) {
                         onError()
+                        false
                     }
                 }
             } ?: run {

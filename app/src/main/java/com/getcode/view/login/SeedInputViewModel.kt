@@ -83,7 +83,7 @@ class SeedInputViewModel @Inject constructor(
         authManager.logout(activity, onComplete)
 
     @SuppressLint("CheckResult")
-    fun performLogin(navigator: CodeNavigator, entropyB64: String) {
+    fun performLogin(navigator: CodeNavigator, entropyB64: String, deeplink: Boolean = false) {
         authManager.login(entropyB64)
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
@@ -94,7 +94,7 @@ class SeedInputViewModel @Inject constructor(
                     .doOnSubscribe {
                         setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
                     }
-                    .delay(1L, TimeUnit.SECONDS)
+                    .delay(if (deeplink) 0L else 1L, TimeUnit.SECONDS)
             )
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe(

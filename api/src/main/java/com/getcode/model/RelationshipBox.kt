@@ -3,6 +3,7 @@ package com.getcode.model
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.Relationship
 import okhttp3.internal.toImmutableMap
+import timber.log.Timber
 import java.util.Comparator
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,7 +14,7 @@ class RelationshipBox @Inject constructor() {
     val publicKeys
         get() = _publicKeys.toImmutableMap()
 
-    private val _domains = mutableMapOf<Domain, Relationship>()
+    private val _domains = mutableMapOf<String, Relationship>()
     val domains
         get() = _domains.toImmutableMap()
 
@@ -25,10 +26,10 @@ class RelationshipBox @Inject constructor() {
         }
     }
     fun relationshipWith(publicKey: PublicKey) = _publicKeys[publicKey]
-    fun relationshipWith(domain: Domain) = _domains[domain]
+    fun relationshipWith(domain: Domain) = _domains[domain.urlString]
 
     fun insert(relationship: Relationship) {
         _publicKeys[relationship.getCluster().timelockAccounts.vault.publicKey] = relationship
-        _domains[relationship.domain] = relationship
+        _domains[relationship.domain.urlString] = relationship
     }
 }
