@@ -218,6 +218,7 @@ class HomeViewModel @Inject constructor(
                 },
                 onFailure = {
                     Timber.e(t = it, message = "Auto airdrop failed")
+                    prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
                 }
             )
             .launchIn(viewModelScope)
@@ -292,10 +293,6 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
-    }
-
-    fun reset() {
-        uiFlow.update { HomeUiModel() }
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {
