@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -8,6 +9,7 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
+import com.getcode.TopLevelViewModel
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.KinAmount
@@ -22,6 +24,7 @@ import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.giveKin.GiveKinSheet
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -46,7 +49,9 @@ data class HomeScreen(
 
     @Composable
     override fun Content() {
-        val vm = getViewModel<HomeViewModel>()
+        val vm = getActivityScopedViewModel<HomeViewModel>()
+        val tlvm = getActivityScopedViewModel<TopLevelViewModel>()
+
         startupLog("home rendered")
         HomeScreen(vm, cashLink, requestPayload)
 
@@ -61,7 +66,13 @@ data class HomeScreen(
                     vm.presentRequest(amount = result.amount, payload = null, request = null)
                 }
             }
+        }
 
+        LaunchedEffect(tlvm) {
+            tlvm.eventFlow
+                .filterIsInstance<TopLevelViewModel.Event.LogoutCompleted>()
+                .onEach { vm.reset() }
+                .launchIn(this)
         }
     }
 }
