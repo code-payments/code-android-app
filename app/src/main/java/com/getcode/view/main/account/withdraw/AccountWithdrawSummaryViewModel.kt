@@ -113,7 +113,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
                     )
                 )
 
-                navigator.replaceAll(HomeScreen(), inSheet = false)
+                navigator.replaceAll(HomeScreen())
 
                 uiFlow.value = uiFlow.value.copy(isSuccess = true)
             }, {

@@ -323,7 +323,7 @@ private fun BillContainer(
                 modifier = Modifier.fillMaxSize(),
                 // camera isn't really usable on an emulator so don't fade in wacky
                 // camera feed
-                visible = isEmulator || !isCameraReady,
+                visible = !isCameraReady,
                 enter = fadeIn(
                     animationSpec = tween(AnimationUtils.animationTime)
                 ),

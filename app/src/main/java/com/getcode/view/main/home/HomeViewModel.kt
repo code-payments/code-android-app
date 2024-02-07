@@ -194,7 +194,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, true)
+        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
             .map { it }
             .distinctUntilChanged()
             .onEach { Timber.d("airdrop eligible=$it") }
@@ -292,6 +292,10 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun reset() {
+        uiFlow.update { HomeUiModel() }
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {
