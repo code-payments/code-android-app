@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
@@ -51,13 +52,13 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.core.content.ContextCompat
 import com.getcode.R
 import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White50
 import com.getcode.util.formattedRaw
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
@@ -76,6 +77,8 @@ object CashBillDefaults {
     const val CodeBackgroundOpacity = 0.65f
 
     const val SecurityStripCount = 3
+
+    val DecorColor: Color = Color(0xFFA9A9B1)
 }
 
 object CashBillAssets {
@@ -167,7 +170,7 @@ private class CashBillGeometry(width: Dp, height: Dp) {
     val globePosition: Offset
         get() = Offset(
             x = -(size.width.value * 1.25f),
-            y = size.height.value * 1.2f
+            y = size.height.value * 0.5f
         )
 
 
@@ -226,7 +229,7 @@ internal fun CashBill(
             }
 
             // Hexagons
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .fillMaxSize(),
                 image = ImageBitmap.imageResource(R.drawable.ic_bill_hexagons),
@@ -236,7 +239,7 @@ internal fun CashBill(
             )
 
             // Waves
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
@@ -248,16 +251,17 @@ internal fun CashBill(
             )
 
             // Globe
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
+                size = DpSize(width = geometry.size.width * 1.45f, height = Dp.Unspecified),
                 image = CashBillAssets.globe,
                 topLeft = geometry.globePosition
             )
 
             // Grid pattern
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
@@ -317,7 +321,7 @@ internal fun CashBill(
                     Text(
                         text = kinMint.base58(),
                         fontSize = 8.nonScaledSp,
-                        color = CodeTheme.colors.onBackground.copy(alpha = 0.60f)
+                        color = CashBillDefaults.DecorColor,
                     )
                 }
 
@@ -330,10 +334,11 @@ internal fun CashBill(
                     Image(
                         modifier = Modifier
                             .width(geometry.brandWidth),
+                        contentScale = ContentScale.FillWidth,
                         painter = painterResource(
                             R.drawable.ic_code_logo_offwhite_small
                         ),
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground.copy(alpha = 0.60f)),
+                        colorFilter = ColorFilter.tint(CashBillDefaults.DecorColor),
                         contentDescription = "",
                     )
                     Spacer(modifier = Modifier.weight(1f))
@@ -343,20 +348,11 @@ internal fun CashBill(
             }
 
             // Scan code
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .punchCircle(CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (payloadData.isNotEmpty()) {
-                    ScannableCode(
-                        modifier = Modifier
-                            .size(geometry.codeSize),
-                        data = payloadData
-                    )
-                }
-            }
+            BillCode(
+                modifier = Modifier.align(Alignment.Center),
+                geometry = geometry,
+                data = payloadData
+            )
         }
     }
 }
@@ -370,11 +366,13 @@ private fun SecurityStrip(
         modifier = modifier
             .size(geometry.securityStripSize)
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
-            .punchRectangle(Color.Black.copy(0.6f)),
+            .punchRectangle(CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity)),
     ) {
         for (i in 0 until CashBillDefaults.SecurityStripCount) {
             Image(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(0.5f),
                 contentScale = ContentScale.FillBounds,
                 painter = painterResource(id = R.drawable.ic_bill_security_strip),
                 contentDescription = null
@@ -394,7 +392,7 @@ private fun Lines(
             Box(
                 modifier = Modifier
                     .rotate(-18f)
-                    .background(White50)
+                    .background(CashBillDefaults.DecorColor)
                     .fillMaxHeight()
                     .width(1.dp)
             )
@@ -403,10 +401,11 @@ private fun Lines(
 }
 
 @Composable
-private fun BillImage(
+private fun BillDecorImage(
     modifier: Modifier = Modifier,
     image: ImageBitmap?,
     alpha: Float = 1f,
+    size: DpSize = DpSize.Unspecified,
     topLeft: Offset = Offset.Zero,
     blendMode: BlendMode = DrawScope.DefaultBlendMode,
     fill: Boolean = false,
@@ -419,7 +418,10 @@ private fun BillImage(
             if (fill) {
                 drawImage(
                     image = it,
-                    dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
+                    dstSize = IntSize(
+                        width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
+                        height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
+                    ),
                     alpha = alpha,
                     dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
                     blendMode = blendMode,
@@ -428,10 +430,31 @@ private fun BillImage(
                 drawImage(
                     image = it,
                     alpha = alpha,
+                    dstSize = IntSize(
+                        width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
+                        height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
+                    ),
                     dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
                     blendMode = blendMode,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, data: List<Byte>) {
+    Box(
+        modifier = modifier
+            .punchCircle(CashBillDefaults.BillColor.copy(0.9f)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (data.isNotEmpty()) {
+            ScannableCode(
+                modifier = Modifier
+                    .size(geometry.codeSize),
+                data = data
+            )
         }
     }
 }

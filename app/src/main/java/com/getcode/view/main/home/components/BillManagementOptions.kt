@@ -45,7 +45,7 @@ internal fun BillManagementOptions(
             modifier = Modifier
                 .padding(bottom = 30.dp)
                 .align(Alignment.BottomCenter),
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8)
         ) {
             if (showSend) {
                 Row(
