@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
@@ -57,9 +58,6 @@ import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
-import com.getcode.theme.White50
-import com.getcode.ui.utils.debugBounds
 import com.getcode.util.formattedRaw
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
@@ -230,7 +228,7 @@ internal fun CashBill(
             }
 
             // Hexagons
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .fillMaxSize(),
                 image = ImageBitmap.imageResource(R.drawable.ic_bill_hexagons),
@@ -240,7 +238,7 @@ internal fun CashBill(
             )
 
             // Waves
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
@@ -252,7 +250,7 @@ internal fun CashBill(
             )
 
             // Globe
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
@@ -261,7 +259,7 @@ internal fun CashBill(
             )
 
             // Grid pattern
-            BillImage(
+            BillDecorImage(
                 modifier = Modifier
                     .matchParentSize()
                     .clipToBounds(),
@@ -348,20 +346,11 @@ internal fun CashBill(
             }
 
             // Scan code
-            Box(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .punchCircle(CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (payloadData.isNotEmpty()) {
-                    ScannableCode(
-                        modifier = Modifier
-                            .size(geometry.codeSize),
-                        data = payloadData
-                    )
-                }
-            }
+            BillCode(
+                modifier = Modifier.align(Alignment.Center),
+                geometry = geometry,
+                data = payloadData
+            )
         }
     }
 }
@@ -375,11 +364,11 @@ private fun SecurityStrip(
         modifier = modifier
             .size(geometry.securityStripSize)
             .offset(geometry.securityStripPosition.x, geometry.securityStripPosition.y)
-            .punchRectangle(Color.Black.copy(0.6f)),
+            .punchRectangle(CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity)),
     ) {
         for (i in 0 until CashBillDefaults.SecurityStripCount) {
             Image(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).alpha(0.5f),
                 contentScale = ContentScale.FillBounds,
                 painter = painterResource(id = R.drawable.ic_bill_security_strip),
                 contentDescription = null
@@ -408,7 +397,7 @@ private fun Lines(
 }
 
 @Composable
-private fun BillImage(
+private fun BillDecorImage(
     modifier: Modifier = Modifier,
     image: ImageBitmap?,
     alpha: Float = 1f,
@@ -437,6 +426,23 @@ private fun BillImage(
                     blendMode = blendMode,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, data: List<Byte>) {
+    Box(
+        modifier = modifier
+            .punchCircle(CashBillDefaults.BillColor.copy(0.9f)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (data.isNotEmpty()) {
+            ScannableCode(
+                modifier = Modifier
+                    .size(geometry.codeSize),
+                data = data
+            )
         }
     }
 }
