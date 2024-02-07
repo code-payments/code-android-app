@@ -34,6 +34,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +43,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.isUnspecified
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalTopBarPadding
 import com.getcode.R
@@ -60,6 +63,8 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.rememberSelectionState
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.debugBounds
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview
@@ -145,16 +150,15 @@ fun AccessKey(
                     .fillMaxSize()
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(vertical = CodeTheme.dimens.grid.x4)
-                    .measured { buttonHeight = it.height },
             ) {
-                Column(modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .measured { buttonHeight = it.height }) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .measured { buttonHeight = it.height },
+                ) {
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            onExportClick()
-                        },
+                        onClick = onExportClick,
                         text = stringResource(R.string.action_saveAccessKey),
                         buttonState = ButtonState.Filled,
                         isLoading = dataState.isLoading,
@@ -191,7 +195,7 @@ fun AccessKey(
                 .align(Alignment.TopCenter)
                 .fillMaxHeight()
                 .padding(LocalTopBarPadding.current)
-                .padding(bottom = buttonHeight + CodeTheme.dimens.grid.x4),
+                .addIf(buttonHeight.isSpecified) { Modifier.padding(bottom = buttonHeight + CodeTheme.dimens.grid.x4) },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
@@ -211,7 +215,6 @@ fun AccessKey(
                     dataState.accessKeyCroppedBitmap?.let { bitmap ->
                         Image(
                             modifier = Modifier
-                                .aspectRatio(0.607f, matchHeightConstraintsFirst = true)
                                 .fillMaxWidth()
                                 .weight(1f)
                                 .scale(selectionState.scale.value),
@@ -231,7 +234,7 @@ fun AccessKey(
             Text(
                 modifier = Modifier
                     .alpha(textAlpha)
-                    .padding(vertical = CodeTheme.dimens.grid.x2),
+                    .padding(bottom = CodeTheme.dimens.grid.x6),
                 style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 color = White,
                 text = stringResource(R.string.subtitle_accessKeyDescription)
