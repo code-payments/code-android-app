@@ -97,7 +97,7 @@ fun CurrencySelectionSheet(
                 composeScope.launch {
                     keyboardController?.hide()
                     delay(500)
-                    navigator.hideWithResult(it)
+                    navigator.popWithResult(it)
                 }
             }.launchIn(this)
     }
