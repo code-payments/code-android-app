@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,6 +61,7 @@ import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.debugBounds
 import com.getcode.util.formattedRaw
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
@@ -167,12 +170,16 @@ private class CashBillGeometry(width: Dp, height: Dp) {
     val codeSize: Dp
         get() = size.width * 0.6f
 
+    val globeWidth: Dp
+        get() = size.width * 1.45f
     val globePosition: Offset
         get() = Offset(
-            x = -(size.width.value * 1.25f),
-            y = size.height.value * 0.5f
+            x = -(size.width.value * 0.75f),
+            y = size.height.value * 0.65f
         )
 
+    val gridWidth: Dp
+        get() = size.width * 1.75f
 
     val linesHeight: Dp
         get() = (topStripHeight.value - 2).dp
@@ -235,41 +242,49 @@ internal fun CashBill(
                 image = ImageBitmap.imageResource(R.drawable.ic_bill_hexagons),
                 blendMode = BlendMode.Multiply,
                 alpha = 0.6f,
-                fill = true,
             )
-
-            // Waves
-            BillDecorImage(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clipToBounds(),
-                image = ImageBitmap.imageResource(R.drawable.ic_bill_waves),
-                fill = true,
-                topLeft = Offset(
-                    x = 0f,
-                    y = with(LocalDensity.current) { geometry.securityStripPosition.y.toPx() }),
-            )
+            // Grid pattern
+            CashBillAssets.grid?.let {
+                Image(
+                    modifier = Modifier
+                        .requiredWidth(geometry.gridWidth)
+                        .clipToBounds(),
+                    alpha = 0.5f,
+                    bitmap = it,
+                    contentDescription = null
+                )
+            }
 
             // Globe
-            BillDecorImage(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clipToBounds(),
-                size = DpSize(width = geometry.size.width * 1.45f, height = Dp.Unspecified),
-                image = CashBillAssets.globe,
-                topLeft = geometry.globePosition
-            )
+            CashBillAssets.globe?.let {
+                Image(
+                    modifier = Modifier
+                        .requiredWidth(geometry.globeWidth)
+                        .offset {
+                            IntOffset(
+                                x = geometry.globePosition.x.toInt(),
+                                y = geometry.globePosition.y.toInt()
+                            )
+                        },
+                    bitmap = it,
+                    contentDescription = null
+                )
+            }
 
-            // Grid pattern
-            BillDecorImage(
+            // Waves
+            Image(
                 modifier = Modifier
                     .matchParentSize()
+                    .offset {
+                        IntOffset(
+                            x = 0,
+                            y = geometry.securityStripPosition.y.roundToPx(),
+                        )
+                    }
                     .clipToBounds(),
-                image = CashBillAssets.grid,
-                alpha = 0.5f,
-                topLeft = Offset(
-                    x = 0f,
-                    y = with(LocalDensity.current) { geometry.securityStripPosition.y.toPx() }),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                bitmap = ImageBitmap.imageResource(R.drawable.ic_bill_waves),
             )
 
             // Security strip
@@ -408,36 +423,22 @@ private fun BillDecorImage(
     size: DpSize = DpSize.Unspecified,
     topLeft: Offset = Offset.Zero,
     blendMode: BlendMode = DrawScope.DefaultBlendMode,
-    fill: Boolean = false,
 ) {
     Canvas(
         modifier = modifier,
     ) {
         // Hexagons
         image?.let {
-            if (fill) {
-                drawImage(
-                    image = it,
-                    dstSize = IntSize(
-                        width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
-                        height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
-                    ),
-                    alpha = alpha,
-                    dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
-                    blendMode = blendMode,
-                )
-            } else {
-                drawImage(
-                    image = it,
-                    alpha = alpha,
-                    dstSize = IntSize(
-                        width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
-                        height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
-                    ),
-                    dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
-                    blendMode = blendMode,
-                )
-            }
+            drawImage(
+                image = it,
+                dstSize = IntSize(
+                    width = if (size.isSpecified && size.width.isSpecified) size.width.roundToPx() else this.size.width.toInt(),
+                    height = if (size.isSpecified && size.height.isSpecified) size.height.roundToPx() else this.size.height.toInt(),
+                ),
+                alpha = alpha,
+                dstOffset = IntOffset(topLeft.x.roundToInt(), topLeft.y.roundToInt()),
+                blendMode = blendMode,
+            )
         }
     }
 }

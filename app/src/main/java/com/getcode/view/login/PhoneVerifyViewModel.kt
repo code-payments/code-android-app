@@ -155,7 +155,7 @@ class PhoneVerifyViewModel @Inject constructor(
 
         val phoneNumberCombined = areaCode.toString() + phoneInput
 
-        Timber.d("phoneNumber=$phoneNumberCombined")
+
         val phoneNumber = phoneNumberCombined.makeE164(
             java.util.Locale(java.util.Locale.getDefault().language, countryCode)
         )
@@ -168,6 +168,7 @@ class PhoneVerifyViewModel @Inject constructor(
             client.startSmsRetriever()
         }
 
+        Timber.d("phoneNumber=$phoneNumber")
         phoneRepository.sendVerificationCode(phoneNumber)
             .firstElement()
             .observeOn(AndroidSchedulers.mainThread())
@@ -220,6 +221,7 @@ class PhoneVerifyViewModel @Inject constructor(
                         )
                     }
                 }, {
+                    it.printStackTrace()
                     setIsLoading(false)
                     TopBarManager.showMessage(getGenericError())
                 }

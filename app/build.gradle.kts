@@ -47,10 +47,12 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         viewBinding = true
         dataBinding = true
         compose = true
     }
+
     composeOptions {
         kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
@@ -94,10 +96,6 @@ android {
         resources.excludes.add("**/*.proto")
         resources.excludes.add("META-INF/LICENSE.md")
         resources.excludes.add("META-INF/LICENSE-notice.md")
-    }
-
-    buildFeatures {
-        buildConfig = true
     }
 }
 
