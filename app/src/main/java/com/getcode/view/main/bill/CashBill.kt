@@ -181,6 +181,12 @@ private class CashBillGeometry(width: Dp, height: Dp) {
     val gridWidth: Dp
         get() = size.width * 1.75f
 
+    val gridPosition: Offset
+        get() = Offset(
+            x = 0f,
+            y = securityStripPosition.y.value
+        )
+
     val linesHeight: Dp
         get() = (topStripHeight.value - 2).dp
     val lineSpacing: Dp
@@ -202,6 +208,12 @@ private class CashBillGeometry(width: Dp, height: Dp) {
 
     val valuePadding: Dp
         get() = ceil(size.width.value * 0.025f).dp
+
+    val wavesPosition: Offset
+        get() = Offset(
+            x = (size.width.value * 0.5f),
+            y = topStripHeight.value + securityStripSize.height.value + securityStripPosition.y.value
+        )
 
     init {
         size = DpSize(width, height)
@@ -230,6 +242,7 @@ internal fun CashBill(
                 .fillMaxHeight()
                 .fillMaxWidth(0.95f)
                 .background(CashBillDefaults.BillColor)
+                .clipToBounds()
         ) {
             val geometry = remember(maxWidth, maxHeight) {
                 CashBillGeometry(maxWidth, maxHeight)
@@ -248,7 +261,12 @@ internal fun CashBill(
                 Image(
                     modifier = Modifier
                         .requiredWidth(geometry.gridWidth)
-                        .clipToBounds(),
+                        .offset {
+                            IntOffset(
+                                x = geometry.gridPosition.x.toInt(),
+                                y = geometry.gridPosition.y.toInt()
+                            )
+                        },
                     alpha = 0.5f,
                     bitmap = it,
                     contentDescription = null
@@ -274,14 +292,14 @@ internal fun CashBill(
             // Waves
             Image(
                 modifier = Modifier
-                    .matchParentSize()
+                    .requiredWidth(geometry.globeWidth)
+                    .fillMaxHeight()
                     .offset {
                         IntOffset(
-                            x = 0,
-                            y = geometry.securityStripPosition.y.roundToPx(),
+                            x = geometry.wavesPosition.x.toInt(),
+                            y = geometry.wavesPosition.y.toInt(),
                         )
-                    }
-                    .clipToBounds(),
+                    },
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 bitmap = ImageBitmap.imageResource(R.drawable.ic_bill_waves),
