@@ -1,3 +1,5 @@
+@file:Suppress("ConstPropertyName")
+
 object Android {
     const val compileSdkVersion = 34
     const val minSdkVersion = 22
@@ -46,8 +48,8 @@ object Versions {
     const val slf4j: String = "1.7.25"
     const val firebase_bom: String = "32.7.1"
     const val crashlytics_gradle: String = "2.8.1"
-    const val play_service_auth = "20.4.0"
-    const val play_service_auth_phone = "18.0.1"
+    const val play_service_auth = "20.7.0"
+    const val play_service_auth_phone = "18.0.2"
 
     const val grpc_okhttp: String = "1.33.1"
     const val grpc_kotlin: String = "1.0.0"
@@ -79,7 +81,7 @@ object Classpath {
     const val google_services = "com.google.gms:google-services:${Versions.google_services}"
 
     const val crashlytics_gradle = "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
-    const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:7.+"
+    const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.+"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
     const val secrets_gradle_plugin = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
 }
@@ -144,6 +146,8 @@ object Libs {
     const val androidx_lifecycle_viewmodel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.androidx_lifecycle}"
 
     const val compose_bom = "androidx.compose:compose-bom:${Versions.compose}"
+    const val compose_accompanist =
+        "com.google.accompanist:accompanist-systemuicontroller:${Versions.compose_accompanist}"
     const val compose_ui = "androidx.compose.ui:ui"
     const val compose_ui_tools = "androidx.compose.ui:ui-tooling"
     const val compose_ui_tools_preview =
@@ -170,14 +174,12 @@ object Libs {
     const val slf4j = "org.slf4j:slf4j-android:${Versions.slf4j}"
     const val grpc_android = "io.grpc:grpc-android:${Versions.grpc_android}"
     const val kin_sdk = "org.kin.sdk.android:base:${Versions.kin_sdk}"
-    const val compose_accompanist =
-        "com.google.accompanist:accompanist-systemuicontroller:${Versions.compose_accompanist}"
 
     const val firebase_bom = "com.google.firebase:firebase-bom:${Versions.firebase_bom}"
-    const val firebase_analytics = "com.google.firebase:firebase-analytics-ktx"
-    const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics-ktx"
-    const val firebase_messaging = "com.google.firebase:firebase-messaging-ktx"
-    const val firebase_perf = "com.google.firebase:firebase-perf-ktx"
+    const val firebase_analytics = "com.google.firebase:firebase-analytics"
+    const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics"
+    const val firebase_messaging = "com.google.firebase:firebase-messaging"
+    const val firebase_perf = "com.google.firebase:firebase-perf"
 
     const val play_service_auth = "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
     const val play_service_auth_phone = "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
