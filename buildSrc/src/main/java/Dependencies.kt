@@ -44,7 +44,7 @@ object Versions {
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
-    const val firebase_bom: String = "29.1.0"
+    const val firebase_bom: String = "32.7.1"
     const val crashlytics_gradle: String = "2.8.1"
     const val play_service_auth = "20.4.0"
     const val play_service_auth_phone = "18.0.1"
