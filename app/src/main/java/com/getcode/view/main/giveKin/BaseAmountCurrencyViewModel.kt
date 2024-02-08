@@ -205,7 +205,7 @@ abstract class BaseAmountCurrencyViewModel(
             amountText = formatAmount(amountText, selectedCurrency),
             amountDouble = amount,
             amountKin = amountKin,
-            amountPrefix = formatPrefix(selectedCurrency),
+            amountPrefix = formatPrefix(selectedCurrency).takeIf { it != selectedCurrency.code }.orEmpty(),
             amountSuffix = formatSuffix(selectedCurrency),
             captionText = formatCaption(
                 selectedCurrency,

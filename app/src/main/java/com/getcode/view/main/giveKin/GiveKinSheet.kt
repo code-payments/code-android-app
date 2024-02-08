@@ -70,7 +70,7 @@ fun GiveKinSheet(
                 modifier = Modifier
                     .align(Alignment.Center)
             ) {
-                navigator.show(CurrencySelectionModal)
+                navigator.push(CurrencySelectionModal)
             }
         }
 
