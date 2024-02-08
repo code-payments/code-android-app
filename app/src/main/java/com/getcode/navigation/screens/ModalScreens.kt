@@ -301,7 +301,7 @@ data object CurrencySelectionModal: MainGraph, ModalRoot {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         ModalContainer(
-            closeButton = {
+            backButton = {
                 if (navigator.isVisible) {
                     it is CurrencySelectionModal
                 } else {
