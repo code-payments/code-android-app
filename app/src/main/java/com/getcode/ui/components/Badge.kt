@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatNodeDefaults
@@ -42,7 +43,7 @@ fun Badge(
                         color = color,
                         radius = this.size.maxDimension / 2f
                     )
-                }.padding(2.dp)
+                }.padding(1.dp)
         )
     }
 }
