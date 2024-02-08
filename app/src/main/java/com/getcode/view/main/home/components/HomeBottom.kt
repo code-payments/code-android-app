@@ -20,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.heightOrZero
@@ -77,7 +78,13 @@ internal fun HomeBottom(
             imageSize = CodeTheme.dimens.grid.x9,
             painter = painterResource(R.drawable.ic_history),
             onClick = { onPress(HomeBottomSheet.BALANCE) },
-            badge = { Badge(count = state.chatUnreadCount, color = ChatNodeDefaults.UnreadIndicator) }
+            badge = {
+                Badge(
+                    modifier = Modifier.padding(top = 2.dp, end = 2.dp),
+                    count = state.chatUnreadCount,
+                    color = ChatNodeDefaults.UnreadIndicator
+                )
+            }
         )
     }
 }
