@@ -1,16 +1,12 @@
 package com.getcode.network.repository
 
-import com.codeinc.gen.common.v1.Model.DeviceToken
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.db.Database
-import com.getcode.db.InMemoryDao
 import com.getcode.ed25519.Ed25519
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
-import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.PhoneApi
 import com.getcode.network.appcheck.AppCheck
 import com.getcode.network.appcheck.toDeviceToken
+import com.getcode.network.core.NetworkOracle
 import com.google.firebase.Firebase
 import com.google.firebase.appcheck.AppCheckToken
 import com.google.firebase.appcheck.appCheck
@@ -60,8 +56,12 @@ class PhoneRepository @Inject constructor(
                 val request =
                     PhoneVerificationService.SendVerificationCodeRequest.newBuilder()
                         .setPhoneNumber(phoneValue.toPhoneNumber())
-                        .setDeviceToken(tokenResult.toDeviceToken())
-                        .build()
+                        .apply {
+                            if (tokenResult.token != null) {
+                                setDeviceToken(tokenResult.token.toDeviceToken())
+                            }
+                        }.build()
+
 
                 phoneApi.sendVerificationCode(request)
                     .map { it.result }

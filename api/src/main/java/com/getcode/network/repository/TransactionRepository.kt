@@ -90,7 +90,7 @@ class TransactionRepository @Inject constructor(
 
         return AppCheck.limitedUseTokenSingle()
             .flatMap { tokenResult ->
-                submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, tokenResult.token)
+                submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, tokenResult.token?.token)
             }
     }
 
