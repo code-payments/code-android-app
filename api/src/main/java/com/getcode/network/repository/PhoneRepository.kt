@@ -1,5 +1,6 @@
 package com.getcode.network.repository
 
+import com.codeinc.gen.common.v1.Model.DeviceToken
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
@@ -8,12 +9,29 @@ import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.PhoneApi
+import com.getcode.network.appcheck.AppCheck
+import com.getcode.network.appcheck.toDeviceToken
+import com.google.firebase.Firebase
+import com.google.firebase.appcheck.AppCheckToken
+import com.google.firebase.appcheck.appCheck
+import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
+
+
+fun appCheckToken(
+    backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
+): Flowable<AppCheckToken> {
+    return Flowable.create({ emitter ->
+        Firebase.appCheck.limitedUseAppCheckToken
+            .addOnSuccessListener { emitter.onNext(it) }
+            .addOnFailureListener { emitter.onError(it) }
+    }, backpressureStrategy)
+}
 
 @Singleton
 class PhoneRepository @Inject constructor(
@@ -37,14 +55,18 @@ class PhoneRepository @Inject constructor(
         if (isMock()) return Single.just(PhoneVerificationService.SendVerificationCodeResponse.Result.OK)
             .toFlowable()
 
-        val request =
-            PhoneVerificationService.SendVerificationCodeRequest.newBuilder()
-                .setPhoneNumber(phoneValue.toPhoneNumber())
-                .build()
+        return AppCheck.limitedUseTokenFlowable()
+            .flatMap { tokenResult ->
+                val request =
+                    PhoneVerificationService.SendVerificationCodeRequest.newBuilder()
+                        .setPhoneNumber(phoneValue.toPhoneNumber())
+                        .setDeviceToken(tokenResult.toDeviceToken())
+                        .build()
 
-        return phoneApi.sendVerificationCode(request)
-            .map { it.result }
-            .let { networkOracle.managedRequest(it) }
+                phoneApi.sendVerificationCode(request)
+                    .map { it.result }
+                    .let { networkOracle.managedRequest(it) }
+            }
     }
 
     fun checkVerificationCode(
@@ -68,7 +90,7 @@ class PhoneRepository @Inject constructor(
     ): Flowable<GetAssociatedPhoneNumberResponse> {
         if (isMock()) {
             return Flowable.just(
-                GetAssociatedPhoneNumberResponse(true, true,  false,"+12223334455")
+                GetAssociatedPhoneNumberResponse(true, true, false, "+12223334455")
             )
         }
 

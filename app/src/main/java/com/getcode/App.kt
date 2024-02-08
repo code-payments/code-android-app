@@ -6,6 +6,11 @@ import com.bugsnag.android.Bugsnag
 import com.getcode.manager.AuthManager
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.bill.CashBillAssets
+import com.google.firebase.Firebase
+import com.google.firebase.app
+import com.google.firebase.appcheck.appCheck
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
+import com.google.firebase.initialize
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
 import timber.log.Timber
@@ -22,6 +27,11 @@ class App : Application() {
         instance = this
 
         CashBillAssets.load(this)
+
+        Firebase.initialize(this)
+        Firebase.appCheck.installAppCheckProviderFactory(
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        )
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 

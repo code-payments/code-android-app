@@ -164,6 +164,7 @@ dependencies {
 
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_analytics)
+    implementation(Libs.firebase_appcheck_playintegrity)
 
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)

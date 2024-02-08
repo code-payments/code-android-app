@@ -44,7 +44,7 @@ object Versions {
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
-    const val firebase_bom: String = "29.1.0"
+    const val firebase_bom: String = "32.7.1"
     const val crashlytics_gradle: String = "2.8.1"
     const val play_service_auth = "20.4.0"
     const val play_service_auth_phone = "18.0.1"
@@ -175,6 +175,8 @@ object Libs {
 
     const val firebase_bom = "com.google.firebase:firebase-bom:${Versions.firebase_bom}"
     const val firebase_analytics = "com.google.firebase:firebase-analytics-ktx"
+    const val firebase_appcheck = "com.google.firebase:firebase-appcheck-ktx"
+    const val firebase_appcheck_playintegrity = "com.google.firebase:firebase-appcheck-playintegrity"
     const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics-ktx"
     const val firebase_messaging = "com.google.firebase:firebase-messaging-ktx"
     const val firebase_perf = "com.google.firebase:firebase-perf-ktx"

@@ -5,6 +5,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.Signature
 import com.getcode.model.intents.actions.ActionType
 import com.getcode.model.intents.actions.numberActions
+import com.getcode.network.appcheck.toDeviceToken
 import com.getcode.network.repository.*
 import com.getcode.solana.keys.PublicKey
 
@@ -42,13 +43,17 @@ abstract class IntentType {
             .build()
     }
 
-    fun requestToSubmitActions(owner: Ed25519.KeyPair): TransactionService.SubmitIntentRequest {
+    fun requestToSubmitActions(owner: Ed25519.KeyPair, deviceToken: String? = null): TransactionService.SubmitIntentRequest {
         val submitActionsBuilder = TransactionService.SubmitIntentRequest.SubmitActions.newBuilder()
         submitActionsBuilder.owner = owner.publicKeyBytes.toSolanaAccount()
         submitActionsBuilder.id = id.toIntentId()
         submitActionsBuilder.metadata = metadata()
         submitActionsBuilder.addAllActions(actionGroup.actions.map { it.action() })
         submitActionsBuilder.signature = submitActionsBuilder.sign(owner)
+
+        if (deviceToken != null) {
+            submitActionsBuilder.setDeviceToken(deviceToken.toDeviceToken())
+        }
 
         return TransactionService.SubmitIntentRequest.newBuilder()
             .setSubmitActions(submitActionsBuilder)
