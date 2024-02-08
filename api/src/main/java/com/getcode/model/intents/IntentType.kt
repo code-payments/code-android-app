@@ -49,11 +49,12 @@ abstract class IntentType {
         submitActionsBuilder.id = id.toIntentId()
         submitActionsBuilder.metadata = metadata()
         submitActionsBuilder.addAllActions(actionGroup.actions.map { it.action() })
-        submitActionsBuilder.signature = submitActionsBuilder.sign(owner)
 
         if (deviceToken != null) {
             submitActionsBuilder.setDeviceToken(deviceToken.toDeviceToken())
         }
+
+        submitActionsBuilder.signature = submitActionsBuilder.sign(owner)
 
         return TransactionService.SubmitIntentRequest.newBuilder()
             .setSubmitActions(submitActionsBuilder)
