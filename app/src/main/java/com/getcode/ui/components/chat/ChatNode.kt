@@ -73,7 +73,7 @@ fun ChatNode(
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset),
         ) {
             Text(
                 modifier = Modifier.weight(1f),
