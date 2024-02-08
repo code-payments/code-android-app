@@ -56,3 +56,7 @@
 }
 
 -keep public class * extends java.lang.Exception
+
+# https://github.com/firebase/firebase-android-sdk/issues/3688
+-keep class org.json.** { *; }
+-keepclassmembers class org.json.** { *; }
