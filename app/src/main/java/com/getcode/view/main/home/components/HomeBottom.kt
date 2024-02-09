@@ -1,5 +1,8 @@
 package com.getcode.view.main.home.components
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,12 +26,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.utils.heightOrZero
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.utils.widthOrZero
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.chat.ChatNodeDefaults
+import com.getcode.ui.utils.heightOrZero
+import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.utils.widthOrZero
 import com.getcode.view.main.home.HomeBottomSheet
 import com.getcode.view.main.home.HomeUiModel
 
@@ -82,7 +85,8 @@ internal fun HomeBottom(
                 Badge(
                     modifier = Modifier.padding(top = 2.dp, end = 2.dp),
                     count = state.chatUnreadCount,
-                    color = ChatNodeDefaults.UnreadIndicator
+                    color = ChatNodeDefaults.UnreadIndicator,
+                    enterTransition = scaleIn(animationSpec = tween(durationMillis = 300, delayMillis = 1000)) + fadeIn()
                 )
             }
         )
