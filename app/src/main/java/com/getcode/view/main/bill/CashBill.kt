@@ -212,7 +212,7 @@ private class CashBillGeometry(width: Dp, height: Dp) {
     val wavesPosition: Offset
         get() = Offset(
             x = (size.width.value * 0.5f),
-            y = topStripHeight.value + securityStripSize.height.value + securityStripPosition.y.value
+            y = (size.height.value * 0.5f)
         )
 
     init {
@@ -293,11 +293,12 @@ internal fun CashBill(
             Image(
                 modifier = Modifier
                     .requiredWidth(geometry.globeWidth)
-                    .fillMaxHeight()
+                    .align(Alignment.BottomCenter)
+                    .height(geometry.wavesPosition.y.dp)
                     .offset {
                         IntOffset(
                             x = geometry.wavesPosition.x.toInt(),
-                            y = geometry.wavesPosition.y.toInt(),
+                            y = 0
                         )
                     },
                 contentDescription = null,
