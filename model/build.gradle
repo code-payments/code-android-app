@@ -1,22 +1,15 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
-apply plugin: "java-library"
-apply plugin: "com.google.protobuf"
-apply plugin: "maven-publish"
+plugins {
+    id 'java-library'
+    id 'com.google.protobuf'
+    id 'maven-publish'
+}
 
 def archSuffix = Os.isFamily(Os.FAMILY_MAC) ? ':osx-x86_64' : ''
 
 version = '0.0.1'
 group = 'com.codeinc.gen'
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.14'
-    }
-}
 
 def grpcVersion = "1.49.0"
 def protocVersion = "3.12.0"
@@ -30,14 +23,14 @@ dependencies {
 
     // Kotlin Generation
     implementation "io.grpc:grpc-kotlin-stub-lite:1.0.0"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3"
     implementation 'javax.annotation:javax.annotation-api:1.3.2'
 
 }
 
-def generatedSrcRoot = file("${buildDir}/generated/source/proto/main/java")
-def generatedSrcRoot2 = file("${buildDir}/generated/source/proto/main/grpc")
-def generatedSrcRoot3 = file("${buildDir}/generated/source/proto/main/grpcKt")
+def generatedSrcRoot = file("${layout.buildDirectory}/generated/source/proto/main/java")
+def generatedSrcRoot2 = file("${layout.buildDirectory}/generated/source/proto/main/grpc")
+def generatedSrcRoot3 = file("${layout.buildDirectory}/generated/source/proto/main/grpcKt")
 sourceSets.main {
     proto {
         srcDir "${rootDir}/model/proto"
@@ -48,7 +41,7 @@ sourceSets.main {
 }
 
 compileJava {
-    options.annotationProcessorGeneratedSourcesDirectory generatedSrcRoot
+    options.generatedSourceOutputDirectory.set(generatedSrcRoot)
 }
 
 protobuf {
@@ -94,7 +87,7 @@ jar {
     exclude "**/*agora*/**"
 }
 
-task sourcesJar(type: Jar) {
+tasks.register('sourcesJar', Jar) {
     from sourceSets.main.allSource
     archiveClassifier = 'sources'
     from generatedSrcRoot, generatedSrcRoot2, generatedSrcRoot3
@@ -103,4 +96,9 @@ task sourcesJar(type: Jar) {
 
 artifacts {
     archives sourcesJar
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 }
