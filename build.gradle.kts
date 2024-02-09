@@ -17,7 +17,7 @@ buildscript {
         classpath(Classpath.firebase_perf)
         classpath(Classpath.secrets_gradle_plugin)
         classpath(Classpath.kotlin_serialization_plugin)
-        classpath("com.google.protobuf:protobuf-gradle-plugin:0.8.14")
+        classpath(Classpath.protobuf_plugin)
     }
 }
 
