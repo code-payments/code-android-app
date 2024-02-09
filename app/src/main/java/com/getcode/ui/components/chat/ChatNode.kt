@@ -26,6 +26,7 @@ import com.getcode.model.Currency
 import com.getcode.model.GenericAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Title
+import com.getcode.model.Verb
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.DateUtils
@@ -33,6 +34,7 @@ import com.getcode.util.Kin
 import com.getcode.util.formatted
 import com.getcode.utils.FormatUtils
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.chat.utils.localizedText
 import java.util.Locale
 
 object ChatNodeDefaults {
@@ -136,39 +138,4 @@ private val Chat.messagePreview: String
         }
 
         return filtered.map { it.localizedText }.joinToString(" ")
-    }
-
-val MessageContent.localizedText: String
-    @Composable get() {
-        return when (val content = this) {
-            is MessageContent.Exchange -> {
-                val amount = when (val kinAmount = content.amount) {
-                    is GenericAmount.Exact -> {
-                        val currency =
-                            LocalCurrencyUtils.current?.getCurrency(kinAmount.currencyCode.name)
-                        kinAmount.amount.formatted(currency = currency ?: Currency.Kin)
-                    }
-
-                    is GenericAmount.Partial -> {
-                        FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault())
-                    }
-                }
-
-                "You ${content.verb.toString().lowercase()} $amount"
-            }
-
-            is MessageContent.Localized -> {
-                with(LocalContext.current) {
-                    val resId = resources.getIdentifier(
-                        content.value,
-                        "string",
-                        BuildConfig.APPLICATION_ID
-                    ).let { if (it == 0) null else it }
-
-                    resId?.let { getString(it) }.orEmpty()
-                }
-            }
-
-            MessageContent.SodiumBox -> "<! encrypted content !>"
-        }
     }

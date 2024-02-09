@@ -29,6 +29,7 @@ import com.getcode.model.Verb
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.formatTimeRelatively
 import com.getcode.view.main.home.components.PriceWithFlag
 import kotlinx.datetime.Instant
@@ -145,22 +146,39 @@ private fun MessagePayment(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = verb.localizedText,
-            style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
-        )
-
-        PriceWithFlag(
-            currencyCode = amount.rate.currency,
-            amount = amount,
-            text = { price ->
-                Text(
-                    text = price,
-                    color = Color.White,
-                    style = CodeTheme.typography.h3
-                )
-            }
-        )
+        if (verb == Verb.Returned) {
+            PriceWithFlag(
+                currencyCode = amount.rate.currency,
+                amount = amount,
+                text = { price ->
+                    Text(
+                        text = price,
+                        color = Color.White,
+                        style = CodeTheme.typography.h3
+                    )
+                }
+            )
+            Text(
+                text = verb.localizedText,
+                style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+            )
+        } else {
+            Text(
+                text = verb.localizedText,
+                style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+            )
+            PriceWithFlag(
+                currencyCode = amount.rate.currency,
+                amount = amount,
+                text = { price ->
+                    Text(
+                        text = price,
+                        color = Color.White,
+                        style = CodeTheme.typography.h3
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -183,16 +201,3 @@ private fun MessageText(modifier: Modifier = Modifier, text: String, date: Insta
         )
     }
 }
-
-private val Verb.localizedText: String
-    @SuppressLint("DiscouragedApi")
-    @Composable get() = with(LocalContext.current) context@{
-        if (this@localizedText == Verb.Unknown) stringResource(id = R.string.title_unknown)
-        val resId = resources.getIdentifier(
-            "subtitle_verb_${this@localizedText.toString().lowercase()}",
-            "string",
-            BuildConfig.APPLICATION_ID
-        ).let { if (it == 0) null else it }
-
-        resId?.let { getString(it) }.orEmpty()
-    }
