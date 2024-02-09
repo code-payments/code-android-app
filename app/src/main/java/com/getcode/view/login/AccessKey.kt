@@ -234,11 +234,15 @@ fun AccessKey(
             Text(
                 modifier = Modifier
                     .alpha(textAlpha)
-                    .padding(bottom = CodeTheme.dimens.grid.x6),
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.grid.x5)
+                    .padding(
+                        top = CodeTheme.dimens.grid.x3,
+                        bottom = CodeTheme.dimens.grid.x6
+                    ),
                 style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
                 color = White,
                 text = stringResource(R.string.subtitle_accessKeyDescription)
-                    .replace(". ", ".\n")
             )
         }
 
