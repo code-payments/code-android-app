@@ -80,13 +80,13 @@ fun AmountArea(
             modifier = Modifier
                 .wrapContentHeight()
                 .align(Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             if (isAltCaption && isAltCaptionKinIcon) {
                 Image(
                     modifier = Modifier
                         .padding(end = CodeTheme.dimens.staticGrid.x1)
-                        .requiredSize(CodeTheme.dimens.staticGrid.x2)
-                        .align(CenterVertically),
+                        .requiredSize(CodeTheme.dimens.staticGrid.x2),
                     painter = painterResource(
                         id = if (altCaptionColor == Alert) R.drawable.ic_kin_red
                         else R.drawable.ic_kin_brand
@@ -98,12 +98,7 @@ fun AmountArea(
                 ConnectionStatus(state = networkState)
             } else if (captionText != null) {
                 Text(
-                    modifier = Modifier
-                        .align(CenterVertically)
-                        .padding(
-                            top = CodeTheme.dimens.grid.x2,
-                            bottom = CodeTheme.dimens.grid.x3
-                        ),
+
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
                     style = CodeTheme.typography.body1.copy(
