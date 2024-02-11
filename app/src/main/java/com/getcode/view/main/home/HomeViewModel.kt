@@ -928,9 +928,6 @@ class HomeViewModel @Inject constructor(
         view: KikCodeScannerView,
         scanner: KikCodeScanner
     ): Flowable<ScannableKikCode> {
-        if (!view.previewing) {
-            view.startPreview()
-        }
         return Single.defer {
             view.previewSize()
                 .subscribeOn(Schedulers.computation())
