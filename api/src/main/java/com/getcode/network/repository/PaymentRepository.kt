@@ -25,10 +25,6 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-data class Request(
-    val amount: KinAmount,
-    val payload: CodePayload,
-)
 
 class PaymentRepository @Inject constructor(
     @ApplicationContext private val context: Context,

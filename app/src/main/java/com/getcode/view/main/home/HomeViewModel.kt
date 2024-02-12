@@ -343,9 +343,11 @@ class HomeViewModel @Inject constructor(
                     )
                 }
                 .subscribe({
-                    cancelSend(PresentationStyle.Pop)
-                    vibrator.vibrate()
-                    viewModelScope.launch { historyController.fetchChats() }
+                    viewModelScope.launch {
+                        cancelSend(PresentationStyle.Pop)
+                        vibrator.vibrate()
+                        historyController.fetchChats()
+                    }
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -671,6 +673,8 @@ class HomeViewModel @Inject constructor(
                 paymentConfirmation.payload.rendezvous
             )
         }.onSuccess {
+            historyController.fetchChats()
+
             showToast(paymentConfirmation.localAmount, false)
 
             withContext(Dispatchers.Main) {
@@ -1128,6 +1132,9 @@ class HomeViewModel @Inject constructor(
                             )
                             analytics.cashLinkGrab(amount.kin, amount.rate.currency)
                             analytics.onBillReceived()
+
+                            historyController.fetchChats()
+
                             viewModelScope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()
                                 showBill(
