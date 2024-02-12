@@ -94,9 +94,7 @@ class HistoryController @Inject constructor(
 
         _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
 
-        pagerMap.entries.onEach { (id, pagingSource) ->
-            pagingSource.invalidate()
-        }
+        pagerMap.clear()
     }
 
     suspend fun advanceReadPointer(chatId: ID) {

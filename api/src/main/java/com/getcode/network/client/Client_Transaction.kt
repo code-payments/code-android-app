@@ -185,7 +185,6 @@ suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
         )
 
         balanceController.fetchBalanceSuspend()
-        // TODO: fetch chats here somehow?
 
         return@withContext kinAmount
     }
