@@ -15,6 +15,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -157,7 +158,11 @@ private fun HomeScan(
         mutableStateOf(deepLink)
     }
 
-    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLinkSaved, requestPayload) {
+    var requestPayloadSaved by remember(requestPayload) {
+        mutableStateOf(requestPayload)
+    }
+
+    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
         if (kikCodeScannerView?.previewing == true) {
             if (!deepLinkSaved.isNullOrBlank()) {
                 delay(500)
@@ -165,9 +170,10 @@ private fun HomeScan(
                 deepLinkSaved = null
             }
 
-            if (!requestPayload.isNullOrBlank() && dataState.balance != null) {
+            if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
                 delay(500)
                 homeViewModel.handlePaymentRequest(requestPayload)
+                requestPayloadSaved = null
             }
         }
     }
@@ -229,15 +235,18 @@ private fun HomeScan(
     OnLifecycleEvent { _, event ->
         when (event) {
             Lifecycle.Event.ON_START -> {
+                Timber.d("onStart")
                 isPaused = false
                 startScanPreview()
             }
 
             Lifecycle.Event.ON_STOP -> {
+                Timber.d("onStop")
                 stopScanPreview()
             }
 
             Lifecycle.Event.ON_PAUSE -> {
+                Timber.d("onPause")
                 isPaused = true
                 homeViewModel.startSheetDismissTimer {
                     Timber.d("hiding from timeout")
@@ -246,6 +255,7 @@ private fun HomeScan(
             }
 
             Lifecycle.Event.ON_RESUME -> {
+                Timber.d("onResume")
                 isPaused = false
                 homeViewModel.stopSheetDismissTimer()
             }
@@ -398,11 +408,10 @@ private fun BillContainer(
         }
 
         HomeBill(
-            modifier = Modifier
-                .fillMaxSize()
-                .addIf(showManagementOptions) { Modifier.padding(bottom = managementHeight) },
+            modifier = Modifier.fillMaxSize(),
             dismissState = billDismissState,
             dismissed = dismissed,
+            contentPadding = PaddingValues(bottom = managementHeight),
             bill = updatedState.billState.bill,
             transitionSpec = {
                 if (updatedState.presentationStyle is PresentationStyle.Slide) {

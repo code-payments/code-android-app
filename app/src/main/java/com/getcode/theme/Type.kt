@@ -96,7 +96,7 @@ internal val typography = Typography(
     ),
     button = TextStyle(
         fontFamily = Avenir,
-        fontSize = 16.sp,
+        fontSize = 14.sp,
         fontWeight = FontWeight.SemiBold,
         lineHeight = 16.sp,
         textAlign = TextAlign.Center

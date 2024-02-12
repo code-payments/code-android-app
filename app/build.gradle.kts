@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId = "com.getcode"
-        versionCode = 299
+        versionCode = 302
         versionName = "1.1.$versionCode"
 
         minSdk = Android.minSdkVersion
@@ -136,6 +136,7 @@ dependencies {
     implementation(Libs.compose_ui)
     debugImplementation(Libs.compose_ui_tools)
     implementation(Libs.compose_ui_tools_preview)
+    implementation(Libs.compose_accompanist)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
     implementation(Libs.compose_materialIconsExtended)
@@ -144,34 +145,31 @@ dependencies {
     implementation(Libs.compose_livedata)
     implementation(Libs.compose_navigation)
     implementation(Libs.compose_paging)
-
-    implementation(Libs.androidx_constraint_layout_compose)
-
     implementation(Libs.compose_voyager_navigation)
     implementation(Libs.compose_voyager_navigation_transitions)
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
 
+    implementation(Libs.androidx_browser)
+    implementation(Libs.androidx_constraint_layout_compose)
+
     implementation(Libs.rxjava)
     implementation(Libs.rxandroid)
 
-    implementation(Libs.compose_accompanist)
     implementation(Libs.slf4j)
     implementation(Libs.grpc_android)
     implementation(Libs.kin_sdk)
 
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_analytics)
+    implementation(Libs.firebase_crashlytics)
+    implementation(Libs.firebase_messaging)
 
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)
     implementation(Libs.mp_android_chart)
     implementation(Libs.qr_generator)
     implementation(Libs.zxing)
-
-    implementation(Libs.androidx_browser)
-    implementation(Libs.firebase_crashlytics)
-    implementation(Libs.firebase_messaging)
     implementation(Libs.mixpanel)
 
     implementation(Libs.cloudy)

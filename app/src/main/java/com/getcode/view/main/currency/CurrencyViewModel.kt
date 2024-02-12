@@ -283,10 +283,14 @@ class CurrencyViewModel @Inject constructor(
 
                 is Event.OnRecentCurrencyRemoved -> { state -> state }
                 is Event.OnSelectedCurrencyChanged -> { state ->
-                    state.copy(
-                        selectedCurrencyCode = event.currency.code,
-                        selectedCurrencyResId = event.currency.resId
-                    )
+                    if (event.fromUser) {
+                        state
+                    } else {
+                        state.copy(
+                            selectedCurrencyCode = event.currency.code,
+                            selectedCurrencyResId = event.currency.resId
+                        )
+                    }
                 }
 
                 is Event.RemovedLocalFromRecents -> { state -> state.copy(wasLocalRemovedFromRecents = true) }

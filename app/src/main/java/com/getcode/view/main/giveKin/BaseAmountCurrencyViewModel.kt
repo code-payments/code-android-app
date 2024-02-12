@@ -14,6 +14,7 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
+import com.getcode.util.Kin
 import com.getcode.util.NumberInputHelper
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
@@ -27,10 +28,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.reactive.asFlow
 import kotlin.math.min
 
 sealed class CurrencyListItem {
@@ -81,6 +85,16 @@ abstract class BaseAmountCurrencyViewModel(
     open fun init() {
         numberInputHelper.reset()
 
+        flowOf(SessionManager.getKeyPair())
+            .filterNotNull()
+            .flatMapLatest {
+                client.fetchTransactionLimits(it)
+                    .subscribeOn(Schedulers.io())
+                    .asFlow()
+            }.onEach { sendLimits ->
+                setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimits))
+            }.launchIn(viewModelScope)
+
         combine(
             exchange.observeRates()
                 .map { currencyUtils.getCurrenciesWithRates(it) },
@@ -106,16 +120,6 @@ abstract class BaseAmountCurrencyViewModel(
             setCurrencyUiModel(currencyModel)
             setAmountUiModel(amountModel)
         }.launchIn(viewModelScope)
-
-        SessionManager.getKeyPair()?.let {
-            client.fetchTransactionLimits(it)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .doOnNext { sendLimitsMap ->
-                    setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimitsMap))
-                }
-                .subscribe({}, ErrorUtils::handleError)
-        }
     }
 
     protected open fun onAmountChanged(
@@ -205,7 +209,7 @@ abstract class BaseAmountCurrencyViewModel(
             amountText = formatAmount(amountText, selectedCurrency),
             amountDouble = amount,
             amountKin = amountKin,
-            amountPrefix = formatPrefix(selectedCurrency),
+            amountPrefix = formatPrefix(selectedCurrency).takeIf { it != selectedCurrency.code }.orEmpty(),
             amountSuffix = formatSuffix(selectedCurrency),
             captionText = formatCaption(
                 selectedCurrency,
@@ -329,7 +333,11 @@ abstract class BaseAmountCurrencyViewModel(
         } else {
             return if (amountInput == 0.0) {
                 val currencyValue = FormatUtils.format(amountAvailable)
-                val kinValue = "${currency.symbol}$currencyValue"
+                val kinValue = if (currency.code != currency.symbol) {
+                    "${currency.symbol}$currencyValue"
+                } else {
+                    currencyValue
+                }
                 "${getString(R.string.subtitle_enterUpTo).replaceParam(kinValue)} " +
                         getString(R.string.core_ofKin)
             } else {
@@ -338,7 +346,7 @@ abstract class BaseAmountCurrencyViewModel(
         }
     }
 
-    protected fun isKin(selectedCurrency: Currency): Boolean = selectedCurrency.code == "KIN"
+    private fun isKin(selectedCurrency: Currency): Boolean = selectedCurrency.code == Currency.Kin.code
 
     private fun isCaptionConversion(selectedCurrency: Currency, amount: Double?): Boolean =
         !isKin(selectedCurrency) && amount != 0.0

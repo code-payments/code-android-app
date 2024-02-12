@@ -9,17 +9,20 @@ import com.getcode.App
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
-import com.getcode.manager.*
-import com.getcode.navigation.screens.AccessKeyScreen
+import com.getcode.manager.SessionManager
+import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.AccessKeyScreen
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.PhoneNumberScreen
-import com.getcode.network.repository.*
+import com.getcode.network.repository.IdentityRepository
+import com.getcode.network.repository.PhoneRepository
+import com.getcode.network.repository.encodeBase64
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.view.*
+import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.annotations.NonNull
@@ -31,7 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.*
+import java.util.Timer
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.concurrent.fixedRateTimer
@@ -44,15 +47,15 @@ data class PhoneConfirmUiModel(
     val phoneNumber: String? = null,
     val phoneNumberFormatted: String? = null,
     val isLoading: Boolean = false,
+    val isResendingCode: Boolean = false,
     val isSuccess: Boolean = false,
     val isAutoSubmitted: Boolean = false,
     val entropyB64: String? = null,
     val isPhoneLinking: Boolean = false,
     val isNewAccount: Boolean = false,
     val isResendTimerRunning: Boolean = true,
-    val resetTimerTime: Int = 60,
+    val resetTimerTime: Int = PhoneConfirmViewModel.RESEND_TIMER_MAX,
     val attempts: Int = 0,
-    val isCodeResent: Boolean = false
 )
 
 @HiltViewModel
@@ -62,6 +65,11 @@ class PhoneConfirmViewModel @Inject constructor(
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
+
+    companion object {
+        internal const val RESEND_TIMER_MAX = 60
+    }
+
     val uiFlow = MutableStateFlow(PhoneConfirmUiModel())
     private var navigator: CodeNavigator? = null
     private var timer: Timer? = null
@@ -156,9 +164,8 @@ class PhoneConfirmViewModel @Inject constructor(
     private fun startTimer() {
         uiFlow.update {
             it.copy(
-                isCodeResent = false,
                 isResendTimerRunning = true,
-                resetTimerTime = 60
+                resetTimerTime = RESEND_TIMER_MAX
             )
         }
         timer?.cancel()
@@ -175,17 +182,15 @@ class PhoneConfirmViewModel @Inject constructor(
     }
 
     fun resendCode() {
-        startTimer()
-
         val phoneNumber = uiFlow.value.phoneNumber ?: return
 
         CoroutineScope(Dispatchers.IO).launch {
             phoneRepository.sendVerificationCode(phoneNumber)
                 .firstElement()
+                .doOnSubscribe { setIsResending(true) }
+                .doOnTerminate { setIsResending(false) }
+                .doOnComplete { setIsResending(false) }
                 .observeOn(AndroidSchedulers.mainThread())
-                .doOnSubscribe { setIsLoading(true) }
-                .doOnTerminate { setIsLoading(false) }
-                .doOnComplete { setIsLoading(false) }
                 .map { res ->
                     when (res) {
                         PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
@@ -193,7 +198,7 @@ class PhoneConfirmViewModel @Inject constructor(
                     }?.let { message -> TopBarManager.showMessage(message) }
                     res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
                 }
-                .subscribe({}, ErrorUtils::handleError)
+                .subscribe({  startTimer() }, ErrorUtils::handleError)
         }
     }
 
@@ -259,7 +264,6 @@ class PhoneConfirmViewModel @Inject constructor(
         val isPhoneLinking = uiFlow.value.isPhoneLinking
         val isNewAccount = uiFlow.value.isNewAccount
         val attempts = uiFlow.value.attempts
-        val isSeedInput = entropyB64 != null
 
         if (entropyB64 == null && !isNewAccount) return
 
@@ -355,6 +359,12 @@ class PhoneConfirmViewModel @Inject constructor(
     override fun setIsLoading(isLoading: Boolean) {
         uiFlow.update {
             it.copy(isLoading = isLoading)
+        }
+    }
+
+    private fun setIsResending(resending: Boolean) {
+        uiFlow.update {
+            it.copy(isResendingCode = resending)
         }
     }
 

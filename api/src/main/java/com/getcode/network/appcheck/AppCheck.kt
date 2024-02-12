@@ -24,15 +24,15 @@ data class DeviceTokenResult(
 object AppCheck {
 
     fun register() {
-//        if (BuildConfig.DEBUG) {
+        if (BuildConfig.DEBUG) {
             Firebase.appCheck.installAppCheckProviderFactory(
                 DebugAppCheckProviderFactory.getInstance()
             )
-//        } else {
-//            Firebase.appCheck.installAppCheckProviderFactory(
-//                PlayIntegrityAppCheckProviderFactory.getInstance()
-//            )
-//        }
+        } else {
+            Firebase.appCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        }
     }
 
     private fun handleAppCheckError(error: Exception): Boolean {

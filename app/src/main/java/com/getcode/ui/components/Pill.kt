@@ -20,7 +20,7 @@ fun Pill(
     backgroundColor: Color = Black50,
     contentColor: Color = Color.White,
     text: String,
-    textStyle: TextStyle = CodeTheme.typography.body2
+    textStyle: TextStyle = CodeTheme.typography.caption
 ) {
     Row(
         modifier = modifier

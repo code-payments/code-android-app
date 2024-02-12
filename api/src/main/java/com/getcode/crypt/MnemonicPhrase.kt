@@ -16,7 +16,7 @@ class MnemonicPhrase(val kind: Kind, val words: List<String>) {
 
     fun getSolanaKeyPair(context: Context, path: DerivePath = DerivePath.primary): Ed25519.KeyPair {
         val mnemonicCode = MnemonicCode(context.resources)
-        val mnemonicSeed = MnemonicCode.toSeed(words, "")
+        val mnemonicSeed = MnemonicCode.toSeed(words, path.password.orEmpty())
         mnemonicCode.check(words)
 
         return Derive.path(mnemonicSeed, path)

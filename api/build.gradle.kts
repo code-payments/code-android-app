@@ -84,7 +84,7 @@ dependencies {
     androidTestImplementation(Libs.androidx_test_runner)
     implementation(Libs.hilt)
 
-    implementation("org.kin.sdk.android:base:1.0.1")
+    implementation(Libs.kin_sdk)
 
     implementation(Libs.timber)
     implementation(Libs.bugsnag)

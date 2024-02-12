@@ -21,7 +21,7 @@ platform :android do
     gradle(task: "test")
   end
 
-  desc "Builld and Deploy a new version to the Google Play"
+  desc "Build and Deploy a new version to the Google Play"
   lane :deploy do
     #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
     gradle(

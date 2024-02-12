@@ -1,5 +1,6 @@
 package com.getcode.view.main.currency
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -43,7 +44,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
@@ -58,6 +62,9 @@ import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.SwipeableView
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.keyboardAsState
+import com.getcode.ui.utils.measured
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -87,20 +94,7 @@ fun CurrencySelectionSheet(
         }
     }
 
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.eventFlow
-            .filterIsInstance<CurrencyViewModel.Event.OnSelectedCurrencyChanged>()
-            .filter { it.fromUser }
-            .map { it.currency }
-            .distinctUntilChanged()
-            .onEach {
-                composeScope.launch {
-                    keyboardController?.hide()
-                    delay(500)
-                    navigator.hideWithResult(it)
-                }
-            }.launchIn(this)
-    }
+    val keyboard by keyboardAsState()
 
     Column(
         modifier = Modifier.imePadding()
@@ -205,9 +199,25 @@ fun CurrencySelectionSheet(
                         }
 
                         is CurrencyListItem.RegionCurrencyItem -> {
+                            var isSwipedAway by remember(listItem) {
+                                mutableStateOf(false)
+                            }
+
+                            var height by remember {
+                                mutableStateOf(0.dp)
+                            }
+
+                            val animatedHeight by animateDpAsState(targetValue = if (!isSwipedAway) height else 0.dp)
+
                             SwipeableView(
+                                modifier = Modifier.measured {
+                                    if (height == 0.dp) {
+                                        height = it.height
+                                    }
+                                }.addIf(height != 0.dp) { Modifier.height(animatedHeight) },
                                 isSwipeEnabled = listItem.isRecent,
                                 leftSwiped = {
+                                    isSwipedAway = true
                                     viewModel.dispatchEvent(
                                         CurrencyViewModel.Event.OnRecentCurrencyRemoved(
                                             listItem.currency
@@ -224,6 +234,13 @@ fun CurrencySelectionSheet(
                                     state.selectedCurrencyCode.orEmpty() == currencyCode,
                                     isDisabled,
                                 ) {
+                                    composeScope.launch {
+                                        if (keyboard) {
+                                            keyboardController?.hide()
+                                            delay(500)
+                                        }
+                                        navigator.popWithResult(listItem.currency)
+                                    }
                                     viewModel.dispatchEvent(
                                         CurrencyViewModel.Event.OnSelectedCurrencyChanged(
                                             listItem.currency
