@@ -1072,8 +1072,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun handlePaymentRequest(bytes: String) {
-        val data = bytes.base64EncodedData()
+    fun handlePaymentRequest(bytes: String?) {
+        val data = bytes?.base64EncodedData() ?: return
         val request = DeepLinkPaymentRequest.from(data)
         if (request != null) {
             val payload = CodePayload(

@@ -158,7 +158,11 @@ private fun HomeScan(
         mutableStateOf(deepLink)
     }
 
-    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLinkSaved, requestPayload) {
+    var requestPayloadSaved by remember(requestPayload) {
+        mutableStateOf(requestPayload)
+    }
+
+    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
         if (kikCodeScannerView?.previewing == true) {
             if (!deepLinkSaved.isNullOrBlank()) {
                 delay(500)
@@ -166,9 +170,10 @@ private fun HomeScan(
                 deepLinkSaved = null
             }
 
-            if (!requestPayload.isNullOrBlank() && dataState.balance != null) {
+            if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
                 delay(500)
                 homeViewModel.handlePaymentRequest(requestPayload)
+                requestPayloadSaved = null
             }
         }
     }
