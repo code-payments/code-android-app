@@ -63,6 +63,11 @@ dependencies {
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)
 
+    implementation(platform(Libs.firebase_bom))
+    implementation(Libs.firebase_appcheck)
+    implementation(Libs.firebase_appcheck_debug)
+    implementation(Libs.firebase_appcheck_playintegrity)
+
     implementation(Libs.androidx_paging_runtime)
 
     kapt(Libs.androidx_room_compiler)
