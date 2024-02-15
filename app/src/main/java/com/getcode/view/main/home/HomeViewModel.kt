@@ -343,11 +343,8 @@ class HomeViewModel @Inject constructor(
                     )
                 }
                 .subscribe({
-                    viewModelScope.launch {
-                        cancelSend(PresentationStyle.Pop)
-                        vibrator.vibrate()
-                        historyController.fetchChats()
-                    }
+                    cancelSend(PresentationStyle.Pop)
+                    vibrator.vibrate()
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -426,43 +423,41 @@ class HomeViewModel @Inject constructor(
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
-        val shown = showToastIfNeeded(style)
-
-        uiFlow.update {
-            it.copy(
-                presentationStyle = style,
-                billState = it.billState.copy(
-                    bill = null,
-                )
-            )
-        }
 
         viewModelScope.launch {
+            historyController.fetchChats()
+
+            val shown = showToastIfNeeded(style)
+
+            uiFlow.update {
+                it.copy(
+                    presentationStyle = style,
+                    billState = it.billState.copy(
+                        bill = null,
+                    )
+                )
+            }
+
             if (shown) {
                 delay(300)
             }
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    it.copy(
-                        billState = it.billState.copy(
-                            valuation = null,
-                            hideBillButtons = false
-                        )
-                    )
-                }
-            }
-        }
 
-        viewModelScope.launch {
+            uiFlow.update {
+                it.copy(
+                    billState = it.billState.copy(
+                        valuation = null,
+                        hideBillButtons = false
+                    )
+                )
+            }
+
             if (shown) {
                 delay(5.seconds.inWholeMilliseconds)
             }
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    it.copy(
-                        billState = it.billState.copy(showToast = false)
-                    )
-                }
+            uiFlow.update {
+                it.copy(
+                    billState = it.billState.copy(showToast = false)
+                )
             }
         }
     }

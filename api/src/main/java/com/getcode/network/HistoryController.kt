@@ -76,6 +76,9 @@ class HistoryController @Inject constructor(
     private fun owner(): KeyPair? = SessionManager.getKeyPair()
 
     suspend fun fetchChats() {
+        pagerMap.clear()
+        chatFlows.clear()
+
         val containers = fetchChatsWithoutMessages()
         Timber.d("chats fetched = ${containers.count()}")
         _chats.value = containers
@@ -93,8 +96,6 @@ class HistoryController @Inject constructor(
         }
 
         _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
-
-        pagerMap.clear()
     }
 
     suspend fun advanceReadPointer(chatId: ID) {
