@@ -32,7 +32,7 @@ fun Badge(
     enterTransition: EnterTransition = scaleIn(tween(durationMillis = 300)) + fadeIn(),
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
-    AnimatedVisibility(visible = count > 0, enter = enterTransition, exit = exitTransition) {
+    AnimatedVisibility(modifier = modifier, visible = count > 0, enter = enterTransition, exit = exitTransition) {
         val text = when {
             count in 1..99 -> "$count"
             else -> "99+"
@@ -42,7 +42,7 @@ fun Badge(
             text = text,
             color = contentColor,
             style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W700),
-            modifier = modifier
+            modifier = Modifier
                 .drawBehind {
                     drawCircle(
                         color = color,
