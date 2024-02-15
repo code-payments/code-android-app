@@ -18,11 +18,11 @@ plugins {
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
 
 android {
-    namespace = "com.getcode"
+    namespace = Android.namespace
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        applicationId = "com.getcode"
+        applicationId = Android.namespace
         versionCode = 302
         versionName = "1.1.$versionCode"
 
@@ -80,7 +80,7 @@ android {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
 
