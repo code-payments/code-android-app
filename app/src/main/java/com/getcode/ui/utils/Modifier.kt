@@ -9,7 +9,10 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -17,9 +20,13 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
@@ -184,4 +191,37 @@ fun Modifier.punchCircle(color: Color) = this.drawWithContent {
     )
 
     drawContent()
+}
+
+fun Modifier.drawWithGradient(
+    color: Color,
+    startY: ContentDrawScope.(Float) -> Float,
+    endY: ContentDrawScope.(Float) -> Float = { Float.POSITIVE_INFINITY },
+    blendMode: BlendMode = BlendMode.SrcOver
+) = this.composed {
+    var height by remember {
+        mutableStateOf(0.dp)
+    }
+
+    val density = LocalDensity.current
+
+    Modifier
+        .onPlaced {
+            height = with(density) { it.size.height.toDp() }
+        }
+        .graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+        }
+        .drawWithContent {
+            val colors = listOf(Color.Transparent, color)
+            drawContent()
+            drawRect(
+                brush = Brush.verticalGradient(
+                    startY = startY(height.toPx()),
+                    endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY } ?: height.toPx(),
+                    colors = colors,
+                ),
+                blendMode = blendMode
+            )
+        }
 }
