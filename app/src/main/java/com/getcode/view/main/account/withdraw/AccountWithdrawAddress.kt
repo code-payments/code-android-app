@@ -95,9 +95,7 @@ fun AccountWithdrawAddress(
                         .padding(start = CodeTheme.dimens.grid.x2),
                     text = text,
                     color = if (isValid) green else Color.Red,
-                    style = CodeTheme.typography.caption.copy(
-                        fontSize = 12.sp
-                    )
+                    style = CodeTheme.typography.caption
                 )
             }
         }

@@ -14,13 +14,11 @@ fun TextSection(title: String, description: String) {
     Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
         Text(
             text = title,
-            style = CodeTheme.typography.h6.copy(
-                fontWeight = FontWeight.Bold,
-            )
+            style = CodeTheme.typography.subtitle1
         )
         Text(
             text = description,
-            style = CodeTheme.typography.subtitle2
+            style = CodeTheme.typography.body2
         )
     }
 }

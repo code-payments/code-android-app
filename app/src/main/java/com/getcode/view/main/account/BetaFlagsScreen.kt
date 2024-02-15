@@ -96,7 +96,7 @@ fun BetaFlagsScreen(
                             modifier = Modifier
                                 .padding(vertical = CodeTheme.dimens.grid.x1),
                             text = option.subtitleText,
-                            style = CodeTheme.typography.overline,
+                            style = CodeTheme.typography.caption,
                             color = BrandLight
                         )
                     }

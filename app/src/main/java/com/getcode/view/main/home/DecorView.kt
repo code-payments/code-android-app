@@ -137,7 +137,7 @@ internal fun DecorView(
                     Text(
                         text = stringResource(id = R.string.title_badge_no_connection),
                         color = Color.White,
-                        style = CodeTheme.typography.overline
+                        style = CodeTheme.typography.caption
                     )
                 }
             }

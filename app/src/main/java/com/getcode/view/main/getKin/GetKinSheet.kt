@@ -219,8 +219,7 @@ fun GetKinSheet(
                                 Text(
                                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                                     text = stringResource(it),
-                                    style = CodeTheme.typography.caption,
-                                    fontSize = 13.sp,
+                                    style = CodeTheme.typography.body2,
                                     color = colorResource(R.color.code_brand_light),
                                 )
                             }

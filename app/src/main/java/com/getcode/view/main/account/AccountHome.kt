@@ -171,7 +171,7 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
                     text = if (isPhoneLinked) stringResource(id = R.string.title_linked)
                     else stringResource(id = R.string.title_notLinked),
                     color = BrandLight,
-                    style = CodeTheme.typography.caption.copy(
+                    style = CodeTheme.typography.body1.copy(
                         fontSize = 12.sp
                     ),
                 )
