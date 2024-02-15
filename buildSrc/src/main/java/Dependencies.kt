@@ -1,6 +1,7 @@
 @file:Suppress("ConstPropertyName")
 
 object Android {
+    const val namespace = "com.getcode"
     const val compileSdkVersion = 34
     const val minSdkVersion = 22
     const val targetSdkVersion = 33
