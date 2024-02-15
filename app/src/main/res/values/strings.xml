@@ -290,6 +290,9 @@
     <string name="withdraw_address_valid_owner_account">Valid owner account</string>
     <string name="withdraw_address_valid_token_account">Valid token account</string>
 
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+
     <string name="beta_bucket_debugger_description">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
     <string name="beta_vibrate_on_scan_description">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>

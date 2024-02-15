@@ -1,6 +1,5 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,21 +19,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import com.getcode.BuildConfig
-import com.getcode.LocalCurrencyUtils
 import com.getcode.model.Chat
-import com.getcode.model.Currency
-import com.getcode.model.GenericAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Title
-import com.getcode.model.Verb
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.DateUtils
-import com.getcode.util.Kin
-import com.getcode.util.formatted
-import com.getcode.utils.FormatUtils
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.util.DateUtils
 import java.util.Locale
 
 object ChatNodeDefaults {
