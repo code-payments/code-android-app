@@ -105,8 +105,13 @@ fun formatAmountString(resources: ResourceHelper, currency: Currency, amount: Do
             resources.getString(R.string.core_kin)
         }"
     } else {
-        "${currency.symbol}${FormatUtils.format(amount)} ${
-            resources.getString(R.string.core_ofKin)
-        }"
+        when {
+            currency.code == currency.symbol -> {
+                "${FormatUtils.format(amount)} ${resources.getString(R.string.core_ofKin)}"
+            }
+            else -> {
+                "${currency.symbol}${FormatUtils.format(amount)} ${resources.getString(R.string.core_ofKin)}"
+            }
+        }
     }
 }

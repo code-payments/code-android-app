@@ -10,6 +10,7 @@ import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.processors.BehaviorProcessor
 import kotlinx.coroutines.flow.Flow
 import org.kin.sdk.base.tools.Optional
+import timber.log.Timber
 
 class KikCodeScannerView @JvmOverloads constructor(
     context: Context,
@@ -36,6 +37,7 @@ class KikCodeScannerView @JvmOverloads constructor(
     }
 
     fun startPreview() {
+        Timber.d("start : $previewing")
         if (previewing) {
             return
         }
@@ -64,6 +66,7 @@ class KikCodeScannerView @JvmOverloads constructor(
     }
 
     fun stopPreview() {
+        Timber.d("stop : $previewing")
         if (!previewing) {
             return
         }

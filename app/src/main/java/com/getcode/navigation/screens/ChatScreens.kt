@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.paging.compose.collectAsLazyPagingItems
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
@@ -73,6 +74,16 @@ data object BalanceModal : ChatGraph, ModalRoot {
         AnalyticsScreenWatcher(
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.Balance
+        )
+
+        LifecycleEffect(
+            onDisposed = {
+                viewModel.dispatchEvent(
+                    BalanceSheetViewModel.Event.OnDebugBucketsVisible(
+                        false
+                    )
+                )
+            }
         )
     }
 }

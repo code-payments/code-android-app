@@ -1,6 +1,5 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,19 +19,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import com.getcode.BuildConfig
-import com.getcode.LocalCurrencyUtils
 import com.getcode.model.Chat
-import com.getcode.model.Currency
-import com.getcode.model.GenericAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Title
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.DateUtils
-import com.getcode.util.Kin
-import com.getcode.util.formatted
-import com.getcode.utils.FormatUtils
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.ui.utils.debugBounds
+import com.getcode.util.DateUtils
 import java.util.Locale
 
 object ChatNodeDefaults {
@@ -85,12 +80,14 @@ fun ChatNode(
             )
             if (chat.isMuted) {
                 Icon(
-                    Icons.AutoMirrored.Filled.VolumeOff,
+                    imageVector = Icons.AutoMirrored.Filled.VolumeOff,
                     contentDescription = "chat is muted",
                     tint = BrandLight
                 )
             } else {
                 Badge(
+                    Modifier
+                        .padding(end = CodeTheme.dimens.grid.x1),
                     count = chat.unreadCount,
                     color = ChatNodeDefaults.UnreadIndicator
                 )
@@ -136,39 +133,4 @@ private val Chat.messagePreview: String
         }
 
         return filtered.map { it.localizedText }.joinToString(" ")
-    }
-
-val MessageContent.localizedText: String
-    @Composable get() {
-        return when (val content = this) {
-            is MessageContent.Exchange -> {
-                val amount = when (val kinAmount = content.amount) {
-                    is GenericAmount.Exact -> {
-                        val currency =
-                            LocalCurrencyUtils.current?.getCurrency(kinAmount.currencyCode.name)
-                        kinAmount.amount.formatted(currency = currency ?: Currency.Kin)
-                    }
-
-                    is GenericAmount.Partial -> {
-                        FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault())
-                    }
-                }
-
-                "You ${content.verb.toString().lowercase()} $amount"
-            }
-
-            is MessageContent.Localized -> {
-                with(LocalContext.current) {
-                    val resId = resources.getIdentifier(
-                        content.value,
-                        "string",
-                        BuildConfig.APPLICATION_ID
-                    ).let { if (it == 0) null else it }
-
-                    resId?.let { getString(it) }.orEmpty()
-                }
-            }
-
-            MessageContent.SodiumBox -> "<! encrypted content !>"
-        }
     }

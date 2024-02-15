@@ -70,6 +70,7 @@ object Versions {
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
     const val voyager = "1.0.0"
+    const val protobuf_plugin = "0.8.14"
 }
 
 object Classpath {
@@ -79,6 +80,7 @@ object Classpath {
     const val kotlin_gradle_plugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
     const val kotlin_serialization_plugin = "org.jetbrains.kotlin:kotlin-serialization:${Versions.kotlin}"
     const val google_services = "com.google.gms:google-services:${Versions.google_services}"
+    const val protobuf_plugin = "com.google.protobuf:protobuf-gradle-plugin:${Versions.protobuf_plugin}"
 
     const val crashlytics_gradle = "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
     const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.+"
@@ -177,6 +179,9 @@ object Libs {
 
     const val firebase_bom = "com.google.firebase:firebase-bom:${Versions.firebase_bom}"
     const val firebase_analytics = "com.google.firebase:firebase-analytics"
+    const val firebase_appcheck = "com.google.firebase:firebase-appcheck"
+    const val firebase_appcheck_debug = "com.google.firebase:firebase-appcheck-debug"
+    const val firebase_appcheck_playintegrity = "com.google.firebase:firebase-appcheck-playintegrity"
     const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics"
     const val firebase_messaging = "com.google.firebase:firebase-messaging"
     const val firebase_perf = "com.google.firebase:firebase-perf"

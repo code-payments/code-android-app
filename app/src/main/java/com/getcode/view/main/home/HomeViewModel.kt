@@ -115,6 +115,7 @@ import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import kotlin.concurrent.schedule
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
@@ -212,7 +213,7 @@ class HomeViewModel @Inject constructor(
                     } ?: Completable.complete()
                     receiveWithinLimits.subscribe({}, {})
 
-                    showToast(amount = amount, isDeposit = true)
+                    showToast(amount = amount, isDeposit = true, initialDelay = 1.seconds)
 
                     historyController.fetchChats()
                 },
@@ -344,7 +345,6 @@ class HomeViewModel @Inject constructor(
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
                     vibrator.vibrate()
-                    viewModelScope.launch { historyController.fetchChats() }
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -423,43 +423,41 @@ class HomeViewModel @Inject constructor(
         sendTransactionDisposable?.dispose()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
-        val shown = showToastIfNeeded(style)
-
-        uiFlow.update {
-            it.copy(
-                presentationStyle = style,
-                billState = it.billState.copy(
-                    bill = null,
-                )
-            )
-        }
 
         viewModelScope.launch {
+            historyController.fetchChats()
+
+            val shown = showToastIfNeeded(style)
+
+            uiFlow.update {
+                it.copy(
+                    presentationStyle = style,
+                    billState = it.billState.copy(
+                        bill = null,
+                    )
+                )
+            }
+
             if (shown) {
                 delay(300)
             }
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    it.copy(
-                        billState = it.billState.copy(
-                            valuation = null,
-                            hideBillButtons = false
-                        )
-                    )
-                }
-            }
-        }
 
-        viewModelScope.launch {
+            uiFlow.update {
+                it.copy(
+                    billState = it.billState.copy(
+                        valuation = null,
+                        hideBillButtons = false
+                    )
+                )
+            }
+
             if (shown) {
                 delay(5.seconds.inWholeMilliseconds)
             }
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    it.copy(
-                        billState = it.billState.copy(showToast = false)
-                    )
-                }
+            uiFlow.update {
+                it.copy(
+                    billState = it.billState.copy(showToast = false)
+                )
             }
         }
     }
@@ -486,40 +484,12 @@ class HomeViewModel @Inject constructor(
 
     private fun showToast(
         amount: KinAmount,
-        isDeposit: Boolean = false
+        isDeposit: Boolean = false,
+        initialDelay: Duration = 500.milliseconds
     ) {
-        if (amount.kin.toKinTruncatingLong() == 0L) {
-            uiFlow.update { uiModel ->
-                val billState = uiModel.billState
-                uiModel.copy(
-                    billState = billState.copy(
-                        toast = null
-                    )
-                )
-            }
-            return
-        }
-
-        uiFlow.update {
-            it.copy(
-                billState = it.billState.copy(
-                    showToast = true,
-                    toast = BillToast(amount = amount, isDeposit = isDeposit)
-                )
-            )
-        }
-
-        Timer().schedule(5.seconds.inWholeMilliseconds) {
-            uiFlow.update { uiModel ->
-                val billState = uiModel.billState
-                uiModel.copy(
-                    billState = billState.copy(
-                        showToast = false
-                    )
-                )
-            }
-            // wait for animation to run
-            Timer().schedule(500.milliseconds.inWholeMilliseconds) {
+        viewModelScope.launch {
+            delay(initialDelay)
+            if (amount.kin.toKinTruncatingLong() == 0L) {
                 uiFlow.update { uiModel ->
                     val billState = uiModel.billState
                     uiModel.copy(
@@ -528,6 +498,38 @@ class HomeViewModel @Inject constructor(
                         )
                     )
                 }
+                return@launch
+            }
+
+            uiFlow.update {
+                it.copy(
+                    billState = it.billState.copy(
+                        showToast = true,
+                        toast = BillToast(amount = amount, isDeposit = isDeposit)
+                    )
+                )
+            }
+
+            delay(5.seconds)
+
+            uiFlow.update { uiModel ->
+                val billState = uiModel.billState
+                uiModel.copy(
+                    billState = billState.copy(
+                        showToast = false
+                    )
+                )
+            }
+
+            // wait for animation to run
+            delay(500.milliseconds)
+            uiFlow.update { uiModel ->
+                val billState = uiModel.billState
+                uiModel.copy(
+                    billState = billState.copy(
+                        toast = null
+                    )
+                )
             }
         }
     }
@@ -666,6 +668,8 @@ class HomeViewModel @Inject constructor(
                 paymentConfirmation.payload.rendezvous
             )
         }.onSuccess {
+            historyController.fetchChats()
+
             showToast(paymentConfirmation.localAmount, false)
 
             withContext(Dispatchers.Main) {
@@ -923,9 +927,6 @@ class HomeViewModel @Inject constructor(
         view: KikCodeScannerView,
         scanner: KikCodeScanner
     ): Flowable<ScannableKikCode> {
-        if (!view.previewing) {
-            view.startPreview()
-        }
         return Single.defer {
             view.previewSize()
                 .subscribeOn(Schedulers.computation())
@@ -1070,8 +1071,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun handlePaymentRequest(bytes: String) {
-        val data = bytes.base64EncodedData()
+    fun handlePaymentRequest(bytes: String?) {
+        val data = bytes?.base64EncodedData() ?: return
         val request = DeepLinkPaymentRequest.from(data)
         if (request != null) {
             val payload = CodePayload(
@@ -1126,6 +1127,9 @@ class HomeViewModel @Inject constructor(
                             )
                             analytics.cashLinkGrab(amount.kin, amount.rate.currency)
                             analytics.onBillReceived()
+
+                            historyController.fetchChats()
+
                             viewModelScope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()
                                 showBill(

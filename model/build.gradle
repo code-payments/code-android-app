@@ -28,9 +28,9 @@ dependencies {
 
 }
 
-def generatedSrcRoot = file("${layout.buildDirectory}/generated/source/proto/main/java")
-def generatedSrcRoot2 = file("${layout.buildDirectory}/generated/source/proto/main/grpc")
-def generatedSrcRoot3 = file("${layout.buildDirectory}/generated/source/proto/main/grpcKt")
+def generatedSrcRoot = file("${buildDir}/generated/source/proto/main/java")
+def generatedSrcRoot2 = file("${buildDir}/generated/source/proto/main/grpc")
+def generatedSrcRoot3 = file("${buildDir}/generated/source/proto/main/grpcKt")
 sourceSets.main {
     proto {
         srcDir "${rootDir}/model/proto"
@@ -41,7 +41,7 @@ sourceSets.main {
 }
 
 compileJava {
-    options.generatedSourceOutputDirectory.set(generatedSrcRoot)
+    options.annotationProcessorGeneratedSourcesDirectory generatedSrcRoot
 }
 
 protobuf {
@@ -87,7 +87,7 @@ jar {
     exclude "**/*agora*/**"
 }
 
-tasks.register('sourcesJar', Jar) {
+task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
     archiveClassifier = 'sources'
     from generatedSrcRoot, generatedSrcRoot2, generatedSrcRoot3

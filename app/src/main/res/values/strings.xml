@@ -290,24 +290,40 @@
     <string name="withdraw_address_valid_owner_account">Valid owner account</string>
     <string name="withdraw_address_valid_token_account">Valid token account</string>
 
+    <string name="today">Today</string>
+    <string name="yesterday">Yesterday</string>
+
     <string name="beta_bucket_debugger_description">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
     <string name="beta_vibrate_on_scan_description">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
     <string name="beta_scan_times_description">If enabled, the device will log additional processing information while grabbing bills.</string>
     <string name="beta_give_requests_description">If enabled, Give Kin screen will show requests for entered amounts instead of cash bills.</string>
 
+    <!-- region Chat -->
+    <!-- region titles -->
     <string name="title_chat_payments">Web Payments</string>
     <string name="title_chat_cashTransactions">Cash Payments</string>
     <string name="title_chat_codeTeam">Code Team</string>
+    <!-- endregion -->
+
+    <!-- region messages -->
     <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
     <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
+    <string name="subtitle_chat_usdcBeingConverted">Your USDC is being converted to Kin. This should take roughly one minute to complete</string>
+    <string name="subtitle_chat_usdcDeposited">You successfully deposited USDC. Open Code App to complete your purchase</string>
+    <string name="subtitle_chat_kinAvailableForUse">Your Kin is now available for use in your Code App</string>
+    <!-- endregion -->
+
+    <!-- region verbs -->
     <string name="subtitle_verb_gave">You gave</string>
     <string name="subtitle_verb_received">You received</string>
     <string name="subtitle_verb_withdrew">You withdrew</string>
     <string name="subtitle_verb_deposited">You deposited</string>
     <string name="subtitle_verb_sent">You sent</string>
-    <string name="subtitle_verb_returned">You returned</string>
+    <string name="subtitle_verb_returned">was returned to you</string>
     <string name="subtitle_verb_spent">You spent</string>
     <string name="subtitle_verb_paid">You paid</string>
     <string name="subtitle_verb_purchased">You purchased</string>
+    <!-- endregion -->
+    <!-- endregion -->
 </resources>

@@ -1,5 +1,6 @@
 package com.getcode.view.main.currency
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -43,7 +44,10 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
@@ -58,6 +62,9 @@ import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.SwipeableView
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.keyboardAsState
+import com.getcode.ui.utils.measured
 import com.getcode.view.main.giveKin.CurrencyListItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -87,20 +94,7 @@ fun CurrencySelectionSheet(
         }
     }
 
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.eventFlow
-            .filterIsInstance<CurrencyViewModel.Event.OnSelectedCurrencyChanged>()
-            .filter { it.fromUser }
-            .map { it.currency }
-            .distinctUntilChanged()
-            .onEach {
-                composeScope.launch {
-                    keyboardController?.hide()
-                    delay(500)
-                    navigator.popWithResult(it)
-                }
-            }.launchIn(this)
-    }
+    val keyboard by keyboardAsState()
 
     Column(
         modifier = Modifier.imePadding()
@@ -155,7 +149,7 @@ fun CurrencySelectionSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brand)
-                .wrapContentHeight()
+                .weight(1f)
         ) {
             if (state.loading) {
                 item {
@@ -178,13 +172,6 @@ fun CurrencySelectionSheet(
                         .fillMaxWidth()
                         .height(if (listItem !is CurrencyListItem.TitleItem) 70.dp else 60.dp)
                 ) {
-                    Divider(
-                        color = White05,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .align(Alignment.BottomCenter)
-                    )
 
                     when (listItem) {
                         is CurrencyListItem.TitleItem -> {
@@ -205,9 +192,20 @@ fun CurrencySelectionSheet(
                         }
 
                         is CurrencyListItem.RegionCurrencyItem -> {
+                            var isSwipedAway by remember(listItem) {
+                                mutableStateOf(false)
+                            }
+
+                            val animatedHeight by animateDpAsState(
+                                targetValue = if (!isSwipedAway) 70.dp else 0.dp,
+                                label = "height animation"
+                            )
+
                             SwipeableView(
+                                modifier = Modifier.height(animatedHeight),
                                 isSwipeEnabled = listItem.isRecent,
                                 leftSwiped = {
+                                    isSwipedAway = true
                                     viewModel.dispatchEvent(
                                         CurrencyViewModel.Event.OnRecentCurrencyRemoved(
                                             listItem.currency
@@ -224,20 +222,19 @@ fun CurrencySelectionSheet(
                                     state.selectedCurrencyCode.orEmpty() == currencyCode,
                                     isDisabled,
                                 ) {
+                                    composeScope.launch {
+                                        if (keyboard) {
+                                            keyboardController?.hide()
+                                            delay(500)
+                                        }
+                                        navigator.popWithResult(listItem.currency)
+                                    }
                                     viewModel.dispatchEvent(
                                         CurrencyViewModel.Event.OnSelectedCurrencyChanged(
                                             listItem.currency
                                         )
                                     )
                                 }
-
-                                Divider(
-                                    color = White05,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .align(Alignment.BottomCenter)
-                                )
                             }
                         }
                     }

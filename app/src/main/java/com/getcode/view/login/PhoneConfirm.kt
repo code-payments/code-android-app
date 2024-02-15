@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalPhoneFormatter
 import com.getcode.R
@@ -46,13 +48,14 @@ import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.OtpRow
 
-const val OTP_LENGTH = 6
+internal const val OTP_LENGTH = 6
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Preview
 @Composable
 fun PhoneConfirm(
@@ -142,6 +145,14 @@ fun PhoneConfirm(
                                                 "0:${if (dataState.resetTimerTime < 10) "0" else ""}${dataState.resetTimerTime}"
                                             )
                             )
+                        } else if (dataState.isResendingCode) {
+                            CodeCircularProgressIndicator(
+                                strokeWidth = CodeTheme.dimens.thickBorder,
+                                color = BrandLight,
+                                modifier = Modifier
+                                    .size(CodeTheme.dimens.grid.x4)
+                                    .align(Alignment.CenterHorizontally),
+                            )
                         } else {
                             val text = buildAnnotatedString {
                                 append(stringResource(id = R.string.subtitle_didntGetCodeResend))
@@ -181,7 +192,7 @@ fun PhoneConfirm(
             onClick = {
                 viewModel.onSubmit()
             },
-            isLoading = dataState.isLoading,
+            isLoading = dataState.isLoading && !dataState.isResendingCode,
             isSuccess = dataState.isSuccess,
             enabled = false,
             text = stringResource(R.string.action_confirm),
