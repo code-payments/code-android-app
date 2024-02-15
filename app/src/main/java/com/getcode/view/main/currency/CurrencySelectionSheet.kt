@@ -182,9 +182,7 @@ fun CurrencySelectionSheet(
                             ) {
                                 Text(
                                     modifier = Modifier.padding(bottom = 10.dp),
-                                    style = CodeTheme.typography.caption.copy(
-                                        fontSize = 14.sp,
-                                    ),
+                                    style = CodeTheme.typography.body2,
                                     color = BrandLight,
                                     text = listItem.text
                                 )
