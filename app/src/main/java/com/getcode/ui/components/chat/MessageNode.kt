@@ -1,11 +1,9 @@
 package com.getcode.ui.components.chat
 
-import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
@@ -15,13 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.getcode.BuildConfig
 import com.getcode.LocalExchange
-import com.getcode.R
 import com.getcode.model.KinAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Rate
@@ -35,19 +29,6 @@ import com.getcode.view.main.home.components.PriceWithFlag
 import kotlinx.datetime.Instant
 
 object MessageNodeDefaults {
-
-    @Composable
-    fun verticalPadding(
-        isPreviousSameMessage: Boolean,
-        isNextSameMessage: Boolean
-    ): PaddingValues {
-        return when {
-            isPreviousSameMessage && isNextSameMessage -> PaddingValues(vertical = CodeTheme.dimens.grid.x1 / 2)
-            isPreviousSameMessage -> PaddingValues(top = CodeTheme.dimens.grid.x1 / 2)
-            isNextSameMessage -> PaddingValues(bottom = CodeTheme.dimens.grid.x1 / 2)
-            else -> PaddingValues(vertical = CodeTheme.dimens.grid.x1)
-        }
-    }
 
     val DefaultShape: CornerBasedShape
         @Composable get() = CodeTheme.shapes.small
@@ -67,8 +48,8 @@ object MessageNodeDefaults {
 private val MessageContent.widthFraction: Float
     get() = when (this) {
         is MessageContent.Exchange -> 0.895f
-        is MessageContent.Localized -> 0.8358f
-        MessageContent.SodiumBox -> 0.8358f
+        is MessageContent.Localized -> 0.895f
+        MessageContent.SodiumBox -> 0.895f
     }
 
 @Composable
@@ -81,12 +62,7 @@ fun MessageNode(
 ) {
     Box(
         modifier = modifier
-            .padding(
-                MessageNodeDefaults.verticalPadding(
-                    isPreviousSameMessage = isPreviousSameMessage,
-                    isNextSameMessage = isNextSameMessage
-                )
-            )
+            .padding(vertical = CodeTheme.dimens.grid.x1)
     ) {
         val exchange = LocalExchange.current
 
@@ -196,7 +172,7 @@ private fun MessageText(modifier: Modifier = Modifier, text: String, date: Insta
         Text(
             modifier = Modifier.align(Alignment.End),
             text = date.formatTimeRelatively(),
-            style = CodeTheme.typography.caption,
+            style = CodeTheme.typography.overline,
             color = BrandLight,
         )
     }

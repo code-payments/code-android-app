@@ -134,7 +134,6 @@ fun ChatScreen(
                         positiveText = context.getString(if (state.isMuted) R.string.action_unmute else R.string.action_mute),
                         negativeText = context.getString(R.string.action_nevermind),
                         onPositive = { dispatch(ChatViewModel.Event.OnMuteToggled) },
-                        isDismissible = false,
                     )
                 )
             },
