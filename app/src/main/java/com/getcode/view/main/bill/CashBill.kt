@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsIgnoringVisibility
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,7 +44,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -61,11 +59,11 @@ import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.utils.debugBounds
-import com.getcode.util.formattedRaw
+import com.getcode.ui.utils.drawWithGradient
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
 import com.getcode.ui.utils.punchRectangle
+import com.getcode.util.formattedRaw
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -212,7 +210,7 @@ private class CashBillGeometry(width: Dp, height: Dp) {
     val wavesPosition: Offset
         get() = Offset(
             x = (size.width.value * 0.5f),
-            y = (size.height.value * 0.5f)
+            y = (size.height.value * 0.9f)
         )
 
     init {
@@ -256,6 +254,7 @@ internal fun CashBill(
                 blendMode = BlendMode.Multiply,
                 alpha = 0.6f,
             )
+
             // Grid pattern
             CashBillAssets.grid?.let {
                 Image(
@@ -293,14 +292,13 @@ internal fun CashBill(
             Image(
                 modifier = Modifier
                     .requiredWidth(geometry.globeWidth)
-                    .align(Alignment.BottomCenter)
-                    .height(geometry.wavesPosition.y.dp)
-                    .offset {
-                        IntOffset(
-                            x = geometry.wavesPosition.x.toInt(),
-                            y = 0
-                        )
-                    },
+                    .fillMaxHeight()
+                    .offset { IntOffset(x = geometry.wavesPosition.x.toInt(), y = 0) }
+                    .drawWithGradient(
+                        color = CashBillDefaults.BillColor.copy(CashBillDefaults.CodeBackgroundOpacity),
+                        startY = { it / 2f },
+                        blendMode = BlendMode.DstIn
+                    ),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 bitmap = ImageBitmap.imageResource(R.drawable.ic_bill_waves),
