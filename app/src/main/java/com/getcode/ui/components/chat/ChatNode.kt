@@ -26,6 +26,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.ui.utils.debugBounds
 import com.getcode.util.DateUtils
 import java.util.Locale
 
@@ -79,12 +80,14 @@ fun ChatNode(
             )
             if (chat.isMuted) {
                 Icon(
-                    Icons.AutoMirrored.Filled.VolumeOff,
+                    imageVector = Icons.AutoMirrored.Filled.VolumeOff,
                     contentDescription = "chat is muted",
                     tint = BrandLight
                 )
             } else {
                 Badge(
+                    Modifier
+                        .padding(end = CodeTheme.dimens.grid.x1),
                     count = chat.unreadCount,
                     color = ChatNodeDefaults.UnreadIndicator
                 )
