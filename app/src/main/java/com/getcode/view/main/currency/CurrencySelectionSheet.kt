@@ -149,7 +149,7 @@ fun CurrencySelectionSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(Brand)
-                .wrapContentHeight()
+                .weight(1f)
         ) {
             if (state.loading) {
                 item {
@@ -172,13 +172,6 @@ fun CurrencySelectionSheet(
                         .fillMaxWidth()
                         .height(if (listItem !is CurrencyListItem.TitleItem) 70.dp else 60.dp)
                 ) {
-                    Divider(
-                        color = White05,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .align(Alignment.BottomCenter)
-                    )
 
                     when (listItem) {
                         is CurrencyListItem.TitleItem -> {
@@ -203,18 +196,13 @@ fun CurrencySelectionSheet(
                                 mutableStateOf(false)
                             }
 
-                            var height by remember {
-                                mutableStateOf(0.dp)
-                            }
-
-                            val animatedHeight by animateDpAsState(targetValue = if (!isSwipedAway) height else 0.dp)
+                            val animatedHeight by animateDpAsState(
+                                targetValue = if (!isSwipedAway) 70.dp else 0.dp,
+                                label = "height animation"
+                            )
 
                             SwipeableView(
-                                modifier = Modifier.measured {
-                                    if (height == 0.dp) {
-                                        height = it.height
-                                    }
-                                }.addIf(height != 0.dp) { Modifier.height(animatedHeight) },
+                                modifier = Modifier.height(animatedHeight),
                                 isSwipeEnabled = listItem.isRecent,
                                 leftSwiped = {
                                     isSwipedAway = true
@@ -247,14 +235,6 @@ fun CurrencySelectionSheet(
                                         )
                                     )
                                 }
-
-                                Divider(
-                                    color = White05,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(1.dp)
-                                        .align(Alignment.BottomCenter)
-                                )
                             }
                         }
                     }

@@ -6,11 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.daysUntil
-import timber.log.Timber
-import java.util.*
-import kotlin.math.abs
+import java.util.Calendar
+import java.util.Locale
 import kotlin.time.Duration.Companion.days
 
 object DateUtils {
