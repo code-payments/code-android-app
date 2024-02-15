@@ -8,6 +8,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
+import timber.log.Timber
 import java.util.*
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.days
@@ -31,15 +32,17 @@ object DateUtils {
 
     fun getDateRelatively(millis: Long): String {
         val date = Instant.fromEpochMilliseconds(millis)
-        val weekAgo = date.minus(7.days)
+            .toLocalDate().atStartOfDay()
+        val weekAgo = Clock.System.now()
+            .minus(7.days)
+            .toLocalDate().atStartOfDay()
 
         return if (DateUtils.isToday(millis)) {
             "Today"
         } else if (isYesterday(millis)) {
             "Yesterday"
-        } else if (date.toEpochMilliseconds() < weekAgo.toEpochMilliseconds()) {
-            val daysBetween = abs(date.daysUntil(Clock.System.now(), TimeZone.currentSystemDefault()))
-            "$daysBetween days ago"
+        } else if (date.toEpochMilliseconds() > weekAgo.toEpochMilliseconds()) {
+            getDate(millis, format = "EEEE")
         } else {
             getDate(millis, format = "EEE, MMM dd")
         }
