@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import java.util.Properties
 
@@ -31,7 +32,15 @@ android {
             buildConfigField("Boolean", "NOTIFY_ERRORS", "true")
         }
         getByName("debug") {
-            buildConfigField("Boolean", "NOTIFY_ERRORS", (System.getenv("NOTIFY_ERRORS").toBooleanLenient() ?: false).toString())
+            buildConfigField(
+                "Boolean",
+                "NOTIFY_ERRORS",
+                (gradleLocalProperties(rootProject.rootDir).getProperty("NOTIFY_ERRORS")
+                    .toBooleanLenient()
+                    ?: (System.getenv("NOTIFY_ERRORS").toBooleanLenient()
+                        ?: false)
+                        ).toString()
+            )
         }
     }
 

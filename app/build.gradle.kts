@@ -1,3 +1,5 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import java.util.Properties
 
 plugins {
@@ -68,9 +70,16 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            val debugMinifyEnabled = gradleLocalProperties(rootProject.rootDir).getProperty("DEBUG_MINIFY").toBooleanLenient()
+                ?: (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
+            isMinifyEnabled = debugMinifyEnabled
+            isShrinkResources = debugMinifyEnabled
+            if (debugMinifyEnabled) {
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+                )
+            }
         }
     }
 
