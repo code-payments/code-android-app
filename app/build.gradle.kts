@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import java.util.Properties
 
 plugins {
@@ -68,8 +69,8 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
+            isShrinkResources = (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
