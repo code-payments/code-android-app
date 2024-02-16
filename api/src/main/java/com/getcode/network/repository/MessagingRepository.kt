@@ -285,6 +285,7 @@ class MessagingRepository @Inject constructor(
                 }: result: ${it.result}"
             )
         }.onFailure {
+            ErrorUtils.handleError(it)
             Timber.e(t = it, message = "Failed to send rendezvous message.")
         }
     }

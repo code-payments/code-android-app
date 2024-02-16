@@ -35,6 +35,7 @@ android {
         val properties = Properties()
         properties.load(propertiesFile.inputStream())
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${properties.getProperty("MIXPANEL_API_KEY")}\"")
+        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
     }
 
     signingConfigs {

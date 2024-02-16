@@ -4,6 +4,7 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.network.repository.decodeBase64
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -75,6 +76,7 @@ data class DeepLinkPaymentRequest(
             val destination = runCatching { PublicKey.fromBase58(destinationString) }
                 .getOrNull()
             if (destination == null) {
+                ErrorUtils.handleError(Throwable())
                 Timber.e("Invalid destination address")
                 return null
             }

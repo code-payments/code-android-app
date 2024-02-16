@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.getcode.api"
+    namespace = "${Android.namespace}.api"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -16,10 +16,21 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
+        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
             }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            buildConfigField("Boolean", "NOTIFY_ERRORS", "true")
+        }
+        getByName("debug") {
+            buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
         }
     }
 

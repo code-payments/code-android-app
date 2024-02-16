@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.getcode.ed25519"
+    namespace = "${Android.namespace}.ed25519"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
