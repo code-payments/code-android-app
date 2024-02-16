@@ -1,3 +1,4 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import java.util.Properties
 
@@ -69,7 +70,8 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-            val debugMinifyEnabled = (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
+            val debugMinifyEnabled = gradleLocalProperties(rootProject.rootDir).getProperty("DEBUG_MINIFY").toBooleanLenient()
+                ?: (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
             isMinifyEnabled = debugMinifyEnabled
             isShrinkResources = debugMinifyEnabled
             if (debugMinifyEnabled) {
