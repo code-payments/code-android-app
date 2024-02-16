@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import java.util.Properties
 
 plugins {
@@ -30,7 +31,7 @@ android {
             buildConfigField("Boolean", "NOTIFY_ERRORS", "true")
         }
         getByName("debug") {
-            buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+            buildConfigField("Boolean", "NOTIFY_ERRORS", (System.getenv("NOTIFY_ERRORS").toBooleanLenient() ?: false).toString())
         }
     }
 
