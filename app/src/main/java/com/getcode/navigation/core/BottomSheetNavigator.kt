@@ -5,6 +5,7 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetDefaults
 import androidx.compose.material.ModalBottomSheetLayout
@@ -51,7 +52,9 @@ fun BottomSheetNavigator(
     modifier: Modifier = Modifier,
     hideOnBackPress: Boolean = true,
     scrimColor: Color = CodeTheme.colors.surface.copy(alpha = 0.32f),
-    sheetShape: Shape = CodeTheme.shapes.extraLarge,
+    sheetShape: Shape = CodeTheme.shapes.extraLarge.copy(
+        bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize
+    ),
     sheetElevation: Dp = ModalBottomSheetDefaults.Elevation,
     sheetBackgroundColor: Color = CodeTheme.colors.surface,
     sheetContentColor: Color = CodeTheme.colors.onSurface,

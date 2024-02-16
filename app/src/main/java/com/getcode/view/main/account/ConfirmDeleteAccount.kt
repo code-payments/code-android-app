@@ -40,7 +40,7 @@ fun ConfirmDeleteAccount(
     ) {
         Text(
             text = stringResource(id = R.string.subtitle_deleteAccountDescription),
-            style = CodeTheme.typography.subtitle2
+            style = CodeTheme.typography.body2
         )
         TextField(
             modifier = Modifier
@@ -49,14 +49,14 @@ fun ConfirmDeleteAccount(
             placeholder = {
                 Text(
                     stringResource(id = R.string.subtitle_typeDelete).format(viewModel.requiredPhrase),
-                    style = CodeTheme.typography.caption
+                    style = CodeTheme.typography.body1
                 )
             },
             value = viewModel.typedText.collectAsState().value,
             onValueChange = {
                 viewModel.onTextUpdated(it)
             },
-            textStyle = CodeTheme.typography.caption,
+            textStyle = CodeTheme.typography.body1,
             singleLine = true,
             colors = inputColors(),
             shape = CodeTheme.shapes.extraSmall

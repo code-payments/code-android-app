@@ -20,6 +20,7 @@ import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
 import com.getcode.ui.components.ButtonState
@@ -52,6 +53,7 @@ internal fun ReceivedKinConfirmation(
             style = CodeTheme.typography.subtitle1.copy(
                 fontWeight = FontWeight.Bold
             ),
+            color = White,
             text = stringResource(id = R.string.subtitle_youReceived)
         )
 

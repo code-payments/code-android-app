@@ -14,6 +14,7 @@ import com.getcode.network.client.establishRelationship
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.transferWithResult
 import com.getcode.network.exchange.Exchange
+import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
@@ -48,7 +49,7 @@ class PaymentRepository @Inject constructor(
 
             codeScanned(payload.rendezvous)
             return payload to loginAttempt
-        }.getOrNull()
+        }.onFailure { ErrorUtils.handleError(it) }.getOrNull()
     }
 
     suspend fun rejectLogin(rendezvousKey: KeyPair) {
@@ -174,6 +175,7 @@ class PaymentRepository @Inject constructor(
                     amount = paymentAmount,
                     successful = false
                 )
+                ErrorUtils.handleError(error)
                 cont.resumeWithException(error)
             }
         }

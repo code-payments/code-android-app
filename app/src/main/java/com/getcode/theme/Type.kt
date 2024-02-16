@@ -103,13 +103,6 @@ internal val typography = Typography(
     ),
     caption = TextStyle(
         fontFamily = Avenir,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.SemiBold,
-        lineHeight = 19.sp,
-        //letterSpacing = 0.4.sp
-    ),
-    overline = TextStyle(
-        fontFamily = Avenir,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
         lineHeight = 16.sp,

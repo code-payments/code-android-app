@@ -172,7 +172,7 @@ private fun MessageText(modifier: Modifier = Modifier, text: String, date: Insta
         Text(
             modifier = Modifier.align(Alignment.End),
             text = date.formatTimeRelatively(),
-            style = CodeTheme.typography.overline,
+            style = CodeTheme.typography.caption,
             color = BrandLight,
         )
     }

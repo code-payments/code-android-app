@@ -218,7 +218,7 @@ class HomeViewModel @Inject constructor(
                     historyController.fetchChats()
                 },
                 onFailure = {
-                    Timber.e(t = it, message = "Auto airdrop failed")
+                    ErrorUtils.handleError(it)
                     prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
                 }
             )
@@ -670,8 +670,6 @@ class HomeViewModel @Inject constructor(
         }.onSuccess {
             historyController.fetchChats()
 
-            showToast(paymentConfirmation.localAmount, false)
-
             withContext(Dispatchers.Main) {
                 uiFlow.update {
                     val billState = it.billState
@@ -688,11 +686,12 @@ class HomeViewModel @Inject constructor(
             delay(1.seconds)
             cancelPayment(false)
         }.onFailure { error ->
-            error.printStackTrace()
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_payment_failed),
                 resources.getString(R.string.error_description_payment_failed),
             )
+
+            ErrorUtils.handleError(error)
             uiFlow.update { uiModel ->
                 uiModel.copy(
                     presentationStyle = PresentationStyle.Hidden,

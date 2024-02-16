@@ -18,11 +18,11 @@ plugins {
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
 
 android {
-    namespace = "com.getcode"
+    namespace = Android.namespace
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        applicationId = "com.getcode"
+        applicationId = Android.namespace
         versionCode = 304
         versionName = "1.1.$versionCode"
 
@@ -35,6 +35,7 @@ android {
         val properties = Properties()
         properties.load(propertiesFile.inputStream())
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${properties.getProperty("MIXPANEL_API_KEY")}\"")
+        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
     }
 
     signingConfigs {
@@ -80,7 +81,7 @@ android {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
 

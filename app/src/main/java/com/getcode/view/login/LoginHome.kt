@@ -138,7 +138,7 @@ fun LoginHome() {
 
             ClickableText(
                 text = bottomString,
-                style = CodeTheme.typography.overline.copy(
+                style = CodeTheme.typography.caption.copy(
                     textAlign = TextAlign.Center,
                     color = BrandLight
                 ),
