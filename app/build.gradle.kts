@@ -69,9 +69,15 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-            isMinifyEnabled = (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
-            isShrinkResources = (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            val debugMinifyEnabled = (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
+            isMinifyEnabled = debugMinifyEnabled
+            isShrinkResources = debugMinifyEnabled
+            if (debugMinifyEnabled) {
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
+                )
+            }
         }
     }
 
