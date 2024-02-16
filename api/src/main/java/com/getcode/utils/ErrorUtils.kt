@@ -39,7 +39,7 @@ object ErrorUtils {
         }
 
         if (
-            !BuildConfig.DEBUG &&
+            BuildConfig.NOTIFY_ERRORS &&
             throwable !is UnknownHostException &&
             throwable !is TimeoutException &&
             throwable !is ConnectException
@@ -49,16 +49,18 @@ object ErrorUtils {
         }
     }
 
-    fun isNetworkError(throwable: Throwable): Boolean =
+    private fun isNetworkError(throwable: Throwable): Boolean =
         throwable is TimeoutException ||
                 throwable.cause is TimeoutException ||
                 throwable is UnknownHostException ||
                 throwable.cause is UnknownHostException
 
-    fun isRuntimeError(throwable: Throwable): Boolean =
+    private fun isRuntimeError(throwable: Throwable): Boolean =
         throwable is StatusRuntimeException ||
                 throwable.cause is StatusRuntimeException
 
-    fun isSuppressibleError(throwable: Throwable): Boolean =
-        throwable is SQLException || throwable is net.sqlcipher.SQLException
+    private fun isSuppressibleError(throwable: Throwable): Boolean =
+        throwable is SQLException || throwable is net.sqlcipher.SQLException || throwable is SuppressibleException
 }
+
+data class SuppressibleException(override val message: String): Throwable(message)
