@@ -670,8 +670,6 @@ class HomeViewModel @Inject constructor(
         }.onSuccess {
             historyController.fetchChats()
 
-            showToast(paymentConfirmation.localAmount, false)
-
             withContext(Dispatchers.Main) {
                 uiFlow.update {
                     val billState = it.billState
