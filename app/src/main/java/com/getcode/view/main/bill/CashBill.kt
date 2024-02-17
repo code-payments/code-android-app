@@ -59,6 +59,7 @@ import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.utils.Geometry
 import com.getcode.ui.utils.drawWithGradient
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
@@ -71,7 +72,7 @@ import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 @Suppress("ConstPropertyName")
-object CashBillDefaults {
+private object CashBillDefaults {
     const val AspectRatio = 0.555f
     val BillColor: Color = Color(red = 44, green = 42, blue = 65)
 
@@ -158,9 +159,7 @@ object CashBillAssets {
     }
 }
 
-private class CashBillGeometry(width: Dp, height: Dp) {
-    var size by mutableStateOf(DpSize.Zero)
-        private set
+private class CashBillGeometry(width: Dp, height: Dp): Geometry(width, height) {
 
     val brandWidth: Dp
         get() = ceil(size.width.value * 0.18f).dp
@@ -212,10 +211,6 @@ private class CashBillGeometry(width: Dp, height: Dp) {
             x = (size.width.value * 0.5f),
             y = (size.height.value * 0.9f)
         )
-
-    init {
-        size = DpSize(width, height)
-    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
