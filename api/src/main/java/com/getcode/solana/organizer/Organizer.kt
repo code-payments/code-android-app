@@ -23,6 +23,8 @@ class Organizer(
     val shouldRotateIncoming get() = info(AccountType.Incoming)?.mustRotate ?: false
 
     val ownerKeyPair get() = tray.owner.getCluster().authority.keyPair
+    val swapKeyPair get() = tray.swap.getCluster().authority.keyPair
+    val swapDepositAddress get() = swapKeyPair.publicKey
     val primaryVault get() = tray.owner.getCluster().timelockAccounts.vault.publicKey
     val incomingVault get() = tray.incoming.getCluster().timelockAccounts.vault.publicKey
 
@@ -89,7 +91,8 @@ class Organizer(
                     AccountType.Primary,
                     is AccountType.Bucket,
                     AccountType.RemoteSend,
-                    is AccountType.Relationship -> {
+                    is AccountType.Relationship,
+                    AccountType.Swap -> {
                         Timber.i("Non-indexed account mismatch. Account doesn't match server-provided account. Something is definitely wrong")
                     }
                 }

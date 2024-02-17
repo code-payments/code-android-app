@@ -54,9 +54,10 @@ service Messaging {
     //      required hack because we don't have the infrastructure in place to allow multiple listens
     //      on the same stream, and the recipient needs real-time status updates.
     //   5. The user logging in receives the message (any status messages are ignored), verifies it,
-    //      then uses SendMessage to send a login attempt.
-    //   6. The third party receives sees the login attempt message, verifies it, then accepts/denies
-    //      the login attempt. The stream is closed.
+    //      then submits a login attempt.
+    //   6. The third party observes status message (eg. IntentSubmitted, ClientRejectedLogin,
+    //      WebhookCalled) for login state.
+    //   7. The third party closes the stream once the login hits a terminal state, or times out.
     rpc OpenMessageStream(OpenMessageStreamRequest) returns (stream OpenMessageStreamResponse);
     // OpenMessageStreamWithKeepAlive is like OpenMessageStream, but enables a ping/pong
     // keepalive to determine the health of the stream at both the client and server.
@@ -97,6 +98,7 @@ service Messaging {
     // SendMessage sends a message.
     rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
 }
+
 message OpenMessageStreamRequest {
     RendezvousKey rendezvous_key = 1;
     // The signature is of serialize(OpenMessageStreamRequest) using rendezvous_key.
@@ -104,41 +106,52 @@ message OpenMessageStreamRequest {
     // todo: Make required once clients migrate
     common.v1.Signature signature = 2;
 }
+
 message OpenMessageStreamResponse {
     repeated Message messages = 1;
 }
+
 message OpenMessageStreamWithKeepAliveRequest {
     oneof requestOrPong {
         
         OpenMessageStreamRequest request = 1;
         ClientPong pong = 2;
     }
+
 }
+
 message OpenMessageStreamWithKeepAliveResponse {
     oneof responseOrPing {
         
         OpenMessageStreamResponse response = 1;
         ServerPing ping = 2;
     }
+
 }
+
 message PollMessagesRequest {
     RendezvousKey rendezvous_key = 1;
     // The signature is of serialize(PollMessagesRequest) using rendezvous_key.
     common.v1.Signature signature = 2;
 }
+
 message PollMessagesResponse {
     repeated Message messages = 1;
 }
+
 message AckMessagesRequest {
     RendezvousKey rendezvous_key = 1;
     repeated MessageId message_ids = 2;
 }
+
 message AckMesssagesResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
+
 }
+
 message SendMessageRequest {
     // The message to send. Types of messages clients can send are restricted.
     Message message = 1;
@@ -147,26 +160,31 @@ message SendMessageRequest {
     // The signature is of serialize(Message) using the PrivateKey of the keypair.
     common.v1.Signature signature = 3;
 }
+
 message SendMessageResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         NO_ACTIVE_STREAM = 1;
     }
+
     // Set if result == OK.
     MessageId message_id = 2;
 }
+
 // RendezvousKey is a unique key pair, typically derived from a scan code payload,
 // which is used to establish a secure communication channel anonymously to coordinate
 // a flow using messages.
 message RendezvousKey {
     bytes value = 1;
 }
+
 // MessageId identifies a message. It is only guaranteed to be unique when
 // paired with a destination (i.e. the rendezvous public key).
 message MessageId {
     bytes value = 1;
 }
+
 // Request that a pulled out bill be sent to the requested address.
 //
 // This message type is only initiated by clients.
@@ -174,6 +192,7 @@ message RequestToGrabBill {
     // Requestor is the Kin token account on Solana to which a payment should be sent.
     common.v1.SolanaAccountId requestor_account = 1;
 }
+
 // Request that a bill of a requested value is created and sent to the requested
 // address.
 //
@@ -196,6 +215,7 @@ message RequestToReceiveBill {
         // Only supports fiat amounts. Use exchange_data.exact for Kin.
         transaction.v2.ExchangeDataWithoutRate partial = 3;
     }
+
     //
     // Optional fields below to identify a domain requesting to receive a bill.
     // Verification of the domain is optional. When verified, clients can establish
@@ -217,6 +237,7 @@ message RequestToReceiveBill {
     // Rendezvous key to avoid replay attacks
     RendezvousKey rendezvous_key = 7;
 }
+
 // A status update on a stream to indicate a scan code was scanned. This can appear
 // multiple times for the same stream.
 //
@@ -225,19 +246,24 @@ message CodeScanned {
     // Timestamp the client scanned the code
     google.protobuf.Timestamp timestamp = 1;
 }
+
 // Payment is rejected by the client
 //
 // This message type is only initiated by clients
 message ClientRejectedPayment {
     common.v1.IntentId intent_id = 1;
 }
+
 // Intent was submitted via SubmitIntent
 //
 // This message type is only initiated by server
 message IntentSubmitted {
     common.v1.IntentId intent_id = 1;
+    // Metadata is available for intents where it can be safely propagated publicly.
+    // Anything else requires an additional authenticated RPC call (eg. login).
     transaction.v2.Metadata metadata = 2;
 }
+
 // Webhook was successfully called
 //
 // This message type is only initiated by server
@@ -245,6 +271,7 @@ message WebhookCalled {
     // Estimated time webhook was received
     google.protobuf.Timestamp timestamp = 1;
 }
+
 // Request that an account logs in
 //
 // This message type is only initiated by third-parties through the SDK.
@@ -255,10 +282,11 @@ message RequestToLogin {
     // Clients should expect subdomains for future feature compatiblity, but must
     // use the ASCII base domain in the RELATIONSHIP account derivation strategy.
     common.v1.Domain domain = 1;
-    // Random nonce to include for signing in LoginAttempt
-    common.v1.SolanaAccountId nonce = 2;
-    // Timestamp the request was created
-    google.protobuf.Timestamp timestamp = 3;
+    // Deprecated nonce value, which is replaced by the rendezvous_key field which
+    // is effectively derived off a random nonce.
+    reserved 2;
+    // Reserved for a timestamp field, which may be used in the future.
+    reserved 3;
     // Owner account owned by the third party used in domain verification.
     common.v1.SolanaAccountId verifier = 4;
     // Signature of this message using the verifier private key, which in addition
@@ -267,34 +295,15 @@ message RequestToLogin {
     // Rendezvous key to avoid replay attacks
     RendezvousKey rendezvous_key = 6;
 }
-// Attempt to login
+
+// Login is rejected by the client
 //
 // This message type is only initiated by user clients
-message LoginAttempt {
-    // Derived owner account from a user's 12 words, which is uniquely used with
-    // the third party as identified by the domain.
-    common.v1.SolanaAccountId user_id = 1;
-    // Timelock vault owned by user_id where a third party can pay the user. A user
-    // can have many deposit accounts per owner account.
-    //
-    // Not supported at the moment
-    // common.v1.SolanaAccountId deposit_account = 2;
-    // Domain value provided in the RequestToLogin message
-    common.v1.Domain domain = 3;
-    // Nonce value provided in the RequestToLogin message
-    common.v1.SolanaAccountId nonce = 4;
-    // Timestamp the attempt was created
-    google.protobuf.Timestamp timestamp = 5;
-    // Signature of this message using the user_id private key, which
-    // authenticates the user.
-    common.v1.Signature signature = 6;
-    // Rendezvous key to avoid replay attacks
-    RendezvousKey rendezvous_key = 7;
-}
-message LoginRejected {
+message ClientRejectedLogin {
     // Timestamp the login was rejected
     google.protobuf.Timestamp timestamp = 4;
 }
+
 // Client has received an aidrop from server
 //
 // This message type is only initiated by server.
@@ -306,6 +315,7 @@ message AirdropReceived {
     // Time the airdrop was received
     google.protobuf.Timestamp timestamp = 3;
 }
+
 message Message {
     // MessageId is the Id of the message. This ID is generated by the
     // server, and will _always_ be set when receiving a message.
@@ -337,14 +347,17 @@ message Message {
         // Section: Login
         //
         RequestToLogin        request_to_login         = 10;
-        LoginAttempt          login_attempt            = 11;
-        LoginRejected         login_rejected           = 12;
+        ClientRejectedLogin   client_rejected_login    = 12;
         //
         // Section: Airdrops
         //
         AirdropReceived       airdrop_received         = 4;
     }
+
+    // Reserved for deprecated LoginAttempt field
+    reserved 11;
 }
+
 message ServerPing {
     // Timestamp the ping was sent on the stream, for client to get a sense
     // of potential network latency
@@ -352,8 +365,10 @@ message ServerPing {
     // The delay server will apply before sending the next ping
     google.protobuf.Duration ping_delay = 2;
 }
+
 message ClientPong {
     // Timestamp the Pong was sent on the stream, for server to get a sense
     // of potential network latency
     google.protobuf.Timestamp timestamp = 1;
 }
+

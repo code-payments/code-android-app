@@ -52,9 +52,9 @@ class PaymentRepository @Inject constructor(
         }.onFailure { ErrorUtils.handleError(it) }.getOrNull()
     }
 
-    suspend fun rejectLogin(rendezvousKey: KeyPair) {
-        messagingRepository.rejectLogin(rendezvousKey)
-    }
+//    suspend fun rejectLogin(rendezvousKey: KeyPair) {
+//        messagingRepository.rejectLogin(rendezvousKey)
+//    }
 
     suspend fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
         val fiat = payload.fiat

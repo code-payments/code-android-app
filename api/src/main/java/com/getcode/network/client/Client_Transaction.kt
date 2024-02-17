@@ -573,3 +573,7 @@ suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Doma
     establishRelationship(organizer, domain)
         .blockingAwait()
 }
+
+suspend fun Client.loginToThirdParty(rendezvous: PublicKey, relationship: KeyPair) {
+
+}

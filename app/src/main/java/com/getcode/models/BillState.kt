@@ -118,6 +118,7 @@ data class PaymentConfirmation(
 )
 
 data class LoginConfirmation(
+    val state: LoginState,
     val payload: CodePayload,
     val domain: Domain,
 )
@@ -127,6 +128,13 @@ sealed interface PaymentState {
     data object Sending : PaymentState
     data object Sent : PaymentState
     data class Error(val exception: Throwable) : PaymentState
+}
+
+sealed interface LoginState {
+    data object AwaitingConfirmation : LoginState
+    data object Sending : LoginState
+    data object Sent : LoginState
+    data class Error(val exception: Throwable) : LoginState
 }
 
 data class Metadata(

@@ -34,7 +34,15 @@ service Identity {
     rpc UnlinkAccount(UnlinkAccountRequest) returns (UnlinkAccountResponse);
     // GetUser gets user information given a user identifier and an owner account.
     rpc GetUser(GetUserRequest) returns (GetUserResponse);
+    // LoginToThirdPartyApp logs a user into a third party app for a given intent
+    // ID. If the original request requires payment, then SubmitIntent must be called.
+    rpc LoginToThirdPartyApp(LoginToThirdPartyAppRequest) returns (LoginToThirdPartyAppResponse);
+    // GetLoginForThirdPartyApp gets a login for a third party app from an existing
+    // request. This endpoint supports all paths where login is possible (login on payment,
+    // raw login, etc.).
+    rpc GetLoginForThirdPartyApp(GetLoginForThirdPartyAppRequest) returns (GetLoginForThirdPartyAppResponse);
 }
+
 message LinkAccountRequest {
     // The public key of the owner account that will be linked to a user.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -48,7 +56,9 @@ message LinkAccountRequest {
         // SMS code using the phone verification service.
         phone.v1.PhoneLinkingToken phone = 3;
     }
+
 }
+
 message LinkAccountResponse {
     Result result = 1;
     enum Result {
@@ -61,6 +71,7 @@ message LinkAccountResponse {
         // retry at a later time.
         RATE_LIMITED = 2;
     }
+
     // The user that was linked to the owner account
     User user = 2;
     // The data container where the user can store a copy of their data
@@ -72,7 +83,9 @@ message LinkAccountResponse {
         // Metadata that corresponds to a phone-based identifying feature.
         PhoneMetadata phone = 5;
     }
+
 }
+
 message UnlinkAccountRequest {
     // The public key of the owner account that will be unliked.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -84,7 +97,9 @@ message UnlinkAccountRequest {
         // The phone number associated with the owner account.
         common.v1.PhoneNumber phone_number = 4;
     }
+
 }
+
 message UnlinkAccountResponse {
     Result result = 1;
     enum Result {
@@ -93,7 +108,9 @@ message UnlinkAccountResponse {
         // that never had a valid association.
         NEVER_ASSOCIATED = 1;
     }
+
 }
+
 message GetUserRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -105,7 +122,9 @@ message GetUserRequest {
     oneof identifying_feature {
         common.v1.PhoneNumber phone_number = 3;
     }
+
 }
+
 message GetUserResponse {
     Result result = 1;
     enum Result {
@@ -117,6 +136,7 @@ message GetUserResponse {
         // The user exists, but at least one of their timelock accounts is unlocked
         UNLOCKED_TIMELOCK_ACCOUNT = 3;
     }
+
     // The user associated with the identifier
     User user = 2;
     // The data container where the user can store a copy of their data
@@ -128,18 +148,81 @@ message GetUserResponse {
         // Metadata that corresponds to a phone-based identifying feature.
         PhoneMetadata phone = 5;
     }
+
     // Whether client internal flags are enabled for this user
     bool enable_internal_flags = 6;
     // Set of which airdrops the user is eligible to receive
     repeated transaction.v2.AirdropType eligible_airdrops = 7;
 }
-// User is the highest order of a form of identity.
+
+message LoginToThirdPartyAppRequest {
+    // The intent ID identifying the instance of the login flow.
+    common.v1.IntentId intent_id = 1;
+    // The relationship authority account logging in.
+    common.v1.SolanaAccountId user_id = 2;
+    // Signature of this message using the user private key, which authenticates
+    // the user.
+    common.v1.Signature signature = 3;
+}
+
+message LoginToThirdPartyAppResponse {
+    Result result = 1;
+    enum Result {
+        // This supports idempotency. The same login with the same user will result
+        // in OK.
+        OK = 0;
+        // There is no request for the provided intent ID.
+        REQUEST_NOT_FOUND = 1;
+        // The request requires a payment. Call SubmitIntent instead.
+        PAYMENT_REQUIRED = 2;
+        // The request exists, but doesn't support login.
+        LOGIN_NOT_SUPPORTED = 3;
+        // A login with a different user already exists
+        DIFFERENT_LOGIN_EXISTS = 4;
+        // The provided account is not valid for login. It must be a relationship
+        // account with the correct identifier specified in the original request.
+        INVALID_ACCOUNT = 5;
+    }
+
+}
+
+message GetLoginForThirdPartyAppRequest {
+    // The intent ID identifying the instance of the login flow.
+    common.v1.IntentId intent_id = 1;
+    // Owner account owned by the third party used in domain verification.
+    common.v1.SolanaAccountId verifier = 2;
+    // Signature of this message using the verifier private key, which in addition
+    // to domain verification, authenticates the third party.
+    common.v1.Signature signature = 3;
+}
+
+message GetLoginForThirdPartyAppResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        // There is no request for the provided intent ID.
+        REQUEST_NOT_FOUND = 1;
+        // The request exists, but doesn't support login.
+        LOGIN_NOT_SUPPORTED = 2;
+        // The intent supports login, but it hasn't been submitted. There is no
+        // logged in user yet.
+        NO_USER_LOGGED_IN = 3;
+    }
+
+    // The relationship authority account that logged in.
+    common.v1.SolanaAccountId user_id = 2;
+}
+
+// User is the highest order of a form of identity within Code.
+//
+// Note: Users outside Code are modelled as relationship accounts
 message User {
     // The user's ID
     common.v1.UserId id = 1;
     // The identifying features that are associated with the user
     View view = 2;
 }
+
 // View is a well-defined set of identifying features. It is contrained to having
 // exactly one feature set at a time, for now.
 message View {
@@ -149,6 +232,7 @@ message View {
     //       supported to date.
     common.v1.PhoneNumber phone_number = 1;
 }
+
 message PhoneMetadata {
     // State that determines whether a phone number is linked to the owner
     // account. A phone number is linked if we can treat it as an alias.
@@ -156,3 +240,4 @@ message PhoneMetadata {
     // of whether the number was linked at any point in time.
     bool is_linked = 1;
 }
+

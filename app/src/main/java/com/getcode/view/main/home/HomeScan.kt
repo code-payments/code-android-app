@@ -66,6 +66,7 @@ import com.getcode.ui.utils.measured
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
+import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
@@ -506,6 +507,33 @@ private fun BillContainer(
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {
                             homeViewModel.rejectPayment()
+                        }
+                    )
+                }
+            }
+        }
+
+        // Login Confirmation container
+        AnimatedContent(
+            modifier = Modifier.align(BottomCenter),
+            targetState = updatedState.billState.loginConfirmation?.payload, // payload is constant across state changes
+            transitionSpec = {
+                slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(durationMillis = 600, delayMillis = 450)
+                ) togetherWith slideOutVertically(targetOffsetY = { it })
+            },
+            label = "login confirmation",
+        ) {
+            if (it != null) {
+                Box(
+                    contentAlignment = BottomCenter
+                ) {
+                    LoginConfirmation(
+                        confirmation = updatedState.billState.loginConfirmation,
+                        onSend = { homeViewModel.completeLogin() },
+                        onCancel = {
+                            homeViewModel.rejectLogin()
                         }
                     )
                 }

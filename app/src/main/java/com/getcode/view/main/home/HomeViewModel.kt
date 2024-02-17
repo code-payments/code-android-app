@@ -35,6 +35,7 @@ import com.getcode.models.BillToast
 import com.getcode.models.DeepLinkRequest
 import com.getcode.models.PaymentRequest
 import com.getcode.models.LoginConfirmation
+import com.getcode.models.LoginState
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
 import com.getcode.models.Valuation
@@ -785,6 +786,7 @@ class HomeViewModel @Inject constructor(
                         request = request,
                     ),
                     loginConfirmation = LoginConfirmation(
+                        state = LoginState.AwaitingConfirmation,
                         payload = payload,
                         domain = domain
                     ),
@@ -794,13 +796,26 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun completeLogin(domain: Domain) = viewModelScope.launch {
+    fun completeLogin() = viewModelScope.launch {
         val organizer = SessionManager.getOrganizer() ?: return@launch
+        val loginConfirmation = uiFlow.value.billState.loginConfirmation ?: return@launch
+        val domain = loginConfirmation.domain
+
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    loginConfirmation = loginConfirmation.copy(state = LoginState.Sending)
+                ),
+            )
+        }
+
         if (organizer.relationshipFor(domain) == null) {
             client.awaitEstablishRelationship(organizer, domain)
         } else {
             Timber.d("Skipping, relationship already exists.")
         }
+
     }
 
     fun cancelLogin() {
@@ -828,9 +843,9 @@ class HomeViewModel @Inject constructor(
         }
 
         cancelLogin()
-        viewModelScope.launch {
-            paymentRepository.rejectLogin(rendezvous)
-        }
+//        viewModelScope.launch {
+//            paymentRepository.rejectLogin(rendezvous)
+//        }
     }
 
     @SuppressLint("CheckResult")
