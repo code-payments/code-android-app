@@ -165,7 +165,6 @@ private fun HomeScan(
     LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
         if (kikCodeScannerView?.previewing == true) {
             if (!deepLinkSaved.isNullOrBlank()) {
-                delay(500)
                 homeViewModel.openCashLink(deepLink)
                 deepLinkSaved = null
             }

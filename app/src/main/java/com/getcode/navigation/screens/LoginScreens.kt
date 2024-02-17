@@ -9,6 +9,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
@@ -34,11 +35,9 @@ data class LoginScreen(val seed: String? = null) : LoginGraph {
     override val name: String
         @Composable get() = stringResource(id = R.string.action_logIn)
 
-
-
     @Composable
     override fun Content() {
-        Timber.d("seed=$seed")
+        startupLog("seed=$seed")
         if (seed != null) {
             SeedDeepLink(getViewModel(), seed)
         } else {
