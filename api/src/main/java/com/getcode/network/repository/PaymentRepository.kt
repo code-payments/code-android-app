@@ -43,7 +43,7 @@ class PaymentRepository @Inject constructor(
             val loginAttempt = messagingRepository
                 .fetchMessages(payload.rendezvous)
                 .getOrNull()
-                ?.takeIf { it.isNotEmpty() && it.first().receiveRequest != null }
+                ?.takeIf { it.isNotEmpty() && it.first().loginRequest != null }
                 ?.firstOrNull()?.loginRequest
                 ?: throw PaymentError.MessageForRendezvousNotFound()
 

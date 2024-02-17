@@ -76,7 +76,7 @@ sealed interface Bill {
     data class Payment(
         override val amount: KinAmount,
         val payload: CodePayload,
-        val request: DeepLinkPaymentRequest? = null
+        val request: DeepLinkRequest? = null
     ) : Bill {
         override val didReceive: Boolean = false
         override val data: List<Byte> = payload.codeData.toList()
@@ -85,7 +85,7 @@ sealed interface Bill {
     data class Login(
         override val amount: KinAmount,
         val payload: CodePayload,
-        val request: DeepLinkPaymentRequest? = null
+        val request: DeepLinkRequest? = null
     ) : Bill {
         override val didReceive: Boolean = false
         override val data: List<Byte> = payload.codeData.toList()
@@ -132,5 +132,5 @@ sealed interface PaymentState {
 data class Metadata(
     val kinAmount: KinAmount,
     val data: List<Byte>,
-    val request: DeepLinkPaymentRequest? = null
+    val request: DeepLinkRequest? = null
 )

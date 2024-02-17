@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DismissState
@@ -63,7 +62,6 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.addIf
-import com.getcode.util.isEmulator
 import com.getcode.ui.utils.measured
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.main.home.components.BillManagementOptions
@@ -172,7 +170,7 @@ private fun HomeScan(
 
             if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
                 delay(500)
-                homeViewModel.handlePaymentRequest(requestPayload)
+                homeViewModel.handleRequest(requestPayload)
                 requestPayloadSaved = null
             }
         }

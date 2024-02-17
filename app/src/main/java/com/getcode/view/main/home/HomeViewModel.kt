@@ -32,7 +32,8 @@ import com.getcode.model.Rate
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
-import com.getcode.models.DeepLinkPaymentRequest
+import com.getcode.models.DeepLinkRequest
+import com.getcode.models.PaymentRequest
 import com.getcode.models.LoginConfirmation
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
@@ -98,7 +99,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -106,7 +106,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import timber.log.Timber
@@ -566,13 +565,11 @@ class HomeViewModel @Inject constructor(
 
             Kind.RequestPayment -> attemptPayment(codePayload)
 
-            Kind.Login -> {
-                //attemptLogin(codePayload)
-            }
+            Kind.Login -> attemptLogin(codePayload)
         }
     }
 
-    private fun attemptPayment(payload: CodePayload, request: DeepLinkPaymentRequest? = null) =
+    private fun attemptPayment(payload: CodePayload, request: DeepLinkRequest? = null) =
         viewModelScope.launch {
             val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
             BottomBarManager.clear()
@@ -583,7 +580,7 @@ class HomeViewModel @Inject constructor(
     fun presentRequest(
         amount: KinAmount,
         payload: CodePayload?,
-        request: DeepLinkPaymentRequest? = null
+        request: DeepLinkRequest? = null
     ) = viewModelScope.launch {
         val code: CodePayload
         if (payload != null) {
@@ -762,7 +759,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun attemptLogin(codePayload: CodePayload, request: DeepLinkPaymentRequest? = null) {
+    private fun attemptLogin(codePayload: CodePayload, request: DeepLinkRequest? = null) {
         val (payload, loginAttempt) = paymentRepository.attemptLogin(codePayload) ?: return
         BottomBarManager.clear()
 
@@ -776,7 +773,7 @@ class HomeViewModel @Inject constructor(
     private fun presentLoginCard(
         payload: CodePayload,
         domain: Domain,
-        request: DeepLinkPaymentRequest? = null
+        request: DeepLinkRequest? = null
     ) {
         uiFlow.update {
             it.copy(
@@ -1070,23 +1067,40 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun handlePaymentRequest(bytes: String?) {
+    fun handleRequest(bytes: String?) {
         val data = bytes?.base64EncodedData() ?: return
-        val request = DeepLinkPaymentRequest.from(data)
+        val request = DeepLinkRequest.from(data)
         if (request != null) {
-            val payload = CodePayload(
-                kind = Kind.RequestPayment,
-                value = request.fiat,
-                nonce = request.clientSecret
-            )
+            if (request.paymentRequest != null) {
+                val fiat = request.paymentRequest.fiat
+                val payload = CodePayload(
+                    kind = Kind.RequestPayment,
+                    value = fiat,
+                    nonce = request.clientSecret
+                )
 
-            if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                return
+                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                    return
+                }
+
+                scannedRendezvous.add(payload.rendezvous.publicKey)
+                attemptPayment(payload, request)
+            } else if (request.loginRequest != null) {
+                val payload = CodePayload(
+                    kind = Kind.Login,
+                    value = Kin.fromKin(0),
+                    nonce = request.clientSecret,
+                )
+
+                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                    return
+                }
+
+                scannedRendezvous.add(payload.rendezvous.publicKey)
+                attemptLogin(payload, request)
             }
-
-            scannedRendezvous.add(payload.rendezvous.publicKey)
-            attemptPayment(payload, request)
         }
     }
 
