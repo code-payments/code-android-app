@@ -2,12 +2,15 @@ package com.getcode.network.api
 
 import com.codeinc.gen.user.v1.IdentityGrpc
 import com.codeinc.gen.user.v1.IdentityService
+import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class IdentityApi @Inject constructor(
@@ -33,4 +36,8 @@ class IdentityApi @Inject constructor(
             .callAsSingle(request)
             .subscribeOn(scheduler)
     }
+
+    fun loginToThirdParty(request: LoginToThirdPartyAppRequest) = api::loginToThirdPartyApp
+        .callAsCancellableFlow(request)
+        .flowOn(Dispatchers.IO)
 }

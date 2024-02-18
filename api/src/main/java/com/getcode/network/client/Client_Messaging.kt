@@ -21,3 +21,7 @@ suspend fun Client.sendRequestToReceiveBill(
 ): Result<MessagingService.SendMessageResponse> {
     return messagingRepository.sendRequestToReceiveBill(destination, fiat, rendezvous)
 }
+
+suspend fun Client.rejectLogin(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
+    return messagingRepository.rejectLogin(rendezvous)
+}

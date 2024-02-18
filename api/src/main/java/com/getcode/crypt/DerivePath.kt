@@ -53,6 +53,7 @@ class DerivePath(val indexes: List<Index>, val password: String? = null) {
         val bucket100k = newInstance("m/44'/501'/0'/0'/0'/100000")!!
         val bucket1m   = newInstance("m/44'/501'/0'/0'/0'/1000000")!!
         val primary    = newInstance("m/44'/501'/0'/0'")!!
+        val swap = newInstance("m/44'/501'/0'/0'/1'/0")!!
 
         fun getBucketIncoming(index: Int): DerivePath {
             return newInstance("m/44'/501'/0'/0'/$index'/2")!!

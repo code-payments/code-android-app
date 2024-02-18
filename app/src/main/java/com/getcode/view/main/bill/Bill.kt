@@ -34,11 +34,9 @@ fun Bill(
             amount = bill.amount
         )
 
-        is Bill.Login -> Receipt(
+        is Bill.Login -> LoginBill(
             modifier = modifier,
             data = bill.data,
-            currencyCode = bill.payload.fiat?.currency,
-            amount = bill.amount
         )
     }
 }

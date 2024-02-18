@@ -31,7 +31,7 @@ fun AccountDebugBuckets() {
             AccountType.Incoming -> 1
             AccountType.Outgoing -> 2
             is AccountType.Bucket -> {
-                when (val slotType = type.type) {
+                when (type.type) {
                     SlotType.Bucket1 -> 3
                     SlotType.Bucket10 -> 4
                     SlotType.Bucket100 -> 5
@@ -41,8 +41,9 @@ fun AccountDebugBuckets() {
                     SlotType.Bucket1m -> 9
                 }
             }
-            is AccountType.Relationship -> 10
-            AccountType.RemoteSend -> 11
+            AccountType.Swap -> 10
+            is AccountType.Relationship -> 11
+            AccountType.RemoteSend -> 12
         }
     }
 
@@ -55,6 +56,7 @@ fun AccountDebugBuckets() {
                 AccountType.Primary -> "Primary"
                 AccountType.RemoteSend -> "Remote Send"
                 is AccountType.Relationship -> "${accountType.domain.relationshipHost}"
+                AccountType.Swap -> "Swap (USDC)"
             }
 
             Column(

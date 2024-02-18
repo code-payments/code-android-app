@@ -10,7 +10,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
-import com.getcode.network.client.establishRelationship
+import com.getcode.network.client.establishRelationshipSingle
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.transferWithResult
 import com.getcode.network.exchange.Exchange
@@ -43,7 +43,7 @@ class PaymentRepository @Inject constructor(
             val loginAttempt = messagingRepository
                 .fetchMessages(payload.rendezvous)
                 .getOrNull()
-                ?.takeIf { it.isNotEmpty() && it.first().receiveRequest != null }
+                ?.takeIf { it.isNotEmpty() && it.first().loginRequest != null }
                 ?.firstOrNull()?.loginRequest
                 ?: throw PaymentError.MessageForRendezvousNotFound()
 
@@ -52,9 +52,9 @@ class PaymentRepository @Inject constructor(
         }.onFailure { ErrorUtils.handleError(it) }.getOrNull()
     }
 
-    suspend fun rejectLogin(rendezvousKey: KeyPair) {
-        messagingRepository.rejectLogin(rendezvousKey)
-    }
+//    suspend fun rejectLogin(rendezvousKey: KeyPair) {
+//        messagingRepository.rejectLogin(rendezvousKey)
+//    }
 
     suspend fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
         val fiat = payload.fiat
@@ -140,7 +140,7 @@ class PaymentRepository @Inject constructor(
                     receiveRequest.verifier != null &&
                     organizer.relationshipFor(domain) != null
                 ) {
-                    client.establishRelationship(organizer, domain)
+                    client.establishRelationshipSingle(organizer, domain)
                 }
 
                 // 5. Complete the transfer.

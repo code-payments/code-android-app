@@ -33,21 +33,11 @@ class DeeplinkHandler @Inject constructor() {
     var debounceIntent: Intent? = null
         set(value) {
             field = value
+            Timber.d("data=${value?.data}")
             intent.value = value
         }
 
     val intent = MutableStateFlow(debounceIntent)
-
-    fun checkIntent(intent: Intent): Intent? {
-        Timber.d("checking intent=${intent.data}")
-        val uri = intent.data ?: return null
-        return when (uri.deeplinkType) {
-            is Type.Cash,
-            is Type.Login,
-            is Type.Sdk -> intent
-            is Type.Unknown -> null
-        }
-    }
 
     fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
         val uri = intent?.data ?: return null
@@ -91,6 +81,7 @@ class DeeplinkHandler @Inject constructor() {
             }
 
             "cash", "c" -> Type.Cash(fragments[Key.entropy])
+            "login-request-modal-desktop", "login-request-modal-mobile",
             "payment-request-modal-desktop", "payment-request-modal-mobile" -> {
                 Type.Sdk(fragments[Key.payload]?.urlDecode())
             }

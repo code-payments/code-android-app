@@ -13,6 +13,8 @@ sealed class AccountType {
 
     data class Relationship(val domain: Domain): AccountType()
 
+    data object Swap: AccountType()
+
     fun getDerivationPath(index: Int): DerivePath {
         return when (this) {
             Primary -> DerivePath.primary
@@ -26,6 +28,7 @@ sealed class AccountType {
                 DerivePath.primary
             }
             is Relationship -> DerivePath.relationship(domain)
+            Swap -> DerivePath.swap
         }
     }
 
@@ -47,6 +50,7 @@ sealed class AccountType {
             }
             RemoteSend -> Model.AccountType.REMOTE_SEND_GIFT_CARD
             is Relationship -> Model.AccountType.RELATIONSHIP
+            Swap -> Model.AccountType.SWAP
         }
     }
 
@@ -71,7 +75,7 @@ sealed class AccountType {
                     val domain = Domain.from(relationship?.domain?.value) ?: return null
                     Relationship(domain)
                 }
-                Model.AccountType.ASSOCIATED_TOKEN_ACCOUNT -> null
+                Model.AccountType.SWAP -> Swap
             }
         }
     }

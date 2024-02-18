@@ -2,8 +2,8 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.MessagingService.ClientRejectedLogin
 import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
-import com.codeinc.gen.messaging.v1.MessagingService.LoginRejected
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.codeinc.gen.transaction.v2.TransactionService
@@ -207,8 +207,8 @@ class MessagingRepository @Inject constructor(
     suspend fun rejectLogin(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
         val message = MessagingService.Message
             .newBuilder()
-            .setLoginRejected(
-                LoginRejected.newBuilder()
+            .setClientRejectedLogin(
+                ClientRejectedLogin.newBuilder()
                     .setTimestamp(
                         Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)
                     )

@@ -7,33 +7,39 @@ import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.*
-import com.getcode.model.intents.*
+import com.getcode.model.AccountInfo
+import com.getcode.model.Domain
+import com.getcode.model.GiftCard
+import com.getcode.model.IntentMetadata
+import com.getcode.model.Kin
+import com.getcode.model.KinAmount
+import com.getcode.model.Rate
+import com.getcode.model.SendLimit
+import com.getcode.model.intents.IntentDeposit
+import com.getcode.model.intents.IntentPrivateTransfer
+import com.getcode.model.intents.IntentPublicTransfer
+import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.rx3.asFlow
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.*
+import java.util.Calendar
+import java.util.GregorianCalendar
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
@@ -562,14 +568,14 @@ fun Client.receiveFromRelationships(domain: Domain, amount: Kin, organizer: Orga
 
 @SuppressLint("CheckResult")
 @Throws
-fun Client.establishRelationship(organizer: Organizer, domain: Domain): Completable {
-    return transactionRepository.establishRelationship(organizer, domain).ignoreElement()
+fun Client.establishRelationshipSingle(organizer: Organizer, domain: Domain) {
+    transactionRepository.establishRelationshipSingle(organizer, domain).ignoreElement()
 }
 
 @Suppress("RedundantSuspendModifier")
 @SuppressLint("CheckResult")
 @Throws
-suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Domain) {
-    establishRelationship(organizer, domain)
-        .blockingAwait()
+suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Domain): Result<Relationship> {
+    return transactionRepository.establishRelationship(organizer, domain)
+        .map { it.relationship }
 }

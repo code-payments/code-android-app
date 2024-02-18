@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DismissState
@@ -63,11 +62,11 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.addIf
-import com.getcode.util.isEmulator
 import com.getcode.ui.utils.measured
 import com.getcode.view.camera.KikCodeScannerView
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.HomeBill
+import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
@@ -172,7 +171,7 @@ private fun HomeScan(
 
             if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
                 delay(500)
-                homeViewModel.handlePaymentRequest(requestPayload)
+                homeViewModel.handleRequest(requestPayload)
                 requestPayloadSaved = null
             }
         }
@@ -508,6 +507,33 @@ private fun BillContainer(
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {
                             homeViewModel.rejectPayment()
+                        }
+                    )
+                }
+            }
+        }
+
+        // Login Confirmation container
+        AnimatedContent(
+            modifier = Modifier.align(BottomCenter),
+            targetState = updatedState.billState.loginConfirmation?.payload, // payload is constant across state changes
+            transitionSpec = {
+                slideInVertically(
+                    initialOffsetY = { it },
+                    animationSpec = tween(durationMillis = 600, delayMillis = 450)
+                ) togetherWith slideOutVertically(targetOffsetY = { it })
+            },
+            label = "login confirmation",
+        ) {
+            if (it != null) {
+                Box(
+                    contentAlignment = BottomCenter
+                ) {
+                    LoginConfirmation(
+                        confirmation = updatedState.billState.loginConfirmation,
+                        onSend = { homeViewModel.completeLogin() },
+                        onCancel = {
+                            homeViewModel.rejectLogin()
                         }
                     )
                 }
