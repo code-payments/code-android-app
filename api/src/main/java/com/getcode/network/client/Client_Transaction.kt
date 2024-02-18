@@ -19,6 +19,7 @@ import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
+import com.getcode.model.intents.IntentType
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
@@ -439,6 +440,10 @@ fun Client.fetchLimits(isForce: Boolean = false): Completable {
 fun Client.receiveIfNeeded(): Completable {
     val organizer = SessionManager.getOrganizer() ?: return Completable.complete()
 
+    if (organizer.slotsBalance < transactionRepository.maxDeposit) {
+        receiveFromRelationships(organizer, upTo = transactionRepository.maxDeposit)
+    }
+
     return Completable.concatArray(
         receiveFromPrimaryIfWithinLimits(organizer),
         transactionReceiver.receiveFromIncomingCompletable(organizer)
@@ -457,7 +462,7 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
 
     // We want to deposit the smaller of the two: balance in the
     // primary account or the max allowed amount provided by server
-    return Single.just(transactionRepository.maxDeposit)
+    return Single.just(transactionRepository.maxDeposit.toKinTruncatingLong())
         .map { maxDeposit ->
             Pair(
                 Kin.fromKin(min(depositBalance.toKinValueDouble(), maxDeposit.toDouble())),
@@ -568,8 +573,8 @@ fun Client.getTransferPreflightAction(amount: Kin): Completable {
     }
 }
 
-fun Client.receiveFromRelationships(domain: Domain, amount: Kin, organizer: Organizer) {
-    transactionRepository.receiveFromRelationship(domain, amount, organizer)
+fun Client.receiveFromRelationships(organizer: Organizer, upTo: Kin? = null): Kin {
+    return transactionReceiver.receiveFromRelationship(organizer, upTo)
 }
 
 @SuppressLint("CheckResult")
@@ -581,7 +586,10 @@ fun Client.establishRelationshipSingle(organizer: Organizer, domain: Domain) {
 @Suppress("RedundantSuspendModifier")
 @SuppressLint("CheckResult")
 @Throws
-suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Domain): Result<Relationship> {
+suspend fun Client.awaitEstablishRelationship(
+    organizer: Organizer,
+    domain: Domain
+): Result<Relationship> {
     return transactionRepository.establishRelationship(organizer, domain)
         .map { it.relationship }
 }

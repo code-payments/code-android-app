@@ -20,6 +20,7 @@ class Organizer(
     val availableBalance get() = tray.availableBalance
     val availableDepositBalance get() = tray.owner.partialBalance
     val availableIncomingBalance get() = tray.incoming.partialBalance
+    val availableRelationshipBalance get() = tray.availableRelationshipBalance
     val ownerKeyPair get() = tray.owner.getCluster().authority.keyPair
     val swapKeyPair get() = tray.swap.getCluster().authority.keyPair
     val swapDepositAddress get() = swapKeyPair.publicKey

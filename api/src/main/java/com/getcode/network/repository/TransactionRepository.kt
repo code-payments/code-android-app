@@ -60,10 +60,9 @@ class TransactionRepository @Inject constructor(
 
     var sendLimit = mutableListOf<SendLimit>()
 
-    var maxDeposit: Long = 0
+    var maxDeposit: Kin = Kin.fromKin(0)
 
-
-    fun setMaximumDeposit(deposit: Long) {
+    fun setMaximumDeposit(deposit: Kin) {
         maxDeposit = deposit
     }
 
@@ -73,7 +72,7 @@ class TransactionRepository @Inject constructor(
 
     fun clear() {
         Timber.d("clearing transactions")
-        maxDeposit = 0
+        maxDeposit = Kin.fromKin(0)
     }
 
     fun createAccounts(organizer: Organizer): Single<IntentType> {
@@ -157,10 +156,11 @@ class TransactionRepository @Inject constructor(
         amount: Kin,
         organizer: Organizer
     ): Single<IntentType> {
-        val intent = IntentDeposit.newInstance(
+        val intent = IntentPublicTransfer.newInstance(
             source = AccountType.Relationship(domain),
             organizer = organizer,
-            amount = amount,
+            amount = KinAmount.newInstance(amount, Rate.oneToOne),
+            destination = IntentPublicTransfer.Destination.Local(AccountType.Primary)
         )
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
@@ -173,7 +173,7 @@ class TransactionRepository @Inject constructor(
         val intent = IntentPublicTransfer.newInstance(
             organizer = organizer,
             amount = amount,
-            destination = destination,
+            destination = IntentPublicTransfer.Destination.External(destination),
             source = AccountType.Primary,
         )
 
@@ -470,7 +470,7 @@ class TransactionRepository @Inject constructor(
                     newList.add(SendLimit(entry.key.name, entry.value))
                 }
                 setSendLimits(newList)
-                setMaximumDeposit(it.maxDeposit.toKinTruncatingLong())
+                setMaximumDeposit(it.maxDeposit)
             }
             .subscribe({}, ErrorUtils::handleError)
 
