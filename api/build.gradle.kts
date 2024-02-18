@@ -99,6 +99,7 @@ dependencies {
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_crashlytics)
     implementation(Libs.firebase_perf)
+    implementation(Libs.firebase_messaging)
 
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)

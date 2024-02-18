@@ -88,11 +88,14 @@ class AndroidResources @Inject constructor(
     override fun getIdentifier(name: String, type: ResourceType): Int? {
         return runCatching {
             when (type) {
-                ResourceType.Drawable -> context.resources.getIdentifier(
-                    name,
-                    type.defType,
-                    BuildConfig.APPLICATION_ID
-                )
+                ResourceType.Drawable,
+                ResourceType.String -> {
+                    context.resources.getIdentifier(
+                        name,
+                        type.defType,
+                        BuildConfig.APPLICATION_ID
+                    )
+                }
             }.let { if (it == 0) null else it }
         }.getOrNull()
     }
