@@ -259,21 +259,27 @@ fun Client.withdrawExternally(
             steps.add("Missing balance: $missingBalance")
         }
 
-        // 2. It's possible that there's funds still left in
-        // an incoming account. If we're still missing funds
-        // for withdrawal, we'll pull from incoming.
+        // 2. If we still need funds to fulfill the withdrawal
+        // it's likely that they are stuck in incoming and bucket
+        // accounts. We'll need to pull those out into primary.
         if (missingBalance > 0) {
-            val receivedFromIncoming = transactionReceiver.receiveFromIncoming(
-                organizer = organizer
-            )
-            missingBalance -= receivedFromIncoming
 
-            steps.add("Pulled from incoming: $receivedFromIncoming")
-            steps.add("Missing balance: $missingBalance")
+            // 3. It's possible that there's funds still left in
+            // an incoming account. If we're still missing funds
+            // for withdrawal, we'll pull from incoming.
+            if (transactionReceiver.availableIncomingAmount(organizer) > 0) {
+                val receivedFromIncoming = transactionReceiver.receiveFromIncoming(
+                    organizer = organizer
+                )
+                missingBalance -= receivedFromIncoming
+
+                steps.add("Pulled from incoming: $receivedFromIncoming")
+                steps.add("Missing balance: $missingBalance")
+            }
         }
 
 
-        // 3. In the event that it's a full withdrawal or if
+        // 4. In the event that it's a full withdrawal or if
         // more funds are required, we'll need to do a private
         // transfer from bucket accounts.
         if (missingBalance > 0) {
@@ -289,7 +295,7 @@ fun Client.withdrawExternally(
                 steps.add("Pulled from buckets: $missingBalance")
             }.concatWith(fetchLimits()).concatWith(balanceController.fetchBalance())
         } else {
-            // 4. Update balances and limits after the withdrawal since
+            // 5. Update balances and limits after the withdrawal since
             // it's likely that this withdrawal affected both but at the
             // very least, we need updated balances for all accounts.
             balanceController.fetchBalance()
@@ -299,7 +305,7 @@ fun Client.withdrawExternally(
     }.doOnComplete {
         Timber.d(steps.joinToString("\n"))
     }
-        // 5. Execute withdrawal
+        // 6. Execute withdrawal
         .concatWith(
             withdraw(
                 amount = amount,
@@ -435,7 +441,7 @@ fun Client.receiveIfNeeded(): Completable {
 
     return Completable.concatArray(
         receiveFromPrimaryIfWithinLimits(organizer),
-        transactionReceiver.receiveFromIncomingIfRotationRequired(organizer)
+        transactionReceiver.receiveFromIncomingCompletable(organizer)
     )
 }
 

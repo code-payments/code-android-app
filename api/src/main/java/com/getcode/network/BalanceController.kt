@@ -117,7 +117,7 @@ class BalanceController @Inject constructor(
 
                     organizer.setAccountInfo(infos)
                     balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
-                    transactionReceiver.receiveFromIncomingIfRotationRequired(organizer)
+                    transactionReceiver.receiveFromIncomingCompletable(organizer)
                 }
                 .timeout(15, TimeUnit.SECONDS)
         }
@@ -173,7 +173,7 @@ class BalanceController @Inject constructor(
                 Timber.d("updating balance and organizer")
                 organizer.setAccountInfo(accountInfo)
                 balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
-                transactionReceiver.receiveFromIncomingIfRotationRequired(organizer)
+                transactionReceiver.receiveFromIncoming(organizer)
             }
         } catch (ex: Exception) {
             Timber.i("Error: ${ex.javaClass.simpleName} ${ex.cause}")
