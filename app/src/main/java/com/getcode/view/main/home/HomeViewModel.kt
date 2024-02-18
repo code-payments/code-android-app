@@ -49,6 +49,7 @@ import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.loginToThirdParty
 import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
+import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.client.receiveRemoteSuspend
 import com.getcode.network.client.rejectLogin
 import com.getcode.network.client.requestFirstKinAirdrop
@@ -578,6 +579,10 @@ class HomeViewModel @Inject constructor(
             BottomBarManager.clear()
 
             presentRequest(amount = amount, payload = p, request = request)
+
+            // Ensure that we preemptively pull funds into the
+            // correct account before we attempt to pay a request
+            client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
 
     fun presentRequest(

@@ -35,7 +35,7 @@ class Tray(
 
     val relationships = RelationshipBox()
 
-    private var availableRelationshipBalance: Kin = Kin.fromKin(0)
+    var availableRelationshipBalance: Kin = Kin.fromKin(0)
         get() = relationships.publicKeys.values.map { it.partialBalance }
             .reduceOrNull { acc, slot -> acc + slot } ?: Kin.fromKin(0)
         private set
