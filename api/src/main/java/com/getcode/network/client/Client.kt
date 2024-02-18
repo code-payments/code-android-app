@@ -7,6 +7,7 @@ import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
+import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -30,6 +31,7 @@ internal const val TAG = "Client"
 class Client @Inject constructor(
     @ApplicationContext
     internal val context: Context,
+    internal val identityRepository: IdentityRepository,
     internal val transactionRepository: TransactionRepository,
     internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,

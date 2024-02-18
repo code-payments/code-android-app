@@ -2,6 +2,7 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.MessagingService.ClientRejectedLogin
 import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
@@ -203,18 +204,18 @@ class MessagingRepository @Inject constructor(
         return sendRendezvousMessage(message, rendezvous)
     }
 
-//    suspend fun rejectLogin(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
-//        val message = MessagingService.Message
-//            .newBuilder()
-//            .setLoginRejected(
-//                LoginRejected.newBuilder()
-//                    .setTimestamp(
-//                        Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)
-//                    )
-//            )
-//
-//        return sendRendezvousMessage(message, rendezvous)
-//    }
+    suspend fun rejectLogin(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
+        val message = MessagingService.Message
+            .newBuilder()
+            .setClientRejectedLogin(
+                ClientRejectedLogin.newBuilder()
+                    .setTimestamp(
+                        Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000)
+                    )
+            )
+
+        return sendRendezvousMessage(message, rendezvous)
+    }
 
     private fun sendRequestToGrabBill(destination: PublicKey): MessagingService.Message.Builder {
         return MessagingService.Message

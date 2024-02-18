@@ -80,13 +80,14 @@ internal fun LoginConfirmation(
             Text(
                 text = it,
                 color = Color.White,
-                style = CodeTheme.typography.h1
+                style = CodeTheme.typography.h3
             )
             SlideToConfirm(
                 isLoading = isSending,
                 trackColor = SlideToConfirmDefaults.BlueTrackColor,
                 isSuccess = state is LoginState.Sent,
                 onConfirm = { onSend() },
+                label = stringResource(R.string.swipe_to_login)
             )
         }
 

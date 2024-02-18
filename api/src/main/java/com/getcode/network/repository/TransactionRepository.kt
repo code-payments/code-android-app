@@ -329,17 +329,37 @@ class TransactionRepository @Inject constructor(
         return subject
     }
 
-    @SuppressLint("CheckResult")
-    fun establishRelationship(
+    fun establishRelationshipSingle(
         organizer: Organizer,
-        domain: Domain
-    ): Single<IntentEstablishRelationship> {
+        domain: Domain,
+    ) : Single<IntentEstablishRelationship> {
         val intent = IntentEstablishRelationship.newInstance(context, organizer, domain)
 
         return submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)
             .map { intent }
             .doOnSuccess { Timber.d("established relationship") }
             .doOnError { Timber.e(t = it, message = "failed to establish relationship") }
+    }
+
+    @SuppressLint("CheckResult")
+    suspend fun establishRelationship(
+        organizer: Organizer,
+        domain: Domain
+    ): Result<IntentEstablishRelationship> {
+        val intent = IntentEstablishRelationship.newInstance(context, organizer, domain)
+
+        return runCatching {
+            submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)
+                .map { intent }
+                .toFlowable()
+                .asFlow()
+                .firstOrNull() ?: throw IllegalArgumentException()
+        }.onSuccess {
+            Timber.d("established relationship")
+        }.onFailure {
+            ErrorUtils.handleError(it)
+            Timber.e(t = it, message = "failed to establish relationship")
+        }
     }
 
     // TODO: potentially make this more generic in the event we introduce more airdrop types

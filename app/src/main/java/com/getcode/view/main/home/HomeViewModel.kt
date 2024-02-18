@@ -47,8 +47,10 @@ import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
 import com.getcode.network.client.cancelRemoteSend
 import com.getcode.network.client.fetchLimits
+import com.getcode.network.client.loginToThirdParty
 import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.client.receiveRemoteSuspend
+import com.getcode.network.client.rejectLogin
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
@@ -776,6 +778,8 @@ class HomeViewModel @Inject constructor(
         domain: Domain,
         request: DeepLinkRequest? = null
     ) {
+        vibrator.vibrate()
+
         uiFlow.update {
             it.copy(
                 presentationStyle = PresentationStyle.Pop,
@@ -810,18 +814,65 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        if (organizer.relationshipFor(domain) == null) {
-            client.awaitEstablishRelationship(organizer, domain)
-        } else {
-            Timber.d("Skipping, relationship already exists.")
-        }
+        runCatching {
+            val relationship = if (organizer.relationshipFor(domain) == null) {
+                client.awaitEstablishRelationship(organizer, domain).getOrNull()
+            } else {
+                Timber.d("Skipping, relationship already exists.")
+                organizer.relationshipFor(domain)
+            }
 
+            if (relationship == null) {
+                throw Throwable("Relationship not found")
+            }
+
+            client.loginToThirdParty(
+                rendezvous = loginConfirmation.payload.rendezvous.publicKeyBytes.toPublicKey(),
+                relationship = relationship.getCluster().authority.keyPair
+            ).getOrThrow()
+        }.onFailure {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_login_failed),
+                resources.getString(R.string.error_description_login_failed),
+            )
+            ErrorUtils.handleError(it)
+
+            uiFlow.update { uiModel ->
+                uiModel.copy(
+                    presentationStyle = PresentationStyle.Hidden,
+                    billState = uiModel.billState.copy(
+                        bill = null,
+                        showToast = false,
+                        loginConfirmation = null,
+                        toast = null,
+                        valuation = null,
+                        hideBillButtons = false,
+                    )
+                )
+            }
+        }.onSuccess {
+            uiFlow.update {
+                val billState = it.billState
+                val confirmation = it.billState.loginConfirmation ?: return@update it
+
+                it.copy(
+                    billState = billState.copy(
+                        loginConfirmation = confirmation.copy(state = LoginState.Sent),
+                    ),
+                )
+            }
+
+            delay(1.seconds)
+            cancelLogin(rejected = false)
+        }
     }
 
-    fun cancelLogin() {
+    private fun cancelLogin(rejected: Boolean) {
+        val bill = uiFlow.value.billState.bill ?: return
+        val request = bill.metadata.request
         uiFlow.update {
             it.copy(
-                presentationStyle = PresentationStyle.Hidden,
+                presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
                     bill = null,
                     showToast = false,
@@ -833,6 +884,19 @@ class HomeViewModel @Inject constructor(
                 )
             )
         }
+
+        viewModelScope.launch {
+            delay(300)
+            if (rejected) {
+                request?.cancelUrl?.let {
+                    _eventFlow.emit(HomeEvent.OpenUrl(it))
+                }
+            } else {
+                request?.successUrl?.let {
+                    _eventFlow.emit(HomeEvent.OpenUrl(it))
+                }
+            }
+        }
     }
 
     fun rejectLogin() {
@@ -842,10 +906,11 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        cancelLogin()
-//        viewModelScope.launch {
-//            paymentRepository.rejectLogin(rendezvous)
-//        }
+        cancelLogin(rejected = true)
+
+        viewModelScope.launch {
+            client.rejectLogin(rendezvous)
+        }
     }
 
     @SuppressLint("CheckResult")

@@ -67,6 +67,7 @@
     <string name="error_description_alreadyCollected">This Kin was already collected by someone else.</string>
     <string name="error_description_alreadyCollectedBySomeone">This Kin was already collected by someone.</string>
     <string name="error_description_payment_failed">This payment request could not be paid at this time. Please try again later.</string>
+    <string name="error_description_login_failed">This login request could not be completed at this time. Please try again later.</string>
     <string name="error_description_cameraAccessRequired">Please allow access to the camera in Settings to use Code.</string>
     <string name="error_description_codeTimedOut">Please re-enter your phone number and try again.</string>
     <string name="error_description_contactsAccessRequired">Please allow access to the contacts in Settings to send invites.</string>
@@ -92,6 +93,7 @@
     <string name="error_title_alreadyCollected">Kin Already Collected</string>
     <string name="error_title_alreadyCollectedBySomeone">Kin Already Collected</string>
     <string name="error_title_payment_failed">Payment Failed</string>
+    <string name="error_title_login_failed">Login Failed</string>
     <string name="error_title_cameraAccessRequired">Camera Access Required</string>
     <string name="error_title_codeTimedOut">Verification Code Timed Out</string>
     <string name="error_title_contactsAccessRequired">Contacts Access Required</string>
@@ -324,6 +326,8 @@
     <string name="subtitle_verb_spent">You spent</string>
     <string name="subtitle_verb_paid">You paid</string>
     <string name="subtitle_verb_purchased">You purchased</string>
+    <string name="swipe_to_login">Swipe to Login</string>
+    <string name="swipe_to_pay">Swipe to Pay</string>
     <!-- endregion -->
     <!-- endregion -->
 </resources>

@@ -2,16 +2,24 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
+import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
+import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppResponse
+import com.codeinc.gen.user.v1.IdentityService.User
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
+import com.getcode.solana.keys.PublicKey
 import com.google.common.collect.Sets
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -26,7 +34,7 @@ class IdentityRepository @Inject constructor(
         val userId: List<Byte>,
         val dataContainerId: List<Byte>,
         val enableDebugOptions: Boolean,
-        val eligibleAirdrops : Set<AirdropType>,
+        val eligibleAirdrops: Set<AirdropType>,
         val isPhoneNumberLinked: Boolean
     )
 
@@ -34,7 +42,15 @@ class IdentityRepository @Inject constructor(
         keyPair: Ed25519.KeyPair,
         phoneValue: String
     ): Flowable<GetUserResponse> {
-        if (isMock()) return Flowable.just(GetUserResponse(listOf(), listOf(), false, setOf(), true))
+        if (isMock()) return Flowable.just(
+            GetUserResponse(
+                listOf(),
+                listOf(),
+                false,
+                setOf(),
+                true
+            )
+        )
 
         val request =
             IdentityService.GetUserRequest.newBuilder()
@@ -51,9 +67,14 @@ class IdentityRepository @Inject constructor(
             .map {
                 GetUserResponse(
                     userId = it.user?.id?.value?.toList() ?: throw Exception("Error: Null data"),
-                    dataContainerId = it.dataContainerId?.value?.toList() ?: throw Exception("Error: Null data"),
+                    dataContainerId = it.dataContainerId?.value?.toList()
+                        ?: throw Exception("Error: Null data"),
                     enableDebugOptions = it.enableInternalFlags,
-                    eligibleAirdrops = it.eligibleAirdropsList?.mapNotNull { value -> AirdropType.getInstance(value) }?.toSet() ?: throw Exception("Error: Null data"),
+                    eligibleAirdrops = it.eligibleAirdropsList?.mapNotNull { value ->
+                        AirdropType.getInstance(
+                            value
+                        )
+                    }?.toSet() ?: throw Exception("Error: Null data"),
                     isPhoneNumberLinked = it.phone?.isLinked ?: throw Exception("Error: Null data")
                 )
             }
@@ -178,5 +199,47 @@ class IdentityRepository @Inject constructor(
                 phoneRepository.phoneLinked.value = false
             }
             .firstOrError()
+    }
+
+    suspend fun loginToThirdParty(
+        rendezvous: PublicKey,
+        relationship: KeyPair
+    ): Result<Unit> {
+        val request = LoginToThirdPartyAppRequest.newBuilder()
+            .setIntentId(rendezvous.toIntentId())
+            .setUserId(relationship.publicKeyBytes.toSolanaAccount())
+            .let {
+                val bos = ByteArrayOutputStream()
+                it.buildPartial().writeTo(bos)
+                it.setSignature(Ed25519.sign(bos.toByteArray(), relationship).toSignature())
+            }.build()
+
+        return networkOracle.managedRequest(identityApi.loginToThirdParty(request))
+            .map { response ->
+                when (val result = response.result) {
+                    LoginToThirdPartyAppResponse.Result.OK -> Result.success(Unit)
+                    LoginToThirdPartyAppResponse.Result.REQUEST_NOT_FOUND,
+                    LoginToThirdPartyAppResponse.Result.PAYMENT_REQUIRED,
+                    LoginToThirdPartyAppResponse.Result.LOGIN_NOT_SUPPORTED,
+                    LoginToThirdPartyAppResponse.Result.DIFFERENT_LOGIN_EXISTS,
+                    LoginToThirdPartyAppResponse.Result.INVALID_ACCOUNT -> {
+                        val error = Throwable("Error: ${result.name}")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    LoginToThirdPartyAppResponse.Result.UNRECOGNIZED -> {
+                        val error = Throwable("Error: Unrecognized request.")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    else -> {
+                        val error = Throwable("Error: Unknown")
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                }
+            }.first()
     }
 }

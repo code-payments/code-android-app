@@ -10,7 +10,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
-import com.getcode.network.client.establishRelationship
+import com.getcode.network.client.establishRelationshipSingle
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.transferWithResult
 import com.getcode.network.exchange.Exchange
@@ -140,7 +140,7 @@ class PaymentRepository @Inject constructor(
                     receiveRequest.verifier != null &&
                     organizer.relationshipFor(domain) != null
                 ) {
-                    client.establishRelationship(organizer, domain)
+                    client.establishRelationshipSingle(organizer, domain)
                 }
 
                 // 5. Complete the transfer.
