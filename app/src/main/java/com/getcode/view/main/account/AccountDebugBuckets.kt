@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getcode.manager.SessionManager
+import com.getcode.model.displayName
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.SlotType
@@ -23,42 +24,20 @@ import com.getcode.view.main.balance.BalanceSheetViewModel
 
 @Composable
 fun AccountDebugBuckets() {
-    val accountInfo = SessionManager.getOrganizer()?.getAccountInfo()?.values?.toList() ?: return
+    val accountList = SessionManager.getOrganizer()?.buckets ?: return
 
-    val accountList = accountInfo.toList().sortedBy {
-        when (val type = it.accountType) {
-            AccountType.Primary -> 0
-            AccountType.Incoming -> 1
-            AccountType.Outgoing -> 2
-            is AccountType.Bucket -> {
-                when (type.type) {
-                    SlotType.Bucket1 -> 3
-                    SlotType.Bucket10 -> 4
-                    SlotType.Bucket100 -> 5
-                    SlotType.Bucket1k -> 6
-                    SlotType.Bucket10k -> 7
-                    SlotType.Bucket100k -> 8
-                    SlotType.Bucket1m -> 9
-                }
-            }
-            AccountType.Swap -> 10
-            is AccountType.Relationship -> 11
-            AccountType.RemoteSend -> 12
+    val buckets = accountList.sortedWith { lhs, rhs ->
+        val la = lhs.accountType
+        val ra = rhs.accountType
+        if (la is AccountType.Relationship && ra is AccountType.Relationship) {
+            la.domain.urlString.compareTo(ra.domain.urlString)
+        } else {
+            la.sortOrder().compareTo(ra.sortOrder())
         }
     }
 
     LazyColumn {
-        items(accountList) { info ->
-            val name = when (val accountType = info.accountType) {
-                is AccountType.Bucket -> accountType.type.name.replace("Bucket", "")
-                AccountType.Incoming -> "Incoming ${info.index}"
-                AccountType.Outgoing -> "Outgoing ${info.index}"
-                AccountType.Primary -> "Primary"
-                AccountType.RemoteSend -> "Remote Send"
-                is AccountType.Relationship -> "${accountType.domain.relationshipHost}"
-                AccountType.Swap -> "Swap (USDC)"
-            }
-
+        items(buckets) { info ->
             Column(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.grid.x3)
@@ -69,7 +48,7 @@ fun AccountDebugBuckets() {
                     Text(
                         modifier = Modifier
                             .weight(1f),
-                        text = name,
+                        text = info.displayName,
                         style = CodeTheme.typography.body1,
                     )
                 }
