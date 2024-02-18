@@ -87,19 +87,8 @@ class TransactionReceiver @Inject constructor(
         return receivedTotal
     }
 
-    fun receiveFromIncomingIfRotationRequired(organizer: Organizer): Completable {
-        // Server will set this to `true` if the account
-        // has more than 1 transaction + other heuristics
-        return if (organizer.shouldRotateIncoming) {
-            receiveFromIncoming(organizer)
-            Completable.complete()
-        } else {
-            Completable.complete()
-        }
-    }
-
     fun receiveFromIncoming(organizer: Organizer): Kin {
-        val incomingBalance = organizer.availableIncomingBalance.toKinTruncating()
+        val incomingBalance = availableIncomingAmount(organizer)
         return if (incomingBalance <= 0) {
             Kin.fromKin(0)
         } else {
@@ -108,6 +97,18 @@ class TransactionReceiver @Inject constructor(
                 organizer = organizer
             ).blockingAwait()
             incomingBalance
+        }
+    }
+
+    fun receiveFromIncomingCompletable(organizer: Organizer): Completable {
+        val incomingBalance = availableIncomingAmount(organizer)
+        return if (incomingBalance <= 0) {
+            Completable.complete()
+        } else {
+            receiveFromIncoming(
+                amount = incomingBalance,
+                organizer = organizer
+            )
         }
     }
 
@@ -124,5 +125,9 @@ class TransactionReceiver @Inject constructor(
     private fun setTray(organizer: Organizer, tray: Tray) {
         organizer.set(tray)
         balanceRepository.setBalance(organizer.availableBalance.toKinTruncatingLong().toDouble())
+    }
+
+    fun availableIncomingAmount(organizer: Organizer): Kin {
+        return organizer.availableIncomingBalance.toKinTruncating()
     }
 }

@@ -14,6 +14,7 @@ import kotlin.math.min
 class Tray(
     var slots: List<Slot>,
     var owner: PartialAccount,
+    var swap: PartialAccount,
     var incoming: PartialAccount,
     var outgoing: PartialAccount,
     var mnemonic: MnemonicPhrase
@@ -34,7 +35,7 @@ class Tray(
 
     val relationships = RelationshipBox()
 
-    private var availableRelationshipBalance: Kin = Kin.fromKin(0)
+    var availableRelationshipBalance: Kin = Kin.fromKin(0)
         get() = relationships.publicKeys.values.map { it.partialBalance }
             .reduceOrNull { acc, slot -> acc + slot } ?: Kin.fromKin(0)
         private set
@@ -75,6 +76,8 @@ class Tray(
                     }
                 )
             }
+
+            AccountType.Swap -> swap.partialBalance += kin
         }
     }
 
@@ -94,6 +97,7 @@ class Tray(
                     }
                 )
             }
+            AccountType.Swap -> swap.partialBalance -= kin
         }
     }
 
@@ -141,6 +145,8 @@ class Tray(
 
                 return relationship.partialBalance
             }
+
+            AccountType.Swap -> swap.partialBalance
         }
     }
 
@@ -177,7 +183,8 @@ class Tray(
             is AccountType.Bucket,
             AccountType.Primary,
             is AccountType.Relationship,
-            AccountType.RemoteSend -> {
+            AccountType.RemoteSend,
+            AccountType.Swap -> {
                 throw IllegalStateException()
             }
         }
@@ -202,6 +209,8 @@ class Tray(
             is AccountType.Relationship -> {
                 relationships.relationshipWith(domain = accountType.domain)!!.getCluster()
             }
+
+            AccountType.Swap -> swap.getCluster()
         }
     }
 
@@ -209,9 +218,10 @@ class Tray(
         return Tray(
             slots = slots.map { it.copy() },
             owner = owner.copy(),
+            swap = swap.copy(),
             incoming = incoming.copy(),
             outgoing = outgoing.copy(),
-            mnemonic = mnemonic
+            mnemonic = mnemonic,
         )
     }
 
@@ -264,6 +274,11 @@ class Tray(
                 owner = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
                         authority = DerivedKey.derive(context, DerivePath.primary, mnemonic)
+                    )
+                ),
+                swap = PartialAccount(
+                    cluster = AccountCluster.newInstanceLazy(
+                        authority = DerivedKey.derive(context, DerivePath.swap, mnemonic)
                     )
                 )
             )

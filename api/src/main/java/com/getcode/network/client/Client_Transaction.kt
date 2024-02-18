@@ -7,33 +7,40 @@ import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.*
-import com.getcode.model.intents.*
+import com.getcode.model.AccountInfo
+import com.getcode.model.Domain
+import com.getcode.model.GiftCard
+import com.getcode.model.IntentMetadata
+import com.getcode.model.Kin
+import com.getcode.model.KinAmount
+import com.getcode.model.Rate
+import com.getcode.model.SendLimit
+import com.getcode.model.intents.IntentDeposit
+import com.getcode.model.intents.IntentPrivateTransfer
+import com.getcode.model.intents.IntentPublicTransfer
+import com.getcode.model.intents.IntentRemoteSend
+import com.getcode.model.intents.IntentType
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.flatMapConcat
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.rx3.asFlow
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.*
+import java.util.Calendar
+import java.util.GregorianCalendar
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
@@ -253,21 +260,27 @@ fun Client.withdrawExternally(
             steps.add("Missing balance: $missingBalance")
         }
 
-        // 2. It's possible that there's funds still left in
-        // an incoming account. If we're still missing funds
-        // for withdrawal, we'll pull from incoming.
+        // 2. If we still need funds to fulfill the withdrawal
+        // it's likely that they are stuck in incoming and bucket
+        // accounts. We'll need to pull those out into primary.
         if (missingBalance > 0) {
-            val receivedFromIncoming = transactionReceiver.receiveFromIncoming(
-                organizer = organizer
-            )
-            missingBalance -= receivedFromIncoming
 
-            steps.add("Pulled from incoming: $receivedFromIncoming")
-            steps.add("Missing balance: $missingBalance")
+            // 3. It's possible that there's funds still left in
+            // an incoming account. If we're still missing funds
+            // for withdrawal, we'll pull from incoming.
+            if (transactionReceiver.availableIncomingAmount(organizer) > 0) {
+                val receivedFromIncoming = transactionReceiver.receiveFromIncoming(
+                    organizer = organizer
+                )
+                missingBalance -= receivedFromIncoming
+
+                steps.add("Pulled from incoming: $receivedFromIncoming")
+                steps.add("Missing balance: $missingBalance")
+            }
         }
 
 
-        // 3. In the event that it's a full withdrawal or if
+        // 4. In the event that it's a full withdrawal or if
         // more funds are required, we'll need to do a private
         // transfer from bucket accounts.
         if (missingBalance > 0) {
@@ -283,7 +296,7 @@ fun Client.withdrawExternally(
                 steps.add("Pulled from buckets: $missingBalance")
             }.concatWith(fetchLimits()).concatWith(balanceController.fetchBalance())
         } else {
-            // 4. Update balances and limits after the withdrawal since
+            // 5. Update balances and limits after the withdrawal since
             // it's likely that this withdrawal affected both but at the
             // very least, we need updated balances for all accounts.
             balanceController.fetchBalance()
@@ -293,7 +306,7 @@ fun Client.withdrawExternally(
     }.doOnComplete {
         Timber.d(steps.joinToString("\n"))
     }
-        // 5. Execute withdrawal
+        // 6. Execute withdrawal
         .concatWith(
             withdraw(
                 amount = amount,
@@ -427,9 +440,13 @@ fun Client.fetchLimits(isForce: Boolean = false): Completable {
 fun Client.receiveIfNeeded(): Completable {
     val organizer = SessionManager.getOrganizer() ?: return Completable.complete()
 
+    if (organizer.slotsBalance < transactionRepository.maxDeposit) {
+        receiveFromRelationships(organizer, upTo = transactionRepository.maxDeposit)
+    }
+
     return Completable.concatArray(
         receiveFromPrimaryIfWithinLimits(organizer),
-        transactionReceiver.receiveFromIncomingIfRotationRequired(organizer)
+        transactionReceiver.receiveFromIncomingCompletable(organizer)
     )
 }
 
@@ -445,7 +462,7 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
 
     // We want to deposit the smaller of the two: balance in the
     // primary account or the max allowed amount provided by server
-    return Single.just(transactionRepository.maxDeposit)
+    return Single.just(transactionRepository.maxDeposit.toKinTruncatingLong())
         .map { maxDeposit ->
             Pair(
                 Kin.fromKin(min(depositBalance.toKinValueDouble(), maxDeposit.toDouble())),
@@ -556,20 +573,23 @@ fun Client.getTransferPreflightAction(amount: Kin): Completable {
     }
 }
 
-fun Client.receiveFromRelationships(domain: Domain, amount: Kin, organizer: Organizer) {
-    transactionRepository.receiveFromRelationship(domain, amount, organizer)
+fun Client.receiveFromRelationships(organizer: Organizer, upTo: Kin? = null): Kin {
+    return transactionReceiver.receiveFromRelationship(organizer, upTo)
 }
 
 @SuppressLint("CheckResult")
 @Throws
-fun Client.establishRelationship(organizer: Organizer, domain: Domain): Completable {
-    return transactionRepository.establishRelationship(organizer, domain).ignoreElement()
+fun Client.establishRelationshipSingle(organizer: Organizer, domain: Domain) {
+    transactionRepository.establishRelationshipSingle(organizer, domain).ignoreElement()
 }
 
 @Suppress("RedundantSuspendModifier")
 @SuppressLint("CheckResult")
 @Throws
-suspend fun Client.awaitEstablishRelationship(organizer: Organizer, domain: Domain) {
-    establishRelationship(organizer, domain)
-        .blockingAwait()
+suspend fun Client.awaitEstablishRelationship(
+    organizer: Organizer,
+    domain: Domain
+): Result<Relationship> {
+    return transactionRepository.establishRelationship(organizer, domain)
+        .map { it.relationship }
 }

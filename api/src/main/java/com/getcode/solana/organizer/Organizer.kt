@@ -20,9 +20,10 @@ class Organizer(
     val availableBalance get() = tray.availableBalance
     val availableDepositBalance get() = tray.owner.partialBalance
     val availableIncomingBalance get() = tray.incoming.partialBalance
-    val shouldRotateIncoming get() = info(AccountType.Incoming)?.mustRotate ?: false
-
+    val availableRelationshipBalance get() = tray.availableRelationshipBalance
     val ownerKeyPair get() = tray.owner.getCluster().authority.keyPair
+    val swapKeyPair get() = tray.swap.getCluster().authority.keyPair
+    val swapDepositAddress get() = swapKeyPair.publicKey
     val primaryVault get() = tray.owner.getCluster().timelockAccounts.vault.publicKey
     val incomingVault get() = tray.incoming.getCluster().timelockAccounts.vault.publicKey
 
@@ -58,6 +59,8 @@ class Organizer(
 
     fun getAccountInfo() = accountInfos
 
+    val buckets: List<AccountInfo> = accountInfos.values.toList().sortedBy { it.accountType.sortOrder() }
+
     fun propagateBalances() {
         val balances = mutableMapOf<AccountType, Kin>()
 
@@ -89,7 +92,8 @@ class Organizer(
                     AccountType.Primary,
                     is AccountType.Bucket,
                     AccountType.RemoteSend,
-                    is AccountType.Relationship -> {
+                    is AccountType.Relationship,
+                    AccountType.Swap -> {
                         Timber.i("Non-indexed account mismatch. Account doesn't match server-provided account. Something is definitely wrong")
                     }
                 }

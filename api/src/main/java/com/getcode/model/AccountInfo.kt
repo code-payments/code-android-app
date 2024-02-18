@@ -237,3 +237,14 @@ data class AccountInfo (
 
     data class Relationship(val domain: Domain)
 }
+
+val AccountInfo.displayName: String
+    get() = when (val type = accountType) {
+    is AccountType.Bucket -> type.type.name.replace("Bucket", "")
+    AccountType.Incoming -> "Incoming $index"
+    AccountType.Outgoing -> "Outgoing $index"
+    AccountType.Primary -> "Primary"
+    AccountType.RemoteSend -> "Remote Send"
+    is AccountType.Relationship -> type.domain.relationshipHost
+    AccountType.Swap -> "Swap (USDC)"
+}

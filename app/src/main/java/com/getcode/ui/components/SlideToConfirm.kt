@@ -55,6 +55,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -119,13 +120,14 @@ fun SlideToConfirm(
     thumbShape: Shape = Thumb.Shape,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
-    hint: @Composable BoxScope.(Float, PaddingValues) -> Unit = { swipe, padding ->
+    label: String = stringResource(R.string.swipe_to_pay),
+    hint: @Composable BoxScope.(Float, PaddingValues, String) -> Unit = { swipe, padding, text ->
         SlideToConfirmDefaults.Hint(
             modifier = Modifier
                 .align(Alignment.Center)
                 .padding(padding),
             swipeFraction = swipe,
-            text = "Swipe to Pay"
+            text = text,
         )
     },
 ) {
@@ -161,7 +163,7 @@ fun SlideToConfirm(
         color = trackColor,
     ) {
         if (!isSuccess) {
-            hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2))
+            hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2), label)
         }
 
         when {

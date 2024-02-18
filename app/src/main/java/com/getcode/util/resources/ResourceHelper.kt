@@ -40,8 +40,13 @@ interface ResourceHelper {
 }
 
 sealed interface ResourceType {
-    val defType: String
+    val defType: kotlin.String
     data object Drawable: ResourceType {
-        override val defType: String = "drawable"
+        override val defType: kotlin.String = "drawable"
+    }
+    data object String: ResourceType {
+        override val defType: kotlin.String = "string"
     }
 }
+
+val x: String = ""

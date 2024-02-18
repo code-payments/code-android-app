@@ -18,6 +18,7 @@ import com.getcode.network.exchange.CodeExchange
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
@@ -156,6 +157,7 @@ object ApiModule {
     @Provides
     fun provideClient(
         @ApplicationContext context: Context,
+        identityRepository: IdentityRepository,
         transactionRepository: TransactionRepository,
         messagingRepository: MessagingRepository,
         accountRepository: AccountRepository,
@@ -169,6 +171,7 @@ object ApiModule {
     ): Client {
         return Client(
             context,
+            identityRepository,
             transactionRepository,
             messagingRepository,
             balanceController,

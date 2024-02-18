@@ -9,6 +9,7 @@ import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
+import com.getcode.solana.organizer.Relationship
 import com.getcode.solana.organizer.Tray
 
 class IntentEstablishRelationship(
@@ -16,7 +17,8 @@ class IntentEstablishRelationship(
     override val actionGroup: ActionGroup,
     val organizer: Organizer,
     val domain: Domain,
-    val resultTray: Tray
+    val resultTray: Tray,
+    val relationship: Relationship,
 ): IntentType() {
     override fun metadata(): TransactionService.Metadata {
         return TransactionService.Metadata.newBuilder()
@@ -51,7 +53,8 @@ class IntentEstablishRelationship(
                 actionGroup = ActionGroup().apply {
                     actions = listOf(actionOpenAccount)
                 },
-                resultTray = currentTray
+                resultTray = currentTray,
+                relationship = relationship,
             )
         }
     }

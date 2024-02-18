@@ -42,16 +42,27 @@ class IntentPublicTransfer(
             .build()
     }
 
+    sealed interface Destination {
+        data class Local(val accountType: AccountType): Destination
+        data class External(val publicKey: PublicKey): Destination
+    }
+
     companion object {
         fun newInstance(
             organizer: Organizer,
             source: AccountType,
-            destination: PublicKey,
+            destination: Destination,
             amount: KinAmount,
         ): IntentPublicTransfer {
             val id = PublicKey.generate()
             val currentTray = organizer.tray.copy()
             val sourceCluster = organizer.tray.cluster(source)
+
+
+            val target = when (destination) {
+                is Destination.External -> destination.publicKey
+                is Destination.Local -> organizer.tray.cluster(destination.accountType).timelockAccounts.vault.publicKey
+            }
 
             // 1. Transfer all funds in the primary account
             // directly to the destination. This is a public
@@ -63,16 +74,22 @@ class IntentPublicTransfer(
                 intentId = id,
                 amount = amount.kin,
                 source = sourceCluster,
-                destination = destination
+                destination = target
             )
 
             currentTray.decrement(AccountType.Primary, kin = amount.kin)
+
+            // If moving funds to an already known account
+            // we should update the balance accordingly
+            if (destination is Destination.Local) {
+                currentTray.increment(destination.accountType, amount.kin)
+            }
 
             return IntentPublicTransfer(
                 id = id,
                 organizer = organizer,
                 sourceCluster = sourceCluster,
-                destination = destination,
+                destination = target,
                 amount = amount,
                 actionGroup = ActionGroup().apply {
                     actions = listOf(transfer)
