@@ -4,16 +4,36 @@ import com.codeinc.gen.common.v1.Model
 import com.getcode.crypt.DerivePath
 import com.getcode.model.Domain
 
-sealed class AccountType {
-    data object Primary : AccountType()
-    data object Incoming : AccountType()
-    data object Outgoing : AccountType()
-    data class Bucket(val type: SlotType) : AccountType()
-    data object RemoteSend: AccountType()
+sealed interface AccountType {
+    data object Primary : AccountType
+    data object Incoming : AccountType
+    data object Outgoing : AccountType
+    data class Bucket(val type: SlotType) : AccountType
+    data object RemoteSend: AccountType
 
-    data class Relationship(val domain: Domain): AccountType()
+    data class Relationship(val domain: Domain): AccountType
 
-    data object Swap: AccountType()
+    data object Swap: AccountType
+
+    fun sortOrder() = when (this) {
+        Primary -> 0
+        Incoming -> 1
+        Outgoing -> 2
+        is Bucket -> {
+            when (type) {
+                SlotType.Bucket1 -> 3
+                SlotType.Bucket10 -> 4
+                SlotType.Bucket100 -> 5
+                SlotType.Bucket1k -> 6
+                SlotType.Bucket10k -> 7
+                SlotType.Bucket100k -> 8
+                SlotType.Bucket1m -> 9
+            }
+        }
+        Swap -> 10
+        is Relationship -> 11
+        RemoteSend -> 12
+    }
 
     fun getDerivationPath(index: Int): DerivePath {
         return when (this) {

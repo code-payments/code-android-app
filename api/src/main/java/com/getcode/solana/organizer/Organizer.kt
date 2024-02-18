@@ -58,6 +58,8 @@ class Organizer(
 
     fun getAccountInfo() = accountInfos
 
+    val buckets: List<AccountInfo> = accountInfos.values.toList().sortedBy { it.accountType.sortOrder() }
+
     fun propagateBalances() {
         val balances = mutableMapOf<AccountType, Kin>()
 
