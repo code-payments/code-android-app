@@ -29,7 +29,7 @@ class RelationshipBox @Inject constructor() {
     fun relationshipWith(domain: Domain) = _domains[domain.urlString]
 
     fun insert(relationship: Relationship) {
-        _publicKeys[relationship.getCluster().timelockAccounts.vault.publicKey] = relationship
+        _publicKeys[relationship.getCluster().vaultPublicKey] = relationship
         _domains[relationship.domain.urlString] = relationship
     }
 }

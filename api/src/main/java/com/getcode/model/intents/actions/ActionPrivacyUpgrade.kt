@@ -53,6 +53,8 @@ class ActionPrivacyUpgrade(
             throw ActionPrivacyUpgradeException.InvalidMerkleProofException()
         }
 
+        val timelock = source.timelock ?: throw ActionPrivacyUpgradeException.InvalidSourceException()
+
         // Server may provide the nonce and recentBlockhash and
         // it may match the original but we shouldn't trust it.
         // We'll user the original nonce and recentBlockhash that
@@ -67,7 +69,7 @@ class ActionPrivacyUpgrade(
         )
 
         val transaction = TransactionBuilder.transfer(
-            timelockDerivedAccounts = source.timelockAccounts,
+            timelockDerivedAccounts = timelock,
             destination = splitterAccounts.vault.publicKey,
             amount = originalAmount,
             nonce = originalNonce,
@@ -123,4 +125,5 @@ sealed class ActionPrivacyUpgradeException : Exception() {
     class MissingServerParameterException : ActionPrivacyUpgradeException()
     class MissingPrivacyUpgradeParameterException : ActionPrivacyUpgradeException()
     class InvalidMerkleProofException : ActionPrivacyUpgradeException()
+    class InvalidSourceException: ActionPrivacyUpgradeException()
 }

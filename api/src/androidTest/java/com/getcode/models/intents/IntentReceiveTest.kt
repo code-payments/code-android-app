@@ -103,7 +103,7 @@ class IntentReceiveTest {
             Assert.assertEquals(1_000_000.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.incoming.getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[6].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[6].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -113,7 +113,7 @@ class IntentReceiveTest {
             Assert.assertEquals(1_000_000.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.slots[6].getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[5].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[5].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -123,7 +123,7 @@ class IntentReceiveTest {
             Assert.assertEquals(100_000.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.slots[5].getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[4].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[4].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -133,7 +133,7 @@ class IntentReceiveTest {
             Assert.assertEquals(10_000.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.slots[4].getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[3].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[3].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -143,7 +143,7 @@ class IntentReceiveTest {
             Assert.assertEquals(1_000.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.slots[3].getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[2].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[2].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -153,7 +153,7 @@ class IntentReceiveTest {
             Assert.assertEquals(100.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.slots[2].getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[1].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[1].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -163,7 +163,7 @@ class IntentReceiveTest {
             Assert.assertEquals(10.0, action.amount.toKinValueDouble(), 0.0)
             Assert.assertEquals(organizer.tray.slots[1].getCluster(), action.source)
             Assert.assertEquals(
-                organizer.tray.slots[0].getCluster().timelockAccounts.vault.publicKey,
+                organizer.tray.slots[0].getCluster().vaultPublicKey,
                 action.destination
             )
         }
@@ -182,7 +182,7 @@ class IntentReceiveTest {
         (intent.getAction(9) as ActionWithdraw).let { action ->
             Assert.assertEquals(ActionWithdraw.Kind.CloseDormantAccount(AccountType.Incoming), action.kind)
             Assert.assertEquals(resultTray.incoming.getCluster(), action.cluster)
-            Assert.assertEquals(resultTray.owner.getCluster().timelockAccounts.vault.publicKey, action.destination)
+            Assert.assertEquals(resultTray.owner.getCluster().vaultPublicKey, action.destination)
         }
     }
 }

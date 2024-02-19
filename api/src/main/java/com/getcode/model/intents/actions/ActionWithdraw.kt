@@ -25,10 +25,11 @@ class ActionWithdraw(
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> {
+        val timelock = cluster.timelock ?: return emptyList()
         return serverParameter?.configs?.map { config ->
             TransactionBuilder.closeDormantAccount(
                 authority = cluster.authority.keyPair.publicKeyBytes.toPublicKey(),
-                timelockDerivedAccounts =  cluster.timelockAccounts,
+                timelockDerivedAccounts =  timelock,
                 destination =  destination,
                 nonce =  config.nonce,
                 recentBlockhash = config.blockhash,
@@ -53,7 +54,7 @@ class ActionWithdraw(
                             this.authority =
                                 this@ActionWithdraw.cluster.authority.keyPair.publicKeyBytes.toSolanaAccount()
                             this.token =
-                                this@ActionWithdraw.cluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount()
+                                this@ActionWithdraw.cluster.vaultPublicKey.bytes.toSolanaAccount()
                             this.destination =
                                 this@ActionWithdraw.destination.bytes.toSolanaAccount()
                         }.build()
@@ -64,7 +65,7 @@ class ActionWithdraw(
                                 this.authority =
                                     this@ActionWithdraw.cluster.authority.keyPair.publicKeyBytes.toSolanaAccount()
                                 this.source =
-                                    this@ActionWithdraw.cluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount()
+                                    this@ActionWithdraw.cluster.vaultPublicKey.bytes.toSolanaAccount()
                                 this.destination =
                                     this@ActionWithdraw.destination.bytes.toSolanaAccount()
                                 this.amount =

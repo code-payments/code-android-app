@@ -24,9 +24,11 @@ class ActionFeePayment(
 
         val destination = (serverParameter?.parameter as? ServerParameter.Parameter.FeePayment)?.publicKey ?: return emptyList()
 
+        val timelock = cluster.timelock ?: return emptyList()
+
         return configs.map { config ->
             TransactionBuilder.transfer(
-                timelockDerivedAccounts = cluster.timelockAccounts,
+                timelockDerivedAccounts = timelock,
                 destination = destination,
                 amount = amount,
                 nonce = config.nonce,
@@ -42,7 +44,7 @@ class ActionFeePayment(
             .setFeePayment(
                 FeePaymentAction.newBuilder()
                     .setAuthority(cluster.authority.keyPair.publicKeyBytes.toSolanaAccount())
-                    .setSource(cluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setSource(cluster.vaultPublicKey.bytes.toSolanaAccount())
                     .setAmount(amount.quarks)
                     .build()
             ).build()

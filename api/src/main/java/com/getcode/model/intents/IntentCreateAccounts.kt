@@ -39,7 +39,7 @@ class IntentCreateAccounts(
                         ActionWithdraw.newInstance(
                             kind = ActionWithdraw.Kind.CloseDormantAccount(type),
                             cluster = cluster,
-                            destination = organizer.tray.owner.getCluster().timelockAccounts.vault.publicKey
+                            destination = organizer.tray.owner.getCluster().vaultPublicKey
                         )
                             .let { this.add(it) }
                     }

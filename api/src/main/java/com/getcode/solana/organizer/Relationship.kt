@@ -24,7 +24,12 @@ class Relationship(
             partialKinBalance: Kin = Kin.fromKin(0),
         ): Relationship {
             val cluster = AccountCluster.newInstanceLazy(
-                DerivedKey.derive(context = context, path = DerivePath.relationship(domain), mnemonic = mnemonic)
+                DerivedKey.derive(
+                    context = context,
+                    path = DerivePath.relationship(domain),
+                    mnemonic = mnemonic
+                ),
+                kind = AccountCluster.Kind.Timelock,
             )
 
             return Relationship(domain, mnemonic, partialBalance = partialKinBalance).apply {

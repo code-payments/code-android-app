@@ -7,6 +7,7 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
 import com.getcode.model.Kin
+import com.getcode.model.unusable
 import com.getcode.solana.keys.*
 import timber.log.Timber
 
@@ -24,8 +25,10 @@ class Organizer(
     val ownerKeyPair get() = tray.owner.getCluster().authority.keyPair
     val swapKeyPair get() = tray.swap.getCluster().authority.keyPair
     val swapDepositAddress get() = swapKeyPair.publicKey
-    val primaryVault get() = tray.owner.getCluster().timelockAccounts.vault.publicKey
-    val incomingVault get() = tray.incoming.getCluster().timelockAccounts.vault.publicKey
+    val primaryVault get() = tray.owner.getCluster().vaultPublicKey
+    val incomingVault get() = tray.incoming.getCluster().vaultPublicKey
+
+    val isUnuseable: Boolean get() = accountInfos.any { it.value.unusable }
 
     val isUnlocked: Boolean
         get() = accountInfos.values.any { info ->
@@ -47,7 +50,7 @@ class Organizer(
     fun allAccounts() = tray.allAccounts()
 
     fun info(accountType: AccountType): AccountInfo? {
-        val account = tray.cluster(accountType).timelockAccounts.vault.publicKey
+        val account = tray.cluster(accountType).vaultPublicKey
         return accountInfos[account]
     }
 
@@ -66,9 +69,7 @@ class Organizer(
         val balances = mutableMapOf<AccountType, Kin>()
 
         for ((vaultPublicKey, info) in accountInfos) {
-            val cluster = tray.cluster(accountType = info.accountType)
-
-            if (cluster.timelockAccounts.vault.publicKey == vaultPublicKey) {
+            if (tray.publicKey(info.accountType) == vaultPublicKey) {
                 balances[info.accountType] = info.balance
             } else {
                 // The public key above doesn't match any accounts
@@ -82,9 +83,7 @@ class Organizer(
                         Timber.i("Updating ${info.accountType} index to: ${info.index}")
 
                         // Ensure that the account matches
-                        val cluster1 = tray.cluster(accountType = info.accountType)
-
-                        if (cluster1.timelockAccounts.vault.publicKey != vaultPublicKey) {
+                        if (tray.publicKey(info.accountType) != vaultPublicKey) {
                             Timber.i("Indexed account mismatch. This isn't suppose to happen.")
                             continue
                         }

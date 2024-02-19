@@ -3,12 +3,12 @@ package com.getcode.model.intents.actions
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.intents.ServerParameter
-import com.getcode.network.repository.sign
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.sign
 
 class ActionOpenAccount(
     override var id: Int,
@@ -37,7 +37,7 @@ class ActionOpenAccount(
                     this.authority =
                         this@ActionOpenAccount.accountCluster.authority.keyPair.publicKeyBytes.toSolanaAccount()
                     this.token =
-                        this@ActionOpenAccount.accountCluster.timelockAccounts.vault.publicKey
+                        this@ActionOpenAccount.accountCluster.vaultPublicKey
                             .bytes.toSolanaAccount()
                     this.authoritySignature =
                         this.sign(accountCluster.authority.keyPair)

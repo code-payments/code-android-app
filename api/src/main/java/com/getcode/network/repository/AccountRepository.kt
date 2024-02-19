@@ -1,23 +1,28 @@
 package com.getcode.network.repository
 
 import android.content.Context
-import android.util.Log
 import com.codeinc.gen.account.v1.AccountService
+import com.codeinc.gen.chat.v1.ChatService
 import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519
-import com.getcode.solana.keys.PublicKey
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*
 import com.getcode.network.api.AccountApi
+import com.getcode.solana.keys.PublicKey
+import com.google.firebase.messaging.Constants.ScionAnalytics.MessageType
+import com.google.protobuf.GeneratedMessageLite
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 private const val TAG = "AccountRepository"
 
+@Deprecated("Replaced with Account Service")
 class AccountRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val accountApi: AccountApi
 ) {
     fun getTokenAccountInfosSuspend(

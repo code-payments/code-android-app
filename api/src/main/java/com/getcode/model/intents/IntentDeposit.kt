@@ -22,7 +22,7 @@ class IntentDeposit(
         return TransactionService.Metadata.newBuilder()
             .setReceivePaymentsPrivately(
                 TransactionService.ReceivePaymentsPrivatelyMetadata.newBuilder()
-                    .setSource(organizer.tray.cluster(source).timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setSource(organizer.tray.cluster(source).vaultPublicKey.bytes.toSolanaAccount())
                     .setQuarks(amount.quarks)
                     .setIsDeposit(true)
             )
@@ -49,7 +49,7 @@ class IntentDeposit(
                     amount = transfer.kin,
                     source = currentTray.cluster(transfer.from),
                     destination =
-                    currentTray.cluster(transfer.to!!).timelockAccounts.vault.publicKey
+                    currentTray.cluster(transfer.to!!).vaultPublicKey
                 )
             }
 
@@ -63,7 +63,7 @@ class IntentDeposit(
                     amount = exchange.kin,
                     source = currentTray.cluster(exchange.from),
                     destination =
-                    currentTray.cluster(exchange.to!!).timelockAccounts.vault.publicKey
+                    currentTray.cluster(exchange.to!!).vaultPublicKey
                     // Exchanges always provide destination accounts
                 )
             }

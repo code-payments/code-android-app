@@ -24,7 +24,7 @@ class IntentReceive(
         return TransactionService.Metadata.newBuilder()
             .setReceivePaymentsPrivately(
                 TransactionService.ReceivePaymentsPrivatelyMetadata.newBuilder()
-                    .setSource(organizer.tray.incoming.getCluster().timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setSource(organizer.tray.incoming.getCluster().vaultPublicKey.bytes.toSolanaAccount())
                     .setQuarks(amount.quarks)
                     .setIsDeposit(false)
             )
@@ -51,7 +51,7 @@ class IntentReceive(
                     amount = transfer.kin,
                     source = currentTray.cluster(transfer.from),
                     destination =
-                    currentTray.cluster(transfer.to!!).timelockAccounts.vault.publicKey
+                    currentTray.cluster(transfer.to!!).vaultPublicKey
                 )
             }
 
@@ -65,7 +65,7 @@ class IntentReceive(
                     amount = exchange.kin,
                     source = currentTray.cluster(exchange.from),
                     destination =
-                    currentTray.cluster(exchange.to!!).timelockAccounts.vault.publicKey
+                    currentTray.cluster(exchange.to!!).vaultPublicKey
                     // Exchanges always provide destination accounts
                 )
             }
@@ -89,7 +89,7 @@ class IntentReceive(
                 ActionWithdraw.newInstance(
                     kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.Incoming),
                     cluster = newIncoming.getCluster(),
-                    destination = organizer.tray.owner.getCluster().timelockAccounts.vault.publicKey
+                    destination = organizer.tray.owner.getCluster().vaultPublicKey
                 )
             )
 

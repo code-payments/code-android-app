@@ -248,3 +248,15 @@ val AccountInfo.displayName: String
     is AccountType.Relationship -> type.domain.relationshipHost
     AccountType.Swap -> "Swap (USDC)"
 }
+
+// An account is deemed unuseable in Code if the management
+// state for said account is no longer `locked`. Some accounts may
+// be allowed to operated in an 'unlocked' or another state
+val AccountInfo.unusable: Boolean
+    get() = if (managementState == AccountInfo.ManagementState.None) {
+        // If the account is not managed
+        // by Code, it is always useable
+        false
+    } else {
+        managementState != AccountInfo.ManagementState.Locked
+    }

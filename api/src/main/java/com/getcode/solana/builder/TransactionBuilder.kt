@@ -5,9 +5,9 @@ import com.getcode.model.Kin
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType
 import com.getcode.solana.instructions.programs.*
-import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.keys.Key32.Companion.subsidizer
 import com.getcode.solana.keys.Key32.Companion.timeAuthority
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.TimelockDerivedAccounts
 
@@ -33,7 +33,7 @@ object TransactionBuilder {
                     vault = timelockDerivedAccounts.vault.publicKey,
                     vaultOwner = timelockDerivedAccounts.owner,
                     timeAuthority = timeAuthority,
-                    mint = kinMint,
+                    mint = Mint.kin,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
                     maxAmount = maxDustAmount,

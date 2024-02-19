@@ -42,6 +42,7 @@ open class Key32(bytes: List<Byte>) : KeyType(bytes) {
 
     companion object {
         val kinMint = PublicKey(Base58.decode("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6").toList())
+
         val subsidizer = PublicKey(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR").toList())
         val timeAuthority = PublicKey(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR").toList())
         val splitter = PublicKey(Base58.decode("spLit2eb13Tz93if6aJM136nUWki5PVUsoEjcUjwpwW").toList())

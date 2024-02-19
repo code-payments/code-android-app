@@ -119,7 +119,7 @@ fun Client.sendRemotely(
                 )
                     .doOnComplete {
                         val giftCardItem = GiftCard(
-                            key = giftCard.cluster.timelockAccounts.vault.publicKey.base58(),
+                            key = giftCard.cluster.vaultPublicKey.base58(),
                             entropy = giftCard.mnemonicPhrase.getBase58EncodedEntropy(context),
                             amount = truncatedAmount.kin.quarks,
                             date = System.currentTimeMillis()

@@ -10,6 +10,7 @@ import com.getcode.network.HistoryController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.api.TransactionApiV2
+import com.getcode.network.client.AccountService
 import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.core.NetworkOracle
@@ -161,6 +162,7 @@ object ApiModule {
         transactionRepository: TransactionRepository,
         messagingRepository: MessagingRepository,
         accountRepository: AccountRepository,
+        accountService: AccountService,
         balanceController: BalanceController,
         analytics: AnalyticsService,
         prefRepository: PrefRepository,
@@ -176,6 +178,7 @@ object ApiModule {
             messagingRepository,
             balanceController,
             accountRepository,
+            accountService,
             analytics,
             prefRepository,
             exchange,

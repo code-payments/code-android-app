@@ -36,7 +36,8 @@ data class Slot(
                             context,
                             type.getDerivationPath(),
                             mnemonic
-                        )
+                        ),
+                        kind = AccountCluster.Kind.Timelock,
                     )
                 }
             )
