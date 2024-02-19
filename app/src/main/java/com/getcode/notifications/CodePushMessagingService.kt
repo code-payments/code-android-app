@@ -51,7 +51,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
             if (notification != null) {
                 val (type, titleKey, messageContent) = notification
-                val title = titleKey.localizedStringByKey(resources)
+                val title = titleKey.localizedStringByKey(resources) ?: titleKey
                 val body = messageContent.localizedText(resources, currencyUtils)
                 notify(type, title, body)
             } else {
@@ -134,12 +134,12 @@ private fun NotificationManager.getActiveNotification(notificationId: Int): Noti
     }
     return null
 }
-private fun String.localizedStringByKey(resources: ResourceHelper): String {
+private fun String.localizedStringByKey(resources: ResourceHelper): String? {
     val name = this.replace(".", "_")
     val resId = resources.getIdentifier(
         name,
         ResourceType.String,
     ).let { if (it == 0) null else it }
 
-    return resId?.let { resources.getString(it) }.orEmpty()
+    return resId?.let { resources.getString(it) }
 }
