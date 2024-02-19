@@ -77,7 +77,7 @@ class IntentPublicTransfer(
                 destination = target
             )
 
-            currentTray.decrement(AccountType.Primary, kin = amount.kin)
+            currentTray.decrement(source, kin = amount.kin)
 
             // If moving funds to an already known account
             // we should update the balance accordingly
