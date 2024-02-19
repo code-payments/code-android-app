@@ -17,6 +17,7 @@ import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.FormatUtils
+import timber.log.Timber
 import java.util.Locale
 
 internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUtils: CurrencyUtils,): String {
@@ -24,12 +25,16 @@ internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUti
         is MessageContent.Exchange -> {
             val amount = when (val kinAmount = content.amount) {
                 is GenericAmount.Exact -> {
+                    Timber.d("exact")
                     val currency = currencyUtils.getCurrency(kinAmount.currencyCode.name)
                     kinAmount.amount.formatted(resources = resources, currency = currency ?: Currency.Kin)
                 }
 
                 is GenericAmount.Partial -> {
-                    FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault())
+                    Timber.d("partial")
+                    FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault()).let {
+                        "$it ${resources.getString(R.string.core_ofKin)}"
+                    }
                 }
             }
 
@@ -69,6 +74,7 @@ internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUti
 
 internal val MessageContent.localizedText: String
     @Composable get() {
+        val context = LocalContext.current
         return when (val content = this) {
             is MessageContent.Exchange -> {
                 val amount = when (val kinAmount = content.amount) {
@@ -79,7 +85,9 @@ internal val MessageContent.localizedText: String
                     }
 
                     is GenericAmount.Partial -> {
-                        FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault())
+                        FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault()).let {
+                            "$it ${context.getString(R.string.core_ofKin)}"
+                        }
                     }
                 }
 
