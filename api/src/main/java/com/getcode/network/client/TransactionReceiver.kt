@@ -1,7 +1,6 @@
 package com.getcode.network.client
 
 import android.content.Context
-import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentReceive
