@@ -136,11 +136,9 @@ class PaymentRepository @Inject constructor(
                 /// 4. Establish a relationship if a domain is provided. If a verifier
                 // is present that means the domain has been verified by the server.
                 val domain = receiveRequest.domain
-                if (domain != null &&
-                    receiveRequest.verifier != null &&
-                    organizer.relationshipFor(domain) != null
+                if (domain != null && receiveRequest.verifier != null && organizer.relationshipFor(domain) != null
                 ) {
-                    client.establishRelationshipSingle(organizer, domain)
+                    client.establishRelationshipSingle(organizer, domain).blockingGet()
                 }
 
                 // 5. Complete the transfer.
