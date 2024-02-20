@@ -56,6 +56,7 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
+        startupLog("isauth=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
             if (!deeplinkRouted) {
                 // Allow the seed input screen to complete and avoid

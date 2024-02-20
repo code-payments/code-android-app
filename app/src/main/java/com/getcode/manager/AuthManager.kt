@@ -33,6 +33,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -56,13 +57,13 @@ class AuthManager @Inject constructor(
     private var softLoginDisabled: Boolean = false
 
     @SuppressLint("CheckResult")
-    fun init(activity: Activity) {
-        AccountUtils
-            .getToken(activity)
-            .subscribeOn(Schedulers.computation())
-            .flatMapCompletable(::softLogin)
-            .subscribeOn(Schedulers.computation())
-            .subscribe({}, ErrorUtils::handleError)
+    fun init(context: Context) {
+        launch {
+            val token = AccountUtils.getToken(context as Context)
+            softLogin(token.orEmpty())
+                .subscribeOn(Schedulers.computation())
+                .subscribe({}, ErrorUtils::handleError)
+        }
     }
 
     private fun softLogin(entropyB64: String): Completable {
@@ -78,7 +79,7 @@ class AuthManager @Inject constructor(
             return Completable.complete()
         }
 
-        return Single.create<SessionManager.SessionState> {
+        return Single.create {
             if (!isSoftLogin) softLoginDisabled = true
 
             if (!Database.isOpen()) {
@@ -153,24 +154,25 @@ class AuthManager @Inject constructor(
     }
 
     fun logout(activity: Activity, onComplete: () -> Unit = {}) {
-        AccountUtils.removeAccounts(activity)
-            .doOnSuccess { res: Boolean ->
-                if (res) {
-                    clearToken()
-                    onComplete()
+        launch {
+            AccountUtils.removeAccounts(activity)
+                .doOnSuccess { res: Boolean ->
+                    if (res) {
+                        clearToken()
+                        onComplete()
+                    }
                 }
-            }
-            .subscribe()
+                .subscribe()
+        }
     }
 
-    suspend fun logout(activity: Activity): Result<Unit> = suspendCoroutine { cont ->
-        AccountUtils.removeAccounts(activity)
-            .doOnSuccess { success ->
-                if (success) {
-                    clearToken()
-                    cont.resume(Result.success(Unit))
-                }
-            }.doOnError { cont.resume(Result.failure(it)) }.subscribe()
+    suspend fun logout(activity: Activity): Result<Unit> {
+        return AccountUtils.removeAccounts(activity).toFlowable()
+            .to {
+                runCatching { it.firstOrError().blockingGet() }
+            }.onSuccess {
+                clearToken()
+            }.map { Result.success(Unit) }
     }
 
 
