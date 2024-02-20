@@ -19,6 +19,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
+import com.getcode.ui.components.startupLog
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
@@ -87,10 +88,10 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         analyticsManager.onAppStart()
         handleUncaughtException()
-        authManager.init(this)
         setFullscreen()
 
         setContent {
+            startupLog("set content")
             CompositionLocalProvider(
                 LocalAnalytics provides analyticsManager,
                 LocalDeeplinks provides deeplinkHandler,
