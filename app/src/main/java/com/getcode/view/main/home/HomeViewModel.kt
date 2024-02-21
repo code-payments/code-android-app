@@ -828,7 +828,7 @@ class HomeViewModel @Inject constructor(
             }
 
             if (relationship == null) {
-                throw Throwable("Relationship not found")
+                throw IllegalStateException("Relationship not found")
             }
 
             client.loginToThirdParty(
