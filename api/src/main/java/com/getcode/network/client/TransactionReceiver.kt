@@ -10,6 +10,7 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
+import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import timber.log.Timber
@@ -62,9 +63,9 @@ class TransactionReceiver @Inject constructor(
     fun receiveFromRelationship(organizer: Organizer, limit: Kin? = null): Kin {
         var receivedTotal = Kin.fromKin(0)
 
-        run loop@{
+        runCatching loop@{
             organizer.relationshipsLargestFirst().onEach { relationship ->
-                Timber.d("Receiving from relationships: ${relationship.partialBalance}")
+                Timber.d("Receiving from relationships: domain ${relationship.domain.urlString} balance ${relationship.partialBalance}")
 
                 // Ignore empty relationship accounts
                 if (relationship.partialBalance > 0) {
@@ -86,6 +87,9 @@ class TransactionReceiver @Inject constructor(
                     }
                 }
             }
+        }.onFailure {
+            ErrorUtils.handleError(it)
+            it.printStackTrace()
         }
 
         return receivedTotal
