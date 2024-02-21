@@ -25,7 +25,11 @@ import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.convert
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.DurationUnit
+import kotlin.time.ExperimentalTime
 
 interface Exchange {
     val localRate: Rate
@@ -41,7 +45,7 @@ interface Exchange {
     fun rateForUsd(): Rate?
 }
 
-class ExchangeNull: Exchange {
+class ExchangeNull : Exchange {
     override val localRate: Rate
         get() = Rate.oneToOne
 
@@ -73,7 +77,7 @@ class CodeExchange @Inject constructor(
     private val currencyApi: CurrencyApi,
     private val networkOracle: NetworkOracle,
     private val defaultCurrency: () -> Currency?,
-): Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val db = Database.getInstance()
 
@@ -168,7 +172,13 @@ class CodeExchange @Inject constructor(
         val localCurrency = defaultCurrency()
         val rate = localCurrency?.let { rates.rateFor(it) }
         _localRate.value = if (rate != null) {
-            Timber.d("Updated the entry currency: $localCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${Date(rates.dateMillis)}")
+            Timber.d(
+                "Updated the entry currency: $localCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${
+                    Date(
+                        rates.dateMillis
+                    )
+                }"
+            )
             rate
         } else {
             Timber.d("Rate for $localCurrency not found. Defaulting to USD.")
@@ -178,7 +188,13 @@ class CodeExchange @Inject constructor(
 
         val entryRate = entryCurrency?.let { rates.rateFor(it) }
         this.entryRate = if (entryRate != null) {
-            Timber.d("Updated the entry currency: $entryCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${Date(rates.dateMillis)}")
+            Timber.d(
+                "Updated the entry currency: $entryCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${
+                    Date(
+                        rates.dateMillis
+                    )
+                }"
+            )
             entryRate
         } else {
             Timber.d("Rate for $entryCurrency not found. Defaulting to USD.")
@@ -187,6 +203,7 @@ class CodeExchange @Inject constructor(
 
     }
 
+    @OptIn(ExperimentalTime::class)
     @SuppressLint("CheckResult")
     private suspend fun fetchExchangeRates() = suspendCancellableCoroutine { cont ->
         Timber.d("fetching rates")
@@ -201,7 +218,14 @@ class CodeExchange @Inject constructor(
                 if (rates.none { it.currency == CurrencyCode.KIN }) {
                     rates.add(Rate(fx = 1.0, currency = CurrencyCode.KIN))
                 }
-                cont.resume(rates.toList() to System.currentTimeMillis())
+
+                cont.resume(
+                    rates.toList() to convert(
+                        value = response.asOf.seconds.toDouble(),
+                        sourceUnit = DurationUnit.SECONDS,
+                        targetUnit = DurationUnit.MILLISECONDS
+                    ).toLong()
+                )
             }, {
                 ErrorUtils.handleError(it)
                 cont.resume(emptyList<Rate>() to System.currentTimeMillis())
@@ -212,7 +236,9 @@ class CodeExchange @Inject constructor(
 }
 
 private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, Rate>) {
-    constructor(dateMillis: Long, rates: List<Rate>): this(dateMillis, rates.associateBy { it.currency })
+    constructor(dateMillis: Long, rates: List<Rate>) : this(
+        dateMillis,
+        rates.associateBy { it.currency })
 
     val isEmpty: Boolean
         get() = rates.isEmpty()
