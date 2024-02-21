@@ -1,5 +1,6 @@
 package com.getcode.utils
 
+import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import java.text.NumberFormat
 import java.util.*
@@ -21,4 +22,11 @@ object FormatUtils {
     fun formatCurrency(value: Double, locale: Locale): String =
         NumberFormat.getCurrencyInstance(locale).format(value)
 
+    fun formatCurrency(value: Double, currencyCode: CurrencyCode): String {
+        val locale = NumberFormat.getAvailableLocales().firstOrNull {
+            NumberFormat.getCurrencyInstance(it).currency?.currencyCode == currencyCode.name
+        } ?: Locale.getDefault()
+
+        return formatCurrency(value, locale)
+    }
 }

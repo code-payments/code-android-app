@@ -32,7 +32,7 @@ internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUti
 
                 is GenericAmount.Partial -> {
                     Timber.d("partial")
-                    FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault()).let {
+                    FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode).let {
                         "$it ${resources.getString(R.string.core_ofKin)}"
                     }
                 }
@@ -85,7 +85,7 @@ internal val MessageContent.localizedText: String
                     }
 
                     is GenericAmount.Partial -> {
-                        FormatUtils.formatCurrency(kinAmount.fiat.amount, Locale.getDefault()).let {
+                        FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode).let {
                             "$it ${context.getString(R.string.core_ofKin)}"
                         }
                     }
