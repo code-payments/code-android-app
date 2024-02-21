@@ -59,26 +59,32 @@ class TransactionReceiver @Inject constructor(
         }
     }
 
-    fun receiveFromRelationship( organizer: Organizer, limit: Kin? = null): Kin {
+    fun receiveFromRelationship(organizer: Organizer, limit: Kin? = null): Kin {
         var receivedTotal = Kin.fromKin(0)
 
         run loop@{
             organizer.relationshipsLargestFirst().onEach { relationship ->
                 Timber.d("Receiving from relationships: ${relationship.partialBalance}")
 
-                val intent = transactionRepository.receiveFromRelationship(
-                    relationship.domain, relationship.partialBalance, organizer
-                ).blockingGet()
+                if (relationship.partialBalance > 0) {
+                    // Ignore empty relationship accounts
+                } else {
+                    val intent = transactionRepository.receiveFromRelationship(
+                        domain = relationship.domain,
+                        amount = relationship.partialBalance,
+                        organizer = organizer
+                    ).blockingGet()
 
-                receivedTotal += relationship.partialBalance
+                    receivedTotal += relationship.partialBalance
 
-                if (intent is IntentDeposit) {
-                    setTray(organizer, intent.resultTray)
-                }
+                    if (intent is IntentDeposit) {
+                        setTray(organizer, intent.resultTray)
+                    }
 
-                // Bail early if a limit is set
-                if (limit != null && receivedTotal >= limit) {
-                    return@loop // break loop
+                    // Bail early if a limit is set
+                    if (limit != null && receivedTotal >= limit) {
+                        return@loop // break loop
+                    }
                 }
             }
         }
