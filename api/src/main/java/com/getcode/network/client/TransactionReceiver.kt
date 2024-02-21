@@ -66,9 +66,8 @@ class TransactionReceiver @Inject constructor(
             organizer.relationshipsLargestFirst().onEach { relationship ->
                 Timber.d("Receiving from relationships: ${relationship.partialBalance}")
 
+                // Ignore empty relationship accounts
                 if (relationship.partialBalance > 0) {
-                    // Ignore empty relationship accounts
-                } else {
                     val intent = transactionRepository.receiveFromRelationship(
                         domain = relationship.domain,
                         amount = relationship.partialBalance,
