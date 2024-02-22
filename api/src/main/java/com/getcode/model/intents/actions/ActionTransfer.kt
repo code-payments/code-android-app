@@ -27,11 +27,11 @@ class ActionTransfer(
 
     override fun transactions(): List<SolanaTransaction> {
         val serverParameter = serverParameter ?: return emptyList()
+        val timelock = source.timelock ?: return emptyList()
+
         val tempPrivacyParameter = serverParameter.parameter
 
-        val resolvedDestination: PublicKey
-
-        if (tempPrivacyParameter is ServerParameter.Parameter.TempPrivacy) {
+        val resolvedDestination: PublicKey = if (tempPrivacyParameter is ServerParameter.Parameter.TempPrivacy) {
             val splitterAccounts = SplitterCommitmentAccounts.newInstance(
                 source = source,
                 destination = destination,
@@ -42,14 +42,14 @@ class ActionTransfer(
                 actionId = id
             )
 
-            resolvedDestination = splitterAccounts.vault.publicKey
+            splitterAccounts.vault.publicKey
         } else {
-            resolvedDestination = destination
+            destination
         }
 
         return serverParameter.configs.map { config ->
             TransactionBuilder.transfer(
-            timelockDerivedAccounts = source.timelockAccounts,
+            timelockDerivedAccounts = timelock,
             destination = resolvedDestination,
             amount = amount,
             nonce = config.nonce,
@@ -70,7 +70,7 @@ class ActionTransfer(
                         this.temporaryPrivacyTransfer =
                             TransactionService.TemporaryPrivacyTransferAction.newBuilder().apply {
                                 this.source =
-                                    this@ActionTransfer.source.timelockAccounts.vault.publicKey.bytes.toSolanaAccount()
+                                    this@ActionTransfer.source.vaultPublicKey.bytes.toSolanaAccount()
                                 this.destination =
                                     this@ActionTransfer.destination.bytes.toSolanaAccount()
                                 this.authority =
@@ -83,7 +83,7 @@ class ActionTransfer(
                         this.temporaryPrivacyExchange =
                             TransactionService.TemporaryPrivacyExchangeAction.newBuilder().apply {
                                 this.source =
-                                    this@ActionTransfer.source.timelockAccounts.vault.publicKey.bytes.toSolanaAccount()
+                                    this@ActionTransfer.source.vaultPublicKey.bytes.toSolanaAccount()
                                 this.destination =
                                     this@ActionTransfer.destination.bytes.toSolanaAccount()
                                 this.authority =
@@ -96,7 +96,7 @@ class ActionTransfer(
                         this.noPrivacyTransfer =
                             TransactionService.NoPrivacyTransferAction.newBuilder().apply {
                                 this.source =
-                                    this@ActionTransfer.source.timelockAccounts.vault.publicKey.bytes.toSolanaAccount()
+                                    this@ActionTransfer.source.vaultPublicKey.bytes.toSolanaAccount()
                                 this.destination =
                                     this@ActionTransfer.destination.bytes.toSolanaAccount()
                                 this.authority =

@@ -24,9 +24,10 @@ class ActionCloseEmptyAccount(
 
 ) : ActionType() {
     override fun transactions(): List<SolanaTransaction> {
+        val timelock = cluster.timelock ?: return emptyList()
         return serverParameter?.configs?.map { config ->
             TransactionBuilder.closeEmptyAccount(
-                timelockDerivedAccounts = cluster.timelockAccounts,
+                timelockDerivedAccounts = timelock,
                 maxDustAmount = Kin.fromKin(1),
                 nonce = config.nonce,
                 recentBlockhash = config.blockhash,
@@ -47,7 +48,7 @@ class ActionCloseEmptyAccount(
                     this.authority =
                         this@ActionCloseEmptyAccount.cluster.authority.keyPair.publicKeyBytes.toSolanaAccount()
                     this.token =
-                        this@ActionCloseEmptyAccount.cluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount()
+                        this@ActionCloseEmptyAccount.cluster.vaultPublicKey.bytes.toSolanaAccount()
                 }.build()
             }
             .build()

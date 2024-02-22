@@ -41,6 +41,7 @@ class IntentMigratePrivacy(
                     path = DerivePath.primary,
                     mnemonic = organizer.mnemonic
                 ),
+                kind = AccountCluster.Kind.Timelock,
                 legacy = true
             )
 

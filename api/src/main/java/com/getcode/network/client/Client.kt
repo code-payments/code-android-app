@@ -36,6 +36,7 @@ class Client @Inject constructor(
     internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
+    internal val accountService: AccountService,
     internal val analyticsManager: AnalyticsService,
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,

@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.core.content.ContextCompat
 import com.getcode.R
 import com.getcode.model.KinAmount
-import com.getcode.solana.keys.Key32.Companion.kinMint
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.base58
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.Geometry
@@ -346,7 +346,7 @@ internal fun CashBill(
                 ) {
                     // Mint
                     Text(
-                        text = kinMint.base58(),
+                        text = Mint.kin.base58(),
                         fontSize = 8.nonScaledSp,
                         color = CashBillDefaults.DecorColor,
                     )

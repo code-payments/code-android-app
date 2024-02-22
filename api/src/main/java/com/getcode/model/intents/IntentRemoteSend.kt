@@ -29,7 +29,7 @@ class IntentRemoteSend(
         return TransactionService.Metadata.newBuilder()
             .setSendPrivatePayment(
                 TransactionService.SendPrivatePaymentMetadata.newBuilder()
-                    .setDestination(giftCard.cluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setDestination(giftCard.cluster.vaultPublicKey.bytes.toSolanaAccount())
                     .setIsWithdrawal(false)
                     .setIsRemoteSend(true)
                     .setExchangeData(
@@ -76,7 +76,7 @@ class IntentRemoteSend(
                         intentId = rendezvousKey,
                         amount = transfer.kin,
                         source = sourceCluster,
-                        destination = currentTray.slot((transfer.to as AccountType.Bucket).type).getCluster().timelockAccounts.vault.publicKey
+                        destination = currentTray.slot((transfer.to as AccountType.Bucket).type).getCluster().vaultPublicKey
                     )
                 } else {
                     ActionTransfer.newInstance(
@@ -84,7 +84,7 @@ class IntentRemoteSend(
                         intentId = rendezvousKey,
                         amount = transfer.kin,
                         source = sourceCluster,
-                        destination = currentTray.outgoing.getCluster().timelockAccounts.vault.publicKey
+                        destination = currentTray.outgoing.getCluster().vaultPublicKey
                     )
                 }
             }
@@ -95,7 +95,7 @@ class IntentRemoteSend(
             val outgoing = ActionWithdraw.newInstance(
                 kind = ActionWithdraw.Kind.NoPrivacyWithdraw(amount.kin),
                 cluster = currentTray.outgoing.getCluster(),
-                destination = giftCard.cluster.timelockAccounts.vault.publicKey
+                destination = giftCard.cluster.vaultPublicKey
             )
 
             // 4. Redistribute the funds to optimize for a
@@ -107,7 +107,7 @@ class IntentRemoteSend(
                     intentId = rendezvousKey,
                     amount = exchange.kin,
                     source = currentTray.cluster(exchange.from),
-                    destination = currentTray.cluster(exchange.to!!).timelockAccounts.vault.publicKey
+                    destination = currentTray.cluster(exchange.to!!).vaultPublicKey
                     // Exchanges always provide destination accounts
                 )
             }
@@ -126,7 +126,7 @@ class IntentRemoteSend(
                 ActionWithdraw.newInstance(
                     kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.Outgoing),
                     cluster = newOutgoing.getCluster(),
-                    destination = currentTray.owner.getCluster().timelockAccounts.vault.publicKey
+                    destination = currentTray.owner.getCluster().vaultPublicKey
                 )
             )
 
@@ -135,7 +135,7 @@ class IntentRemoteSend(
             val closeGiftCard = ActionWithdraw.newInstance(
                 kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.RemoteSend),
                 cluster = giftCard.cluster,
-                destination = currentTray.owner.getCluster().timelockAccounts.vault.publicKey
+                destination = currentTray.owner.getCluster().vaultPublicKey
             )
 
             val endBalance = currentTray.availableBalance

@@ -26,7 +26,7 @@ class IntentRemoteReceive(
         return TransactionService.Metadata.newBuilder()
             .setReceivePaymentsPublicly(
                 TransactionService.ReceivePaymentsPubliclyMetadata.newBuilder()
-                    .setSource(giftCard.cluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setSource(giftCard.cluster.vaultPublicKey.bytes.toSolanaAccount())
                     .setQuarks(amount.quarks)
                     .setIsRemoteSend(true)
                     .setIsIssuerVoidingGiftCard(isVoidingGiftCard)

@@ -200,6 +200,10 @@ class Tray(
         )
     }
 
+    fun publicKey(accountType: AccountType): PublicKey {
+        return cluster(accountType).vaultPublicKey
+    }
+
     fun cluster(accountType: AccountType): AccountCluster {
         return when (accountType) {
             AccountType.Primary -> owner.getCluster()
@@ -276,12 +280,14 @@ class Tray(
                 outgoing = PartialAccount(outgoing(context, 0, mnemonic)),
                 owner = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
-                        authority = DerivedKey.derive(context, DerivePath.primary, mnemonic)
+                        authority = DerivedKey.derive(context, DerivePath.primary, mnemonic),
+                        kind = AccountCluster.Kind.Timelock,
                     )
                 ),
                 swap = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
-                        authority = DerivedKey.derive(context, DerivePath.swap, mnemonic)
+                        authority = DerivedKey.derive(context, DerivePath.swap, mnemonic),
+                        kind = AccountCluster.Kind.Usdc,
                     )
                 )
             )
@@ -295,7 +301,8 @@ class Tray(
                         DerivePath.getBucketIncoming(index),
                         mnemonic
                     ),
-                    index = index
+                    index = index,
+                    kind = AccountCluster.Kind.Timelock,
                 )
             }
         }
@@ -308,7 +315,8 @@ class Tray(
                         DerivePath.getBucketOutgoing(index),
                         mnemonic
                     ),
-                    index = index
+                    index = index,
+                    kind = AccountCluster.Kind.Timelock,
                 )
             }
         }

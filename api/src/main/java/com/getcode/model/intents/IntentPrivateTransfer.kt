@@ -73,7 +73,7 @@ class IntentPrivateTransfer(
                         intentId = rendezvousKey,
                         amount = transfer.kin,
                         source = sourceCluster,
-                        destination = currentTray.slot((transfer.to as AccountType.Bucket).type).getCluster().timelockAccounts.vault.publicKey
+                        destination = currentTray.slot((transfer.to as AccountType.Bucket).type).getCluster().vaultPublicKey
                     )
                 } else {
                     ActionTransfer.newInstance(
@@ -81,7 +81,7 @@ class IntentPrivateTransfer(
                         intentId = rendezvousKey,
                         amount = transfer.kin,
                         source = sourceCluster,
-                        destination = currentTray.outgoing.getCluster().timelockAccounts.vault.publicKey
+                        destination = currentTray.outgoing.getCluster().vaultPublicKey
                     )
                 }
             }
@@ -108,7 +108,7 @@ class IntentPrivateTransfer(
                     intentId = rendezvousKey,
                     amount = exchange.kin,
                     source = currentTray.cluster(exchange.from),
-                    destination = currentTray.cluster(exchange.to!!).timelockAccounts.vault.publicKey
+                    destination = currentTray.cluster(exchange.to!!).vaultPublicKey
                     // Exchanges always provide destination accounts
                 )
             }
@@ -127,7 +127,7 @@ class IntentPrivateTransfer(
                 ActionWithdraw.newInstance(
                     kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.Outgoing),
                     cluster = newOutgoing.getCluster(),
-                    destination = currentTray.owner.getCluster().timelockAccounts.vault.publicKey
+                    destination = currentTray.owner.getCluster().vaultPublicKey
                 )
             )
 

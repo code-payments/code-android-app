@@ -28,7 +28,7 @@ class IntentPublicTransfer(
         return TransactionService.Metadata.newBuilder()
             .setSendPublicPayment(
                 TransactionService.SendPublicPaymentMetadata.newBuilder()
-                    .setSource(sourceCluster.timelockAccounts.vault.publicKey.bytes.toSolanaAccount())
+                    .setSource(sourceCluster.vaultPublicKey.bytes.toSolanaAccount())
                     .setDestination(destination.bytes.toSolanaAccount())
                     .setIsWithdrawal(true)
                     .setExchangeData(
@@ -61,7 +61,7 @@ class IntentPublicTransfer(
 
             val target = when (destination) {
                 is Destination.External -> destination.publicKey
-                is Destination.Local -> organizer.tray.cluster(destination.accountType).timelockAccounts.vault.publicKey
+                is Destination.Local -> organizer.tray.cluster(destination.accountType).vaultPublicKey
             }
 
             // 1. Transfer all funds in the primary account

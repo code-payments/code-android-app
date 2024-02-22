@@ -91,49 +91,49 @@ class IntentDepositTest {
             assertEquals(ActionTransfer.Kind.TempPrivacyTransfer, action.kind)
             assertEquals(1_000_000.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.owner.getCluster(), action.source)
-            assertEquals(organizer.tray.slots[6].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[6].getCluster().vaultPublicKey, action.destination)
         }
 
         (intent.getAction(1) as ActionTransfer).let { action ->
             assertEquals(ActionTransfer.Kind.TempPrivacyExchange, action.kind)
             assertEquals(1_000_000.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.slots[6].getCluster(), action.source)
-            assertEquals(organizer.tray.slots[5].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[5].getCluster().vaultPublicKey, action.destination)
         }
 
         (intent.getAction(2) as ActionTransfer).let { action ->
             assertEquals(ActionTransfer.Kind.TempPrivacyExchange, action.kind)
             assertEquals(100_000.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.slots[5].getCluster(), action.source)
-            assertEquals(organizer.tray.slots[4].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[4].getCluster().vaultPublicKey, action.destination)
         }
 
         (intent.getAction(3) as ActionTransfer).let { action ->
             assertEquals(ActionTransfer.Kind.TempPrivacyExchange, action.kind)
             assertEquals(10_000.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.slots[4].getCluster(), action.source)
-            assertEquals(organizer.tray.slots[3].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[3].getCluster().vaultPublicKey, action.destination)
         }
 
         (intent.getAction(4) as ActionTransfer).let { action ->
             assertEquals(ActionTransfer.Kind.TempPrivacyExchange, action.kind)
             assertEquals(1_000.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.slots[3].getCluster(), action.source)
-            assertEquals(organizer.tray.slots[2].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[2].getCluster().vaultPublicKey, action.destination)
         }
 
         (intent.getAction(5) as ActionTransfer).let { action ->
             assertEquals(ActionTransfer.Kind.TempPrivacyExchange, action.kind)
             assertEquals(100.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.slots[2].getCluster(), action.source)
-            assertEquals(organizer.tray.slots[1].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[1].getCluster().vaultPublicKey, action.destination)
         }
 
         (intent.getAction(6) as ActionTransfer).let { action ->
             assertEquals(ActionTransfer.Kind.TempPrivacyExchange, action.kind)
             assertEquals(10.0, action.amount.toKinValueDouble(), 0.0)
             assertEquals(organizer.tray.slots[1].getCluster(), action.source)
-            assertEquals(organizer.tray.slots[0].getCluster().timelockAccounts.vault.publicKey, action.destination)
+            assertEquals(organizer.tray.slots[0].getCluster().vaultPublicKey, action.destination)
         }
 
     }

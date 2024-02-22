@@ -13,6 +13,13 @@ import java.io.IOException
 
 class PublicKey(bytes: List<Byte>) : Key32(bytes) {
     companion object {
+
+        val kin: Mint
+            get() = Mint(Base58.decode("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6").toList())
+
+        val usdc: Mint
+            get() = Mint(org.kin.sdk.base.tools.Base58.decode("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v").toList())
+
         fun generate(): PublicKey = Ed25519.createSeed32().toPublicKey()
 
         fun fromBase58(base58: String): PublicKey {
@@ -32,7 +39,7 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
         ): ProgramDerivedAccount {
             val seeds: List<ByteArray> = listOf(
                 "timelock_state".toByteArray(Charsets.UTF_8),
-                kinMint.bytes.toByteArray(),
+                Mint.kin.bytes.toByteArray(),
                 timeAuthority.bytes.toByteArray(),
                 owner.bytes.toByteArray(),
                 byteArrayOf(lockout.toByte())
@@ -71,7 +78,7 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
             val seeds: List<ByteArray> = listOf(
                 "timelock_state".toByteArray(Charsets.UTF_8),
                 version,
-                kinMint.bytes.toByteArray(),
+                Mint.kin.bytes.toByteArray(),
                 subsidizer.bytes.toByteArray(),
                 nonce.bytes.toByteArray(),
                 owner.bytes.toByteArray(),

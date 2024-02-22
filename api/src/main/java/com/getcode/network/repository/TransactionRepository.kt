@@ -26,6 +26,7 @@ import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.appcheck.AppCheck
 import com.getcode.solana.keys.AssociatedTokenAccount
+import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
@@ -577,7 +578,7 @@ class TransactionRepository @Inject constructor(
                     Kind.OwnerAccount -> {
                         hasResolvedDestination = true
                         resolvedDestination =
-                            AssociatedTokenAccount.newInstance(owner = destination).ata.publicKey
+                            AssociatedTokenAccount.newInstance(owner = destination, mint = Mint.kin).ata.publicKey
                     }
                 }
 

@@ -28,7 +28,8 @@ class Relationship(
                     context = context,
                     path = DerivePath.relationship(domain),
                     mnemonic = mnemonic
-                )
+                ),
+                kind = AccountCluster.Kind.Timelock,
             )
 
             return Relationship(

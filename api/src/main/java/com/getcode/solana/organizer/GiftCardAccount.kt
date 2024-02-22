@@ -19,8 +19,9 @@ class GiftCardAccount(
                     authority = DerivedKey.derive(
                         context = context,
                         path = DerivePath.primary,
-                        mnemonic = phrase
-                    )
+                        mnemonic = phrase,
+                    ),
+                    kind = AccountCluster.Kind.Timelock,
                 )
             )
         }

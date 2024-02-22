@@ -8,6 +8,7 @@ import com.getcode.model.intents.actions.numberActions
 import com.getcode.network.appcheck.toDeviceToken
 import com.getcode.network.repository.*
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.sign
 
 abstract class IntentType {
     abstract val id: PublicKey

@@ -2,7 +2,6 @@ package com.getcode.solana.keys
 
 import com.getcode.crypt.Sha256Hash
 import com.getcode.model.Kin
-import com.getcode.solana.keys.Key32.Companion.kinMint
 import com.getcode.solana.organizer.AccountCluster
 import org.kin.sdk.base.models.toUTF8Bytes
 
@@ -115,7 +114,7 @@ class SplitterCommitmentAccounts(
                 intentId = intentId,
                 actionId = actionId,
                 amount = amount,
-                source = source.timelockAccounts.vault.publicKey,
+                source = source.vaultPublicKey,
                 destination = destination
             )
 
@@ -147,13 +146,13 @@ data class SplitterTranscript(
 
 data class AssociatedTokenAccount(
     val owner: PublicKey,
-    val ata: ProgramDerivedAccount
+    val ata: ProgramDerivedAccount,
 ) {
     companion object {
-        fun newInstance(owner: PublicKey): AssociatedTokenAccount {
+        fun newInstance(owner: PublicKey, mint: Mint): AssociatedTokenAccount {
             return AssociatedTokenAccount(
                 owner = owner,
-                ata = PublicKey.deriveAssociatedAccount(owner = owner, mint = kinMint)
+                ata = PublicKey.deriveAssociatedAccount(owner = owner, mint = mint)
             )
         }
     }

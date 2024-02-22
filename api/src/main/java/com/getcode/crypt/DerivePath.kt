@@ -45,6 +45,23 @@ class DerivePath(val indexes: List<Index>, val password: String? = null) {
             return DerivePath(indexes, password)
         }
 
+        // Primary      - m/44'/501'/0/0
+        //
+        // Incoming     - m/44'/501'/0/0/i/2
+        // Outgoing     - m/44'/501'/0/0/i/3
+        //
+        // Relationship - m/44'/501'/0/0/0/0
+        // Swap         - m/44'/501'/0/0/1/0  *
+        // etc.         - m/44'/501'/0/0/2/0  *
+        //
+        // Bucket1      - m/44'/501'/0/0/0/1
+        // Bucket10     - m/44'/501'/0/0/0/10
+        // Bucket100    - m/44'/501'/0/0/0/100
+        // Bucket1k     - m/44'/501'/0/0/0/1000
+        // Bucket10k    - m/44'/501'/0/0/0/10000
+        // Bucket100k   - m/44'/501'/0/0/0/100000
+        // Bucket1m     - m/44'/501'/0/0/0/1000000
+
         val bucket1    = newInstance("m/44'/501'/0'/0'/0'/1")!!
         val bucket10   = newInstance("m/44'/501'/0'/0'/0'/10")!!
         val bucket100  = newInstance("m/44'/501'/0'/0'/0'/100")!!
