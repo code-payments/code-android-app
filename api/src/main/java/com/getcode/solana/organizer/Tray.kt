@@ -33,7 +33,8 @@ class Tray(
     private val availableIncomingBalance: Kin
         get() = incoming.partialBalance
 
-    val relationships = RelationshipBox()
+    var relationships = RelationshipBox()
+        private set
 
     var availableRelationshipBalance: Kin = Kin.fromKin(0)
         get() = relationships.publicKeys.values.map { it.partialBalance }
@@ -222,7 +223,9 @@ class Tray(
             incoming = incoming.copy(),
             outgoing = outgoing.copy(),
             mnemonic = mnemonic,
-        )
+        ).apply {
+            this.relationships = relationships
+        }
     }
 
     companion object {

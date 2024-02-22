@@ -70,8 +70,7 @@ class TransactionReceiver @Inject constructor(
                 // Ignore empty relationship accounts
                 if (relationship.partialBalance > 0) {
                     val intent = transactionRepository.receiveFromRelationship(
-                        domain = relationship.domain,
-                        amount = relationship.partialBalance,
+                        relationship = relationship,
                         organizer = organizer
                     ).blockingGet()
 
