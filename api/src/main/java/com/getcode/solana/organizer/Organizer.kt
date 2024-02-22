@@ -109,7 +109,9 @@ class Organizer(
     }
 
     fun relationshipsLargestFirst(): List<Relationship> {
-        return tray.relationships.relationships(largestFirst = true)
+        return tray.relationships.relationships(largestFirst = true).also {
+            Timber.d("relationships=${it.joinToString { it.domain.urlString }}")
+        }
     }
 
     companion object {

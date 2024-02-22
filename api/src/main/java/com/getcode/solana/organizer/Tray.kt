@@ -69,7 +69,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship not found")
+                    ?: throw IllegalStateException("Relationship for (${type.domain}) not found in ${relationships.domains}")
                 relationships.insert(
                     relationship.apply {
                         partialBalance += kin
@@ -90,7 +90,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship not found")
+                    ?: throw IllegalStateException("Relationship for (${type.domain}) not found in ${relationships.domains}")
                 relationships.insert(
                     relationship.apply {
                         partialBalance -= kin
@@ -141,7 +141,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship not found")
+                    ?: throw IllegalStateException("Relationship for (${type.domain}) not found in ${relationships.domains}")
 
                 return relationship.partialBalance
             }
