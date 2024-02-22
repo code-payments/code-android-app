@@ -26,10 +26,10 @@ class RelationshipBox @Inject constructor() {
         }
     }
     fun relationshipWith(publicKey: PublicKey) = _publicKeys[publicKey]
-    fun relationshipWith(domain: Domain) = _domains[domain.urlString]
+    fun relationshipWith(domain: Domain) = _domains[domain.relationshipHost]
 
     fun insert(relationship: Relationship) {
         _publicKeys[relationship.getCluster().timelockAccounts.vault.publicKey] = relationship
-        _domains[relationship.domain.urlString] = relationship
+        _domains[relationship.domain.relationshipHost] = relationship
     }
 }
