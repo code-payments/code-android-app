@@ -75,7 +75,7 @@ internal fun LoginConfirmation(
                     bottomEnd = ZeroCornerSize
                 )
             )
-            .background(Brand)
+            .background(Color.Black)
             .padding(horizontal = 20.dp, vertical = 30.dp)
             .windowInsetsPadding(WindowInsets.navigationBars),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -89,7 +89,7 @@ internal fun LoginConfirmation(
             )
             SlideToConfirm(
                 isLoading = isSending,
-                trackColor = SlideToConfirmDefaults.BlueTrackColor,
+                trackColor = SlideToConfirmDefaults.BlackTrackColor,
                 isSuccess = state is LoginState.Sent,
                 onConfirm = { onSend() },
                 label = stringResource(R.string.swipe_to_login)
