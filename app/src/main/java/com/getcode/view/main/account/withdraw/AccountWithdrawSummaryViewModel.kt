@@ -1,6 +1,7 @@
 package com.getcode.view.main.account.withdraw
 
 import android.annotation.SuppressLint
+import androidx.lifecycle.viewModelScope
 import com.getcode.App
 import com.getcode.R
 import com.getcode.solana.keys.PublicKey
@@ -14,6 +15,7 @@ import com.getcode.model.Rate
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.WithdrawalArgs
+import com.getcode.network.HistoryController
 import com.getcode.network.client.*
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -22,6 +24,7 @@ import com.getcode.view.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val TAG = "AccountWithdrawSummaryViewModel"
@@ -40,6 +43,7 @@ data class AccountWithdrawSummaryUiModel(
 @HiltViewModel
 class AccountWithdrawSummaryViewModel @Inject constructor(
     private val client: Client,
+    private val historyController: HistoryController,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawSummaryUiModel())
@@ -104,6 +108,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
 
         client.withdrawExternally(amount, organizer, destination)
             .observeOn(AndroidSchedulers.mainThread())
+            .doOnComplete { viewModelScope.launch { historyController.fetchChats() } }
             .subscribe({
                 TopBarManager.showMessage(
                     TopBarManager.TopBarMessage(

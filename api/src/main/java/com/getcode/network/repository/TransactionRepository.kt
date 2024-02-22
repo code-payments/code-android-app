@@ -31,6 +31,7 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -153,14 +154,13 @@ class TransactionRepository @Inject constructor(
     }
 
     fun receiveFromRelationship(
-        domain: Domain,
-        amount: Kin,
+        relationship: Relationship,
         organizer: Organizer
     ): Single<IntentType> {
         val intent = IntentPublicTransfer.newInstance(
-            source = AccountType.Relationship(domain),
+            source = AccountType.Relationship(relationship.domain),
             organizer = organizer,
-            amount = KinAmount.newInstance(amount, Rate.oneToOne),
+            amount = KinAmount.newInstance(relationship.partialBalance, Rate.oneToOne),
             destination = IntentPublicTransfer.Destination.Local(AccountType.Primary)
         )
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)

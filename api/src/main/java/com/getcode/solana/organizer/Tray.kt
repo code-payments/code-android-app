@@ -33,7 +33,8 @@ class Tray(
     private val availableIncomingBalance: Kin
         get() = incoming.partialBalance
 
-    val relationships = RelationshipBox()
+    var relationships = RelationshipBox()
+        private set
 
     var availableRelationshipBalance: Kin = Kin.fromKin(0)
         get() = relationships.publicKeys.values.map { it.partialBalance }
@@ -69,7 +70,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship not found")
+                    ?: throw IllegalStateException("Relationship for ${type.domain.relationshipHost}) not found in ${relationships.domains}")
                 relationships.insert(
                     relationship.apply {
                         partialBalance += kin
@@ -90,7 +91,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship not found")
+                    ?: throw IllegalStateException("Relationship for ${type.domain.relationshipHost}) not found in ${relationships.domains}")
                 relationships.insert(
                     relationship.apply {
                         partialBalance -= kin
@@ -141,7 +142,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship not found")
+                    ?: throw IllegalStateException("Relationship for ${type.domain.relationshipHost}) not found in ${relationships.domains}")
 
                 return relationship.partialBalance
             }
@@ -226,7 +227,9 @@ class Tray(
             incoming = incoming.copy(),
             outgoing = outgoing.copy(),
             mnemonic = mnemonic,
-        )
+        ).apply tray@{
+            this@tray.relationships = this@Tray.relationships
+        }
     }
 
     companion object {

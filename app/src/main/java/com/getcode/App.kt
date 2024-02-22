@@ -28,6 +28,7 @@ class App : Application() {
 
         Firebase.initialize(this)
         AppCheck.register()
+        authManager.init(this)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 

@@ -10,6 +10,7 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
+import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import timber.log.Timber
@@ -59,28 +60,35 @@ class TransactionReceiver @Inject constructor(
         }
     }
 
-    fun receiveFromRelationship( organizer: Organizer, limit: Kin? = null): Kin {
+    fun receiveFromRelationship(organizer: Organizer, limit: Kin? = null): Kin {
         var receivedTotal = Kin.fromKin(0)
 
-        run loop@{
+        runCatching loop@{
             organizer.relationshipsLargestFirst().onEach { relationship ->
-                Timber.d("Receiving from relationships: ${relationship.partialBalance}")
+                Timber.d("Receiving from relationships: domain ${relationship.domain.urlString} balance ${relationship.partialBalance}")
 
-                val intent = transactionRepository.receiveFromRelationship(
-                    relationship.domain, relationship.partialBalance, organizer
-                ).blockingGet()
+                // Ignore empty relationship accounts
+                if (relationship.partialBalance > 0) {
+                    val intent = transactionRepository.receiveFromRelationship(
+                        relationship = relationship,
+                        organizer = organizer
+                    ).blockingGet()
 
-                receivedTotal += relationship.partialBalance
+                    receivedTotal += relationship.partialBalance
 
-                if (intent is IntentDeposit) {
-                    setTray(organizer, intent.resultTray)
-                }
+                    if (intent is IntentDeposit) {
+                        setTray(organizer, intent.resultTray)
+                    }
 
-                // Bail early if a limit is set
-                if (limit != null && receivedTotal >= limit) {
-                    return@loop // break loop
+                    // Bail early if a limit is set
+                    if (limit != null && receivedTotal >= limit) {
+                        return@loop // break loop
+                    }
                 }
             }
+        }.onFailure {
+            ErrorUtils.handleError(it)
+            it.printStackTrace()
         }
 
         return receivedTotal

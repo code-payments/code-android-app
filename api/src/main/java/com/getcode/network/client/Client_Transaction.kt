@@ -16,6 +16,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.model.SendLimit
 import com.getcode.model.intents.IntentDeposit
+import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
@@ -579,8 +580,8 @@ fun Client.receiveFromRelationships(organizer: Organizer, upTo: Kin? = null): Ki
 
 @SuppressLint("CheckResult")
 @Throws
-fun Client.establishRelationshipSingle(organizer: Organizer, domain: Domain) {
-    transactionRepository.establishRelationshipSingle(organizer, domain).ignoreElement()
+fun Client.establishRelationshipSingle(organizer: Organizer, domain: Domain): Single<IntentEstablishRelationship> {
+    return transactionRepository.establishRelationshipSingle(organizer, domain)
 }
 
 @Suppress("RedundantSuspendModifier")

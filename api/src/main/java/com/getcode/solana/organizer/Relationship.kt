@@ -32,7 +32,11 @@ class Relationship(
                 kind = AccountCluster.Kind.Timelock,
             )
 
-            return Relationship(domain, mnemonic, partialBalance = partialKinBalance).apply {
+            return Relationship(
+                domain = domain,
+                mnemonic = mnemonic,
+                partialBalance = partialKinBalance
+            ).apply {
                 this.cluster = cluster
             }
         }

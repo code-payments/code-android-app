@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.capitalize
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.model.KinAmount
@@ -39,12 +40,12 @@ import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.components.SlideToConfirmDefaults
+import java.util.Locale
 
 @Composable
 internal fun LoginConfirmation(
     modifier: Modifier = Modifier,
     confirmation: LoginConfirmation?,
-    onAddKin: () -> Unit = { },
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -57,7 +58,11 @@ internal fun LoginConfirmation(
     }
 
     val domain by remember(confirmation?.domain) {
-        derivedStateOf { confirmation?.domain?.urlString }
+        derivedStateOf {
+            confirmation?.domain?.urlString?.replaceFirstChar {
+                if (it.isLowerCase()) it.titlecase() else it.toString()
+            }
+        }
     }
 
     Column(
@@ -70,7 +75,7 @@ internal fun LoginConfirmation(
                     bottomEnd = ZeroCornerSize
                 )
             )
-            .background(Brand)
+            .background(Color.Black)
             .padding(horizontal = 20.dp, vertical = 30.dp)
             .windowInsetsPadding(WindowInsets.navigationBars),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -84,7 +89,7 @@ internal fun LoginConfirmation(
             )
             SlideToConfirm(
                 isLoading = isSending,
-                trackColor = SlideToConfirmDefaults.BlueTrackColor,
+                trackColor = SlideToConfirmDefaults.BlackTrackColor,
                 isSuccess = state is LoginState.Sent,
                 onConfirm = { onSend() },
                 label = stringResource(R.string.swipe_to_login)
