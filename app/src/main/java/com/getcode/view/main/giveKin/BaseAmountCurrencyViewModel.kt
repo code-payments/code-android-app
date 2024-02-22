@@ -107,6 +107,9 @@ abstract class BaseAmountCurrencyViewModel(
             balanceRepository.balanceFlow
         ) { currencies, selectedCode, _, balance ->
             val currency = currencies.firstOrNull { it.code == selectedCode }
+            if (currency?.code != getCurrencyUiModel().selectedCurrencyCode) {
+                reset()
+            }
             getModelsWithSelectedCurrency(
                 currencies,
                 getCurrencyUiModel(),
@@ -121,6 +124,8 @@ abstract class BaseAmountCurrencyViewModel(
             setAmountUiModel(amountModel)
         }.launchIn(viewModelScope)
     }
+
+    internal abstract fun reset()
 
     protected open fun onAmountChanged(
         lastPressedBackspace: Boolean = false
@@ -179,6 +184,8 @@ abstract class BaseAmountCurrencyViewModel(
             selectedCurrencyResId = resId,
             currencies = currencies,
         )
+
+        numberInputHelper.isDecimalAllowed = selectedCurrency != Currency.Kin
 
         val amountModelN =
             getAmountUiFormattedModel(amountUiModel, selectedCurrency, amount, formattedString)

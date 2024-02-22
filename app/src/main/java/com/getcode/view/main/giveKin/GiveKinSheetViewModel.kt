@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BetaFlags
+import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.model.PrefsBool
@@ -15,6 +16,7 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
+import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -78,7 +80,7 @@ class GiveKinSheetViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-    fun reset() {
+    override fun reset() {
         numberInputHelper.reset()
         onAmountChanged(true)
         viewModelScope.launch {
