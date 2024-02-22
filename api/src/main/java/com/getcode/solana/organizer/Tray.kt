@@ -70,7 +70,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship for (${type.domain}) not found in ${relationships.domains}")
+                    ?: throw IllegalStateException("Relationship for ${type.domain.relationshipHost}) not found in ${relationships.domains}")
                 relationships.insert(
                     relationship.apply {
                         partialBalance += kin
@@ -91,7 +91,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship for (${type.domain}) not found in ${relationships.domains}")
+                    ?: throw IllegalStateException("Relationship for ${type.domain.relationshipHost}) not found in ${relationships.domains}")
                 relationships.insert(
                     relationship.apply {
                         partialBalance -= kin
@@ -142,7 +142,7 @@ class Tray(
             AccountType.RemoteSend -> throw IllegalStateException("Remote send account unsupported")
             is AccountType.Relationship -> {
                 val relationship = relationships.relationshipWith(type.domain)
-                    ?: throw IllegalStateException("Relationship for (${type.domain}) not found in ${relationships.domains}")
+                    ?: throw IllegalStateException("Relationship for ${type.domain.relationshipHost}) not found in ${relationships.domains}")
 
                 return relationship.partialBalance
             }
@@ -223,8 +223,8 @@ class Tray(
             incoming = incoming.copy(),
             outgoing = outgoing.copy(),
             mnemonic = mnemonic,
-        ).apply {
-            this.relationships = relationships
+        ).apply tray@{
+            this@tray.relationships = this@Tray.relationships
         }
     }
 
