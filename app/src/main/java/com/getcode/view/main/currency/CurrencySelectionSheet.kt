@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
+import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FixedThreshold
 import androidx.compose.material.Icon
@@ -58,6 +59,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.CodeCircularProgressIndicator
@@ -193,18 +195,10 @@ fun CurrencySelectionSheet(
 
                     when (listItem) {
                         is CurrencyListItem.TitleItem -> {
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(horizontal = 20.dp)
-                            ) {
-                                Text(
-                                    modifier = Modifier.padding(bottom = 10.dp),
-                                    style = CodeTheme.typography.body2,
-                                    color = BrandLight,
-                                    text = listItem.text
-                                )
-                            }
+                            GroupHeader(
+                                modifier = Modifier.align(Alignment.BottomStart),
+                                text = listItem.text
+                            )
                         }
 
                         is CurrencyListItem.RegionCurrencyItem -> {
@@ -261,18 +255,10 @@ fun CurrencySelectionSheet(
 
                     when (listItem) {
                         is CurrencyListItem.TitleItem -> {
-                            Row(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(horizontal = 20.dp)
-                            ) {
-                                Text(
-                                    modifier = Modifier.padding(bottom = 10.dp),
-                                    style = CodeTheme.typography.body2,
-                                    color = BrandLight,
-                                    text = listItem.text
-                                )
-                            }
+                            GroupHeader(
+                                modifier = Modifier.align(Alignment.BottomStart),
+                                text = listItem.text
+                            )
                         }
 
                         is CurrencyListItem.RegionCurrencyItem -> {
@@ -328,6 +314,30 @@ fun CurrencySelectionSheet(
     }
 }
 
+@Composable
+private fun GroupHeader(modifier: Modifier = Modifier, text: String) {
+    Column(
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset)
+        ) {
+            Text(
+                modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
+                style = CodeTheme.typography.body2,
+                color = BrandLight,
+                text = text
+            )
+        }
+        Divider(
+            color = White05,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+        )
+    }
+}
+
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -374,47 +384,60 @@ private fun ListRowItem(
                         it.rememberedClickable { onClick() }
                     } else it
                 }
-                .padding(horizontal = CodeTheme.dimens.inset)
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .align(Alignment.CenterStart)
-                    .alpha(if (item.currency.rate <= 0) 0.25f else 1.0f)
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    .padding(horizontal = CodeTheme.dimens.inset)
             ) {
-                item.currency.resId?.let { resId ->
-                    Image(
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .align(Alignment.CenterStart)
+                        .alpha(if (item.currency.rate <= 0) 0.25f else 1.0f)
+                ) {
+                    item.currency.resId?.let { resId ->
+                        Image(
+                            modifier = Modifier
+                                .padding(end = CodeTheme.dimens.grid.x3)
+                                .requiredSize(CodeTheme.dimens.staticGrid.x6)
+                                .clip(CodeTheme.shapes.large)
+                                .align(Alignment.CenterVertically),
+                            painter = painterResource(resId),
+                            contentDescription = ""
+                        )
+                    }
+                    Column(
                         modifier = Modifier
-                            .padding(end = CodeTheme.dimens.grid.x3)
-                            .requiredSize(CodeTheme.dimens.staticGrid.x6)
-                            .clip(CodeTheme.shapes.large)
+                            .wrapContentWidth()
                             .align(Alignment.CenterVertically),
-                        painter = painterResource(resId),
-                        contentDescription = ""
-                    )
+                    ) {
+                        Text(
+                            text = item.currency.name,
+                            style = CodeTheme.typography.body1
+                        )
+                    }
                 }
-                Column(
+
+                Image(
                     modifier = Modifier
                         .wrapContentWidth()
-                        .align(Alignment.CenterVertically),
-                ) {
-                    Text(
-                        text = item.currency.name,
-                        style = CodeTheme.typography.body1
-                    )
-                }
+                        .align(Alignment.CenterEnd)
+                        .alpha(if (item.currency.rate <= 0) 0.25f else 1.0f),
+                    painter = painterResource(
+                        if (isSelected)
+                            R.drawable.ic_checked_blue else R.drawable.ic_unchecked
+                    ),
+                    contentDescription = ""
+                )
             }
 
-            Image(
+            Divider(
+                color = White05,
                 modifier = Modifier
-                    .wrapContentWidth()
-                    .align(Alignment.CenterEnd)
-                    .alpha(if (item.currency.rate <= 0) 0.25f else 1.0f),
-                painter = painterResource(
-                    if (isSelected)
-                        R.drawable.ic_checked_blue else R.drawable.ic_unchecked
-                ),
-                contentDescription = ""
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .align(Alignment.BottomCenter)
+                    .padding(start = CodeTheme.dimens.inset)
             )
         }
     }
