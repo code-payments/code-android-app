@@ -169,7 +169,6 @@ private fun HomeScan(
             }
 
             if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
-                delay(500)
                 homeViewModel.handleRequest(requestPayload)
                 requestPayloadSaved = null
             }
