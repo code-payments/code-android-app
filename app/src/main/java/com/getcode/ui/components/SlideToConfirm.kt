@@ -212,7 +212,9 @@ private fun calculateSwipeFraction(progress: SwipeProgress<Anchor>): Float {
     } else {
         if (fromStart) progress.fraction else 1f - progress.fraction
     }
-}enum class Anchor { Start, End }
+}
+
+enum class Anchor { Start, End }
 
 @Composable
 private fun Track(
@@ -231,7 +233,7 @@ private fun Track(
     val thumbSize = Thumb.Size
     val startOfTrackPx = 0f
     val endOfTrackPx = remember(fullWidth) {
-        with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() }
+        with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() + thumbSize.value }
     }
 
     val snapThreshold = SlideToConfirmDefaults.SnapThreshold
