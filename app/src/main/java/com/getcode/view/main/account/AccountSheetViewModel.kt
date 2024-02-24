@@ -5,6 +5,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.db.Database
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.PhoneRepository
@@ -12,13 +13,16 @@ import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -42,6 +46,7 @@ enum class AccountPage {
     LOGOUT
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,

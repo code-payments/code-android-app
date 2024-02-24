@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -33,13 +34,6 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
         return observeOrDefault(key, default).firstOrNull() ?: default
     }
 
-    suspend fun get(key: PrefDouble, default: Double): Double {
-        return observeOrDefault(key, default).firstOrNull() ?: default
-    }
-
-    suspend fun get(key: PrefInt, default: Long): Long {
-        return observeOrDefault(key, default).firstOrNull() ?: default
-    }
 
     fun getFlowable(key: PrefsString): Flowable<String> {
         val db = Database.getInstance() ?: return Flowable.empty()
@@ -58,34 +52,28 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun observeOrDefault(key: PrefsBool, default: Boolean): Flow<Boolean> {
-        val db = Database.getInstance() ?: return flowOf(default).also { Timber.e("observe bool ; DB not available") }
-        return db.prefBoolDao().observe(key.value)
+        return Database.isInit
+            .asFlow()
+            .map { Database.getInstance() }
+            .flatMapLatest {
+                it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe bool ; DB not available") }
+                it.prefBoolDao().observe(key.value)
+                    .map { it?.value ?: default }
+            }
             .flowOn(Dispatchers.IO)
-            .map { it?.value ?: default }
+
     }
 
     fun observeOrDefault(key: PrefsString, default: String): Flow<String> {
-        val db = Database.getInstance() ?: return flowOf(default)
-        return db.prefStringDao().observe(key.value)
+        return Database.isInit
+            .asFlow()
+            .map { Database.getInstance() }
+            .flatMapLatest {
+                it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe string ; DB not available") }
+                it.prefStringDao().observe(key.value)
+                    .map { it?.value ?: default }
+            }
             .flowOn(Dispatchers.IO)
-            .map { it?.value ?: default }
-            .distinctUntilChanged()
-    }
-
-    fun observeOrDefault(key: PrefDouble, default: Double): Flow<Double> {
-        val db = Database.getInstance() ?: return flowOf(default)
-        return db.prefDoubleDao().observe(key.key)
-            .flowOn(Dispatchers.IO)
-            .map { it?.value ?: default }
-            .distinctUntilChanged()
-    }
-
-    fun observeOrDefault(key: PrefInt, default: Long): Flow<Long> {
-        val db = Database.getInstance() ?: return flowOf(default)
-        return db.prefIntDao().observe(key.key)
-            .flowOn(Dispatchers.IO)
-            .map { it?.value ?: default }
-            .distinctUntilChanged()
     }
 
     fun getFlowable(key: String): Flowable<Long> {
