@@ -554,17 +554,20 @@ fun Client.getTransferPreflightAction(amount: Kin): Completable {
         // 1. Receive funds from incoming accounts as those
         // will rotate more frequently than other types of accounts
         val receivedKin = transactionReceiver.receiveFromIncoming(organizer)
-
+        Timber.d("received ${receivedKin.quarks} from incoming")
         // 2. Pull funds from relationships if there's still funds
         // missing in buckets after the receiving from primary
         if (receivedKin < neededKin) {
-            transactionReceiver.receiveFromRelationship(organizer, limit = neededKin - receivedKin)
+            Timber.d("attempt to pull funds from relationship to get to ${neededKin.quarks}")
+            val result = transactionReceiver.receiveFromRelationship(organizer, limit = neededKin - receivedKin)
+            Timber.d("received ${result.quarks} from relationships")
         }
 
         // 3. If the amount is still larger than what's available
         // in the slots, we'll need to move funds from primary
         // deposits into slots after receiving
         if (amount > organizer.slotsBalance) {
+            Timber.d("receive from primary")
             receiveFromPrimaryIfWithinLimits(organizer)
         } else {
             Completable.complete()
