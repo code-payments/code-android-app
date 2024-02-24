@@ -34,7 +34,7 @@ class Tray(
         get() = incoming.partialBalance
 
     var relationships = RelationshipBox()
-        private set
+        internal set
 
     var availableRelationshipBalance: Kin = Kin.fromKin(0)
         get() = relationships.publicKeys.values.map { it.partialBalance }
