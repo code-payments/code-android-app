@@ -246,7 +246,7 @@ private fun Track(
     Box(
         modifier = modifier
             .onSizeChanged { fullWidth = it.width }
-            .height(CodeTheme.dimens.grid.x11)
+            .height(thumbSize + CodeTheme.dimens.grid.x1)
             .fillMaxWidth()
             .swipeable(
                 enabled = enabled,
