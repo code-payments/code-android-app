@@ -17,6 +17,7 @@ import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import net.sqlcipher.database.SupportFactory
 import org.kin.sdk.base.tools.subByteArray
+import timber.log.Timber
 import java.io.File
 
 @Database(
@@ -61,6 +62,7 @@ object Database {
     fun requireInstance() = instance!!
 
     fun init(context: Context, entropyB64: String) {
+        Timber.d("init")
         instance?.close()
         val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 3))
         dbName = "$dbNamePrefix-$dbUniqueName$dbNameSuffix"
@@ -70,10 +72,12 @@ object Database {
                 .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                 .fallbackToDestructiveMigration()
                 .build()
+
         isInitSubject.onNext(true)
     }
 
     fun close() {
+        Timber.d("close")
         instance?.close()
         instance = null
         isInitSubject.onNext(false)

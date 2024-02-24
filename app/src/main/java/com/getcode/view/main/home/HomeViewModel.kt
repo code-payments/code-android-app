@@ -186,9 +186,10 @@ class HomeViewModel @Inject constructor(
 
     init {
         onDrawn()
-        Database.isInit
-            .flatMap { prefRepository.getFlowable(PrefsBool.DISPLAY_ERRORS) }
-            .subscribe(ErrorUtils::setDisplayErrors)
+        prefRepository.observeOrDefault(PrefsBool.DISPLAY_ERRORS, false)
+            .distinctUntilChanged()
+            .onEach { ErrorUtils.setDisplayErrors(it) }
+            .launchIn(viewModelScope)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
             .subscribeOn(Schedulers.computation())
@@ -197,6 +198,7 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
                 }
             }
+
 
         prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
             .map { it }
