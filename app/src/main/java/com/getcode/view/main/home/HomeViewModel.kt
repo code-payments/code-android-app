@@ -1159,20 +1159,31 @@ class HomeViewModel @Inject constructor(
         val request = DeepLinkRequest.from(data)
         if (request != null) {
             if (request.paymentRequest != null) {
-                val fiat = request.paymentRequest.fiat
-                val payload = CodePayload(
-                    kind = Kind.RequestPayment,
-                    value = fiat,
-                    nonce = request.clientSecret
-                )
+                viewModelScope.launch {
+                    if (uiFlow.value.balance == null) {
+                        balanceController.fetchBalanceSuspend()
+                        uiFlow.update {
+                            val amount = KinAmount.newInstance(
+                                Kin.fromKin(balanceController.rawBalance), exchange.localRate
+                            )
+                            it.copy(balance = amount)
+                        }
+                    }
+                    val fiat = request.paymentRequest.fiat
+                    val payload = CodePayload(
+                        kind = Kind.RequestPayment,
+                        value = fiat,
+                        nonce = request.clientSecret
+                    )
 
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
+                    if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                        Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                        return@launch
+                    }
+
+                    scannedRendezvous.add(payload.rendezvous.publicKey)
+                    attemptPayment(payload, request)
                 }
-
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-                attemptPayment(payload, request)
             } else if (request.loginRequest != null) {
                 val payload = CodePayload(
                     kind = Kind.Login,
