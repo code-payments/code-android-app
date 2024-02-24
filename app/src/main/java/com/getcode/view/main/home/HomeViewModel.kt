@@ -377,7 +377,6 @@ class HomeViewModel @Inject constructor(
                                 valuation = Valuation(
                                     bill.amount
                                 ),
-                                showToast = bill.didReceive
                             )
                         )
                     }
@@ -465,7 +464,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun showToastIfNeeded(style: PresentationStyle): Boolean {
+    private fun showToastIfNeeded(
+        style: PresentationStyle,
+    ): Boolean {
         val billState = uiFlow.value.billState
         val bill = billState.bill ?: return false
 
@@ -476,7 +477,7 @@ class HomeViewModel @Inject constructor(
                     PresentationStyle.Slide -> true
                     PresentationStyle.Pop -> false
                     else -> false
-                }
+                },
             )
 
             return true

@@ -89,7 +89,7 @@ internal fun DecorView(
                 modifier = Modifier
                     .align(Alignment.End)
                     .padding(end = CodeTheme.dimens.grid.x5),
-                visible = dataState.billState.showToast,
+                visible = dataState.billState.showToast && dataState.billState.toast != null,
                 enter = slideInVertically(animationSpec = tween(600), initialOffsetY = { it }) +
                         fadeIn(animationSpec = tween(500, 100)),
                 exit = if (!isPaused)
