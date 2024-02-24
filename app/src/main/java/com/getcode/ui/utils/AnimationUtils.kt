@@ -32,7 +32,7 @@ object AnimationUtils {
         )
     )
 
-    val animationBillExitGrabbed = fadeOut(tween(durationMillis = 400)) + scaleOut(
+    val animationBillExitGrabbed = fadeOut(tween(durationMillis = 100)) + scaleOut(
         animationSpec = spring(
             dampingRatio = 0.4f,
             stiffness = 400f

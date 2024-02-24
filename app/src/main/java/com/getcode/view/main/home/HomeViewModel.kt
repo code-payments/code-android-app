@@ -341,15 +341,14 @@ class HomeViewModel @Inject constructor(
         sendTransactionRepository.init(amount = amountFloor, owner = owner)
         sendTransactionDisposable =
             sendTransactionRepository.startTransaction(organizer)
-                .flatMapCompletable {
-                    Completable.concatArray(
-                        balanceController.fetchBalance(),
-                        client.fetchLimits(isForce = true),
-                    )
-                }
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
                     vibrator.vibrate()
+
+                    viewModelScope.launch {
+                        balanceController.fetchBalanceSuspend()
+                        client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
+                    }
                 }, {
                     ErrorUtils.handleError(it)
                     cancelSend(style = PresentationStyle.Slide)
@@ -429,8 +428,6 @@ class HomeViewModel @Inject constructor(
 
 
         viewModelScope.launch {
-            historyController.fetchChats()
-
             val shown = showToastIfNeeded(style)
 
             uiFlow.update {
@@ -441,6 +438,8 @@ class HomeViewModel @Inject constructor(
                     )
                 )
             }
+
+            historyController.fetchChats()
 
             if (shown) {
                 delay(300)
