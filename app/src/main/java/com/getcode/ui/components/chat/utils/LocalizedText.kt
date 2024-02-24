@@ -65,7 +65,7 @@ internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUti
                 ResourceType.String,
             ).let { if (it == 0) null else it }
 
-            resId?.let { resources.getString(it) }.orEmpty()
+            resId?.let { resources.getString(it) } ?: content.value
         }
 
         MessageContent.SodiumBox -> "<! encrypted content !>"
