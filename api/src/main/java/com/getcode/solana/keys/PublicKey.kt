@@ -194,6 +194,20 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
                 )
             )
         }
+
+        fun derivePreSwapState(
+            source: PublicKey, destination: PublicKey, nonce: PublicKey
+        ): ProgramDerivedAccount {
+            return findProgramAddress(
+                programId = SwapValidatorProgram.address,
+                seeds = listOf(
+                    "pre_swap_state".toByteArray(Charsets.UTF_8),
+                    source.bytes.toByteArray(),
+                    destination.bytes.toByteArray(),
+                    nonce.bytes.toByteArray(),
+                )
+            )
+        }
     }
 
     override fun equals(other: Any?): Boolean {

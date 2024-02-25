@@ -2,14 +2,22 @@ package com.getcode.solana.builder
 
 import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
+import com.getcode.model.intents.SwapConfigParameters
+import com.getcode.solana.AccountMeta
+import com.getcode.solana.Instruction
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType
 import com.getcode.solana.instructions.programs.*
+import com.getcode.solana.keys.Key32.Companion.mock
 import com.getcode.solana.keys.Key32.Companion.subsidizer
 import com.getcode.solana.keys.Key32.Companion.timeAuthority
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.PreSwapStateAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.TimelockDerivedAccounts
+import com.getcode.solana.keys.base58
+import com.getcode.solana.organizer.AccountCluster
+import org.kin.sdk.base.models.Key
 
 object TransactionBuilder {
 
@@ -148,6 +156,88 @@ object TransactionBuilder {
                     legacy = legacy
                 ).instruction(),
                 )
+        )
+    }
+
+    // Swap performs an on-chain swap. The high-level flow mirrors SubmitIntent
+    // closely. However, due to the time-sensitive nature and unreliability of
+    // swaps, they do not fit within the broader intent system. This results in
+    // a few key differences:
+    //  * Transactions are submitted on a best-effort basis outside of the Code
+    //    Sequencer within the RPC handler
+    //  * Balance changes are applied after the transaction has finalized
+    //  * Transactions use recent blockhashes over a nonce
+    //
+    // The transaction will have the following instruction format:
+    //   1. ComputeBudget::SetComputeUnitLimit
+    //   2. ComputeBudget::SetComputeUnitPrice
+    //   3. SwapValidator::PreSwap
+    //   4. Dynamic swap instruction
+    //   5. SwapValidator::PostSwap
+    //
+    // Note: Currently limited to swapping USDC to Kin.
+    // Note: Kin is deposited into the primary account.
+    //
+    fun swap(fromUsdc: AccountCluster, toPrimary: PublicKey, parameters: SwapConfigParameters): SolanaTransaction {
+        val payer = parameters.payer
+        val destination = toPrimary
+
+        val stateAccount = PreSwapStateAccount.newInstance(
+            owner = mock,
+            source = fromUsdc.vaultPublicKey,
+            destination = destination,
+            nonce = parameters.nonce
+        )
+
+        val remainingAccounts = parameters.swapAccounts.filter {
+            (it.isSigner || it.isWritable) &&
+                    (it.publicKey.base58Encode() != fromUsdc.authorityPublicKey.base58() &&
+                            it.publicKey.base58Encode() != fromUsdc.vaultPublicKey.base58() &&
+                            it.publicKey.base58Encode() != destination.base58())
+        }
+
+        return SolanaTransaction.newInstance(
+            payer = payer,
+            recentBlockhash = parameters.blockHash,
+            instructions = listOf(
+                ComputeBudgetProgram_SetComputeUnitLimit(
+                    limit = parameters.computeUnitLimit,
+                    bump = stateAccount.state.bump.toByte(),
+                ).instruction(),
+                ComputeBudgetProgram_SetComputeUnitPrice(
+                    microLamports = parameters.computeUnitPrice,
+                    bump = stateAccount.state.bump.toByte(),
+                ).instruction(),
+                SwapValidatorProgram_PreSwap(
+                    preSwapState = stateAccount.state.publicKey,
+                    user = fromUsdc.authorityPublicKey,
+                    source = fromUsdc.vaultPublicKey,
+                    destination = destination,
+                    nonce = parameters.nonce,
+                    payer = payer,
+                    remainingAccounts = remainingAccounts.map {
+                        val publicKey = PublicKey.fromBase58(it.publicKey.base58Encode())
+                        AccountMeta(publicKey, it.isSigner, it.isWritable, it.isPayer, it.isProgram)
+                    },
+                ).instruction(),
+                Instruction(
+                    program = parameters.swapProgram,
+                    accounts = parameters.swapAccounts.map {
+                        val publicKey = PublicKey.fromBase58(it.publicKey.base58Encode())
+                        AccountMeta(publicKey, it.isSigner, it.isWritable, it.isPayer, it.isProgram)
+                    },
+                    data = parameters.swapData.toList(),
+                ),
+                SwapValidatorProgram_PostSwap(
+                    stateBump = stateAccount.state.bump.toByte(),
+                    maxToSend = parameters.maxToSend,
+                    minToReceive = parameters.minToReceive,
+                    preSwapState = stateAccount.state.publicKey,
+                    source = fromUsdc.vaultPublicKey,
+                    destination = destination,
+                    payer = payer,
+                ).instruction()
+            )
         )
     }
 

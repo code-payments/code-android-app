@@ -4,6 +4,7 @@ import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.consume
 import org.kin.sdk.base.tools.longToByteArray
@@ -17,7 +18,7 @@ class TimelockProgram_Withdraw(
     val payer: PublicKey,
     val bump: Byte,
     val legacy: Boolean = false,
-): InstructionType {
+) : InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
             program = if (legacy) TimelockProgram.legacyAddress else TimelockProgram.address,
@@ -36,7 +37,7 @@ class TimelockProgram_Withdraw(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(TimelockProgram.Companion.Command.withdraw.value.toByteArray().toList())
+        data.addAll(Command.withdraw.value.toByteArray().toList())
         data.add(bump)
 
         return data
@@ -44,9 +45,13 @@ class TimelockProgram_Withdraw(
 
     companion object {
         fun newInstance(instruction: Instruction): TimelockProgram_Withdraw {
-            val data = TimelockProgram.parse(instruction = instruction, expectingAccounts = 7)
+            val data = TimelockProgram.parse(
+                command = Command.withdraw,
+                instruction = instruction,
+                expectingAccounts = 7
+            )
 
-            val bump = data.consume(1)
+            val bump = data.remaining.consume(1)
 
             return TimelockProgram_Withdraw(
                 timelock = instruction.accounts[0].publicKey,

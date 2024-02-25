@@ -52,8 +52,9 @@ class IntentPublicTransferTest {
 
         val intent = IntentPublicTransfer.newInstance(
             organizer = organizer,
-            destination = destination,
-            amount = amount
+            destination = IntentPublicTransfer.Destination.External(destination),
+            amount = amount,
+            source = AccountType.Primary
         )
 
         val resultTray = intent.resultTray

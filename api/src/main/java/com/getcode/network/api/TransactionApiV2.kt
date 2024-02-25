@@ -2,12 +2,15 @@ package com.getcode.network.api
 
 import com.codeinc.gen.transaction.v2.TransactionGrpc
 import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
+import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class TransactionApiV2 @Inject constructor(
@@ -60,6 +63,10 @@ class TransactionApiV2 @Inject constructor(
         return api::getPrioritizedIntentsForPrivacyUpgrade
             .callAsSingle(request)
             .subscribeOn(scheduler)
+    }
+
+    fun swap(observer: StreamObserver<SwapResponse>): StreamObserver<SwapRequest> {
+        return api.swap(observer)
     }
 
 }

@@ -13,7 +13,7 @@ class ComputeBudgetProgram_SetComputeUnitPrice(
 ): InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
-            program = SystemProgram.address,
+            program = ComputeBudgetProgram.address,
             accounts = emptyList(),
             data = encode()
         )
@@ -21,7 +21,7 @@ class ComputeBudgetProgram_SetComputeUnitPrice(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(ComputeBudgetProgram.Companion.Command.setComputeUnitPrice.ordinal.intToByteArray().toList())
+        data.addAll(ComputeBudgetProgram.Command.setComputeUnitPrice.ordinal.intToByteArray().toList())
         data.add(bump)
         data.addAll(microLamports.longToByteArray().toList())
         return data
@@ -29,11 +29,14 @@ class ComputeBudgetProgram_SetComputeUnitPrice(
 
     companion object {
         fun newInstance(instruction: Instruction): ComputeBudgetProgram_SetComputeUnitPrice {
-            val data = ComputeBudgetProgram.parse(instruction)
-            val bump = data.consume(1)
-            val microLamports = bump.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
+            val data = ComputeBudgetProgram.parse(
+                command = ComputeBudgetProgram.Command.setComputeUnitPrice,
+                instruction = instruction,
+                expectingAccounts = 0
+            )
+            val microLamports = data.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
 
-            return ComputeBudgetProgram_SetComputeUnitPrice(bump = bump.consumed.first(), microLamports = microLamports)
+            return ComputeBudgetProgram_SetComputeUnitPrice(bump = data.consumed.first(), microLamports = microLamports)
         }
     }
 }
