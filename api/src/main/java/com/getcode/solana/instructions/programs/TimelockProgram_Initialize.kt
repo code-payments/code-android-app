@@ -4,6 +4,7 @@ import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.consume
 import org.kin.sdk.base.tools.byteArrayToLong
@@ -41,7 +42,7 @@ class TimelockProgram_Initialize(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(TimelockProgram.Companion.Command.initialize.value.toByteArray().toList())
+        data.addAll(Command.initialize.value.toByteArray().toList())
         data.addAll(lockout.longToByteArray().toList())
 
         return data
@@ -49,8 +50,11 @@ class TimelockProgram_Initialize(
 
     companion object {
         fun newInstance(instruction: Instruction): TimelockProgram_Initialize {
-            val data = TimelockProgram.parse(instruction = instruction, expectingAccounts = 10)
-            //val lockout = data.consume(1)
+            val data = TimelockProgram.parse(
+                command = Command.initialize,
+                instruction = instruction,
+                expectingAccounts = 10
+            )
 
             return TimelockProgram_Initialize(
                 nonce = instruction.accounts[0].publicKey,
@@ -60,7 +64,7 @@ class TimelockProgram_Initialize(
                 mint = instruction.accounts[4].publicKey,
                 timeAuthority = instruction.accounts[5].publicKey,
                 payer = instruction.accounts[6].publicKey,
-                lockout = data.toByteArray().byteArrayToLong()
+                lockout = data.remaining.toByteArray().byteArrayToLong()
             )
         }
     }

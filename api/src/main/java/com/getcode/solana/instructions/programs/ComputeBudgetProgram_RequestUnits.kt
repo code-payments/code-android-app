@@ -2,6 +2,7 @@ package com.getcode.solana.instructions.programs
 
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.ComputeBudgetProgram.Command
 import com.getcode.utils.DataSlice.consume
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.intToByteArray
@@ -13,7 +14,7 @@ class ComputeBudgetProgram_RequestUnits(
 ): InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
-            program = SystemProgram.address,
+            program = ComputeBudgetProgram.address,
             accounts = emptyList(),
             data = encode()
         )
@@ -21,7 +22,7 @@ class ComputeBudgetProgram_RequestUnits(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(ComputeBudgetProgram.Companion.Command.requestUnits.ordinal.intToByteArray().toList())
+        data.addAll(Command.requestUnits.ordinal.intToByteArray().toList())
         data.add(bump)
         data.addAll(limit.longToByteArray().toList())
         return data
@@ -29,8 +30,14 @@ class ComputeBudgetProgram_RequestUnits(
 
     companion object {
         fun newInstance(instruction: Instruction): ComputeBudgetProgram_RequestUnits {
-            val data = ComputeBudgetProgram.parse(instruction)
-            val bump = data.consume(1)
+            val data = ComputeBudgetProgram.parse(
+                command = Command.requestUnits,
+                instruction = instruction,
+                expectingAccounts = 0
+            )
+
+
+            val bump = data.remaining.consume(1)
             val limit = bump.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
 
             return ComputeBudgetProgram_RequestUnits(

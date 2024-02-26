@@ -57,7 +57,8 @@ class IntentPrivateTransferTest {
             organizer = organizer,
             destination = destination,
             amount = amount,
-            isWithdrawal = false
+            isWithdrawal = false,
+            fee = Kin.fromKin(0)
         )
 
         assertEquals(rendezvous, intent.id)

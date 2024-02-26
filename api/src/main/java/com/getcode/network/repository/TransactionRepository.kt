@@ -23,6 +23,7 @@ import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
+import com.getcode.model.intents.SwapIntent
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.appcheck.AppCheck
 import com.getcode.solana.keys.AssociatedTokenAccount
@@ -41,6 +42,7 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
@@ -56,8 +58,8 @@ private const val TAG = "TransactionRepositoryV2"
 
 @Singleton
 class TransactionRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val transactionApi: TransactionApiV2,
+    @ApplicationContext val context: Context,
+    val transactionApi: TransactionApiV2,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     var sendLimit = mutableListOf<SendLimit>()

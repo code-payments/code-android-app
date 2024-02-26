@@ -21,7 +21,9 @@ import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.IntentType
+import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.repository.initiateSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
@@ -596,4 +598,8 @@ suspend fun Client.awaitEstablishRelationship(
 ): Result<Relationship> {
     return transactionRepository.establishRelationship(organizer, domain)
         .map { it.relationship }
+}
+
+suspend fun Client.initiateSwap(organizer: Organizer): Result<SwapIntent> {
+    return transactionRepository.initiateSwap(organizer)
 }

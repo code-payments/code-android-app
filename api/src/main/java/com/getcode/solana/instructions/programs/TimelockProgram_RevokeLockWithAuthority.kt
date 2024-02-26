@@ -4,6 +4,7 @@ import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.consume
 
@@ -15,7 +16,7 @@ class TimelockProgram_RevokeLockWithAuthority(
     val payer: PublicKey,
     val bump: Byte,
     val legacy: Boolean = false,
-): InstructionType {
+) : InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
             program = if (legacy) TimelockProgram.legacyAddress else TimelockProgram.address,
@@ -33,7 +34,7 @@ class TimelockProgram_RevokeLockWithAuthority(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(TimelockProgram.Companion.Command.revokeLockWithAuthority.value.toByteArray().toList())
+        data.addAll(Command.revokeLockWithAuthority.value.toByteArray().toList())
         data.add(bump)
 
         return data
@@ -41,9 +42,14 @@ class TimelockProgram_RevokeLockWithAuthority(
 
     companion object {
         fun newInstance(instruction: Instruction): TimelockProgram_RevokeLockWithAuthority {
-            val data = TimelockProgram.parse(instruction = instruction, expectingAccounts = 6)
+            val data = TimelockProgram.parse(
+                command = Command.revokeLockWithAuthority,
+                instruction = instruction,
+                expectingAccounts = 6
+            )
 
-            val bump = data.consume(1)
+
+            val bump = data.remaining.consume(1)
 
             return TimelockProgram_RevokeLockWithAuthority(
                 timelock = instruction.accounts[0].publicKey,

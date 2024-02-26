@@ -24,7 +24,7 @@ class SystemProgram_AdvanceNonce(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(SystemProgram.Companion.Command.advanceNonceAccount.ordinal.intToByteArray().toList())
+        data.addAll(SystemProgram.Command.advanceNonceAccount.ordinal.intToByteArray().toList())
         return data
     }
 

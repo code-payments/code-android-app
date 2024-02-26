@@ -18,7 +18,7 @@ class PayloadEncodingTest {
         )
         val payload = CodePayload(
             kind = Kind.Cash,
-            kin = Kin.fromKin(50),
+            value = Kin.fromKin(50),
             nonce = nonceData
         )
 
@@ -28,7 +28,7 @@ class PayloadEncodingTest {
         // --------------------------------------------------------
 
         assertEquals(Kind.Cash.value, decoded.kind.value)
-        assertEquals(50, decoded.kin.toKin().toInt())
+        assertEquals(50, decoded.kin?.toKin()?.toInt())
         assertEquals(nonceData, decoded.nonce)
 
         assertEquals(encodedData, encoded)

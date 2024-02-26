@@ -158,3 +158,17 @@ data class AssociatedTokenAccount(
     }
 }
 
+data class PreSwapStateAccount(
+    val owner: PublicKey,
+    val state: ProgramDerivedAccount,
+) {
+    companion object {
+        fun newInstance(owner: PublicKey, source: PublicKey, destination: PublicKey, nonce: PublicKey): PreSwapStateAccount {
+            return PreSwapStateAccount(
+                owner = owner,
+                state = PublicKey.derivePreSwapState(source, destination, nonce)
+            )
+        }
+    }
+}
+
