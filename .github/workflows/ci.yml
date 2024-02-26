@@ -38,6 +38,12 @@ jobs:
           fileName: google-services.json
           fileDir: ./app/src
           encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          
+      - name: Setup BugSnag API Key
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.BUGSNAG_API_KEY }}\" > ./local.properties
+
+      - name: Setup Mixpanel API Key
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
         run: bundle exec fastlane android test
