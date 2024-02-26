@@ -37,9 +37,9 @@ class IntentDeposit(
         ): IntentDeposit {
             val intentId = PublicKey.generate()
             val currentTray = organizer.tray.copy()
-            val startBalance = currentTray.availableBalance
+            val startSlotBalance = currentTray.slotsBalance
 
-            // 1. Move all funds from the incoming
+            // 1. Move all funds from the primary
             // account to appropriate slots
 
             val transfers = currentTray.receive(receivingAccount = source, amount = amount).map { transfer ->
@@ -48,8 +48,7 @@ class IntentDeposit(
                     intentId = intentId,
                     amount = transfer.kin,
                     source = currentTray.cluster(transfer.from),
-                    destination =
-                    currentTray.cluster(transfer.to!!).vaultPublicKey
+                    destination = currentTray.cluster(transfer.to!!).vaultPublicKey
                 )
             }
 
@@ -62,18 +61,15 @@ class IntentDeposit(
                     intentId = intentId,
                     amount = exchange.kin,
                     source = currentTray.cluster(exchange.from),
-                    destination =
-                    currentTray.cluster(exchange.to!!).vaultPublicKey
-                    // Exchanges always provide destination accounts
+                    destination = currentTray.cluster(exchange.to!!).vaultPublicKey // Exchanges always provide destination accounts
                 )
             }
 
-            val endBalance = currentTray.availableBalance
+            val endSlotBalance = currentTray.slotsBalance
 
-            // We're just moving funds from incoming
-            // account to buckets, the balance
-            // shouldn't change
-            if (endBalance != startBalance) {
+            // Ensure that balances are consistent
+            // with what we expect these action to do
+            if (endSlotBalance - startSlotBalance != amount) {
                 throw IntentReceive.Companion.IntentReceiveException.BalanceMismatchException()
             }
 

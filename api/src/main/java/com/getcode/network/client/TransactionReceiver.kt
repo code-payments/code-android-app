@@ -3,6 +3,7 @@ package com.getcode.network.client
 import android.content.Context
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentDeposit
+import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentReceive
 import com.getcode.model.intents.IntentRemoteReceive
 import com.getcode.network.repository.BalanceRepository
@@ -76,7 +77,7 @@ class TransactionReceiver @Inject constructor(
 
                     receivedTotal += relationship.partialBalance
 
-                    if (intent is IntentDeposit) {
+                    if (intent is IntentPublicTransfer) {
                         setTray(organizer, intent.resultTray)
                     }
 
