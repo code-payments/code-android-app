@@ -40,7 +40,7 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountDebugOptionsScreen
 import com.getcode.navigation.screens.AccountDetailsScreen
-import com.getcode.navigation.screens.BuySellScreen
+import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.navigation.screens.WithdrawalAmountScreen
@@ -66,7 +66,7 @@ fun AccountHome(
         { item: AccountPage ->
             composeScope.launch {
                 when (item) {
-                    AccountPage.BUY_AND_SELL_KIN -> navigator.push(BuySellScreen)
+                    AccountPage.BUY_KIN -> navigator.push(BuyMoreKinModal())
                     AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
                     AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
                     AccountPage.FAQ -> navigator.push(FaqScreen)

@@ -44,7 +44,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
     networkObserver: NetworkConnectivityListener,
-    private val resources: ResourceHelper,
+    resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,

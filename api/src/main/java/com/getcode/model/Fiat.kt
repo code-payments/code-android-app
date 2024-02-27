@@ -1,11 +1,24 @@
 package com.getcode.model
 
+import java.text.DecimalFormat
+
 sealed interface Value
 
 data class Fiat(
     val currency: CurrencyCode,
     val amount: Double,
-): Value
+): Value {
+
+    companion object {
+        fun fromString(currency: CurrencyCode, amountString: String): Fiat? {
+            val amount = amountString.toDoubleOrNull() ?: return null
+            return Fiat(
+                currency = currency,
+                amount = amount
+            )
+        }
+    }
+}
 
 sealed interface GenericAmount {
 

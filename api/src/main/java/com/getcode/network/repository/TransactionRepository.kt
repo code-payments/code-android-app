@@ -70,6 +70,14 @@ class TransactionRepository @Inject constructor(
         maxDeposit = deposit
     }
 
+    fun maxKinPurchase(): Kin {
+        return maxDeposit
+    }
+
+    fun minKinPurchase(): Kin {
+        return Kin.fromQuarks(maxKinPurchase().quarks / 10)
+    }
+
     fun setSendLimits(limits: MutableList<SendLimit>) {
         sendLimit = limits
     }

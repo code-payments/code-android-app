@@ -42,15 +42,14 @@ data class GiveKinSheetUiModel(
 
 @HiltViewModel
 class GiveKinSheetViewModel @Inject constructor(
-    private val savedStateHandle: SavedStateHandle,
     client: Client,
-    private val exchange: Exchange,
+    exchange: Exchange,
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
     networkObserver: NetworkConnectivityListener,
-    private val resources: ResourceHelper,
+    resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -77,11 +78,15 @@ fun CodeKeyPad(
                         ) { onNumber(number) }
                     } else {
                         when (column) {
-                            1 -> if (isDecimal) {
-                                KeyBoardButton(
-                                    modifier = Modifier.weight(1f),
-                                    text = DecimalFormatSymbols.getInstance().decimalSeparator.toString(),
-                                ) { onDecimal() }
+                            1 -> {
+                                if (isDecimal) {
+                                    KeyBoardButton(
+                                        modifier = Modifier.weight(1f),
+                                        text = DecimalFormatSymbols.getInstance().decimalSeparator.toString(),
+                                    ) { onDecimal() }
+                                } else {
+                                    Spacer(modifier = Modifier.weight(1f),)
+                                }
                             }
                             2 -> NumberButton(
                                 modifier = Modifier.weight(1f),
