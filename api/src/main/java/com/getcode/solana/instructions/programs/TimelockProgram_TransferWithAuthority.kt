@@ -5,6 +5,7 @@ import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.consume
 import org.kin.sdk.base.tools.byteArrayToLong
@@ -41,7 +42,7 @@ class TimelockProgram_TransferWithAuthority(
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
         data.addAll(
-            TimelockProgram.Companion.Command.transferWithAuthority.value.toByteArray().toList()
+            Command.transferWithAuthority.value.toByteArray().toList()
         )
         data.add(bump)
         data.addAll(kin.quarks.longToByteArray().toList())
@@ -52,12 +53,15 @@ class TimelockProgram_TransferWithAuthority(
 
     companion object {
         fun newInstance(instruction: Instruction): TimelockProgram_TransferWithAuthority {
-            val data = TimelockProgram.parse(instruction = instruction, expectingAccounts = 8)
+            val data = TimelockProgram.parse(
+                command = Command.transferWithAuthority,
+                instruction = instruction,
+                expectingAccounts = 8
+            )
 
-            val data1 = data.consume(1)
-            val bump = data1.consumed.first() //251
+            val bump = data.remaining.consume(1)
 
-            val quarks = data1.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
+            val quarks = bump.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
 
             return TimelockProgram_TransferWithAuthority(
                 timelock = instruction.accounts[0].publicKey,
@@ -66,7 +70,7 @@ class TimelockProgram_TransferWithAuthority(
                 timeAuthority = instruction.accounts[3].publicKey,
                 destination = instruction.accounts[4].publicKey,
                 payer = instruction.accounts[5].publicKey,
-                bump = bump,
+                bump = bump.consumed.first(),
                 kin = Kin.fromQuarks(quarks)
             )
         }

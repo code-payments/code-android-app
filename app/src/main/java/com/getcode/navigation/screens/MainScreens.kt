@@ -1,7 +1,6 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
@@ -9,7 +8,6 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.TopLevelViewModel
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.KinAmount
@@ -17,14 +15,11 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
-import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
-import com.getcode.view.main.getKin.GetKinSheet
-import com.getcode.view.main.giveKin.GiveKinSheet
+import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -70,34 +65,6 @@ data class HomeScreen(
 }
 
 @Parcelize
-data object GetKinModal : MainGraph, ModalRoot {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @Composable
-    override fun Content() {
-        val navigator = LocalCodeNavigator.current
-
-        ModalContainer(
-            closeButton = {
-                if (navigator.isVisible) {
-                    it is GetKinModal
-                } else {
-                    navigator.progress > 0f
-                }
-            },
-        ) {
-            GetKinSheet(getViewModel())
-        }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.GetKin
-        )
-    }
-}
-
-@Parcelize
 data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -118,7 +85,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
                 }
             },
         ) {
-            GiveKinSheet(getViewModel())
+            GiveKinScreen(getViewModel())
         }
 
         AnalyticsScreenWatcher(

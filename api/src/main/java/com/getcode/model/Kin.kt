@@ -35,6 +35,13 @@ data class Kin(val quarks: Long): Value {
     operator fun compareTo(int: Int): Int = quarks.compareTo(fromKin(int).quarks)
     operator fun compareTo(kin: Kin): Int = quarks.compareTo(kin.quarks)
 
+    fun calculateFee(bps: Int): Kin {
+        return fromQuarks((quarks * bps.toLong()) / 10_000)
+        // Truncate to remove support
+        // for fraction fee values
+        //.truncating()
+    }
+
 
     companion object {
         private const val QUARK_CONVERSION_RATE = 100_000

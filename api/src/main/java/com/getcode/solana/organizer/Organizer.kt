@@ -8,6 +8,7 @@ import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.unusable
+import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.solana.keys.*
 import timber.log.Timber
 
@@ -24,7 +25,7 @@ class Organizer(
     val availableRelationshipBalance get() = tray.availableRelationshipBalance
     val ownerKeyPair get() = tray.owner.getCluster().authority.keyPair
     val swapKeyPair get() = tray.swap.getCluster().authority.keyPair
-    val swapDepositAddress get() = swapKeyPair.publicKey
+    val swapDepositAddress get() = swapKeyPair.getPublicKeyBase58()
     val primaryVault get() = tray.owner.getCluster().vaultPublicKey
     val incomingVault get() = tray.incoming.getCluster().vaultPublicKey
 

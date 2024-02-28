@@ -1,5 +1,8 @@
+import com.android.SdkConstants.FN_LOCAL_PROPERTIES
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
+import java.io.FileInputStream
+import java.io.InputStreamReader
 import java.util.Properties
 
 plugins {
@@ -33,10 +36,8 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
-        val propertiesFile = project.rootProject.file("local.properties")
-        val properties = Properties()
-        properties.load(propertiesFile.inputStream())
-        buildConfigField("String", "MIXPANEL_API_KEY", "\"${properties.getProperty("MIXPANEL_API_KEY")}\"")
+        buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
+        buildConfigField("String", "KADO_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "KADO_API_KEY")}\"")
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
     }
 
@@ -70,10 +71,10 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-            val debugMinifyEnabled = gradleLocalProperties(rootProject.rootDir).getProperty("DEBUG_MINIFY").toBooleanLenient()
-                ?: (System.getenv("DEBUG_MINIFY").toBooleanLenient() ?: false)
+            val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanLenient() ?: false
             isMinifyEnabled = debugMinifyEnabled
             isShrinkResources = debugMinifyEnabled
+
             if (debugMinifyEnabled) {
                 proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),

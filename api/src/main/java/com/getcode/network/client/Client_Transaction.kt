@@ -9,19 +9,21 @@ import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
+import com.getcode.model.Fee
 import com.getcode.model.GiftCard
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.Limits
 import com.getcode.model.Rate
-import com.getcode.model.SendLimit
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
-import com.getcode.model.intents.IntentType
+import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.repository.initiateSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
@@ -31,6 +33,7 @@ import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -54,7 +57,8 @@ fun Client.createAccounts(organizer: Organizer): Completable {
 fun Client.transfer(
     context: Context,
     amount: KinAmount,
-    fee: Kin = Kin.fromKin(0),
+    fee: Kin,
+    additionalFees: List<Fee>,
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
@@ -64,6 +68,7 @@ fun Client.transfer(
         context,
         amount,
         fee,
+        additionalFees,
         organizer,
         rendezvousKey,
         destination,
@@ -81,7 +86,8 @@ fun Client.transfer(
 fun Client.transferWithResult(
     context: Context,
     amount: KinAmount,
-    fee: Kin = Kin.fromKin(0),
+    fee: Kin,
+    additionalFees: List<Fee>,
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
@@ -90,7 +96,7 @@ fun Client.transferWithResult(
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                context, amount, fee, organizer, rendezvousKey, destination, isWithdrawal
+                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal
             )
         })
         .map {
@@ -289,6 +295,8 @@ fun Client.withdrawExternally(
             transfer(
                 context = context,
                 amount = KinAmount.newInstance(kin = missingBalance, rate = Rate.oneToOne),
+                fee = Kin.fromKin(0),
+                additionalFees = emptyList(),
                 organizer = organizer,
                 rendezvousKey = intent,
                 destination = organizer.primaryVault,
@@ -400,16 +408,13 @@ fun Client.pollIntentMetadata(
 fun Client.fetchTransactionLimits(
     owner: KeyPair,
     isForce: Boolean = false
-): Flowable<Map<String, SendLimit>> {
+): Limits? {
     val time = System.currentTimeMillis()
 
-    val isStale = time - lastLimitsFetch > 1000 * 60 * 60 // Older than 1 hour
+    val isStale = transactionRepository.areLimitsState
 
     if (!isStale && !isForce) {
-        val sendLimitCopy = transactionRepository.sendLimit.toList()
-        return Flowable.just(sendLimitCopy)
-            .map { it.associateBy { i -> i.id } }
-            .distinctUntilChanged()
+        return transactionRepository.limits
     }
 
     Timber.i("fetchTransactionLimits")
@@ -422,7 +427,9 @@ fun Client.fetchTransactionLimits(
     date.set(Calendar.MILLISECOND, 0)
 
     val seconds = date.timeInMillis / 1000
-    return transactionRepository.fetchTransactionLimits(owner, seconds)
+    return transactionRepository.fetchLimits(owner, seconds)
+        .subscribeOn(Schedulers.io())
+        .blockingFirst()
 }
 
 fun Client.fetchDestinationMetadata(destination: PublicKey): Single<TransactionRepository.DestinationMetadata> {
@@ -435,7 +442,8 @@ private var lastLimitsFetch: Long = 0L
 fun Client.fetchLimits(isForce: Boolean = false): Completable {
     val owner = SessionManager.getKeyPair() ?: return Completable.complete()
     if (!Database.isOpen()) return Completable.complete()
-    return fetchTransactionLimits(owner, isForce).ignoreElements()
+    fetchTransactionLimits(owner, isForce)
+    return Completable.complete()
 }
 
 fun Client.receiveIfNeeded(): Completable {
@@ -596,4 +604,8 @@ suspend fun Client.awaitEstablishRelationship(
 ): Result<Relationship> {
     return transactionRepository.establishRelationship(organizer, domain)
         .map { it.relationship }
+}
+
+suspend fun Client.initiateSwap(organizer: Organizer): Result<SwapIntent> {
+    return transactionRepository.initiateSwap(organizer)
 }

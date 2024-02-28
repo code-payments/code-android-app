@@ -5,6 +5,10 @@ import kotlin.math.min
 object DataSlice {
     data class ByteListConsume(val consumed: List<Byte>, val remaining: List<Byte>)
 
+    fun List<Byte>.canConsume(length: Int): Boolean {
+        return count() >= length
+    }
+
     fun List<Byte>.consume(length: Int): ByteListConsume {
         if (length <= 0) return ByteListConsume(listOf(), this)
         val consumed = this.prefix(length)

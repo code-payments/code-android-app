@@ -24,28 +24,12 @@ import com.getcode.view.main.account.BetaFlagsScreen
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.currency.CurrencySelectionSheet
-import com.getcode.view.main.getKin.BuyAndSellKin
+import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.ReferFriend
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
-@Parcelize
-data object BuySellScreen : MainGraph, ModalContent {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
 
-    @Composable
-    override fun Content() {
-        ModalContainer(backButton = { it is BuySellScreen }) {
-            BuyAndSellKin(getViewModel())
-        }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.BuyAndSellKin
-        )
-    }
-}
 
 @Parcelize
 data object DepositKinScreen : MainGraph, ModalContent {
@@ -289,7 +273,7 @@ data object ReferFriendScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data object CurrencySelectionModal: MainGraph, ModalRoot {
+data object CurrencySelectionModal: MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -310,6 +294,52 @@ data object CurrencySelectionModal: MainGraph, ModalRoot {
             }
         ) {
             CurrencySelectionSheet(viewModel = getActivityScopedViewModel())
+        }
+    }
+}
+
+@Parcelize
+data class BuyMoreKinModal(
+    val showClose: Boolean = false,
+): MainGraph, ModalRoot {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_buy_more_kin)
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        val content = @Composable {
+            BuyKinScreen(getViewModel())
+        }
+
+        if (showClose) {
+            ModalContainer(
+                closeButton = {
+                    if (navigator.isVisible) {
+                        it is BuyMoreKinModal
+                    } else {
+                        navigator.progress > 0f
+                    }
+                }
+            ) {
+                content()
+            }
+        } else {
+            ModalContainer(
+                backButton = {
+                    if (navigator.isVisible) {
+                        it is BuyMoreKinModal
+                    } else {
+                        navigator.progress > 0f
+                    }
+                }
+            ) {
+                content()
+            }
         }
     }
 }

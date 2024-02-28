@@ -4,6 +4,7 @@ import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.consume
 
@@ -29,7 +30,7 @@ class TimelockProgram_DeactivateLock(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(TimelockProgram.Companion.Command.deactivateLock.value.toByteArray().toList())
+        data.addAll(Command.deactivateLock.value.toByteArray().toList())
         data.add(bump)
 
         return data
@@ -37,9 +38,14 @@ class TimelockProgram_DeactivateLock(
 
     companion object {
         fun newInstance(instruction: Instruction): TimelockProgram_DeactivateLock {
-            val data = TimelockProgram.parse(instruction = instruction, expectingAccounts = 3)
+            val data = TimelockProgram.parse(
+                command = Command.deactivateLock,
+                instruction = instruction,
+                expectingAccounts = 3
+            )
 
-            val bump = data.consume(1)
+
+            val bump = data.remaining.consume(1)
 
             return TimelockProgram_DeactivateLock(
                 timelock = instruction.accounts[0].publicKey,

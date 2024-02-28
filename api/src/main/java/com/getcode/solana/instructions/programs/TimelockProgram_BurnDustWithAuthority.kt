@@ -5,6 +5,7 @@ import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
+import com.getcode.solana.instructions.programs.TimelockProgram.Command
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.DataSlice.consume
 import org.kin.sdk.base.tools.byteArrayToLong
@@ -43,7 +44,7 @@ class TimelockProgram_BurnDustWithAuthority(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(TimelockProgram.Companion.Command.burnDustWithAuthority.value.toByteArray().toList())
+        data.addAll(Command.burnDustWithAuthority.value.toByteArray().toList())
         data.add(bump)
         data.addAll(maxAmount.quarks.longToByteArray().toList())
         return data
@@ -51,9 +52,14 @@ class TimelockProgram_BurnDustWithAuthority(
 
     companion object {
         fun newInstance(instruction: Instruction): TimelockProgram_BurnDustWithAuthority {
-            val data = TimelockProgram.parse(instruction = instruction, expectingAccounts = 8)
+            val data = TimelockProgram.parse(
+                command = Command.burnDustWithAuthority,
+                instruction = instruction,
+                expectingAccounts = 8
+            )
 
-            val bump = data.consume(1)
+
+            val bump = data.remaining.consume(1)
             val maxAmount = bump.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
 
             return TimelockProgram_BurnDustWithAuthority(

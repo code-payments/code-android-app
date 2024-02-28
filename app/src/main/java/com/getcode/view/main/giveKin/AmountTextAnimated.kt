@@ -139,6 +139,7 @@ internal fun AmountTextAnimated(
     amountSuffix: String,
     uiModel: AmountAnimatedInputUiModel?,
     textStyle: TextStyle,
+    isClickable: Boolean,
 ) {
     uiModel ?: return
 
@@ -350,14 +351,17 @@ internal fun AmountTextAnimated(
                         ),
                         contentDescription = ""
                     )
-                    Image(
-                        modifier = Modifier
-                            .width(CodeTheme.dimens.grid.x4)
-                            .align(CenterVertically),
-                        painter = painterResource(R.drawable.ic_dropdown),
-                        contentDescription = ""
-                    )
-
+                    if (isClickable) {
+                        Image(
+                            modifier = Modifier
+                                .width(CodeTheme.dimens.grid.x4)
+                                .align(CenterVertically),
+                            painter = painterResource(R.drawable.ic_dropdown),
+                            contentDescription = ""
+                        )
+                    } else {
+                        Spacer(Modifier.requiredWidth(CodeTheme.dimens.grid.x4))
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(CodeTheme.dimens.grid.x1))

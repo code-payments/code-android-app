@@ -5,9 +5,16 @@ import com.getcode.mocks.SolanaTransaction
 import com.getcode.model.Kin
 import com.getcode.model.intents.actions.ActionType.Companion.kreIndex
 import com.getcode.network.repository.decodeBase58
+import com.getcode.solana.instructions.programs.ComputeBudgetProgram
+import com.getcode.solana.instructions.programs.ComputeBudgetProgram_SetComputeUnitLimit
+import com.getcode.solana.instructions.programs.ComputeBudgetProgram_SetComputeUnitPrice
+import com.getcode.solana.instructions.programs.SwapValidatorProgram_PostSwap
+import com.getcode.solana.instructions.programs.SwapValidatorProgram_PreSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.TimelockDerivedAccounts
+import com.getcode.solana.keys.base58
 import junit.framework.Assert
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TransactionBuilder_Test {
@@ -54,7 +61,8 @@ class TransactionBuilder_Test {
             PublicKey("Ddk7k7zMMWsp8fZB12wqbiADdXKQFWfwUUsxSo73JaQ9".decodeBase58().toList())
         val destination =
             PublicKey("2sDAFcEZkLd3mbm6SaZhifctkyB4NWsp94GMnfDs1BfR".decodeBase58().toList())
-        val nonce = PublicKey("H7y8REaqickypzCfke3onJVKbbp8ELmaccFYeLZzJ2Wn".decodeBase58().toList())
+        val nonce =
+            PublicKey("H7y8REaqickypzCfke3onJVKbbp8ELmaccFYeLZzJ2Wn".decodeBase58().toList())
         val blockhash =
             PublicKey("HjD8boPVb9pBVMQBdSzUMTt1HKTonwPsC3RibtXw44pK".decodeBase58().toList())
 

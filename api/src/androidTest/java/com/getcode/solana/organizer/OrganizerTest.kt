@@ -49,33 +49,35 @@ class OrganizerTest {
             mnemonic = mnemonic
         )
 
-        assertEquals(organizer.tray.owner.getCluster(), AccountCluster.newInstance(authority = owner))
+        assertEquals(organizer.tray.owner.getCluster(), AccountCluster.newInstance(authority = owner, kind = AccountCluster.Kind.Timelock))
 
         assertEquals(7, organizer.tray.slots.size)
 
         assertEquals(
             organizer.tray.incoming.getCluster(),
             AccountCluster.newInstance(
-                authority = derive(DerivePath.getBucketIncoming(0))
+                authority = derive(DerivePath.getBucketIncoming(0)),
+                kind = AccountCluster.Kind.Timelock
             )
         )
 
         assertEquals(
             organizer.tray.outgoing.getCluster(),
             AccountCluster.newInstance(
-                authority = derive(DerivePath.getBucketOutgoing(0))
+                authority = derive(DerivePath.getBucketOutgoing(0)),
+                kind = AccountCluster.Kind.Timelock
             )
         )
 
         assertEquals(
             listOf(
-                AccountCluster.newInstance(authority = derive(Denomination.ones.derivationPath)),
-                AccountCluster.newInstance(authority = derive(Denomination.tens.derivationPath)),
-                AccountCluster.newInstance(authority = derive(Denomination.hundreds.derivationPath)),
-                AccountCluster.newInstance(authority = derive(Denomination.thousands.derivationPath)),
-                AccountCluster.newInstance(authority = derive(Denomination.tenThousands.derivationPath)),
-                AccountCluster.newInstance(authority = derive(Denomination.hundredThousands.derivationPath)),
-                AccountCluster.newInstance(authority = derive(Denomination.millions.derivationPath))
+                AccountCluster.newInstance(authority = derive(Denomination.ones.derivationPath), kind = AccountCluster.Kind.Timelock),
+                AccountCluster.newInstance(authority = derive(Denomination.tens.derivationPath), kind = AccountCluster.Kind.Timelock),
+                AccountCluster.newInstance(authority = derive(Denomination.hundreds.derivationPath), kind = AccountCluster.Kind.Timelock),
+                AccountCluster.newInstance(authority = derive(Denomination.thousands.derivationPath), kind = AccountCluster.Kind.Timelock),
+                AccountCluster.newInstance(authority = derive(Denomination.tenThousands.derivationPath), kind = AccountCluster.Kind.Timelock),
+                AccountCluster.newInstance(authority = derive(Denomination.hundredThousands.derivationPath), kind = AccountCluster.Kind.Timelock),
+                AccountCluster.newInstance(authority = derive(Denomination.millions.derivationPath), kind = AccountCluster.Kind.Timelock)
             ),
             organizer.tray.slots.map { it.getCluster() }
         )
@@ -106,12 +108,12 @@ class OrganizerTest {
 
     @Test
     fun testAccountCluster() {
-        val cluster = AccountCluster.newInstance(authority = owner)
+        val cluster = AccountCluster.newInstance(authority = owner, kind = AccountCluster.Kind.Timelock)
         val timelockAccounts =
             TimelockDerivedAccounts.newInstance(owner = owner.keyPair.publicKeyBytes.toPublicKey())
 
         assertEquals(cluster.authority, owner)
-        assertEquals(cluster.timelockAccounts, timelockAccounts)
+        assertEquals(cluster.timelock, timelockAccounts)
     }
 
     @Test
@@ -121,9 +123,9 @@ class OrganizerTest {
             mnemonic = mnemonic
         )
 
-        assertFalse(organizer.isUnlocked)
+        assertFalse(organizer.isUnuseable)
 
-        AccountInfo.ManagementState.values().forEach { state ->
+        AccountInfo.ManagementState.entries.forEach { state ->
                 organizer.setAccountInfo(
                     mapOf(
                         organizer.primaryVault
@@ -140,15 +142,16 @@ class OrganizerTest {
                             blockchainState = AccountInfo.BlockchainState.Exists,
                             claimState = AccountInfo.ClaimState.Unknown,
                             mustRotate = false,
-                            originalKinAmount = null
+                            originalKinAmount = null,
+                            relationship = null
                         )
                 )
             )
 
-            if (state == AccountInfo.ManagementState.Locked) {
-                assertFalse(organizer.isUnlocked)
+            if (state == AccountInfo.ManagementState.Locked || state == AccountInfo.ManagementState.None) {
+                assertFalse(organizer.isUnuseable)
             } else {
-                assertTrue(organizer.isUnlocked)
+                assertTrue(organizer.isUnuseable)
             }
         }
     }

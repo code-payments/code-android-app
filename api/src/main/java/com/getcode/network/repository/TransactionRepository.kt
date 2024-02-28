@@ -51,16 +51,23 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "TransactionRepositoryV2"
 
 @Singleton
 class TransactionRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val transactionApi: TransactionApiV2,
+    @ApplicationContext val context: Context,
+    val transactionApi: TransactionApiV2,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    var sendLimit = mutableListOf<SendLimit>()
+    var limits: Limits? = null
+        private set
+
+    val areLimitsState: Boolean
+        get() = limits == null || limits?.isStale == true
+
+    private var lastSwap: Long = 0L
 
     var maxDeposit: Kin = Kin.fromKin(0)
 
@@ -68,8 +75,12 @@ class TransactionRepository @Inject constructor(
         maxDeposit = deposit
     }
 
-    fun setSendLimits(limits: MutableList<SendLimit>) {
-        sendLimit = limits
+    fun buyLimitFor(currencyCode: CurrencyCode): Limit? {
+        return limits?.buyLimitFor(currencyCode)
+    }
+
+    private fun setLimits(limits: Limits) {
+        this.limits = limits
     }
 
     fun clear() {
@@ -99,6 +110,7 @@ class TransactionRepository @Inject constructor(
         context: Context,
         amount: KinAmount,
         fee: Kin,
+        additionalFees: List<Fee>,
         organizer: Organizer,
         rendezvousKey: PublicKey,
         destination: PublicKey,
@@ -110,8 +122,10 @@ class TransactionRepository @Inject constructor(
                 actionGroup = ActionGroup(),
                 organizer = organizer,
                 destination = destination,
-                amount = amount,
+                grossAmount = amount,
+                netAmount = amount,
                 fee = fee,
+                additionalFees = emptyList(),
                 resultTray = organizer.tray,
                 isWithdrawal = isWithdrawal
             ) as IntentType
@@ -125,6 +139,7 @@ class TransactionRepository @Inject constructor(
             destination = destination,
             amount = amount.copy(kin = amount.kin.toKinTruncating()),
             fee = fee,
+            additionalFees = additionalFees,
             isWithdrawal = isWithdrawal
         )
 
@@ -142,6 +157,26 @@ class TransactionRepository @Inject constructor(
             amount = amount.toKinTruncating()
         )
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
+    }
+
+    suspend fun swapIfNeeded(organizer: Organizer) {
+        // We need to check and see if the USDC account has a balance,
+        // if so, we'll initiate a swap to Kin. The nuance here is that
+        // the balance of the USDC account is reported as `Kin`, where the
+        // quarks represent the lamport balance of the account.
+        val info = organizer.info(AccountType.Swap) ?: return
+        if (info.balance.quarks <= 0) return
+
+        val timeout = 45.seconds
+
+        // Ensure that it's been at least `timeout` seconds since we try
+        // another swap if one is already in-flight.
+        if (System.currentTimeMillis() - lastSwap < timeout.inWholeMilliseconds) return
+
+        lastSwap = System.currentTimeMillis()
+
+        initiateSwap(organizer)
+            .onFailure { ErrorUtils.handleError(it) }
     }
 
     fun receiveFromPrimary(amount: Kin, organizer: Organizer): Single<IntentType> {
@@ -435,10 +470,10 @@ class TransactionRepository @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    fun fetchTransactionLimits(
+    fun fetchLimits(
         owner: KeyPair,
         timestamp: Long
-    ): Flowable<Map<String, SendLimit>> {
+    ): Flowable<Limits> {
         val request = TransactionService.GetLimitsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setConsumedSince(Timestamp.newBuilder().setSeconds(timestamp))
@@ -449,34 +484,28 @@ class TransactionRepository @Inject constructor(
             }
             .build()
 
-        transactionApi.getLimits(request)
+        return transactionApi.getLimits(request)
             .flatMap {
                 if (it.result != TransactionService.GetLimitsResponse.Result.OK) {
                     Single.error(IllegalStateException())
                 } else {
-                    val map = it.remainingSendLimitsByCurrencyMap
-                        .mapValues { v -> v.value.nextTransaction.toDouble() }
-
                     Limits.newInstance(
-                        map = map,
-                        maxDeposit = Kin.fromQuarks(it.depositLimit.maxQuarks),
+                        sinceDate = timestamp,
+                        fetchDate = System.currentTimeMillis(),
+                        sendLimits = it.sendLimitsByCurrencyMap,
+                        buyLimits = it.buyModuleLimitsByCurrencyMap,
+                        deposits = it.depositLimit
                     ).let { limits ->
                         Single.just(limits)
                     }
                 }
             }
             .doOnSuccess {
-                val newList = mutableListOf<SendLimit>()
-                it.map.map { entry ->
-                    newList.add(SendLimit(entry.key.name, entry.value))
-                }
-                setSendLimits(newList)
+                setLimits(it)
                 setMaximumDeposit(it.maxDeposit)
             }
-            .subscribe({}, ErrorUtils::handleError)
-
-        return Flowable.just(sendLimit)
-            .map { it.associateBy { i -> i.id } }
+            .doOnError(ErrorUtils::handleError)
+            .toFlowable()
     }
 
     fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {

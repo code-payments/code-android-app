@@ -130,6 +130,10 @@ class TransactionReceiver @Inject constructor(
         }.ignoreElement()
     }
 
+    suspend fun swapIfNeeded(organizer: Organizer) {
+        transactionRepository.swapIfNeeded(organizer)
+    }
+
     private fun setTray(organizer: Organizer, tray: Tray) {
         organizer.set(tray)
         balanceRepository.setBalance(organizer.availableBalance.toKinTruncatingLong().toDouble())

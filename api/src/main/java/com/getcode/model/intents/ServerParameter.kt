@@ -64,8 +64,10 @@ class ServerParameter(
                     }
                     TransactionService.ServerParameter.TypeCase.FEE_PAYMENT -> {
                         val param = proto.feePayment
-                        val destination = PublicKey(param.destination.value.toByteArray().toList())
-                        FeePayment(destination)
+
+                        // PublicKey will be `nil` for .thirdParty fee payments
+                        val optionalDestination = PublicKey(param.codeDestination.value.toByteArray().toList())
+                        FeePayment(optionalDestination)
                     }
                     TransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT,
                     TransactionService.ServerParameter.TypeCase.CLOSE_EMPTY_ACCOUNT,

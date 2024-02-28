@@ -39,11 +39,14 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.ID
 import com.getcode.model.Rate
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.ChatScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.chat.ChatNode
 import com.getcode.util.Kin
@@ -77,7 +80,8 @@ fun BalanceSheet(
                 state = state,
                 dispatch = dispatch,
                 faqOpen = { navigator.push(FaqScreen) },
-                openChat = { navigator.push(ChatScreen(it)) }
+                openChat = { navigator.push(ChatScreen(it)) },
+                buyMoreKin = { navigator.push(BuyMoreKinModal()) }
             )
         }
     }
@@ -89,6 +93,7 @@ fun BalanceContent(
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
     faqOpen: () -> Unit,
     openChat: (ID) -> Unit,
+    buyMoreKin: () -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
 
@@ -123,6 +128,18 @@ fun BalanceContent(
                 }
                 if (!chatsEmpty && !state.chatsLoading) {
                     KinValueHint(faqOpen)
+                }
+
+                if (!chatsEmpty && !state.chatsLoading) {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .padding(top = CodeTheme.dimens.grid.x3),
+                        buttonState = ButtonState.Filled,
+                        onClick = buyMoreKin,
+                        text = stringResource(id = R.string.title_buy_more_kin)
+                    )
                 }
             }
         }

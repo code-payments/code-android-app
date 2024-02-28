@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 
 @Preview
 @Composable
-fun GiveKinSheet(
+fun GiveKinScreen(
     viewModel: GiveKinSheetViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current

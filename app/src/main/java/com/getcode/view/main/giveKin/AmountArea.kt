@@ -72,6 +72,7 @@ fun AmountArea(
                         amountPrefix = amountPrefix.orEmpty(),
                         amountSuffix = amountSuffix.orEmpty(),
                         textStyle = textStyle,
+                        isClickable = isClickable,
                     )
                 }
             }

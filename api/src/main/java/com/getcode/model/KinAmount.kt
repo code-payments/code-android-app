@@ -61,6 +61,14 @@ data class KinAmount(
             )
         }
 
+        fun fromFiatAmount(fiat: Fiat, rate: Rate): KinAmount {
+            return KinAmount(
+                kin = Kin.fromFiat(fiat = fiat.amount, fx = rate.fx),
+                fiat = fiat.amount,
+                rate = rate
+            )
+        }
+
         fun fromProtoExchangeData(exchangeData: ExchangeData): KinAmount {
             return fromFiatAmount(
                 kin = Kin(exchangeData.quarks),

@@ -3,6 +3,7 @@ package com.getcode.solana.instructions.programs
 import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.InstructionType
 import com.getcode.utils.DataSlice.consume
+import com.getcode.utils.DataSlice.toLong
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.intToByteArray
 import org.kin.sdk.base.tools.longToByteArray
@@ -22,7 +23,7 @@ class ComputeBudgetProgram_SetComputeUnitLimit(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(ComputeBudgetProgram.Companion.Command.setComputeUnitLimit.ordinal.intToByteArray().toList())
+        data.addAll(ComputeBudgetProgram.Command.setComputeUnitLimit.ordinal.intToByteArray().toList())
         data.add(bump)
         data.addAll(limit.longToByteArray().toList())
         return data
@@ -30,11 +31,16 @@ class ComputeBudgetProgram_SetComputeUnitLimit(
 
     companion object {
         fun newInstance(instruction: Instruction): ComputeBudgetProgram_SetComputeUnitLimit {
-            val data = ComputeBudgetProgram.parse(instruction)
-            val bump = data.consume(1)
-            val limit = bump.remaining.consume(8).consumed.toByteArray().byteArrayToLong()
+            val data = ComputeBudgetProgram.parse(
+                command = ComputeBudgetProgram.Command.setComputeUnitLimit,
+                instruction = instruction,
+                expectingAccounts = 0
+            )
 
-            return ComputeBudgetProgram_SetComputeUnitLimit(bump = bump.consumed.first(), limit = limit)
+            val stride = UInt.SIZE_BYTES
+            val limit = data.remaining.consume(stride).consumed.toByteArray().toLong()
+
+            return ComputeBudgetProgram_SetComputeUnitLimit(bump = data.consumed.first(), limit = limit)
         }
     }
 }
