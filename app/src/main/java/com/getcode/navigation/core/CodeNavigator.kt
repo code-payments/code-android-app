@@ -63,7 +63,7 @@ interface CodeNavigator {
     val lastItem: Screen?
     val lastModalItem: Screen?
     val sheetStackRoot: Screen?
-    val lastEvent: StackEvent
+    val lastEvent: StackEvent 
     val isVisible: Boolean
     val progress: Float
     var screensNavigator: Navigator?
