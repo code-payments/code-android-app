@@ -9,6 +9,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
+import com.getcode.model.Fee
 import com.getcode.model.GiftCard
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
@@ -56,7 +57,8 @@ fun Client.createAccounts(organizer: Organizer): Completable {
 fun Client.transfer(
     context: Context,
     amount: KinAmount,
-    fee: Kin = Kin.fromKin(0),
+    fee: Kin,
+    additionalFees: List<Fee>,
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
@@ -66,6 +68,7 @@ fun Client.transfer(
         context,
         amount,
         fee,
+        additionalFees,
         organizer,
         rendezvousKey,
         destination,
@@ -83,7 +86,8 @@ fun Client.transfer(
 fun Client.transferWithResult(
     context: Context,
     amount: KinAmount,
-    fee: Kin = Kin.fromKin(0),
+    fee: Kin,
+    additionalFees: List<Fee>,
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
@@ -92,7 +96,7 @@ fun Client.transferWithResult(
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                context, amount, fee, organizer, rendezvousKey, destination, isWithdrawal
+                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal
             )
         })
         .map {
@@ -291,6 +295,8 @@ fun Client.withdrawExternally(
             transfer(
                 context = context,
                 amount = KinAmount.newInstance(kin = missingBalance, rate = Rate.oneToOne),
+                fee = Kin.fromKin(0),
+                additionalFees = emptyList(),
                 organizer = organizer,
                 rendezvousKey = intent,
                 destination = organizer.primaryVault,

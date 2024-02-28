@@ -3,6 +3,7 @@ package com.getcode.model.intents
 import android.content.Context
 import android.util.Log
 import com.codeinc.gen.transaction.v2.TransactionService
+import com.getcode.model.Fee
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.intents.actions.ActionFeePayment
@@ -21,10 +22,13 @@ class IntentPrivateTransfer(
     override val id: PublicKey,
     private val organizer: Organizer,
     private val destination: PublicKey,
-    private val amount: KinAmount,
+    // Amount requested to transfer
+    private val grossAmount: KinAmount,
+    // Amount after fees are paid
+    private val netAmount: KinAmount,
     private val fee: Kin,
+    private val additionalFees: List<Fee>,
     private val isWithdrawal: Boolean,
-
     val resultTray: Tray,
 
     override val actionGroup: ActionGroup,
@@ -37,10 +41,10 @@ class IntentPrivateTransfer(
                     .setIsWithdrawal(isWithdrawal)
                     .setExchangeData(
                         TransactionService.ExchangeData.newBuilder()
-                            .setQuarks(amount.kin.quarks)
-                            .setCurrency(amount.rate.currency.name.lowercase())
-                            .setExchangeRate(amount.rate.fx)
-                            .setNativeAmount(amount.fiat)
+                            .setQuarks(grossAmount.kin.quarks)
+                            .setCurrency(grossAmount.rate.currency.name.lowercase())
+                            .setExchangeRate(grossAmount.rate.fx)
+                            .setNativeAmount(grossAmount.fiat)
                         )
             )
             .build()
@@ -54,15 +58,38 @@ class IntentPrivateTransfer(
             destination: PublicKey,
             amount: KinAmount,
             fee: Kin,
+            additionalFees: List<Fee>,
             isWithdrawal: Boolean,
         ): IntentPrivateTransfer {
+
+            if (fee > amount.kin) {
+                throw IntentPrivateTransferException.InvalidFeeException()
+            }
+
+            // Compute all the fees that will be
+            // paid out of this transaction
+            val concreteFees = additionalFees.map {
+                val _fee = amount.kin.calculateFee(it.bps)
+                _fee to it.destination
+            }
+
+            var netKin = amount.kin - fee
+
+            // Apply the fee to the gross amount
+            concreteFees.onEach { (fee, destination) ->
+                netKin -= fee
+            }
+
+            val grossAmount = amount
+            val netAmount = KinAmount.newInstance(kin = netKin, rate = amount.rate)
+
             val currentTray = organizer.tray.copy()
             val startBalance = currentTray.availableBalance
 
             // 1. Move all funds from bucket accounts into the
             // outgoing account and prepare to transfer
 
-            val transfers = currentTray.transfer(amount = amount.kin).map { transfer ->
+            val transfers = currentTray.transfer(amount = grossAmount.kin).map { transfer ->
                 val sourceCluster = currentTray.cluster(transfer.from)
 
                 // If the transfer is to another bucket, it's an internal
@@ -86,15 +113,34 @@ class IntentPrivateTransfer(
                 }
             }
 
-            val feePayment = fee.takeIf { it > 0 }?.let {
-                ActionFeePayment.newInstance(currentTray.outgoing.getCluster(), fee)
+            val feePayments = mutableListOf<ActionFeePayment>()
+
+            // Code Fee
+            if (fee > 0) {
+                feePayments.add(
+                    ActionFeePayment.newInstance(
+                        kind = ActionFeePayment.Kind.Code,
+                        cluster = currentTray.outgoing.getCluster(),
+                        amount = fee
+                    )
+                )
+            }
+
+            concreteFees.onEach { (feeAmount, destination) ->
+                feePayments.add(
+                    ActionFeePayment.newInstance(
+                        kind = ActionFeePayment.Kind.ThirdParty(destination),
+                        cluster = currentTray.outgoing.getCluster(),
+                        amount = feeAmount,
+                    )
+                )
             }
 
             // 2. Transfer all collected funds from the temp
             // outgoing account to the destination account
 
             val outgoing = ActionWithdraw.newInstance(
-                kind = ActionWithdraw.Kind.NoPrivacyWithdraw(amount.kin - fee),
+                kind = ActionWithdraw.Kind.NoPrivacyWithdraw(netAmount.kin - fee),
                 cluster = currentTray.outgoing.getCluster(),
                 destination = destination
             )
@@ -133,7 +179,7 @@ class IntentPrivateTransfer(
 
             val endBalance = currentTray.availableBalance
 
-            if (startBalance - endBalance != amount.kin)  {
+            if (startBalance - endBalance != grossAmount.kin)  {
                 Timber.e(
                     "Expected: ${amount.kin}; actual = ${startBalance - endBalance}; " +
                             "difference: ${startBalance.quarks - currentTray.availableBalance.quarks - amount.kin.quarks}"
@@ -144,10 +190,8 @@ class IntentPrivateTransfer(
             val group = ActionGroup()
 
             group.actions += transfers
-            if (feePayment != null) {
-                group.actions += feePayment
-            }
             group.actions += listOf(
+                *feePayments.toTypedArray(),
                 outgoing,
                 *redistributes.toTypedArray(),
                 *rotation.toTypedArray()
@@ -157,8 +201,10 @@ class IntentPrivateTransfer(
                 id = rendezvousKey,
                 organizer = organizer,
                 destination = destination,
-                amount = amount,
+                grossAmount = grossAmount,
+                netAmount = netAmount,
                 fee = fee,
+                additionalFees = additionalFees,
                 isWithdrawal = isWithdrawal,
                 actionGroup = group,
                 resultTray = currentTray,
@@ -170,4 +216,5 @@ class IntentPrivateTransfer(
 
 sealed class IntentPrivateTransferException: Exception() {
     class BalanceMismatchException: IntentPrivateTransferException()
+    class InvalidFeeException: IntentPrivateTransferException()
 }

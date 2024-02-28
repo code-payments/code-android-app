@@ -83,7 +83,11 @@ class SendTransactionRepository @Inject constructor(
             }
     }
 
-    private fun sendFundsAndPoll(context: Context, organizer: Organizer, destination: PublicKey): Flowable<IntentMetadata> {
+    private fun sendFundsAndPoll(
+        context: Context,
+        organizer: Organizer,
+        destination: PublicKey
+    ): Flowable<IntentMetadata> {
         if (receivingAccount == destination) {
             // Ensure that we're processing one, and only one
             // transaction for each instance of SendTransaction.
@@ -99,13 +103,15 @@ class SendTransactionRepository @Inject constructor(
         // deposit the funds and the transaction size exceeds what's
         // in the buckets, the send will fail.
         return client.transfer(
-                    context = context,
-                    amount = amount.copy(kin = amount.kin.toKinTruncating()),
-                    organizer = organizer,
-                    rendezvousKey = rendezvousKey.publicKeyBytes.toPublicKey(),
-                    destination = destination,
-                    isWithdrawal = false
-                )
+            context = context,
+            amount = amount.copy(kin = amount.kin.toKinTruncating()),
+            fee = Kin.fromKin(0),
+            additionalFees = emptyList(),
+            organizer = organizer,
+            rendezvousKey = rendezvousKey.publicKeyBytes.toPublicKey(),
+            destination = destination,
+            isWithdrawal = false
+        )
             .andThen(
                 client.pollIntentMetadata(
                     owner = organizer.ownerKeyPair,
@@ -117,8 +123,8 @@ class SendTransactionRepository @Inject constructor(
     fun getAmount() = amount
     fun getRendezvous() = rendezvousKey
 
-    sealed class SendTransactionException: Exception() {
-        class DuplicateTransferException: SendTransactionException()
-        class DestinationSignatureInvalidException: SendTransactionException()
+    sealed class SendTransactionException : Exception() {
+        class DuplicateTransferException : SendTransactionException()
+        class DestinationSignatureInvalidException : SendTransactionException()
     }
 }
