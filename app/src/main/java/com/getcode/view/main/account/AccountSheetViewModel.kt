@@ -5,7 +5,6 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
-import com.getcode.db.Database
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.PhoneRepository
@@ -17,12 +16,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -34,7 +31,7 @@ data class AccountMainItem(
 )
 
 enum class AccountPage {
-    BUY_AND_SELL_KIN,
+    BUY_KIN,
     DEPOSIT,
     WITHDRAW,
     PHONE,
@@ -108,8 +105,8 @@ class AccountSheetViewModel @Inject constructor(
     companion object {
         private val fullItemSet = listOf(
             AccountMainItem(
-                type = AccountPage.BUY_AND_SELL_KIN,
-                name = R.string.title_buyAndSellKin,
+                type = AccountPage.BUY_KIN,
+                name = R.string.title_buy_more_kin,
                 icon = R.drawable.ic_currency_dollar_active
             ),
             AccountMainItem(

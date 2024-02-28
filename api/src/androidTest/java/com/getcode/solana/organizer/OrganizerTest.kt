@@ -148,7 +148,7 @@ class OrganizerTest {
                 )
             )
 
-            if (state == AccountInfo.ManagementState.Locked) {
+            if (state == AccountInfo.ManagementState.Locked || state == AccountInfo.ManagementState.None) {
                 assertFalse(organizer.isUnuseable)
             } else {
                 assertTrue(organizer.isUnuseable)

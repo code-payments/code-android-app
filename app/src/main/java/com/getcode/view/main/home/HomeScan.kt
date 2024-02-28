@@ -53,7 +53,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
-import com.getcode.navigation.screens.GetKinModal
+import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
@@ -199,7 +199,7 @@ private fun HomeScan(
             when (bottomSheet) {
                 HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
-                HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
+                HomeBottomSheet.GET_KIN -> navigator.show(BuyMoreKinModal(true))
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
                 HomeBottomSheet.NONE -> Unit
             }
@@ -500,7 +500,7 @@ private fun BillContainer(
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            navigator.show(GetKinModal)
+                            navigator.show(BuyMoreKinModal(showClose = true))
                         },
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {

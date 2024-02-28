@@ -35,11 +35,7 @@ android {
             buildConfigField(
                 "Boolean",
                 "NOTIFY_ERRORS",
-                (gradleLocalProperties(rootProject.rootDir).getProperty("NOTIFY_ERRORS")
-                    .toBooleanLenient()
-                    ?: (System.getenv("NOTIFY_ERRORS").toBooleanLenient()
-                        ?: false)
-                        ).toString()
+                tryReadProperty(rootProject.rootDir, "NOTIFY_ERRORS", "false")
             )
         }
     }

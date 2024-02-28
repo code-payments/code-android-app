@@ -45,10 +45,8 @@ class AccountApi @Inject constructor(
         val request = LinkAdditionalAccountsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setSwapAuthority(linkedAccount.publicKeyBytes.toSolanaAccount())
-            .apply {
-                setSignatures(0, sign(owner))
-                    .setSignatures(1, sign(linkedAccount))
-            }.build()
+            .let { it.addAllSignatures(listOf(it.sign(owner), it.sign(linkedAccount))) }
+            .build()
 
         return api::linkAdditionalAccounts
             .callAsCancellableFlow(request)

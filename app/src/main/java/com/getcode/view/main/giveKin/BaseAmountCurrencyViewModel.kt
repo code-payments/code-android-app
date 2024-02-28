@@ -67,11 +67,11 @@ data class AmountUiModel(
 abstract class BaseAmountCurrencyViewModel(
     val client: Client,
     private val prefsRepository: PrefRepository,
-    private val exchange: Exchange,
+    protected val exchange: Exchange,
     private val balanceRepository: BalanceRepository,
     private val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
-    private val resources: ResourceHelper,
+    protected val resources: ResourceHelper,
     private val networkObserver: NetworkConnectivityListener,
 ) : BaseViewModel(resources), AmountInputViewModel {
     protected val numberInputHelper = NumberInputHelper()
