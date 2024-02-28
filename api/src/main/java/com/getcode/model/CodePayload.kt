@@ -103,6 +103,7 @@ data class CodePayload(
                 }
 
                 Kind.RequestPayment,
+                Kind.RequestPaymentV2,
                 Kind.Login -> {
                     // grab currency
                     val currencyIndex = list[1].byteToUnsignedInt()
@@ -135,6 +136,7 @@ enum class Kind(val value: Int) {
     GiftCard(1),
     RequestPayment(2),
     Login(3),
+    RequestPaymentV2(4)
 }
 
 /*
