@@ -9,6 +9,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
+import com.getcode.model.Limit
 import com.getcode.model.Rate
 import com.getcode.network.client.Client
 import com.getcode.network.client.linkAdditionalAccount
@@ -173,10 +174,10 @@ class BuyKinViewModel @Inject constructor(
     }
 
     private val checkMinimumMet: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
-        val threshold = transactionRepository.minKinPurchase()
-        val isUnderMinimum = amount.kin < threshold
+        val threshold = transactionRepository.buyLimitFor(rate.currency) ?: Limit.Zero
+        val isUnderMinimum = amount.fiat < threshold.min
         if (isUnderMinimum) {
-            val formatted = FormatUtils.formatCurrency(threshold.toFiat(rate.fx), rate.currency)
+            val formatted = FormatUtils.formatCurrency(threshold.min, rate.currency)
 
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_buy_kin_too_small),
@@ -187,10 +188,10 @@ class BuyKinViewModel @Inject constructor(
     }
 
     private val checkUnderMax: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
-        val threshold = transactionRepository.maxKinPurchase()
-        val isOverLimit = amount.kin > threshold
+        val threshold = transactionRepository.buyLimitFor(rate.currency) ?: Limit.Zero
+        val isOverLimit = amount.fiat > threshold.max
         if (isOverLimit) {
-            val formatted = FormatUtils.formatCurrency(threshold.toFiat(rate.fx), rate.currency)
+            val formatted = FormatUtils.formatCurrency(threshold.max, rate.currency)
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_buy_kin_too_large),
                 resources.getString(R.string.error_description_buy_kin_too_large, formatted)

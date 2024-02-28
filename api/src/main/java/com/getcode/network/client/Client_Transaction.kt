@@ -13,28 +13,26 @@ import com.getcode.model.GiftCard
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.Limits
 import com.getcode.model.Rate
-import com.getcode.model.SendLimit
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
-import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.initiateSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
-import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
@@ -44,13 +42,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.time.Instant
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
-import kotlin.time.Duration.Companion.seconds
 
 fun Client.createAccounts(organizer: Organizer): Completable {
     return transactionRepository.createAccounts(organizer)
@@ -406,16 +402,13 @@ fun Client.pollIntentMetadata(
 fun Client.fetchTransactionLimits(
     owner: KeyPair,
     isForce: Boolean = false
-): Flowable<Map<String, SendLimit>> {
+): Limits? {
     val time = System.currentTimeMillis()
 
-    val isStale = time - lastLimitsFetch > 1000 * 60 * 60 // Older than 1 hour
+    val isStale = transactionRepository.areLimitsState
 
     if (!isStale && !isForce) {
-        val sendLimitCopy = transactionRepository.sendLimit.toList()
-        return Flowable.just(sendLimitCopy)
-            .map { it.associateBy { i -> i.id } }
-            .distinctUntilChanged()
+        return transactionRepository.limits
     }
 
     Timber.i("fetchTransactionLimits")
@@ -428,7 +421,9 @@ fun Client.fetchTransactionLimits(
     date.set(Calendar.MILLISECOND, 0)
 
     val seconds = date.timeInMillis / 1000
-    return transactionRepository.fetchTransactionLimits(owner, seconds)
+    return transactionRepository.fetchLimits(owner, seconds)
+        .subscribeOn(Schedulers.io())
+        .blockingFirst()
 }
 
 fun Client.fetchDestinationMetadata(destination: PublicKey): Single<TransactionRepository.DestinationMetadata> {
@@ -441,7 +436,8 @@ private var lastLimitsFetch: Long = 0L
 fun Client.fetchLimits(isForce: Boolean = false): Completable {
     val owner = SessionManager.getKeyPair() ?: return Completable.complete()
     if (!Database.isOpen()) return Completable.complete()
-    return fetchTransactionLimits(owner, isForce).ignoreElements()
+    fetchTransactionLimits(owner, isForce)
+    return Completable.complete()
 }
 
 fun Client.receiveIfNeeded(): Completable {
