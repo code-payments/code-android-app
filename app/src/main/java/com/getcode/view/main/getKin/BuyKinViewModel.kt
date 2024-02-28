@@ -1,6 +1,7 @@
 package com.getcode.view.main.getKin
 
 import android.net.Uri
+import androidx.lifecycle.viewModelScope
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.SessionManager
@@ -10,11 +11,13 @@ import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.network.client.Client
+import com.getcode.network.client.linkAdditionalAccount
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.solana.organizer.AccountType
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
@@ -28,6 +31,7 @@ import com.getcode.view.main.giveKin.CurrencyUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -58,12 +62,17 @@ class BuyKinViewModel @Inject constructor(
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
         val amountModel: AmountUiModel = AmountUiModel(),
         val continueEnabled: Boolean = false,
+        val relationshipEstablished: Boolean = false,
     )
 
     val state = MutableStateFlow(State())
 
     init {
         init()
+
+        viewModelScope.launch {
+            establishSwapRelationship()
+        }
     }
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
@@ -108,6 +117,29 @@ class BuyKinViewModel @Inject constructor(
         super.onAmountChanged(lastPressedBackspace)
         state.update {
             it.copy(continueEnabled = numberInputHelper.amount > 0.0)
+        }
+    }
+
+    private suspend fun establishSwapRelationship() {
+        val organizer = SessionManager.getOrganizer() ?: return
+        if (organizer.info(AccountType.Swap) != null) {
+            Timber.d("USDC deposit account established already.")
+            state.update {
+                it.copy(relationshipEstablished = true)
+            }
+            return
+        }
+
+        client.linkAdditionalAccount(
+            owner = organizer.ownerKeyPair,
+            linkedAccount = organizer.swapKeyPair
+        ).onFailure {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_buy_kin_too_large),
+                resources.getString(R.string.error_description_usdc_deposit_failure)
+            )
+        }.onSuccess {
+            state.update { it.copy(relationshipEstablished = true) }
         }
     }
 

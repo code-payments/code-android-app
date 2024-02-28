@@ -81,6 +81,7 @@
     <string name="error_description_insuffiecientKin">To learn how to get more Kin go to the FAQ in Settings.</string>
     <string name="error_description_buy_kin_too_small">Amount should be greater than %1$s. Please enter a larger amount.</string>
     <string name="error_description_buy_kin_too_large">Amount should be less than %1$s. Please enter a smaller amount.</string>
+    <string name="error_description_usdc_deposit_failure">Failed to create a USDC deposit account.</string>
     <string name="error_description_invalidInviteCode">Please enter a different Invite Code and try again.</string>
     <string name="error_description_invalidInvitePhone">Please enter a valid phone number and try again.</string>
     <string name="error_description_invalidVerificationCode">Please enter a valid code and try again.</string>
@@ -109,6 +110,7 @@
     <string name="error_title_insuffiecientKin">Insufficient Kin</string>
     <string name="error_title_buy_kin_too_small">Purchase too small</string>
     <string name="error_title_buy_kin_too_large">Purchase too large</string>
+    <string name="error_title_account_error">Account Error</string>
     <string name="error_title_invalidInviteCode">Invite Code Invalid or Expired</string>
     <string name="error_title_invalidInvitePhone">Invalid Phone Number</string>
     <string name="error_title_invalidVerificationCode">Invalid Code</string>

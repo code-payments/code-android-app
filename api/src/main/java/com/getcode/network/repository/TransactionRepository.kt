@@ -9,6 +9,7 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.Re
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.manager.SessionManager
 import com.getcode.model.*
 import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
@@ -26,6 +27,8 @@ import com.getcode.model.intents.ServerParameter
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.appcheck.AppCheck
+import com.getcode.network.client.Client
+import com.getcode.network.client.initiateSwap
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -53,6 +56,7 @@ import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.time.Duration.Companion.seconds
 
 private const val TAG = "TransactionRepositoryV2"
 
@@ -63,6 +67,8 @@ class TransactionRepository @Inject constructor(
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     var sendLimit = mutableListOf<SendLimit>()
+
+    private var lastSwap: Long = 0L
 
     var maxDeposit: Kin = Kin.fromKin(0)
 
@@ -152,6 +158,26 @@ class TransactionRepository @Inject constructor(
             amount = amount.toKinTruncating()
         )
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
+    }
+
+    suspend fun swapIfNeeded(organizer: Organizer) {
+        // We need to check and see if the USDC account has a balance,
+        // if so, we'll initiate a swap to Kin. The nuance here is that
+        // the balance of the USDC account is reported as `Kin`, where the
+        // quarks represent the lamport balance of the account.
+        val info = organizer.info(AccountType.Swap) ?: return
+        if (info.balance.quarks <= 0) return
+
+        val timeout = 45.seconds
+
+        // Ensure that it's been at least `timeout` seconds since we try
+        // another swap if one is already in-flight.
+        if (System.currentTimeMillis() - lastSwap < timeout.inWholeMilliseconds) return
+
+        lastSwap = System.currentTimeMillis()
+
+        initiateSwap(organizer)
+            .onFailure { ErrorUtils.handleError(it) }
     }
 
     fun receiveFromPrimary(amount: Kin, organizer: Organizer): Single<IntentType> {

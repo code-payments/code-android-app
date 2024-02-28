@@ -174,6 +174,7 @@ class BalanceController @Inject constructor(
                 organizer.setAccountInfo(accountInfo)
                 balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
                 transactionReceiver.receiveFromIncoming(organizer)
+                transactionRepository.swapIfNeeded(organizer)
             }
         } catch (ex: Exception) {
             Timber.i("Error: ${ex.javaClass.simpleName} ${ex.cause}")

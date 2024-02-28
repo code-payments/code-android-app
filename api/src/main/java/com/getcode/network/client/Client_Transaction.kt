@@ -26,9 +26,11 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.initiateSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
+import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -42,11 +44,13 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.time.Instant
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
+import kotlin.time.Duration.Companion.seconds
 
 fun Client.createAccounts(organizer: Organizer): Completable {
     return transactionRepository.createAccounts(organizer)
