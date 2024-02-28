@@ -5,6 +5,8 @@ import com.getcode.model.CodePayload
 import com.getcode.model.Domain
 import com.getcode.model.KinAmount
 import com.getcode.util.formatted
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 data class BillState(
     val bill: Bill? = null,
@@ -103,14 +105,26 @@ sealed interface PaymentState {
     object AwaitingConfirmation : PaymentState
     object Sending : PaymentState
     object Sent : PaymentState
-    data class Error(val exception: Throwable) : PaymentState
+    data class Error(val errorType: PaymentError) : PaymentState
 }
 
 sealed interface LoginState {
     object AwaitingConfirmation : LoginState
     object Sending : LoginState
     object Sent : LoginState
-    data class Error(val exception: Throwable) : LoginState
+    data class Error(val errorType: LoginError) : LoginState
+}
+
+sealed class PaymentError(val message: String) {
+    class NetworkError(message: String) : PaymentError(message)
+    class ValidationError(message: String) : PaymentError(message)
+    // Add other specific error types as needed.
+}
+
+sealed class LoginError(val message: String) {
+    class NetworkError(message: String) : LoginError(message)
+    class CredentialsError(message: String) : LoginError(message)
+    // Add other specific error types as needed.
 }
 
 data class Metadata(
