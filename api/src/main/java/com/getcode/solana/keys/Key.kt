@@ -3,72 +3,60 @@ package com.getcode.solana.keys
 import com.getcode.network.repository.encodeBase64
 import org.kin.sdk.base.tools.Base58
 
-abstract class KeyType(bytes: List<Byte>) {
-    abstract val size: Int
-    var bytes: List<Byte> = bytes
-        set(v) {
-            if (v.size == size) field = v
-        }
+// Make KeyType an interface to define contract without exposing bytes directly
+interface KeyType {
+    val size: Int
+    fun toByteArray(): ByteArray
+    fun base58(): String
+    fun base64(): String
+}
 
-    val byteArray = bytes.toByteArray()
+// Implement KeyType with a secure and encapsulated class
+abstract class AbstractKeyType(private val bytes: ByteArray) : KeyType {
+
+    init {
+        // Perform validation on initialization to ensure bytes meet the specific size requirement
+        require(bytes.size == size) { "Invalid key size: expected $size, got ${bytes.size}" }
+    }
+
+    override fun toByteArray(): ByteArray = bytes.copyOf()
+
+    override fun base58(): String = Base58.encode(toByteArray())
+
+    override fun base64(): String = toByteArray().encodeBase64()
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+        if (other !is AbstractKeyType) return false
 
-        other as KeyType
-
-        if (bytes != other.bytes) return false
-
-        return true
+        return toByteArray().contentEquals(other.toByteArray())
     }
 
-    override fun hashCode(): Int {
-        return bytes.hashCode()
-    }
-
+    override fun hashCode(): Int = toByteArray().contentHashCode()
 }
 
-fun KeyType.base58(): String = Base58.encode(bytes.toByteArray())
-fun KeyType.base64(): String = bytes.toByteArray().encodeBase64()
-
-class Key16(bytes: List<Byte>) : KeyType(bytes) {
+class Key16(bytes: ByteArray) : AbstractKeyType(bytes) {
     override val size: Int get() = LENGTH_16
 }
-open class Key32(bytes: List<Byte>) : KeyType(bytes) {
 
-    constructor(base58: String) : this(Base58.decode(base58).toList())
+open class Key32(bytes: ByteArray) : AbstractKeyType(bytes) {
+    // Secondary constructor for Base58 string initialization
+    constructor(base58: String) : this(Base58.decode(base58))
 
     override val size: Int get() = LENGTH_32
 
     companion object {
-        val kinMint = PublicKey(Base58.decode("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6").toList())
-
-        val subsidizer = PublicKey(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR").toList())
-        val timeAuthority = PublicKey(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR").toList())
-        val splitter = PublicKey(Base58.decode("spLit2eb13Tz93if6aJM136nUWki5PVUsoEjcUjwpwW").toList())
-
-        val mock = PublicKey(Base58.decode("EBDRoayCDDUvDgCimta45ajQeXbexv7aKqJubruqpyvu").toList())
-
-        val zero = Key32(ByteArray(LENGTH_32).toList())
-
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-
-        other as Key32
-        if (size == other.size && bytes == other.bytes) return true
-
-        return false
-    }
-
-    override fun hashCode(): Int {
-        var result = super.hashCode()
-        result = 31 * result + size
-        return result
+        // Use secure initialization for predefined keys
+        val kinMint = Key32(Base58.decode("kinXdEcpDQeHPEuQnqmUgtYykqKGVFq6CeVX5iAHJq6"))
+        val subsidizer = Key32(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR"))
+        val timeAuthority = Key32(Base58.decode("codeHy87wGD5oMRLG75qKqsSi1vWE3oxNyYmXo5F9YR"))
+        val splitter = Key32(Base58.decode("spLit2eb13Tz93if6aJM136nUWki5PVUsoEjcUjwpwW"))
+        val mock = Key32(Base58.decode("EBDRoayCDDUvDgCimta45ajQeXbexv7aKqJubruqpyvu"))
+        val zero = Key32(ByteArray(LENGTH_32))
     }
 }
-open class Key64(bytes: List<Byte>) : KeyType(bytes) {
+
+open class Key64(bytes: ByteArray) : AbstractKeyType(bytes) {
     override val size: Int get() = LENGTH_64
 }
 
