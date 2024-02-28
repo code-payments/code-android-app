@@ -150,6 +150,7 @@ class PaymentRepository @Inject constructor(
                     context = context,
                     amount = paymentAmount.copy(kin = paymentAmount.kin.toKinTruncating()),
                     fee = fee.kin,
+                    additionalFees = receiveRequest.additionalFees,
                     organizer = organizer,
                     rendezvousKey = rendezvousKey.publicKeyBytes.toPublicKey(),
                     destination = receiveRequest.account,

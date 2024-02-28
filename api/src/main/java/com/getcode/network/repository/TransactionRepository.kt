@@ -110,6 +110,7 @@ class TransactionRepository @Inject constructor(
         context: Context,
         amount: KinAmount,
         fee: Kin,
+        additionalFees: List<Fee>,
         organizer: Organizer,
         rendezvousKey: PublicKey,
         destination: PublicKey,
@@ -121,8 +122,10 @@ class TransactionRepository @Inject constructor(
                 actionGroup = ActionGroup(),
                 organizer = organizer,
                 destination = destination,
-                amount = amount,
+                grossAmount = amount,
+                netAmount = amount,
                 fee = fee,
+                additionalFees = emptyList(),
                 resultTray = organizer.tray,
                 isWithdrawal = isWithdrawal
             ) as IntentType
@@ -136,6 +139,7 @@ class TransactionRepository @Inject constructor(
             destination = destination,
             amount = amount.copy(kin = amount.kin.toKinTruncating()),
             fee = fee,
+            additionalFees = additionalFees,
             isWithdrawal = isWithdrawal
         )
 

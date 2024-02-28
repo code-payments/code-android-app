@@ -59,6 +59,11 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                             val data = request.exact
                             val currency = CurrencyCode.tryValueOf(data.currency) ?: return null
 
+                            val additionalFees = request.additionalFeesList.mapNotNull {
+                                val destination = PublicKey(it.destination.value.toByteArray().toList())
+                                Fee(destination = destination, it.feeBps)
+                            }
+
                             ReceiveRequest(
                                 account = account,
                                 signature = signature,
@@ -72,12 +77,19 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                                     )
                                 ),
                                 domain = domain,
-                                verifier = verifier
+                                verifier = verifier,
+                                additionalFees = additionalFees,
                             )
                         }
                         MessagingService.RequestToReceiveBill.ExchangeDataCase.PARTIAL -> {
                             val data = request.partial
                             val currency = CurrencyCode.tryValueOf(data.currency) ?: return null
+
+
+                            val additionalFees = request.additionalFeesList.mapNotNull {
+                                val destination = PublicKey(it.destination.value.toByteArray().toList())
+                                Fee(destination = destination, it.feeBps)
+                            }
 
                             ReceiveRequest(
                                 account = account,
@@ -86,7 +98,8 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                                     value = Fiat(currency, data.nativeAmount)
                                 ),
                                 domain = domain,
-                                verifier = verifier
+                                verifier = verifier,
+                                additionalFees
                             )
                         }
                         else -> return null
@@ -142,7 +155,8 @@ data class ReceiveRequest(
     val signature: Signature,
     val amount: Amount,
     val domain: Domain?,
-    val verifier: PublicKey?
+    val verifier: PublicKey?,
+    val additionalFees: List<Fee>
 ) {
     sealed interface Amount {
         data class Exact(val value: KinAmount): Amount
@@ -160,3 +174,8 @@ data class LoginRequest(
 )
 
 data class Airdrop(val type: AirdropType, val date: Long, val kinAmount: KinAmount)
+
+data class Fee(
+    val destination: PublicKey,
+    val bps: Int,
+)
