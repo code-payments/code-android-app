@@ -168,7 +168,8 @@ class BuyKinViewModel @Inject constructor(
             .appendQueryParameter("onRevCurrency", "USDC")
             .appendQueryParameter("mode", "minimal")
             .appendQueryParameter("network", "SOLANA")
-            .appendQueryParameter("fiatMethodList", phoneRepository.phoneNumber.makeE164())
+            .appendQueryParameter("fiatMethodList", "debit_only")
+            .appendQueryParameter("phone", phoneRepository.phoneNumber.makeE164())
             .appendQueryParameter("onToAddress", SessionManager.getOrganizer()?.swapDepositAddress)
             .build()
     }
