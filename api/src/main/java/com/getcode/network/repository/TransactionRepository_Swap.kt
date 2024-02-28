@@ -35,9 +35,9 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                 // 2. Upon successful submission of intent action the server will
                 // respond with parameters that we'll need to apply to the intent
                 // before crafting and signing the transactions.
-                SwapResponse.ResponseCase.SERVER_PARAMENTERS -> {
+                SwapResponse.ResponseCase.SERVER_PARAMETERS -> {
                     try {
-                        val configParameters = SwapConfigParameters.invoke(value.serverParamenters) ?: throw IllegalArgumentException()
+                        val configParameters = SwapConfigParameters.invoke(value.serverParameters) ?: throw IllegalArgumentException()
                         intent.parameters = configParameters
 
                         val submitSignatures = intent.requestToSubmitSignatures()

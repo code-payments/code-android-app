@@ -4,7 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
+import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
+import com.getcode.model.Limits
 import com.getcode.model.PrefsString
 import com.getcode.model.SendLimit
 import com.getcode.network.client.Client
@@ -46,7 +48,7 @@ sealed class CurrencyListItem {
 data class CurrencyUiModel(
     val currencies: List<Currency> = listOf(),
     val listItems: List<CurrencyListItem> = listOf(),
-    val sendLimitsMap: Map<String, SendLimit> = mapOf(),
+    val limits: Limits? = null,
     val selectedCurrencyCode: String? = null,
     val selectedCurrencyResId: Int? = null,
 )
@@ -88,11 +90,10 @@ abstract class BaseAmountCurrencyViewModel(
         flowOf(SessionManager.getKeyPair())
             .filterNotNull()
             .flatMapLatest {
-                client.fetchTransactionLimits(it)
-                    .subscribeOn(Schedulers.io())
-                    .asFlow()
-            }.onEach { sendLimits ->
-                setCurrencyUiModel(getCurrencyUiModel().copy(sendLimitsMap = sendLimits))
+                flowOf(client.fetchTransactionLimits(it))
+            }.filterNotNull()
+            .onEach { limits ->
+                setCurrencyUiModel(getCurrencyUiModel().copy(limits = limits))
             }.launchIn(viewModelScope)
 
         combine(
@@ -206,8 +207,10 @@ abstract class BaseAmountCurrencyViewModel(
         val fiatValue =
             FormatUtils.getFiatValue(currentBalance, selectedCurrency.rate)
 
-        val sendLimit = getCurrencyUiModel()
-            .sendLimitsMap[selectedCurrency.code]?.limit ?: fiatValue
+        val currency = CurrencyCode.tryValueOf(selectedCurrency.code)
+        val sendLimit = currency?.let {
+            getCurrencyUiModel().limits?.todaysAllowanceFor(it)
+        } ?: fiatValue
         val amountAvailable = min(sendLimit, fiatValue)
         val isInsufficient = amount > amountAvailable ||
                 amountKin.toKinTruncatingLong() > currentBalance

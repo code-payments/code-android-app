@@ -9,7 +9,6 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.Re
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.manager.SessionManager
 import com.getcode.model.*
 import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
@@ -24,11 +23,8 @@ import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
-import com.getcode.model.intents.SwapIntent
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.appcheck.AppCheck
-import com.getcode.network.client.Client
-import com.getcode.network.client.initiateSwap
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -45,7 +41,6 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
@@ -66,7 +61,11 @@ class TransactionRepository @Inject constructor(
     val transactionApi: TransactionApiV2,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    var sendLimit = mutableListOf<SendLimit>()
+    var limits: Limits? = null
+        private set
+
+    val areLimitsState: Boolean
+        get() = limits == null || limits?.isStale == true
 
     private var lastSwap: Long = 0L
 
@@ -76,16 +75,12 @@ class TransactionRepository @Inject constructor(
         maxDeposit = deposit
     }
 
-    fun maxKinPurchase(): Kin {
-        return maxDeposit
+    fun buyLimitFor(currencyCode: CurrencyCode): Limit? {
+        return limits?.buyLimitFor(currencyCode)
     }
 
-    fun minKinPurchase(): Kin {
-        return Kin.fromQuarks(maxKinPurchase().quarks / 10)
-    }
-
-    fun setSendLimits(limits: MutableList<SendLimit>) {
-        sendLimit = limits
+    private fun setLimits(limits: Limits) {
+        this.limits = limits
     }
 
     fun clear() {
@@ -471,10 +466,10 @@ class TransactionRepository @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    fun fetchTransactionLimits(
+    fun fetchLimits(
         owner: KeyPair,
         timestamp: Long
-    ): Flowable<Map<String, SendLimit>> {
+    ): Flowable<Limits> {
         val request = TransactionService.GetLimitsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setConsumedSince(Timestamp.newBuilder().setSeconds(timestamp))
@@ -485,34 +480,28 @@ class TransactionRepository @Inject constructor(
             }
             .build()
 
-        transactionApi.getLimits(request)
+        return transactionApi.getLimits(request)
             .flatMap {
                 if (it.result != TransactionService.GetLimitsResponse.Result.OK) {
                     Single.error(IllegalStateException())
                 } else {
-                    val map = it.remainingSendLimitsByCurrencyMap
-                        .mapValues { v -> v.value.nextTransaction.toDouble() }
-
                     Limits.newInstance(
-                        map = map,
-                        maxDeposit = Kin.fromQuarks(it.depositLimit.maxQuarks),
+                        sinceDate = timestamp,
+                        fetchDate = System.currentTimeMillis(),
+                        sendLimits = it.sendLimitsByCurrencyMap,
+                        buyLimits = it.buyModuleLimitsByCurrencyMap,
+                        deposits = it.depositLimit
                     ).let { limits ->
                         Single.just(limits)
                     }
                 }
             }
             .doOnSuccess {
-                val newList = mutableListOf<SendLimit>()
-                it.map.map { entry ->
-                    newList.add(SendLimit(entry.key.name, entry.value))
-                }
-                setSendLimits(newList)
+                setLimits(it)
                 setMaximumDeposit(it.maxDeposit)
             }
-            .subscribe({}, ErrorUtils::handleError)
-
-        return Flowable.just(sendLimit)
-            .map { it.associateBy { i -> i.id } }
+            .doOnError(ErrorUtils::handleError)
+            .toFlowable()
     }
 
     fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {

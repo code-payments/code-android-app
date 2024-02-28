@@ -1,12 +1,16 @@
 syntax = "proto3";
+
 package code.messaging.v1;
+
 option go_package = "github.com/code-payments/code-protobuf-api/generated/go/messaging/v1;messaging";
 option java_package = "com.codeinc.gen.messaging.v1";
 option objc_class_prefix = "CPBMessagingV1";
+
 import "common/v1/model.proto";
 import "transaction/v2/transaction_service.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+
 service Messaging {
     // OpenMessageStream opens a stream of messages. Messages are routed using the
     // public key of a rendezvous keypair derived by both the sender and the
@@ -59,6 +63,7 @@ service Messaging {
     //      WebhookCalled) for login state.
     //   7. The third party closes the stream once the login hits a terminal state, or times out.
     rpc OpenMessageStream(OpenMessageStreamRequest) returns (stream OpenMessageStreamResponse);
+
     // OpenMessageStreamWithKeepAlive is like OpenMessageStream, but enables a ping/pong
     // keepalive to determine the health of the stream at both the client and server.
     //
@@ -85,6 +90,7 @@ service Messaging {
     // Note: This API will enforce OpenMessageStreamRequest.signature is set as part of migration
     //       to this newer protocol
     rpc OpenMessageStreamWithKeepAlive(stream OpenMessageStreamWithKeepAliveRequest) returns (stream OpenMessageStreamWithKeepAliveResponse);
+
     // PollMessages is like OpenMessageStream, but uses a polling flow for receiving
     // messages. Updates are not real-time and depedent on the polling interval.
     // This RPC supports all message types.
@@ -92,15 +98,18 @@ service Messaging {
     // This is a temporary RPC until OpenMessageStream can be built out generically on
     // both client and server, while supporting things like multiple listeners.
     rpc PollMessages(PollMessagesRequest) returns (PollMessagesResponse);
+
     // AckMessages acks one or more messages that have been successfully delivered to
     // the client.
     rpc AckMessages(AckMessagesRequest) returns (AckMesssagesResponse);
+
     // SendMessage sends a message.
     rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
 }
 
 message OpenMessageStreamRequest {
     RendezvousKey rendezvous_key = 1;
+
     // The signature is of serialize(OpenMessageStreamRequest) using rendezvous_key.
     //
     // todo: Make required once clients migrate
@@ -113,24 +122,21 @@ message OpenMessageStreamResponse {
 
 message OpenMessageStreamWithKeepAliveRequest {
     oneof requestOrPong {
-        
         OpenMessageStreamRequest request = 1;
         ClientPong pong = 2;
     }
-
 }
 
 message OpenMessageStreamWithKeepAliveResponse {
     oneof responseOrPing {
-        
         OpenMessageStreamResponse response = 1;
         ServerPing ping = 2;
     }
-
 }
 
 message PollMessagesRequest {
     RendezvousKey rendezvous_key = 1;
+
     // The signature is of serialize(PollMessagesRequest) using rendezvous_key.
     common.v1.Signature signature = 2;
 }
@@ -141,6 +147,7 @@ message PollMessagesResponse {
 
 message AckMessagesRequest {
     RendezvousKey rendezvous_key = 1;
+
     repeated MessageId message_ids = 2;
 }
 
@@ -149,14 +156,15 @@ message AckMesssagesResponse {
     enum Result {
         OK = 0;
     }
-
 }
 
 message SendMessageRequest {
     // The message to send. Types of messages clients can send are restricted.
     Message message = 1;
+
     // The rendezvous key that the message should be routed to.
     RendezvousKey rendezvous_key = 2;
+
     // The signature is of serialize(Message) using the PrivateKey of the keypair.
     common.v1.Signature signature = 3;
 }
@@ -200,14 +208,16 @@ message RequestToGrabBill {
 message RequestToReceiveBill {
     // Requestor is the Kin token account on Solana to which a payment should be sent.
     common.v1.SolanaAccountId requestor_account = 1;
+
     // The exchange data for the requested bill value.
     oneof exchange_data {
-        
+
         // An exact amount of Kin. Payment is guaranteed to transfer the specified
         // quarks in the requested currency and exchange rate.
         //
         // Only supports Kin. Use exchange_data.partial for fiat amounts.
         transaction.v2.ExchangeData            exact = 2;
+
         // Fiat amount request. The amount of Kin is determined at time of payment
         // with a recent exchange rate provided by the paying client and validatd
         // by server.
@@ -226,16 +236,24 @@ message RequestToReceiveBill {
     //  - Verified: All of domain, verifier, signature and rendezvous_key are required
     //  - Unverified: Only domain is requried
     //
+
     // The third-party's domain name, which is its primary identifier. Server
     // guarantees to perform domain verification against the verifier account.
     common.v1.Domain domain = 4;
+
     // Owner account owned by the third party used in domain verification.
     common.v1.SolanaAccountId verifier = 5;
+
     // Signature of this message using the verifier private key, which in addition
     // to domain verification, authenticates the third party.
     common.v1.Signature signature = 6;
+
     // Rendezvous key to avoid replay attacks
     RendezvousKey rendezvous_key = 7;
+
+    // Additional fee payments splitting the requested amount. This is in addition
+    // to the hard-coded Code $0.01 USD fee.
+    repeated transaction.v2.AdditionalFeePayment additional_fees = 8;
 }
 
 // A status update on a stream to indicate a scan code was scanned. This can appear
@@ -259,6 +277,7 @@ message ClientRejectedPayment {
 // This message type is only initiated by server
 message IntentSubmitted {
     common.v1.IntentId intent_id = 1;
+
     // Metadata is available for intents where it can be safely propagated publicly.
     // Anything else requires an additional authenticated RPC call (eg. login).
     transaction.v2.Metadata metadata = 2;
@@ -272,6 +291,7 @@ message WebhookCalled {
     google.protobuf.Timestamp timestamp = 1;
 }
 
+
 // Request that an account logs in
 //
 // This message type is only initiated by third-parties through the SDK.
@@ -282,16 +302,21 @@ message RequestToLogin {
     // Clients should expect subdomains for future feature compatiblity, but must
     // use the ASCII base domain in the RELATIONSHIP account derivation strategy.
     common.v1.Domain domain = 1;
+
     // Deprecated nonce value, which is replaced by the rendezvous_key field which
     // is effectively derived off a random nonce.
     reserved 2;
+
     // Reserved for a timestamp field, which may be used in the future.
     reserved 3;
+
     // Owner account owned by the third party used in domain verification.
     common.v1.SolanaAccountId verifier = 4;
+
     // Signature of this message using the verifier private key, which in addition
     // to domain verification, authenticates the third party.
     common.v1.Signature signature = 5;
+
     // Rendezvous key to avoid replay attacks
     RendezvousKey rendezvous_key = 6;
 }
@@ -310,8 +335,10 @@ message ClientRejectedLogin {
 message AirdropReceived {
     // The type of airdrop received
     transaction.v2.AirdropType airdrop_type = 1;
+
     // Exchange data relating to the amount of Kin and fiat value of the airdrop
     transaction.v2.ExchangeData exchange_data = 2;
+
     // Time the airdrop was received
     google.protobuf.Timestamp timestamp = 3;
 }
@@ -324,36 +351,43 @@ message Message {
     //     1. Reserve the ability for any future ID changes
     //     2. Prevent clients attempting to collide message IDs.
     MessageId id = 1;
+
     // The signature sent from SendMessageRequest, which will be injected by server.
     // This enables clients to ensure no MITM attacks were performed to hijack contents
     // of the typed message. This is only applicable for messages not generated by server.
     common.v1.Signature send_message_request_signature = 3;
+
     // Next field number is 13
     oneof kind {
-        
         //
         // Section: Cash
         //
+
         RequestToGrabBill     request_to_grab_bill     = 2;
+
         //
         // Section: Payment Requests
         //
+
         RequestToReceiveBill  request_to_receive_bill  = 5;
         CodeScanned           code_scanned             = 6;
         ClientRejectedPayment client_rejected_payment  = 7;
         IntentSubmitted       intent_submitted         = 8;
         WebhookCalled         webhook_called           = 9;
+
         //
         // Section: Login
         //
+
         RequestToLogin        request_to_login         = 10;
         ClientRejectedLogin   client_rejected_login    = 12;
+
         //
         // Section: Airdrops
         //
+
         AirdropReceived       airdrop_received         = 4;
     }
-
     // Reserved for deprecated LoginAttempt field
     reserved 11;
 }
@@ -362,6 +396,7 @@ message ServerPing {
     // Timestamp the ping was sent on the stream, for client to get a sense
     // of potential network latency
     google.protobuf.Timestamp timestamp = 1;
+
     // The delay server will apply before sending the next ping
     google.protobuf.Duration ping_delay = 2;
 }
@@ -371,4 +406,3 @@ message ClientPong {
     // of potential network latency
     google.protobuf.Timestamp timestamp = 1;
 }
-
