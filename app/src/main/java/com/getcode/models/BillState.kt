@@ -16,22 +16,10 @@ data class BillState(
     val hideBillButtons: Boolean = false
 ) {
     val canSwipeToDismiss: Boolean
-        get() = when (bill) {
-            is Bill.Cash -> true
-            is Bill.Login -> true
-            else -> false
-        }
+        get() = bill is Bill.Cash || bill is Bill.Login
 
     companion object {
-        val Default = BillState(
-            bill = null,
-            showToast = false,
-            toast = null,
-            valuation = null,
-            paymentConfirmation = null,
-            loginConfirmation = null,
-            hideBillButtons = false
-        )
+        val Default = BillState()
     }
 }
 
@@ -39,57 +27,48 @@ sealed interface Bill {
     val didReceive: Boolean
     val amount: KinAmount
     val data: List<Byte>
+    val kind: Kind
+    val metadata: Metadata
+        get() = Metadata(
+            kinAmount = amount,
+            data = data,
+            request = this as? HasDeepLinkRequest
+        )
 
     enum class Kind {
-        cash, remote, firstKin, referral
+        Cash, Remote, FirstKin, Referral
     }
+}
 
-    val metadata: Metadata
-        get() {
-            return when (this) {
-                is Cash -> Metadata(
-                    kinAmount = amount,
-                    data = data
-                )
+interface HasDeepLinkRequest {
+    val request: DeepLinkRequest?
+}
 
-                is Payment -> Metadata(
-                    kinAmount = amount,
-                    data = payload.codeData.toList(),
-                    request = request,
-                )
+data class Cash(
+    override val amount: KinAmount,
+    override val didReceive: Boolean = false,
+    override val data: List<Byte> = emptyList(),
+    override val kind: Bill.Kind = Bill.Kind.Cash
+) : Bill
 
-                is Login -> Metadata(
-                    kinAmount = amount,
-                    data = payload.codeData.toList(),
-                    request = request,
-                )
-            }
-        }
+data class Payment(
+    override val amount: KinAmount,
+    val payload: CodePayload,
+    override val request: DeepLinkRequest? = null
+) : Bill, HasDeepLinkRequest {
+    override val didReceive: Boolean = false
+    override val data: List<Byte> = payload.codeData.toList()
+    override val kind: Bill.Kind = Bill.Kind.Remote
+}
 
-    data class Cash(
-        override val amount: KinAmount,
-        override val didReceive: Boolean = false,
-        override val data: List<Byte> = emptyList(),
-        val kind: Kind = Kind.cash
-    ) : Bill
-
-    data class Payment(
-        override val amount: KinAmount,
-        val payload: CodePayload,
-        val request: DeepLinkRequest? = null
-    ) : Bill {
-        override val didReceive: Boolean = false
-        override val data: List<Byte> = payload.codeData.toList()
-    }
-
-    data class Login(
-        override val amount: KinAmount,
-        val payload: CodePayload,
-        val request: DeepLinkRequest? = null
-    ) : Bill {
-        override val didReceive: Boolean = false
-        override val data: List<Byte> = payload.codeData.toList()
-    }
+data class Login(
+    override val amount: KinAmount,
+    val payload: CodePayload,
+    override val request: DeepLinkRequest? = null
+) : Bill, HasDeepLinkRequest {
+    override val didReceive: Boolean = false
+    override val data: List<Byte> = payload.codeData.toList()
+    override val kind: Bill.Kind = Bill.Kind.Remote
 }
 
 val Bill.amountFloored: KinAmount
@@ -104,10 +83,7 @@ data class BillToast(
     val isDeposit: Boolean,
 ) {
     val formattedAmount: String
-        @Composable get() = StringBuilder()
-            .append(if (isDeposit) "+" else "-")
-            .append(amount.formatted())
-            .toString()
+        @Composable get() = (if (isDeposit) "+" else "-") + amount.formatted()
 }
 
 data class PaymentConfirmation(
@@ -124,16 +100,16 @@ data class LoginConfirmation(
 )
 
 sealed interface PaymentState {
-    data object AwaitingConfirmation : PaymentState
-    data object Sending : PaymentState
-    data object Sent : PaymentState
+    object AwaitingConfirmation : PaymentState
+    object Sending : PaymentState
+    object Sent : PaymentState
     data class Error(val exception: Throwable) : PaymentState
 }
 
 sealed interface LoginState {
-    data object AwaitingConfirmation : LoginState
-    data object Sending : LoginState
-    data object Sent : LoginState
+    object AwaitingConfirmation : LoginState
+    object Sending : LoginState
+    object Sent : LoginState
     data class Error(val exception: Throwable) : LoginState
 }
 
