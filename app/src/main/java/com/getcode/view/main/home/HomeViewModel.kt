@@ -569,7 +569,8 @@ class HomeViewModel @Inject constructor(
             Kind.Cash,
             Kind.GiftCard -> attemptReceive(organizer, codePayload)
 
-            Kind.RequestPayment -> attemptPayment(codePayload)
+            Kind.RequestPayment,
+            Kind.RequestPaymentV2 -> attemptPayment(codePayload)
 
             Kind.Login -> attemptLogin(codePayload)
         }
