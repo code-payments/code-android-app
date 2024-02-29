@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.displayLarge
@@ -116,9 +117,15 @@ fun BuyKinScreen(
                     return@CodeButton
                 }
 
-                viewModel.initiatePurchase()?.let {
-                    uriHandler.openUri(it)
+                val url = viewModel.initiatePurchase()
+                if (url == null) {
+                    TopBarManager.showMessage(
+                        "Unable to Buy Kin",
+                        "KADO_API_KEY not defined"
+                    )
+                    return@CodeButton
                 }
+                uriHandler.openUri(url)
             },
             enabled = dataState.continueEnabled,
             text = stringResource(R.string.action_next),
