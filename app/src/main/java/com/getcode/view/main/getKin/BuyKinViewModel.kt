@@ -227,6 +227,6 @@ class BuyKinViewModel @Inject constructor(
 
         val kadoUrl = buildKadoUrl(kadoAmount, rate)
         Timber.d("resulting url=$kadoUrl")
-        return kadoUrl.toString()
+        return kadoUrl?.toString()
     }
 }
