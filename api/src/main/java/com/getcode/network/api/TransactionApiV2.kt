@@ -10,7 +10,6 @@ import io.grpc.stub.StreamObserver
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
-import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class TransactionApiV2 @Inject constructor(
