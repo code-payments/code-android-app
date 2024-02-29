@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.displayLarge

@@ -117,7 +117,7 @@ class BuyKinViewModel @Inject constructor(
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
         super.onAmountChanged(lastPressedBackspace)
         state.update {
-            it.copy(continueEnabled = numberInputHelper.amount > 0.0)
+            it.copy(continueEnabled = numberInputHelper.amount > 0.0 && BuildConfig.KADO_API_KEY.isNotEmpty())
         }
     }
 
@@ -227,6 +227,6 @@ class BuyKinViewModel @Inject constructor(
 
         val kadoUrl = buildKadoUrl(kadoAmount, rate)
         Timber.d("resulting url=$kadoUrl")
-        return kadoUrl.toString()
+        return kadoUrl?.toString()
     }
 }

@@ -1,7 +1,6 @@
 package com.getcode.model.intents
 
 import android.content.Context
-import android.util.Log
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.Fee
 import com.getcode.model.Kin
@@ -61,7 +60,6 @@ class IntentPrivateTransfer(
             additionalFees: List<Fee>,
             isWithdrawal: Boolean,
         ): IntentPrivateTransfer {
-
             if (fee > amount.kin) {
                 throw IntentPrivateTransferException.InvalidFeeException()
             }
@@ -80,7 +78,6 @@ class IntentPrivateTransfer(
                 netKin -= fee
             }
 
-            val grossAmount = amount
             val netAmount = KinAmount.newInstance(kin = netKin, rate = amount.rate)
 
             val currentTray = organizer.tray.copy()
@@ -89,7 +86,7 @@ class IntentPrivateTransfer(
             // 1. Move all funds from bucket accounts into the
             // outgoing account and prepare to transfer
 
-            val transfers = currentTray.transfer(amount = grossAmount.kin).map { transfer ->
+            val transfers = currentTray.transfer(amount = amount.kin).map { transfer ->
                 val sourceCluster = currentTray.cluster(transfer.from)
 
                 // If the transfer is to another bucket, it's an internal
@@ -140,7 +137,7 @@ class IntentPrivateTransfer(
             // outgoing account to the destination account
 
             val outgoing = ActionWithdraw.newInstance(
-                kind = ActionWithdraw.Kind.NoPrivacyWithdraw(netAmount.kin - fee),
+                kind = ActionWithdraw.Kind.NoPrivacyWithdraw(netAmount.kin),
                 cluster = currentTray.outgoing.getCluster(),
                 destination = destination
             )
@@ -179,7 +176,7 @@ class IntentPrivateTransfer(
 
             val endBalance = currentTray.availableBalance
 
-            if (startBalance - endBalance != grossAmount.kin)  {
+            if (startBalance - endBalance != amount.kin)  {
                 Timber.e(
                     "Expected: ${amount.kin}; actual = ${startBalance - endBalance}; " +
                             "difference: ${startBalance.quarks - currentTray.availableBalance.quarks - amount.kin.quarks}"
@@ -201,7 +198,7 @@ class IntentPrivateTransfer(
                 id = rendezvousKey,
                 organizer = organizer,
                 destination = destination,
-                grossAmount = grossAmount,
+                grossAmount = amount,
                 netAmount = netAmount,
                 fee = fee,
                 additionalFees = additionalFees,
