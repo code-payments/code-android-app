@@ -29,7 +29,6 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
     reference.retain()
 
     reference.stream = transactionApi.swap(object : StreamObserver<SwapResponse> {
-
         override fun onNext(value: SwapResponse?) {
             when (val response = value?.responseCase) {
                 // 2. Upon successful submission of intent action the server will
@@ -100,4 +99,6 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
             Timber.i("onCompleted")
         }
     })
+
+    reference.stream?.onNext(intent.requestToSubmitSignatures())
 }

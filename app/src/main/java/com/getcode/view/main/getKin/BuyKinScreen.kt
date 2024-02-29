@@ -117,15 +117,9 @@ fun BuyKinScreen(
                     return@CodeButton
                 }
 
-                val url = viewModel.initiatePurchase()
-                if (url == null) {
-                    TopBarManager.showMessage(
-                        "Unable to Buy Kin",
-                        "KADO_API_KEY not defined"
-                    )
-                    return@CodeButton
+                viewModel.initiatePurchase()?.let {
+                    uriHandler.openUri(it)
                 }
-                uriHandler.openUri(url)
             },
             enabled = dataState.continueEnabled,
             text = stringResource(R.string.action_next),
