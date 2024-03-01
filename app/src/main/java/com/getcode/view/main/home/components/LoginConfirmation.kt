@@ -29,6 +29,7 @@ import com.getcode.models.LoginState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.Modal
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.components.SlideToConfirmDefaults
 
@@ -55,22 +56,7 @@ internal fun LoginConfirmation(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .clip(
-                CodeTheme.shapes.medium.copy(
-                    bottomStart = ZeroCornerSize,
-                    bottomEnd = ZeroCornerSize
-                )
-            )
-            .background(Color.Black)
-            .padding(horizontal = 20.dp, vertical = 30.dp)
-            .windowInsetsPadding(WindowInsets.navigationBars),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(15.dp)
-    ) {
+    Modal(modifier, backgroundColor = Color.Black) {
         domain?.let {
             Text(
                 text = it,
