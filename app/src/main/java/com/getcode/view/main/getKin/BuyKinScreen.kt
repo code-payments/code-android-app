@@ -86,7 +86,6 @@ fun BuyKinScreen(
                         color = BrandLight,
                     )
                     Image(
-                        modifier = Modifier.width(75.dp),
                         painter = painterResource(id = R.drawable.ic_kado),
                         contentDescription = "Kado"
                     )
