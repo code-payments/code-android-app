@@ -34,9 +34,20 @@ object AnimationUtils {
 
     val animationBillExitGrabbed = fadeOut(tween(durationMillis = 100)) + scaleOut(
         animationSpec = spring(
-            dampingRatio = 0.4f,
+            dampingRatio = 0.9f,
             stiffness = 400f
         ),
         targetScale = 1.1f
     )
+
+    val modalEnter: EnterTransition = slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = tween(durationMillis = 450, delayMillis = 450)
+    )
+
+    val modalExit: ExitTransition = slideOutVertically(targetOffsetY = { it })
+
+    fun <S> modalAnimationSpec(): AnimatedContentTransitionScope<S>.() -> ContentTransform = {
+        modalEnter togetherWith modalExit
+    }
 }

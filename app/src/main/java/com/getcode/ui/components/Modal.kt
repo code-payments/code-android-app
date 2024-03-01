@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.getcode.theme.CodeTheme
 
@@ -24,22 +24,24 @@ fun Modal(
     backgroundColor: Color,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .clip(
-                CodeTheme.shapes.medium.copy(
-                    bottomStart = ZeroCornerSize,
-                    bottomEnd = ZeroCornerSize
-                )
-            )
-            .background(backgroundColor)
-            .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x3)
-            .windowInsetsPadding(WindowInsets.navigationBars),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+    Surface(
+        modifier = modifier,
+        color = backgroundColor,
+        shape = CodeTheme.shapes.medium.copy(
+            bottomStart = ZeroCornerSize,
+            bottomEnd = ZeroCornerSize
+        )
     ) {
-        content()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(horizontal = CodeTheme.dimens.inset, vertical = CodeTheme.dimens.grid.x3)
+                .windowInsetsPadding(WindowInsets.navigationBars),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+        ) {
+            content()
+        }
     }
 }

@@ -449,7 +449,9 @@ class HomeViewModel @Inject constructor(
                 it.copy(
                     presentationStyle = style,
                     billState = it.billState.copy(
+                        hideBillButtons = false,
                         bill = null,
+                        valuation = null,
                     )
                 )
             }
@@ -458,15 +460,6 @@ class HomeViewModel @Inject constructor(
 
             if (shown) {
                 delay(300)
-            }
-
-            uiFlow.update {
-                it.copy(
-                    billState = it.billState.copy(
-                        valuation = null,
-                        hideBillButtons = false
-                    )
-                )
             }
 
             if (shown) {
@@ -706,7 +699,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            delay(1.seconds)
+            delay(400.milliseconds)
             cancelPayment(false)
         }.onFailure { error ->
             TopBarManager.showMessage(
@@ -885,7 +878,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            delay(1.seconds)
+            delay(400.milliseconds)
             cancelLogin(rejected = false)
         }
     }
