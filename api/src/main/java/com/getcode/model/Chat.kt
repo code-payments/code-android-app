@@ -71,7 +71,7 @@ sealed interface Title {
     companion object {
         operator fun invoke(proto: ChatService.ChatMetadata): Title? {
             return when (proto.titleCase) {
-                ChatService.ChatMetadata.TitleCase.LOCALIZED -> Localized(proto.localized.key)
+                ChatService.ChatMetadata.TitleCase.LOCALIZED -> Localized(proto.localized.keyOrText)
                 ChatService.ChatMetadata.TitleCase.DOMAIN -> Domain(proto.domain.value)
                 ChatService.ChatMetadata.TitleCase.TITLE_NOT_SET -> null
                 else -> null
@@ -126,7 +126,7 @@ sealed interface MessageContent {
     companion object {
         operator fun invoke(proto: Content): MessageContent? {
             return when (proto.typeCase) {
-                Content.TypeCase.LOCALIZED -> Localized(proto.localized.key)
+                Content.TypeCase.LOCALIZED -> Localized(proto.localized.keyOrText)
                 Content.TypeCase.EXCHANGE_DATA -> {
                     val verb = Verb(proto.exchangeData.verb)
                     when (proto.exchangeData.exchangeDataCase) {

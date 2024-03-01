@@ -108,6 +108,16 @@ message Hash {
     bytes value = 1;
 }
 
+// Locale is a user locale consisting of a combination of language, script and region
+message Locale {
+    string value = 1;
+}
+
+// UUID is a 16 byte UUID value
+message UUID {
+    bytes value = 1;
+}
+
 // Request is a generic wrapper for gRPC requests
 message Request {
     string version = 1;

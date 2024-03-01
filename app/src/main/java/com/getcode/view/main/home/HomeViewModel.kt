@@ -55,6 +55,7 @@ import com.getcode.network.client.rejectLogin
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
+import com.getcode.network.client.updatePreferences
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
@@ -103,6 +104,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -143,6 +145,7 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
+    val userPrefsUpdated: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -199,8 +202,20 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
+        viewModelScope.launch {
+            val organizer = SessionManager.getOrganizer() ?: return@launch
+            client.updatePreferences(organizer)
+                .onSuccess {
+                    uiFlow.update { it.copy(userPrefsUpdated = true) }
+                }.onFailure {
+                    uiFlow.update { it.copy(userPrefsUpdated = true) }
+                }
+        }
 
-        prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
+        uiFlow
+            .map { it.userPrefsUpdated }
+            .filter { it }
+            .flatMapLatest { prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)  }
             .map { it }
             .distinctUntilChanged()
             .onEach { Timber.d("airdrop eligible=$it") }
