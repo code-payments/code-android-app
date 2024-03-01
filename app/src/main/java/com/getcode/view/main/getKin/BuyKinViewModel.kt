@@ -48,7 +48,7 @@ class BuyKinViewModel @Inject constructor(
     resources: ResourceHelper,
     private val transactionRepository: TransactionRepository,
     private val phoneRepository: PhoneRepository,
-): BaseAmountCurrencyViewModel(
+) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,
     exchange,
@@ -77,14 +77,29 @@ class BuyKinViewModel @Inject constructor(
     }
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
-       state.update {
-           it.copy(currencyModel = currencyUiModel)
-       }
+        // force currency to be local to device
+        with (localeHelper.getDefaultCurrency()) {
+            state.update {
+                it.copy(
+                    currencyModel = currencyUiModel.copy(
+                        selectedCurrencyCode = this?.code,
+                        selectedCurrencyResId = this?.resId,
+                    )
+                )
+            }
+        }
     }
 
     override fun setAmountUiModel(amountUiModel: AmountUiModel) {
-        state.update {
-            it.copy(amountModel = amountUiModel)
+        with (localeHelper.getDefaultCurrency()) {
+            state.update { s ->
+                s.copy(
+                    amountModel = amountUiModel.copy(
+                        amountPrefix = formatPrefix(this)
+                            .takeIf { it != this?.code }.orEmpty()
+                    )
+                )
+            }
         }
     }
 
@@ -95,11 +110,23 @@ class BuyKinViewModel @Inject constructor(
     }
 
     override fun getCurrencyUiModel(): CurrencyUiModel {
-        return state.value.currencyModel.copy()
+        // force currency to be local to device
+        return with (localeHelper.getDefaultCurrency()) {
+            state.value.currencyModel.copy(
+                selectedCurrencyCode = this?.code,
+                selectedCurrencyResId = this?.resId,
+            )
+        }
     }
 
     override fun getAmountUiModel(): AmountUiModel {
-        return state.value.amountModel.copy()
+        // force currency to be local to device
+        return with (localeHelper.getDefaultCurrency()) {
+            state.value.amountModel.copy(
+                amountPrefix = formatPrefix(this)
+                    .takeIf { it != this?.code }.orEmpty()
+            )
+        }
     }
 
     override fun getAmountAnimatedInputUiModel(): AmountAnimatedInputUiModel {
@@ -203,9 +230,10 @@ class BuyKinViewModel @Inject constructor(
     }
 
     fun initiatePurchase(): String? {
-        val uiState = state.value
-        val currencySymbol = uiState.currencyModel
-            .currencies.firstOrNull { uiState.currencyModel.selectedCurrencyCode == it.code }
+        val currencyModel = getCurrencyUiModel()
+        val amountAnimatedModel = getAmountAnimatedInputUiModel()
+        val currencySymbol = currencyModel
+            .currencies.firstOrNull { currencyModel.selectedCurrencyCode == it.code }
             ?.let { CurrencyCode.tryValueOf(it.code) }
             ?.takeIf { supportedCurrencies.contains(it) }
             ?: CurrencyCode.USD
@@ -214,7 +242,7 @@ class BuyKinViewModel @Inject constructor(
 
         val kadoAmount = Fiat.fromString(
             currencySymbol,
-            uiState.amountAnimatedModel.amountData.amount
+            amountAnimatedModel.amountData.amount
         )?.let { KinAmount.fromFiatAmount(fiat = it, rate = rate) } ?: return null
 
         if (!checkMinimumMet(kadoAmount, rate)) {

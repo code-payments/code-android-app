@@ -71,7 +71,7 @@ abstract class BaseAmountCurrencyViewModel(
     private val prefsRepository: PrefRepository,
     protected val exchange: Exchange,
     private val balanceRepository: BalanceRepository,
-    private val localeHelper: LocaleHelper,
+    protected val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     protected val resources: ResourceHelper,
     private val networkObserver: NetworkConnectivityListener,
@@ -302,7 +302,8 @@ abstract class BaseAmountCurrencyViewModel(
         return currenciesLocalesList
     }
 
-    private fun formatPrefix(selectedCurrency: Currency): String {
+    protected fun formatPrefix(selectedCurrency: Currency?): String {
+        if (selectedCurrency == null) return ""
         return if (!isKin(selectedCurrency)) selectedCurrency.symbol else ""
     }
 
