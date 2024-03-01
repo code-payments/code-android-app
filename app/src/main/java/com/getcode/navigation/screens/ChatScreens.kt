@@ -20,7 +20,7 @@ import com.getcode.model.ID
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.components.chat.localized
-import com.getcode.view.main.balance.BalanceSheet
+import com.getcode.view.main.balance.BalanceScreeen
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.chat.ChatScreen
 import com.getcode.view.main.chat.ChatViewModel
@@ -68,7 +68,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
             },
             onCloseClicked = null,
         ) {
-            BalanceSheet(state = state, dispatch = viewModel::dispatchEvent)
+            BalanceScreeen(state = state, dispatch = viewModel::dispatchEvent)
         }
 
         AnalyticsScreenWatcher(

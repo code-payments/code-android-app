@@ -55,7 +55,7 @@ import com.getcode.view.main.giveKin.AmountArea
 
 
 @Composable
-fun BalanceSheet(
+fun BalanceScreeen(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
 ) {
@@ -117,7 +117,7 @@ fun BalanceContent(
                         horizontal = CodeTheme.dimens.inset,
                         vertical = CodeTheme.dimens.grid.x7
                     )
-                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                    .padding(bottom = CodeTheme.dimens.grid.x4)
                     .fillParentMaxWidth(),
             ) {
                 BalanceTop(
@@ -135,7 +135,7 @@ fun BalanceContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset)
-                            .padding(top = CodeTheme.dimens.grid.x3),
+                            .padding(top = CodeTheme.dimens.grid.x5),
                         buttonState = ButtonState.Filled,
                         onClick = buyMoreKin,
                         text = stringResource(id = R.string.title_buy_more_kin)
