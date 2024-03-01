@@ -47,6 +47,7 @@ import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.Modal
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.components.SlideToConfirmDefaults
 import kotlinx.coroutines.delay
@@ -72,22 +73,7 @@ internal fun PaymentConfirmation(
         derivedStateOf { confirmation?.localAmount }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-            .clip(
-                CodeTheme.shapes.medium.copy(
-                    bottomStart = ZeroCornerSize,
-                    bottomEnd = ZeroCornerSize
-                )
-            )
-            .background(Brand)
-            .padding(horizontal = 20.dp, vertical = 30.dp)
-            .windowInsetsPadding(WindowInsets.navigationBars),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(15.dp)
-    ) {
+    Modal(modifier, backgroundColor = Brand) {
         val amount = requestedAmount
         if (state != null && amount != null && balance != null) {
             val balanceAmount = remember {
