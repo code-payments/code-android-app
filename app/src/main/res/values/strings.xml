@@ -79,8 +79,8 @@
     <string name="error_description_giveAmountTooLarge">Code is designed for small, every day transactions that are for %s or less.</string>
     <string name="error_description_giveLimitReached">Code is designed for small, every day transactions. Your daily give limit will increase tomorrow.</string>
     <string name="error_description_insuffiecientKin">To learn how to get more Kin go to the FAQ in Settings.</string>
-    <string name="error_description_buy_kin_too_small">Amount should be greater than %1$s. Please enter a larger amount.</string>
-    <string name="error_description_buy_kin_too_large">Amount should be less than %1$s. Please enter a smaller amount.</string>
+    <string name="error_description_buy_kin_too_small">The minimum amount you can purchase is %1$s. Please enter a larger amount.</string>
+    <string name="error_description_buy_kin_too_large">The maximum amount you can purchase is %1$s. Please enter a smaller amount.</string>
     <string name="error_description_usdc_deposit_failure">Failed to create a USDC deposit account.</string>
     <string name="error_description_invalidInviteCode">Please enter a different Invite Code and try again.</string>
     <string name="error_description_invalidInvitePhone">Please enter a valid phone number and try again.</string>
