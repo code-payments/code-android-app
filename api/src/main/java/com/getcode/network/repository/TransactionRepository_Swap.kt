@@ -1,6 +1,7 @@
 package com.getcode.network.repository
 
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
+import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest.Initiate
 import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
 import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.model.intents.SwapIntent
@@ -8,6 +9,7 @@ import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.Organizer
+import com.getcode.utils.ErrorUtils
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
@@ -16,7 +18,7 @@ import kotlin.coroutines.resume
 typealias BidirectionalSwapStream = BidirectionalStreamReference<SwapRequest, SwapResponse>
 
 suspend fun TransactionRepository.initiateSwap(organizer: Organizer): Result<SwapIntent> {
-    val intent = SwapIntent.newInstance(context, organizer)
+    val intent = SwapIntent.newInstance(organizer)
     return submit(intent)
 }
 
@@ -86,6 +88,9 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
 
         override fun onError(t: Throwable?) {
             Timber.i("onError: " + t?.message.orEmpty())
+            t?.let {
+                ErrorUtils.handleError(it)
+            }
             cont.resume(
                 Result.failure(
                     TransactionRepository.ErrorSubmitIntentException(
@@ -100,5 +105,13 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
         }
     })
 
-    reference.stream?.onNext(intent.requestToSubmitSignatures())
+    val initiateSwap = SwapRequest.newBuilder()
+        .setInitiate(Initiate.newBuilder()
+            .setOwner(intent.owner.publicKeyBytes.toSolanaAccount())
+            .setSwapAuthority(intent.swapCluster.authorityPublicKey.byteArray.toSolanaAccount())
+            .apply { sign(intent.owner) }
+            .build()
+        ).build()
+
+    reference.stream?.onNext(initiateSwap)
 }

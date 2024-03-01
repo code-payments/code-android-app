@@ -45,7 +45,7 @@ class SwapIntent(
     }
 
     companion object {
-        fun newInstance(context: Context, organizer: Organizer): SwapIntent {
+        fun newInstance(organizer: Organizer): SwapIntent {
             return SwapIntent(
                 id = PublicKey.generate(),
                 organizer = organizer,
