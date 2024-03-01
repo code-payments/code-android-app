@@ -77,6 +77,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlin.time.Duration.Companion.milliseconds
 
 
 enum class HomeBottomSheet {
@@ -169,6 +170,7 @@ private fun HomeScan(
             }
 
             if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
+                delay(500.milliseconds)
                 homeViewModel.handleRequest(requestPayload)
                 requestPayloadSaved = null
             }
@@ -430,7 +432,7 @@ private fun BillContainer(
                 .measured { managementHeight = it.height },
             visible = showManagementOptions,
             enter = fadeIn(),
-            exit = fadeOut(),
+            exit = fadeOut(tween(100)),
         ) {
             var canCancel by remember {
                 mutableStateOf(false)
@@ -461,11 +463,8 @@ private fun BillContainer(
         AnimatedVisibility(
             modifier = Modifier.align(BottomCenter),
             visible = (updatedState.billState.bill as? Bill.Cash)?.didReceive ?: false,
-            enter = slideInVertically(
-                initialOffsetY = { it },
-                animationSpec = tween(durationMillis = 600, delayMillis = 450)
-            ),
-            exit = slideOutVertically(targetOffsetY = { it }),
+            enter = AnimationUtils.modalEnter,
+            exit = AnimationUtils.modalExit,
         ) {
             if (updatedState.billState.bill != null) {
                 Box(
@@ -483,12 +482,7 @@ private fun BillContainer(
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
             targetState = updatedState.billState.paymentConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = {
-                slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(durationMillis = 600, delayMillis = 450)
-                ) togetherWith slideOutVertically(targetOffsetY = { it })
-            },
+            transitionSpec = AnimationUtils.modalAnimationSpec(),
             label = "payment confirmation",
         ) {
             if (it != null) {
@@ -515,12 +509,7 @@ private fun BillContainer(
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
             targetState = updatedState.billState.loginConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = {
-                slideInVertically(
-                    initialOffsetY = { it },
-                    animationSpec = tween(durationMillis = 600, delayMillis = 450)
-                ) togetherWith slideOutVertically(targetOffsetY = { it })
-            },
+            transitionSpec = AnimationUtils.modalAnimationSpec(),
             label = "login confirmation",
         ) {
             if (it != null) {
