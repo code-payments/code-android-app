@@ -1,9 +1,11 @@
 package com.getcode.network.repository
 
+import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppResponse
+import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
 import com.codeinc.gen.user.v1.IdentityService.User
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
@@ -14,6 +16,7 @@ import com.getcode.model.PrefsString
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.ErrorUtils
 import com.google.common.collect.Sets
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -109,6 +113,11 @@ class IdentityRepository @Inject constructor(
                 }
             }
     }
+
+    suspend fun getUserContainerId() = prefRepository.get(
+        PrefsString.KEY_DATA_CONTAINER_ID,
+        ""
+    ).decodeBase64().toList()
 
     fun getUserLocal(): Flowable<GetUserResponse> {
         return Flowable.zip(
@@ -201,6 +210,47 @@ class IdentityRepository @Inject constructor(
             .firstOrError()
     }
 
+    suspend fun updatePreferences(
+        locale: Locale,
+        owner: KeyPair,
+    ): Result<Unit> {
+        val containerId = getUserContainerId()
+        val request = UpdatePreferencesRequest.newBuilder()
+            .setContainerId(
+                Model.DataContainerId.newBuilder().setValue(containerId.toByteString()).build()
+            ).setOwnerAccountId(owner.publicKeyBytes.toSolanaAccount())
+            .setLocale(
+                Model.Locale.newBuilder().setValue(locale.toLanguageTag()).build()
+            ).apply {
+                setSignature(sign(owner))
+            }.build()
+
+        return networkOracle.managedRequest(identityApi.updatePreferences(request))
+            .map { response ->
+                when (val result = response.result) {
+                    IdentityService.UpdatePreferencesResponse.Result.OK -> {
+                        Timber.d("updatePreferences success = locale set: ${locale.toLanguageTag()}")
+                        Result.success(Unit)
+                    }
+                    IdentityService.UpdatePreferencesResponse.Result.INVALID_LOCALE -> {
+                        val error = Throwable("Error: ${result.name}")
+                        ErrorUtils.handleError(error)
+                        Result.failure(error)
+                    }
+                    IdentityService.UpdatePreferencesResponse.Result.UNRECOGNIZED -> {
+                        val error = Throwable("Error: updatePreferences Unrecognized request.")
+                        ErrorUtils.handleError(error)
+                        Result.failure(error)
+                    }
+                    else -> {
+                        val error = Throwable("Error: updatePreferences Unknown Error")
+                        ErrorUtils.handleError(error)
+                        Result.failure(error)
+                    }
+                }
+            }.first()
+    }
+
     suspend fun loginToThirdParty(
         rendezvous: PublicKey,
         relationship: KeyPair
@@ -224,19 +274,19 @@ class IdentityRepository @Inject constructor(
                     LoginToThirdPartyAppResponse.Result.DIFFERENT_LOGIN_EXISTS,
                     LoginToThirdPartyAppResponse.Result.INVALID_ACCOUNT -> {
                         val error = Throwable("Error: ${result.name}")
-                        Timber.e(t = error)
+                        ErrorUtils.handleError(error)
                         Result.failure(error)
                     }
 
                     LoginToThirdPartyAppResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: Unrecognized request.")
-                        Timber.e(t = error)
+                        val error = Throwable("Error: loginToThirdParty Unrecognized request.")
+                        ErrorUtils.handleError(error)
                         Result.failure(error)
                     }
 
                     else -> {
-                        val error = Throwable("Error: Unknown")
-                        Timber.e(t = error)
+                        val error = Throwable("Error: loginToThirdParty Unknown")
+                        ErrorUtils.handleError(error)
                         Result.failure(error)
                     }
                 }

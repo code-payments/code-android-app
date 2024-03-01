@@ -3,6 +3,7 @@ package com.getcode.network.api
 import com.codeinc.gen.user.v1.IdentityGrpc
 import com.codeinc.gen.user.v1.IdentityService
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
+import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull
@@ -38,6 +39,10 @@ class IdentityApi @Inject constructor(
     }
 
     fun loginToThirdParty(request: LoginToThirdPartyAppRequest) = api::loginToThirdPartyApp
+        .callAsCancellableFlow(request)
+        .flowOn(Dispatchers.IO)
+
+    fun updatePreferences(request: UpdatePreferencesRequest) = api::updatePreferences
         .callAsCancellableFlow(request)
         .flowOn(Dispatchers.IO)
 }

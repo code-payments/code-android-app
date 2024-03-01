@@ -109,7 +109,7 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
         .setInitiate(Initiate.newBuilder()
             .setOwner(intent.owner.publicKeyBytes.toSolanaAccount())
             .setSwapAuthority(intent.swapCluster.authorityPublicKey.byteArray.toSolanaAccount())
-            .apply { sign(intent.owner) }
+            .apply { setSignature(sign(intent.owner)) }
             .build()
         ).build()
 
