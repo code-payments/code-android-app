@@ -430,7 +430,7 @@ private fun BillContainer(
                 .measured { managementHeight = it.height },
             visible = showManagementOptions,
             enter = fadeIn(),
-            exit = fadeOut(),
+            exit = fadeOut(tween(100)),
         ) {
             var canCancel by remember {
                 mutableStateOf(false)
