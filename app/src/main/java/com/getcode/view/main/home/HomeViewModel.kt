@@ -699,7 +699,7 @@ class HomeViewModel @Inject constructor(
                 }
             }
 
-            delay(1.seconds)
+            delay(400.milliseconds)
             cancelPayment(false)
         }.onFailure { error ->
             TopBarManager.showMessage(
@@ -878,7 +878,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            delay(1.seconds)
+            delay(400.milliseconds)
             cancelLogin(rejected = false)
         }
     }
