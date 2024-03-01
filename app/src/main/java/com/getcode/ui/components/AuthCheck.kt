@@ -103,6 +103,22 @@ fun AuthCheck(
                 result to state
             }
             .mapSeedToHome()
+            .filter { (result, state) ->
+                when (result.type) {
+                    is DeeplinkHandler.Type.Login -> true
+                    is DeeplinkHandler.Type.Cash,
+                    is DeeplinkHandler.Type.Sdk -> {
+                        val hasAuth = state.isAuthenticated == true
+                        if (!hasAuth) {
+                            // drop deeplink if not authenticated
+                            deeplinkHandler.debounceIntent = null
+                            context.getActivity()?.intent = null
+                        }
+                        hasAuth
+                    }
+                    is DeeplinkHandler.Type.Unknown -> false
+                }
+            }
             .map { it.first }
             .onEach { (_, screens) ->
                 deeplinkRouted = true
