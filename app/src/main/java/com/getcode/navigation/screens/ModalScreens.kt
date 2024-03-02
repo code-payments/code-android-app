@@ -343,6 +343,11 @@ data class BuyMoreKinModal(
                 content()
             }
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.BuyMoreKin
+        )
     }
 }
 

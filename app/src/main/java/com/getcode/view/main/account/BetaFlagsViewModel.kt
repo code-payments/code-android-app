@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class BetaFlagsViewModel @Inject constructor(
-    accountDebugRepository: BetaFlagsRepository,
+    betaFlags: BetaFlagsRepository,
     prefRepository: PrefRepository,
 ) : BaseViewModel2<BetaFlagsViewModel.State, BetaFlagsViewModel.Event>(
     initialState = State(),
@@ -31,6 +31,7 @@ class BetaFlagsViewModel @Inject constructor(
         val displayErrors: Boolean = false,
         val remoteSendEnabled: Boolean = false,
         val giveRequestsEnabled: Boolean = false,
+        val buyKinEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -42,10 +43,11 @@ class BetaFlagsViewModel @Inject constructor(
         data class SetVibrateOnScan(val vibrate: Boolean) : Event
         data class UseDebugBuckets(val enabled: Boolean) : Event
         data class EnableGiveRequests(val enabled: Boolean): Event
+        data class EnableBuyKin(val enabled: Boolean): Event
     }
 
     init {
-        accountDebugRepository.observe()
+        betaFlags.observe()
             .distinctUntilChanged()
             .onEach { settings ->
                 dispatchEvent(Event.UpdateSettings(settings))
@@ -99,6 +101,14 @@ class BetaFlagsViewModel @Inject constructor(
                 prefRepository.set(PrefsBool.GIVE_REQUESTS_ENABLED, it)
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.EnableBuyKin>()
+            .map { it.enabled }
+            .onEach {
+                prefRepository.set(PrefsBool.BUY_KIN_ENABLED, it)
+            }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -114,10 +124,12 @@ class BetaFlagsViewModel @Inject constructor(
                             displayErrors = displayErrors,
                             remoteSendEnabled = remoteSendEnabled,
                             giveRequestsEnabled = giveRequestsEnabled,
+                            buyKinEnabled = buyKinEnabled
                         )
                     }
                 }
 
+                is Event.EnableBuyKin,
                 is Event.EnableGiveRequests,
                 is Event.ShowNetworkDropOff,
                 is Event.UseDebugBuckets,

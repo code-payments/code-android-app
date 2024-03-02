@@ -28,6 +28,7 @@ sealed class PrefsBool(val value: String) {
     data object DISPLAY_ERRORS: PrefsBool("debug_display_errors"), BetaFlag
     data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
+    data object BUY_KIN_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
 }
 
 object BetaFlags {

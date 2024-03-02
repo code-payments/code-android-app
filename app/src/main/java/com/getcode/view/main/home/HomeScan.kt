@@ -201,7 +201,7 @@ private fun HomeScan(
                 HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
                 HomeBottomSheet.GET_KIN -> {
-                    if (dataState.betaAllowed) {
+                    if (dataState.buyKinEnabled) {
                         navigator.show(BuyMoreKinModal(showClose = true))
                     } else {
                         navigator.show(GetKinModal)
@@ -499,7 +499,7 @@ private fun BillContainer(
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            if (dataState.betaAllowed) {
+                            if (dataState.buyKinEnabled) {
                                 navigator.show(BuyMoreKinModal(showClose = true))
                             } else {
                                 navigator.show(GetKinModal)
