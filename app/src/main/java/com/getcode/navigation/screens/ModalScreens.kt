@@ -24,7 +24,9 @@ import com.getcode.view.main.account.BetaFlagsScreen
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.currency.CurrencySelectionSheet
+import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
+import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.ReferFriend
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -341,5 +343,51 @@ data class BuyMoreKinModal(
                 content()
             }
         }
+    }
+}
+
+@Parcelize
+data object GetKinModal : MainGraph, ModalRoot {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is GetKinModal
+                } else {
+                    navigator.progress > 0f
+                }
+            },
+        ) {
+            GetKinSheet(getViewModel())
+        }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.GetKin
+        )
+    }
+}
+
+@Parcelize
+data object BuySellScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        ModalContainer(backButton = { it is BuySellScreen }) {
+            BuyAndSellKin(getViewModel())
+        }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.BuyAndSellKin
+        )
     }
 }

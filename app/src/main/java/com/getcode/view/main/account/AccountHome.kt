@@ -41,8 +41,10 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountDebugOptionsScreen
 import com.getcode.navigation.screens.AccountDetailsScreen
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
+import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -66,7 +68,13 @@ fun AccountHome(
         { item: AccountPage ->
             composeScope.launch {
                 when (item) {
-                    AccountPage.BUY_KIN -> navigator.push(BuyMoreKinModal())
+                    AccountPage.BUY_KIN -> {
+                        if (dataState.betaAllowed) {
+                            navigator.show(BuyMoreKinModal(true))
+                        } else {
+                            navigator.show(BuySellScreen)
+                        }
+                    }
                     AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
                     AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
                     AccountPage.FAQ -> navigator.push(FaqScreen)

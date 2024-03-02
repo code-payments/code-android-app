@@ -16,7 +16,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -62,12 +61,14 @@ class AccountSheetViewModel @Inject constructor(
         val isHome: Boolean = true,
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
-        val isDebug: Boolean = false
+        val betaVisible: Boolean = false,
+        val betaAllowed: Boolean = false,
     )
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
-        data class OnDebugChanged(val isDebug: Boolean) : Event
+        data class OnBetaAllowed(val allowed: Boolean): Event
+        data class OnBetaVisibilityChanged(val visible: Boolean) : Event
         data object LogoClicked : Event
         data class Navigate(val page: AccountPage) : Event
         data class OnItemsChanged(val items: List<AccountMainItem>) : Event
@@ -79,13 +80,17 @@ class AccountSheetViewModel @Inject constructor(
     }
 
     init {
+
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBetaAllowed(it)) }
+            .launchIn(viewModelScope)
+
         prefRepository
             .observeOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
-            .flowOn(Dispatchers.IO)
             .distinctUntilChanged()
-            .onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnDebugChanged(it))
-            }.launchIn(viewModelScope)
+            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBetaVisibilityChanged(it)) }
+            .launchIn(viewModelScope)
 
         phoneRepository
             .phoneLinked
@@ -94,9 +99,10 @@ class AccountSheetViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.LogoClicked>()
+            .filter { stateFlow.value.betaAllowed }
             .map { stateFlow.value.logoClickCount }
             .filter { it >= 10 }
-            .map { stateFlow.value.isDebug }
+            .map { stateFlow.value.betaVisible }
             .onEach {
                 prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, !it)
             }.launchIn(viewModelScope)
@@ -150,14 +156,28 @@ class AccountSheetViewModel @Inject constructor(
                     state.copy(logoClickCount = count)
                 }
 
-                is Event.OnDebugChanged -> { state ->
+                is Event.OnBetaAllowed -> { state ->
+                    state.copy(betaAllowed = event.allowed)
+                }
+                is Event.OnBetaVisibilityChanged -> { state ->
+                    val fullItems = fullItemSet.map {
+                        if (it.type == AccountPage.BUY_KIN) {
+                            if (state.betaAllowed) {
+                                it.copy(name = R.string.title_buy_more_kin)
+                            } else {
+                                it.copy(name = R.string.title_buyAndSellKin)
+                            }
+                        } else {
+                            it
+                        }
+                    }
                     val items = when {
-                        event.isDebug -> fullItemSet
-                        else -> fullItemSet.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS }
+                        event.visible -> fullItems
+                        else -> fullItems.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS }
                     }
 
                     state.copy(
-                        isDebug = event.isDebug,
+                        betaVisible = event.visible,
                         items = items,
                         logoClickCount = 0
                     )
