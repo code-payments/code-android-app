@@ -4,9 +4,9 @@ import android.app.Activity
 import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
@@ -47,7 +47,7 @@ enum class AccountPage {
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val prefRepository: PrefRepository,
-    private val analytics: AnalyticsService,
+    betaFlags: BetaFlagsRepository,
     phoneRepository: PhoneRepository,
 ) : BaseViewModel2<AccountSheetViewModel.State, AccountSheetViewModel.Event>(
     initialState = State(),
@@ -61,13 +61,13 @@ class AccountSheetViewModel @Inject constructor(
         val isHome: Boolean = true,
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
-        val betaVisible: Boolean = false,
-        val betaAllowed: Boolean = false,
+        val betaFlagsVisible: Boolean = false,
+        val buyKinEnabled: Boolean = false,
     )
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
-        data class OnBetaAllowed(val allowed: Boolean): Event
+        data class OnBuyKinEnabled(val enabled: Boolean): Event
         data class OnBetaVisibilityChanged(val visible: Boolean) : Event
         data object LogoClicked : Event
         data class Navigate(val page: AccountPage) : Event
@@ -80,10 +80,8 @@ class AccountSheetViewModel @Inject constructor(
     }
 
     init {
-
-        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBetaAllowed(it)) }
+        betaFlags.observe()
+            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyKinEnabled)) }
             .launchIn(viewModelScope)
 
         prefRepository
@@ -99,10 +97,10 @@ class AccountSheetViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.LogoClicked>()
-            .filter { stateFlow.value.betaAllowed }
+            .filter { prefRepository.get(PrefsBool.IS_DEBUG_ALLOWED, false) }
             .map { stateFlow.value.logoClickCount }
             .filter { it >= 10 }
-            .map { stateFlow.value.betaVisible }
+            .map { stateFlow.value.betaFlagsVisible }
             .onEach {
                 prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, !it)
             }.launchIn(viewModelScope)
@@ -156,13 +154,29 @@ class AccountSheetViewModel @Inject constructor(
                     state.copy(logoClickCount = count)
                 }
 
-                is Event.OnBetaAllowed -> { state ->
-                    state.copy(betaAllowed = event.allowed)
+                is Event.OnBuyKinEnabled -> { state ->
+                    val enabled = event.enabled
+
+                    val items = state.items.map {
+                        if (it.type == AccountPage.BUY_KIN) {
+                            if (enabled) {
+                                it.copy(name = R.string.title_buy_more_kin)
+                            } else {
+                                it.copy(name = R.string.title_buyAndSellKin)
+                            }
+                        } else {
+                            it
+                        }
+                    }
+                    state.copy(
+                        items = items,
+                        buyKinEnabled = enabled
+                    )
                 }
                 is Event.OnBetaVisibilityChanged -> { state ->
                     val fullItems = fullItemSet.map {
                         if (it.type == AccountPage.BUY_KIN) {
-                            if (state.betaAllowed) {
+                            if (state.buyKinEnabled) {
                                 it.copy(name = R.string.title_buy_more_kin)
                             } else {
                                 it.copy(name = R.string.title_buyAndSellKin)
@@ -177,7 +191,7 @@ class AccountSheetViewModel @Inject constructor(
                     }
 
                     state.copy(
-                        betaVisible = event.visible,
+                        betaFlagsVisible = event.visible,
                         items = items,
                         logoClickCount = 0
                     )

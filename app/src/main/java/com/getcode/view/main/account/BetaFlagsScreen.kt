@@ -65,6 +65,12 @@ fun BetaFlagsScreen(
             state.giveRequestsEnabled
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableGiveRequests(it)) },
         BetaFeature(
+            PrefsBool.BUY_KIN_ENABLED,
+            R.string.beta_buy_kin,
+            stringResource(id = R.string.beta_buy_kin_description),
+            state.buyKinEnabled
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableBuyKin(it)) },
+        BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
             R.string.beta_display_errors,
             "",

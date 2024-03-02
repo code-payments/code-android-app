@@ -44,7 +44,6 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
-import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -69,7 +68,7 @@ fun AccountHome(
             composeScope.launch {
                 when (item) {
                     AccountPage.BUY_KIN -> {
-                        if (dataState.betaAllowed) {
+                        if (dataState.buyKinEnabled) {
                             navigator.show(BuyMoreKinModal(true))
                         } else {
                             navigator.show(BuySellScreen)

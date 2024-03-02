@@ -55,6 +55,7 @@ import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.client.updatePreferences
 import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
@@ -144,7 +145,7 @@ data class HomeUiModel(
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
     val userPrefsUpdated: Boolean = false,
-    val betaAllowed: Boolean = false,
+    val buyKinEnabled: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -174,6 +175,7 @@ class HomeViewModel @Inject constructor(
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
     private val exchange: Exchange,
+    betaFlags: BetaFlagsRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
 
@@ -211,20 +213,22 @@ class HomeViewModel @Inject constructor(
                 }
         }
 
-        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
-            .map { it }
-            .distinctUntilChanged()
+        betaFlags.observe()
             .onEach { beta ->
                 uiFlow.update {
-                    it.copy(betaAllowed = beta)
+                    it.copy(buyKinEnabled = beta.buyKinEnabled)
                 }
             }.launchIn(viewModelScope)
-
 
         uiFlow
             .map { it.userPrefsUpdated }
             .filter { it }
-            .flatMapLatest { prefRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)  }
+            .flatMapLatest {
+                prefRepository.observeOrDefault(
+                    PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP,
+                    false
+                )
+            }
             .map { it }
             .distinctUntilChanged()
             .onEach { Timber.d("airdrop eligible=$it") }

@@ -130,7 +130,7 @@ fun BalanceContent(
                     KinValueHint(faqOpen)
                 }
 
-                if (!chatsEmpty && !state.chatsLoading && state.isBetaAllowed) {
+                if (!chatsEmpty && !state.chatsLoading && state.isBuyKinEnabled) {
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
