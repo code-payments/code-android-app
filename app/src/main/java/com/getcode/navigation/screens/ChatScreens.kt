@@ -42,8 +42,8 @@ data object BalanceModal : ChatGraph, ModalRoot {
 
         val viewModel = getActivityScopedViewModel<BalanceSheetViewModel>()
         val state by viewModel.stateFlow.collectAsState()
-        val isViewingBuckets by remember(state.isDebugBucketsVisible) {
-            derivedStateOf { state.isDebugBucketsVisible }
+        val isViewingBuckets by remember(state.isBucketDebuggerVisible) {
+            derivedStateOf { state.isBucketDebuggerVisible }
         }
 
         ModalContainer(
@@ -59,7 +59,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                 }
             },
             closeButton = close@{
-                if (viewModel.stateFlow.value.isDebugBucketsVisible) return@close false
+                if (viewModel.stateFlow.value.isBucketDebuggerVisible) return@close false
                 if (navigator.isVisible) {
                     it is BalanceModal
                 } else {

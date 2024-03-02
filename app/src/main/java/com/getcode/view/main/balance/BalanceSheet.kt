@@ -63,7 +63,7 @@ fun BalanceScreeen(
 
 
     AnimatedContent(
-        targetState = state.isDebugBucketsVisible,
+        targetState = state.isBucketDebuggerVisible,
         label = "show/hide buckets",
         transitionSpec = {
             slideIntoContainer(
@@ -101,8 +101,8 @@ fun BalanceContent(
         derivedStateOf { state.chats.isEmpty() }
     }
 
-    val canClickBalance by remember(state.isDebugBucketsEnabled) {
-        derivedStateOf { state.isDebugBucketsEnabled }
+    val canClickBalance by remember(state.isBucketDebuggerEnabled) {
+        derivedStateOf { state.isBucketDebuggerEnabled }
     }
 
     LazyColumn(
@@ -130,7 +130,7 @@ fun BalanceContent(
                     KinValueHint(faqOpen)
                 }
 
-                if (!chatsEmpty && !state.chatsLoading) {
+                if (!chatsEmpty && !state.chatsLoading && state.isBetaAllowed) {
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -333,8 +333,8 @@ private fun TopPreview() {
         selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
         chatsLoading = false,
         chats = emptyList(),
-        isDebugBucketsEnabled = false,
-        isDebugBucketsVisible = false,
+        isBucketDebuggerEnabled = false,
+        isBucketDebuggerVisible = false,
     )
 
     BalanceTop(

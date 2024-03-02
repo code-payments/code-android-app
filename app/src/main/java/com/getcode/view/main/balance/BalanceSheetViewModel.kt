@@ -11,15 +11,12 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -41,13 +38,15 @@ class BalanceSheetViewModel @Inject constructor(
         val currencyFlag: Int? = null,
         val chatsLoading: Boolean = false,
         val chats: List<Chat> = emptyList(),
-        val isDebugBucketsEnabled: Boolean = false,
-        val isDebugBucketsVisible: Boolean = false,
+        val isBucketDebuggerEnabled: Boolean = false,
+        val isBucketDebuggerVisible: Boolean = false,
+        val isBetaAllowed: Boolean = false,
     )
 
     sealed interface Event {
         data class OnDebugBucketsEnabled(val enabled: Boolean) : Event
         data class OnDebugBucketsVisible(val show: Boolean) : Event
+        data class OnBetaAllowed(val allowed: Boolean): Event
         data class OnLatestRateChanged(
             val rate: Rate,
             ) : Event
@@ -63,8 +62,13 @@ class BalanceSheetViewModel @Inject constructor(
     }
 
     init {
+        prefsRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
+            .distinctUntilChanged()
+            .onEach { allowed ->
+                dispatchEvent(Dispatchers.Main, Event.OnBetaAllowed(allowed))
+            }.launchIn(viewModelScope)
+
         prefsRepository.observeOrDefault(PrefsBool.BUCKET_DEBUGGER_ENABLED, false)
-            .flowOn(Dispatchers.IO)
             .distinctUntilChanged()
             .onEach { enabled ->
                 dispatchEvent(Dispatchers.Main, Event.OnDebugBucketsEnabled(enabled))
@@ -111,11 +115,15 @@ class BalanceSheetViewModel @Inject constructor(
             Timber.d("event=${event.javaClass.simpleName}")
             when (event) {
                 is Event.OnDebugBucketsEnabled -> { state ->
-                    state.copy(isDebugBucketsEnabled = event.enabled)
+                    state.copy(isBucketDebuggerEnabled = event.enabled)
                 }
 
                 is Event.OnDebugBucketsVisible -> { state ->
-                    state.copy(isDebugBucketsVisible = event.show)
+                    state.copy(isBucketDebuggerVisible = event.show)
+                }
+
+                is Event.OnBetaAllowed -> { state ->
+                    state.copy(isBetaAllowed = event.allowed)
                 }
 
                 is Event.OnLatestRateChanged -> { state ->

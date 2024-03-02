@@ -10,8 +10,6 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -54,6 +52,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
@@ -201,7 +200,13 @@ private fun HomeScan(
             when (bottomSheet) {
                 HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
-                HomeBottomSheet.GET_KIN -> navigator.show(BuyMoreKinModal(true))
+                HomeBottomSheet.GET_KIN -> {
+                    if (dataState.betaAllowed) {
+                        navigator.show(BuyMoreKinModal(showClose = true))
+                    } else {
+                        navigator.show(GetKinModal)
+                    }
+                }
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
                 HomeBottomSheet.NONE -> Unit
             }
@@ -494,7 +499,11 @@ private fun BillContainer(
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            navigator.show(BuyMoreKinModal(showClose = true))
+                            if (dataState.betaAllowed) {
+                                navigator.show(BuyMoreKinModal(showClose = true))
+                            } else {
+                                navigator.show(GetKinModal)
+                            }
                         },
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {

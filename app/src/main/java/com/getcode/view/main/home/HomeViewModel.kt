@@ -12,7 +12,6 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.db.Database
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
@@ -33,7 +32,6 @@ import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
 import com.getcode.models.DeepLinkRequest
-import com.getcode.models.PaymentRequest
 import com.getcode.models.LoginConfirmation
 import com.getcode.models.LoginState
 import com.getcode.models.PaymentConfirmation
@@ -146,6 +144,7 @@ data class HomeUiModel(
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
     val userPrefsUpdated: Boolean = false,
+    val betaAllowed: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -211,6 +210,16 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update { it.copy(userPrefsUpdated = true) }
                 }
         }
+
+        prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false)
+            .map { it }
+            .distinctUntilChanged()
+            .onEach { beta ->
+                uiFlow.update {
+                    it.copy(betaAllowed = beta)
+                }
+            }.launchIn(viewModelScope)
+
 
         uiFlow
             .map { it.userPrefsUpdated }
