@@ -7,6 +7,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.PrefsString
 import com.getcode.network.api.PushApi
 import com.getcode.network.core.NetworkOracle
+import com.getcode.utils.ErrorUtils
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -67,24 +68,29 @@ class PushRepository @Inject constructor(
                 }
                 .build()
 
-        return networkOracle.managedRequest(pushApi.addToken(request))
-            .asFlow()
-            .map { response ->
-                when (response.result) {
-                    PushService.AddTokenResponse.Result.OK -> Result.success(true)
-                    PushService.AddTokenResponse.Result.INVALID_PUSH_TOKEN -> {
-                        val error = Throwable("Error: INVALID_PUSH_TOKEN")
-                        Result.failure(error)
+        return try {
+            networkOracle.managedRequest(pushApi.addToken(request))
+                .asFlow()
+                .map { response ->
+                    when (response.result) {
+                        PushService.AddTokenResponse.Result.OK -> Result.success(true)
+                        PushService.AddTokenResponse.Result.INVALID_PUSH_TOKEN -> {
+                            val error = Throwable("Error: INVALID_PUSH_TOKEN")
+                            Result.failure(error)
+                        }
+                        PushService.AddTokenResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: UNRECOGNIZED")
+                            Result.failure(error)
+                        }
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Result.failure(error)
+                        }
                     }
-                    PushService.AddTokenResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: UNRECOGNIZED")
-                        Result.failure(error)
-                    }
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Result.failure(error)
-                    }
-                }
-            }.first()
+                }.first()
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            Result.failure(e)
+        }
     }
 }
