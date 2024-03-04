@@ -14,12 +14,14 @@
     <string translatable="false" name="beta_network_dropoff">Show Connectivity Status</string>
     <string translatable="false" name="beta_scan_times">Log scan processing times</string>
     <string translatable="false" name="beta_display_errors">Show Errors</string>
+    <string translatable="false" name="beta_request_payments_v2">Use Request Payments V2</string>
     <string name="beta_bucket_debugger_description" translatable="false">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description" translatable="false">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
     <string name="beta_vibrate_on_scan_description" translatable="false">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
     <string name="beta_scan_times_description" translatable="false">If enabled, the device will log additional processing information while grabbing bills.</string>
     <string name="beta_give_requests_description" translatable="false">If enabled, Request Kin screen will replace Get Kin.</string>
     <string name="beta_buy_kin_description" translatable="false">If enabled, a Buy More Kin will appear in the balance screen.</string>
+    <string name="beta_request_payments_v2_description" translatable="false">If enabled, micropayments will utilize the updated protocol.</string>
 
 
     <string translatable="false" name="empty" />

@@ -146,6 +146,7 @@ data class HomeUiModel(
     val userPrefsUpdated: Boolean = false,
     val buyKinEnabled: Boolean = false,
     val requestKinEnabled: Boolean = false,
+    val requestPaymentsV2: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -197,6 +198,7 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         requestKinEnabled = beta.giveRequestsEnabled,
                         buyKinEnabled = beta.buyKinEnabled,
+                        requestPaymentsV2 = beta.requestPaymentsV2Enabled,
                     )
                 }
 
@@ -608,7 +610,7 @@ class HomeViewModel @Inject constructor(
         } else {
             val fiat = Fiat(currency = amount.rate.currency, amount = amount.fiat)
             code = CodePayload(
-                kind = Kind.RequestPayment,
+                kind = if (uiFlow.value.requestPaymentsV2) Kind.RequestPaymentV2 else Kind.RequestPayment,
                 value = fiat,
                 nonce = nonce
             )

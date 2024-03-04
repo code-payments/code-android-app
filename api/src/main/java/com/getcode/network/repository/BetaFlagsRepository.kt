@@ -16,6 +16,7 @@ data class BetaOptions(
     val remoteSendEnabled: Boolean = false,
     val giveRequestsEnabled: Boolean = false,
     val buyKinEnabled: Boolean = false,
+    val requestPaymentsV2Enabled: Boolean = false,
 )
 
 class BetaFlagsRepository @Inject constructor(
@@ -29,8 +30,9 @@ class BetaFlagsRepository @Inject constructor(
         observeBetaFlag(PrefsBool.LOG_SCAN_TIMES),
         observeBetaFlag(PrefsBool.GIVE_REQUESTS_ENABLED),
         observeBetaFlag(PrefsBool.BUY_KIN_ENABLED),
+        observeBetaFlag(PrefsBool.REQUEST_PAYMENTS_V2),
         observeBetaFlag(PrefsBool.DISPLAY_ERRORS),
-    ) { network, buckets, vibez, times, giveRequests, buyKin, errors ->
+    ) { network, buckets, vibez, times, giveRequests, buyKin, paymentsV2, errors ->
         BetaOptions(
             showNetworkDropOff = network,
             canViewBuckets = buckets,
@@ -38,6 +40,7 @@ class BetaFlagsRepository @Inject constructor(
             debugScanTimesEnabled = times,
             giveRequestsEnabled = giveRequests,
             buyKinEnabled = buyKin,
+            requestPaymentsV2Enabled = paymentsV2,
             displayErrors = errors
         )
     }
