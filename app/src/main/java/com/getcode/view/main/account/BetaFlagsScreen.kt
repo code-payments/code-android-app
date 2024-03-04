@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -78,7 +80,7 @@ fun BetaFlagsScreen(
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowErrors(it)) }
     ).filter { BetaFlags.isAvailable(it.flag) }
 
-    Column {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         for (option in options) {
             Row(
                 modifier = Modifier

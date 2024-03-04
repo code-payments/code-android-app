@@ -1,48 +1,34 @@
-package com.getcode.view.main.giveKin
+package com.getcode.view.main.requestKin
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.getcode.R
-import com.getcode.manager.TopBarManager
-import com.getcode.model.BetaFlags
-import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
-import com.getcode.model.PrefsBool
+import com.getcode.model.Rate
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
+import com.getcode.view.main.giveKin.AmountUiModel
+import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
+import com.getcode.view.main.giveKin.CurrencyUiModel
+import com.getcode.view.main.giveKin.FlowType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-data class GiveKinSheetUiModel(
-    val giveRequestsEnabled: Boolean = false,
-    val currencyModel: CurrencyUiModel = CurrencyUiModel(),
-    val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
-    val amountModel: AmountUiModel = AmountUiModel(),
-    val continueEnabled: Boolean = false,
-)
-
 @HiltViewModel
-class GiveKinSheetViewModel @Inject constructor(
+class RequestKinViewModel @Inject constructor(
     client: Client,
     exchange: Exchange,
     prefsRepository: PrefRepository,
@@ -64,7 +50,14 @@ class GiveKinSheetViewModel @Inject constructor(
     networkObserver
 ) {
 
-    val uiFlow = MutableStateFlow(GiveKinSheetUiModel())
+    data class State(
+        val currencyModel: CurrencyUiModel = CurrencyUiModel(),
+        val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
+        val amountModel: AmountUiModel = AmountUiModel(),
+        val continueEnabled: Boolean = false,
+    )
+
+    val state = MutableStateFlow(State())
 
     init {
         init()
@@ -73,13 +66,13 @@ class GiveKinSheetViewModel @Inject constructor(
         }
     }
 
-    override val flowType: FlowType = FlowType.Give
+    override val flowType: FlowType = FlowType.Request
 
     override fun reset() {
         numberInputHelper.reset()
         onAmountChanged(true)
         viewModelScope.launch {
-            uiFlow.update {
+            state.update {
                 it.copy(
                     continueEnabled = false
                 )
@@ -87,38 +80,15 @@ class GiveKinSheetViewModel @Inject constructor(
         }
     }
 
-    suspend fun onSubmit(): KinAmount? {
-        val uiModel = uiFlow.value
-        val checkBalanceLimit: () -> Boolean = {
-            val isOverBalance =
-                uiModel.amountModel.amountKin.toKinValueDouble() > uiModel.amountModel.balanceKin
-            if (isOverBalance) {
-                TopBarManager.showMessage(
-                    resources.getString(R.string.error_title_insuffiecientKin),
-                    resources.getString(R.string.error_description_insuffiecientKin)
-                )
-            }
-            isOverBalance
-        }
-        val checkSendLimit: () -> Boolean = {
-            val isOverLimit = uiModel.amountModel.amountDouble > uiModel.amountModel.sendLimit
-            if (isOverLimit) {
-                val currencySymbol = uiModel.currencyModel
-                    .currencies.firstOrNull { uiModel.currencyModel.selectedCurrencyCode == it.code }
-                    ?.symbol
-                    .orEmpty()
-                TopBarManager.showMessage(
-                    resources.getString(R.string.error_title_giveLimitReached),
-                    resources.getString(R.string.error_description_giveLimitReached)
-                        .replaceParam(
-                            "$currencySymbol${uiModel.amountModel.sendLimit.toInt()}"
-                        )
-                )
-            }
-            isOverLimit
-        }
+    private val checkUnderMax: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
+        val threshold = getAmountUiModel().buyLimit
+        val isOverLimit = amount.fiat > threshold
 
-        if (checkBalanceLimit() || checkSendLimit()) return null
+        !isOverLimit
+    }
+
+    suspend fun onSubmit(): KinAmount? {
+        val uiModel = state.value
 
         val amountFiat = uiModel.amountModel.amountDouble
         val amountKin = uiModel.amountModel.amountKin
@@ -135,38 +105,40 @@ class GiveKinSheetViewModel @Inject constructor(
 
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
         super.onAmountChanged(lastPressedBackspace)
-        uiFlow.update {
+        state.update {
             val minValue =
                 if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
-                continueEnabled = numberInputHelper.amount >= minValue && !it.amountModel.isInsufficient
+                continueEnabled = numberInputHelper.amount >= minValue &&
+                        !it.amountModel.isInsufficient &&
+                        numberInputHelper.amount <= it.amountModel.buyLimit
             )
         }
     }
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
-        uiFlow.update { it.copy(currencyModel = currencyUiModel) }
+        state.update { it.copy(currencyModel = currencyUiModel) }
     }
 
     override fun setAmountUiModel(amountUiModel: AmountUiModel) {
-        uiFlow.update {
+        state.update {
             it.copy(amountModel = amountUiModel)
         }
     }
 
     override fun setAmountAnimatedInputUiModel(amountAnimatedInputUiModel: AmountAnimatedInputUiModel) {
-        uiFlow.update { it.copy(amountAnimatedModel = amountAnimatedInputUiModel) }
+        state.update { it.copy(amountAnimatedModel = amountAnimatedInputUiModel) }
     }
 
     override fun getCurrencyUiModel(): CurrencyUiModel {
-        return uiFlow.value.currencyModel.copy()
+        return state.value.currencyModel.copy()
     }
 
     override fun getAmountUiModel(): AmountUiModel {
-        return uiFlow.value.amountModel.copy()
+        return state.value.amountModel.copy()
     }
 
     override fun getAmountAnimatedInputUiModel(): AmountAnimatedInputUiModel {
-        return uiFlow.value.amountAnimatedModel.copy()
+        return state.value.amountAnimatedModel.copy()
     }
 }

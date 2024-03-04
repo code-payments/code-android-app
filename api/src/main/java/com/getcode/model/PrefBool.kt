@@ -36,9 +36,6 @@ object BetaFlags {
      * Override to disable beta flags in app while WIP.
      */
     fun isAvailable(flag: PrefsBool): Boolean {
-        return when (flag) {
-           PrefsBool.GIVE_REQUESTS_ENABLED -> false
-           else -> true
-        }
+        return true
     }
 }

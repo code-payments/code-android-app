@@ -29,4 +29,12 @@ object FormatUtils {
 
         return formatCurrency(value, locale)
     }
+
+    fun formatCurrency(value: Double, currencyCode: String): String {
+        val locale = NumberFormat.getAvailableLocales().firstOrNull {
+            NumberFormat.getCurrencyInstance(it).currency?.currencyCode == currencyCode
+        } ?: Locale.getDefault()
+
+        return formatCurrency(value, locale)
+    }
 }

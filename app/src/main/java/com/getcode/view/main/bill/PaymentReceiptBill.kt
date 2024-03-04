@@ -43,7 +43,6 @@ internal fun Receipt(
     amount: KinAmount,
     currencyCode: CurrencyCode?,
 ) {
-    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     BoxWithConstraints(
         modifier = modifier
             .windowInsetsPadding(WindowInsets.statusBarsIgnoringVisibility)
@@ -55,7 +54,6 @@ internal fun Receipt(
 
         Column(
             modifier = Modifier
-                .padding(bottom = screenHeight * 0.10f)
                 .background(CodeTheme.colors.onBackground, shape = CodeTheme.shapes.receipt())
                 .padding(top = CodeTheme.dimens.grid.x12)
                 .heightIn(0.dp, 800.dp),

@@ -1,4 +1,4 @@
-package com.getcode.view.main.giveKin
+package com.getcode.view.main.requestKin
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,16 +30,18 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
+import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import kotlinx.coroutines.launch
 
 @Preview
 @Composable
-fun GiveKinScreen(
-    viewModel: GiveKinSheetViewModel = hiltViewModel(),
+fun RequestKinScreen(
+    viewModel: RequestKinViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
-    val dataState by viewModel.uiFlow.collectAsState()
+    val dataState by viewModel.state.collectAsState()
     val composeScope = rememberCoroutineScope()
 
     val networkObserver = LocalNetworkObserver.current
@@ -51,7 +53,7 @@ fun GiveKinScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
-            if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
+            if (dataState.amountModel.amountKin > dataState.amountModel.buyLimitKin) Alert else BrandLight
         Box(
             modifier = Modifier.weight(0.65f)
         ) {
@@ -97,11 +99,7 @@ fun GiveKinScreen(
 
                 composeScope.launch {
                     val amount = viewModel.onSubmit() ?: return@launch
-                    val result = if (dataState.giveRequestsEnabled) {
-                        HomeResult.Request(amount)
-                    } else {
-                        HomeResult.Bill(Bill.Cash(amount))
-                    }
+                    val result = HomeResult.Request(amount)
                     navigator.hideWithResult(result)
                 }
             },

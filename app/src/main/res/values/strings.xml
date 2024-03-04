@@ -190,6 +190,7 @@
     <string name="subtitle_buyAndSendKin">Buy &amp; Sell Kin</string>
     <string name="subtitle_buyKinComingSoon">Buy Kin (Coming Soon)</string>
     <string name="subtitle_canOnlyGiveUpTo">You can only give up to %s</string>
+    <string name="subtitle_canOnlyRequestUpTo">You can only request up to %s</string>
     <string name="subtitle_chooseCountry">Choose a country</string>
     <string name="subtitle_comingSoon">Coming Soon</string>
     <string name="subtitle_delete">Delete</string>
@@ -256,6 +257,7 @@
     <string name="title_getFriendStartedOnCode">Get a Friend Started on Code</string>
     <string name="title_getKin">Get Kin</string>
     <string name="title_giveKin">Give Kin</string>
+    <string name="title_requestKin">Request Kin</string>
     <string name="title_inviteFriend">Invite a Friend</string>
     <string name="title_limitedTimeOffer">Limited Time Offer</string>
     <string name="title_linked">Linked</string>

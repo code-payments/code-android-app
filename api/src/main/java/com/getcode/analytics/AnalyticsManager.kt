@@ -301,6 +301,7 @@ class AnalyticsManager @Inject constructor(
         GetKin("Get Kin Screen"),
         Invite("Invite Screen"),
         GiveKin("Give Kin Screen"),
+        RequestKin("Request Kin Screen"),
         Balance("Balance Screen"),
         Faq("FAQ Screen"),
         Settings("Settings Screen"),

@@ -50,7 +50,9 @@ internal fun HomeBottom(
         contentPadding = PaddingValues(horizontal = CodeTheme.dimens.grid.x3),
     ) {
         BottomBarAction(
-            label = stringResource(R.string.title_getKin),
+            label = if (state.requestKinEnabled)
+                stringResource(R.string.title_requestKin)
+            else stringResource(R.string.title_getKin),
             contentPadding = PaddingValues(
                 start = CodeTheme.dimens.grid.x3,
                 end = CodeTheme.dimens.grid.x3,

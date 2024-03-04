@@ -99,7 +99,6 @@ fun AmountArea(
                 ConnectionStatus(state = networkState)
             } else if (captionText != null) {
                 Text(
-
                     text = captionText,
                     color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
                     style = CodeTheme.typography.body1.copy(

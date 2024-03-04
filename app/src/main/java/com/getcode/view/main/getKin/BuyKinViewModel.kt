@@ -29,6 +29,7 @@ import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountUiModel
 import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
 import com.getcode.view.main.giveKin.CurrencyUiModel
+import com.getcode.view.main.giveKin.FlowType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -42,17 +43,18 @@ class BuyKinViewModel @Inject constructor(
     exchange: Exchange,
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
+    transactionRepository: TransactionRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
     networkObserver: NetworkConnectivityListener,
     resources: ResourceHelper,
-    private val transactionRepository: TransactionRepository,
     private val phoneRepository: PhoneRepository,
 ) : BaseAmountCurrencyViewModel(
     client,
     prefsRepository,
     exchange,
     balanceRepository,
+    transactionRepository,
     localeHelper,
     currencyUtils,
     resources,
@@ -75,6 +77,8 @@ class BuyKinViewModel @Inject constructor(
             establishSwapRelationship()
         }
     }
+
+    override val flowType: FlowType = FlowType.Buy
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
         // force currency to be local to device
