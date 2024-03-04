@@ -215,7 +215,7 @@ class IdentityRepository @Inject constructor(
         locale: Locale,
         owner: KeyPair,
     ): Result<Unit> {
-        val localeTag = locale.toLanguageTag()
+        val localeTag = locale.toString()
         Timber.i("Attempting to update locale to $localeTag")
         val containerId = getUserContainerId()
         val request = UpdatePreferencesRequest.newBuilder()
