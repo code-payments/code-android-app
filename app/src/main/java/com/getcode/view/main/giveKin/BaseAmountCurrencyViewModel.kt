@@ -14,6 +14,7 @@ import com.getcode.network.client.fetchTransactionLimits
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
@@ -37,12 +38,37 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.reactive.asFlow
+import timber.log.Timber
 import kotlin.math.min
 
 sealed class CurrencyListItem {
     data class TitleItem(val text: String) : CurrencyListItem()
     data class RegionCurrencyItem(val currency: Currency, val isRecent: Boolean) :
         CurrencyListItem()
+}
+
+enum class FundsDirection {
+    Incoming,
+    Outgoing,
+}
+
+sealed interface FlowType {
+    val direction: FundsDirection
+    data object Give: FlowType {
+        override val direction: FundsDirection = FundsDirection.Outgoing
+    }
+
+    data object Withdrawal: FlowType {
+        override val direction: FundsDirection = FundsDirection.Outgoing
+    }
+
+    data object Request: FlowType {
+        override val direction: FundsDirection = FundsDirection.Incoming
+    }
+
+    data object Buy: FlowType {
+        override val direction: FundsDirection = FundsDirection.Incoming
+    }
 }
 
 data class CurrencyUiModel(
@@ -63,7 +89,10 @@ data class AmountUiModel(
     val captionText: String = "",
     val isCaptionConversion: Boolean = false,
     val isInsufficient: Boolean = false,
-    val sendLimit: Double = 0.0
+    val sendLimit: Double = 0.0,
+    val buyLimit: Double = 0.0,
+    val buyLimitKin: Kin = Kin(0),
+    val isDecimalAllowed: Boolean = false,
 )
 
 abstract class BaseAmountCurrencyViewModel(
@@ -71,6 +100,7 @@ abstract class BaseAmountCurrencyViewModel(
     private val prefsRepository: PrefRepository,
     protected val exchange: Exchange,
     private val balanceRepository: BalanceRepository,
+    private val transactionRepository: TransactionRepository,
     protected val localeHelper: LocaleHelper,
     private val currencyUtils: CurrencyUtils,
     protected val resources: ResourceHelper,
@@ -127,6 +157,8 @@ abstract class BaseAmountCurrencyViewModel(
     }
 
     internal abstract fun reset()
+
+    internal abstract val flowType: FlowType
 
     protected open fun onAmountChanged(
         lastPressedBackspace: Boolean = false
@@ -211,95 +243,45 @@ abstract class BaseAmountCurrencyViewModel(
         val sendLimit = currency?.let {
             getCurrencyUiModel().limits?.todaysAllowanceFor(it)
         } ?: fiatValue
+        val buyLimit = currency?.let {
+            transactionRepository.buyLimitFor(it)?.max
+        } ?: 0.0
+        val buyLimitKin = FormatUtils.getKinValue(buyLimit, selectedCurrency.rate)
+            .inflating()
+
+        Timber.d("buy limit=$buyLimit")
         val amountAvailable = min(sendLimit, fiatValue)
-        val isInsufficient = amount > amountAvailable ||
-                amountKin.toKinTruncatingLong() > currentBalance
+
+        val isInsufficient = when (flowType.direction) {
+            FundsDirection.Incoming -> {
+                FormatUtils.getFiatValue(amount, selectedCurrency.rate) > buyLimit
+            }
+            FundsDirection.Outgoing -> {
+                amount > amountAvailable ||
+                        amountKin.toKinTruncatingLong() > currentBalance
+            }
+        }
 
         return amountUiModel.copy(
             amountText = formatAmount(amountText, selectedCurrency),
             amountDouble = amount,
             amountKin = amountKin,
+            isDecimalAllowed = selectedCurrency != Currency.Kin,
             amountPrefix = formatPrefix(selectedCurrency).takeIf { it != selectedCurrency.code }.orEmpty(),
             amountSuffix = formatSuffix(selectedCurrency),
             captionText = formatCaption(
                 selectedCurrency,
                 amount,
                 amountKin.toKinTruncatingLong().toDouble(),
-                amountAvailable
+                amountAvailable,
+                buyLimit,
             ),
             isCaptionConversion = isCaptionConversion(selectedCurrency, amount),
             isInsufficient = isInsufficient,
-            sendLimit = sendLimit
+            sendLimit = sendLimit,
+            buyLimit = buyLimit,
+            buyLimitKin = buyLimitKin,
         )
-    }
-
-    private fun persistSelectedCurrencyChanged(selectedCurrencyCode: String) {
-        prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selectedCurrencyCode)
-    }
-
-    private fun persistRecentCurrenciesChanged(currenciesRecent: List<Currency>) {
-        prefsRepository.set(
-            PrefsString.KEY_CURRENCIES_RECENT,
-            currenciesRecent.joinToString(",") { it.code }
-        )
-    }
-
-    private fun getCurrenciesLocalesListItems(
-        currencies: List<Currency>,
-        currenciesRecent: List<Currency>,
-        searchString: String
-    ): MutableList<CurrencyListItem> {
-        val currenciesLocalesList = mutableListOf<CurrencyListItem>()
-
-        if (searchString.isBlank()) {
-            if (currenciesRecent.isNotEmpty()) {
-                currenciesLocalesList.add(
-                    CurrencyListItem.TitleItem(
-                        resources.getString(R.string.title_recentCurrencies)
-                    )
-                )
-                currenciesRecent.forEach { currency ->
-                    currenciesLocalesList.add(
-                        CurrencyListItem.RegionCurrencyItem(
-                            currency,
-                            isRecent = true
-                        )
-                    )
-                }
-            }
-
-            currenciesLocalesList.add(
-                CurrencyListItem.TitleItem(
-                    resources.getString(R.string.title_otherCurrencies)
-                )
-            )
-        } else {
-            currenciesLocalesList.add(
-                CurrencyListItem.TitleItem(
-                    resources.getString(R.string.title_results),
-                )
-            )
-        }
-
-        currencies
-            .filter {
-                        (searchString.isEmpty() ||
-                                it.name.lowercase().contains(searchString.lowercase()) ||
-                                it.code.lowercase().contains(searchString.lowercase())
-                                )
-            }
-            .forEach { currency ->
-                if (searchString.isNotEmpty() || !currenciesRecent.contains(currency)) {
-                    currenciesLocalesList.add(
-                        CurrencyListItem.RegionCurrencyItem(
-                            currency,
-                            isRecent = false
-                        )
-                    )
-                }
-            }
-
-        return currenciesLocalesList
     }
 
     protected fun formatPrefix(selectedCurrency: Currency?): String {
@@ -332,27 +314,64 @@ abstract class BaseAmountCurrencyViewModel(
         amountInput: Double, //currency
         amountInputKin: Double, //kin conversion
         amountAvailable: Double, //currency
+        buyLimit: Double, // buy limit
     ): String {
         val isKin = isKin(currency)
 
-        return if (isKin) {
-            val kinAmountFormatted =
-                FormatUtils.formatWholeRoundDown(amountAvailable)
+        return when (flowType.direction) {
+            FundsDirection.Incoming -> {
+                val buyLimitFormatted = FormatUtils.formatCurrency(buyLimit, currency.code)
+                if (isKin) {
+                    "${getString(R.string.subtitle_enterUpTo).replaceParam(buyLimitFormatted)} " +
+                            resources.getString(R.string.core_kin)
+                } else if (amountInput == 0.0) {
+                    val currencyValue = FormatUtils.format(buyLimit)
+                    val kinValue = if (currency.code != currency.symbol) {
+                        "${currency.symbol}$currencyValue"
+                    } else {
+                        currencyValue
+                    }
 
-            "${getString(R.string.subtitle_enterUpTo).replaceParam(kinAmountFormatted)} " +
-                    resources.getString(R.string.core_kin)
-        } else {
-            return if (amountInput == 0.0) {
-                val currencyValue = FormatUtils.format(amountAvailable)
-                val kinValue = if (currency.code != currency.symbol) {
-                    "${currency.symbol}$currencyValue"
+                    "${getString(R.string.subtitle_enterUpTo).replaceParam(kinValue)} " +
+                            getString(R.string.core_ofKin)
                 } else {
-                    currencyValue
+                    if (amountInput > buyLimit) {
+                        getString(R.string.subtitle_canOnlyRequestUpTo)
+                            .replaceParam(buyLimitFormatted)
+                            .plus(" ")
+                            .plus(getString(R.string.core_ofKin))
+                    } else {
+                        String.format("%,.0f", amountInputKin)
+                    }
                 }
-                "${getString(R.string.subtitle_enterUpTo).replaceParam(kinValue)} " +
-                        getString(R.string.core_ofKin)
-            } else {
-                String.format("%,.0f", amountInputKin)
+            }
+            FundsDirection.Outgoing -> {
+                val kinAmountFormatted =
+                    FormatUtils.formatWholeRoundDown(amountAvailable)
+
+                if (isKin) {
+                    "${getString(R.string.subtitle_enterUpTo).replaceParam(kinAmountFormatted)} " +
+                            resources.getString(R.string.core_kin)
+                } else if (amountInput == 0.0) {
+                    val currencyValue = FormatUtils.format(amountAvailable)
+                    val kinValue = if (currency.code != currency.symbol) {
+                        "${currency.symbol}$currencyValue"
+                    } else {
+                        currencyValue
+                    }
+
+                    "${getString(R.string.subtitle_enterUpTo).replaceParam(kinValue)} " +
+                            getString(R.string.core_ofKin)
+                } else {
+                    if (amountInput > amountAvailable) {
+                        getString(R.string.subtitle_canOnlyGiveUpTo)
+                            .replaceParam(FormatUtils.formatCurrency(amountAvailable, currency.code))
+                            .plus(" ")
+                            .plus(getString(R.string.core_ofKin))
+                    } else {
+                        String.format("%,.0f", amountInputKin)
+                    }
+                }
             }
         }
     }

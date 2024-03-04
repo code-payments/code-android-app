@@ -137,7 +137,6 @@ data class HomeUiModel(
     val balance: KinAmount? = null,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
-    val giveRequestsEnabled: Boolean = false,
     val isCameraScanEnabled: Boolean = true,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState.Default,
@@ -146,6 +145,7 @@ data class HomeUiModel(
     val chatUnreadCount: Int = 0,
     val userPrefsUpdated: Boolean = false,
     val buyKinEnabled: Boolean = false,
+    val requestKinEnabled: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -190,17 +190,23 @@ class HomeViewModel @Inject constructor(
 
     init {
         onDrawn()
-        prefRepository.observeOrDefault(PrefsBool.DISPLAY_ERRORS, false)
-            .distinctUntilChanged()
-            .onEach { ErrorUtils.setDisplayErrors(it) }
-            .launchIn(viewModelScope)
+
+        betaFlags.observe()
+            .onEach { beta ->
+                uiFlow.update {
+                    it.copy(
+                        requestKinEnabled = beta.giveRequestsEnabled,
+                        buyKinEnabled = beta.buyKinEnabled,
+                    )
+                }
+
+                ErrorUtils.setDisplayErrors(beta.displayErrors)
+            }.launchIn(viewModelScope)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
             .subscribeOn(Schedulers.computation())
             .subscribe { isUpgradeRequired ->
-                if (isUpgradeRequired) {
-                    uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
-                }
+                uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
             }
 
         viewModelScope.launch {
@@ -212,13 +218,6 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update { it.copy(userPrefsUpdated = true) }
                 }
         }
-
-        betaFlags.observe()
-            .onEach { beta ->
-                uiFlow.update {
-                    it.copy(buyKinEnabled = beta.buyKinEnabled)
-                }
-            }.launchIn(viewModelScope)
 
         uiFlow
             .map { it.userPrefsUpdated }
@@ -281,17 +280,6 @@ class HomeViewModel @Inject constructor(
                 withContext(Dispatchers.Main) {
                     uiFlow.update {
                         it.copy(logScanTimes = log)
-                    }
-                }
-            }.launchIn(viewModelScope)
-
-        prefRepository.observeOrDefault(PrefsBool.GIVE_REQUESTS_ENABLED, false)
-            .flowOn(Dispatchers.IO)
-            .filter { BetaFlags.isAvailable(PrefsBool.GIVE_REQUESTS_ENABLED) }
-            .onEach { enabled ->
-                withContext(Dispatchers.Main) {
-                    uiFlow.update {
-                        it.copy(giveRequestsEnabled = enabled)
                     }
                 }
             }.launchIn(viewModelScope)
@@ -639,6 +627,7 @@ class HomeViewModel @Inject constructor(
             uiFlow.update {
                 var billState = it.billState.copy(
                     bill = Bill.Payment(amount, code, request),
+                    valuation = Valuation(amount)
                 )
 
                 if (isReceived) {

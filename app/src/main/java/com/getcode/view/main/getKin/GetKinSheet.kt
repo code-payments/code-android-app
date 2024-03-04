@@ -22,7 +22,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
@@ -34,10 +33,10 @@ import com.getcode.navigation.screens.ReferFriendScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.components.CodeCircularProgressIndicator
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map

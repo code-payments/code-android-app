@@ -101,7 +101,7 @@ fun BuyKinScreen(
             onNumber = viewModel::onNumber,
             onClear = viewModel::onBackspace,
             onDecimal = viewModel::onDot,
-            isDecimal = false,
+            isDecimal = false, // no decimal allowed for buys
         )
 
         val uriHandler = LocalUriHandler.current

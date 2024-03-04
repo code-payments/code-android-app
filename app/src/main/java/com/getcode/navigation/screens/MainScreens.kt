@@ -20,6 +20,7 @@ import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
+import com.getcode.view.main.requestKin.RequestKinScreen
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -91,6 +92,58 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
         AnalyticsScreenWatcher(
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.GiveKin
+        )
+    }
+}
+
+@Parcelize
+data class RequestKinModal(
+    val showClose: Boolean = true,
+) : AppScreen(), MainGraph, ModalRoot {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_requestKin)
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+
+        val content = @Composable {
+            RequestKinScreen(getViewModel())
+        }
+
+        if (showClose) {
+            ModalContainer(
+                closeButton = {
+                    if (navigator.isVisible) {
+                        it is RequestKinModal
+                    } else {
+                        navigator.progress > 0f
+                    }
+                }
+            ) {
+                content()
+            }
+        } else {
+            ModalContainer(
+                backButton = {
+                    if (navigator.isVisible) {
+                        it is RequestKinModal
+                    } else {
+                        navigator.progress > 0f
+                    }
+                }
+            ) {
+                content()
+            }
+        }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.RequestKin
         )
     }
 }

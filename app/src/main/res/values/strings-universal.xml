@@ -8,7 +8,7 @@
     <string translatable="false" name="root_url_cash_no_protocol">cash.getcode.com</string>
     <string translatable="false" name="root_url_sdk_no_protocol">sdk.getcode.com</string>
     <string translatable="false" name="beta_bucket_debugger">Bucket Debugger</string>
-    <string translatable="false" name="beta_give_requests_mode">Give Requests (Mode)</string>
+    <string translatable="false" name="beta_give_requests_mode">Request Kin</string>
     <string translatable="false" name="beta_buy_kin">Buy Kin</string>
     <string translatable="false" name="beta_vibrate_on_scan">Vibrate on Scan</string>
     <string translatable="false" name="beta_network_dropoff">Show Connectivity Status</string>

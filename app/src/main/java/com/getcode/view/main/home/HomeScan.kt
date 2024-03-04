@@ -54,6 +54,7 @@ import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
+import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
@@ -201,10 +202,14 @@ private fun HomeScan(
                 HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
                 HomeBottomSheet.GET_KIN -> {
-                    if (dataState.buyKinEnabled) {
-                        navigator.show(BuyMoreKinModal(showClose = true))
-                    } else {
-                        navigator.show(GetKinModal)
+                    when {
+                        dataState.requestKinEnabled -> {
+                            navigator.show(RequestKinModal(showClose = true))
+                        }
+                        dataState.buyKinEnabled -> {
+                            navigator.show(BuyMoreKinModal(showClose = true))
+                        }
+                        else ->  navigator.show(GetKinModal)
                     }
                 }
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
@@ -445,7 +450,7 @@ private fun BillContainer(
             BillManagementOptions(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars),
-                showSend = !updatedState.giveRequestsEnabled,
+                showSend = updatedState.billState.bill is Bill.Cash,
                 isSending = updatedState.isRemoteSendLoading,
                 onSend = { homeViewModel.onRemoteSend(context) },
                 canCancel = canCancel,

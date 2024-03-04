@@ -11,6 +11,7 @@ import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
@@ -21,6 +22,7 @@ import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountUiModel
 import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
 import com.getcode.view.main.giveKin.CurrencyUiModel
+import com.getcode.view.main.giveKin.FlowType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,6 +43,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     exchange: Exchange,
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
+    transactionRepository: TransactionRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
     networkObserver: NetworkConnectivityListener,
@@ -50,6 +53,7 @@ class AccountWithdrawAmountViewModel @Inject constructor(
     prefsRepository,
     exchange,
     balanceRepository,
+    transactionRepository,
     localeHelper,
     currencyUtils,
     resources,
@@ -63,6 +67,8 @@ class AccountWithdrawAmountViewModel @Inject constructor(
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
+
+    override val flowType: FlowType = FlowType.Withdrawal
 
     override fun reset() {
         numberInputHelper.reset()

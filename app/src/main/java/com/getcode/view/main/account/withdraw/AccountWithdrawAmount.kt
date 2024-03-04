@@ -76,7 +76,7 @@ fun AccountWithdrawAmount(
             onNumber = viewModel::onNumber,
             onClear = viewModel::onBackspace,
             onDecimal = viewModel::onDot,
-            isDecimal = true
+            isDecimal = dataState.amountModel.isDecimalAllowed
         )
 
         CodeButton(
