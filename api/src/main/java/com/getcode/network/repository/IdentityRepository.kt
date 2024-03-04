@@ -223,7 +223,7 @@ class IdentityRepository @Inject constructor(
                 Model.DataContainerId.newBuilder().setValue(containerId.toByteString()).build()
             ).setOwnerAccountId(owner.publicKeyBytes.toSolanaAccount())
             .setLocale(
-                Model.Locale.newBuilder().setValue(locale.toLanguageTag()).build()
+                Model.Locale.newBuilder().setValue(localeTag).build()
             ).apply {
                 setSignature(sign(owner))
             }.build()
