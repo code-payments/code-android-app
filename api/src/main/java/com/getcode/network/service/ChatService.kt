@@ -10,6 +10,7 @@ import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.network.api.ChatApi
 import com.getcode.network.core.NetworkOracle
+import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
@@ -63,38 +64,43 @@ class ChatService @Inject constructor(
     }
 
     suspend fun setMuteState(owner: KeyPair, chatId: ID, muted: Boolean): Result<Boolean> {
-        return networkOracle.managedRequest(api.setMuteState(owner, chatId, muted))
-            .map { response ->
-                when (response.result) {
-                    ChatService.SetMuteStateResponse.Result.OK -> {
-                        Result.success(muted)
-                    }
+        return try {
+            networkOracle.managedRequest(api.setMuteState(owner, chatId, muted))
+                .map { response ->
+                    when (response.result) {
+                        ChatService.SetMuteStateResponse.Result.OK -> {
+                            Result.success(muted)
+                        }
 
-                    ChatService.SetMuteStateResponse.Result.CHAT_NOT_FOUND -> {
-                        val error = Throwable("Error: chat not found for $chatId")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
+                        ChatService.SetMuteStateResponse.Result.CHAT_NOT_FOUND -> {
+                            val error = Throwable("Error: chat not found for $chatId")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
 
-                    ChatService.SetMuteStateResponse.Result.CANT_MUTE -> {
-                        val error = Throwable("Error: Unable to change mute state for $chatId.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
+                        ChatService.SetMuteStateResponse.Result.CANT_MUTE -> {
+                            val error = Throwable("Error: Unable to change mute state for $chatId.")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
 
-                    ChatService.SetMuteStateResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: Unrecognized request.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
+                        ChatService.SetMuteStateResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: Unrecognized request.")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
 
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Timber.e(t = error)
-                        Result.failure(error)
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
                     }
-                }
-            }.first()
+                }.first()
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            Result.failure(e)
+        }
     }
 
     suspend fun fetchMessagesFor(
@@ -103,32 +109,37 @@ class ChatService @Inject constructor(
         cursor: Cursor? = null,
         limit: Int? = null
     ): Result<List<ChatMessage>> {
-        return networkOracle.managedRequest(api.fetchChatMessages(owner, chatId, cursor, limit))
-            .map { response ->
-                when (response.result) {
-                    ChatService.GetMessagesResponse.Result.OK -> {
-                        Result.success(response.messagesList.map(messageMapper::map))
-                    }
+        return try {
+            networkOracle.managedRequest(api.fetchChatMessages(owner, chatId, cursor, limit))
+                .map { response ->
+                    when (response.result) {
+                        ChatService.GetMessagesResponse.Result.OK -> {
+                            Result.success(response.messagesList.map(messageMapper::map))
+                        }
 
-                    ChatService.GetMessagesResponse.Result.NOT_FOUND -> {
-                        val error = Throwable("Error: messages not found for chat $chatId")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
+                        ChatService.GetMessagesResponse.Result.NOT_FOUND -> {
+                            val error = Throwable("Error: messages not found for chat $chatId")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
 
-                    ChatService.GetMessagesResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: Unrecognized request.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
+                        ChatService.GetMessagesResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: Unrecognized request.")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
 
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Timber.e(t = error)
-                        Result.failure(error)
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
                     }
-                }
-            }.first()
+                }.first()
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            Result.failure(e)
+        }
     }
 
     suspend fun advancePointer(
@@ -136,33 +147,38 @@ class ChatService @Inject constructor(
         chatId: ID,
         to: ID,
     ): Result<Unit> {
-        return networkOracle.managedRequest(api.advancePointer(owner, chatId, to))
-            .map { response ->
-                when (response.result) {
-                    ChatService.AdvancePointerResponse.Result.OK -> {
-                        Result.success(Unit)
+        return try {
+            networkOracle.managedRequest(api.advancePointer(owner, chatId, to))
+                .map { response ->
+                    when (response.result) {
+                        ChatService.AdvancePointerResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+                        ChatService.AdvancePointerResponse.Result.CHAT_NOT_FOUND -> {
+                            val error = Throwable("Error: chat not found $chatId")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        ChatService.AdvancePointerResponse.Result.MESSAGE_NOT_FOUND -> {
+                            val error = Throwable("Error: message not found $to")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        ChatService.AdvancePointerResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: Unrecognized request.")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
                     }
-                    ChatService.AdvancePointerResponse.Result.CHAT_NOT_FOUND -> {
-                        val error = Throwable("Error: chat not found $chatId")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    ChatService.AdvancePointerResponse.Result.MESSAGE_NOT_FOUND -> {
-                        val error = Throwable("Error: message not found $to")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    ChatService.AdvancePointerResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: Unrecognized request.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                }
-            }.first()
+                }.first()
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            Result.failure(e)
+        }
     }
 }

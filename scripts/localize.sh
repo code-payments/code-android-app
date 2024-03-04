@@ -10,12 +10,13 @@ bundle_url=$(curl --request POST \
      --header "X-Api-Token: ${2}" \
      --data '{"format":"xml"}' | jq -r '.bundle_url')
 
-rm -r strings_temp
+rm -rf strings_temp
 mkdir strings_temp
 cd strings_temp || exit
 curl -sS "$bundle_url" > file.zip
 unzip file.zip
 rm file.zip
+cd - || exit
 node scripts/clean-strings.js
 cp -r strings_temp/* app/src/main/res/
 rm -rf strings_temp
