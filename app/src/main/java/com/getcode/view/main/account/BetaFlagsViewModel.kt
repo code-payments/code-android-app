@@ -32,7 +32,6 @@ class BetaFlagsViewModel @Inject constructor(
         val remoteSendEnabled: Boolean = false,
         val giveRequestsEnabled: Boolean = false,
         val buyKinEnabled: Boolean = false,
-        val requestPaymentsV2Enabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -45,7 +44,6 @@ class BetaFlagsViewModel @Inject constructor(
         data class UseDebugBuckets(val enabled: Boolean) : Event
         data class EnableGiveRequests(val enabled: Boolean) : Event
         data class EnableBuyKin(val enabled: Boolean) : Event
-        data class EnableRequestPaymentsV2(val enabled: Boolean) : Event
     }
 
     init {
@@ -111,14 +109,6 @@ class BetaFlagsViewModel @Inject constructor(
                 prefRepository.set(PrefsBool.BUY_KIN_ENABLED, it)
             }
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.EnableRequestPaymentsV2>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.REQUEST_PAYMENTS_V2, it)
-            }
-            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -135,7 +125,6 @@ class BetaFlagsViewModel @Inject constructor(
                             remoteSendEnabled = remoteSendEnabled,
                             giveRequestsEnabled = giveRequestsEnabled,
                             buyKinEnabled = buyKinEnabled,
-                            requestPaymentsV2Enabled = requestPaymentsV2Enabled,
                         )
                     }
                 }
@@ -146,7 +135,6 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.UseDebugBuckets,
                 is Event.SetLogScanTimes,
                 is Event.SetVibrateOnScan,
-                is Event.EnableRequestPaymentsV2,
                 is Event.ShowErrors -> { state -> state }
             }
         }

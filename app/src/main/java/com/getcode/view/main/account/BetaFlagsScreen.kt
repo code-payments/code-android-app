@@ -73,12 +73,6 @@ fun BetaFlagsScreen(
             state.buyKinEnabled
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableBuyKin(it)) },
         BetaFeature(
-            PrefsBool.REQUEST_PAYMENTS_V2,
-            R.string.beta_request_payments_v2,
-            stringResource(id = R.string.beta_request_payments_v2_description),
-            state.requestPaymentsV2Enabled
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableRequestPaymentsV2(it)) },
-        BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
             R.string.beta_display_errors,
             "",
