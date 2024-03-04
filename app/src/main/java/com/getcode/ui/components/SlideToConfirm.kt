@@ -3,7 +3,10 @@
 package com.getcode.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -38,11 +41,13 @@ import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,14 +64,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White50
 import com.getcode.ui.utils.addIf
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.util.Timer
+import java.util.TimerTask
+import kotlin.concurrent.schedule
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.seconds
 
 object SlideToConfirmDefaults {
     @Composable
@@ -111,6 +123,35 @@ private object Track {
 }
 
 
+@Stable
+class SlideHintState(private val scope: CoroutineScope) {
+
+    var shouldBump by mutableStateOf(false)
+        private set
+
+    private var timer: TimerTask? = null
+
+    private suspend fun tick() {
+        shouldBump = true
+        delay(150)
+        shouldBump = false
+    }
+
+    fun cancelTimer() {
+        timer?.cancel()
+        timer = null
+    }
+
+    fun startTimer() {
+        timer = Timer().schedule(
+            3.seconds.inWholeMilliseconds,
+            4.seconds.inWholeMilliseconds
+        ) {
+            scope.launch { tick() }
+        }
+    }
+}
+
 @Composable
 fun SlideToConfirm(
     onConfirm: () -> Unit,
@@ -139,10 +180,19 @@ fun SlideToConfirm(
         initialValue = if (loading) Anchor.End else Anchor.Start,
     )
 
+    val composeScope = rememberCoroutineScope()
+    val hintState = remember { SlideHintState(composeScope) }
+
     val swipeFraction by remember {
         derivedStateOf { calculateSwipeFraction(swipeState.progress) }
     }
 
+    LaunchedEffect(swipeFraction) {
+        when (swipeFraction) {
+            0f -> hintState.startTimer()
+            in 0.1f .. 0.99f -> hintState.cancelTimer()
+        }
+    }
     LaunchedEffect(swipeFraction) {
         if (swipeFraction == 1f) {
             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -193,12 +243,24 @@ fun SlideToConfirm(
             label = "thumb alpha"
         )
 
+        val bumpFactor by animateDpAsState(
+            targetValue = if (hintState.shouldBump) 20.dp else 0.dp,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "hint bump peek offset",
+        )
+
         Thumb(
             shape = thumbShape,
             modifier = Modifier
                 .alpha(thumbAlpha)
                 .offset {
-                    IntOffset(swipeState.offset.value.roundToInt(), 0)
+                    IntOffset(
+                        x = swipeState.offset.value.roundToInt() + bumpFactor.roundToPx(),
+                        y = 0
+                    )
                 },
         )
     }
