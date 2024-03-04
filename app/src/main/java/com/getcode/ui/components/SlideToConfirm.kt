@@ -52,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp
@@ -100,7 +101,7 @@ object SlideToConfirmDefaults {
     }
 
 
-    val SnapThreshold = 0.7f
+    val SnapThreshold = 0.6f
     val BlueTrackColor = Track.BlueColor
     val BlackTrackColor = Track.BlackColor
 }
@@ -295,7 +296,7 @@ private fun Track(
     val thumbSize = Thumb.Size
     val startOfTrackPx = 0f
     val endOfTrackPx = remember(fullWidth) {
-        with(density) { fullWidth - (2 * horizontalPadding + thumbSize).toPx() + thumbSize.value }
+        with(density) { fullWidth - (2 * horizontalPadding).toPx() }
     }
 
     val snapThreshold = SlideToConfirmDefaults.SnapThreshold
@@ -332,7 +333,7 @@ private fun Track(
                     horizontal = horizontalPadding,
                     vertical = CodeTheme.dimens.grid.x1,
                 )
-            ),
+            ).clipToBounds(),
         content = content,
     )
 }
