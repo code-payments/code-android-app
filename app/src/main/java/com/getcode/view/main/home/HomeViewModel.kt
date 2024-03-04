@@ -608,7 +608,7 @@ class HomeViewModel @Inject constructor(
         } else {
             val fiat = Fiat(currency = amount.rate.currency, amount = amount.fiat)
             code = CodePayload(
-                kind = Kind.RequestPayment,
+                kind = Kind.RequestPaymentV2,
                 value = fiat,
                 nonce = nonce
             )

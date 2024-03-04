@@ -38,12 +38,12 @@ class BetaFlagsViewModel @Inject constructor(
         data class UpdateSettings(val settings: BetaOptions) : Event
 
         data class ShowErrors(val display: Boolean) : Event
-        data class ShowNetworkDropOff(val show: Boolean): Event
+        data class ShowNetworkDropOff(val show: Boolean) : Event
         data class SetLogScanTimes(val log: Boolean) : Event
         data class SetVibrateOnScan(val vibrate: Boolean) : Event
         data class UseDebugBuckets(val enabled: Boolean) : Event
-        data class EnableGiveRequests(val enabled: Boolean): Event
-        data class EnableBuyKin(val enabled: Boolean): Event
+        data class EnableGiveRequests(val enabled: Boolean) : Event
+        data class EnableBuyKin(val enabled: Boolean) : Event
     }
 
     init {
@@ -124,7 +124,7 @@ class BetaFlagsViewModel @Inject constructor(
                             displayErrors = displayErrors,
                             remoteSendEnabled = remoteSendEnabled,
                             giveRequestsEnabled = giveRequestsEnabled,
-                            buyKinEnabled = buyKinEnabled
+                            buyKinEnabled = buyKinEnabled,
                         )
                     }
                 }
