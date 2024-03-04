@@ -11,9 +11,11 @@ import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class PushRepository @Inject constructor(
     private val pushApi: PushApi,
@@ -67,24 +69,28 @@ class PushRepository @Inject constructor(
                 }
                 .build()
 
-        return networkOracle.managedRequest(pushApi.addToken(request))
-            .asFlow()
-            .map { response ->
-                when (response.result) {
-                    PushService.AddTokenResponse.Result.OK -> Result.success(true)
-                    PushService.AddTokenResponse.Result.INVALID_PUSH_TOKEN -> {
-                        val error = Throwable("Error: INVALID_PUSH_TOKEN")
-                        Result.failure(error)
-                    }
-                    PushService.AddTokenResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: UNRECOGNIZED")
-                        Result.failure(error)
-                    }
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Result.failure(error)
+        return suspendCancellableCoroutine { continuation ->
+            networkOracle.managedRequest(pushApi.addToken(request))
+                .asFlow()
+                .map { response ->
+                    when (response.result) {
+                        PushService.AddTokenResponse.Result.OK -> Result.success(true)
+                        PushService.AddTokenResponse.Result.INVALID_PUSH_TOKEN -> {
+                            val error = Throwable("Error: INVALID_PUSH_TOKEN")
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        PushService.AddTokenResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: UNRECOGNIZED")
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            continuation.resume(Result.failure(error))
+                        }
                     }
                 }
-            }.first()
+        }
     }
 }

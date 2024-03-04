@@ -6,8 +6,10 @@ import com.getcode.network.api.AccountApi
 import com.getcode.network.core.NetworkOracle
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class AccountService @Inject constructor(
     private val api: AccountApi,
@@ -15,65 +17,79 @@ class AccountService @Inject constructor(
 ) {
 
     suspend fun isCodeAccount(owner: Ed25519.KeyPair): Result<Boolean> {
-        return networkOracle.managedRequest(api.isCodeAccount(owner))
-            .map { response ->
-                when (response.result) {
-                    AccountService.IsCodeAccountResponse.Result.OK -> {
-                        Result.success(true)
-                    }
+        return suspendCancellableCoroutine { continuation ->
+            networkOracle.managedRequest(api.isCodeAccount(owner))
+                .map { response ->
+                    when (response.result) {
+                        AccountService.IsCodeAccountResponse.Result.OK -> {
+                            continuation.resume(Result.success(true))
+                        }
 
-                    AccountService.IsCodeAccountResponse.Result.NOT_FOUND -> {
-                        val error = Throwable("Error: account not found")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    AccountService.IsCodeAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> {
-                        val error = Throwable("Error: unlocked timelock account")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    AccountService.IsCodeAccountResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: Unrecognized request.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Timber.e(t = error)
-                        Result.failure(error)
+                        AccountService.IsCodeAccountResponse.Result.NOT_FOUND -> {
+                            val error = Throwable("Error: account not found")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        AccountService.IsCodeAccountResponse.Result.UNLOCKED_TIMELOCK_ACCOUNT -> {
+                            val error = Throwable("Error: unlocked timelock account")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        AccountService.IsCodeAccountResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: Unrecognized request.")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
                     }
                 }
-            }.first()
+        }
     }
 
-    suspend fun linkAdditionalAccounts(owner: Ed25519.KeyPair, linkedAccount: Ed25519.KeyPair): Result<Unit> {
-        return networkOracle.managedRequest(api.linkAdditionalAccounts(owner, linkedAccount))
-            .map { response ->
-                when (response.result) {
-                    AccountService.LinkAdditionalAccountsResponse.Result.OK -> {
-                        Result.success(Unit)
-                    }
-                    AccountService.LinkAdditionalAccountsResponse.Result.DENIED -> {
-                        val error = Throwable("Error: Denied.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    AccountService.LinkAdditionalAccountsResponse.Result.INVALID_ACCOUNT -> {
-                        val error = Throwable("Error: Invalid account.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    AccountService.LinkAdditionalAccountsResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: Unrecognized request.")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-                    else -> {
-                        val error = Throwable("Error: Unknown")
-                        Timber.e(t = error)
-                        Result.failure(error)
+    suspend fun linkAdditionalAccounts(
+        owner: Ed25519.KeyPair,
+        linkedAccount: Ed25519.KeyPair
+    ): Result<Unit> {
+        return suspendCancellableCoroutine { continuation ->
+            networkOracle.managedRequest(api.linkAdditionalAccounts(owner, linkedAccount))
+                .map { response ->
+                    when (response.result) {
+                        AccountService.LinkAdditionalAccountsResponse.Result.OK -> {
+                            continuation.resume(Result.success(Unit))
+                        }
+
+                        AccountService.LinkAdditionalAccountsResponse.Result.DENIED -> {
+                            val error = Throwable("Error: Denied.")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        AccountService.LinkAdditionalAccountsResponse.Result.INVALID_ACCOUNT -> {
+                            val error = Throwable("Error: Invalid account.")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        AccountService.LinkAdditionalAccountsResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: Unrecognized request.")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Timber.e(t = error)
+                            continuation.resume(Result.failure(error))
+                        }
                     }
                 }
-            }.first()
+        }
     }
 }

@@ -17,16 +17,20 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.catchSafely
 import com.google.common.collect.Sets
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class IdentityRepository @Inject constructor(
     private val identityApi: IdentityApi,
@@ -214,41 +218,48 @@ class IdentityRepository @Inject constructor(
         locale: Locale,
         owner: KeyPair,
     ): Result<Unit> {
+        val localeTag = locale.toLanguageTag()
+        Timber.i("Updating locale to $localeTag")
         val containerId = getUserContainerId()
         val request = UpdatePreferencesRequest.newBuilder()
             .setContainerId(
                 Model.DataContainerId.newBuilder().setValue(containerId.toByteString()).build()
             ).setOwnerAccountId(owner.publicKeyBytes.toSolanaAccount())
             .setLocale(
-                Model.Locale.newBuilder().setValue(locale.toLanguageTag()).build()
+                Model.Locale.newBuilder().setValue(localeTag).build()
             ).apply {
                 setSignature(sign(owner))
             }.build()
 
-        return networkOracle.managedRequest(identityApi.updatePreferences(request))
-            .map { response ->
-                when (val result = response.result) {
-                    IdentityService.UpdatePreferencesResponse.Result.OK -> {
-                        Timber.d("updatePreferences success = locale set: ${locale.toLanguageTag()}")
-                        Result.success(Unit)
-                    }
-                    IdentityService.UpdatePreferencesResponse.Result.INVALID_LOCALE -> {
-                        val error = Throwable("Error: ${result.name}")
-                        ErrorUtils.handleError(error)
-                        Result.failure(error)
-                    }
-                    IdentityService.UpdatePreferencesResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: updatePreferences Unrecognized request.")
-                        ErrorUtils.handleError(error)
-                        Result.failure(error)
-                    }
-                    else -> {
-                        val error = Throwable("Error: updatePreferences Unknown Error")
-                        ErrorUtils.handleError(error)
-                        Result.failure(error)
+        return suspendCancellableCoroutine { continuation ->
+            networkOracle.managedRequest(identityApi.updatePreferences(request))
+                .catchSafely { response ->
+                    when (val result = response.result) {
+                        IdentityService.UpdatePreferencesResponse.Result.OK -> {
+                            Timber.d("updatePreferences success = locale set: ${localeTag}")
+                            continuation.resume(Result.success(Unit))
+                        }
+
+                        IdentityService.UpdatePreferencesResponse.Result.INVALID_LOCALE -> {
+                            val error = Throwable("Error: (${localeTag}) ${result.name}")
+                            ErrorUtils.handleError(error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        IdentityService.UpdatePreferencesResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: updatePreferences Unrecognized request.")
+                            ErrorUtils.handleError(error)
+                            continuation.resume(Result.failure(error))
+                        }
+
+                        else -> {
+                            val error = Throwable("Error: updatePreferences Unknown Error")
+                            ErrorUtils.handleError(error)
+                            continuation.resume(Result.failure(error))
+                        }
                     }
                 }
-            }.first()
+        }
     }
 
     suspend fun loginToThirdParty(
@@ -264,32 +275,34 @@ class IdentityRepository @Inject constructor(
                 it.setSignature(Ed25519.sign(bos.toByteArray(), relationship).toSignature())
             }.build()
 
-        return networkOracle.managedRequest(identityApi.loginToThirdParty(request))
-            .map { response ->
-                when (val result = response.result) {
-                    LoginToThirdPartyAppResponse.Result.OK -> Result.success(Unit)
-                    LoginToThirdPartyAppResponse.Result.REQUEST_NOT_FOUND,
-                    LoginToThirdPartyAppResponse.Result.PAYMENT_REQUIRED,
-                    LoginToThirdPartyAppResponse.Result.LOGIN_NOT_SUPPORTED,
-                    LoginToThirdPartyAppResponse.Result.DIFFERENT_LOGIN_EXISTS,
-                    LoginToThirdPartyAppResponse.Result.INVALID_ACCOUNT -> {
-                        val error = Throwable("Error: ${result.name}")
-                        ErrorUtils.handleError(error)
-                        Result.failure(error)
-                    }
+        return suspendCancellableCoroutine { continuation ->
+            networkOracle.managedRequest(identityApi.loginToThirdParty(request))
+                .catchSafely { response ->
+                    when (val result = response.result) {
+                        LoginToThirdPartyAppResponse.Result.OK -> continuation.resume(Result.success(Unit))
+                        LoginToThirdPartyAppResponse.Result.REQUEST_NOT_FOUND,
+                        LoginToThirdPartyAppResponse.Result.PAYMENT_REQUIRED,
+                        LoginToThirdPartyAppResponse.Result.LOGIN_NOT_SUPPORTED,
+                        LoginToThirdPartyAppResponse.Result.DIFFERENT_LOGIN_EXISTS,
+                        LoginToThirdPartyAppResponse.Result.INVALID_ACCOUNT -> {
+                            val error = Throwable("Error: ${result.name}")
+                            ErrorUtils.handleError(error)
+                            continuation.resume(Result.failure(error))
+                        }
 
-                    LoginToThirdPartyAppResponse.Result.UNRECOGNIZED -> {
-                        val error = Throwable("Error: loginToThirdParty Unrecognized request.")
-                        ErrorUtils.handleError(error)
-                        Result.failure(error)
-                    }
+                        LoginToThirdPartyAppResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: loginToThirdParty Unrecognized request.")
+                            ErrorUtils.handleError(error)
+                            continuation.resume(Result.failure(error))
+                        }
 
-                    else -> {
-                        val error = Throwable("Error: loginToThirdParty Unknown")
-                        ErrorUtils.handleError(error)
-                        Result.failure(error)
+                        else -> {
+                            val error = Throwable("Error: loginToThirdParty Unknown")
+                            ErrorUtils.handleError(error)
+                            continuation.resume(Result.failure(error))
+                        }
                     }
                 }
-            }.first()
+        }
     }
 }
