@@ -64,6 +64,7 @@ class BalanceSheetViewModel @Inject constructor(
 
     init {
         betaFlags.observe()
+            .distinctUntilChanged()
             .onEach {
                 dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyKinEnabled))
             }.launchIn(viewModelScope)
@@ -112,7 +113,6 @@ class BalanceSheetViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            Timber.d("event=${event.javaClass.simpleName}")
             when (event) {
                 is Event.OnDebugBucketsEnabled -> { state ->
                     state.copy(isBucketDebuggerEnabled = event.enabled)
