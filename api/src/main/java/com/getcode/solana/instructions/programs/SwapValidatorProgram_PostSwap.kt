@@ -19,15 +19,14 @@ class SwapValidatorProgram_PostSwap(
 ) : InstructionType {
 
     override fun instruction(): Instruction {
-        val accounts = listOf(
-            AccountMeta.writable(publicKey = preSwapState,),
-            AccountMeta.readonly(publicKey = source),
-            AccountMeta.readonly(publicKey = destination),
-            AccountMeta.writable(publicKey = payer, signer = true),
-        )
         return Instruction(
             program = SwapValidatorProgram.address,
-            accounts = accounts,
+            accounts = listOf(
+                AccountMeta.writable(publicKey = preSwapState),
+                AccountMeta.readonly(publicKey = source),
+                AccountMeta.readonly(publicKey = destination),
+                AccountMeta.writable(publicKey = payer, signer = true),
+            ),
             data = encode()
         )
     }

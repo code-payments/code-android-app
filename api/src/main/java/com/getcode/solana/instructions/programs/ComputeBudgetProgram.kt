@@ -1,12 +1,8 @@
 package com.getcode.solana.instructions.programs
 
-import com.getcode.solana.Instruction
 import com.getcode.solana.instructions.CommandType
 import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.DataSlice.consume
 import com.getcode.vendor.Base58
-import org.kin.sdk.base.tools.byteArrayToInt
-import org.kin.sdk.base.tools.byteArrayToLong
 
 class ComputeBudgetProgram {
 

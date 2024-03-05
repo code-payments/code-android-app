@@ -3,8 +3,10 @@ package com.getcode.solana.instructions.programs
 import com.getcode.network.repository.toByteArray
 import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
+import com.getcode.solana.description
 import com.getcode.solana.instructions.InstructionType
 import com.getcode.solana.keys.PublicKey
+import timber.log.Timber
 
 class SwapValidatorProgram_PreSwap(
     val preSwapState: PublicKey,
@@ -16,16 +18,18 @@ class SwapValidatorProgram_PreSwap(
     val remainingAccounts: List<AccountMeta>,
 ): InstructionType {
     override fun instruction(): Instruction {
-        val accounts = listOf(
+        val accounts = mutableListOf(
             AccountMeta.writable(publicKey = preSwapState),
             AccountMeta.readonly(publicKey = user),
             AccountMeta.readonly(publicKey = source),
-            AccountMeta.readonly(publicKey = destination,),
+            AccountMeta.readonly(publicKey = destination),
             AccountMeta.readonly(publicKey = nonce),
             AccountMeta.writable(publicKey = payer, signer = true),
             AccountMeta.readonly(publicKey = SystemProgram.address),
             AccountMeta.readonly(publicKey = SysVar.rent.address())
         )
+
+        accounts.addAll(remainingAccounts)
 
         return Instruction(
             program = SwapValidatorProgram.address,
@@ -42,6 +46,12 @@ class SwapValidatorProgram_PreSwap(
 
     companion object {
         fun newInstance(instruction: Instruction): SwapValidatorProgram_PreSwap {
+            SwapValidatorProgram.parse(
+                command = SwapValidatorProgram.Command.preSwap,
+                instruction = instruction,
+                expectingAccounts = null
+            )
+
             return SwapValidatorProgram_PreSwap(
                 preSwapState = instruction.accounts[0].publicKey,
                 user = instruction.accounts[1].publicKey,

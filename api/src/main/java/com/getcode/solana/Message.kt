@@ -3,6 +3,7 @@ package com.getcode.solana
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.LENGTH_32
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.DataSlice.chunk
 import com.getcode.utils.DataSlice.consume
 import com.getcode.utils.DataSlice.tail
@@ -25,28 +26,6 @@ data class Message(
         data.addAll(ShortVec.encodeList(instructions.map { it.encode() }))
 
         return data.toByteArray()
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Message
-
-        if (header != other.header) return false
-        if (accounts != other.accounts) return false
-        if (recentBlockhash != other.recentBlockhash) return false
-        if (instructions != other.instructions) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = header.hashCode()
-        result = 31 * result + accounts.hashCode()
-        result = 31 * result + recentBlockhash.hashCode()
-        result = 31 * result + instructions.hashCode()
-        return result
     }
 
     companion object {
@@ -111,6 +90,11 @@ data class Message(
             recentBlockhash: Hash /* = com.getcode.solana.keys.Key32 */,
             instructions: List<Instruction>
         ): Message {
+            // Sort the account meta's based on:
+            //   1. Payer is always the first account / signer.
+            //   1. All signers are before non-signers.
+            //   2. Writable accounts before read-only accounts.
+            //   3. Programs last
             val uniqueAccounts = accounts.filterUniqueAccounts().sorted()
 
             val signers         = uniqueAccounts.filter { it.isSigner }
