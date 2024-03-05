@@ -383,6 +383,8 @@ class Tray(
     }
 
     fun receive(receivingAccount: AccountType, amount: Kin): List<InternalExchange> {
+        if (partialBalance(receivingAccount) < amount) throw OrganizerException.InvalidSlotBalanceException()
+
         val container = mutableListOf<InternalExchange>()
 
         var remainingAmount = amount

@@ -1375,11 +1375,8 @@ class TrayTest {
     @Test
     fun testReceiveInsufficientBalance() {
         val tray = Tray.newInstance(context = context, mnemonic = mnemonic)
-        try {
+        assertThrows(Tray.OrganizerException.InvalidSlotBalanceException::class.java) {
             tray.receive(AccountType.Incoming, amount = Kin.fromKin(100))
-            assert(false)
-        } catch (e: IllegalStateException) {
-            assert(true)
         }
     }
 }
