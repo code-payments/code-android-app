@@ -191,9 +191,9 @@ object TransactionBuilder {
 
         val remainingAccounts = parameters.swapAccounts.filter {
             (it.isSigner || it.isWritable) &&
-                    (it.publicKey.base58Encode() != fromUsdc.authorityPublicKey.base58() &&
-                            it.publicKey.base58Encode() != fromUsdc.vaultPublicKey.base58() &&
-                            it.publicKey.base58Encode() != destination.base58())
+                    (it.publicKey.base58() != fromUsdc.authorityPublicKey.base58() &&
+                            it.publicKey.base58() != fromUsdc.vaultPublicKey.base58() &&
+                            it.publicKey.base58() != destination.base58())
         }
 
         return SolanaTransaction.newInstance(
@@ -216,14 +216,14 @@ object TransactionBuilder {
                     nonce = parameters.nonce,
                     payer = payer,
                     remainingAccounts = remainingAccounts.map {
-                        val publicKey = PublicKey.fromBase58(it.publicKey.base58Encode())
+                        val publicKey = PublicKey.fromBase58(it.publicKey.base58())
                         AccountMeta(publicKey, it.isSigner, it.isWritable, it.isPayer, it.isProgram)
                     },
                 ).instruction(),
                 Instruction(
                     program = parameters.swapProgram,
                     accounts = parameters.swapAccounts.map {
-                        val publicKey = PublicKey.fromBase58(it.publicKey.base58Encode())
+                        val publicKey = PublicKey.fromBase58(it.publicKey.base58())
                         AccountMeta(publicKey, it.isSigner, it.isWritable, it.isPayer, it.isProgram)
                     },
                     data = parameters.swapData.toList(),
