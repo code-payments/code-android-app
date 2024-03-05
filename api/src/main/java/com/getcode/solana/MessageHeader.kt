@@ -47,3 +47,6 @@ open class MessageHeader(
         }
     }
 }
+
+val MessageHeader.description: String
+    get() = "H{$requiredSignatures, $readOnlySigners, $readOnly}"

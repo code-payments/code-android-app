@@ -1,20 +1,13 @@
 package com.getcode.solana.builder
 
-import com.getcode.solana.keys.Signature
 import com.getcode.mocks.SolanaTransaction
 import com.getcode.model.Kin
 import com.getcode.model.intents.actions.ActionType.Companion.kreIndex
 import com.getcode.network.repository.decodeBase58
-import com.getcode.solana.instructions.programs.ComputeBudgetProgram
-import com.getcode.solana.instructions.programs.ComputeBudgetProgram_SetComputeUnitLimit
-import com.getcode.solana.instructions.programs.ComputeBudgetProgram_SetComputeUnitPrice
-import com.getcode.solana.instructions.programs.SwapValidatorProgram_PostSwap
-import com.getcode.solana.instructions.programs.SwapValidatorProgram_PreSwap
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.TimelockDerivedAccounts
-import com.getcode.solana.keys.base58
 import junit.framework.Assert
-import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class TransactionBuilder_Test {

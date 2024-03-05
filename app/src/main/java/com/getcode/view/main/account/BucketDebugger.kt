@@ -1,29 +1,28 @@
 package com.getcode.view.main.account
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.getcode.manager.SessionManager
 import com.getcode.model.displayName
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
-import com.getcode.solana.organizer.SlotType
-import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.MiddleEllipsisText
-import com.getcode.view.main.balance.BalanceSheetViewModel
 
 
 @Composable
-fun AccountDebugBuckets() {
+fun BucketDebugger() {
     val accountList = SessionManager.getOrganizer()?.buckets ?: return
 
     val buckets = accountList.sortedWith { lhs, rhs ->
@@ -36,10 +35,15 @@ fun AccountDebugBuckets() {
         }
     }
 
+    val clipboard = LocalClipboardManager.current
+
     LazyColumn {
         items(buckets) { info ->
             Column(
                 modifier = Modifier
+                    .clickable {
+                        clipboard.setText(AnnotatedString(info.address.base58()))
+                    }
                     .padding(horizontal = CodeTheme.dimens.grid.x3)
             ) {
                 Row(

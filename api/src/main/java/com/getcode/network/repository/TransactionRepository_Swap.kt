@@ -9,6 +9,7 @@ import com.getcode.model.intents.SwapIntent
 import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.solana.SolanaTransaction
+import com.getcode.solana.diff
 import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.Organizer
@@ -23,6 +24,9 @@ typealias BidirectionalSwapStream = BidirectionalStreamReference<SwapRequest, Sw
 
 suspend fun TransactionRepository.initiateSwap(organizer: Organizer): Result<SwapIntent> {
     val intent = SwapIntent.newInstance(organizer)
+
+    Timber.d("Swap ID: ${intent.id.base58()}")
+
     return submit(intent)
 }
 
@@ -74,15 +78,19 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                                 errors.add("Reason: ${error.reasonString}")
                             }
                             TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
+                                val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
+                                val produced = intent.transaction(intent.parameters!!)
                                 errors.addAll(
                                     listOf(
                                         "Action index: ${error.invalidSignature.actionId}",
                                         "Invalid signature: ${Signature(error.invalidSignature.providedSignature.value.toByteArray().toList()).base58()}",
                                         "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
-                                        "Transaction expected: ${SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())}",
-                                        "Android produced: ${intent.transaction(intent.parameters!!)}"
+                                        "Transaction expected: $expected",
+                                        "Android produced: $produced"
                                     )
                                 )
+
+                                expected?.diff(produced)
                             }
                             else -> Unit
                         }
@@ -97,8 +105,6 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                         Result.failure(
                             TransactionRepository.ErrorSubmitIntentException(
                                 TransactionRepository.ErrorSubmitIntent.fromValue(value.error.codeValue),
-                                null,
-                                errors.joinToString("\n")
                             )
                         )
                     )

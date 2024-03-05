@@ -50,7 +50,7 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.chat.ChatNode
 import com.getcode.util.Kin
-import com.getcode.view.main.account.AccountDebugBuckets
+import com.getcode.view.main.account.BucketDebugger
 import com.getcode.view.main.giveKin.AmountArea
 
 
@@ -74,7 +74,7 @@ fun BalanceScreeen(
         }
     ) { buckets ->
         if (buckets) {
-            AccountDebugBuckets()
+            BucketDebugger()
         } else {
             BalanceContent(
                 state = state,

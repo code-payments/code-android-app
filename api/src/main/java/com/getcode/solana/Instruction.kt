@@ -1,10 +1,12 @@
 package com.getcode.solana
 
+import com.getcode.network.repository.hexEncodedString
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.DataSlice.consume
 import com.getcode.utils.DataSlice.prefix
 
-data class Instruction constructor(
+data class Instruction(
     val program: PublicKey,
     val accounts: List<AccountMeta>,
     val data: List<Byte>,
@@ -43,7 +45,7 @@ data class Instruction constructor(
     }
 
     companion object {
-        // NewInstruction creates a new instruction.
+        // newInstruction creates a new instruction.
         fun newInstruction(
             program: PublicKey,
             data: List<Byte>,
@@ -125,3 +127,9 @@ data class CompiledInstruction(
         }
     }
 }
+
+val Instruction.description: String
+    get() = """
+        ${program.base58()} ${accounts.count()} ${data.hexEncodedString()}
+        ${if (accounts.isNotEmpty()) accounts.joinToString { it.description } else ""}
+    """.trimIndent()

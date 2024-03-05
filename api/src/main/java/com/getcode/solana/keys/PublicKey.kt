@@ -214,9 +214,7 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
         if (this === other) return true
 
         other as PublicKey
-        if (size == other.size && bytes == other.bytes) return true
-
-        return false
+        return size == other.size && bytes == other.bytes
     }
 
     override fun hashCode(): Int {

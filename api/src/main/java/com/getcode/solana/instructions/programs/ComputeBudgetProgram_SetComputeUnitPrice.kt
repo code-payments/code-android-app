@@ -21,8 +21,8 @@ class ComputeBudgetProgram_SetComputeUnitPrice(
 
     override fun encode(): List<Byte> {
         val data = mutableListOf<Byte>()
-        data.addAll(ComputeBudgetProgram.Command.setComputeUnitPrice.ordinal.intToByteArray().toList())
-        data.add(bump)
+        data.add(ComputeBudgetProgram.Command.setComputeUnitPrice.ordinal.toByte())
+//        data.add(bump)
         data.addAll(microLamports.longToByteArray().toList())
         return data
     }

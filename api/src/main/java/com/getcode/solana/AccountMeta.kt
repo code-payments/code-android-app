@@ -10,12 +10,6 @@ data class AccountMeta(
     var isPayer: Boolean,
     var isProgram: Boolean,
 ): Comparable<AccountMeta> {
-    fun description(): String {
-        val payer = if (isPayer) "p" else ""
-        val signer = if (isSigner) "s" else ""
-        val writable = if (isWritable) "w" else ""
-        return "[$payer $signer $writable ${publicKey.base58()}]"
-    }
 
     companion object {
         fun payer(publicKey: PublicKey): AccountMeta {
@@ -76,8 +70,6 @@ data class AccountMeta(
 
     override fun compareTo(other: AccountMeta): Int {
         fun boolToInt(value: Boolean) = if (value) -1 else 1
-        if (this == other) return 0
-
 
         if (this.isPayer != other.isPayer) {
             return boolToInt(this.isPayer)
@@ -101,32 +93,10 @@ data class AccountMeta(
 
         return compareLexicographically(this.publicKey.byteArray, other.publicKey.byteArray)
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as AccountMeta
-
-        if (publicKey != other.publicKey) return false
-        if (isSigner != other.isSigner) return false
-        if (isWritable != other.isWritable) return false
-        if (isPayer != other.isPayer) return false
-        if (isProgram != other.isProgram) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = publicKey.hashCode()
-        result = 31 * result + isSigner.hashCode()
-        result = 31 * result + isWritable.hashCode()
-        result = 31 * result + isPayer.hashCode()
-        result = 31 * result + isProgram.hashCode()
-        return result
-    }
 }
 
+// Provide a unique set by publicKey of AccountMeta
+// with the highest write permission.
 fun List<AccountMeta>.filterUniqueAccounts(): List<AccountMeta> {
     val container = mutableListOf<AccountMeta>()
     this.forEach { account ->
@@ -163,4 +133,12 @@ fun List<AccountMeta>.filterUniqueAccounts(): List<AccountMeta> {
     }
 
     return container
+}
+
+val AccountMeta.description: String
+    get() {
+        val payer = if (isPayer) "p" else "-"
+        val signer = if (isSigner) "s" else "-"
+        val writable = if (isWritable) "w" else "-"
+        return "[$payer$signer$writable - ${publicKey.base58()}]"
 }

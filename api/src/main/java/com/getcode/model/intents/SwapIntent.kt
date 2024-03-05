@@ -62,6 +62,7 @@ fun SwapIntent.requestToSubmitSignatures(): SwapRequest? = runCatching {
         .setSubmitSignature(
             SwapRequest.SubmitSignature.newBuilder()
                 .setSignature(sign(parameters!!).first().bytes.toByteArray().toSignature())
+                .build()
         ).build()
 }.getOrNull()
 
@@ -72,7 +73,7 @@ data class SwapConfigParameters(
     val blockHash: Hash,
     val maxToSend: Long,
     val minToReceive: Long,
-    val computeUnitLimit: Long,
+    val computeUnitLimit: Int,
     val computeUnitPrice: Long,
     val swapAccounts: List<AccountMeta>,
     val swapData: ByteString,
@@ -92,7 +93,7 @@ data class SwapConfigParameters(
                     blockHash = blockHash,
                     maxToSend = proto.maxToSend,
                     minToReceive = proto.minToReceive,
-                    computeUnitLimit = proto.computeUnitLimit.toLong(),
+                    computeUnitLimit = proto.computeUnitLimit,
                     computeUnitPrice = proto.computeUnitPrice,
                     swapAccounts = proto.swapIxnAccountsList.mapNotNull { it.meta() },
                     swapData = proto.swapIxnData
@@ -103,7 +104,7 @@ data class SwapConfigParameters(
 }
 
 private fun InstructionAccount.meta(): AccountMeta? = runCatching {
-    val publicKey = account.value.toByteArray().toPublicKey()
+    val publicKey = PublicKey(account.value.toList())
     AccountMeta(
         publicKey = publicKey,
         isSigner = isSigner,
