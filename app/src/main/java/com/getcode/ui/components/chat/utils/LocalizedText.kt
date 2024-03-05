@@ -120,7 +120,7 @@ internal val MessageContent.localizedText: String
                         BuildConfig.APPLICATION_ID
                     ).let { if (it == 0) null else it }
 
-                    resId?.let { getString(it) }.orEmpty()
+                    resId?.let { getString(it) } ?: content.value
                 }
             }
 
@@ -135,7 +135,7 @@ fun Verb.localizedText(resources: ResourceHelper): String {
         ResourceType.String,
     ).let { if (it == 0) null else it }
 
-    return resId?.let { resources.getString(it) }.orEmpty()
+    return resId?.let { resources.getString(it) } ?: toString()
 }
 
 val Verb.localizedText: String
@@ -148,5 +148,5 @@ val Verb.localizedText: String
             BuildConfig.APPLICATION_ID
         ).let { if (it == 0) null else it }
 
-        resId?.let { getString(it) }.orEmpty()
+        resId?.let { getString(it) } ?: toString()
     }
