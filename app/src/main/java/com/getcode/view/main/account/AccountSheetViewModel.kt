@@ -81,6 +81,7 @@ class AccountSheetViewModel @Inject constructor(
 
     init {
         betaFlags.observe()
+            .distinctUntilChanged()
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyKinEnabled)) }
             .launchIn(viewModelScope)
 
@@ -146,7 +147,6 @@ class AccountSheetViewModel @Inject constructor(
         )
 
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            Timber.d("event=$event")
             when (event) {
                 is Event.OnPhoneLinked -> { state -> state.copy(isPhoneLinked = event.linked) }
                 Event.LogoClicked -> { state ->

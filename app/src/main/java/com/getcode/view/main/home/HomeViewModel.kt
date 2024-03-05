@@ -192,6 +192,7 @@ class HomeViewModel @Inject constructor(
         onDrawn()
 
         betaFlags.observe()
+            .distinctUntilChanged()
             .onEach { beta ->
                 uiFlow.update {
                     it.copy(
@@ -608,7 +609,7 @@ class HomeViewModel @Inject constructor(
         } else {
             val fiat = Fiat(currency = amount.rate.currency, amount = amount.fiat)
             code = CodePayload(
-                kind = Kind.RequestPaymentV2,
+                kind = Kind.RequestPayment,
                 value = fiat,
                 nonce = nonce
             )
