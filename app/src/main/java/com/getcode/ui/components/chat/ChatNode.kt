@@ -116,7 +116,7 @@ val Title?.localized: String
                     BuildConfig.APPLICATION_ID
                 ).let { if (it == 0) null else it }
 
-                resId?.let { getString(it) }.orEmpty()
+                resId?.let { getString(it) } ?: t.value
             }
         }
 
