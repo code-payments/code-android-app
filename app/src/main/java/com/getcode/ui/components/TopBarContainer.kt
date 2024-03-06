@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.CodeAppState
@@ -137,7 +138,9 @@ private fun TopBarView(
                 style = CodeTheme.typography.body1.copy(
                     fontSize = 15.sp,
                     lineHeight = 18.sp
-                )
+                ),
+                maxLines = 10,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(
                 modifier = Modifier
@@ -162,7 +165,10 @@ private fun TopBarView(
                         modifier = Modifier
                             .weight(1f)
                             .height(CodeTheme.dimens.grid.x10),
-                        onClick = { topBarMessage.secondaryAction(); onClose() },
+                        onClick = {
+                            topBarMessage.secondaryAction()
+                            onClose()
+                        },
                         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
                         colors = ButtonDefaults.buttonColors(backgroundColor = Transparent)
                     ) {

@@ -84,6 +84,7 @@ fun BetaFlagsScreen(
         for (option in options) {
             Row(
                 modifier = Modifier
+                    .rememberedClickable { option.onChange(!option.dataState) }
                     .padding(horizontal = CodeTheme.dimens.grid.x3)
                     .padding(end = CodeTheme.dimens.grid.x3),
                 verticalAlignment = Alignment.CenterVertically
@@ -91,7 +92,6 @@ fun BetaFlagsScreen(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .rememberedClickable { option.onChange(!option.dataState) }
                         .padding(vertical = CodeTheme.dimens.grid.x3)
                 ) {
                     Text(
@@ -112,7 +112,8 @@ fun BetaFlagsScreen(
 
                 CodeSwitch(
                     modifier = Modifier.wrapContentSize(),
-                    checked = option.dataState, onCheckedChange = { option.onChange(it) }
+                    checked = option.dataState,
+                    onCheckedChange = null,
                 )
             }
         }

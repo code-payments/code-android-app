@@ -1,5 +1,6 @@
 package com.getcode.network.repository
 
+import com.codeinc.gen.transaction.v2.TransactionService
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest.Initiate
 import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
@@ -7,11 +8,15 @@ import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.model.intents.SwapIntent
 import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.core.BidirectionalStreamReference
+import com.getcode.solana.SolanaTransaction
+import com.getcode.solana.diff
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import kotlin.coroutines.resume
 
@@ -19,6 +24,9 @@ typealias BidirectionalSwapStream = BidirectionalStreamReference<SwapRequest, Sw
 
 suspend fun TransactionRepository.initiateSwap(organizer: Organizer): Result<SwapIntent> {
     val intent = SwapIntent.newInstance(organizer)
+
+    Timber.d("Swap ID: ${intent.id.base58()}")
+
     return submit(intent)
 }
 
@@ -45,7 +53,7 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                         reference.stream?.onNext(submitSignatures)
                         Timber.d("Sent swap request, Intent: ${intent.id.base58()}")
                     } catch (e: Exception) {
-                        Timber.e(t = e, message ="Received parameters but failed to apply them. Intent: ${intent.id.base58()}")
+                        Timber.e(t = e, message = "Received parameters but failed to apply them. Intent: ${intent.id.base58()}")
                         cont.resume(Result.failure(e))
                     }
                 }
@@ -61,11 +69,34 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                 // intent is considered failed. Something must have gone wrong
                 // on the transaction creation or signing on our side.
                 SwapResponse.ResponseCase.ERROR -> {
-                    val errorReason =
-                        value.error.errorDetailsList.firstOrNull()?.reasonString?.reason.orEmpty()
+
+                    val errors = mutableListOf<String>()
+
                     value.error.errorDetailsList.forEach { error ->
+                        when (error.typeCase) {
+                            TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
+                                errors.add("Reason: ${error.reasonString}")
+                            }
+                            TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
+                                val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
+                                val produced = intent.transaction(intent.parameters!!)
+                                errors.addAll(
+                                    listOf(
+                                        "Action index: ${error.invalidSignature.actionId}",
+                                        "Invalid signature: ${Signature(error.invalidSignature.providedSignature.value.toByteArray().toList()).base58()}",
+                                        "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
+                                        "Transaction expected: $expected",
+                                        "Android produced: $produced"
+                                    )
+                                )
+
+                                expected?.diff(produced)
+                            }
+                            else -> Unit
+                        }
+
                         Timber.e(
-                            "Error: ${error.reasonString.reason} | ${error.typeCase.name}"
+                            "Error: ${errors.joinToString("\n")}"
                         )
                     }
 
@@ -74,8 +105,6 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                         Result.failure(
                             TransactionRepository.ErrorSubmitIntentException(
                                 TransactionRepository.ErrorSubmitIntent.fromValue(value.error.codeValue),
-                                null,
-                                errorReason
                             )
                         )
                     )

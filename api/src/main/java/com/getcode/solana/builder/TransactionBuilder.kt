@@ -7,6 +7,7 @@ import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType
+import com.getcode.solana.description
 import com.getcode.solana.instructions.programs.*
 import com.getcode.solana.keys.Key32.Companion.mock
 import com.getcode.solana.keys.Key32.Companion.subsidizer
@@ -18,6 +19,7 @@ import com.getcode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountCluster
 import org.kin.sdk.base.models.Key
+import timber.log.Timber
 
 object TransactionBuilder {
 
@@ -189,11 +191,12 @@ object TransactionBuilder {
             nonce = parameters.nonce
         )
 
+        Timber.d("swap accounts=${parameters.swapAccounts.map { it.description }}")
         val remainingAccounts = parameters.swapAccounts.filter {
             (it.isSigner || it.isWritable) &&
-                    (it.publicKey.base58Encode() != fromUsdc.authorityPublicKey.base58() &&
-                            it.publicKey.base58Encode() != fromUsdc.vaultPublicKey.base58() &&
-                            it.publicKey.base58Encode() != destination.base58())
+            (it.publicKey != fromUsdc.authorityPublicKey &&
+            it.publicKey != fromUsdc.vaultPublicKey &&
+            it.publicKey != destination)
         }
 
         return SolanaTransaction.newInstance(
@@ -204,10 +207,12 @@ object TransactionBuilder {
                     limit = parameters.computeUnitLimit,
                     bump = stateAccount.state.bump.toByte(),
                 ).instruction(),
+
                 ComputeBudgetProgram_SetComputeUnitPrice(
                     microLamports = parameters.computeUnitPrice,
                     bump = stateAccount.state.bump.toByte(),
                 ).instruction(),
+
                 SwapValidatorProgram_PreSwap(
                     preSwapState = stateAccount.state.publicKey,
                     user = fromUsdc.authorityPublicKey,
@@ -215,19 +220,15 @@ object TransactionBuilder {
                     destination = destination,
                     nonce = parameters.nonce,
                     payer = payer,
-                    remainingAccounts = remainingAccounts.map {
-                        val publicKey = PublicKey.fromBase58(it.publicKey.base58Encode())
-                        AccountMeta(publicKey, it.isSigner, it.isWritable, it.isPayer, it.isProgram)
-                    },
+                    remainingAccounts = remainingAccounts,
                 ).instruction(),
+
                 Instruction(
                     program = parameters.swapProgram,
-                    accounts = parameters.swapAccounts.map {
-                        val publicKey = PublicKey.fromBase58(it.publicKey.base58Encode())
-                        AccountMeta(publicKey, it.isSigner, it.isWritable, it.isPayer, it.isProgram)
-                    },
+                    accounts = parameters.swapAccounts,
                     data = parameters.swapData.toList(),
                 ),
+
                 SwapValidatorProgram_PostSwap(
                     stateBump = stateAccount.state.bump.toByte(),
                     maxToSend = parameters.maxToSend,

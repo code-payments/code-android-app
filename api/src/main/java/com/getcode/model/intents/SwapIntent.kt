@@ -1,13 +1,13 @@
 package com.getcode.model.intents
 
-import android.content.Context
 import com.codeinc.gen.common.v1.Model.InstructionAccount
-import com.codeinc.gen.transaction.v2.TransactionService
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
 import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.network.repository.toHash
 import com.getcode.network.repository.toPublicKey
 import com.getcode.network.repository.toSignature
+import com.getcode.solana.AccountMeta
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.keys.Hash
@@ -18,7 +18,6 @@ import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.google.protobuf.ByteString
 import org.kin.sdk.base.models.Key
-import org.kin.sdk.base.models.solana.AccountMeta
 import java.lang.IllegalStateException
 import kotlin.math.sign
 
@@ -63,10 +62,9 @@ fun SwapIntent.requestToSubmitSignatures(): SwapRequest? = runCatching {
         .setSubmitSignature(
             SwapRequest.SubmitSignature.newBuilder()
                 .setSignature(sign(parameters!!).first().bytes.toByteArray().toSignature())
-        )
-        .build()
-}
-    .getOrNull()
+                .build()
+        ).build()
+}.getOrNull()
 
 data class SwapConfigParameters(
     val payer: PublicKey,
@@ -75,7 +73,7 @@ data class SwapConfigParameters(
     val blockHash: Hash,
     val maxToSend: Long,
     val minToReceive: Long,
-    val computeUnitLimit: Long,
+    val computeUnitLimit: Int,
     val computeUnitPrice: Long,
     val swapAccounts: List<AccountMeta>,
     val swapData: ByteString,
@@ -86,7 +84,7 @@ data class SwapConfigParameters(
                 val payer = proto.payer.value.toByteArray().toPublicKey()
                 val swapProgram = proto.swapProgram.value.toByteArray().toPublicKey()
                 val nonce = proto.nonce.value.toByteArray().toPublicKey()
-                val blockHash = proto.recentBlockhash.value.toByteArray().toPublicKey()
+                val blockHash = proto.recentBlockhash.value.toByteArray().toHash()
 
                 SwapConfigParameters(
                     payer = payer,
@@ -95,7 +93,7 @@ data class SwapConfigParameters(
                     blockHash = blockHash,
                     maxToSend = proto.maxToSend,
                     minToReceive = proto.minToReceive,
-                    computeUnitLimit = proto.computeUnitLimit.toLong(),
+                    computeUnitLimit = proto.computeUnitLimit,
                     computeUnitPrice = proto.computeUnitPrice,
                     swapAccounts = proto.swapIxnAccountsList.mapNotNull { it.meta() },
                     swapData = proto.swapIxnData
@@ -106,7 +104,7 @@ data class SwapConfigParameters(
 }
 
 private fun InstructionAccount.meta(): AccountMeta? = runCatching {
-    val publicKey = Key.PublicKey(account.value.toByteArray())
+    val publicKey = PublicKey(account.value.toList())
     AccountMeta(
         publicKey = publicKey,
         isSigner = isSigner,

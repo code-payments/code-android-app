@@ -69,9 +69,9 @@ fun AccountHome(
                 when (item) {
                     AccountPage.BUY_KIN -> {
                         if (dataState.buyKinEnabled) {
-                            navigator.show(BuyMoreKinModal(true))
+                            navigator.push(BuyMoreKinModal(true))
                         } else {
-                            navigator.show(BuySellScreen)
+                            navigator.push(BuySellScreen)
                         }
                     }
                     AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
