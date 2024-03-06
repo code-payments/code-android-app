@@ -16,6 +16,7 @@ import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
@@ -48,6 +49,7 @@ class AuthManager @Inject constructor(
     private val identityRepository: IdentityRepository,
     private val pushRepository: PushRepository,
     private val prefRepository: PrefRepository,
+    private val betaFlags: BetaFlagsRepository,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val historyController: HistoryController,
@@ -255,10 +257,7 @@ class AuthManager @Inject constructor(
         )
         phoneRepository.phoneLinked.value = phone.isLinked
 
-        prefRepository.set(
-            PrefsBool.IS_DEBUG_ALLOWED,
-            user.enableDebugOptions,
-        )
+        betaFlags.enableBeta(user.enableDebugOptions)
 
         Timber.d("airdrops eligible = ${user.eligibleAirdrops.joinToString { it.name }}")
         prefRepository.set(

@@ -4,6 +4,7 @@ import com.getcode.model.BetaFlags
 import com.getcode.model.PrefsBool
 import com.getcode.utils.combine
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
@@ -21,6 +22,16 @@ data class BetaOptions(
 class BetaFlagsRepository @Inject constructor(
     private val prefRepository: PrefRepository,
 ) {
+    fun enableBeta(allowed: Boolean) {
+        prefRepository.set(
+            PrefsBool.IS_DEBUG_ALLOWED,
+            allowed,
+        )
+
+        if (!allowed) {
+            prefRepository.set(PrefsBool.IS_DEBUG_ACTIVE, false)
+        }
+    }
 
     fun observe(): Flow<BetaOptions> = combine(
         observeBetaFlag(PrefsBool.SHOW_CONNECTIVITY_STATUS),
@@ -43,13 +54,18 @@ class BetaFlagsRepository @Inject constructor(
     }
 
     private fun observeBetaFlag(flag: PrefsBool, default: Boolean = false): Flow<Boolean> {
-        return prefRepository.observeOrDefault(flag, default)
-            .map {
-                if (BetaFlags.isAvailable(flag)) {
-                    it
-                } else {
-                    false
+        return combine(
+            prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false),
+            prefRepository.observeOrDefault(flag, default)
+                .map {
+                    if (BetaFlags.isAvailable(flag)) {
+                        it
+                    } else {
+                        false
+                    }
                 }
-            }
+        ) { a, b ->
+            if (a) b else false
+        }
     }
 }
