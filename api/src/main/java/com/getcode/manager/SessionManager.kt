@@ -3,7 +3,13 @@ package com.getcode.manager
 import android.content.Context
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
+import com.getcode.network.client.Client
+import com.getcode.network.client.registerInstallation
+import com.getcode.network.client.updatePreferences
 import com.getcode.solana.organizer.Organizer
+import com.getcode.utils.installationId
+import com.google.firebase.Firebase
+import com.google.firebase.installations.installations
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +20,9 @@ import javax.inject.Singleton
 
 
 @Singleton
-class SessionManager @Inject constructor() {
+class SessionManager @Inject constructor(
+    private val client: Client,
+) {
     data class SessionState(
         val entropyB64: String? = null,
         val keyPair: Ed25519.KeyPair? = null,
@@ -48,6 +56,15 @@ class SessionManager @Inject constructor() {
         update {
             SessionState(entropyB64 = null, keyPair = null, isAuthenticated = false)
         }
+    }
+
+    suspend fun comeAlive(): Result<Boolean> {
+        val organizer = authState.value.organizer ?: return Result.success(false)
+        val installationId = Firebase.installations.installationId()
+        if (installationId != null) {
+            client.registerInstallation(organizer.ownerKeyPair, installationId)
+        }
+        return client.updatePreferences(organizer)
     }
 
     companion object {

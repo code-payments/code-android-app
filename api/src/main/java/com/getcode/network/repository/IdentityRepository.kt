@@ -214,7 +214,7 @@ class IdentityRepository @Inject constructor(
     suspend fun updatePreferences(
         locale: Locale,
         owner: KeyPair,
-    ): Result<Unit> {
+    ): Result<Boolean> {
         val localeTag = locale.language
         Timber.i("Attempting to update locale to $localeTag")
         val containerId = getUserContainerId()
@@ -235,7 +235,7 @@ class IdentityRepository @Inject constructor(
                     when (val result = response.result) {
                         IdentityService.UpdatePreferencesResponse.Result.OK -> {
                             Timber.d("updatePreferences success = locale set: ${localeTag}")
-                            Result.success(Unit)
+                            Result.success(true)
                         }
 
                         IdentityService.UpdatePreferencesResponse.Result.INVALID_LOCALE -> {

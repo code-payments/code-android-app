@@ -27,6 +27,7 @@ import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
+import com.getcode.network.service.DeviceService
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
 import com.getcode.util.resources.ResourceHelper
@@ -170,6 +171,7 @@ object ApiModule {
         exchange: Exchange,
         networkObserver: NetworkConnectivityListener,
         chatService: ChatService,
+        deviceService: DeviceService,
     ): Client {
         return Client(
             context,
@@ -185,6 +187,7 @@ object ApiModule {
             transactionReceiver,
             networkObserver,
             chatService,
+            deviceService,
         )
     }
 

@@ -13,6 +13,7 @@ import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
+import com.getcode.network.service.DeviceService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,7 @@ class Client @Inject constructor(
     internal val transactionReceiver: TransactionReceiver,
     internal val networkObserver: NetworkConnectivityListener,
     internal val chatService: ChatService,
+    internal val deviceService: DeviceService,
 ) {
 
     private val TAG = "PollTimer"

@@ -185,6 +185,7 @@ object Libs {
     const val firebase_appcheck_playintegrity = "com.google.firebase:firebase-appcheck-playintegrity"
     const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics"
     const val firebase_messaging = "com.google.firebase:firebase-messaging"
+    const val firebase_installations = "com.google.firebase:firebase-installations"
     const val firebase_perf = "com.google.firebase:firebase-perf"
 
     const val play_service_auth = "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
