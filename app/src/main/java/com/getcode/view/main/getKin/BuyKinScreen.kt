@@ -38,6 +38,7 @@ import com.getcode.view.main.giveKin.AmountArea
 @Composable
 fun BuyKinScreen(
     viewModel: BuyKinViewModel = hiltViewModel(),
+    onRedirected: () -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
@@ -120,7 +121,7 @@ fun BuyKinScreen(
 
                 viewModel.initiatePurchase()?.let {
                     uriHandler.openUri(it)
-                    navigator.pop()
+                    onRedirected()
                 }
             },
             enabled = dataState.continueEnabled,
