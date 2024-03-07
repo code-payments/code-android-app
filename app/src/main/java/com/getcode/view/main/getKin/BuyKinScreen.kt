@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.displayLarge
@@ -38,6 +39,7 @@ import com.getcode.view.main.giveKin.AmountArea
 fun BuyKinScreen(
     viewModel: BuyKinViewModel = hiltViewModel(),
 ) {
+    val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.state.collectAsState()
 
@@ -118,6 +120,7 @@ fun BuyKinScreen(
 
                 viewModel.initiatePurchase()?.let {
                     uriHandler.openUri(it)
+                    navigator.pop()
                 }
             },
             enabled = dataState.continueEnabled,
