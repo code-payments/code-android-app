@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.capitalize
 import com.getcode.BuildConfig
 import com.getcode.LocalCurrencyUtils
 import com.getcode.R
@@ -131,7 +132,7 @@ internal val MessageContent.localizedText: String
 fun Verb.localizedText(resources: ResourceHelper): String {
     if (this@localizedText == Verb.Unknown) resources.getString(R.string.title_unknown)
     val resId = resources.getIdentifier(
-        "subtitle_verb_${this@localizedText.toString().lowercase()}",
+        "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
         ResourceType.String,
     ).let { if (it == 0) null else it }
 
@@ -143,7 +144,7 @@ val Verb.localizedText: String
     @Composable get() = with(LocalContext.current) context@{
         if (this@localizedText == Verb.Unknown) stringResource(id = R.string.title_unknown)
         val resId = resources.getIdentifier(
-            "subtitle_verb_${this@localizedText.toString().lowercase()}",
+            "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
             "string",
             BuildConfig.APPLICATION_ID
         ).let { if (it == 0) null else it }

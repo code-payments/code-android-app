@@ -161,7 +161,7 @@ fun SlideToConfirm(
     thumbShape: Shape = Thumb.Shape,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
-    label: String = stringResource(R.string.swipe_to_pay),
+    label: String = stringResource(R.string.action_swipeToPay),
     hint: @Composable BoxScope.(Float, PaddingValues, String) -> Unit = { swipe, padding, text ->
         SlideToConfirmDefaults.Hint(
             modifier = Modifier

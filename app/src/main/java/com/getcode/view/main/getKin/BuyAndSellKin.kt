@@ -78,7 +78,7 @@ fun BuyAndSellKin(
         ) {
             item {
                 Text(
-                    text = stringResource(R.string.title_buyAndSellKin),
+                    text = stringResource(R.string.title_buySellKin),
                     style = CodeTheme.typography.h1,
                     modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
                 )

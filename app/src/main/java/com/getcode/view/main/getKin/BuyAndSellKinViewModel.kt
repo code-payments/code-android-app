@@ -31,12 +31,12 @@ class BuyAndSellKinViewModel @Inject constructor() : BaseViewModel2<BuyAndSellKi
                 items = listOf(
                     BuyAndSellKinItem(
                         imageResId = R.drawable.video_buy_kin_2x,
-                        buttonTextResId = R.string.action_learnHowToBuyKin,
+                        buttonTextResId = R.string.action_learnBuyKin,
                         link = Uri.parse("https://www.youtube.com/watch?v=s2aqkF3dJcI")
                     ),
                     BuyAndSellKinItem(
                         imageResId = R.drawable.video_sell_kin_2x,
-                        buttonTextResId = R.string.action_learnHowToSellKin,
+                        buttonTextResId = R.string.action_learnSellKin,
                         link = Uri.parse("https://www.youtube.com/watch?v=cyb9Da_mV9I")
                     )
                 ).toImmutableList()

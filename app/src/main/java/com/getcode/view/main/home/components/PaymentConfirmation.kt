@@ -291,19 +291,19 @@ private fun PaymentConfirmationContent(
 @Composable
 private fun InsufficientFundsModalContent(onClick: () -> Unit) {
     Text(
-        text = stringResource(R.string.sdk_payments_insufficient_funds_title),
+        text = stringResource(R.string.title_insufficientFunds),
         color = Color.White,
         style = CodeTheme.typography.h3
     )
     Text(
-        text = stringResource(R.string.sdk_payments_insufficient_funds_description),
+        text = stringResource(R.string.subtitle_insufficientFundsDescription),
         color = Color.White,
         style = CodeTheme.typography.body2
     )
     CodeButton(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        text = stringResource(R.string.button_get_more_kin),
+        text = stringResource(R.string.title_getMoreKin),
         buttonState = ButtonState.Filled
     )
 }

@@ -84,7 +84,7 @@ fun BuyKinScreen(
                     ),
                 ) {
                     Text(
-                        text = stringResource(R.string.powered_by),
+                        text = stringResource(R.string.subtitle_poweredBy),
                         style = CodeTheme.typography.body1,
                         color = BrandLight,
                     )
