@@ -9,7 +9,7 @@ suspend fun Client.loginToThirdParty(rendezvous: PublicKey, relationship: Ed2551
     return identityRepository.loginToThirdParty(rendezvous, relationship)
 }
 
-suspend fun Client.updatePreferences(organizer: Organizer): Result<Unit> {
+suspend fun Client.updatePreferences(organizer: Organizer): Result<Boolean> {
     return identityRepository.updatePreferences(
         locale = Locale.getDefault(),
         owner = organizer.ownerKeyPair

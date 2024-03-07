@@ -17,7 +17,6 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.BetaFlags
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Domain
@@ -175,6 +174,7 @@ class HomeViewModel @Inject constructor(
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
     private val exchange: Exchange,
+    private val sessionManager: SessionManager,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
@@ -211,8 +211,7 @@ class HomeViewModel @Inject constructor(
             }
 
         viewModelScope.launch {
-            val organizer = SessionManager.getOrganizer() ?: return@launch
-            client.updatePreferences(organizer)
+            sessionManager.comeAlive()
                 .onSuccess {
                     uiFlow.update { it.copy(userPrefsUpdated = true) }
                 }.onFailure {
