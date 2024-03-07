@@ -315,7 +315,13 @@ data class BuyMoreKinModal(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val content = @Composable {
-            BuyKinScreen(getViewModel())
+            BuyKinScreen(getViewModel()) {
+                if (showClose) {
+                    navigator.hide()
+                } else {
+                    navigator.pop()
+                }
+            }
         }
 
         if (showClose) {
