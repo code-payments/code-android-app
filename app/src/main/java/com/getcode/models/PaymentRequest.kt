@@ -2,6 +2,7 @@ package com.getcode.models
 
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Domain
+import com.getcode.model.Fee
 import com.getcode.model.Fiat
 import com.getcode.network.repository.decodeBase64
 import com.getcode.solana.keys.PublicKey
@@ -79,12 +80,17 @@ data class DeepLinkRequest(
                         return null
                     }
 
+                    // optional fees
+                    val fees = container.decode<List<ProvidedFee>>("fees").orEmpty()
+
                     val fiat = Fiat(currency = currencyCode, amount = amount)
 
+                    Timber.d("fiat=${fiat.amount}, fees=$fees")
                     return baseRequest.copy(
                         paymentRequest = PaymentRequest(
                             fiat = fiat,
                             destination = destination,
+                            fees = fees,
                         )
                     )
                 }
@@ -117,6 +123,7 @@ data class DeepLinkRequest(
 data class PaymentRequest(
     val fiat: Fiat,
     val destination: PublicKey,
+    val fees: List<ProvidedFee>,
 )
 
 data class LoginRequest(
@@ -126,6 +133,7 @@ data class LoginRequest(
 
 private inline fun <reified T> JsonObject.decode(key: String): T? {
     return runCatching { Json.decodeFromJsonElement<T>(getValue(key)) }
+        .onFailure { it.printStackTrace() }
         .getOrElse {
             runCatching { Json.decodeFromString<T>(getValue(key).toString()) }
                 .getOrNull()
@@ -164,4 +172,10 @@ private data class ConfirmParams(
 @Serializable
 private data class UrlHolder(
     @SerialName("url") val url: String?,
+)
+
+@Serializable
+data class ProvidedFee(
+    val destination: String,
+    val basisPoints: Int
 )
