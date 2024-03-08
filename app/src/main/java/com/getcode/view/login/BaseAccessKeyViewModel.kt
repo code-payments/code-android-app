@@ -194,7 +194,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
                 text = accessKeyText[1]
             )
 
-            val bottomTextChunks = getString(R.string.subtitle_accessKeySnapshotDescriptionAndroid)
+            val bottomTextChunks = getString(R.string.subtitle_accessKeySnapshotDescription)
                 .split(" ")
                 .chunked(8)
                 .map { it.joinToString(" ") }

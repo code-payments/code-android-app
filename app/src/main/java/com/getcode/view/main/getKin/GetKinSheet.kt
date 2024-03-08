@@ -99,7 +99,7 @@ fun GetKinSheet(
         GetKinItem(
             imageResId = R.drawable.ic_currency_dollar_active,
             inactiveImageResId = R.drawable.ic_currency_dollar_inactive,
-            titleTextResId = R.string.subtitle_buyAndSendKin,
+            titleTextResId = R.string.title_buySellKin,
             isVisible = true,
             isActive = true,
             isLoading = false,

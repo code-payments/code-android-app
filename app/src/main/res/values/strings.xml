@@ -1,10 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
-    <string name="action_learnHowToBuyKin">Learn How to Buy Kin</string>
-    <string name="action_learnHowToSellKin">Learn How to Sell Kin</string>
-    <string name="action_shareVideo">Share This Video</string>
-    <string name="action_mute">Mute</string>
-    <string name="action_unmute">Unmute</string>
     <string name="action_nevermind">Nevermind</string>
     <string name="error_description_payment_failed">This payment request could not be paid at this time. Please try again later.</string>
     <string name="error_description_login_failed">This login request could not be completed at this time. Please try again later.</string>
@@ -16,95 +11,16 @@
     <string name="error_title_buy_kin_too_small">Purchase too small</string>
     <string name="error_title_buy_kin_too_large">Purchase too large</string>
     <string name="error_title_account_error">Account Error</string>
-
-    <string name="faq_a__1">Code is a crypto wallet app that makes it simple to use the cryptocurrency Kin.</string>
-    <string name="faq_a__10">As a not-for-profit organization all the money we make is reinvested into achieving our mission of making crypto simple to use. Your support is appreciated.</string>
-    <string name="faq_a__11">For the more technically inclined you can visit the Technical FAQ.</string>
-    <string name="faq_a__2">Kin is a cryptocurrency like Bitcoin, only optimized for small, everyday transactions.</string>
-    <string name="faq_a__3">Your Kin is stored on the Solana blockchain. Only your Access Key can be used to access it. </string>
-    <string name="faq_a__4">Kin is like cash. The only way to get it back is for them to give it back.</string>
-    <string name="faq_a__5">No there aren’t. Exchange rates are updated in real time and no fees are added.</string>
-    <string name="faq_a__6">The simplest way to buy Kin is from a friend who already has Code. You can also find other ways at reddit.com/r/buykin</string>
-    <string name="faq_a__7">Yes you can. Kin can be sold on cryptocurrency exchanges. If you need help ask a friend who knows crypto.</string>
-    <string name="faq_a__8">Similar to other cryptocurrencies the value of Kin is based on supply and demand. So if more people buy Kin the value increases, and if more people sell Kin the value decreases.</string>
-    <string name="faq_a__9">Code is a not-for-profit organization that plans to sustain itself through an upcoming subscription model, similar to what apps like Signal and Twitter do.</string>
-    <string name="faq_q__1">What is Code?</string>
-    <string name="faq_q__10">What does Code do with the money it makes?</string>
-    <string name="faq_q__11">What if I want to learn more about how exactly Code works?</string>
-    <string name="faq_q__2">What is Kin?</string>
-    <string name="faq_q__3">Where is my Kin stored? </string>
-    <string name="faq_q__4">What if I accidentally give someone Kin?</string>
-    <string name="faq_q__5">Are there any fees when using different currencies?</string>
-    <string name="faq_q__6">How do I buy more Kin?</string>
-    <string name="faq_q__7">Can I sell my Kin?</string>
-    <string name="faq_q__8">Why does the value of Kin change?</string>
-    <string name="faq_q__9">How does Code make money?</string>
-
+    <string name="title_deleteAccount">Delete Code Account</string>
     <string name="prompt_title_mute_chat">Mute %1$s?</string>
     <string name="prompt_title_unmute_chat">Unmute %1$s?</string>
     <string name="prompt_description_mute_chat">You will not be notified of any new messages from %1$s. You can mute at any time.</string>
     <string name="prompt_description_unmute_chat">You will be notified of any new messages from %1$s. You can unmute at any time.</string>
-
-    <string name="subtitle_buyAndSendKin">Buy &amp; Sell Kin</string>
-
     <string name="subtitle_canOnlyRequestUpTo">You can only request up to %s</string>
-
     <string name="subtitle_resend">Resend</string>
-
-    <string name="subtitle_buySellDescription">"Buying and selling Kin is currently a complex process. These processes will get simpler over time. If you want to learn how to buy and sell Kin today you can watch the walk through videos below.</string>
-
-    <string name="subtitle_remoteSendText">%s %s</string>
-
     <string name="title_requestKin">Request Kin</string>
-
-    <string name="title_buy_more_kin">Buy More Kin</string>
-
-    <string name="title_myAccount">My Account</string>
-    <string name="title_deleteAccount">Delete Code Account</string>
-    <string name="title_buyAndSellKin">Buy &amp; Sell Kin</string>
-
-    <string name="sdk_payments_insufficient_funds_title">Insufficient Funds</string>
-    <string name="sdk_payments_insufficient_funds_description">Please get more Kin and then try paying again.</string>
-    <string name="button_get_more_kin">Get More Kin</string>
-
     <string name="title_badge_no_connection">No Connection</string>
     <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
-    <string name="withdraw_address_invalid_destination">Invalid destination account</string>
-    <string name="withdraw_address_valid_owner_account">Valid owner account</string>
-    <string name="withdraw_address_valid_token_account">Valid token account</string>
-
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
-
-    <!-- region Chat -->
-    <!-- region titles -->
-    <string name="title_chat_payments">Web Payments</string>
-    <string name="title_chat_cashTransactions">Cash Payments</string>
-    <string name="title_chat_codeTeam">Code Team</string>
-    <!-- endregion -->
-
-    <!-- region messages -->
-    <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
-    <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
-    <string name="subtitle_chat_usdcBeingConverted">Your USDC is being converted to Kin. This should take roughly one minute to complete</string>
-    <string name="subtitle_chat_usdcDeposited">You successfully deposited USDC. Open Code App to complete your purchase</string>
-    <string name="subtitle_chat_kinAvailableForUse">Your Kin is now available for use in your Code App</string>
-    <!-- endregion -->
-
-    <!-- region verbs -->
-    <string name="subtitle_verb_gave">You gave</string>
-    <string name="subtitle_verb_received">You received</string>
-    <string name="subtitle_verb_withdrew">You withdrew</string>
-    <string name="subtitle_verb_deposited">You deposited</string>
-    <string name="subtitle_verb_sent">You sent</string>
-    <string name="subtitle_verb_returned">was returned to you</string>
-    <string name="subtitle_verb_spent">You spent</string>
-    <string name="subtitle_verb_paid">You paid</string>
-    <string name="subtitle_verb_purchased">You purchased</string>
-    <!-- endregion -->
-    <!-- endregion -->
-
-  <string name="swipe_to_login">Swipe to Login</string>
-  <string name="swipe_to_pay">Swipe to Pay</string>
-  <string name="powered_by">Powered by</string>
 </resources>

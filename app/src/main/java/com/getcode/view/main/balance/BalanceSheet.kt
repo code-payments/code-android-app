@@ -138,7 +138,7 @@ fun BalanceContent(
                             .padding(top = CodeTheme.dimens.grid.x5),
                         buttonState = ButtonState.Filled,
                         onClick = buyMoreKin,
-                        text = stringResource(id = R.string.title_buy_more_kin)
+                        text = stringResource(id = R.string.action_buyMoreKin)
                     )
                 }
             }

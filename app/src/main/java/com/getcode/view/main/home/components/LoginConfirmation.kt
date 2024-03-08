@@ -68,7 +68,7 @@ internal fun LoginConfirmation(
                 trackColor = SlideToConfirmDefaults.BlackTrackColor,
                 isSuccess = state is LoginState.Sent,
                 onConfirm = { onSend() },
-                label = stringResource(R.string.swipe_to_login)
+                label = stringResource(R.string.action_swipeToLogin)
             )
         }
 

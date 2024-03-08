@@ -309,7 +309,7 @@ data class BuyMoreKinModal(
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_buy_more_kin)
+        @Composable get() = stringResource(id = R.string.action_buyMoreKin)
 
     @Composable
     override fun Content() {

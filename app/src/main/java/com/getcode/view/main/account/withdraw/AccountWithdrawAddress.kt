@@ -84,10 +84,10 @@ fun AccountWithdrawAddress(
                 val text =
                     if (isValid) {
                         if (dataState.hasResolvedDestination) {
-                            stringResource(id = R.string.withdraw_address_valid_owner_account)
-                        } else stringResource(id = R.string.withdraw_address_valid_token_account)
+                            stringResource(id = R.string.subtitle_validOwnerAccount)
+                        } else stringResource(id = R.string.subtitle_validTokenAccount)
                     } else {
-                        stringResource(id = R.string.withdraw_address_invalid_destination)
+                        stringResource(id = R.string.subtitle_invalidTokenAccount)
                     }
 
                 Text(

@@ -111,7 +111,7 @@ class AccountSheetViewModel @Inject constructor(
         private val fullItemSet = listOf(
             AccountMainItem(
                 type = AccountPage.BUY_KIN,
-                name = R.string.title_buy_more_kin,
+                name = R.string.action_buyMoreKin,
                 icon = R.drawable.ic_currency_dollar_active
             ),
             AccountMainItem(
@@ -160,9 +160,9 @@ class AccountSheetViewModel @Inject constructor(
                     val items = state.items.map {
                         if (it.type == AccountPage.BUY_KIN) {
                             if (enabled) {
-                                it.copy(name = R.string.title_buy_more_kin)
+                                it.copy(name = R.string.action_buyMoreKin)
                             } else {
-                                it.copy(name = R.string.title_buyAndSellKin)
+                                it.copy(name = R.string.title_buySellKin)
                             }
                         } else {
                             it
@@ -177,9 +177,9 @@ class AccountSheetViewModel @Inject constructor(
                     val fullItems = fullItemSet.map {
                         if (it.type == AccountPage.BUY_KIN) {
                             if (state.buyKinEnabled) {
-                                it.copy(name = R.string.title_buy_more_kin)
+                                it.copy(name = R.string.action_buyMoreKin)
                             } else {
-                                it.copy(name = R.string.title_buyAndSellKin)
+                                it.copy(name = R.string.title_buySellKin)
                             }
                         } else {
                             it
