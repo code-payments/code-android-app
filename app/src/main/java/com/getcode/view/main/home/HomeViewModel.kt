@@ -607,10 +607,9 @@ class HomeViewModel @Inject constructor(
             code = payload
         } else {
             val fiat = Fiat(currency = amount.rate.currency, amount = amount.fiat)
-            val kind = if (request?.paymentRequest?.fees.orEmpty().isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
 
             code = CodePayload(
-                kind = kind,
+                kind = Kind.RequestPayment,
                 value = fiat,
                 nonce = nonce
             )
@@ -1183,8 +1182,9 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     val fiat = request.paymentRequest.fiat
+                    val kind = if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
                     val payload = CodePayload(
-                        kind = Kind.RequestPayment,
+                        kind = kind,
                         value = fiat,
                         nonce = request.clientSecret
                     )
