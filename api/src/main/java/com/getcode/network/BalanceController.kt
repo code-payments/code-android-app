@@ -88,7 +88,7 @@ class BalanceController @Inject constructor(
             balanceRepository.balanceFlow,
             networkObserver.state
         ) { rate, balance, _ ->
-            rate to balance
+            rate to balance.coerceAtLeast(0.0)
         }.map { (rate, balance) ->
             refreshBalance(balance, rate.fx)
         }.distinctUntilChanged().onEach { (marketValue, amountText) ->

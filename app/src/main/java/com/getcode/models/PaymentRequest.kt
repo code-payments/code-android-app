@@ -133,7 +133,7 @@ data class LoginRequest(
 
 private inline fun <reified T> JsonObject.decode(key: String): T? {
     return runCatching { Json.decodeFromJsonElement<T>(getValue(key)) }
-        .onFailure { it.printStackTrace() }
+        .onFailure { Timber.e("failed to decode $key from result") }
         .getOrElse {
             runCatching { Json.decodeFromString<T>(getValue(key).toString()) }
                 .getOrNull()

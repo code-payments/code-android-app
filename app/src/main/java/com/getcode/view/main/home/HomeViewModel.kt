@@ -102,6 +102,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
@@ -260,8 +261,12 @@ class HomeViewModel @Inject constructor(
             exchange.observeLocalRate(),
             balanceController.observeRawBalance(),
         ) { rate, balance ->
-            KinAmount.newInstance(Kin.fromKin(balance), rate)
-        }.onEach { balanceInKin ->
+            if (balance == -1.0) {
+                null
+            } else {
+                KinAmount.newInstance(Kin.fromKin(balance), rate)
+            }
+        }.filterNotNull().onEach { balanceInKin ->
             uiFlow.update {
                 it.copy(balance = balanceInKin)
             }

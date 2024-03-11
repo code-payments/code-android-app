@@ -9,7 +9,7 @@ import javax.inject.Singleton
 @Singleton
 class BalanceRepository @Inject constructor() {
 
-    val balanceFlow = MutableStateFlow(0.0)
+    val balanceFlow = MutableStateFlow(-1.0)
 
     fun setBalance(balance: Double) {
         balanceFlow.value = balance
