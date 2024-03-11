@@ -144,7 +144,7 @@ abstract class BaseAmountCurrencyViewModel(
             getModelsWithSelectedCurrency(
                 currencies,
                 getCurrencyUiModel(),
-                getAmountUiModel().copy(balanceKin = balance),
+                getAmountUiModel().copy(balanceKin = balance.coerceAtLeast(0.0)),
                 selectedCode,
                 currency?.resId,
                 numberInputHelper.amount,
@@ -232,7 +232,7 @@ abstract class BaseAmountCurrencyViewModel(
         amount: Double,
         amountText: String
     ): AmountUiModel {
-        val currentBalance = balanceRepository.balanceFlow.value
+        val currentBalance = balanceRepository.balanceFlow.value.coerceAtLeast(0.0)
         val amountKin = FormatUtils.getKinValue(amount, selectedCurrency.rate)
             .inflating()
 
