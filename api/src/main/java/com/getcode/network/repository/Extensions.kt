@@ -8,6 +8,7 @@ import com.getcode.solana.keys.PublicKey
 import com.google.protobuf.ByteString
 import com.getcode.vendor.Base58
 import com.google.protobuf.MessageLite
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -102,20 +103,17 @@ fun String.urlDecode(): String {
     return URLDecoder.decode(this, "UTF-8")
 }
 
-fun String.replaceParam(value: String?): String {
-    return this.replaceFirst("%s", value.orEmpty())
+fun String.replaceParam(vararg value: String?): String {
+    var result = this
+    value.forEachIndexed { index, s ->
+        val param = "%${index + 1}\$s"
+        result = result.replace(param, s.orEmpty())
+    }
+    return result
 }
 
 fun Ed25519.KeyPair.getPublicKeyBase58(): String {
     return org.kin.sdk.base.tools.Base58.encode(publicKeyBytes)
-}
-
-fun <T> Boolean.ifElse(ifTrue: T, ifFalse: T) = if (this) ifTrue else ifFalse
-
-fun <T> Boolean?.ifElseNull(ifTrue: T, ifFalse: T, ifNull: T) = when {
-    this == true -> ifTrue
-    this == false -> ifFalse
-    else -> ifNull
 }
 
 fun List<Byte>.hexEncodedString(options: Set<HexEncodingOptions> = emptySet()): String {
