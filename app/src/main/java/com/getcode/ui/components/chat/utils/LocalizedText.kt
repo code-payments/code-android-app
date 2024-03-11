@@ -130,11 +130,32 @@ internal val MessageContent.localizedText: String
     }
 
 fun Verb.localizedText(resources: ResourceHelper): String {
-    if (this@localizedText == Verb.Unknown) resources.getString(R.string.title_unknown)
-    val resId = resources.getIdentifier(
-        "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
-        ResourceType.String,
-    ).let { if (it == 0) null else it }
+    val resId = when (this@localizedText) {
+        Verb.Deposited,
+        Verb.Gave,
+        Verb.Paid,
+        Verb.Purchased,
+        Verb.Received,
+        Verb.Sent,
+        Verb.Spent,
+        Verb.Withdrew -> {
+            resources.getIdentifier(
+                "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+        }
+
+        Verb.Returned -> {
+            resources.getIdentifier(
+                "subtitle_was${this@localizedText.toString().capitalize(Locale.ENGLISH)}ToYou",
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+        }
+
+        Verb.Unknown -> {
+            R.string.title_unknown
+        }
+    }
 
     return resId?.let { resources.getString(it) } ?: toString()
 }
@@ -142,12 +163,34 @@ fun Verb.localizedText(resources: ResourceHelper): String {
 val Verb.localizedText: String
     @SuppressLint("DiscouragedApi")
     @Composable get() = with(LocalContext.current) context@{
-        if (this@localizedText == Verb.Unknown) stringResource(id = R.string.title_unknown)
-        val resId = resources.getIdentifier(
-            "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
-            "string",
-            BuildConfig.APPLICATION_ID
-        ).let { if (it == 0) null else it }
+        val resId = when (this@localizedText) {
+            Verb.Deposited,
+            Verb.Gave,
+            Verb.Paid,
+            Verb.Purchased,
+            Verb.Received,
+            Verb.Sent,
+            Verb.Spent,
+            Verb.Withdrew -> {
+                resources.getIdentifier(
+                    "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+            }
 
-        resId?.let { getString(it) } ?: toString()
+            Verb.Returned -> {
+                resources.getIdentifier(
+                    "subtitle_was${this@localizedText.toString().capitalize(Locale.ENGLISH)}ToYou",
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+            }
+
+            Verb.Unknown -> {
+                R.string.title_unknown
+            }
+        }
+
+        resId?.let { getString(it) } ?: this@localizedText.toString()
     }
