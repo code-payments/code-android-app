@@ -21,7 +21,7 @@
     <string name="beta_give_requests_description" translatable="false">If enabled, Request Kin screen will replace Get Kin.</string>
     <string name="beta_buy_kin_description" translatable="false">If enabled, a Buy More Kin will appear in the balance screen.</string>
 
-    <string name="subtitle_remoteSendText" translatable="false">%s %s</string>
+    <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
 
     <string translatable="false" name="empty" />
 </resources>
