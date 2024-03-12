@@ -106,10 +106,15 @@ fun String.urlDecode(): String {
 fun String.replaceParam(vararg value: String?): String {
     var result = this
     value.forEachIndexed { index, s ->
-        val param = "%${index + 1}\$s"
-        result = result.replace(param, s.orEmpty())
+        result = result.replaceParam(index, s)
     }
     return result
+}
+
+fun String.replaceParam(index: Int = 0, value: String?): String {
+    val param = "%${index + 1}\$s"
+    Timber.d("param=$param with value=$value")
+    return this.replace(param, value.orEmpty())
 }
 
 fun Ed25519.KeyPair.getPublicKeyBase58(): String {
