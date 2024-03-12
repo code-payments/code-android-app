@@ -16,7 +16,7 @@
     <string name="prompt_title_unmute_chat">Unmute %1$s?</string>
     <string name="prompt_description_mute_chat">You will not be notified of any new messages from %1$s. You can mute at any time.</string>
     <string name="prompt_description_unmute_chat">You will be notified of any new messages from %1$s. You can unmute at any time.</string>
-    <string name="subtitle_canOnlyRequestUpTo">You can only request up to %s</string>
+    <string name="subtitle_canOnlyRequestUpTo">You can only request up to %1$s</string>
     <string name="subtitle_resend">Resend</string>
     <string name="title_requestKin">Request Kin</string>
     <string name="title_badge_no_connection">No Connection</string>

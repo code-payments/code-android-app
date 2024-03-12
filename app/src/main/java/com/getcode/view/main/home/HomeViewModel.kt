@@ -1132,9 +1132,9 @@ class HomeViewModel @Inject constructor(
                 amount.formatted(
                     currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
                     resources = resources
-                )
+                ),
+                url
             )
-            .replaceParam(url)
 
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
