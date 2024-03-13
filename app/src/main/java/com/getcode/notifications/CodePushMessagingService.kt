@@ -17,6 +17,9 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
+import com.getcode.utils.installationId
+import com.google.firebase.Firebase
+import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import dagger.hilt.android.AndroidEntryPoint
@@ -65,10 +68,11 @@ class CodePushMessagingService : FirebaseMessagingService(),
         }
     }
 
-    override fun onNewToken(p0: String) {
-        super.onNewToken(p0)
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
         launch {
-            pushRepository.updateToken(p0)
+            val installationId = Firebase.installations.installationId()
+            pushRepository.updateToken(token, installationId)
                 .onSuccess {
                     Timber.d("push token updated")
                 }.onFailure {
