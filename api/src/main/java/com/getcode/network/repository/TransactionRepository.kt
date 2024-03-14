@@ -91,7 +91,7 @@ class TransactionRepository @Inject constructor(
     fun createAccounts(organizer: Organizer): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentCreateAccounts(
-                id = PublicKey(listOf()),
+                id = PublicKey(bytes = listOf()),
                 actionGroup = ActionGroup(),
                 organizer = organizer
             ) as IntentType
@@ -118,7 +118,7 @@ class TransactionRepository @Inject constructor(
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
-                id = PublicKey(listOf()),
+                id = PublicKey(bytes = listOf()),
                 actionGroup = ActionGroup(),
                 organizer = organizer,
                 destination = destination,

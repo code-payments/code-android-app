@@ -2,6 +2,9 @@ package com.getcode.model
 
 import com.codeinc.gen.chat.v1.ChatService
 import com.codeinc.gen.chat.v1.ChatService.Content
+import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.network.repository.toPublicKey
+import com.getcode.solana.keys.SodiumError
 
 typealias ID = List<Byte>
 typealias Cursor = List<Byte>
@@ -116,12 +119,42 @@ data class ChatMessage(
     val cursor: Cursor,
     val dateMillis: Long,
     val contents: List<MessageContent>
-)
+) {
+    val hasEncryptedContent: Boolean
+        get() {
+            return contents.firstOrNull { it is MessageContent.SodiumBox } != null
+        }
+
+    fun decryptingUsing(keyPair: KeyPair): ChatMessage {
+        return ChatMessage(
+            id = id,
+            dateMillis = dateMillis,
+            cursor = cursor,
+            contents = contents.map {
+                when (it) {
+                    is MessageContent.Exchange,
+                    is MessageContent.Localized,
+                    is MessageContent.Decrypted -> it // passthrough
+                    is MessageContent.SodiumBox -> {
+                        val decrypted = it.data.decryptMessageUsingNaClBox(keyPair = keyPair)
+                        if (decrypted != null) {
+                            MessageContent.Decrypted(decrypted)
+                        } else {
+                            it
+                        }
+                    }
+                }
+            }
+        )
+    }
+}
 
 sealed interface MessageContent {
     data class Localized(val value: String) : MessageContent
     data class Exchange(val amount: GenericAmount, val verb: Verb) : MessageContent
-    data object SodiumBox : MessageContent
+    data class SodiumBox(val data: EncryptedData) : MessageContent
+    data class Decrypted(val data: String): MessageContent
+
 
     companion object {
         operator fun invoke(proto: Content): MessageContent? {
@@ -158,11 +191,22 @@ sealed interface MessageContent {
                         else -> return null
                     }
                 }
-                Content.TypeCase.NACL_BOX -> SodiumBox
+                Content.TypeCase.NACL_BOX -> {
+                    val encryptedContent = proto.naclBox
+                    val peerPublicKey = encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
+
+                    val data = EncryptedData(
+                        peerPublicKey = peerPublicKey,
+                        nonce = encryptedContent.nonce.toByteArray().toList(),
+                        encryptedData = encryptedContent.encryptedPayload.toByteArray().toList(),
+                    )
+                    SodiumBox(data = data)
+                }
                 Content.TypeCase.TYPE_NOT_SET -> return null
                 else -> return null
             }
         }
     }
-
 }
+
+

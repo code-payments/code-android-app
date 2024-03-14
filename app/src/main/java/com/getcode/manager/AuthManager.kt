@@ -26,7 +26,12 @@ import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.installationId
+import com.getcode.utils.token
+import com.google.firebase.Firebase
+import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.messaging
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
@@ -212,9 +217,11 @@ class AuthManager @Inject constructor(
             }
             .doOnSuccess {
                 savePrefs(phone!!, user!!)
-                updateFcmToken(owner, user!!.dataContainerId.toByteArray())
-                launch { exchange.fetchRatesIfNeeded() }
-                launch { historyController.fetchChats() }
+                launch { updateFcmToken(owner, user!!.dataContainerId.toByteArray()) }
+                launch {
+                    exchange.fetchRatesIfNeeded()
+                    historyController.fetchChats()
+                }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
             }
     }
@@ -270,12 +277,15 @@ class AuthManager @Inject constructor(
         )
     }
 
-    private fun updateFcmToken(keyPair: Ed25519.KeyPair, containerId: ByteArray) {
+    @SuppressLint("CheckResult")
+    private suspend fun updateFcmToken(keyPair: Ed25519.KeyPair, containerId: ByteArray) {
         if (isMock()) return
 
-        FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-            pushRepository.addToken(keyPair, containerId, token).subscribe({}, ErrorUtils::handleError)
-        }
+        val installationId = Firebase.installations.installationId()
+        val pushToken = Firebase.messaging.token() ?: return
+
+        pushRepository.addToken(keyPair, containerId, pushToken, installationId)
+            .subscribe({}, ErrorUtils::handleError)
     }
 
     sealed class AuthManagerException: Exception() {

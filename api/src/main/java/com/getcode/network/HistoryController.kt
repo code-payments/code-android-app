@@ -58,7 +58,8 @@ class HistoryController @Inject constructor(
     }
 
     private fun chatMessagePager(chatId: ID) = Pager(pagingConfig) {
-        pagerMap[chatId] ?: ChatMessagePagingSource(client, owner()!!, chatId).also {
+        val chat = _chats.value?.find { it.id == chatId }
+        pagerMap[chatId] ?: ChatMessagePagingSource(client, owner()!!, chat).also {
             pagerMap[chatId] = it
         }
     }
@@ -85,7 +86,7 @@ class HistoryController @Inject constructor(
 
         val updatedWithMessages = mutableListOf<Chat>()
         containers.onEach { chat ->
-            val result = fetchLatestMessageForChat(chat.id)
+            val result = fetchLatestMessageForChat(chat)
             result.onSuccess { message ->
                 if (message != null) {
                     updatedWithMessages.add(chat.copy(messages = listOf(message)))
@@ -137,24 +138,11 @@ class HistoryController @Inject constructor(
         return client.setMuted(owner, chatId, muted)
     }
 
-    suspend fun fetchMessagesForChat(
-        id: List<Byte>,
-        cursor: Cursor? = null,
-        limit: Int? = null
-    ): Result<ChatMessage?> {
-        val encodedId = id.toByteArray().encodeBase64()
-        val owner = owner() ?: return Result.success(null)
-        return client.fetchMessagesFor(owner, id, cursor, limit)
-            .onFailure {
-                Timber.e(t = it, "Failed to fetch messages for $encodedId.")
-            }.map { it.getOrNull(0) }
-    }
-
-    private suspend fun fetchLatestMessageForChat(id: List<Byte>): Result<ChatMessage?> {
-        val encodedId = id.toByteArray().encodeBase64()
+    private suspend fun fetchLatestMessageForChat(chat: Chat): Result<ChatMessage?> {
+        val encodedId = chat.id.toByteArray().encodeBase64()
         Timber.d("fetching last message for $encodedId")
         val owner = owner() ?: return Result.success(null)
-        return client.fetchMessagesFor(owner, id, limit = 1)
+        return client.fetchMessagesFor(owner, chat, limit = 1)
             .onFailure {
                 Timber.e(t = it, "Failed to fetch messages for $encodedId.")
             }.map { it.getOrNull(0) }
