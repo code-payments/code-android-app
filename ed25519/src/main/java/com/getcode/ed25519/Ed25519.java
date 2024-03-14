@@ -2,16 +2,22 @@ package com.getcode.ed25519;
 
 import android.util.Base64;
 
+import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class Ed25519 {
     public native static ArrayList<String> GenerateKeyPair(String seed);
+
     public native static byte[] CreateSeed16();
+
     public native static byte[] CreateSeed32();
+
     public native static byte[] Signature(byte[] message, byte[] priKey, byte[] pubKey);
+
     public native static boolean Verify(byte[] sig, byte[] message, byte[] pubKey);
+
     public native static boolean OnCurve(byte[] pubKey);
 
     static {
@@ -20,14 +26,19 @@ public class Ed25519 {
     }
 
     public static KeyPair createKeyPair() {
-        String seed = Base64.encodeToString(Ed25519.createSeed32(), Base64.DEFAULT);
-        List<String> generatedKeyPair = GenerateKeyPair(seed);
-        return new KeyPair(generatedKeyPair.get(1), generatedKeyPair.get(0));
+        byte[] bytes = Ed25519.createSeed32();
+        return createKeyPair(bytes);
     }
 
     public static KeyPair createKeyPair(String seed) {
         List<String> generatedKeyPair = GenerateKeyPair(seed);
-        return new KeyPair(generatedKeyPair.get(1), generatedKeyPair.get(0));
+        return new KeyPair(generatedKeyPair.get(1), generatedKeyPair.get(0), seed);
+    }
+
+    public static KeyPair createKeyPair(byte[] seed) {
+        String seed64 = Base64.encodeToString(seed, Base64.DEFAULT);
+        List<String> generatedKeyPair = GenerateKeyPair(seed64);
+        return new KeyPair(generatedKeyPair.get(1), generatedKeyPair.get(0), seed64);
     }
 
     public static byte[] createSeed16() {
@@ -54,12 +65,15 @@ public class Ed25519 {
     }
 
     public static class KeyPair {
-        private String publicKey;
-        private String privateKey;
+        private final String publicKey;
+        private final String privateKey;
 
-        public KeyPair(String publicKey, String privateKey) {
+        private final String seed;
+
+        public KeyPair(String publicKey, String privateKey, String seed) {
             this.publicKey = publicKey;
             this.privateKey = privateKey;
+            this.seed = seed;
         }
 
         public String getPublicKey() {
@@ -68,6 +82,10 @@ public class Ed25519 {
 
         public String getPrivateKey() {
             return privateKey;
+        }
+
+        public String getSeed() {
+            return seed;
         }
 
         public boolean verify(byte[] sig, byte[] message) {

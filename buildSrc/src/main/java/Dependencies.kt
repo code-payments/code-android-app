@@ -3,7 +3,7 @@
 object Android {
     const val namespace = "com.getcode"
     const val compileSdkVersion = 34
-    const val minSdkVersion = 22
+    const val minSdkVersion = 24
     const val targetSdkVersion = 33
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
@@ -72,6 +72,8 @@ object Versions {
     const val timber = "5.0.1"
     const val voyager = "1.0.0"
     const val protobuf_plugin = "0.8.14"
+
+    const val sodium_bindings = "0.9.0"
 }
 
 object Classpath {
@@ -222,4 +224,6 @@ object Libs {
     const val bugsnag = "com.bugsnag:bugsnag-android:5.+"
 
     const val cloudy = "com.github.skydoves:cloudy:0.1.2"
+
+    const val sodium_bindings = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
 }

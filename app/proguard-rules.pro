@@ -60,3 +60,11 @@
 # https://github.com/firebase/firebase-android-sdk/issues/3688
 -keep class org.json.** { *; }
 -keepclassmembers class org.json.** { *; }
+
+# libsodium
+-keep class com.ionspin.kotlin.crypto.** { *; }
+-keep class com.sun.jna.** { *; }
+-dontwarn java.awt.Component
+-dontwarn java.awt.GraphicsEnvironment
+-dontwarn java.awt.HeadlessException
+-dontwarn java.awt.Window

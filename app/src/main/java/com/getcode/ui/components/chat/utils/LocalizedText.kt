@@ -69,7 +69,8 @@ internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUti
             resId?.let { resources.getString(it) } ?: content.value
         }
 
-        MessageContent.SodiumBox -> "<! encrypted content !>"
+        is MessageContent.SodiumBox -> "<! encrypted content !>"
+        is MessageContent.Decrypted -> content.data
     }
 }
 
@@ -125,7 +126,8 @@ internal val MessageContent.localizedText: String
                 }
             }
 
-            MessageContent.SodiumBox -> "<! encrypted content !>"
+            is MessageContent.SodiumBox -> "<! encrypted content !>"
+            is MessageContent.Decrypted -> content.data
         }
     }
 

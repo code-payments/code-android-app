@@ -12,6 +12,9 @@ import java.io.IOException
 
 
 class PublicKey(bytes: List<Byte>) : Key32(bytes) {
+
+    constructor(base58: String): this(Base58.decode(base58).toList())
+
     companion object {
 
         val kin: Mint
