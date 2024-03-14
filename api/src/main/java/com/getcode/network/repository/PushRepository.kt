@@ -8,6 +8,7 @@ import com.getcode.model.PrefsString
 import com.getcode.network.api.PushApi
 import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
+import com.google.firebase.installations.installations
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -24,7 +25,8 @@ class PushRepository @Inject constructor(
     fun addToken(
         keyPair: Ed25519.KeyPair,
         containerId: ByteArray,
-        token: String
+        token: String,
+        installationId: String?,
     ): Flowable<Boolean> {
         Timber.i("google token $token")
         val request =
@@ -35,6 +37,7 @@ class PushRepository @Inject constructor(
                 )
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
+                .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
                 .let {
                     val bos = ByteArrayOutputStream()
                     it.buildPartial().writeTo(bos)
@@ -47,7 +50,7 @@ class PushRepository @Inject constructor(
             .map { it.result == PushService.AddTokenResponse.Result.OK }
     }
 
-    suspend fun updateToken(token: String): Result<Boolean> {
+    suspend fun updateToken(token: String, installationId: String?): Result<Boolean> {
         Timber.i("google token $token")
         val owner = SessionManager.getKeyPair() ?: return Result.failure(Throwable("No owner available"))
         val containerId = prefs.get(PrefsString.KEY_DATA_CONTAINER_ID, "").takeIf { it.isNotEmpty() }
@@ -59,6 +62,7 @@ class PushRepository @Inject constructor(
                 .setContainerId(
                     Model.DataContainerId.newBuilder().setValue(containerId.toByteString()).build()
                 )
+                .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
                 .setOwnerAccountId(owner.publicKeyBytes.toSolanaAccount())
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
                 .let {
