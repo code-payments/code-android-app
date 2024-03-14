@@ -3,13 +3,17 @@ package com.getcode.manager
 import android.content.Context
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
+import com.getcode.model.Domain
 import com.getcode.network.client.Client
+import com.getcode.network.client.awaitEstablishRelationship
+import com.getcode.network.client.establishRelationshipSingle
 import com.getcode.network.client.registerInstallation
 import com.getcode.network.client.updatePreferences
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.installationId
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
+import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,6 +68,8 @@ class SessionManager @Inject constructor(
         if (installationId != null) {
             client.registerInstallation(organizer.ownerKeyPair, installationId)
         }
+        LibsodiumInitializer.initialize()
+        client.awaitEstablishRelationship(organizer, Domain.from("getcode.com")!!)
         return client.updatePreferences(organizer)
     }
 

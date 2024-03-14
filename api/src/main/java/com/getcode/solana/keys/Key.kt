@@ -69,8 +69,13 @@ open class Key32(bytes: List<Byte>) : KeyType(bytes) {
     }
 }
 open class Key64(bytes: List<Byte>) : KeyType(bytes) {
+
+    constructor(base58: String): this (Base58.decode(base58).toList())
+
     override val size: Int get() = LENGTH_64
 }
+
+open class CurvePrivate
 
 const val LENGTH_16 = 16
 const val LENGTH_32 = 32

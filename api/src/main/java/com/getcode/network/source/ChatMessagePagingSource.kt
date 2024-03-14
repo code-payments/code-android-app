@@ -3,6 +3,7 @@ package com.getcode.network.source
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
@@ -12,14 +13,16 @@ import com.getcode.network.client.fetchMessagesFor
 class ChatMessagePagingSource(
     private val client: Client,
     private val owner: KeyPair,
-    private val chatId: ID,
+    private val chat: Chat?,
 ) : PagingSource<Cursor, ChatMessage>() {
     override suspend fun load(
         params: LoadParams<Cursor>
     ): LoadResult<Cursor, ChatMessage> {
         // Start refresh at page 1 if undefined.
         val nextCursor = params.key
-        val response = client.fetchMessagesFor(owner, chatId, cursor = nextCursor, limit = 20)
+
+        chat ?: return LoadResult.Error(Throwable("Chat not found"))
+        val response = client.fetchMessagesFor(owner, chat, cursor = nextCursor, limit = 20)
 
         response.exceptionOrNull()?.let {
             return LoadResult.Error(it)

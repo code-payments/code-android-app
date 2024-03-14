@@ -51,6 +51,7 @@ android {
         freeCompilerArgs += listOf(
             "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
+            "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"
         )
     }
@@ -89,6 +90,8 @@ dependencies {
 
     kapt(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
+
+    implementation(Libs.sodium_bindings)
 
     implementation(Libs.lib_phone_number_google)
 

@@ -1,10 +1,13 @@
 package com.getcode.network.client
 
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.manager.SessionManager
 import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
 import com.getcode.model.Cursor
+import com.getcode.model.Domain
 import com.getcode.model.ID
+import com.getcode.model.Title
 import com.getcode.network.repository.encodeBase64
 import timber.log.Timber
 
@@ -21,10 +24,29 @@ suspend fun Client.setMuted(owner: KeyPair, chat: ID, muted: Boolean): Result<Bo
     return chatService.setMuteState(owner, chat, muted)
 }
 
-suspend fun Client.fetchMessagesFor(owner: KeyPair, chatId: ID, cursor: Cursor? = null, limit: Int? = null) : Result<List<ChatMessage>> {
-    return chatService.fetchMessagesFor(owner, chatId, cursor, limit)
+suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? = null, limit: Int? = null) : Result<List<ChatMessage>> {
+    return chatService.fetchMessagesFor(owner, chat.id, cursor, limit)
+        .map {
+            val domain = if (chat.title is Title.Domain) {
+                Domain.from(chat.title.value)
+            } else {
+                null
+            } ?: return@map it
+
+            val organizer = SessionManager.getOrganizer() ?: return@map it
+            val relationship = organizer.relationshipFor(domain) ?: return@map it
+
+            val hasEncryptedContent = it.firstOrNull { it.hasEncryptedContent } != null
+            if (hasEncryptedContent) {
+                it.map { message ->
+                    message.decryptingUsing(relationship.getCluster().authority.keyPair)
+                }
+            } else {
+                it
+            }
+        }
         .onSuccess {
-            Timber.d("messages fetched=${it.count()} for ${chatId.toByteArray().encodeBase64()}")
+            Timber.d("messages fetched=${it.count()} for ${chat.id.toByteArray().encodeBase64()}")
             Timber.d("start=${it.minOf { it.dateMillis }}, end=${it.maxOf { it.dateMillis }}")
         }.onFailure {
             Timber.e(t = it, "Failed fetching messages.")

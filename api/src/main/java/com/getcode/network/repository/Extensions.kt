@@ -5,6 +5,7 @@ import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.fromUbytes
 import com.google.protobuf.ByteString
 import com.getcode.vendor.Base58
 import com.google.protobuf.MessageLite
@@ -47,6 +48,10 @@ fun PublicKey.toIntentId(): Model.IntentId {
 
 fun ByteArray.toPublicKey(): PublicKey {
     return PublicKey(this.toList())
+}
+
+fun UByteArray.toPublicKey(): PublicKey {
+    return PublicKey.fromUbytes(this.toList())
 }
 
 fun ByteArray.toHash(): Hash {
@@ -120,6 +125,9 @@ fun String.replaceParam(index: Int = 0, value: String?): String {
 fun Ed25519.KeyPair.getPublicKeyBase58(): String {
     return org.kin.sdk.base.tools.Base58.encode(publicKeyBytes)
 }
+
+val Ed25519.KeyPair.publicKeyFromBytes: PublicKey
+    get() = publicKeyBytes.toPublicKey()
 
 fun List<Byte>.hexEncodedString(options: Set<HexEncodingOptions> = emptySet()): String {
     val hexDigits = if (options.contains(HexEncodingOptions.Uppercase))
