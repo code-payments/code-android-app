@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Kinの購入＆売却</string>
   <string name="title_chat_cashTransactions">現金支払い</string>
   <string name="title_chat_codeTeam">Codeチーム</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">ウェブ支払い</string>
   <string name="title_debugOptions">デバッグオプション</string>
   <string name="title_depositKin">Kinを入金する</string>

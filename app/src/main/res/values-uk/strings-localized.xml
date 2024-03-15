@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Купувати та продавати Kin</string>
   <string name="title_chat_cashTransactions">Готівкові платежі</string>
   <string name="title_chat_codeTeam">Команда Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Онлайн-платежі</string>
   <string name="title_debugOptions">Параметри налагодження</string>
   <string name="title_depositKin">Покласти Kin на депозит</string>

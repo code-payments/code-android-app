@@ -265,6 +265,7 @@
   <string name="title_buySellKin">קנו ומכרו Kin</string>
   <string name="title_chat_cashTransactions">תשלומים במזומן</string>
   <string name="title_chat_codeTeam">צוות קוד</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">תשלום באינטרנט</string>
   <string name="title_debugOptions">אפשרויות תיקון שגיאות</string>
   <string name="title_depositKin">הפקד קין</string>

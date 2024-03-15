@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Beli &amp; Jual Kin</string>
   <string name="title_chat_cashTransactions">Pembayaran Tunai</string>
   <string name="title_chat_codeTeam">Tim Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Pembayaran Web</string>
   <string name="title_debugOptions">Opsi Debug</string>
   <string name="title_depositKin">Deposit Kin</string>

@@ -190,7 +190,7 @@
   <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
   <string name="subtitle_chat_usdcBeingConverted">Your USDC is being converted to Kin. This should take roughly one minute to complete</string>
   <string name="subtitle_chat_usdcDeposited">You successfully deposited USDC. Open Code App to complete your purchase</string>
-  <string name="subtitle_chat_welcomeBonus">Welcome Bonus</string>
+  <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
   <string name="subtitle_chooseCountry">Choose a country</string>
   <string name="subtitle_comingSoon">Coming Soon</string>
   <string name="subtitle_delete">Delete</string>
@@ -250,7 +250,7 @@
   <string name="subtitle_youHaveInvites">You Have %1$d Invites</string>
   <string name="subtitle_youHaveInvitesLeft">Code is currently invite only. You have %1$d remaining.</string>
   <string name="subtitle_youPaid">You paid</string>
-  <string name="subtitle_youPurchased">You gave</string>
+  <string name="subtitle_youPurchased">You purchased</string>
   <string name="subtitle_youReceived">You received</string>
   <string name="subtitle_youSent">You sent</string>
   <string name="subtitle_youSpent">You spent</string>
@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Buy &amp; Sell Kin</string>
   <string name="title_chat_cashTransactions">Cash Payments</string>
   <string name="title_chat_codeTeam">Code Team</string>
+  <string name="title_chat_kinPurchases">Kin Purchases</string>
   <string name="title_chat_payments">Web Payments</string>
   <string name="title_debugOptions">Debug Options</string>
   <string name="title_depositKin">Deposit Kin</string>

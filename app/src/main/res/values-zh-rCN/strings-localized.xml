@@ -265,6 +265,7 @@
   <string name="title_buySellKin">购买与出售 Kin 币</string>
   <string name="title_chat_cashTransactions">现金支付</string>
   <string name="title_chat_codeTeam">代码团队</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Web 支付</string>
   <string name="title_debugOptions">调试选项</string>
   <string name="title_depositKin">存入 Kin</string>

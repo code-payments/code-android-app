@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Αγορά και Πώληση Kin</string>
   <string name="title_chat_cashTransactions">Πληρωμές με μετρητά</string>
   <string name="title_chat_codeTeam">Ομάδα κωδικού</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Ηλεκτρονικές πληρωμές</string>
   <string name="title_debugOptions">Επιλογές Εντοπισμού Σφαλμάτων</string>
   <string name="title_depositKin">Κατάθεση Kin</string>

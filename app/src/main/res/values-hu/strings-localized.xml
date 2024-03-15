@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Kin vásárlás és eladás</string>
   <string name="title_chat_cashTransactions">Készpénzes kifizetések</string>
   <string name="title_chat_codeTeam">Code csapat</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Webes kifizetések</string>
   <string name="title_debugOptions">Bugmentesítő opciók</string>
   <string name="title_depositKin">Kin küldése</string>

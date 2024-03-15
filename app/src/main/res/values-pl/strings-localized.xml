@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Kupuj i sprzedawaj Kin</string>
   <string name="title_chat_cashTransactions">Płatności gotówką</string>
   <string name="title_chat_codeTeam">Zespół Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Płatności online</string>
   <string name="title_debugOptions">Debuguj opcje</string>
   <string name="title_depositKin">Zdeponuj Kin</string>

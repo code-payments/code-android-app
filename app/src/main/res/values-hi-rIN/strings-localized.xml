@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Kin खरीदें और बेचें </string>
   <string name="title_chat_cashTransactions">काश पेमेंट्स</string>
   <string name="title_chat_codeTeam">कोड टीम</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">वेब पेमेंट्स</string>
   <string name="title_debugOptions">डीबग विकल्प</string>
   <string name="title_depositKin">डिपाजिट Kin</string>

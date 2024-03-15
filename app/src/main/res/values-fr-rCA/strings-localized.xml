@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Achetez et vendez du Kin</string>
   <string name="title_chat_cashTransactions">Paiements en espèces</string>
   <string name="title_chat_codeTeam">Équipe Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Paiements Web</string>
   <string name="title_debugOptions">Options de débogage</string>
   <string name="title_depositKin">Déposer Kin</string>

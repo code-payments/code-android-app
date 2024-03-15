@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Купля и продажа Kin</string>
   <string name="title_chat_cashTransactions">Платежи наличными</string>
   <string name="title_chat_codeTeam">Команда Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Онлайн-платежи</string>
   <string name="title_debugOptions">Опции отладки</string>
   <string name="title_depositKin">Внести Kin</string>
