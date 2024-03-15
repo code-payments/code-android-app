@@ -5,24 +5,17 @@ import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
-import com.getcode.R
-import com.getcode.manager.BottomBarManager
+import com.getcode.model.Chat
 import com.getcode.model.ID
 import com.getcode.model.MessageContent
 import com.getcode.model.Title
 import com.getcode.network.HistoryController
-import com.getcode.network.client.Client
-import com.getcode.network.client.fetchChats
-import com.getcode.network.client.setMuted
 import com.getcode.util.formatDateRelatively
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.view.BaseViewModel2
-import com.getcode.view.main.home.PresentationStyle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -33,7 +26,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.transform
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
@@ -57,20 +49,32 @@ sealed class ChatItem(val key: Any) {
 class ChatViewModel @Inject constructor(
     historyController: HistoryController,
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
-    initialState = State(null, null, false),
+    initialState = State(
+        chatId = null,
+        title = null,
+        canMute = false,
+        isMuted = false,
+        canUnsubscribe = false,
+        isSubscribed = false
+    ),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
         val chatId: ID?,
         val title: Title?,
+        val canMute: Boolean,
         val isMuted: Boolean,
+        val canUnsubscribe: Boolean,
+        val isSubscribed: Boolean,
     )
 
     sealed interface Event {
         data class OnChatIdChanged(val id: ID?) : Event
-        data class OnChatChanged(val title: Title?) : Event
+        data class OnChatChanged(val chat: Chat) : Event
         data object OnMuteToggled : Event
+        data object OnSubscribeToggled : Event
         data class SetMuted(val muted: Boolean) : Event
+        data class SetSubscribed(val subscribed: Boolean) : Event
     }
 
     init {
@@ -82,10 +86,7 @@ class ChatViewModel @Inject constructor(
             .flowOn(Dispatchers.IO)
             .filterNotNull()
             .mapNotNull { chats -> chats.firstOrNull { it.id == stateFlow.value.chatId } }
-            .onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnChatChanged(it.title))
-                dispatchEvent(Dispatchers.Main, Event.SetMuted(it.isMuted))
-            }
+            .onEach { dispatchEvent(Dispatchers.Main, Event.OnChatChanged(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -104,6 +105,26 @@ class ChatViewModel @Inject constructor(
                 } else {
                     result.exceptionOrNull()?.printStackTrace()
                     dispatchEvent(Event.SetMuted(!stateFlow.value.isMuted))
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnSubscribeToggled>()
+            .map { stateFlow.value.chatId to stateFlow.value.isSubscribed }
+            .filter { it.first != null }
+            .map { it.first!! to it.second }
+            .map { (chatId, subscribed) ->
+                dispatchEvent(Event.SetSubscribed(!subscribed))
+                historyController.setSubscribed(chatId, !subscribed)
+            }
+            .onEach { result ->
+                if (result.isSuccess) {
+                    val subbed = result.getOrNull() ?: false
+                    Timber.d(if (subbed) "Subscribed" else "Unsubscribe")
+                } else {
+                    result.exceptionOrNull()?.printStackTrace()
+                    dispatchEvent(Event.SetSubscribed(!stateFlow.value.isSubscribed))
                 }
             }
             .launchIn(viewModelScope)
@@ -150,13 +171,22 @@ class ChatViewModel @Inject constructor(
                 }
 
                 is Event.OnChatChanged -> { state ->
-                    state.copy(title = event.title)
+                    state.copy(
+                        title = event.chat.title,
+                        canMute = event.chat.canMute,
+                        isMuted = event.chat.isMuted,
+                        canUnsubscribe = event.chat.canUnsubscribe,
+                    )
                 }
 
-                Event.OnMuteToggled -> { state -> state }
+                Event.OnMuteToggled,
+                Event.OnSubscribeToggled -> { state -> state }
 
                 is Event.SetMuted -> { state ->
                     state.copy(isMuted = event.muted)
+                }
+                is Event.SetSubscribed -> { state ->
+                    state.copy(isSubscribed = event.subscribed)
                 }
             }
         }

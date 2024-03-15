@@ -16,6 +16,9 @@ ARGF.each do |line|
         name = $1
         value = $2
 
+        # Skip if the value is empty
+        next if value.empty?
+
         name.gsub!(/[ .]/, "_")
 
         value.gsub!(/&/, "&amp;")

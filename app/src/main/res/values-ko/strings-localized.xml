@@ -265,7 +265,6 @@
   <string name="title_buySellKin">킨 매입 및 매도</string>
   <string name="title_chat_cashTransactions">현금 결제</string>
   <string name="title_chat_codeTeam">Code 팀</string>
-  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">웹 결제</string>
   <string name="title_debugOptions">디버그 옵션</string>
   <string name="title_depositKin">Kin 입금하기</string>

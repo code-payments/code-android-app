@@ -4,7 +4,6 @@
   <string name="action_allowContacts">Permite accesul la contacte</string>
   <string name="action_allowPushNotifications">Permite notificările push</string>
   <string name="action_balance">Sold</string>
-  <string name="action_buyMoreKin"/>
   <string name="action_cancel">Anulare</string>
   <string name="action_cancelSend">Anulează trimiterea</string>
   <string name="action_collectCash">Colectați acești bani</string>
@@ -48,7 +47,6 @@
   <string name="action_sendVerificationCode">Trimite verificarea pentru Code</string>
   <string name="action_shareDownloadLink">Partajați link-ul de descărcare</string>
   <string name="action_shareVideo">Partajează acest videoclip</string>
-  <string name="action_swipeToLogin"/>
   <string name="action_swipeToPay">Glisează pentru a plăti</string>
   <string name="action_tryDifferentCodeAccount">Încearcă un alt cont Code</string>
   <string name="action_unmute">Scoate din surdină</string>
@@ -92,8 +90,6 @@
   <string name="error_description_noInternet">Verifică-ți conexiunea la internet sau încearcă din nou mai târziu.</string>
   <string name="error_description_noInvitesLeft">Code este în prezent doar pe bază de invitație. Îți vom da de știre când vor fi disponibile alte invitații.</string>
   <string name="error_description_notInvitedYet">Alătură-te la lista de așteptare pentru %1$s</string>
-  <string name="error_description_purchaseTooLarge"/>
-  <string name="error_description_purchaseTooSmall"/>
   <string name="error_description_timelockUnlocked">Cheia ta de acces a inițiat o deblocare. Ca urmare, nu vei mai putea utiliza această cheie de acces în Code.</string>
   <string name="error_description_tooManyAccounts">Poți crea un număr limitat de conturi în fiecare zi.</string>
   <string name="error_title_alreadyCollected">Kin-ul a fost colectat deja</string>
@@ -119,8 +115,6 @@
   <string name="error_title_noInternet">Fără conexiune la internet</string>
   <string name="error_title_noInvitesLeft">Nu ai nicio invitație.</string>
   <string name="error_title_notInvitedYet">Nu ai fost încă invitat</string>
-  <string name="error_title_purchaseTooLarge"/>
-  <string name="error_title_purchaseTooSmall"/>
   <string name="error_title_timelockUnlocked">Cheia de acces nu mai poate fi utilizată în Code</string>
   <string name="error_title_tooManyAccounts">Au fost create prea multe conturi</string>
   <string name="faq_a__1">Code este o aplicație de plăți care simplifică trimiterea de bani către oricine, oriunde în lume.</string>
@@ -186,10 +180,7 @@
   <string name="subtitle_buyKinComingSoon">Cumpără kin (în curând)</string>
   <string name="subtitle_buySellDescription">În prezent, cumpărarea și vânzarea de Kin constituie un proces complex. Aceste procese se vor simplifica în timp. Dacă dorești să înveți cum să cumperi și să vinzi Kin astăzi, poți viziona videoclipurile de prezentare de mai jos.</string>
   <string name="subtitle_canOnlyGiveUpTo">Poți da cel mult %1$s</string>
-  <string name="subtitle_chat_kinAvailableForUse"/>
   <string name="subtitle_chat_referralBonus">Ai trimis cuiva primul său Kin! Iată bonusul tău de recomandare:</string>
-  <string name="subtitle_chat_usdcBeingConverted"/>
-  <string name="subtitle_chat_usdcDeposited"/>
   <string name="subtitle_chat_welcomeBonus">Bonus de bun-venit</string>
   <string name="subtitle_chooseCountry">Alege o țară</string>
   <string name="subtitle_comingSoon">Urmează în curând</string>
@@ -227,7 +218,6 @@
   <string name="subtitle_organizingContacts">Organizează-ți contactele</string>
   <string name="subtitle_phoneNotInContacts">Acest număr de telefon nu se regăsește printre Contactele tale. Poți totuși invita trimite o invitație pentru Code.</string>
   <string name="subtitle_phoneVerificationDescription">Introdu numărul tău de telefon, inclusiv prefixul internațional. Asigură-te că folosești același număr de telefon la care ai primit invitația.</string>
-  <string name="subtitle_poweredBy"/>
   <string name="subtitle_referralBonusReceived">Bonus de recomandare primit</string>
   <string name="subtitle_remoteSendShareSheetTitle">Trimite %1$s</string>
   <string name="subtitle_remoteSendSubject">Iată %1$s</string>
@@ -265,7 +255,6 @@
   <string name="title_buySellKin">Cumpără și vinde Kin</string>
   <string name="title_chat_cashTransactions">Plăți în numerar</string>
   <string name="title_chat_codeTeam">Echipa de programare</string>
-  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Plăți web</string>
   <string name="title_debugOptions">Opțiuni de depanare</string>
   <string name="title_depositKin">Depozitează Kin</string>

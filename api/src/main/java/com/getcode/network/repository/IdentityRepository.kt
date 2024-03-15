@@ -61,11 +61,7 @@ class IdentityRepository @Inject constructor(
             IdentityService.GetUserRequest.newBuilder()
                 .setPhoneNumber(phoneValue.toPhoneNumber())
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-                }
+                .apply { setSignature(sign(keyPair)) }
                 .build()
 
         return identityApi.getUser(request)
@@ -169,11 +165,7 @@ class IdentityRepository @Inject constructor(
                 )
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
 
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-                }
+                .apply { setSignature(sign(keyPair)) }
                 .build()
 
         return identityApi.linkAccount(request)
@@ -193,12 +185,7 @@ class IdentityRepository @Inject constructor(
             IdentityService.UnlinkAccountRequest.newBuilder()
                 .setPhoneNumber(phoneValue.toPhoneNumber())
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
-
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-                }
+                .apply { setSignature(sign(keyPair)) }
                 .build()
 
         return identityApi.unlinkAccount(request)
@@ -271,11 +258,7 @@ class IdentityRepository @Inject constructor(
         val request = LoginToThirdPartyAppRequest.newBuilder()
             .setIntentId(rendezvous.toIntentId())
             .setUserId(relationship.publicKeyBytes.toSolanaAccount())
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), relationship).toSignature())
-            }.build()
+            .apply { setSignature(sign(relationship)) }.build()
 
         return try {
             networkOracle.managedRequest(identityApi.loginToThirdParty(request))

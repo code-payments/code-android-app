@@ -103,6 +103,50 @@ class ChatService @Inject constructor(
         }
     }
 
+    suspend fun setSubscriptionState(
+        owner: KeyPair,
+        chatId: ID,
+        subscribed: Boolean,
+    ): Result<Boolean> {
+        return try {
+            networkOracle.managedRequest(api.setSubscriptionState(owner, chatId, subscribed))
+                .map { response ->
+                    when (response.result) {
+                        ChatService.SetSubscriptionStateResponse.Result.OK -> {
+                            Result.success(subscribed)
+                        }
+
+                        ChatService.SetSubscriptionStateResponse.Result.CHAT_NOT_FOUND -> {
+                            val error = Throwable("Error: chat not found for $chatId")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        ChatService.SetSubscriptionStateResponse.Result.CANT_UNSUBSCRIBE -> {
+                            val error = Throwable("Error: Unable to change mute state for $chatId.")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        ChatService.SetSubscriptionStateResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: Unrecognized request.")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = Throwable("Error: Unknown")
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun fetchMessagesFor(
         owner: KeyPair,
         chatId: ID,

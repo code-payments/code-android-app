@@ -4,7 +4,6 @@
   <string name="action_allowContacts">Allow Access to Contacts</string>
   <string name="action_allowPushNotifications">Allow Push Notifications</string>
   <string name="action_balance">Balance</string>
-  <string name="action_buyMoreKin"/>
   <string name="action_cancel">Cancel</string>
   <string name="action_cancelSend">Cancel Send</string>
   <string name="action_collectCash">Collect This Cash</string>
@@ -48,7 +47,6 @@
   <string name="action_sendVerificationCode">Send Verification Code</string>
   <string name="action_shareDownloadLink">Share Download Link</string>
   <string name="action_shareVideo">Share this video</string>
-  <string name="action_swipeToLogin"/>
   <string name="action_swipeToPay">Swipe to pay</string>
   <string name="action_tryDifferentCodeAccount">Try a Different Code Account</string>
   <string name="action_unmute">Unmute</string>
@@ -92,8 +90,6 @@
   <string name="error_description_noInternet">Please check your internet connection or try again later.</string>
   <string name="error_description_noInvitesLeft">Code is currently invite-only. We will notify you when there are more invites available.</string>
   <string name="error_description_notInvitedYet">To join the waitlist go to %1$s</string>
-  <string name="error_description_purchaseTooLarge"/>
-  <string name="error_description_purchaseTooSmall"/>
   <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Code.</string>
   <string name="error_description_tooManyAccounts">You can only create so many new accounts each day.</string>
   <string name="error_title_alreadyCollected">Kin Already Collected</string>
@@ -119,8 +115,6 @@
   <string name="error_title_noInternet">No Internet Connection</string>
   <string name="error_title_noInvitesLeft">You Have No Invites</string>
   <string name="error_title_notInvitedYet">You Haven\'t Been Invited Yet</string>
-  <string name="error_title_purchaseTooLarge"/>
-  <string name="error_title_purchaseTooSmall"/>
   <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Code</string>
   <string name="error_title_tooManyAccounts">Too many accounts created</string>
   <string name="faq_a__1">Code is a payments app that makes it simple to send money to anyone, anywhere in the world.</string>
@@ -186,10 +180,7 @@
   <string name="subtitle_buyKinComingSoon">Buy Kin (Coming Soon)</string>
   <string name="subtitle_buySellDescription">Buying and selling Kin is currently a complex process. These processes will become simpler over time. If you would like to learn how to buy and sell Kin today, you can watch the walkthrough videos below.</string>
   <string name="subtitle_canOnlyGiveUpTo">You can only give up to %1$s</string>
-  <string name="subtitle_chat_kinAvailableForUse"/>
   <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
-  <string name="subtitle_chat_usdcBeingConverted"/>
-  <string name="subtitle_chat_usdcDeposited"/>
   <string name="subtitle_chat_welcomeBonus">Welcome Bonus</string>
   <string name="subtitle_chooseCountry">Choose a country</string>
   <string name="subtitle_comingSoon">Coming Soon</string>
@@ -227,7 +218,6 @@
   <string name="subtitle_organizingContacts">Organising Your Contacts</string>
   <string name="subtitle_phoneNotInContacts">This phone number is not in your Contacts. You can still invite them to Code.</string>
   <string name="subtitle_phoneVerificationDescription">Enter your phone number including the country code. Make sure you use the same phone number that received the invite.</string>
-  <string name="subtitle_poweredBy"/>
   <string name="subtitle_referralBonusReceived">Referral bonus received</string>
   <string name="subtitle_remoteSendShareSheetTitle">Send %1$s</string>
   <string name="subtitle_remoteSendSubject">Here\'s %1$s</string>
@@ -265,7 +255,6 @@
   <string name="title_buySellKin">Buy &amp; sell Kin</string>
   <string name="title_chat_cashTransactions">Cash Payments</string>
   <string name="title_chat_codeTeam">Code Team</string>
-  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Web Payments</string>
   <string name="title_debugOptions">Debug Options</string>
   <string name="title_depositKin">Deposit Kin</string>
