@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Buy &amp; sell Kin</string>
   <string name="title_chat_cashTransactions">Cash Payments</string>
   <string name="title_chat_codeTeam">Code Team</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Web Payments</string>
   <string name="title_debugOptions">Debug Options</string>
   <string name="title_depositKin">Deposit Kin</string>

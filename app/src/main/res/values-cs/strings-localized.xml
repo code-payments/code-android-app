@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Kupujte a prodávejte Kin</string>
   <string name="title_chat_cashTransactions">Platby v hotovosti</string>
   <string name="title_chat_codeTeam">Tým Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Internetové platby</string>
   <string name="title_debugOptions">Možnosti odstranění chyb</string>
   <string name="title_depositKin">Uložit kin</string>

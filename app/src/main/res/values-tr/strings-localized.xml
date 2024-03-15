@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Kin Al &amp; Sat</string>
   <string name="title_chat_cashTransactions">Nakit Ödemeler</string>
   <string name="title_chat_codeTeam">Code Ekibi</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Web Ödemeleri</string>
   <string name="title_debugOptions">Hata Ayıklama Seçenekleri</string>
   <string name="title_depositKin">Kin Yatır</string>

@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Cumpără și vinde Kin</string>
   <string name="title_chat_cashTransactions">Plăți în numerar</string>
   <string name="title_chat_codeTeam">Echipa de programare</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Plăți web</string>
   <string name="title_debugOptions">Opțiuni de depanare</string>
   <string name="title_depositKin">Depozitează Kin</string>

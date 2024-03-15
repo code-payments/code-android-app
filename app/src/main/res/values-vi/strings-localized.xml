@@ -265,6 +265,7 @@
   <string name="title_buySellKin">Mua &amp; Bán Kin</string>
   <string name="title_chat_cashTransactions">Thanh toán tiền mặt</string>
   <string name="title_chat_codeTeam">Đội ngũ Code</string>
+  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">Thanh toán trên web</string>
   <string name="title_debugOptions">Tùy chọn Gỡ lỗi</string>
   <string name="title_depositKin">Nạp Kin</string>
