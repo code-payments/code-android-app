@@ -16,6 +16,7 @@ import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchChats
 import com.getcode.network.client.fetchMessagesFor
 import com.getcode.network.client.setMuted
+import com.getcode.network.client.setSubscriptionState
 import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
 import kotlinx.coroutines.CoroutineScope
@@ -71,7 +72,8 @@ class HistoryController @Inject constructor(
 
     val unreadCount = chats
         .filterNotNull()
-        .map { it.filter { c -> !c.isMuted } }
+        // Ignore muted chats and unsubscribed chats
+        .map { it.filter { c -> !c.isMuted && c.isSubscribed } }
         .map { it.sumOf { c -> c.unreadCount } }
 
     private fun owner(): KeyPair? = SessionManager.getKeyPair()
@@ -136,6 +138,24 @@ class HistoryController @Inject constructor(
         }
 
         return client.setMuted(owner, chatId, muted)
+    }
+
+    suspend fun setSubscribed(chatId: ID, subscribed: Boolean): Result<Boolean> {
+        val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
+
+        _chats.update {
+            it?.toMutableList()?.apply chats@{
+                indexOfFirst { chat -> chat.id == chatId }
+                    .takeIf { index -> index >= 0 }
+                    ?.let { index ->
+                        val chat = this[index]
+                        Timber.d("changing subscribed state for chat locally")
+                        this[index] = chat.copy(isSubscribed = subscribed)
+                    }
+            }?.toList()
+        }
+
+        return client.setSubscriptionState(owner, chatId, subscribed)
     }
 
     private suspend fun fetchLatestMessageForChat(chat: Chat): Result<ChatMessage?> {

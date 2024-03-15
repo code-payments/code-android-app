@@ -167,7 +167,7 @@ class BuyKinViewModel @Inject constructor(
             linkedAccount = organizer.swapKeyPair
         ).onFailure {
             TopBarManager.showMessage(
-                resources.getString(R.string.error_title_buy_kin_too_large),
+                resources.getString(R.string.error_title_purchaseTooLarge),
                 resources.getString(R.string.error_description_usdc_deposit_failure)
             )
         }.onSuccess {
@@ -212,7 +212,7 @@ class BuyKinViewModel @Inject constructor(
             val formatted = FormatUtils.formatCurrency(threshold.min, rate.currency)
 
             TopBarManager.showMessage(
-                resources.getString(R.string.error_title_buy_kin_too_small),
+                resources.getString(R.string.error_title_purchaseTooSmall),
                 resources.getString(R.string.error_description_buy_kin_too_small, formatted)
             )
         }
@@ -225,7 +225,7 @@ class BuyKinViewModel @Inject constructor(
         if (isOverLimit) {
             val formatted = FormatUtils.formatCurrency(threshold.max, rate.currency)
             TopBarManager.showMessage(
-                resources.getString(R.string.error_title_buy_kin_too_large),
+                resources.getString(R.string.error_title_purchaseTooLarge),
                 resources.getString(R.string.error_description_buy_kin_too_large, formatted)
             )
         }

@@ -38,11 +38,7 @@ class PushRepository @Inject constructor(
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
                 .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-                }
+                .apply { setSignature(sign(keyPair)) }
                 .build()
 
         return pushApi.addToken(request)
@@ -65,11 +61,7 @@ class PushRepository @Inject constructor(
                 .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
                 .setOwnerAccountId(owner.publicKeyBytes.toSolanaAccount())
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-                }
+                .apply { setSignature(sign(owner)) }
                 .build()
 
         return try {

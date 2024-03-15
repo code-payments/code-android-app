@@ -97,11 +97,7 @@ class PhoneRepository @Inject constructor(
         val request = PhoneVerificationService.GetAssociatedPhoneNumberRequest.newBuilder()
             .setOwnerAccountId(
                 keyPair.publicKeyBytes.toSolanaAccount()
-            ).let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-            }
+            ).apply { setSignature(sign(keyPair)) }
             .build()
 
         return phoneApi.getAssociatedPhoneNumber(request)

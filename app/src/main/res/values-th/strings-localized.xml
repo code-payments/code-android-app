@@ -265,7 +265,6 @@
   <string name="title_buySellKin">ซื้อและขาย Kin</string>
   <string name="title_chat_cashTransactions">การชำระเงินด้วยเงินสด</string>
   <string name="title_chat_codeTeam">ทีม Code</string>
-  <string name="title_chat_kinPurchases"/>
   <string name="title_chat_payments">การชำระเงินผ่านเว็บ</string>
   <string name="title_debugOptions">ตัวเลือกการแก้จุดบกพร่อง</string>
   <string name="title_depositKin">ฝาก Kin</string>

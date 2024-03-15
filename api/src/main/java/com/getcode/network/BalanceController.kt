@@ -22,8 +22,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
@@ -31,9 +29,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -166,16 +162,14 @@ class BalanceController @Inject constructor(
         val owner = SessionManager.getKeyPair() ?: throw IllegalStateException("Missing Owner")
 
         try {
-            withTimeout(15000) {
-                val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
-                val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
+            val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
+            val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
-                Timber.d("updating balance and organizer")
-                organizer.setAccountInfo(accountInfo)
-                balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
-                transactionReceiver.receiveFromIncoming(organizer)
-                transactionRepository.swapIfNeeded(organizer)
-            }
+            Timber.d("updating balance and organizer")
+            organizer.setAccountInfo(accountInfo)
+            balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
+            transactionReceiver.receiveFromIncoming(organizer)
+            transactionRepository.swapIfNeeded(organizer)
         } catch (ex: Exception) {
             Timber.i("Error: ${ex.javaClass.simpleName} ${ex.cause}")
             val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")

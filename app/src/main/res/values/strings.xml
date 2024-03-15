@@ -8,17 +8,10 @@
     <string name="error_description_usdc_deposit_failure">Failed to create a USDC deposit account.</string>
     <string name="error_title_payment_failed">Payment Failed</string>
     <string name="error_title_login_failed">Login Failed</string>
-    <string name="error_title_buy_kin_too_small">Purchase too small</string>
-    <string name="error_title_buy_kin_too_large">Purchase too large</string>
     <string name="error_title_account_error">Account Error</string>
     <string name="title_deleteAccount">Delete Code Account</string>
-    <string name="prompt_title_mute_chat">Mute %1$s?</string>
-    <string name="prompt_title_unmute_chat">Unmute %1$s?</string>
-    <string name="prompt_description_mute_chat">You will not be notified of any new messages from %1$s. You can mute at any time.</string>
-    <string name="prompt_description_unmute_chat">You will be notified of any new messages from %1$s. You can unmute at any time.</string>
     <string name="subtitle_canOnlyRequestUpTo">You can only request up to %1$s</string>
     <string name="subtitle_resend">Resend</string>
-    <string name="title_requestKin">Request Kin</string>
     <string name="title_badge_no_connection">No Connection</string>
     <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
     <string name="today">Today</string>

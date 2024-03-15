@@ -404,11 +404,7 @@ class TransactionRepository @Inject constructor(
         val request = TransactionService.AirdropRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setAirdropType(TransactionService.AirdropType.GET_FIRST_KIN)
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return runCatching {
@@ -445,11 +441,7 @@ class TransactionRepository @Inject constructor(
         val request = TransactionService.GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.toIntentId())
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return runCatching {
@@ -477,11 +469,7 @@ class TransactionRepository @Inject constructor(
         val request = TransactionService.GetLimitsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setConsumedSince(Timestamp.newBuilder().setSeconds(timestamp))
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return transactionApi.getLimits(request)
@@ -534,11 +522,7 @@ class TransactionRepository @Inject constructor(
         val request = TransactionService.GetPrioritizedIntentsForPrivacyUpgradeRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setLimit(100) //TODO: implement paging
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return transactionApi.getPrioritizedIntentsForPrivacyUpgrade(request).flatMap {

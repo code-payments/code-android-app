@@ -48,6 +48,7 @@
   <string name="action_sendVerificationCode">Send Verification Code</string>
   <string name="action_shareDownloadLink">Share Download Link</string>
   <string name="action_shareVideo">Share This Video</string>
+  <string name="action_subscribe">Subscribe</string>
   <string name="action_swipeToLogin">Swipe to Login</string>
   <string name="action_swipeToPay">Swipe to Pay</string>
   <string name="action_tryDifferentCodeAccount">Try a Different Code Account</string>
@@ -154,8 +155,11 @@
   <string name="prompt_description_didYouSendLink">Any Kin that isn\'t collected within 24 hours will be automatically returned to your balance.</string>
   <string name="prompt_description_exitAccountCreation">You will need to restart account creation and verify your phone number again.</string>
   <string name="prompt_description_logout">You can get back into this account using your Access Key</string>
+  <string name="prompt_description_mute">You will not be notified of any new messages from %1$s. You can unmute at any time.</string>
   <string name="prompt_description_notCodeAccount">Only accounts created through Code are currently supported.</string>
   <string name="prompt_description_unlinkPhoneNumber">Your friends will no longer be able to find you with this phone number.</string>
+  <string name="prompt_description_unmute">You will be notified of all new messages from %1$s. You can mute at any time.</string>
+  <string name="prompt_description_unsubscribe">You will not receive any messages from %1$s until you pay them again.</string>
   <string name="prompt_description_viewAccessKey">Your Access Key will grant access to your Code account. Keep it private and safe.</string>
   <string name="prompt_description_wroteThemDown">These 12 words are the only way to recover your Code account. Make sure you wrote them down, and keep them private and safe.</string>
   <string name="prompt_title_confirmWithdrawal">Are you sure?</string>
@@ -163,8 +167,11 @@
   <string name="prompt_title_didYouSendLink">Did you send the link?</string>
   <string name="prompt_title_exitAccountCreation">Are you sure you want to exit?</string>
   <string name="prompt_title_logout">Are you sure you want to log out?</string>
+  <string name="prompt_title_mute">Mute %1$s?</string>
   <string name="prompt_title_notCodeAccount">Not a Code Account</string>
   <string name="prompt_title_unlinkPhoneNumber">Are you sure?</string>
+  <string name="prompt_title_unmute">Unmute %1$s?</string>
+  <string name="prompt_title_unsubscribe">Unsubscribe from %1$s?</string>
   <string name="prompt_title_viewAccessKey">View Your Access Key?</string>
   <string name="prompt_title_wroteThemDown">Are You Sure?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin was deposited into your account.</string>
@@ -296,6 +303,7 @@
   <string name="title_recentCurrencies">Recent Currencies</string>
   <string name="title_referFriend">Refer a Friend, Get $5</string>
   <string name="title_referralBonus">Referral Bonus</string>
+  <string name="title_requestKin">Request Kin</string>
   <string name="title_results">Results</string>
   <string name="title_returned">Returned</string>
   <string name="title_selectAccount">Select an Account</string>

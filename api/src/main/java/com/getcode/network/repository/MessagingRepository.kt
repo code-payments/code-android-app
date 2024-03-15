@@ -167,11 +167,7 @@ class MessagingRepository @Inject constructor(
             .setRendezvousKey(
                 RendezvousKey.newBuilder()
                     .setValue(ByteString.copyFrom(rendezvous.publicKeyBytes))
-            ).let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), rendezvous).toSignature())
-            }
+            ).apply { setSignature(sign(rendezvous)) }
             .build()
 
         return networkOracle.managedRequest(messagingApi.pollMessages(request))

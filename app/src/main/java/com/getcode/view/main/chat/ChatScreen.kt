@@ -3,9 +3,11 @@ package com.getcode.view.main.chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -19,7 +21,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
@@ -32,9 +33,10 @@ import com.getcode.util.formatDateRelatively
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Pill
+import com.getcode.ui.components.Row
+import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageNode
 import com.getcode.ui.components.chat.localized
-import timber.log.Timber
 
 @Composable
 fun ChatScreen(
@@ -114,9 +116,11 @@ fun ChatScreen(
 
         val context = LocalContext.current
         val title = state.title.localized
-        CodeButton(
+
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(IntrinsicSize.Min)
                 .drawBehind {
                     val strokeWidth = Dp.Hairline.toPx()
                     drawLine(
@@ -125,22 +129,60 @@ fun ChatScreen(
                         Offset(size.width, 0f),
                         strokeWidth
                     )
-                },
-            onClick = {
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = context.getString(if (state.isMuted) R.string.prompt_title_unmute_chat else R.string.prompt_title_mute_chat, title),
-                        subtitle = context.getString(if (state.isMuted) R.string.prompt_description_unmute_chat else R.string.prompt_description_mute_chat, title),
-                        positiveText = context.getString(if (state.isMuted) R.string.action_unmute else R.string.action_mute),
-                        negativeText = context.getString(R.string.action_nevermind),
-                        onPositive = { dispatch(ChatViewModel.Event.OnMuteToggled) },
-                    )
+                }
+        ) {
+            if (state.canMute) {
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(
+                                    if (state.isMuted) R.string.prompt_title_unmute else R.string.prompt_title_mute,
+                                    title
+                                ),
+                                subtitle = context.getString(
+                                    if (state.isMuted) R.string.prompt_description_unmute else R.string.prompt_description_mute,
+                                    title
+                                ),
+                                positiveText = context.getString(if (state.isMuted) R.string.action_unmute else R.string.action_mute),
+                                negativeText = context.getString(R.string.action_nevermind),
+                                onPositive = { dispatch(ChatViewModel.Event.OnMuteToggled) },
+                            )
+                        )
+                    },
+                    shape = RectangleShape,
+                    buttonState = ButtonState.Subtle,
+                    text = stringResource(if (state.isMuted) R.string.action_unmute else R.string.action_mute)
                 )
-            },
-            shape = RectangleShape,
-            buttonState = ButtonState.Subtle,
-            text = stringResource(if (state.isMuted) R.string.action_unmute else R.string.action_mute)
-        )
+            }
+
+            if (state.canMute && state.canUnsubscribe) {
+                VerticalDivider(
+                    thickness = Dp.Hairline,
+                )
+            }
+
+            if (state.canUnsubscribe) {
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        BottomBarManager.showMessage(
+                            BottomBarManager.BottomBarMessage(
+                                title = context.getString(R.string.prompt_title_unsubscribe, title),
+                                subtitle = context.getString(R.string.prompt_description_unsubscribe, title),
+                                positiveText = context.getString(R.string.action_unsubscribe),
+                                negativeText = context.getString(R.string.action_nevermind),
+                                onPositive = { dispatch(ChatViewModel.Event.OnSubscribeToggled) },
+                            )
+                        )
+                    },
+                    shape = RectangleShape,
+                    buttonState = ButtonState.Subtle,
+                    text = stringResource(R.string.action_unsubscribe)
+                )
+            }
+        }
     }
 }
 
