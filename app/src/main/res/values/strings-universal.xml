@@ -10,6 +10,7 @@
     <string translatable="false" name="beta_bucket_debugger">Bucket Debugger</string>
     <string translatable="false" name="beta_give_requests_mode">Request Kin</string>
     <string translatable="false" name="beta_buy_kin">Buy Kin</string>
+    <string translatable="false" name="beta_code_relationship">Establish Relationship Account with Code</string>
     <string translatable="false" name="beta_vibrate_on_scan">Vibrate on Scan</string>
     <string translatable="false" name="beta_network_dropoff">Show Connectivity Status</string>
     <string translatable="false" name="beta_scan_times">Log scan processing times</string>
@@ -20,6 +21,7 @@
     <string name="beta_scan_times_description" translatable="false">If enabled, the device will log additional processing information while grabbing bills.</string>
     <string name="beta_give_requests_description" translatable="false">If enabled, Request Kin screen will replace Get Kin.</string>
     <string name="beta_buy_kin_description" translatable="false">If enabled, a Buy More Kin will appear in the balance screen.</string>
+    <string name="beta_code_relationship_description" translatable="false">If enabled, a relationship account will be established with getcode.com if it doesn\'t yet exist.</string>
 
     <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
 
