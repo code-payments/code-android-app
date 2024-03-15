@@ -1,7 +1,3 @@
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import org.jetbrains.kotlin.cli.common.toBooleanLenient
-import java.util.Properties
-
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
@@ -19,6 +15,16 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
 
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+        buildConfigField(
+            "String",
+            "GOOGLE_CLOUD_PROJECT_NUMBER",
+            "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
+        )
+        buildConfigField(
+            "String",
+            "INTEGRITY_NONCE",
+            "\"${tryReadProperty(rootProject.rootDir, "INTEGRITY_NONCE", "")}\""
+        )
 
         javaCompileOptions {
             annotationProcessorOptions {
@@ -82,9 +88,7 @@ dependencies {
     implementation(Libs.mixpanel)
 
     implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_appcheck)
-    implementation(Libs.firebase_appcheck_debug)
-    implementation(Libs.firebase_appcheck_playintegrity)
+    implementation(Libs.play_integrity)
 
     implementation(Libs.androidx_paging_runtime)
 

@@ -4,30 +4,14 @@ import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.PhoneApi
-import com.getcode.network.appcheck.AppCheck
-import com.getcode.network.appcheck.toDeviceToken
 import com.getcode.network.core.NetworkOracle
-import com.google.firebase.Firebase
-import com.google.firebase.appcheck.AppCheckToken
-import com.google.firebase.appcheck.appCheck
-import io.reactivex.rxjava3.core.BackpressureStrategy
+import com.getcode.network.integrity.AppCheck
+import com.getcode.network.integrity.toDeviceToken
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.MutableStateFlow
-import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
-
-
-fun appCheckToken(
-    backpressureStrategy: BackpressureStrategy = BackpressureStrategy.BUFFER
-): Flowable<AppCheckToken> {
-    return Flowable.create({ emitter ->
-        Firebase.appCheck.limitedUseAppCheckToken
-            .addOnSuccessListener { emitter.onNext(it) }
-            .addOnFailureListener { emitter.onError(it) }
-    }, backpressureStrategy)
-}
 
 @Singleton
 class PhoneRepository @Inject constructor(
@@ -51,7 +35,7 @@ class PhoneRepository @Inject constructor(
         if (isMock()) return Single.just(PhoneVerificationService.SendVerificationCodeResponse.Result.OK)
             .toFlowable()
 
-        return AppCheck.limitedUseTokenFlowable()
+        return AppCheck.integrityResponseFlowable()
             .flatMap { tokenResult ->
                 val request =
                     PhoneVerificationService.SendVerificationCodeRequest.newBuilder()

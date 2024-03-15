@@ -190,6 +190,7 @@ object Libs {
     const val firebase_installations = "com.google.firebase:firebase-installations"
     const val firebase_perf = "com.google.firebase:firebase-perf"
 
+    const val play_integrity = "com.google.android.play:integrity:1.3.0"
     const val play_service_auth = "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
     const val play_service_auth_phone = "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
 

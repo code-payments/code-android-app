@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import com.bugsnag.android.Bugsnag
 import com.getcode.manager.AuthManager
-import com.getcode.network.appcheck.AppCheck
+import com.getcode.network.integrity.AppCheck
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.bill.CashBillAssets
 import com.google.firebase.Firebase
@@ -27,7 +27,7 @@ class App : Application() {
         CashBillAssets.load(this)
 
         Firebase.initialize(this)
-        AppCheck.register()
+        AppCheck.register(this)
         authManager.init(this)
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
