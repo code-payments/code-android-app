@@ -24,6 +24,10 @@ suspend fun Client.setMuted(owner: KeyPair, chat: ID, muted: Boolean): Result<Bo
     return chatService.setMuteState(owner, chat, muted)
 }
 
+suspend fun Client.setSubscriptionState(owner: KeyPair, chatId: ID, subscribed: Boolean): Result<Boolean> {
+    return chatService.setSubscriptionState(owner, chatId, subscribed)
+}
+
 suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? = null, limit: Int? = null) : Result<List<ChatMessage>> {
     return chatService.fetchMessagesFor(owner, chat.id, cursor, limit)
         .map {

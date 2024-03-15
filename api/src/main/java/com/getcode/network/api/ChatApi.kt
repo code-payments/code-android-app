@@ -9,6 +9,8 @@ import com.codeinc.gen.chat.v1.ChatService.GetMessagesRequest
 import com.codeinc.gen.chat.v1.ChatService.Pointer.Kind
 import com.codeinc.gen.chat.v1.ChatService.SetMuteStateRequest
 import com.codeinc.gen.chat.v1.ChatService.SetMuteStateResponse
+import com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateRequest
+import com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateResponse
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
@@ -17,6 +19,7 @@ import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSignature
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.utils.sign
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +35,7 @@ class ChatApi @Inject constructor(
     fun fetchChats(owner: KeyPair): Flow<ChatService.GetChatsResponse> {
         val request = GetChatsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setSignature(owner)
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return api::getChats
@@ -60,7 +63,7 @@ class ChatApi @Inject constructor(
 
         val request = builder
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setSignature(owner)
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return api::getMessages
@@ -79,7 +82,7 @@ class ChatApi @Inject constructor(
                     .setValue(to.toByteArray().toByteString())
                 )
             ).setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setSignature(owner)
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return api::advancePointer
@@ -94,43 +97,26 @@ class ChatApi @Inject constructor(
                 .build()
             ).setIsMuted(muted)
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setSignature(owner)
+            .apply { setSignature(sign(owner)) }
             .build()
 
         return api::setMuteState
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }
-}
 
-private fun GetChatsRequest.Builder.setSignature(owner: KeyPair): GetChatsRequest.Builder {
-    val bos = ByteArrayOutputStream()
-    buildPartial().writeTo(bos)
-    setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
+    fun setSubscriptionState(owner: KeyPair, chatId: ID, subscribed: Boolean): Flow<SetSubscriptionStateResponse> {
+        val request = SetSubscriptionStateRequest.newBuilder()
+            .setChatId(ChatService.ChatId.newBuilder()
+                .setValue(chatId.toByteArray().toByteString())
+                .build()
+            ).setIsSubscribed(subscribed)
+            .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .apply { setSignature(sign(owner)) }
+            .build()
 
-    return this
-}
-
-private fun GetMessagesRequest.Builder.setSignature(owner: KeyPair): GetMessagesRequest.Builder {
-    val bos = ByteArrayOutputStream()
-    buildPartial().writeTo(bos)
-    setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-
-    return this
-}
-
-private fun SetMuteStateRequest.Builder.setSignature(owner: KeyPair): SetMuteStateRequest.Builder {
-    val bos = ByteArrayOutputStream()
-    buildPartial().writeTo(bos)
-    setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-
-    return this
-}
-
-private fun AdvancePointerRequest.Builder.setSignature(owner: KeyPair): AdvancePointerRequest.Builder {
-    val bos = ByteArrayOutputStream()
-    buildPartial().writeTo(bos)
-    setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-
-    return this
+        return api::setSubscriptionState
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
 }

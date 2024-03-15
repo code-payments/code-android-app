@@ -32,11 +32,7 @@ class ContactsRepository @Inject constructor(
                 .addAllContacts(contacts.map { contact ->
                     contact.makeE164().toPhoneNumber()
                 })
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-                }
+                .apply { setSignature(sign(keyPair)) }
                 .build()
 
         return contactsApi.addContacts(request)
@@ -57,11 +53,7 @@ class ContactsRepository @Inject constructor(
                 )
                 .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
                 .setIncludeOnlyInAppContacts(true)
-                .let {
-                    val bos = ByteArrayOutputStream()
-                    it.buildPartial().writeTo(bos)
-                    it.setSignature(Ed25519.sign(bos.toByteArray(), keyPair).toSignature())
-                }
+                .apply { setSignature(sign(keyPair)) }
                 .build()
 
         return contactsApi.getContacts(request)

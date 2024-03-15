@@ -32,6 +32,7 @@ class BetaFlagsViewModel @Inject constructor(
         val remoteSendEnabled: Boolean = false,
         val giveRequestsEnabled: Boolean = false,
         val buyKinEnabled: Boolean = false,
+        val establishCodeRelationship: Boolean = false,
     )
 
     sealed interface Event {
@@ -44,6 +45,7 @@ class BetaFlagsViewModel @Inject constructor(
         data class UseDebugBuckets(val enabled: Boolean) : Event
         data class EnableGiveRequests(val enabled: Boolean) : Event
         data class EnableBuyKin(val enabled: Boolean) : Event
+        data class EnableCodeRelationshipEstablish(val enabled: Boolean) : Event
     }
 
     init {
@@ -109,6 +111,14 @@ class BetaFlagsViewModel @Inject constructor(
                 prefRepository.set(PrefsBool.BUY_KIN_ENABLED, it)
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.EnableCodeRelationshipEstablish>()
+            .map { it.enabled }
+            .onEach {
+                prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, it)
+            }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -125,6 +135,7 @@ class BetaFlagsViewModel @Inject constructor(
                             remoteSendEnabled = remoteSendEnabled,
                             giveRequestsEnabled = giveRequestsEnabled,
                             buyKinEnabled = buyKinEnabled,
+                            establishCodeRelationship = establishCodeRelationship,
                         )
                     }
                 }
@@ -135,6 +146,7 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.UseDebugBuckets,
                 is Event.SetLogScanTimes,
                 is Event.SetVibrateOnScan,
+                is Event.EnableCodeRelationshipEstablish,
                 is Event.ShowErrors -> { state -> state }
             }
         }

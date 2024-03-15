@@ -203,6 +203,14 @@ class HomeViewModel @Inject constructor(
                 }
 
                 ErrorUtils.setDisplayErrors(beta.displayErrors)
+
+                if (beta.establishCodeRelationship ) {
+                    val organizer = SessionManager.getOrganizer() ?: return@onEach
+                    val domain = Domain.from("getcode.com") ?: return@onEach
+                    if (organizer.relationshipFor(domain) == null) {
+                        client.awaitEstablishRelationship(organizer, domain)
+                    }
+                }
             }.launchIn(viewModelScope)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)

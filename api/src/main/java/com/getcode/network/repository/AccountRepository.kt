@@ -30,11 +30,7 @@ class AccountRepository @Inject constructor(
     ): Map<PublicKey, AccountInfo> {
         val request = AccountService.GetTokenAccountInfosRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
+            .apply { setSignature(sign(owner)) }
             .build()
 
         val tokenAccount = accountApi.getTokenAccountInfos(request)
@@ -79,13 +75,10 @@ class AccountRepository @Inject constructor(
     ): Single<Map<PublicKey, AccountInfo>> {
         val request = AccountService.GetTokenAccountInfosRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .let {
-                val bos = ByteArrayOutputStream()
-                it.buildPartial().writeTo(bos)
-                it.setSignature(Ed25519.sign(bos.toByteArray(), owner).toSignature())
-            }
+            .apply { setSignature(sign(owner)) }
             .build()
 
+        Timber.d("token info fetch")
         return accountApi.getTokenAccountInfos(request)
             .flatMap { response ->
                 when (response.result) {
