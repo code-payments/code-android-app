@@ -69,7 +69,6 @@ class SessionManager @Inject constructor(
             client.registerInstallation(organizer.ownerKeyPair, installationId)
         }
         LibsodiumInitializer.initialize()
-        client.awaitEstablishRelationship(organizer, Domain.from("getcode.com")!!)
         return client.updatePreferences(organizer)
     }
 
