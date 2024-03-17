@@ -167,6 +167,11 @@ fun ChatScreen(
                 CodeButton(
                     modifier = Modifier.weight(1f),
                     onClick = {
+                        if (!state.isSubscribed) {
+                            dispatch(ChatViewModel.Event.OnSubscribeToggled)
+                            return@CodeButton
+                        }
+
                         BottomBarManager.showMessage(
                             BottomBarManager.BottomBarMessage(
                                 title = context.getString(R.string.prompt_title_unsubscribe, title),
@@ -179,7 +184,7 @@ fun ChatScreen(
                     },
                     shape = RectangleShape,
                     buttonState = ButtonState.Subtle,
-                    text = stringResource(R.string.action_unsubscribe)
+                    text = if (state.isSubscribed) stringResource(R.string.action_unsubscribe) else stringResource(id = R.string.action_subscribe)
                 )
             }
         }

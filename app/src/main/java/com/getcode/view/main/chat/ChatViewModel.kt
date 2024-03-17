@@ -175,6 +175,7 @@ class ChatViewModel @Inject constructor(
                         title = event.chat.title,
                         canMute = event.chat.canMute,
                         isMuted = event.chat.isMuted,
+                        isSubscribed = event.chat.isSubscribed,
                         canUnsubscribe = event.chat.canUnsubscribe,
                     )
                 }
