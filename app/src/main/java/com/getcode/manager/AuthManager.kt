@@ -218,10 +218,8 @@ class AuthManager @Inject constructor(
             .doOnSuccess {
                 savePrefs(phone!!, user!!)
                 launch { updateFcmToken(owner, user!!.dataContainerId.toByteArray()) }
-                launch {
-                    exchange.fetchRatesIfNeeded()
-                    historyController.fetchChats()
-                }
+                launch { exchange.fetchRatesIfNeeded() }
+                launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
             }
     }
