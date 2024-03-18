@@ -182,14 +182,12 @@ object Libs {
 
     const val firebase_bom = "com.google.firebase:firebase-bom:${Versions.firebase_bom}"
     const val firebase_analytics = "com.google.firebase:firebase-analytics"
-    const val firebase_appcheck = "com.google.firebase:firebase-appcheck"
-    const val firebase_appcheck_debug = "com.google.firebase:firebase-appcheck-debug"
-    const val firebase_appcheck_playintegrity = "com.google.firebase:firebase-appcheck-playintegrity"
     const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics"
     const val firebase_messaging = "com.google.firebase:firebase-messaging"
     const val firebase_installations = "com.google.firebase:firebase-installations"
     const val firebase_perf = "com.google.firebase:firebase-perf"
 
+    const val play_integrity = "com.google.android.play:integrity:1.3.0"
     const val play_service_auth = "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
     const val play_service_auth_phone = "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
 

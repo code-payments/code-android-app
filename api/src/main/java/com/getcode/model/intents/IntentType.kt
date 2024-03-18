@@ -5,7 +5,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.Signature
 import com.getcode.model.intents.actions.ActionType
 import com.getcode.model.intents.actions.numberActions
-import com.getcode.network.appcheck.toDeviceToken
+import com.getcode.network.integrity.toDeviceToken
 import com.getcode.network.repository.*
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.sign
