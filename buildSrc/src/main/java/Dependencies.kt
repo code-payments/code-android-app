@@ -182,9 +182,6 @@ object Libs {
 
     const val firebase_bom = "com.google.firebase:firebase-bom:${Versions.firebase_bom}"
     const val firebase_analytics = "com.google.firebase:firebase-analytics"
-    const val firebase_appcheck = "com.google.firebase:firebase-appcheck"
-    const val firebase_appcheck_debug = "com.google.firebase:firebase-appcheck-debug"
-    const val firebase_appcheck_playintegrity = "com.google.firebase:firebase-appcheck-playintegrity"
     const val firebase_crashlytics = "com.google.firebase:firebase-crashlytics"
     const val firebase_messaging = "com.google.firebase:firebase-messaging"
     const val firebase_installations = "com.google.firebase:firebase-installations"

@@ -1,6 +1,9 @@
 package com.getcode.network.integrity
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.os.Build
+import android.provider.Settings
 import android.util.Base64
 import com.codeinc.gen.common.v1.Model
 import com.getcode.api.BuildConfig
@@ -26,8 +29,12 @@ object DeviceCheck {
 
     private lateinit var integrityManager: IntegrityManager
 
+    private lateinit var deviceId: String
+
+    @SuppressLint("HardwareIds")
     fun register(context: Context) {
         integrityManager = IntegrityManagerFactory.create(context)
+        deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
     }
 
     private fun handleAppCheckError(error: Throwable): Boolean {
@@ -65,7 +72,7 @@ object DeviceCheck {
     }
 
     private fun tokenResponse(onToken: (String?) -> Unit, onError: (Exception) -> Unit) {
-        val rawNonce = BuildConfig.INTEGRITY_NONCE
+        val rawNonce = deviceId
         val nonce = Base64.encodeToString(rawNonce.toByteArray(), Base64.NO_WRAP)
         // Request the integrity token by providing a nonce.
         val integrityTokenResponse: Task<IntegrityTokenResponse> =
