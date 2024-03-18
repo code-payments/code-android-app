@@ -5,7 +5,7 @@ import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.PhoneApi
 import com.getcode.network.core.NetworkOracle
-import com.getcode.network.integrity.AppCheck
+import com.getcode.network.integrity.DeviceCheck
 import com.getcode.network.integrity.toDeviceToken
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
@@ -35,7 +35,7 @@ class PhoneRepository @Inject constructor(
         if (isMock()) return Single.just(PhoneVerificationService.SendVerificationCodeResponse.Result.OK)
             .toFlowable()
 
-        return AppCheck.integrityResponseFlowable()
+        return DeviceCheck.integrityResponseFlowable()
             .flatMap { tokenResult ->
                 val request =
                     PhoneVerificationService.SendVerificationCodeRequest.newBuilder()

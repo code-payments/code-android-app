@@ -23,7 +23,7 @@ import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
-import com.getcode.network.integrity.AppCheck
+import com.getcode.network.integrity.DeviceCheck
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -98,7 +98,7 @@ class TransactionRepository @Inject constructor(
 
         val createAccounts = IntentCreateAccounts.newInstance(organizer)
 
-        return AppCheck.integrityResponseSingle()
+        return DeviceCheck.integrityResponseSingle()
             .flatMap { tokenResult ->
                 submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, tokenResult.token)
             }

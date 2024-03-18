@@ -22,7 +22,7 @@ data class DeviceTokenResult(
     val token: String?
 )
 
-object AppCheck {
+object DeviceCheck {
 
     private lateinit var integrityManager: IntegrityManager
 
