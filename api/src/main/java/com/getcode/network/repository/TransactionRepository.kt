@@ -7,7 +7,6 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.Re
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*
 import com.getcode.model.intents.ActionGroup
@@ -24,7 +23,7 @@ import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
-import com.getcode.network.appcheck.AppCheck
+import com.getcode.network.integrity.DeviceCheck
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
@@ -47,7 +46,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -100,9 +98,9 @@ class TransactionRepository @Inject constructor(
 
         val createAccounts = IntentCreateAccounts.newInstance(organizer)
 
-        return AppCheck.limitedUseTokenSingle()
+        return DeviceCheck.integrityResponseSingle()
             .flatMap { tokenResult ->
-                submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, tokenResult.token?.token)
+                submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, tokenResult.token)
             }
     }
 

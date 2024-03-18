@@ -118,7 +118,6 @@ fun String.replaceParam(vararg value: String?): String {
 
 fun String.replaceParam(index: Int = 0, value: String?): String {
     val param = "%${index + 1}\$s"
-    Timber.d("param=$param with value=$value")
     return this.replace(param, value.orEmpty())
 }
 
