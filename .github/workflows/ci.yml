@@ -42,6 +42,9 @@ jobs:
       - name: Setup BugSnag API Key
         run: echo BUGSNAG_API_KEY=\"${{ secrets.BUGSNAG_API_KEY }}\" > ./local.properties
 
+      - name: Setup Google Cloud Project Number
+        run: echo GOOGLE_CLOUD_PROJECT_NUMBER=\"${{ secrets.GOOGLE_CLOUD_PROJECT_NUMBER }}\" >> ./local.properties
+
       - name: Setup Kado API Key
         run: echo KADO_API_KEY=\"${{ secrets.KADO_API_KEY }}\" >> ./local.properties
 
