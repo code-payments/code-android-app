@@ -114,6 +114,8 @@ abstract class BaseAmountCurrencyViewModel(
     abstract fun getAmountUiModel(): AmountUiModel
     abstract fun getAmountAnimatedInputUiModel(): AmountAnimatedInputUiModel
 
+    open fun canChangeCurrency(): Boolean = true
+
     open fun init() {
         numberInputHelper.reset()
 
@@ -138,8 +140,10 @@ abstract class BaseAmountCurrencyViewModel(
             balanceRepository.balanceFlow
         ) { currencies, selectedCode, _, balance ->
             val currency = currencies.firstOrNull { it.code == selectedCode }
-            if (currency?.code != getCurrencyUiModel().selectedCurrencyCode) {
-                reset()
+            if (canChangeCurrency()) {
+                if (currency?.code != getCurrencyUiModel().selectedCurrencyCode) {
+                    reset()
+                }
             }
             getModelsWithSelectedCurrency(
                 currencies,
