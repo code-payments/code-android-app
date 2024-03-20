@@ -22,29 +22,6 @@ class PushRepository @Inject constructor(
     private val networkOracle: NetworkOracle,
     private val prefs: PrefRepository,
 ) {
-    fun addToken(
-        keyPair: Ed25519.KeyPair,
-        containerId: ByteArray,
-        token: String,
-        installationId: String?,
-    ): Flowable<Boolean> {
-        Timber.i("google token $token")
-        val request =
-            PushService.AddTokenRequest.newBuilder()
-                .setPushToken(token)
-                .setContainerId(
-                    Model.DataContainerId.newBuilder().setValue(containerId.toByteString()).build()
-                )
-                .setOwnerAccountId(keyPair.publicKeyBytes.toSolanaAccount())
-                .setTokenType(PushService.TokenType.FCM_ANDROID)
-                .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
-                .apply { setSignature(sign(keyPair)) }
-                .build()
-
-        return pushApi.addToken(request)
-        .let { networkOracle.managedRequest(it) }
-            .map { it.result == PushService.AddTokenResponse.Result.OK }
-    }
 
     suspend fun updateToken(token: String, installationId: String?): Result<Boolean> {
         Timber.i("google token $token")
@@ -55,9 +32,7 @@ class PushRepository @Inject constructor(
         val request =
             PushService.AddTokenRequest.newBuilder()
                 .setPushToken(token)
-                .setContainerId(
-                    Model.DataContainerId.newBuilder().setValue(containerId.toByteString()).build()
-                )
+                .setContainerId(Model.DataContainerId.newBuilder().setValue(containerId.toByteString()))
                 .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
                 .setOwnerAccountId(owner.publicKeyBytes.toSolanaAccount())
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
