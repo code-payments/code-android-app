@@ -70,6 +70,10 @@ class BuyKinViewModel @Inject constructor(
 
     val state = MutableStateFlow(State())
 
+    override fun canChangeCurrency(): Boolean {
+        return false
+    }
+
     init {
         init()
 
