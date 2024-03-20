@@ -50,18 +50,24 @@ class CodePushMessagingService : FirebaseMessagingService(),
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Timber.d("From: ${remoteMessage.from}")
 
-        // Check if message contains a data payload.
-        if (remoteMessage.data.isNotEmpty()) {
-            Timber.d("Message data payload: ${remoteMessage.data}")
-            val notification = remoteMessage.parse()
+        LibsodiumInitializer.initializeWithCallback {
+            // Check if message contains a data payload.
+            if (remoteMessage.data.isNotEmpty()) {
+                Timber.d("Message data payload: ${remoteMessage.data}")
+                val notification = remoteMessage.parse()
 
-            if (notification != null) {
-                val (type, titleKey, messageContent) = notification
-                val title = titleKey.localizedStringByKey(resources) ?: titleKey
-                val body = messageContent.localizedText(title, resources, currencyUtils)
-                notify(type, title, body)
-            } else {
-                notify("Unknown", resources.getString(R.string.app_name), "You have a new message.")
+                if (notification != null) {
+                    val (type, titleKey, messageContent) = notification
+                    val title = titleKey.localizedStringByKey(resources) ?: titleKey
+                    val body = messageContent.localizedText(title, resources, currencyUtils)
+                    notify(type, title, body)
+                } else {
+                    notify(
+                        "Unknown",
+                        resources.getString(R.string.app_name),
+                        "You have a new message."
+                    )
+                }
             }
         }
     }
