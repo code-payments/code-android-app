@@ -20,11 +20,6 @@ android {
             "GOOGLE_CLOUD_PROJECT_NUMBER",
             "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
         )
-        buildConfigField(
-            "String",
-            "INTEGRITY_NONCE",
-            "\"${tryReadProperty(rootProject.rootDir, "INTEGRITY_NONCE", "")}\""
-        )
 
         javaCompileOptions {
             annotationProcessorOptions {
@@ -95,7 +90,7 @@ dependencies {
     kapt(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
 
-    implementation(Libs.sodium_bindings)
+    api(Libs.sodium_bindings)
 
     implementation(Libs.lib_phone_number_google)
 

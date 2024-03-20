@@ -11,6 +11,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
 import androidx.core.content.ContextCompat.getSystemService
 import com.getcode.R
+import com.getcode.manager.AuthManager
+import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.parse
 import com.getcode.network.repository.PushRepository
 import com.getcode.ui.components.chat.utils.localizedText
@@ -22,6 +24,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,29 +58,26 @@ class CodePushMessagingService : FirebaseMessagingService(),
             if (notification != null) {
                 val (type, titleKey, messageContent) = notification
                 val title = titleKey.localizedStringByKey(resources) ?: titleKey
-                val body = messageContent.localizedText(resources, currencyUtils)
+                val body = messageContent.localizedText(title, resources, currencyUtils)
                 notify(type, title, body)
             } else {
                 notify("Unknown", resources.getString(R.string.app_name), "You have a new message.")
             }
-        }
-
-        // Check if message contains a notification payload.
-        remoteMessage.notification?.let {
-            Timber.d("Message Notification Body: ${it.body}")
         }
     }
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         launch {
-            val installationId = Firebase.installations.installationId()
-            pushRepository.updateToken(token, installationId)
-                .onSuccess {
-                    Timber.d("push token updated")
-                }.onFailure {
-                    Timber.e(t = it, message = "Failure updating push token")
-                }
+            if (SessionManager.isAuthenticated() == true) {
+                val installationId = Firebase.installations.installationId()
+                pushRepository.updateToken(token, installationId)
+                    .onSuccess {
+                        Timber.d("push token updated")
+                    }.onFailure {
+                        Timber.e(t = it, message = "Failure updating push token")
+                    }
+            }
         }
     }
 

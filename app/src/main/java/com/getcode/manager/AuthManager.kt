@@ -32,6 +32,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
+import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
@@ -66,7 +67,8 @@ class AuthManager @Inject constructor(
     @SuppressLint("CheckResult")
     fun init(context: Context) {
         launch {
-            val token = AccountUtils.getToken(context as Context)
+            LibsodiumInitializer.initialize()
+            val token = AccountUtils.getToken(context)
             softLogin(token.orEmpty())
                 .subscribeOn(Schedulers.computation())
                 .subscribe({}, ErrorUtils::handleError)
@@ -217,7 +219,7 @@ class AuthManager @Inject constructor(
             }
             .doOnSuccess {
                 savePrefs(phone!!, user!!)
-                launch { updateFcmToken(owner, user!!.dataContainerId.toByteArray()) }
+                launch { updateFcmToken() }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
@@ -276,14 +278,18 @@ class AuthManager @Inject constructor(
     }
 
     @SuppressLint("CheckResult")
-    private suspend fun updateFcmToken(keyPair: Ed25519.KeyPair, containerId: ByteArray) {
+    private suspend fun updateFcmToken() {
         if (isMock()) return
 
         val installationId = Firebase.installations.installationId()
         val pushToken = Firebase.messaging.token() ?: return
 
-        pushRepository.addToken(keyPair, containerId, pushToken, installationId)
-            .subscribe({}, ErrorUtils::handleError)
+        pushRepository.updateToken(pushToken, installationId)
+            .onSuccess {
+                Timber.d("push token updated")
+            }.onFailure {
+                Timber.e(t = it, message = "Failure updating push token")
+            }
     }
 
     sealed class AuthManagerException: Exception() {
