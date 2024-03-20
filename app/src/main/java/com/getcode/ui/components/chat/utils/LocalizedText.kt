@@ -3,12 +3,12 @@ package com.getcode.ui.components.chat.utils
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.capitalize
 import com.getcode.BuildConfig
 import com.getcode.LocalCurrencyUtils
 import com.getcode.R
+import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
+import com.getcode.model.Domain
 import com.getcode.model.GenericAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Verb
@@ -21,7 +21,7 @@ import com.getcode.utils.FormatUtils
 import timber.log.Timber
 import java.util.Locale
 
-internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUtils: CurrencyUtils,): String {
+internal fun MessageContent.localizedText(title: String, resources: ResourceHelper, currencyUtils: CurrencyUtils,): String {
     return when (val content = this) {
         is MessageContent.Exchange -> {
             val amount = when (val kinAmount = content.amount) {
@@ -69,7 +69,16 @@ internal fun MessageContent.localizedText(resources: ResourceHelper, currencyUti
             resId?.let { resources.getString(it) } ?: content.value
         }
 
-        is MessageContent.SodiumBox -> "<! encrypted content !>"
+        is MessageContent.SodiumBox -> {
+            val organizer = SessionManager.getOrganizer() ?: return  "<! encrypted content !>"
+            val domain = Domain.from(title) ?: return "<! encrypted content !>"
+            val relationship = organizer.relationshipFor(domain) ?: return "<! encrypted content !>"
+            val decrypted = content.data.decryptMessageUsingNaClBox(
+                keyPair = relationship.getCluster().authority.keyPair
+            ) ?: return "<! encrypted content !>"
+
+            decrypted
+        }
         is MessageContent.Decrypted -> content.data
     }
 }

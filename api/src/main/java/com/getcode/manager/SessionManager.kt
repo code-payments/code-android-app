@@ -68,7 +68,6 @@ class SessionManager @Inject constructor(
         if (installationId != null) {
             client.registerInstallation(organizer.ownerKeyPair, installationId)
         }
-        LibsodiumInitializer.initialize()
         return client.updatePreferences(organizer)
     }
 
