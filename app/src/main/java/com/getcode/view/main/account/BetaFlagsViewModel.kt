@@ -33,6 +33,7 @@ class BetaFlagsViewModel @Inject constructor(
         val giveRequestsEnabled: Boolean = false,
         val buyKinEnabled: Boolean = false,
         val establishCodeRelationship: Boolean = false,
+        val chatUnsubEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -46,6 +47,7 @@ class BetaFlagsViewModel @Inject constructor(
         data class EnableGiveRequests(val enabled: Boolean) : Event
         data class EnableBuyKin(val enabled: Boolean) : Event
         data class EnableCodeRelationshipEstablish(val enabled: Boolean) : Event
+        data class EnableChatUnsubscribe(val enabled: Boolean) : Event
     }
 
     init {
@@ -119,6 +121,14 @@ class BetaFlagsViewModel @Inject constructor(
                 prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, it)
             }
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.EnableChatUnsubscribe>()
+            .map { it.enabled }
+            .onEach {
+                prefRepository.set(PrefsBool.CHAT_UNSUB_ENABLED, it)
+            }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -136,6 +146,7 @@ class BetaFlagsViewModel @Inject constructor(
                             giveRequestsEnabled = giveRequestsEnabled,
                             buyKinEnabled = buyKinEnabled,
                             establishCodeRelationship = establishCodeRelationship,
+                            chatUnsubEnabled = chatUnsubEnabled,
                         )
                     }
                 }
@@ -147,6 +158,7 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.SetLogScanTimes,
                 is Event.SetVibrateOnScan,
                 is Event.EnableCodeRelationshipEstablish,
+                is Event.EnableChatUnsubscribe,
                 is Event.ShowErrors -> { state -> state }
             }
         }

@@ -10,12 +10,14 @@ import com.getcode.model.ID
 import com.getcode.model.MessageContent
 import com.getcode.model.Title
 import com.getcode.network.HistoryController
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.util.formatDateRelatively
 import com.getcode.util.toInstantFromMillis
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -48,13 +50,15 @@ sealed class ChatItem(val key: Any) {
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     historyController: HistoryController,
+    betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         chatId = null,
         title = null,
         canMute = false,
         isMuted = false,
-        canUnsubscribe = false,
+        _canUnsubscribe = false,
+        unsubscribeEnabled = false,
         isSubscribed = false
     ),
     updateStateForEvent = updateStateForEvent
@@ -64,9 +68,13 @@ class ChatViewModel @Inject constructor(
         val title: Title?,
         val canMute: Boolean,
         val isMuted: Boolean,
-        val canUnsubscribe: Boolean,
+        private val _canUnsubscribe: Boolean,
+        private val unsubscribeEnabled: Boolean,
         val isSubscribed: Boolean,
-    )
+    ) {
+        val canUnsubscribe: Boolean
+            get() = _canUnsubscribe && unsubscribeEnabled
+    }
 
     sealed interface Event {
         data class OnChatIdChanged(val id: ID?) : Event
@@ -75,6 +83,7 @@ class ChatViewModel @Inject constructor(
         data object OnSubscribeToggled : Event
         data class SetMuted(val muted: Boolean) : Event
         data class SetSubscribed(val subscribed: Boolean) : Event
+        data class EnableUnsubscribe(val enabled: Boolean): Event
     }
 
     init {
@@ -128,6 +137,13 @@ class ChatViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        betaFlags.observe()
+            .map { it.chatUnsubEnabled }
+            .distinctUntilChanged()
+            .onEach {
+                dispatchEvent(Event.EnableUnsubscribe(it))
+            }.launchIn(viewModelScope)
     }
 
     val chatMessages = stateFlow
@@ -176,7 +192,7 @@ class ChatViewModel @Inject constructor(
                         canMute = event.chat.canMute,
                         isMuted = event.chat.isMuted,
                         isSubscribed = event.chat.isSubscribed,
-                        canUnsubscribe = event.chat.canUnsubscribe,
+                        _canUnsubscribe = event.chat.canUnsubscribe,
                     )
                 }
 
@@ -188,6 +204,10 @@ class ChatViewModel @Inject constructor(
                 }
                 is Event.SetSubscribed -> { state ->
                     state.copy(isSubscribed = event.subscribed)
+                }
+
+                is Event.EnableUnsubscribe -> { state ->
+                    state.copy(unsubscribeEnabled = event.enabled)
                 }
             }
         }

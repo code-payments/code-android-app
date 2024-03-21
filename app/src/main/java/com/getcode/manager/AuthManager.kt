@@ -219,7 +219,6 @@ class AuthManager @Inject constructor(
             }
             .doOnSuccess {
                 savePrefs(phone!!, user!!)
-                launch { updateFcmToken() }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
@@ -275,6 +274,8 @@ class AuthManager @Inject constructor(
             PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP,
             user.eligibleAirdrops.contains(AirdropType.GiveFirstKin),
         )
+
+        launch { updateFcmToken() }
     }
 
     @SuppressLint("CheckResult")
