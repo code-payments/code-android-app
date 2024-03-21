@@ -49,12 +49,6 @@ fun BetaFlagsScreen(
             state.showNetworkDropOff
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowNetworkDropOff(it)) },
         BetaFeature(
-            PrefsBool.LOG_SCAN_TIMES,
-            R.string.beta_scan_times,
-            stringResource(R.string.beta_scan_times_description),
-            state.debugScanTimesEnabled
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.SetLogScanTimes(it)) },
-        BetaFeature(
             PrefsBool.BUCKET_DEBUGGER_ENABLED,
             R.string.beta_bucket_debugger,
             stringResource(R.string.beta_bucket_debugger_description),
@@ -78,6 +72,18 @@ fun BetaFlagsScreen(
             stringResource(id = R.string.beta_code_relationship_description),
             state.establishCodeRelationship,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableCodeRelationshipEstablish(it)) },
+        BetaFeature(
+            PrefsBool.CHAT_UNSUB_ENABLED,
+            R.string.beta_chat_unsub,
+            stringResource(id = R.string.beta_chat_unsub_description),
+            state.chatUnsubEnabled,
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableChatUnsubscribe(it)) },
+        BetaFeature(
+            PrefsBool.LOG_SCAN_TIMES,
+            R.string.beta_scan_times,
+            stringResource(R.string.beta_scan_times_description),
+            state.debugScanTimesEnabled
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.SetLogScanTimes(it)) },
         BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
             R.string.beta_display_errors,
