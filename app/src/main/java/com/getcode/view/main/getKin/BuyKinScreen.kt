@@ -12,6 +12,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -34,13 +35,14 @@ import com.getcode.ui.components.Row
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
+import kotlinx.coroutines.launch
 
 @Composable
 fun BuyKinScreen(
     viewModel: BuyKinViewModel = hiltViewModel(),
     onRedirected: () -> Unit,
 ) {
-    val navigator = LocalCodeNavigator.current
+    val composeScope = rememberCoroutineScope()
     val context = LocalContext.current
     val dataState by viewModel.state.collectAsState()
 
@@ -119,9 +121,11 @@ fun BuyKinScreen(
                     return@CodeButton
                 }
 
-                viewModel.initiatePurchase()?.let {
-                    uriHandler.openUri(it)
-                    onRedirected()
+                composeScope.launch {
+                    viewModel.initiatePurchase()?.let {
+                        uriHandler.openUri(it)
+                        onRedirected()
+                    }
                 }
             },
             enabled = dataState.continueEnabled,
