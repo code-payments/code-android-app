@@ -25,8 +25,9 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven { setUrl("https://plugins.gradle.org/m2/") }
-        maven { setUrl("https://jitpack.io") }
+        maven(url = "https://plugins.gradle.org/m2/")
+        maven(url = "https://maven.fpregistry.io/releases")
+        maven(url = "https://jitpack.io")
     }
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
