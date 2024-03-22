@@ -10,6 +10,9 @@ import io.grpc.stub.StreamObserver
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class TransactionApiV2 @Inject constructor(
@@ -66,6 +69,12 @@ class TransactionApiV2 @Inject constructor(
 
     fun swap(observer: StreamObserver<SwapResponse>): StreamObserver<SwapRequest> {
         return api.swap(observer)
+    }
+
+    fun declareFiatPurchase(request: TransactionService.DeclareFiatOnrampPurchaseAttemptRequest): Flow<TransactionService.DeclareFiatOnrampPurchaseAttemptResponse> {
+        return api::declareFiatOnrampPurchaseAttempt
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
     }
 
 }

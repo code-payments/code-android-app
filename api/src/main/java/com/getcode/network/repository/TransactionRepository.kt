@@ -2,7 +2,10 @@ package com.getcode.network.repository
 
 import android.annotation.SuppressLint
 import android.content.Context
+import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptResponse
+import com.codeinc.gen.transaction.v2.TransactionService.ExchangeDataWithoutRate
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
@@ -32,6 +35,7 @@ import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.blockchainMemo
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.grpc.stub.StreamObserver
@@ -46,6 +50,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -393,6 +398,51 @@ class TransactionRepository @Inject constructor(
         }.onFailure {
             ErrorUtils.handleError(it)
             Timber.e(t = it, message = "failed to establish relationship")
+        }
+    }
+
+    suspend fun declareFiatPurchase(owner: KeyPair, amount: KinAmount, nonce: UUID): Result<Unit> {
+        val request = TransactionService.DeclareFiatOnrampPurchaseAttemptRequest.newBuilder()
+            .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .setPurchaseAmount(ExchangeDataWithoutRate.newBuilder()
+                .setCurrency(amount.rate.currency.name)
+                .setNativeAmount(amount.fiat)
+            ).setNonce(
+                Model.UUID.newBuilder().setValue(nonce.blockchainMemo.toByteArray().toByteString())
+            ).apply { setSignature(sign(owner)) }.build()
+
+        return runCatching {
+            transactionApi.declareFiatPurchase(request)
+                .firstOrNull() ?: throw IllegalArgumentException()
+        }.map { response ->
+            when (response.result) {
+                DeclareFiatOnrampPurchaseAttemptResponse.Result.OK -> Result.success(Unit)
+                DeclareFiatOnrampPurchaseAttemptResponse.Result.INVALID_OWNER -> {
+                    val error = Throwable("Error: INVALID_OWNER")
+                    ErrorUtils.handleError(error)
+                    Result.failure(error)
+                }
+                DeclareFiatOnrampPurchaseAttemptResponse.Result.UNSUPPORTED_CURRENCY -> {
+                    val error = Throwable("Error: UNSUPPORTED_CURRENCY")
+                    ErrorUtils.handleError(error)
+                    Result.failure(error)
+                }
+                DeclareFiatOnrampPurchaseAttemptResponse.Result.AMOUNT_EXCEEDS_MAXIMUM -> {
+                    val error = Throwable("Error: AMOUNT_EXCEEDS_MAXIMUM")
+                    ErrorUtils.handleError(error)
+                    Result.failure(error)
+                }
+                DeclareFiatOnrampPurchaseAttemptResponse.Result.UNRECOGNIZED -> {
+                    val error = Throwable("Error: UNRECOGNIZED")
+                    ErrorUtils.handleError(error)
+                    Result.failure(error)
+                }
+                else -> {
+                    val error = Throwable("Error: Unknown Error")
+                    ErrorUtils.handleError(error)
+                    Result.failure(error)
+                }
+            }
         }
     }
 

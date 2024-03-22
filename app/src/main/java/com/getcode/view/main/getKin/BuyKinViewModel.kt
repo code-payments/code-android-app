@@ -12,6 +12,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Limit
 import com.getcode.model.Rate
 import com.getcode.network.client.Client
+import com.getcode.network.client.declareFiatPurchase
 import com.getcode.network.client.linkAdditionalAccount
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
@@ -23,6 +24,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.blockchainMemo
 import com.getcode.utils.makeE164
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
@@ -31,10 +33,13 @@ import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel
 import com.getcode.view.main.giveKin.CurrencyUiModel
 import com.getcode.view.main.giveKin.FlowType
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -188,11 +193,13 @@ class BuyKinViewModel @Inject constructor(
         CurrencyCode.NOK, CurrencyCode.NZD
     )
 
-    private fun buildKadoUrl(amount: KinAmount, rate: Rate): Uri? {
+    private fun buildKadoUrl(amount: KinAmount, rate: Rate, nonce: UUID): Uri? {
         val apiKey = BuildConfig.KADO_API_KEY
         if (apiKey.isEmpty()) {
             return null
         }
+
+
 
         return Uri.Builder()
             .scheme("https")
@@ -206,6 +213,7 @@ class BuyKinViewModel @Inject constructor(
             .appendQueryParameter("fiatMethodList", "debit_only")
             .appendQueryParameter("phone", phoneRepository.phoneNumber.makeE164())
             .appendQueryParameter("onToAddress", SessionManager.getOrganizer()?.swapDepositAddress)
+            .appendQueryParameter("memo", nonce.blockchainMemo)
             .build()
     }
 
@@ -237,7 +245,7 @@ class BuyKinViewModel @Inject constructor(
         !isOverLimit
     }
 
-    fun initiatePurchase(): String? {
+    suspend fun initiatePurchase(): String? {
         val currencyModel = getCurrencyUiModel()
         val amountAnimatedModel = getAmountAnimatedInputUiModel()
         val currencySymbol = currencyModel
@@ -261,8 +269,19 @@ class BuyKinViewModel @Inject constructor(
             return null
         }
 
-        val kadoUrl = buildKadoUrl(kadoAmount, rate)
-        Timber.d("resulting url=$kadoUrl")
-        return kadoUrl?.toString()
+        val nonce = UUID.randomUUID()
+        val kadoUrl = buildKadoUrl(kadoAmount, rate, nonce)
+        val organizer = SessionManager.getOrganizer() ?: return null
+
+        client.declareFiatPurchase(
+            owner = organizer.ownerKeyPair,
+            amount = kadoAmount,
+            nonce = nonce
+        )
+
+        Timber.d("nonce=${nonce.blockchainMemo}, resulting url=$kadoUrl")
+        return withContext(Dispatchers.Main) {
+            kadoUrl?.toString()
+        }
     }
 }
