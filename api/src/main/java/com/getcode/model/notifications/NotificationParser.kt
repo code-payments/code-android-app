@@ -3,6 +3,7 @@ package com.getcode.model.notifications
 import com.codeinc.gen.chat.v1.ChatService
 import com.getcode.model.MessageContent
 import com.getcode.network.repository.decodeBase64
+import com.getcode.utils.ErrorUtils
 import com.google.firebase.messaging.RemoteMessage
 import timber.log.Timber
 
@@ -12,13 +13,21 @@ private const val NOTIFICATION_CONTENT_KEY = "message_content"
 
 fun RemoteMessage.parse(): CodeNotification? {
     Timber.d("data=$data")
-    val type = data[NOTIFICATION_TYPE_KEY].let {
+    val typeString = data[NOTIFICATION_TYPE_KEY].let {
         if (it == null) {
             Timber.e("$NOTIFICATION_TYPE_KEY unspecified")
             return null
         }
         it
     }
+
+    val type = NotificationType.tryValueOf(typeString)
+    if (type == null) {
+        Timber.e("Unknown notification type: $typeString")
+        ErrorUtils.handleError(Throwable("Unknown notification type: $typeString"))
+        return null
+    }
+
     val chatTitle = data[NOTIFICATION_TITLE_KEY].let {
         if (it == null) {
             Timber.e("$NOTIFICATION_TITLE_KEY unspecified")

@@ -6,14 +6,13 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.RingtoneManager
 import android.os.Build
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
-import androidx.core.content.ContextCompat.getSystemService
 import com.getcode.R
-import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
+import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
+import com.getcode.network.HistoryController
 import com.getcode.network.repository.PushRepository
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.CurrencyUtils
@@ -47,6 +46,9 @@ class CodePushMessagingService : FirebaseMessagingService(),
     @Inject
     lateinit var currencyUtils: CurrencyUtils
 
+    @Inject
+    lateinit var historyController: HistoryController
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Timber.d("From: ${remoteMessage.from}")
 
@@ -61,9 +63,13 @@ class CodePushMessagingService : FirebaseMessagingService(),
                     val title = titleKey.localizedStringByKey(resources) ?: titleKey
                     val body = messageContent.localizedText(title, resources, currencyUtils)
                     notify(type, title, body)
+
+                    if (type == NotificationType.ChatMessage) {
+                        launch { historyController.fetchChats() }
+                    }
                 } else {
                     notify(
-                        "Unknown",
+                        NotificationType.Unknown,
                         resources.getString(R.string.app_name),
                         "You have a new message."
                     )
@@ -88,7 +94,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
     }
 
     private fun notify(
-        type: String,
+        type: NotificationType,
         title: String,
         content: String,
     ) {
@@ -98,8 +104,8 @@ class CodePushMessagingService : FirebaseMessagingService(),
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.createNotificationChannel(
                 NotificationChannel(
-                    type,
-                    type,
+                    type.name,
+                    type.name,
                     NotificationManager.IMPORTANCE_DEFAULT
                 )
             )
@@ -120,7 +126,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
         } ?: NotificationCompat.MessagingStyle(person)
 
         val notificationBuilder: NotificationCompat.Builder =
-            NotificationCompat.Builder(this, type)
+            NotificationCompat.Builder(this, type.name)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setStyle(style.addMessage(message))
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
