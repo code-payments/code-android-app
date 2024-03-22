@@ -36,6 +36,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.blockchainMemo
+import com.getcode.utils.bytes
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.grpc.stub.StreamObserver
@@ -408,7 +409,7 @@ class TransactionRepository @Inject constructor(
                 .setCurrency(amount.rate.currency.name.lowercase())
                 .setNativeAmount(amount.fiat)
             ).setNonce(
-                Model.UUID.newBuilder().setValue(nonce.blockchainMemo.toByteArray().toByteString())
+                Model.UUID.newBuilder().setValue(nonce.bytes.toByteString())
             ).apply { setSignature(sign(owner)) }.build()
 
         return runCatching {
