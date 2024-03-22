@@ -1,5 +1,6 @@
 package com.getcode.util
 
+import android.content.Context
 import android.text.format.DateFormat
 import android.text.format.DateUtils
 import androidx.compose.runtime.Composable
@@ -45,7 +46,9 @@ object DateUtils {
         }
     }
 
-    private fun isYesterday(millis: Long) = DateUtils.isToday(millis + DateUtils.DAY_IN_MILLIS)
+    fun isToday(millis: Long) = DateUtils.isToday(millis)
+
+    private fun isYesterday(millis: Long) = isToday(millis + DateUtils.DAY_IN_MILLIS)
 }
 
 fun Long.toInstantFromMillis() = Instant.fromEpochMilliseconds(this)
@@ -63,5 +66,16 @@ fun Instant.formatTimeRelatively(): String {
         com.getcode.util.DateUtils.getDate(this.toEpochMilliseconds(), "H:mm")
     } else {
         com.getcode.util.DateUtils.getDate(this.toEpochMilliseconds(), "h:mm A")
+    }
+}
+
+@Composable
+fun Long.formatTimeRelatively(): String {
+    val context = LocalContext.current
+    val is24Hour = DateFormat.is24HourFormat(context)
+    return if (is24Hour) {
+        com.getcode.util.DateUtils.getDate(this, "H:mm")
+    } else {
+        com.getcode.util.DateUtils.getDate(this, "h:mm A")
     }
 }
