@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
 import com.getcode.R
+import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
@@ -18,6 +19,7 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.installationId
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
@@ -47,33 +49,46 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var currencyUtils: CurrencyUtils
 
     @Inject
+    lateinit var authManager: AuthManager
+
+    @Inject
     lateinit var historyController: HistoryController
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Timber.d("From: ${remoteMessage.from}")
+        Timber.d("onMessageReceived")
+        if (SessionManager.isAuthenticated() == null) {
+            // sodium initialized internally during init
+            Timber.d("initializing session")
+            authManager.init(this) {
+                handleMessage(remoteMessage)
+            }
+        } else {
+            handleMessage(remoteMessage)
+        }
+    }
 
-        LibsodiumInitializer.initializeWithCallback {
-            // Check if message contains a data payload.
-            if (remoteMessage.data.isNotEmpty()) {
-                Timber.d("Message data payload: ${remoteMessage.data}")
-                val notification = remoteMessage.parse()
+    private fun handleMessage(remoteMessage: RemoteMessage) {
+        Timber.d("handling received message")
+        // Check if message contains a data payload.
+        if (remoteMessage.data.isNotEmpty()) {
+            Timber.d("Message data payload: ${remoteMessage.data}")
+            val notification = remoteMessage.parse()
 
-                if (notification != null) {
-                    val (type, titleKey, messageContent) = notification
-                    val title = titleKey.localizedStringByKey(resources) ?: titleKey
-                    val body = messageContent.localizedText(title, resources, currencyUtils)
-                    notify(type, title, body)
+            if (notification != null) {
+                val (type, titleKey, messageContent) = notification
+                val title = titleKey.localizedStringByKey(resources) ?: titleKey
+                val body = messageContent.localizedText(title, resources, currencyUtils)
+                notify(type, title, body)
 
-                    if (type == NotificationType.ChatMessage) {
-                        launch { historyController.fetchChats() }
-                    }
-                } else {
-                    notify(
-                        NotificationType.Unknown,
-                        resources.getString(R.string.app_name),
-                        "You have a new message."
-                    )
+                if (type == NotificationType.ChatMessage) {
+                    launch { historyController.fetchChats() }
                 }
+            } else {
+                notify(
+                    NotificationType.Unknown,
+                    resources.getString(R.string.app_name),
+                    "You have a new message."
+                )
             }
         }
     }
@@ -87,6 +102,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
                     .onSuccess {
                         Timber.d("push token updated")
                     }.onFailure {
+                        ErrorUtils.handleError(it)
                         Timber.e(t = it, message = "Failure updating push token")
                     }
             }

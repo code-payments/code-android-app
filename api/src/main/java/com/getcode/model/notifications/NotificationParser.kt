@@ -16,6 +16,7 @@ fun RemoteMessage.parse(): CodeNotification? {
     val typeString = data[NOTIFICATION_TYPE_KEY].let {
         if (it == null) {
             Timber.e("$NOTIFICATION_TYPE_KEY unspecified")
+            ErrorUtils.handleError(Throwable("$NOTIFICATION_TYPE_KEY unspecified"))
             return null
         }
         it
@@ -31,6 +32,7 @@ fun RemoteMessage.parse(): CodeNotification? {
     val chatTitle = data[NOTIFICATION_TITLE_KEY].let {
         if (it == null) {
             Timber.e("$NOTIFICATION_TITLE_KEY unspecified")
+            ErrorUtils.handleError(Throwable("$NOTIFICATION_TITLE_KEY unspecified"))
             return null
         }
         it
@@ -38,6 +40,7 @@ fun RemoteMessage.parse(): CodeNotification? {
     val messageContent = data[NOTIFICATION_CONTENT_KEY].let {
         if (it == null) {
             Timber.e("$NOTIFICATION_CONTENT_KEY unspecified")
+            ErrorUtils.handleError(Throwable("$NOTIFICATION_CONTENT_KEY unspecified"))
             return null
         }
         it
@@ -48,6 +51,7 @@ fun RemoteMessage.parse(): CodeNotification? {
         ChatService.Content.parseFrom(messageData) }.getOrNull().let {
         if (it == null) {
             Timber.e("unable to parse message content")
+            ErrorUtils.handleError(Throwable("unable to parse message content"))
             return null
         }
         it
@@ -55,6 +59,7 @@ fun RemoteMessage.parse(): CodeNotification? {
     val content = MessageContent.invoke(rawContent).let {
         if (it == null) {
             Timber.e("failed to convert MessageContent")
+            ErrorUtils.handleError(Throwable("failed to convert MessageContent"))
             return null
         }
         it
