@@ -2,6 +2,7 @@ package com.getcode.network.client
 
 import android.annotation.SuppressLint
 import android.content.Context
+import com.codeinc.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptResponse
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -45,6 +46,7 @@ import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.Calendar
 import java.util.GregorianCalendar
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
@@ -608,4 +610,8 @@ suspend fun Client.awaitEstablishRelationship(
 
 suspend fun Client.initiateSwap(organizer: Organizer): Result<SwapIntent> {
     return transactionRepository.initiateSwap(organizer)
+}
+
+suspend fun Client.declareFiatPurchase(owner: KeyPair, amount: KinAmount, nonce: UUID) : Result<Unit> {
+    return transactionRepository.declareFiatPurchase(owner, amount, nonce)
 }

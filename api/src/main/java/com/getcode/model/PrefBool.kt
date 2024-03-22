@@ -30,6 +30,7 @@ sealed class PrefsBool(val value: String) {
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
     data object BUY_KIN_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
     data object ESTABLISH_CODE_RELATIONSHIP : PrefsBool("establish_code_relationship_enabled")
+    data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled")
 }
 
 object BetaFlags {
