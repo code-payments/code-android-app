@@ -6,8 +6,31 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Base64
 import com.codeinc.gen.common.v1.Model
+import com.fingerprintjs.android.fpjs_pro.ApiKeyExpired
+import com.fingerprintjs.android.fpjs_pro.ApiKeyNotFound
+import com.fingerprintjs.android.fpjs_pro.ApiKeyRequired
+import com.fingerprintjs.android.fpjs_pro.Configuration
+import com.fingerprintjs.android.fpjs_pro.Failed
+import com.fingerprintjs.android.fpjs_pro.FingerprintJS
+import com.fingerprintjs.android.fpjs_pro.FingerprintJSFactory
+import com.fingerprintjs.android.fpjs_pro.HeaderRestricted
+import com.fingerprintjs.android.fpjs_pro.InstallationMethodRestricted
+import com.fingerprintjs.android.fpjs_pro.NetworkError
+import com.fingerprintjs.android.fpjs_pro.NotAvailableForCrawlBots
+import com.fingerprintjs.android.fpjs_pro.NotAvailableWithoutUA
+import com.fingerprintjs.android.fpjs_pro.OriginNotAvailable
+import com.fingerprintjs.android.fpjs_pro.PackageNotAuthorized
+import com.fingerprintjs.android.fpjs_pro.RequestCannotBeParsed
+import com.fingerprintjs.android.fpjs_pro.RequestTimeout
+import com.fingerprintjs.android.fpjs_pro.ResponseCannotBeParsed
+import com.fingerprintjs.android.fpjs_pro.SubscriptionNotActive
+import com.fingerprintjs.android.fpjs_pro.TooManyRequest
+import com.fingerprintjs.android.fpjs_pro.UnknownError
+import com.fingerprintjs.android.fpjs_pro.UnsupportedVersion
+import com.fingerprintjs.android.fpjs_pro.WrongRegion
 import com.getcode.api.BuildConfig
 import com.getcode.api.BuildConfig.GOOGLE_CLOUD_PROJECT_NUMBER
+import com.getcode.utils.ErrorUtils
 import com.google.android.gms.tasks.Task
 import com.google.android.play.core.integrity.IntegrityManager
 import com.google.android.play.core.integrity.IntegrityManagerFactory
@@ -16,6 +39,9 @@ import com.google.android.play.core.integrity.IntegrityTokenResponse
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import kotlin.coroutines.resume
@@ -25,16 +51,27 @@ data class DeviceTokenResult(
     val token: String?
 )
 
-object DeviceCheck {
+object DeviceCheck: CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private lateinit var integrityManager: IntegrityManager
 
+    private var fingerprint: FingerprintJS? = null
     private lateinit var deviceId: String
 
     @SuppressLint("HardwareIds")
     fun register(context: Context) {
         integrityManager = IntegrityManagerFactory.create(context)
         deviceId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+
+        fingerprint = runCatching {
+            val factory = FingerprintJSFactory(context)
+            val configuration = Configuration(
+                apiKey = BuildConfig.FINGERPRINT_API_KEY,
+                region = Configuration.Region.US,
+            )
+
+            factory.createInstance(configuration)
+        }.getOrNull()
     }
 
     private fun handleAppCheckError(error: Throwable): Boolean {
@@ -71,28 +108,48 @@ object DeviceCheck {
         )
     }
 
-    private fun tokenResponse(onToken: (String?) -> Unit, onError: (Exception) -> Unit) {
-        val rawNonce = deviceId
-        val nonce = Base64.encodeToString(rawNonce.toByteArray(), Base64.NO_WRAP)
-        // Request the integrity token by providing a nonce.
-        val integrityTokenResponse: Task<IntegrityTokenResponse> =
-            integrityManager.requestIntegrityToken(
-                IntegrityTokenRequest.builder()
-                    .setCloudProjectNumber(GOOGLE_CLOUD_PROJECT_NUMBER.toLong())
-                    .setNonce(nonce)
-                    .build()
-            )
-
-        integrityTokenResponse.addOnSuccessListener {
-            Timber.d("integrity token=${it.token()}")
-            onToken(it.token())
-        }.addOnFailureListener { error ->
-            if (!handleAppCheckError(error)) {
-                onError(error)
-                return@addOnFailureListener
+    private fun visitorIdentifier(onIdentifier: (Result<String?>) -> Unit) {
+        fingerprint?.getVisitorId(
+            listener = {
+                onIdentifier(Result.success(it.visitorId)) },
+            errorListener = {
+                val error = Throwable("Device Check failed:: ${it.description}")
+                ErrorUtils.handleError(error)
+//                onIdentifier(Result.failure(error))
+                onIdentifier(Result.success(null))
+            }
+        ) ?: onIdentifier(Result.success(null))
+    }
+    private fun tokenResponse(onToken: (String?) -> Unit, onError: (Throwable) -> Unit) {
+        visitorIdentifier { result ->
+            if (result.isFailure) {
+                onError(result.exceptionOrNull()!!)
+                return@visitorIdentifier
             }
 
-            onToken(null)
+            val tag = result.getOrNull()
+            val rawNonce = "$tag $deviceId"
+
+            val nonce = Base64.encodeToString(rawNonce.toByteArray(), Base64.NO_WRAP)
+            // Request the integrity token by providing a nonce.
+            val integrityTokenResponse: Task<IntegrityTokenResponse> =
+                integrityManager.requestIntegrityToken(
+                    IntegrityTokenRequest.builder()
+                        .setCloudProjectNumber(GOOGLE_CLOUD_PROJECT_NUMBER.toLong())
+                        .setNonce(nonce)
+                        .build()
+                )
+
+            integrityTokenResponse.addOnSuccessListener {
+                onToken(it.token())
+            }.addOnFailureListener { error ->
+                if (!handleAppCheckError(error)) {
+                    onError(error)
+                    return@addOnFailureListener
+                }
+
+                onToken(null)
+            }
         }
     }
 }

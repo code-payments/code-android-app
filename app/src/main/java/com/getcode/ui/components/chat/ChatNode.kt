@@ -28,6 +28,8 @@ import com.getcode.ui.components.Badge
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.debugBounds
 import com.getcode.util.DateUtils
+import com.getcode.util.formatTimeRelatively
+import com.getcode.util.toInstantFromMillis
 import java.util.Locale
 
 object ChatNodeDefaults {
@@ -40,6 +42,8 @@ fun ChatNode(
     chat: Chat,
     onClick: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     Column(
         modifier = modifier
             .clickable { onClick() }
@@ -59,8 +63,13 @@ fun ChatNode(
         ) {
             Text(text = chat.localizedTitle, maxLines = 1, style = CodeTheme.typography.body1)
             chat.lastMessageMillis?.let {
+                val isToday = DateUtils.isToday(it)
                 Text(
-                    text = DateUtils.getDateRelatively(it),
+                    text = if (isToday) {
+                        it.formatTimeRelatively()
+                    } else {
+                        DateUtils.getDateRelatively(it)
+                    },
                     style = CodeTheme.typography.body2,
                     color = if (hasUnreadMessages) ChatNodeDefaults.UnreadIndicator else CodeTheme.colors.brandLight,
                 )

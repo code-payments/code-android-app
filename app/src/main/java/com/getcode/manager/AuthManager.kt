@@ -65,13 +65,13 @@ class AuthManager @Inject constructor(
     private var softLoginDisabled: Boolean = false
 
     @SuppressLint("CheckResult")
-    fun init(context: Context) {
+    fun init(context: Context, onInitialized: () -> Unit = { }) {
         launch {
             LibsodiumInitializer.initialize()
             val token = AccountUtils.getToken(context)
             softLogin(token.orEmpty())
                 .subscribeOn(Schedulers.computation())
-                .subscribe({}, ErrorUtils::handleError)
+                .subscribe(onInitialized, ErrorUtils::handleError)
         }
     }
 
