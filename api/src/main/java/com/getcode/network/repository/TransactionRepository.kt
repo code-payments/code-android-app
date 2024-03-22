@@ -405,7 +405,7 @@ class TransactionRepository @Inject constructor(
         val request = TransactionService.DeclareFiatOnrampPurchaseAttemptRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setPurchaseAmount(ExchangeDataWithoutRate.newBuilder()
-                .setCurrency(amount.rate.currency.name)
+                .setCurrency(amount.rate.currency.name.lowercase())
                 .setNativeAmount(amount.fiat)
             ).setNonce(
                 Model.UUID.newBuilder().setValue(nonce.blockchainMemo.toByteArray().toByteString())
