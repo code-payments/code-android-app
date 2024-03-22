@@ -21,6 +21,12 @@ android {
             "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
         )
 
+        buildConfigField(
+            "String",
+            "FINGERPRINT_API_KEY",
+            "\"${tryReadProperty(rootProject.rootDir, "FINGERPRINT_API_KEY")}\""
+        )
+
         javaCompileOptions {
             annotationProcessorOptions {
                 arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
@@ -91,6 +97,8 @@ dependencies {
     implementation(Libs.sqlcipher)
 
     api(Libs.sodium_bindings)
+
+    implementation(Libs.fingerprint_pro)
 
     implementation(Libs.lib_phone_number_google)
 

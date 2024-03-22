@@ -224,4 +224,6 @@ object Libs {
     const val cloudy = "com.github.skydoves:cloudy:0.1.2"
 
     const val sodium_bindings = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
+
+    const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 }
