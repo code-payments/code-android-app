@@ -279,7 +279,6 @@ class BuyKinViewModel @Inject constructor(
             nonce = nonce
         )
 
-        Timber.d("nonce=${nonce.blockchainMemo}, resulting url=$kadoUrl")
         return withContext(Dispatchers.Main) {
             kadoUrl?.toString()
         }
