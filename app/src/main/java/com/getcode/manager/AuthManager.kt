@@ -218,7 +218,7 @@ class AuthManager @Inject constructor(
                     .toSingleDefault(Pair(phone!!, user!!))
             }
             .doOnSuccess {
-                savePrefs(phone!!, user!!)
+                launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
@@ -245,21 +245,16 @@ class AuthManager @Inject constructor(
         Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
-    private fun savePrefs(
+    private suspend fun savePrefs(
         phone: PhoneRepository.GetAssociatedPhoneNumberResponse,
         user: IdentityRepository.GetUserResponse
     ) {
         Timber.d("saving prefs")
         phoneRepository.phoneNumber = phone.phoneNumber
+
         prefRepository.set(
-            Pair(
-                PrefsString.KEY_USER_ID,
-                user.userId.toByteArray().encodeBase64()
-            ),
-            Pair(
-                PrefsString.KEY_DATA_CONTAINER_ID,
-                user.dataContainerId.toByteArray().encodeBase64()
-            )
+            PrefsString.KEY_USER_ID to user.userId.toByteArray().encodeBase64(),
+            PrefsString.KEY_DATA_CONTAINER_ID to user.dataContainerId.toByteArray().encodeBase64(),
         )
         phoneRepository.phoneLinked.value = phone.isLinked
 
@@ -275,7 +270,8 @@ class AuthManager @Inject constructor(
             user.eligibleAirdrops.contains(AirdropType.GiveFirstKin),
         )
 
-        launch { updateFcmToken() }
+        updateFcmToken()
+        sessionManager.comeAlive()
     }
 
     @SuppressLint("CheckResult")

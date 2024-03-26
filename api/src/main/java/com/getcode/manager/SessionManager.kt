@@ -32,7 +32,8 @@ class SessionManager @Inject constructor(
         val keyPair: Ed25519.KeyPair? = null,
         val isAuthenticated: Boolean? = null,
         val isTimelockUnlocked: Boolean = false,
-        val organizer: Organizer? = null
+        val organizer: Organizer? = null,
+        val userPrefsUpdated: Boolean = false,
     )
 
     fun set(context: Context, entropyB64: String) {
@@ -69,6 +70,12 @@ class SessionManager @Inject constructor(
             client.registerInstallation(organizer.ownerKeyPair, installationId)
         }
         return client.updatePreferences(organizer)
+            .onSuccess {
+                update { it.copy(userPrefsUpdated = true) }
+            }
+            .onFailure {
+                update { it.copy(userPrefsUpdated = true) }
+            }
     }
 
     companion object {

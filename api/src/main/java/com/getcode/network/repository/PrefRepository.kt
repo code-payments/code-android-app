@@ -108,15 +108,13 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
             .defaultIfEmpty(default.toLong())
     }
 
-    fun set(vararg list: Pair<PrefsString, String>) {
-        launch {
-            list.forEach { pair ->
-                Database.getInstance()?.prefStringDao()?.insert(PrefString(pair.first.value, pair.second))
-            }
+    suspend fun set(vararg list: Pair<PrefsString, String>) {
+        list.forEach { pair ->
+            Database.getInstance()?.prefStringDao()?.insert(PrefString(pair.first.value, pair.second))
         }
     }
 
-    fun set(key: PrefsString, value: String) {
+    fun set(key: PrefsString, value: String) = launch {
         set(key to value)
     }
 

@@ -90,7 +90,7 @@ fun BetaFlagsScreen(
             "",
             state.displayErrors,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowErrors(it)) }
-    ).filter { BetaFlags.isAvailable(it.flag) }
+    ).filter { BetaFlags.canMutate(it.flag) }
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         for (option in options) {

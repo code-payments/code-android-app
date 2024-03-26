@@ -40,4 +40,14 @@ object BetaFlags {
     fun isAvailable(flag: PrefsBool): Boolean {
         return true
     }
+
+    /**
+     * Override to disabling UI interaction for beta flags.
+     */
+    fun canMutate(flag: PrefsBool): Boolean {
+        return when (flag) {
+            PrefsBool.BUY_KIN_ENABLED -> false
+            else -> true
+        }
+    }
 }
