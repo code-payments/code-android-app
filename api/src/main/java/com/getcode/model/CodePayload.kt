@@ -198,4 +198,26 @@ enum class Kind(val value: Int) {
  This field is an 11-byte randomly-generated nonce. It should be regenerated
  each time a new payment is initiated.
 
- */
+ Layout 5: Tip
+
+   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19
+ +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+ | T |     Flags     |             username                  | ... remainder (0) |
+ +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+ (T) Type (1 byte)
+
+ The first byte of the data in all Code scan codes is reserved for the scan
+ code type. This field indicates which type of scan code data is contained
+ in the scan code.
+
+ (F) Flags (4 bytes)
+
+ Optional flags may provide additional context on the type of username embedded in
+ the scan code.
+
+ Username (15 bytes)
+
+ The username that uniquely represents a user's tip code. Cannot be longer than 15
+ bytes. Any additional space is represented by an empty string in (remainder).
+*/
