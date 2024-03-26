@@ -143,7 +143,6 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
-    val userPrefsUpdated: Boolean = false,
     val buyKinEnabled: Boolean = false,
     val requestKinEnabled: Boolean = false,
 )
@@ -219,18 +218,8 @@ class HomeViewModel @Inject constructor(
                 uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
             }
 
-        viewModelScope.launch {
-            sessionManager.comeAlive()
-                .onSuccess {
-                    uiFlow.update { it.copy(userPrefsUpdated = true) }
-                }.onFailure {
-                    uiFlow.update { it.copy(userPrefsUpdated = true) }
-                }
-        }
-
-        uiFlow
-            .map { it.userPrefsUpdated }
-            .filter { it }
+        SessionManager.authState
+            .filter { it.userPrefsUpdated }
             .flatMapLatest {
                 prefRepository.observeOrDefault(
                     PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP,

@@ -6,8 +6,6 @@ token="$2"
 # Access the JSON object passed as the first argument
 contents="$3"
 
-echo $contents
-
 data=$(cat <<-END
 {
   "registration_ids":["${token}"],
