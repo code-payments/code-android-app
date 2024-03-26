@@ -195,8 +195,8 @@
   <string name="subtitle_canOnlyGiveUpTo">You can only give up to %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Your Kin is now available for use in your Code App</string>
   <string name="subtitle_chat_referralBonus">You sent someone their first Kin! Here is your referral bonus:</string>
-  <string name="subtitle_chat_usdcBeingConverted">Your USDC is being converted to Kin. This should take roughly one minute to complete</string>
-  <string name="subtitle_chat_usdcDeposited">You successfully deposited USDC. Open Code App to complete your purchase</string>
+  <string name="subtitle_chat_usdcBeingConverted">Thank you for opening Code, your purchase is now being completed. Your Kin should be available soon</string>
+  <string name="subtitle_chat_usdcDeposited">You\'re almost there! Open the Code app to complete your purchase</string>
   <string name="subtitle_chat_welcomeBonus">Welcome to Code! Here is your first dollar to get you started:</string>
   <string name="subtitle_chooseCountry">Choose a country</string>
   <string name="subtitle_comingSoon">Coming Soon</string>
