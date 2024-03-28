@@ -319,7 +319,7 @@ data class BuyMoreKinModal(
                 if (showClose) {
                     navigator.hide()
                 } else {
-                    navigator.pop()
+                    navigator.popAll()
                 }
             }
         }
