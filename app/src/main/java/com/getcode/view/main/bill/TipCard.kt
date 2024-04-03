@@ -88,26 +88,26 @@ private fun HazedBackground(
     Box(
         modifier = Modifier
             .border(1.dp, Color.Black)
-            .background(color = Brand,)
+            .background(color = Brand)
             .haze(state = hazeState)
     ) {
         val background = CodeTheme.colors.background
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                // blur
+                .hazeChild(state = hazeState, style = HazeStyle(blurRadius = geometry.size.width * 0.07f))
                 // mimic an inner shadow from Figma
                 .drawBehind {
                     drawRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color.White.copy(0.55f), background.copy(alpha = 0.44f)),
+                            colors = listOf(Color.White.copy(0.45f), background.copy(alpha = 0.44f)),
                             center = Offset(-(geometry.size.width.value * 0.34f), geometry.size.height.value * 0.4f),
                             radius = geometry.diagonalDistance * 1.85f
                         ),
-                        topLeft = Offset(geometry.size.width.value * 0.1f, geometry.size.height.value * 0.05f)
+                        topLeft = Offset(geometry.size.width.value * 0.1f, geometry.size.height.value * 0.07f)
                     )
                 }
-                // blur
-                .hazeChild(state = hazeState, style = HazeStyle(blurRadius = geometry.size.width * 0.07f))
         )
     }
 }
