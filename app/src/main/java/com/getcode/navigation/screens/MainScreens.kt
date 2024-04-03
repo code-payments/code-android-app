@@ -32,6 +32,7 @@ import timber.log.Timber
 sealed interface HomeResult {
     data class Bill(val bill: com.getcode.models.Bill): HomeResult
     data class Request(val amount: KinAmount): HomeResult
+    data object Tip: HomeResult
 }
 
 @Parcelize
@@ -59,6 +60,9 @@ data class HomeScreen(
                 is HomeResult.Request -> {
                     Timber.d("presentRequest=${result.amount.fiat}")
                     vm.presentRequest(amount = result.amount, payload = null, request = null)
+                }
+                HomeResult.Tip -> {
+                    vm.presentTipCard(payload = null, request = null)
                 }
             }
         }
@@ -98,7 +102,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
 
 @Parcelize
 data class RequestKinModal(
-    val showClose: Boolean = true,
+    val showClose: Boolean = false,
 ) : AppScreen(), MainGraph, ModalRoot {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey

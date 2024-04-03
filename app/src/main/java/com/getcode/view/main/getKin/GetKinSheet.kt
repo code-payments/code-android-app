@@ -27,9 +27,12 @@ import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.ReferFriendScreen
+import com.getcode.navigation.screens.RequestKinModal
+import com.getcode.navigation.screens.TipCardIntro
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
@@ -44,13 +47,13 @@ import kotlinx.coroutines.flow.onEach
 
 data class GetKinItem(
     val imageResId: Int,
-    val inactiveImageResId: Int,
+    val inactiveImageResId: Int = imageResId,
     val titleTextResId: Int,
     val subtitleTextResId: Int? = null,
-    val isVisible: Boolean,
-    val isActive: Boolean,
-    val isLoading: Boolean,
-    val isStrikeThrough: Boolean,
+    val isVisible: Boolean = true,
+    val isActive: Boolean = true,
+    val isLoading: Boolean = false,
+    val isStrikeThrough: Boolean = false,
     val onClick: () -> Unit,
 )
 
@@ -62,70 +65,47 @@ fun GetKinSheet(
     val dataState by viewModel.stateFlow.collectAsState()
 
     val items = listOf(
+//        GetKinItem(
+//            imageResId = R.drawable.ic_send2,
+//            inactiveImageResId = R.drawable.ic_send2_inactive,
+//            titleTextResId = R.string.title_referFriend,
+//            subtitleTextResId = R.string.title_limitedTimeOffer,
+//            isVisible = dataState.isEligibleGiveFirstKinAirdrop,
+//            isActive = dataState.isEligibleGiveFirstKinAirdrop,
+//            isLoading = false,
+//            isStrikeThrough = !dataState.isEligibleGiveFirstKinAirdrop,
+//            onClick = {
+//                if (!dataState.isEligibleGiveFirstKinAirdrop) {
+//                    return@GetKinItem
+//                }
+//
+//                navigator.push(ReferFriendScreen)
+//            },
+//        ),
         GetKinItem(
-            imageResId = R.drawable.ic_gift,
-            inactiveImageResId = R.drawable.ic_gift_inactive,
-            titleTextResId = R.string.subtitle_getYourFirstKinFree,
-            subtitleTextResId = R.string.title_limitedTimeOffer,
-            isVisible = true,
-            isActive = dataState.isEligibleGetFirstKinAirdrop,
-            isLoading = dataState.isGetFirstKinAirdropLoading,
-            isStrikeThrough = !dataState.isEligibleGetFirstKinAirdrop,
+            imageResId = R.drawable.ic_menu_buy_kin,
+            titleTextResId = R.string.subtitle_buyKin,
             onClick = {
-                if (!dataState.isEligibleGetFirstKinAirdrop || dataState.isGetFirstKinAirdropLoading) {
-                    return@GetKinItem
-                }
-
-                viewModel.dispatchEvent(GetKinSheetViewModel.Event.RequestedFirstKin)
+                navigator.push(BuyMoreKinModal())
             },
         ),
         GetKinItem(
-            imageResId = R.drawable.ic_send2,
-            inactiveImageResId = R.drawable.ic_send2_inactive,
-            titleTextResId = R.string.title_referFriend,
-            subtitleTextResId = R.string.title_limitedTimeOffer,
-            isVisible = dataState.isEligibleGiveFirstKinAirdrop,
-            isActive = dataState.isEligibleGiveFirstKinAirdrop,
-            isLoading = false,
-            isStrikeThrough = !dataState.isEligibleGiveFirstKinAirdrop,
+            imageResId = R.drawable.ic_menu_tip_card,
+            titleTextResId = R.string.title_requestTip,
+            isVisible = dataState.isTipsEnabled,
             onClick = {
-                if (!dataState.isEligibleGiveFirstKinAirdrop) {
-                    return@GetKinItem
-                }
-
-                navigator.push(ReferFriendScreen)
+                navigator.push(TipCardIntro)
             },
         ),
         GetKinItem(
             imageResId = R.drawable.ic_currency_dollar_active,
-            inactiveImageResId = R.drawable.ic_currency_dollar_inactive,
-            titleTextResId = R.string.title_buySellKin,
-            isVisible = true,
-            isActive = true,
-            isLoading = false,
-            isStrikeThrough = false,
+            titleTextResId = R.string.title_requestKin,
+            isVisible = dataState.isRequestKinEnabled,
             onClick = {
-                navigator.push(BuySellScreen)
+                navigator.push(RequestKinModal())
             },
         ),
     )
-
-    RepeatOnLifecycle(Lifecycle.State.RESUMED) {
-        viewModel.eventFlow
-            .filterIsInstance<GetKinSheetViewModel.Event.OnKinReadyToGrab>()
-            .map { it.amount }
-            .onEach {
-                navigator.hideWithResult(
-                    HomeResult.Bill(
-                        Bill.Cash(
-                            kind = Bill.Kind.firstKin,
-                            amount = it,
-                            didReceive = true
-                        )
-                    )
-                )
-            }.launchIn(this)
-    }
 
     ConstraintLayout(
         modifier = Modifier
@@ -161,14 +141,14 @@ fun GetKinSheet(
             )
         }
 
+        val x10 = CodeTheme.dimens.grid.x10
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .constrainAs(bottomSection) {
-                    top.linkTo(topSection.bottom)
+                    top.linkTo(topSection.bottom, margin = x10)
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                    bottom.linkTo(parent.bottom)
                 },
         ) {
             Column {

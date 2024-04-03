@@ -79,6 +79,12 @@ fun BetaFlagsScreen(
             state.chatUnsubEnabled,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableChatUnsubscribe(it)) },
         BetaFeature(
+            PrefsBool.TIPS_ENABLED,
+            R.string.beta_tipcard,
+            stringResource(id = R.string.beta_tipcard_description),
+            state.tipsEnabled,
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipCard(it)) },
+        BetaFeature(
             PrefsBool.LOG_SCAN_TIMES,
             R.string.beta_scan_times,
             stringResource(R.string.beta_scan_times_description),

@@ -11,8 +11,8 @@ import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.analytics.AnalyticsService
+import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
@@ -27,6 +27,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
+import com.getcode.model.Username
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
@@ -35,7 +36,8 @@ import com.getcode.models.LoginConfirmation
 import com.getcode.models.LoginState
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentState
-import com.getcode.models.Valuation
+import com.getcode.models.PaymentValuation
+import com.getcode.models.ShareAction
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
@@ -52,7 +54,6 @@ import com.getcode.network.client.rejectLogin
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
-import com.getcode.network.client.updatePreferences
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PaymentRepository
@@ -143,8 +144,8 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
-    val buyKinEnabled: Boolean = false,
     val requestKinEnabled: Boolean = false,
+    val tipsEnabled: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -197,7 +198,7 @@ class HomeViewModel @Inject constructor(
                 uiFlow.update {
                     it.copy(
                         requestKinEnabled = beta.giveRequestsEnabled,
-                        buyKinEnabled = beta.buyKinEnabled,
+                        tipsEnabled = beta.tipsEnabled,
                     )
                 }
 
@@ -214,6 +215,8 @@ class HomeViewModel @Inject constructor(
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
             .subscribeOn(Schedulers.computation())
+            .timeout(15_000L, TimeUnit.MILLISECONDS)
+            .onErrorComplete { false }
             .subscribe { isUpgradeRequired ->
                 uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
             }
@@ -344,7 +347,17 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update {
                         it.copy(
                             billState = it.billState.copy(
-                                hideBillButtons = true
+                                hideBillButtons = true,
+                                shareAction = null,
+                            )
+                        )
+                    }
+                } else {
+                    uiFlow.update {
+                        it.copy(
+                            billState = it.billState.copy(
+                                hideBillButtons = false,
+                                shareAction = ShareAction.Send,
                             )
                         )
                     }
@@ -393,7 +406,7 @@ class HomeViewModel @Inject constructor(
                         val billState = it.billState
                         it.copy(
                             billState = billState.copy(
-                                valuation = Valuation(
+                                valuation = PaymentValuation(
                                     bill.amount
                                 ),
                             )
@@ -416,7 +429,7 @@ class HomeViewModel @Inject constructor(
                                 amount = bill.amount,
                                 didReceive = bill.didReceive
                             ),
-                            valuation = Valuation(bill.amount),
+                            valuation = PaymentValuation(bill.amount),
                             showToast = bill.didReceive
                         )
                     )
@@ -455,6 +468,7 @@ class HomeViewModel @Inject constructor(
                         hideBillButtons = false,
                         bill = null,
                         valuation = null,
+                        shareAction = null,
                     )
                 )
             }
@@ -584,6 +598,7 @@ class HomeViewModel @Inject constructor(
             Kind.RequestPaymentV2 -> attemptPayment(codePayload)
 
             Kind.Login -> attemptLogin(codePayload)
+            Kind.Tip -> attemptTip(codePayload)
         }
     }
 
@@ -598,6 +613,48 @@ class HomeViewModel @Inject constructor(
             // correct account before we attempt to pay a request
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
+
+    private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) = viewModelScope.launch {
+        BottomBarManager.clear()
+        presentTipCard(payload = codePayload, request = request)
+
+        // Ensure that we preemptively pull funds into the
+        // correct account before we attempt to pay a request
+        client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
+    }
+
+    fun presentTipCard(payload: CodePayload?, request: DeepLinkRequest? = null) = viewModelScope.launch {
+        val code: CodePayload
+        var isShareable = false
+        if (payload != null) {
+            code = payload
+        } else {
+            isShareable = true
+            // TODO: fetch twitter user after setup
+            code = CodePayload(
+                kind = Kind.Tip,
+                value = Username("getcode"),
+            )
+        }
+
+        vibrator.vibrate()
+
+        val presentationStyle = if (isShareable) PresentationStyle.Slide else PresentationStyle.Pop
+        withContext(Dispatchers.Main) {
+            uiFlow.update {
+                val billState = it.billState.copy(
+                    bill = Bill.Tip(code),
+                    hideBillButtons = false,
+                    shareAction = if (presentationStyle == PresentationStyle.Slide) ShareAction.Share else null,
+                )
+
+                it.copy(
+                    presentationStyle = presentationStyle,
+                    billState = billState,
+                )
+            }
+        }
+    }
 
     fun presentRequest(
         amount: KinAmount,
@@ -630,7 +687,8 @@ class HomeViewModel @Inject constructor(
             uiFlow.update {
                 var billState = it.billState.copy(
                     bill = Bill.Payment(amount, code, request),
-                    valuation = Valuation(amount)
+                    valuation = PaymentValuation(amount),
+                    shareAction = null,
                 )
 
                 if (isReceived) {
@@ -749,6 +807,7 @@ class HomeViewModel @Inject constructor(
                     paymentConfirmation = null,
                     valuation = null,
                     hideBillButtons = false,
+                    shareAction = null,
                 )
             )
         }
@@ -815,7 +874,8 @@ class HomeViewModel @Inject constructor(
                         payload = payload,
                         domain = domain
                     ),
-                    hideBillButtons = true
+                    hideBillButtons = true,
+                    shareAction = null,
                 )
             )
         }
@@ -902,6 +962,7 @@ class HomeViewModel @Inject constructor(
                     toast = null,
                     valuation = null,
                     hideBillButtons = false,
+                    shareAction = null,
                 )
             )
         }
@@ -1065,8 +1126,23 @@ class HomeViewModel @Inject constructor(
         authManager.logout(activity, onComplete = {})
     }
 
+
     @SuppressLint("CheckResult")
     fun onRemoteSend(context: Context) {
+        val bill = uiFlow.value.billState.bill
+        when (bill) {
+            is Bill.Cash -> {
+                shareGiftCard(context)
+            }
+            is Bill.Tip -> {
+
+            }
+
+            else -> Unit
+        }
+    }
+
+    private fun shareGiftCard(context: Context) {
         val giftCard = GiftCardAccount.newInstance(context)
         val amount = sendTransactionRepository.getAmount()
         var loadingIndicatorTimer: TimerTask? = null

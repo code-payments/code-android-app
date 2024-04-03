@@ -42,9 +42,6 @@ private object LoginBillDefaults {
 private class LoginBillGeometry(width: Dp, height: Dp): Geometry(width, height) {
     val brandWidth: Dp
         get() = size.width * 0.18f
-
-    val codeWidth: Dp
-        get() = size.width * 0.65f
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -60,9 +57,6 @@ fun LoginBill(
             .padding(horizontal = CodeTheme.dimens.inset),
         contentAlignment = Alignment.Center
     ) {
-        val mW = maxWidth
-        val codeSize = remember { mW * 0.65f }
-
         BoxWithConstraints(
             modifier = Modifier
                 .padding(bottom = screenHeight * 0.10f)
@@ -85,7 +79,7 @@ fun LoginBill(
                     ScannableCode(
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
-                            .size(geometry.codeWidth),
+                            .size(geometry.codeSize),
                         data = data
                     )
                 }

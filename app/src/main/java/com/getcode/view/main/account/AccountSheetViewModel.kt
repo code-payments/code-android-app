@@ -7,6 +7,7 @@ import com.getcode.R
 import com.getcode.manager.AuthManager
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
@@ -30,7 +31,6 @@ data class AccountMainItem(
 )
 
 enum class AccountPage {
-    BUY_KIN,
     DEPOSIT,
     WITHDRAW,
     PHONE,
@@ -62,12 +62,11 @@ class AccountSheetViewModel @Inject constructor(
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
         val betaFlagsVisible: Boolean = false,
-        val buyKinEnabled: Boolean = false,
     )
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
-        data class OnBuyKinEnabled(val enabled: Boolean): Event
+        data class BetaFlagsChanged(val options: BetaOptions): Event
         data class OnBetaVisibilityChanged(val visible: Boolean) : Event
         data object LogoClicked : Event
         data class Navigate(val page: AccountPage) : Event
@@ -82,7 +81,7 @@ class AccountSheetViewModel @Inject constructor(
     init {
         betaFlags.observe()
             .distinctUntilChanged()
-            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyKinEnabled)) }
+            .onEach { dispatchEvent(Dispatchers.Main, Event.BetaFlagsChanged(it)) }
             .launchIn(viewModelScope)
 
         prefRepository
@@ -109,11 +108,6 @@ class AccountSheetViewModel @Inject constructor(
 
     companion object {
         private val fullItemSet = listOf(
-            AccountMainItem(
-                type = AccountPage.BUY_KIN,
-                name = R.string.action_buyMoreKin,
-                icon = R.drawable.ic_currency_dollar_active
-            ),
             AccountMainItem(
                 type = AccountPage.DEPOSIT,
                 name = R.string.title_depositKin,
@@ -146,6 +140,23 @@ class AccountSheetViewModel @Inject constructor(
             )
         )
 
+        private fun buildItemSet(
+            betaFlagsVisible: Boolean,
+        ): List<AccountMainItem> {
+            val fullItems = fullItemSet
+
+            val items = fullItems
+                .filter {
+                    if (it.type == AccountPage.ACCOUNT_DEBUG_OPTIONS) {
+                        betaFlagsVisible
+                    } else {
+                        true
+                    }
+                }
+
+            return items
+        }
+
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnPhoneLinked -> { state -> state.copy(isPhoneLinked = event.linked) }
@@ -154,41 +165,20 @@ class AccountSheetViewModel @Inject constructor(
                     state.copy(logoClickCount = count)
                 }
 
-                is Event.OnBuyKinEnabled -> { state ->
-                    val enabled = event.enabled
+                is Event.BetaFlagsChanged -> { state ->
+                    val items = buildItemSet(
+                        betaFlagsVisible = state.betaFlagsVisible
+                    )
 
-                    val items = state.items.map {
-                        if (it.type == AccountPage.BUY_KIN) {
-                            if (enabled) {
-                                it.copy(name = R.string.action_buyMoreKin)
-                            } else {
-                                it.copy(name = R.string.title_buySellKin)
-                            }
-                        } else {
-                            it
-                        }
-                    }
                     state.copy(
                         items = items,
-                        buyKinEnabled = enabled
                     )
                 }
+
                 is Event.OnBetaVisibilityChanged -> { state ->
-                    val fullItems = fullItemSet.map {
-                        if (it.type == AccountPage.BUY_KIN) {
-                            if (state.buyKinEnabled) {
-                                it.copy(name = R.string.action_buyMoreKin)
-                            } else {
-                                it.copy(name = R.string.title_buySellKin)
-                            }
-                        } else {
-                            it
-                        }
-                    }
-                    val items = when {
-                        event.visible -> fullItems
-                        else -> fullItems.filter { it.type != AccountPage.ACCOUNT_DEBUG_OPTIONS }
-                    }
+                    val items = buildItemSet(
+                        betaFlagsVisible = event.visible
+                    )
 
                     state.copy(
                         betaFlagsVisible = event.visible,

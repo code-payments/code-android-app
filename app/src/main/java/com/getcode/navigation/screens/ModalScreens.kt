@@ -28,6 +28,7 @@ import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.ReferFriend
+import com.getcode.view.main.tip.TipCardIntroScreen
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -354,6 +355,28 @@ data class BuyMoreKinModal(
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.BuyMoreKin
         )
+    }
+}
+
+@Parcelize
+data object TipCardIntro: MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        ModalContainer(
+            backButton = {
+                if (navigator.isVisible) {
+                    it is TipCardIntro
+                } else {
+                    navigator.progress > 0f
+                }
+            }
+        ) {
+            TipCardIntroScreen()
+        }
     }
 }
 

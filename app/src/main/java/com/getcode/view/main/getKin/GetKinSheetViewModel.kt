@@ -11,6 +11,8 @@ import com.getcode.network.HistoryController
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.client.requestFirstKinAirdrop
+import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.resources.ResourceHelper
@@ -22,6 +24,7 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
@@ -37,135 +40,38 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class GetKinSheetViewModel @Inject constructor(
-    private val prefsRepository: PrefRepository,
-    private val balanceController: BalanceController,
-    private val client: Client,
-    private val networkObserver: NetworkConnectivityListener,
-    private val resources: ResourceHelper,
-    private val historyController: HistoryController,
+    betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<GetKinSheetViewModel.State, GetKinSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
 
     data class State(
-        val isEligibleGetFirstKinAirdrop: Boolean = false,
-        val isEligibleGiveFirstKinAirdrop: Boolean = false,
-        val isGetFirstKinAirdropLoading: Boolean = false
+        val isTipsEnabled: Boolean = false,
+        val isRequestKinEnabled: Boolean = false,
     )
 
     sealed interface Event {
-        data class OnGetEligibilityChanged(val eligible: Boolean, val fromEvent: Boolean = false) : Event
-        data class OnGiveEligibilityChanged(val eligible: Boolean) : Event
-        data class OnLoadingChanged(val loading: Boolean) : Event
-
-        /**
-         * User initiates a request for the FirstKin
-         */
-        data object RequestedFirstKin : Event
-
-        /**
-         * Kin Airdrop ready to present to the user to be grabbed
-         */
-        data class OnKinReadyToGrab(val amount: KinAmount) : Event
-
-        /**
-         * Kin Airdrop received from server
-         */
-        data class OnKinRequestSuccessful(val amount: KinAmount) : Event
+        data class OnBetaFlagsChanged(val options: BetaOptions) : Event
     }
 
     init {
-        prefsRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
-            .map { it }
-            .onEach {
-                dispatchEvent(Event.OnGetEligibilityChanged(it))
-            }.launchIn(viewModelScope)
 
-        prefsRepository.observeOrDefault(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP, false)
-            .map { it }
-            .onEach {
-                dispatchEvent(Event.OnGiveEligibilityChanged(it))
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.RequestedFirstKin>()
-            .mapNotNull {
-                if (!networkObserver.isConnected) {
-                    ErrorUtils.showNetworkError(resources)
-                    return@mapNotNull null
-                }
-                SessionManager.getKeyPair()
-            }.onEach { dispatchEvent(Event.OnLoadingChanged(true)) }
-            .catchSafely(
-                action = { owner ->
-                    delay(1.seconds)
-                    val amount = client.requestFirstKinAirdrop(owner).getOrThrow()
-
-                    dispatchEvent(Event.OnGetEligibilityChanged(eligible = false, fromEvent = true))
-                    dispatchEvent(Event.OnLoadingChanged(false))
-                    dispatchEvent(Event.OnKinRequestSuccessful(amount))
-
-                    balanceController.fetchBalanceSuspend()
-
-                    historyController.fetchChats()
-                },
-                onFailure = {
-                    if (it is TransactionRepository.AirdropException.AlreadyClaimedException) {
-                        dispatchEvent(Event.OnGetEligibilityChanged(eligible = false, fromEvent = true))
-                    } else {
-                        TopBarManager.showMessage(
-                            resources.getString(R.string.title_failed),
-                            resources.getString(R.string.error_description_failedToVerifyPhone),
-                        )
-                    }
-                    ErrorUtils.handleError(it)
-                }
-            )
-            .flatMapLatest {
-                val organizer = SessionManager.getOrganizer()
-                val receiveWithinLimits = organizer?.let {
-                    client.receiveFromPrimaryIfWithinLimits(it)
-                } ?: Completable.complete()
-
-                receiveWithinLimits.toFlowable<Any>().asFlow()
-            }
+        betaFlags.observe()
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Event.OnBetaFlagsChanged(it)) }
             .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnGetEligibilityChanged>()
-            .filter { it.fromEvent }
-            .map { it.eligible }
-            .onEach { prefsRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, it) }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnKinRequestSuccessful>()
-            .onEach { delay(300.milliseconds) }
-            .map { it.amount }
-            .onEach {
-                dispatchEvent(Event.OnKinReadyToGrab(it))
-            }.launchIn(viewModelScope)
     }
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnGetEligibilityChanged -> { state ->
-                    state.copy(isEligibleGetFirstKinAirdrop = event.eligible)
+                is Event.OnBetaFlagsChanged -> { state ->
+                    state.copy(
+                        isTipsEnabled = event.options.tipsEnabled,
+                        isRequestKinEnabled = event.options.giveRequestsEnabled,
+                    )
                 }
-
-                is Event.OnGiveEligibilityChanged -> { state ->
-                    state.copy(isEligibleGiveFirstKinAirdrop = event.eligible)
-                }
-
-                is Event.OnLoadingChanged -> { state ->
-                    state.copy(isGetFirstKinAirdropLoading = event.loading)
-                }
-
-                Event.RequestedFirstKin,
-                is Event.OnKinReadyToGrab,
-                is Event.OnKinRequestSuccessful -> { state -> state }
             }
         }
     }

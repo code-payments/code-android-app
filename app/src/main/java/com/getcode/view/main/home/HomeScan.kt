@@ -54,7 +54,6 @@ import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
@@ -203,13 +202,10 @@ private fun HomeScan(
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
                 HomeBottomSheet.GET_KIN -> {
                     when {
-                        dataState.requestKinEnabled -> {
-                            navigator.show(RequestKinModal(showClose = true))
+                        dataState.tipsEnabled || dataState.requestKinEnabled -> {
+                            navigator.show(GetKinModal)
                         }
-                        dataState.buyKinEnabled -> {
-                            navigator.show(BuyMoreKinModal(showClose = true))
-                        }
-                        else ->  navigator.show(GetKinModal)
+                        else -> navigator.show(BuyMoreKinModal(showClose = true))
                     }
                 }
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
@@ -411,7 +407,7 @@ private fun BillContainer(
         val showManagementOptions by remember(updatedState.billState) {
             derivedStateOf {
                 billDismissState.targetValue == DismissValue.Default &&
-                        updatedState.billState.valuation != null &&
+                        (updatedState.billState.valuation != null || updatedState.billState.bill is Bill.Tip) &&
                         !updatedState.billState.hideBillButtons
             }
         }
@@ -450,7 +446,7 @@ private fun BillContainer(
             BillManagementOptions(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars),
-                showSend = updatedState.billState.bill is Bill.Cash,
+                shareAction = updatedState.billState.shareAction,
                 isSending = updatedState.isRemoteSendLoading,
                 onSend = { homeViewModel.onRemoteSend(context) },
                 canCancel = canCancel,
@@ -504,11 +500,7 @@ private fun BillContainer(
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            if (dataState.buyKinEnabled) {
-                                navigator.show(BuyMoreKinModal(showClose = true))
-                            } else {
-                                navigator.show(GetKinModal)
-                            }
+                            navigator.show(BuyMoreKinModal(showClose = true))
                         },
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {

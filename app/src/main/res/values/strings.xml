@@ -16,4 +16,10 @@
     <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
+
+    <string name="action_requestTip">Request a Tip</string>
+    <string name="title_requestTip">Request a Tip</string>
+    <string name="subtitle_requestTip">Your Tip Card lets you to receive tips from Code users all over the world. To access your Tip Card connect your X identity.</string>
+    <string name="action_connectXAccount">Connect Your Account</string>
+    <string name="action_share">Share</string>
 </resources>

@@ -21,6 +21,7 @@ object ErrorUtils {
     }
 
     fun handleError(throwable: Throwable) {
+        throwable.printStackTrace()
         if (isNetworkError(throwable) || isRuntimeError(throwable)) return
 
         val throwableCause: Throwable =

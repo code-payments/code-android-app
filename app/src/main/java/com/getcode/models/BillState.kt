@@ -1,11 +1,28 @@
 package com.getcode.models
 
 import androidx.compose.runtime.Composable
+import com.getcode.R
 import com.getcode.model.CodePayload
 import com.getcode.model.Domain
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.Rate
+import com.getcode.model.Username
 import com.getcode.util.formatted
 
+sealed interface ShareAction {
+
+    val label: Int
+    data object Send: ShareAction {
+        override val label: Int
+            get() = R.string.action_send
+    }
+
+    data object Share: ShareAction {
+        override val label: Int
+            get() = R.string.action_share
+    }
+}
 data class BillState(
     val bill: Bill? = null,
     val showToast: Boolean = false,
@@ -13,7 +30,8 @@ data class BillState(
     val valuation: Valuation? = null,
     val paymentConfirmation: PaymentConfirmation? = null,
     val loginConfirmation: LoginConfirmation? = null,
-    val hideBillButtons: Boolean = false
+    val hideBillButtons: Boolean = false,
+    val shareAction: ShareAction? = null,
 ) {
     val canSwipeToDismiss: Boolean
         get() = when (bill) {
@@ -41,7 +59,7 @@ sealed interface Bill {
     val data: List<Byte>
 
     enum class Kind {
-        cash, remote, firstKin, referral
+        cash, remote, firstKin, referral, tip
     }
 
     val metadata: Metadata
@@ -62,6 +80,11 @@ sealed interface Bill {
                     kinAmount = amount,
                     data = payload.codeData.toList(),
                     request = request,
+                )
+
+                is Tip -> Metadata(
+                    kinAmount = amount,
+                    data = data
                 )
             }
         }
@@ -90,14 +113,21 @@ sealed interface Bill {
         override val didReceive: Boolean = false
         override val data: List<Byte> = payload.codeData.toList()
     }
+
+    data class Tip(
+        val payload: CodePayload,
+    ) : Bill {
+        override val amount: KinAmount = KinAmount.newInstance(Kin.fromKin(0), Rate.oneToOne)
+        override val didReceive: Boolean = false
+        override val data: List<Byte> = payload.codeData.toList()
+    }
 }
 
 val Bill.amountFloored: KinAmount
     get() = amount.copy(kin = amount.kin.toKinTruncating())
 
-data class Valuation(
-    val amount: KinAmount,
-)
+sealed interface Valuation
+data class PaymentValuation(val amount: KinAmount): Valuation
 
 data class BillToast(
     val amount: KinAmount,
