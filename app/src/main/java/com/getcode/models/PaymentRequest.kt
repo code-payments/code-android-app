@@ -21,6 +21,7 @@ data class DeepLinkRequest(
     val clientSecret: List<Byte>,
     val paymentRequest: PaymentRequest? = null,
     val loginRequest: LoginRequest? = null,
+    val tipRequest: TipRequest? = null,
     val successUrl: String?,
     val cancelUrl: String?,
 
@@ -30,6 +31,7 @@ data class DeepLinkRequest(
         @SerialName("payment") Payment,
         @SerialName("donation") Donation,
         @SerialName("login") Login,
+        @SerialName("tip") Tip,
     }
 
     companion object {
@@ -116,6 +118,13 @@ data class DeepLinkRequest(
                         )
                     )
                 }
+                Mode.Tip -> {
+                    val platform = container.decode<PlatformKeys>("platform") ?: return null
+
+                    return baseRequest.copy(
+                        tipRequest = TipRequest(platform.name, platform.username)
+                    )
+                }
             }
         }
     }
@@ -129,6 +138,11 @@ data class PaymentRequest(
 data class LoginRequest(
     val verifier: PublicKey,
     val domain: Domain,
+)
+
+data class TipRequest(
+    val platformName: String,
+    val username: String,
 )
 
 private inline fun <reified T> JsonObject.decode(key: String): T? {
@@ -145,22 +159,16 @@ private inline fun <reified T, R> JsonObject.decode(key: String, map: (T) -> R):
 }
 
 @Serializable
-private data class RequestKeys(
-    val mode: DeepLinkRequest.Mode,
-    val currency: String,
-    val destination: String,
-    val amount: Double,
-    val clientSecret: String,
-    @SerialName("successURL") val successUrl: String?,
-    @SerialName("cancelURL") val cancelUrl: String?,
-    val confirmParams: ConfirmParams
-)
-
-@Serializable
 private data class LoginKeys(
     val verifier: String? = null,
     val domain: String? = null,
     val clientSecret: String? = null,
+)
+
+@Serializable
+private data class PlatformKeys(
+    val name: String,
+    val username: String,
 )
 
 @Serializable

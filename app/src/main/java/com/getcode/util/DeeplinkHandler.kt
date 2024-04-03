@@ -83,6 +83,7 @@ class DeeplinkHandler @Inject constructor() {
             "cash", "c" -> Type.Cash(fragments[Key.entropy])
             "login-request-modal-desktop", "login-request-modal-mobile",
             "payment-request-modal-desktop", "payment-request-modal-mobile",
+            "tip-request-modal-desktop", "tip-request-modal-mobile"
             -> {
                 Type.Sdk(fragments[Key.payload]?.urlDecode())
             }

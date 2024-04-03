@@ -643,7 +643,7 @@ class HomeViewModel @Inject constructor(
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
-                    bill = Bill.Tip(code),
+                    bill = Bill.Tip(code, request),
                     hideBillButtons = false,
                     shareAction = if (presentationStyle == PresentationStyle.Slide) ShareAction.Share else null,
                 )
@@ -1289,6 +1289,20 @@ class HomeViewModel @Inject constructor(
 
                 scannedRendezvous.add(payload.rendezvous.publicKey)
                 attemptLogin(payload, request)
+            } else if (request.tipRequest != null) {
+                val payload = CodePayload(
+                    kind = Kind.Tip,
+                    value = Username(request.tipRequest.username)
+                )
+
+                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                    return
+                }
+
+                scannedRendezvous.add(payload.rendezvous.publicKey)
+
+                attemptTip(payload, request)
             }
         }
     }

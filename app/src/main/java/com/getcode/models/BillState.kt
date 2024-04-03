@@ -116,6 +116,7 @@ sealed interface Bill {
 
     data class Tip(
         val payload: CodePayload,
+        val request: DeepLinkRequest? = null
     ) : Bill {
         override val amount: KinAmount = KinAmount.newInstance(Kin.fromKin(0), Rate.oneToOne)
         override val didReceive: Boolean = false
