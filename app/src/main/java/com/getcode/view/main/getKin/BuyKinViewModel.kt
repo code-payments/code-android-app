@@ -6,10 +6,10 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.BuyLimit
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
-import com.getcode.model.Limit
 import com.getcode.model.Rate
 import com.getcode.network.client.Client
 import com.getcode.network.client.declareFiatPurchase
@@ -218,7 +218,7 @@ class BuyKinViewModel @Inject constructor(
     }
 
     private val checkMinimumMet: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
-        val threshold = transactionRepository.buyLimitFor(rate.currency) ?: Limit.Zero
+        val threshold = transactionRepository.buyLimitFor(rate.currency) ?: BuyLimit.Zero
         val isUnderMinimum = amount.fiat < threshold.min
         if (isUnderMinimum) {
             val formatted = FormatUtils.formatCurrency(threshold.min, rate.currency)
@@ -232,7 +232,7 @@ class BuyKinViewModel @Inject constructor(
     }
 
     private val checkUnderMax: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
-        val threshold = transactionRepository.buyLimitFor(rate.currency) ?: Limit.Zero
+        val threshold = transactionRepository.buyLimitFor(rate.currency) ?: BuyLimit.Zero
         val isOverLimit = amount.fiat > threshold.max
         if (isOverLimit) {
             val formatted = FormatUtils.formatCurrency(threshold.max, rate.currency)

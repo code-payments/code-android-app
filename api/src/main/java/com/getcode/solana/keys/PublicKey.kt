@@ -6,6 +6,7 @@ import com.getcode.model.Kin
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.instructions.programs.*
 import com.getcode.vendor.Base58
+import com.google.protobuf.ByteString
 import org.kin.sdk.base.tools.longToByteArray
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -27,6 +28,10 @@ class PublicKey(bytes: List<Byte>) : Key32(bytes) {
 
         fun fromBase58(base58: String): PublicKey {
             return PublicKey(Base58.decode(base58).toList())
+        }
+
+        fun fromByteString(byteString: ByteString): PublicKey {
+            return PublicKey(byteString.toByteArray().toList())
         }
 
         fun deriveAssociatedAccount(owner: PublicKey, mint: PublicKey): ProgramDerivedAccount {

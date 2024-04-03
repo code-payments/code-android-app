@@ -79,8 +79,12 @@ class TransactionRepository @Inject constructor(
         maxDeposit = deposit
     }
 
-    fun buyLimitFor(currencyCode: CurrencyCode): Limit? {
+    fun buyLimitFor(currencyCode: CurrencyCode): BuyLimit? {
         return limits?.buyLimitFor(currencyCode)
+    }
+
+    fun sendLimitFor(currencyCode: CurrencyCode): SendLimit? {
+        return limits?.sendLimitFor(currencyCode)
     }
 
     private fun setLimits(limits: Limits) {

@@ -101,7 +101,7 @@ private fun HazedBackground(
                 .drawBehind {
                     drawRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color.White.copy(0.45f), background.copy(alpha = 0.44f)),
+                            colors = listOf(Color.White.copy(0.45f), background.copy(alpha = 0.24f)),
                             center = Offset(-(geometry.size.width.value * 0.34f), geometry.size.height.value * 0.4f),
                             radius = geometry.diagonalDistance * 1.85f
                         ),
