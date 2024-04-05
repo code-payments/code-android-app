@@ -50,13 +50,14 @@ internal fun MessageContent.localizedText(title: String, resources: ResourceHelp
                 Verb.Sent,
                 Verb.Spent,
                 Verb.Unknown,
-                Verb.Withdrew -> {
+                Verb.Withdrew,
+                Verb.ReceivedTip,
+                Verb.SentTip -> {
                     "$localized $amount"
                 }
                 Verb.Returned -> {
                     "$amount $localized"
                 }
-
             }
         }
 
@@ -113,7 +114,9 @@ internal val MessageContent.localizedText: String
                     Verb.Sent,
                     Verb.Spent,
                     Verb.Unknown,
-                    Verb.Withdrew -> {
+                    Verb.Withdrew,
+                    Verb.ReceivedTip,
+                    Verb.SentTip -> {
                         "$localized $amount"
                     }
                     Verb.Returned -> {
@@ -149,7 +152,9 @@ fun Verb.localizedText(resources: ResourceHelper): String {
         Verb.Received,
         Verb.Sent,
         Verb.Spent,
-        Verb.Withdrew -> {
+        Verb.Withdrew,
+        Verb.ReceivedTip,
+        Verb.SentTip -> {
             resources.getIdentifier(
                 "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
                 ResourceType.String,
@@ -182,7 +187,9 @@ val Verb.localizedText: String
             Verb.Received,
             Verb.Sent,
             Verb.Spent,
-            Verb.Withdrew -> {
+            Verb.Withdrew,
+            Verb.ReceivedTip,
+            Verb.SentTip -> {
                 resources.getIdentifier(
                     "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
                     "string",
