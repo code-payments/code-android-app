@@ -16,12 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 
 @Composable
 fun Modal(
     modifier: Modifier = Modifier,
-    backgroundColor: Color,
+    backgroundColor: Color = Brand,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(

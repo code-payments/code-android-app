@@ -5,6 +5,7 @@ import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
+import com.getcode.model.KinAmount
 import com.getcode.model.PrefsString
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
@@ -45,6 +46,10 @@ enum class FundsDirection {
 sealed interface FlowType {
     val direction: FundsDirection
     data object Give: FlowType {
+        override val direction: FundsDirection = FundsDirection.Outgoing
+    }
+
+    data object Tip: FlowType {
         override val direction: FundsDirection = FundsDirection.Outgoing
     }
 
@@ -233,7 +238,6 @@ abstract class BaseAmountCurrencyViewModel(
         val buyLimitKin = FormatUtils.getKinValue(buyLimit, selectedCurrency.rate)
             .inflating()
 
-        Timber.d("buy limit=$buyLimit")
         val amountAvailable = min(sendLimit, fiatValue)
 
         val isInsufficient = when (flowType.direction) {
@@ -348,10 +352,27 @@ abstract class BaseAmountCurrencyViewModel(
                             getString(R.string.core_ofKin)
                 } else {
                     if (amountInput > amountAvailable) {
-                        getString(R.string.subtitle_canOnlyGiveUpTo)
-                            .replaceParam(FormatUtils.formatCurrency(amountAvailable, currency.code))
-                            .plus(" ")
-                            .plus(getString(R.string.core_ofKin))
+                        if (flowType is FlowType.Tip) {
+                            getString(R.string.subtitle_canOnlyTipUpTo)
+                                .replaceParam(
+                                    FormatUtils.formatCurrency(
+                                        amountAvailable,
+                                        currency.code
+                                    )
+                                )
+                                .plus(" ")
+                                .plus(getString(R.string.core_ofKin))
+                        } else {
+                            getString(R.string.subtitle_canOnlyGiveUpTo)
+                                .replaceParam(
+                                    FormatUtils.formatCurrency(
+                                        amountAvailable,
+                                        currency.code
+                                    )
+                                )
+                                .plus(" ")
+                                .plus(getString(R.string.core_ofKin))
+                        }
                     } else {
                         String.format("%,.0f", amountInputKin)
                     }

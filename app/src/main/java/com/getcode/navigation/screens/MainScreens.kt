@@ -27,12 +27,12 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import timber.log.Timber
 
 sealed interface HomeResult {
-    data class Bill(val bill: com.getcode.models.Bill): HomeResult
-    data class Request(val amount: KinAmount): HomeResult
-    data object Tip: HomeResult
+    data class Bill(val bill: com.getcode.models.Bill) : HomeResult
+    data class Request(val amount: KinAmount) : HomeResult
+    data class ConfirmTip(val amount: KinAmount) : HomeResult
+    data object ShowTipCard : HomeResult
 }
 
 @Parcelize
@@ -54,15 +54,19 @@ data class HomeScreen(
         OnScreenResult<HomeResult> { result ->
             when (result) {
                 is HomeResult.Bill -> {
-                    Timber.d("onShowBill=${result.bill.amount.fiat}")
                     vm.showBill(result.bill)
                 }
+
                 is HomeResult.Request -> {
-                    Timber.d("presentRequest=${result.amount.fiat}")
                     vm.presentRequest(amount = result.amount, payload = null, request = null)
                 }
-                HomeResult.Tip -> {
-                    vm.presentTipCard(payload = null, request = null)
+
+                is HomeResult.ConfirmTip -> {
+                    vm.presentTipConfirmation(result.amount)
+                }
+
+                is HomeResult.ShowTipCard -> {
+                    vm.presentShareableTipCard()
                 }
             }
         }

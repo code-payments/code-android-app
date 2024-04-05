@@ -21,7 +21,6 @@ object ErrorUtils {
     }
 
     fun handleError(throwable: Throwable) {
-        throwable.printStackTrace()
         if (isNetworkError(throwable) || isRuntimeError(throwable)) return
 
         val throwableCause: Throwable =
@@ -29,7 +28,7 @@ object ErrorUtils {
                 throwable.cause ?: throwable
             else throwable
 
-        if (BuildConfig.DEBUG || (isDisplayErrors && !isSuppressibleError(throwable))) {
+        if ((isDisplayErrors && !isSuppressibleError(throwable))) {
             Timber.e(throwable)
 
             TopBarManager.showMessage(

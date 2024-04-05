@@ -161,6 +161,9 @@ dependencies {
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
 
+    implementation(Libs.coil3)
+    implementation(Libs.coil3_network)
+
     implementation(Libs.androidx_browser)
     implementation(Libs.androidx_constraint_layout_compose)
 

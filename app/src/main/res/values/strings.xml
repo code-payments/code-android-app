@@ -19,7 +19,12 @@
 
     <string name="action_requestTip">Request a Tip</string>
     <string name="title_requestTip">Request a Tip</string>
+    <string name="action_tipKin">Tip Kin</string>
+    <string name="action_swipeToTip">Swipe to Tip</string>
+    <string name="subtitle_canOnlyTipUpTo">You can only tip up to %1$s</string>
+    <string name="error_title_invalidTipCard">Invalid Tip Card</string>
+    <string name="error_description_invalidTipCard">This is an invalid Tip Card.</string>
     <string name="subtitle_requestTip">Your Tip Card lets you to receive tips from Code users all over the world. To access your Tip Card connect your X identity.</string>
-    <string name="action_connectXAccount">Connect Your Account</string>
+    <string name="action_connectXAccount">Post to Connect Your Account</string>
     <string name="action_share">Share</string>
 </resources>

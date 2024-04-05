@@ -2,6 +2,7 @@ package com.getcode.network.api
 
 import com.codeinc.gen.user.v1.IdentityGrpc
 import com.codeinc.gen.user.v1.IdentityService
+import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
 import com.getcode.network.core.GrpcApi
@@ -43,6 +44,10 @@ class IdentityApi @Inject constructor(
         .flowOn(Dispatchers.IO)
 
     fun updatePreferences(request: UpdatePreferencesRequest) = api::updatePreferences
+        .callAsCancellableFlow(request)
+        .flowOn(Dispatchers.IO)
+
+    fun fetchTwitterUser(request: GetTwitterUserRequest) = api::getTwitterUser
         .callAsCancellableFlow(request)
         .flowOn(Dispatchers.IO)
 }

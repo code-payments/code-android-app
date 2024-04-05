@@ -1,15 +1,26 @@
 package com.getcode.model
 
+import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserResponse
 import com.getcode.solana.keys.PublicKey
 
 data class TwitterUser(
     val username: String,
-    val avatarUrl: String,
-    val avatarBytes: List<Byte>,
+    val imageUrl: String,
     val followerCount: Int,
     val tipAddress: PublicKey,
 ) {
+
+    val imageUrlSanitized: String
+        get() {
+            val url = imageUrl
+            val extension = MimeTypeMap.getFileExtensionFromUrl(url)
+            val urlWithoutExtension = url.removeSuffix(extension)
+            val urlWithoutType = urlWithoutExtension.substringBeforeLast("_")
+
+            return urlWithoutType.plus(".$extension")
+        }
+
     companion object {
         fun invoke(proto: GetTwitterUserResponse): TwitterUser? {
             val avatarUrl = proto.profilePicUrl
@@ -19,8 +30,7 @@ data class TwitterUser(
 
             return TwitterUser(
                 username = proto.name,
-                avatarUrl = avatarUrl,
-                avatarBytes = avatarBytes.toList(),
+                imageUrl = avatarUrl,
                 followerCount = proto.followerCount,
                 tipAddress = tipAddress
             )

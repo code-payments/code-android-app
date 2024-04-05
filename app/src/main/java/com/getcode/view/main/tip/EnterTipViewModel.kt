@@ -1,4 +1,4 @@
-package com.getcode.view.main.requestKin
+package com.getcode.view.main.tip
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.model.CurrencyCode
@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class RequestKinViewModel @Inject constructor(
+class EnterTipViewModel @Inject constructor(
     client: Client,
     exchange: Exchange,
     prefsRepository: PrefRepository,
@@ -66,7 +66,7 @@ class RequestKinViewModel @Inject constructor(
         }
     }
 
-    override val flowType: FlowType = FlowType.Request
+    override val flowType: FlowType = FlowType.Tip
 
     override fun reset() {
         numberInputHelper.reset()
@@ -104,7 +104,7 @@ class RequestKinViewModel @Inject constructor(
             it.copy(
                 continueEnabled = numberInputHelper.amount >= minValue &&
                         !it.amountModel.isInsufficient &&
-                        numberInputHelper.amount <= it.amountModel.buyLimit
+                        numberInputHelper.amount <= it.amountModel.sendLimit
             )
         }
     }

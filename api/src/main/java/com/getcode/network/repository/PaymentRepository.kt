@@ -6,14 +6,18 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
+import com.getcode.model.TwitterUser
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.establishRelationshipSingle
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.transferWithResult
+import com.getcode.network.client.transferWithResultSingle
 import com.getcode.network.exchange.Exchange
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
@@ -28,7 +32,6 @@ import kotlin.coroutines.resumeWithException
 
 
 class PaymentRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val exchange: Exchange,
     private val messagingRepository: MessagingRepository,
     private val client: Client,
@@ -51,10 +54,6 @@ class PaymentRepository @Inject constructor(
             return payload to loginAttempt
         }.onFailure { ErrorUtils.handleError(it) }.getOrNull()
     }
-
-//    suspend fun rejectLogin(rendezvousKey: KeyPair) {
-//        messagingRepository.rejectLogin(rendezvousKey)
-//    }
 
     suspend fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
         val fiat = payload.fiat
@@ -147,7 +146,6 @@ class PaymentRepository @Inject constructor(
 
                 // 5. Complete the transfer.
                 val transferResult = client.transferWithResult(
-                    context = context,
                     amount = paymentAmount.copy(kin = paymentAmount.kin.toKinTruncating()),
                     fee = fee.kin,
                     additionalFees = receiveRequest.additionalFees,
@@ -155,7 +153,7 @@ class PaymentRepository @Inject constructor(
                     rendezvousKey = rendezvousKey.publicKeyBytes.toPublicKey(),
                     destination = receiveRequest.account,
                     isWithdrawal = true
-                ).blockingGet()
+                )
 
                 if (transferResult.isSuccess) {
                     Completable.concatArray(

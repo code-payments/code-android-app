@@ -1,5 +1,6 @@
 package com.getcode.models
 
+import android.webkit.MimeTypeMap
 import androidx.compose.runtime.Composable
 import com.getcode.R
 import com.getcode.model.CodePayload
@@ -7,7 +8,7 @@ import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
-import com.getcode.model.Username
+import com.getcode.model.TwitterUser
 import com.getcode.util.formatted
 
 sealed interface ShareAction {
@@ -24,15 +25,18 @@ sealed interface ShareAction {
     }
 }
 data class BillState(
-    val bill: Bill? = null,
-    val showToast: Boolean = false,
-    val toast: BillToast? = null,
-    val valuation: Valuation? = null,
-    val paymentConfirmation: PaymentConfirmation? = null,
-    val loginConfirmation: LoginConfirmation? = null,
-    val hideBillButtons: Boolean = false,
-    val shareAction: ShareAction? = null,
+    val bill: Bill?,
+    val showToast: Boolean,
+    val toast: BillToast?,
+    val valuation: Valuation?,
+    val paymentConfirmation: PaymentConfirmation?,
+    val loginConfirmation: LoginConfirmation?,
+    val tipConfirmation: TipConfirmation?,
+    val shareAction: ShareAction?,
+    val showCancelAction: Boolean,
 ) {
+    val hideBillButtons: Boolean
+        get() = shareAction == null && !showCancelAction
     val canSwipeToDismiss: Boolean
         get() = when (bill) {
             is Bill.Cash -> true
@@ -48,7 +52,9 @@ data class BillState(
             valuation = null,
             paymentConfirmation = null,
             loginConfirmation = null,
-            hideBillButtons = false
+            tipConfirmation = null,
+            shareAction = null,
+            showCancelAction = false
         )
     }
 }
@@ -142,30 +148,45 @@ data class BillToast(
 }
 
 data class PaymentConfirmation(
-    val state: PaymentState,
+    val state: ConfirmationState,
     val payload: CodePayload,
     val requestedAmount: KinAmount,
     val localAmount: KinAmount,
 )
 
 data class LoginConfirmation(
-    val state: LoginState,
+    val state: ConfirmationState,
     val payload: CodePayload,
     val domain: Domain,
 )
 
-sealed interface PaymentState {
-    data object AwaitingConfirmation : PaymentState
-    data object Sending : PaymentState
-    data object Sent : PaymentState
-    data class Error(val exception: Throwable) : PaymentState
+data class TipConfirmation(
+    val state: ConfirmationState,
+    val amount: KinAmount,
+    val payload: CodePayload?,
+    val username: String,
+    val imageUrl: String?,
+    val followerCount: Int?
+) {
+    val followCountFormatted: String?
+        get() {
+            return when {
+                followerCount == null -> null
+                followerCount > 1000 -> {
+                    val decimal = followerCount.toDouble() / 1_000
+                    val formattedString = String.format("%.1fK", decimal)
+                    formattedString
+                }
+                else -> followerCount.toString()
+            }
+        }
 }
 
-sealed interface LoginState {
-    data object AwaitingConfirmation : LoginState
-    data object Sending : LoginState
-    data object Sent : LoginState
-    data class Error(val exception: Throwable) : LoginState
+
+sealed interface ConfirmationState {
+    data object AwaitingConfirmation : ConfirmationState
+    data object Sending : ConfirmationState
+    data object Sent : ConfirmationState
 }
 
 data class Metadata(

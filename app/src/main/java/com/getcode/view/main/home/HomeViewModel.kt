@@ -26,6 +26,7 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
+import com.getcode.model.PrefsString
 import com.getcode.model.Rate
 import com.getcode.model.Username
 import com.getcode.models.Bill
@@ -33,14 +34,15 @@ import com.getcode.models.BillState
 import com.getcode.models.BillToast
 import com.getcode.models.DeepLinkRequest
 import com.getcode.models.LoginConfirmation
-import com.getcode.models.LoginState
 import com.getcode.models.PaymentConfirmation
-import com.getcode.models.PaymentState
+import com.getcode.models.ConfirmationState
 import com.getcode.models.PaymentValuation
 import com.getcode.models.ShareAction
+import com.getcode.models.TipConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
+import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
 import com.getcode.network.client.awaitEstablishRelationship
@@ -54,6 +56,8 @@ import com.getcode.network.client.rejectLogin
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
+import com.getcode.network.client.transferWithResult
+import com.getcode.network.client.transferWithResultSingle
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PaymentRepository
@@ -64,6 +68,7 @@ import com.getcode.network.repository.StatusRepository
 import com.getcode.network.repository.hexEncodedString
 import com.getcode.network.repository.replaceParam
 import com.getcode.network.repository.toPublicKey
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.util.CurrencyUtils
@@ -150,6 +155,7 @@ data class HomeUiModel(
 
 sealed interface HomeEvent {
     data class OpenUrl(val url: String) : HomeEvent
+    data object PresentTipEntry : HomeEvent
 }
 
 enum class RestrictionType {
@@ -167,6 +173,7 @@ class HomeViewModel @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
     private val historyController: HistoryController,
+    private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
     private val authManager: AuthManager,
@@ -175,7 +182,6 @@ class HomeViewModel @Inject constructor(
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
     private val exchange: Exchange,
-    private val sessionManager: SessionManager,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
@@ -204,7 +210,7 @@ class HomeViewModel @Inject constructor(
 
                 ErrorUtils.setDisplayErrors(beta.displayErrors)
 
-                if (beta.establishCodeRelationship ) {
+                if (beta.establishCodeRelationship) {
                     val organizer = SessionManager.getOrganizer() ?: return@onEach
                     val domain = Domain.from("getcode.com") ?: return@onEach
                     if (organizer.relationshipFor(domain) == null) {
@@ -347,8 +353,8 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update {
                         it.copy(
                             billState = it.billState.copy(
-                                hideBillButtons = true,
                                 shareAction = null,
+                                showCancelAction = false,
                             )
                         )
                     }
@@ -356,7 +362,7 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update {
                         it.copy(
                             billState = it.billState.copy(
-                                hideBillButtons = false,
+                                showCancelAction = true,
                                 shareAction = ShareAction.Send,
                             )
                         )
@@ -465,10 +471,10 @@ class HomeViewModel @Inject constructor(
                 it.copy(
                     presentationStyle = style,
                     billState = it.billState.copy(
-                        hideBillButtons = false,
                         bill = null,
                         valuation = null,
                         shareAction = null,
+                        showCancelAction = false,
                     )
                 )
             }
@@ -614,45 +620,184 @@ class HomeViewModel @Inject constructor(
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
 
-    private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) = viewModelScope.launch {
-        BottomBarManager.clear()
-        presentTipCard(payload = codePayload, request = request)
+    private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) =
+        viewModelScope.launch {
+            BottomBarManager.clear()
+            val username = codePayload.username ?: request?.tipRequest?.username ?: return@launch
+            presentTipCard(payload = codePayload, username = username)
 
-        // Ensure that we preemptively pull funds into the
-        // correct account before we attempt to pay a request
-        client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
-    }
-
-    fun presentTipCard(payload: CodePayload?, request: DeepLinkRequest? = null) = viewModelScope.launch {
-        val code: CodePayload
-        var isShareable = false
-        if (payload != null) {
-            code = payload
-        } else {
-            isShareable = true
-            // TODO: fetch twitter user after setup
-            code = CodePayload(
-                kind = Kind.Tip,
-                value = Username("getcode"),
-            )
+            // Ensure that we preemptively pull funds into the
+            // correct account before we attempt to tip
+            client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
 
-        vibrator.vibrate()
+    fun presentShareableTipCard() = viewModelScope.launch {
+        val username = prefRepository.get(
+            PrefsString.KEY_TWITTER_USERNAME,
+            ""
+        ).takeIf { it.isNotEmpty() } ?: return@launch
 
-        val presentationStyle = if (isShareable) PresentationStyle.Slide else PresentationStyle.Pop
+        val code = CodePayload(
+            kind = Kind.Tip,
+            value = Username(username)
+        )
+
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
-                    bill = Bill.Tip(code, request),
-                    hideBillButtons = false,
-                    shareAction = if (presentationStyle == PresentationStyle.Slide) ShareAction.Share else null,
+                    bill = Bill.Tip(code),
+                    shareAction = ShareAction.Share,
+                    showCancelAction = true
                 )
 
                 it.copy(
-                    presentationStyle = presentationStyle,
+                    presentationStyle = PresentationStyle.Pop,
                     billState = billState,
                 )
             }
+        }
+    }
+
+    private fun presentTipCard(
+        payload: CodePayload,
+        username: String,
+    ) = viewModelScope.launch {
+        vibrator.vibrate()
+
+        withContext(Dispatchers.Main) {
+            uiFlow.update {
+                val billState = it.billState.copy(
+                    bill = Bill.Tip(payload),
+                    shareAction = null,
+                    showCancelAction = false
+                )
+
+                it.copy(
+                    presentationStyle = PresentationStyle.Pop,
+                    billState = billState,
+                )
+            }
+        }
+
+        // Tip codes are always the same, we need to
+        // ensure that we can scan the same code again
+        scannedRendezvous.remove(payload.rendezvous.publicKey)
+
+        runCatching { tipController.fetch(username, payload) }
+            .onFailure {
+                // User not found
+                // Prevent scanning invalid tip cards repeatedly
+                scannedRendezvous.add(payload.rendezvous.publicKey)
+                cancelTip()
+                TopBarManager.showMessage(
+                    resources.getString(R.string.error_title_invalidTipCard),
+                    resources.getString(R.string.error_description_invalidTipCard),
+                )
+            }.onSuccess {
+                delay(300.milliseconds)
+                _eventFlow.emit(HomeEvent.PresentTipEntry)
+                analytics.tipCardShown(username)
+            }
+    }
+
+    fun presentTipConfirmation(amount: KinAmount) {
+        val data = tipController.scannedUserData ?: return
+        val (username, payload) = data
+
+        val metadata = tipController.userMetadata
+        uiFlow.update {
+            val billState = it.billState.copy(
+                tipConfirmation = TipConfirmation(
+                    state = ConfirmationState.AwaitingConfirmation,
+                    payload = payload,
+                    amount = amount,
+                    username = username,
+                    imageUrl = metadata?.imageUrlSanitized,
+                    followerCount = metadata?.followerCount ?: 0,
+                )
+            )
+
+            it.copy(billState = billState)
+        }
+    }
+
+    fun completeTipPayment() = viewModelScope.launch {
+        val tipConfirmation = uiFlow.value.billState.tipConfirmation ?: return@launch
+        val metadata = tipController.userMetadata ?: return@launch
+
+        val organizer = SessionManager.getOrganizer() ?: return@launch
+
+        val amount = tipConfirmation.amount
+
+        // Generally, we would use the rendezvous key that
+        // was generated from the scan code payload, however,
+        // tip codes are inherently deterministic and won't
+        // change so we need a unique rendezvous for every tx.
+        val rendezvous = PublicKey.generate()
+
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    tipConfirmation = tipConfirmation.copy(state = ConfirmationState.Sending)
+                ),
+            )
+        }
+
+        client.transferWithResult(
+            amount = amount,
+            organizer = organizer,
+            fee = Kin.fromKin(0),
+            additionalFees = emptyList(),
+            rendezvousKey = rendezvous,
+            destination = metadata.tipAddress,
+            isWithdrawal = true
+        ).onFailure {
+            analytics.transferForTip(amount = amount, successful = false)
+            cancelTip()
+        }.onSuccess {
+            analytics.transferForTip(amount = amount, successful = true)
+            uiFlow.update {
+                val billState = it.billState
+                val confirmation = it.billState.paymentConfirmation ?: return@update it
+
+                it.copy(
+                    billState = billState.copy(
+                        paymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                    ),
+                )
+            }
+            delay(400.milliseconds)
+            cancelTip()
+            showToast(amount, isDeposit = false)
+            historyController.fetchChats()
+        }
+    }
+
+    fun cancelTipEntry() {
+        // Cancelling from amount entry is triggered by a UI event.
+        // To distinguish between a valid "Next" action that will
+        // also dismiss the entry screen, we need to check explicitly
+        if (uiFlow.value.billState.tipConfirmation == null) {
+            cancelTip()
+        }
+    }
+
+    fun cancelTip() {
+        tipController.reset()
+        uiFlow.update {
+            val billState = it.billState.copy(
+                bill = null,
+                tipConfirmation = null,
+                valuation = null,
+                showCancelAction = false,
+                shareAction = null,
+            )
+
+            it.copy(
+                presentationStyle = PresentationStyle.Slide,
+                billState = billState
+            )
         }
     }
 
@@ -694,12 +839,11 @@ class HomeViewModel @Inject constructor(
                 if (isReceived) {
                     billState = billState.copy(
                         paymentConfirmation = PaymentConfirmation(
-                            state = PaymentState.AwaitingConfirmation,
+                            state = ConfirmationState.AwaitingConfirmation,
                             payload = code,
                             requestedAmount = amount,
                             localAmount = amount.replacing(exchange.localRate)
                         ),
-                        hideBillButtons = true
                     )
                 }
 
@@ -735,7 +879,7 @@ class HomeViewModel @Inject constructor(
                 val billState = it.billState
                 it.copy(
                     billState = billState.copy(
-                        paymentConfirmation = paymentConfirmation.copy(state = PaymentState.Sending)
+                        paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
                     ),
                 )
             }
@@ -749,17 +893,15 @@ class HomeViewModel @Inject constructor(
         }.onSuccess {
             historyController.fetchChats()
 
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    val billState = it.billState
-                    val confirmation = it.billState.paymentConfirmation ?: return@update it
+            uiFlow.update {
+                val billState = it.billState
+                val confirmation = it.billState.paymentConfirmation ?: return@update it
 
-                    it.copy(
-                        billState = billState.copy(
-                            paymentConfirmation = confirmation.copy(state = PaymentState.Sent),
-                        ),
-                    )
-                }
+                it.copy(
+                    billState = billState.copy(
+                        paymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                    ),
+                )
             }
 
             delay(400.milliseconds)
@@ -780,7 +922,8 @@ class HomeViewModel @Inject constructor(
                         paymentConfirmation = null,
                         toast = null,
                         valuation = null,
-                        hideBillButtons = false,
+                        shareAction = null,
+                        showCancelAction = false,
                     )
                 )
             }
@@ -806,7 +949,7 @@ class HomeViewModel @Inject constructor(
                     bill = null,
                     paymentConfirmation = null,
                     valuation = null,
-                    hideBillButtons = false,
+                    showCancelAction = false,
                     shareAction = null,
                 )
             )
@@ -870,11 +1013,11 @@ class HomeViewModel @Inject constructor(
                         request = request,
                     ),
                     loginConfirmation = LoginConfirmation(
-                        state = LoginState.AwaitingConfirmation,
+                        state = ConfirmationState.AwaitingConfirmation,
                         payload = payload,
                         domain = domain
                     ),
-                    hideBillButtons = true,
+                    showCancelAction = false,
                     shareAction = null,
                 )
             )
@@ -890,7 +1033,7 @@ class HomeViewModel @Inject constructor(
             val billState = it.billState
             it.copy(
                 billState = billState.copy(
-                    loginConfirmation = loginConfirmation.copy(state = LoginState.Sending)
+                    loginConfirmation = loginConfirmation.copy(state = ConfirmationState.Sending)
                 ),
             )
         }
@@ -927,7 +1070,8 @@ class HomeViewModel @Inject constructor(
                         loginConfirmation = null,
                         toast = null,
                         valuation = null,
-                        hideBillButtons = false,
+                        shareAction = null,
+                        showCancelAction = false,
                     )
                 )
             }
@@ -938,7 +1082,7 @@ class HomeViewModel @Inject constructor(
 
                 it.copy(
                     billState = billState.copy(
-                        loginConfirmation = confirmation.copy(state = LoginState.Sent),
+                        loginConfirmation = confirmation.copy(state = ConfirmationState.Sent),
                     ),
                 )
             }
@@ -961,8 +1105,8 @@ class HomeViewModel @Inject constructor(
                     loginConfirmation = null,
                     toast = null,
                     valuation = null,
-                    hideBillButtons = false,
                     shareAction = null,
+                    showCancelAction = false,
                 )
             )
         }
@@ -1134,6 +1278,7 @@ class HomeViewModel @Inject constructor(
             is Bill.Cash -> {
                 shareGiftCard(context)
             }
+
             is Bill.Tip -> {
 
             }
@@ -1260,7 +1405,8 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                     val fiat = request.paymentRequest.fiat
-                    val kind = if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                    val kind =
+                        if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
                     val payload = CodePayload(
                         kind = kind,
                         value = fiat,
