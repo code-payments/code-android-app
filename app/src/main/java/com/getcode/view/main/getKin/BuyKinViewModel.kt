@@ -176,7 +176,7 @@ class BuyKinViewModel @Inject constructor(
             linkedAccount = organizer.swapKeyPair
         ).onFailure {
             TopBarManager.showMessage(
-                resources.getString(R.string.error_title_purchaseTooLarge),
+                resources.getString(R.string.error_title_account_error),
                 resources.getString(R.string.error_description_usdc_deposit_failure)
             )
         }.onSuccess {
