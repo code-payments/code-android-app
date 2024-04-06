@@ -81,12 +81,8 @@ class DeeplinkHandler @Inject constructor() {
             }
 
             "cash", "c" -> Type.Cash(fragments[Key.entropy])
-            "login-request-modal-desktop", "login-request-modal-mobile",
-            "payment-request-modal-desktop", "payment-request-modal-mobile",
-            "tip-request-modal-desktop", "tip-request-modal-mobile"
-            -> {
-                Type.Sdk(fragments[Key.payload]?.urlDecode())
-            }
+            // support all variations of SDK request triggers
+            in Type.Sdk.regex -> Type.Sdk(fragments[Key.payload]?.urlDecode())
             else -> Type.Unknown(path = segment)
         }
 
@@ -106,7 +102,11 @@ class DeeplinkHandler @Inject constructor() {
     sealed interface Type {
         data class Login(val link: String?) : Type
         data class Cash(val link: String?) : Type
-        data class Sdk(val payload: String?) : Type
+        data class Sdk(val payload: String?) : Type {
+            companion object {
+                val regex = Regex("^(login|payment|tip)?-?request-(modal|page)-(mobile|desktop)\$")
+            }
+        }
         data class Unknown(val path: String?) : Type
     }
 
@@ -137,3 +137,5 @@ class DeeplinkHandler @Inject constructor() {
         }
     }
 }
+
+private operator fun Regex.contains(text: String?): Boolean = text?.let { this.matches(it) } ?: false
