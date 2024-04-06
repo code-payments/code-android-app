@@ -120,8 +120,8 @@
   <string name="error_title_noInternet">No Internet Connection</string>
   <string name="error_title_noInvitesLeft">You Have No Invites</string>
   <string name="error_title_notInvitedYet">You Haven\'t Been Invited Yet</string>
-  <string name="error_title_purchaseTooLarge">Purchase too large</string>
-  <string name="error_title_purchaseTooSmall">Purchase too small</string>
+  <string name="error_title_purchaseTooLarge">Purchase Too Large</string>
+  <string name="error_title_purchaseTooSmall">Purchase Too Small</string>
   <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Code</string>
   <string name="error_title_tooManyAccounts">Too many accounts created</string>
   <string name="faq_a__1">Code is a payments app that makes it simple to send money to anyone, anywhere in the world.</string>
