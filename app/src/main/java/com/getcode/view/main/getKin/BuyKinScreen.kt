@@ -31,6 +31,7 @@ import com.getcode.ui.components.Row
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -120,6 +121,7 @@ fun BuyKinScreen(
                 composeScope.launch {
                     viewModel.initiatePurchase()?.let {
                         uriHandler.openUri(it)
+                        delay(1_000)
                         onRedirected()
                     }
                 }

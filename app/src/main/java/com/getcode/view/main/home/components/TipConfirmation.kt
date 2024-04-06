@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
+import coil3.request.error
 import com.getcode.R
 import com.getcode.models.ConfirmationState
 import com.getcode.models.TipConfirmation
@@ -56,6 +57,7 @@ internal fun TipConfirmation(
                 .clip(CircleShape),
             model = ImageRequest.Builder(LocalPlatformContext.current)
                 .data(confirmation?.imageUrl)
+                .error(R.drawable.ic_placeholder_user)
                 .placeholderMemoryCacheKey(confirmation?.username)
                 .build(),
             contentDescription = null,

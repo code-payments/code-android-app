@@ -23,27 +23,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.lifecycle.Lifecycle
 import com.getcode.R
-import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
-import com.getcode.navigation.screens.BuySellScreen
-import com.getcode.navigation.screens.HomeResult
-import com.getcode.navigation.screens.ReferFriendScreen
 import com.getcode.navigation.screens.RequestKinModal
-import com.getcode.navigation.screens.TipCardIntro
+import com.getcode.navigation.screens.TipCard
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.ui.components.CodeCircularProgressIndicator
-import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 
 data class GetKinItem(
     val imageResId: Int,
@@ -94,7 +84,7 @@ fun GetKinSheet(
             titleTextResId = R.string.title_requestTip,
             isVisible = dataState.isTipsEnabled,
             onClick = {
-                navigator.push(TipCardIntro)
+                navigator.push(TipCard)
             },
         ),
         GetKinItem(

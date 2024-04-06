@@ -29,11 +29,7 @@
     <string name="subtitle_requestTip">Your Tip Card lets you to receive tips from Code users all over the world. To access your Tip Card post to X.</string>
     <string name="action_connectXAccount">Post to Connect Your Account</string>
     <string name="action_share">Share</string>
-    <string name="action_connect_to_x_message">
-        I\’m connecting my X account with @getcode so I can receive tips from people all over the world.
-
-        CodeAccount:%1$s
-    </string>
+    <string name="action_connect_to_x_message">I\’m connecting my X account with @getcode so I can receive tips from people all over the world.</string>
 
     <string name="subtitle_youReceivedTip">Someone tipped you $1$s</string>
     <string name="subtitle_youSentTip">You tipped someone $1$s</string>
