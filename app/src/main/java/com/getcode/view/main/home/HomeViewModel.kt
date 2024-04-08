@@ -632,6 +632,7 @@ class HomeViewModel @Inject constructor(
 
     private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) =
         viewModelScope.launch {
+            if (!uiFlow.value.tipsEnabled) return@launch
             BottomBarManager.clear()
             val username = codePayload.username ?: request?.tipRequest?.username ?: return@launch
             presentTipCard(payload = codePayload, username = username)
@@ -668,10 +669,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun presentTipCard(
+    private suspend fun presentTipCard(
         payload: CodePayload,
         username: String,
-    ) = viewModelScope.launch {
+    ) {
         vibrator.vibrate()
 
         withContext(Dispatchers.Main) {
