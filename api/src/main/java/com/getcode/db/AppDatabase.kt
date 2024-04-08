@@ -28,14 +28,14 @@ import java.io.File
         PrefString::class,
         PrefBool::class,
         PrefDouble::class,
-        SendLimit::class,
         GiftCard::class,
         ExchangeRate::class,
     ],
     autoMigrations = [
-        AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class)
+        AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class),
+        AutoMigration(from = 8, to = 9, spec = AppDatabase.Migration8To9::class)
     ],
-    version = 8
+    version = 9
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -48,6 +48,9 @@ abstract class AppDatabase : RoomDatabase() {
 
     @DeleteTable(tableName = "HistoricalTransaction")
     class Migration7To8 : AutoMigrationSpec
+
+    @DeleteTable(tableName = "SendLimit")
+    class Migration8To9 : AutoMigrationSpec
 }
 
 object Database {

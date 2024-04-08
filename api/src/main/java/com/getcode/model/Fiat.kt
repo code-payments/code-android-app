@@ -1,7 +1,5 @@
 package com.getcode.model
 
-import java.text.DecimalFormat
-
 sealed interface Value
 
 data class Fiat(

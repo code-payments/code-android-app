@@ -6,17 +6,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,7 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,7 +33,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.Rate
 import com.getcode.models.PaymentConfirmation
-import com.getcode.models.PaymentState
+import com.getcode.models.ConfirmationState
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
@@ -66,14 +57,14 @@ internal fun PaymentConfirmation(
     }
 
     val isSending by remember(state) {
-        derivedStateOf { state is PaymentState.Sending }
+        derivedStateOf { state is ConfirmationState.Sending }
     }
 
     val requestedAmount by remember(confirmation?.localAmount?.kin?.quarks) {
         derivedStateOf { confirmation?.localAmount }
     }
 
-    Modal(modifier, backgroundColor = Brand) {
+    Modal(modifier) {
         val amount = requestedAmount
         if (state != null && amount != null && balance != null) {
             val balanceAmount = remember {
@@ -90,7 +81,7 @@ internal fun PaymentConfirmation(
             } else {
                 InsufficientFundsModalContent(onAddKin)
             }
-            val enabled = !isSending && state !is PaymentState.Sent
+            val enabled = !isSending && state !is ConfirmationState.Sent
             val alpha by animateFloatAsState(targetValue = if (enabled) 1f else 0f, label = "alpha")
             CodeButton(
                 modifier = Modifier.fillMaxWidth().alpha(alpha),
@@ -114,7 +105,7 @@ private val payload = CodePayload(
     ).map { it.toByte() }
 )
 
-private fun confirmationWithState(state: PaymentState) = PaymentConfirmation(
+private fun confirmationWithState(state: ConfirmationState) = PaymentConfirmation(
     state = state,
     payload = payload,
     requestedAmount = KinAmount.fromFiatAmount(
@@ -140,7 +131,7 @@ fun Preview_PaymentConfirmModal_Awaiting() {
         ) {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                confirmation = confirmationWithState(PaymentState.AwaitingConfirmation),
+                confirmation = confirmationWithState(ConfirmationState.AwaitingConfirmation),
                 balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                 onSend = { }
             ) {
@@ -161,7 +152,7 @@ fun Preview_PaymentConfirmModal_Sending() {
         ) {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                confirmation = confirmationWithState(PaymentState.Sending),
+                confirmation = confirmationWithState(ConfirmationState.Sending),
                 balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                 onSend = { }
             ) {
@@ -182,7 +173,7 @@ fun Preview_PaymentConfirmModal_Sent() {
         ) {
             PaymentConfirmation(
                 modifier = Modifier.align(Alignment.BottomCenter),
-                confirmation = confirmationWithState(PaymentState.Sent),
+                confirmation = confirmationWithState(ConfirmationState.Sent),
                 balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                 onSend = { }
             ) {
@@ -204,7 +195,7 @@ fun Preview_PaymentConfirmModal_Interactive() {
             var confirmation by remember {
                 mutableStateOf<PaymentConfirmation?>(
                     PaymentConfirmation(
-                        state = PaymentState.AwaitingConfirmation,
+                        state = ConfirmationState.AwaitingConfirmation,
                         payload = payload,
                         requestedAmount = KinAmount.fromFiatAmount(
                             fiat = 0.25,
@@ -240,7 +231,7 @@ fun Preview_PaymentConfirmModal_Interactive() {
                             confirmation = confirmation,
                             balance = KinAmount.newInstance(fromFiat(1_000.0, usd_fx), USD_Rate),
                             onSend = {
-                                confirmation = confirmation?.copy(state = PaymentState.Sending)
+                                confirmation = confirmation?.copy(state = ConfirmationState.Sending)
                             },
                             onCancel = { confirmation = null }
                         )
@@ -250,10 +241,10 @@ fun Preview_PaymentConfirmModal_Interactive() {
 
             LaunchedEffect(confirmation?.state) {
                 val state = confirmation?.state
-                if (state is PaymentState.Sending) {
+                if (state is ConfirmationState.Sending) {
                     delay(1_500)
-                    confirmation = confirmation?.copy(state = PaymentState.Sent)
-                } else if (state is PaymentState.Sent) {
+                    confirmation = confirmation?.copy(state = ConfirmationState.Sent)
+                } else if (state is ConfirmationState.Sent) {
                     delay(500)
                     confirmation = null
                 }
@@ -266,7 +257,7 @@ fun Preview_PaymentConfirmModal_Interactive() {
 private fun PaymentConfirmationContent(
     amount: KinAmount,
     isSending: Boolean,
-    state: PaymentState?,
+    state: ConfirmationState?,
     onApproved: () -> Unit
 ) {
     PriceWithFlag(
@@ -283,7 +274,7 @@ private fun PaymentConfirmationContent(
     SlideToConfirm(
         isLoading = isSending,
         trackColor = SlideToConfirmDefaults.BlueTrackColor,
-        isSuccess = state is PaymentState.Sent,
+        isSuccess = state is ConfirmationState.Sent,
         onConfirm = { onApproved() },
     )
 }

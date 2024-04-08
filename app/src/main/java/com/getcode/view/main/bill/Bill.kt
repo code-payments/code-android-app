@@ -2,7 +2,6 @@ package com.getcode.view.main.bill
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +35,12 @@ fun Bill(
 
         is Bill.Login -> LoginBill(
             modifier = modifier,
+            data = bill.data,
+        )
+
+        is Bill.Tip -> TipCard(
+            modifier = modifier,
+            username = bill.payload.username.orEmpty(),
             data = bill.data,
         )
     }

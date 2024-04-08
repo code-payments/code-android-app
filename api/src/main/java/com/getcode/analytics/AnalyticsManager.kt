@@ -119,6 +119,17 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun transferForTip(amount: KinAmount, successful: Boolean) {
+        track(
+            Name.Tip,
+            Property.State to if (successful) StringValue.Success.value else StringValue.Failure.value,
+            Property.Amount to amount.kin.toKin().toInt().toString(),
+            Property.Fiat to amount.fiat.toString(),
+            Property.Fx to amount.rate.fx.toString(),
+            Property.Currency to amount.rate.currency.name,
+        )
+    }
+
     override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) {
         track(
             Name.RemoteSendOutgoing,
@@ -219,6 +230,14 @@ class AnalyticsManager @Inject constructor(
         Timber.i("Bill scanned. From start: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
     }
 
+    override fun tipCardShown(username: String) {
+        track(
+            Name.TipCard,
+            Property.State to StringValue.Shown.value,
+            Property.xUsername to username,
+        )
+    }
+
     private fun track(event: Name, vararg properties: Pair<Property, String>) {
         if (BuildConfig.DEBUG) {
             Timber.d("debug track $event, ${properties.map { "${it.first.name}, ${it.second}" }}")
@@ -244,10 +263,12 @@ class AnalyticsManager @Inject constructor(
         //Bill
         Bill("Bill"),
         Request("Request Card"),
+        TipCard("TIp Card"),
 
         //Transfer
         Transfer("Transfer"),
         RequestPayment("Request Payment"),
+        Tip("Tip"),
         RemoteSendOutgoing("Remote Send Outgoing"),
         RemoteSendIncoming("Remote Send Incoming"),
         Grab("Grab"),
@@ -282,6 +303,7 @@ class AnalyticsManager @Inject constructor(
         Currency("Currency"),
         Animation("Animation"),
         Rendezvous("Rendezvous"),
+        xUsername("X Username"),
 
         // Validation
         Type("Type"),

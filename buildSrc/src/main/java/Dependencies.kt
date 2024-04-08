@@ -44,6 +44,7 @@ object Versions {
     const val rxandroid: String = "3.0.0"
 
     const val compose_accompanist: String = "0.24.2-alpha"
+    const val compose_coil: String = "3.0.0-alpha06"
     const val kin_sdk: String = "1.0.1"
     const val grpc_android: String = "1.33.1"
     const val slf4j: String = "1.7.25"
@@ -125,6 +126,9 @@ object Libs {
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
     const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
+
+    const val coil3 = "io.coil-kt.coil3:coil-compose:${Versions.compose_coil}"
+    const val coil3_network = "io.coil-kt.coil3:coil-network-okhttp:${Versions.compose_coil}"
 
     const val hilt = "com.google.dagger:hilt-android:${Versions.hilt}"
     const val hilt_android_compiler = "com.google.dagger:hilt-android-compiler:${Versions.hilt}"

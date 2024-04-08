@@ -104,7 +104,8 @@ internal fun DecorView(
                     text = toast?.formattedAmount.orEmpty(),
                     textStyle = CodeTheme.typography.body2.copy(
                         fontWeight = FontWeight.Bold
-                    )
+                    ),
+                    shape = CodeTheme.shapes.xxl,
                 )
             }
 

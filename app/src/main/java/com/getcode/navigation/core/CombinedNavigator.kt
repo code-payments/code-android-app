@@ -15,7 +15,6 @@ class CombinedNavigator(
 ) : CodeNavigator {
     override var screensNavigator: Navigator? = null
 
-
     override val lastItem: Screen?
         get() = if (isVisible) sheetNavigator.lastItemOrNull else screensNavigator?.lastItemOrNull
 

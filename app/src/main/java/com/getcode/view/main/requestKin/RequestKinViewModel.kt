@@ -80,13 +80,6 @@ class RequestKinViewModel @Inject constructor(
         }
     }
 
-    private val checkUnderMax: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
-        val threshold = getAmountUiModel().buyLimit
-        val isOverLimit = amount.fiat > threshold
-
-        !isOverLimit
-    }
-
     suspend fun onSubmit(): KinAmount? {
         val uiModel = state.value
 

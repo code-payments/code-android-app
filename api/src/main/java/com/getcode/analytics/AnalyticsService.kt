@@ -29,6 +29,7 @@ interface AnalyticsService {
     )
     fun transfer(amount: KinAmount, successful: Boolean)
     fun transferForRequest(amount: KinAmount, successful: Boolean)
+    fun transferForTip(amount: KinAmount, successful: Boolean)
     fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode)
     fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean)
     fun recomputed(fxIn: Double, fxOut: Double)
@@ -41,6 +42,8 @@ interface AnalyticsService {
     fun migration(amount: Kin)
     fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int)
     fun onBillReceived()
+
+    fun tipCardShown(username: String)
 }
 
 class AnalyticsServiceNull : AnalyticsService {
@@ -67,6 +70,8 @@ class AnalyticsServiceNull : AnalyticsService {
     ) = Unit
     override fun transfer(amount: KinAmount, successful: Boolean) = Unit
     override fun transferForRequest(amount: KinAmount, successful: Boolean) = Unit
+    override fun transferForTip(amount: KinAmount, successful: Boolean) = Unit
+
     override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) = Unit
     override fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean) = Unit
     override fun recomputed(fxIn: Double, fxOut: Double) = Unit
@@ -79,4 +84,5 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun migration(amount: Kin) = Unit
     override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) = Unit
     override fun onBillReceived() = Unit
+    override fun tipCardShown(username: String) = Unit
 }

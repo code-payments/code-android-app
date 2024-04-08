@@ -1,28 +1,29 @@
 package com.getcode.model
 
 import com.getcode.codeScanner.CodeScanner
+import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.network.repository.encodeBase64
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
 import com.getcode.utils.deriveRendezvousKey
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.longToByteArray
-import timber.log.Timber
 import java.nio.ByteBuffer
 
 data class CodePayload(
     val kind: Kind,
     val value: Value,
-    val nonce: List<Byte>,
+    val nonce: List<Byte> = emptyList(),
 ) {
-
     val rendezvous: KeyPair
 
     init {
         rendezvous = when (value) {
             is Fiat -> deriveRendezvousKey(encode(kind = kind, fiat = value, nonce = nonce).toByteArray())
             is Kin -> deriveRendezvousKey(encode(kind = kind, kin = value, nonce = nonce).toByteArray())
+            is Username -> deriveRendezvousKey(encode(kind = kind, username = value).toByteArray())
         }
     }
 
@@ -36,6 +37,11 @@ data class CodePayload(
             return value as? Fiat ?: return null
         }
 
+    val username: String?
+        get() {
+            return (value as? Username)?.value ?: return null
+        }
+
     val codeData: ByteArray
         get() = CodeScanner.encode(encode().toByteArray())
 
@@ -43,10 +49,7 @@ data class CodePayload(
         return when (value) {
             is Kin -> encode(kind, value, nonce)
             is Fiat -> encode(kind, value, nonce)
-            else -> {
-                Timber.e("Attempting to encode an unknown value ${value.javaClass.simpleName}")
-                emptyList()
-            }
+            is Username -> encode(kind, value)
         }
     }
 
@@ -85,9 +88,44 @@ data class CodePayload(
         return data
     }
 
+    private fun encode(kind: Kind, username: Username): List<Byte> {
+        val data = MutableList<Byte>(LENGTH) { 0 }
+        data[0] = kind.value.toByte()
+
+        val usernameString = username.value.take(USERNAME_LENGTH)
+
+        // The username that uniquely represents a user's tip code. Cannot be longer than 15
+        // bytes. Any additional space is represented by the base64 encoded SHA256 hash of the username
+        // delimited by a period.
+        val paddedUsername = usernameString.let {
+            var padding = ""
+            val paddingRequired = (USERNAME_LENGTH - it.length)
+            if (paddingRequired > 0) {
+                padding = "."
+            }
+
+            if (paddingRequired > 1) {
+                val hash = Sha256Hash.hash(usernameString.toByteArray()).encodeBase64()
+                padding += hash.take(paddingRequired - 1)
+            }
+
+            "$it$padding"
+        }
+
+        paddedUsername.toByteArray().forEachIndexed { index, byte ->
+            data[index + OFFSET_USERNAME] = byte
+        }
+
+        return data
+    }
+
     companion object {
         const val LENGTH = 20
+
+        const val USERNAME_LENGTH = 15
+
         const val OFFSET_QUARKS = 1
+        const val OFFSET_USERNAME = 5
         const val OFFSET_NONCE = 9
 
         fun fromList(list: List<Byte>): CodePayload {
@@ -122,6 +160,13 @@ data class CodePayload(
                     val nonce = list.suffix(OFFSET_NONCE)
                     fiat to nonce
                 }
+                Kind.Tip -> {
+                    val usernameBytes = list.suffix(OFFSET_USERNAME)
+                    val usernameWithHash = String(usernameBytes.toByteArray())
+                    val hash = usernameWithHash.substringAfterLast(".")
+                    val username = usernameWithHash.substringBeforeLast(".")
+                    Username(username) to emptyList()
+                }
             }
 
             return CodePayload(kind, value, nonce)
@@ -136,7 +181,8 @@ enum class Kind(val value: Int) {
     GiftCard(1),
     RequestPayment(2),
     Login(3),
-    RequestPaymentV2(4)
+    RequestPaymentV2(4),
+    Tip(5)
 }
 
 /*

@@ -27,10 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -164,7 +161,7 @@ private class CashBillGeometry(width: Dp, height: Dp): Geometry(width, height) {
     val brandWidth: Dp
         get() = ceil(size.width.value * 0.18f).dp
 
-    val codeSize: Dp
+    override val codeSize: Dp
         get() = size.width * 0.6f
 
     val globeWidth: Dp

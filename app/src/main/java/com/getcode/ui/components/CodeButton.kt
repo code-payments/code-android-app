@@ -45,19 +45,48 @@ fun CodeButton(
     text: String,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
-    isTextSuccess: Boolean = false,
     enabled: Boolean = true,
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
 ) {
+    CodeButton(
+        modifier = modifier,
+        onClick = onClick,
+        isLoading = isLoading,
+        isSuccess = isSuccess,
+        enabled = enabled,
+        buttonState = buttonState,
+        shape = shape,
+        contentColor = textColor,
+    ) {
+        Text(
+            text = text,
+            style = CodeTheme.typography.button,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+fun CodeButton(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    isLoading: Boolean = false,
+    isSuccess: Boolean = false,
+    enabled: Boolean = true,
+    buttonState: ButtonState = ButtonState.Bordered,
+    shape: Shape = CodeTheme.shapes.small,
+    contentColor: Color = Color.Unspecified,
+    content: @Composable RowScope.() -> Unit,
+) {
     val isEnabled by remember(enabled, isLoading, isSuccess) {
         derivedStateOf { enabled && !isLoading && !isSuccess }
     }
-    val isSuccessful by remember(isSuccess, isTextSuccess) {
-        derivedStateOf { isSuccess || isTextSuccess }
+    val isSuccessful by remember(isSuccess) {
+        derivedStateOf { isSuccess }
     }
-    val colors = getButtonColors(buttonState, textColor)
+    val colors = getButtonColors(buttonState, contentColor)
     val border = getButtonBorder(buttonState, isEnabled)
     val ripple = getRipple(
         buttonState = buttonState,
@@ -77,7 +106,8 @@ fun CodeButton(
             onClick = onClick,
             modifier = Modifier
                 .addIf(size.isSpecified) { Modifier.size(size) }
-                .addIf(size.isUnspecified) { Modifier.measured { size = it }}.then(modifier),
+                .addIf(size.isUnspecified) { Modifier.measured { size = it } }
+                .then(modifier),
             colors = colors,
             border = border,
             enabled = isEnabled,
@@ -111,10 +141,7 @@ fun CodeButton(
                 }
 
                 else -> {
-                    Text(
-                        text = text,
-                        style = CodeTheme.typography.button,
-                    )
+                    content()
                 }
             }
         }

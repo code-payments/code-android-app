@@ -19,9 +19,9 @@ data class Limits(
     val maxDeposit: Kin,
 
     // Remaining send limits keyed by currency
-    private val sendLimits: Map<CurrencyCode, Double>,
+    private val sendLimits: Map<CurrencyCode, SendLimit>,
     // Buy limits keyed by currency
-    private val buyLimits: Map<CurrencyCode, Limit>,
+    private val buyLimits: Map<CurrencyCode, BuyLimit>,
 
 ) {
     val isStale: Boolean
@@ -30,17 +30,11 @@ data class Limits(
             return now - fetchDate > 1.hours.inWholeMilliseconds
         }
 
-    fun todaysAllowanceFor(currencyCode: CurrencyCode) : Double {
-        return sendLimits[currencyCode] ?: 0.0
+    fun sendLimitFor(currencyCode: CurrencyCode) : SendLimit? {
+        return sendLimits[currencyCode]
     }
 
-    fun multiplyingBy(value: Double): Limits {
-        return copy(
-            sendLimits = this.sendLimits.mapValues { (k, v) -> v * value }
-        )
-    }
-
-    fun buyLimitFor(currencyCode: CurrencyCode): Limit? {
+    fun buyLimitFor(currencyCode: CurrencyCode): BuyLimit? {
         return buyLimits[currencyCode]
     }
 
@@ -55,14 +49,21 @@ data class Limits(
             val sends = sendLimits
                 .mapNotNull { (k, v) ->
                     val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
-                    val limit = v.nextTransaction.toDouble()
+                    val limit = SendLimit(
+                        nextTransaction = v.nextTransaction.toDouble(),
+                        maxPerDay = v.maxPerDay.toDouble(),
+                        maxPerTransaction = v.maxPerTransaction.toDouble(),
+                    )
 
                     code to limit
                 }.toMap()
 
             val buys = buyLimits
                 .mapValues { (_, v) ->
-                    Limit(min = v.minPerTransaction.toDouble(), max = v.maxPerTransaction.toDouble())
+                    BuyLimit(
+                        min = v.minPerTransaction.toDouble(),
+                        max = v.maxPerTransaction.toDouble()
+                    )
                 }
                 .mapNotNull { (k, limit) ->
                     val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
@@ -80,9 +81,18 @@ data class Limits(
     }
 }
 
-data class Limit(val min: Double, val max: Double) {
-
+data class SendLimit(
+    val nextTransaction: Double,
+    val maxPerTransaction: Double,
+    val maxPerDay: Double
+) {
     companion object {
-        val Zero = Limit(0.0, 0.0)
+        val Zero = SendLimit(0.0, 0.0, 0.0)
+    }
+}
+
+data class BuyLimit(val min: Double, val max: Double) {
+    companion object {
+        val Zero = BuyLimit(0.0, 0.0)
     }
 }

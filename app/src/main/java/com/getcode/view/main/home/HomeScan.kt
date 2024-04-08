@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
@@ -46,15 +47,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.stack.StackEvent
 import com.getcode.models.Bill
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
@@ -70,7 +72,9 @@ import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
+import com.getcode.view.main.home.components.TipConfirmation
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -94,6 +98,7 @@ fun HomeScreen(
     deepLink: String? = null,
     requestPayload: String? = null,
 ) {
+    val navigator = LocalCodeNavigator.current
     val dataState by homeViewModel.uiFlow.collectAsState()
 
     when (val restrictionType = dataState.restrictionType) {
@@ -128,6 +133,23 @@ fun HomeScreen(
                             }
                         )
                     }.launchIn(this)
+            }
+
+            LaunchedEffect(homeViewModel) {
+                homeViewModel.eventFlow
+                    .filterIsInstance<HomeEvent.PresentTipEntry>()
+                    .onEach {
+                        navigator.show(EnterTipModal)
+                    }.launchIn(this)
+            }
+
+            LaunchedEffect(navigator) {
+                // reset tip entry state when tip entry is manually dismissed
+                // without advancing next
+                snapshotFlow { navigator.progress }
+                    .filter { it == 0f && navigator.lastModalItem is EnterTipModal }
+                    .onEach { homeViewModel.cancelTipEntry() }
+                    .launchIn(this)
             }
         }
     }
@@ -203,13 +225,10 @@ private fun HomeScan(
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
                 HomeBottomSheet.GET_KIN -> {
                     when {
-                        dataState.requestKinEnabled -> {
-                            navigator.show(RequestKinModal(showClose = true))
+                        dataState.tipsEnabled || dataState.requestKinEnabled -> {
+                            navigator.show(GetKinModal)
                         }
-                        dataState.buyKinEnabled -> {
-                            navigator.show(BuyMoreKinModal(showClose = true))
-                        }
-                        else ->  navigator.show(GetKinModal)
+                        else -> navigator.show(BuyMoreKinModal(showClose = true))
                     }
                 }
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
@@ -411,7 +430,7 @@ private fun BillContainer(
         val showManagementOptions by remember(updatedState.billState) {
             derivedStateOf {
                 billDismissState.targetValue == DismissValue.Default &&
-                        updatedState.billState.valuation != null &&
+                        (updatedState.billState.valuation != null || updatedState.billState.bill is Bill.Tip) &&
                         !updatedState.billState.hideBillButtons
             }
         }
@@ -450,9 +469,10 @@ private fun BillContainer(
             BillManagementOptions(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars),
-                showSend = updatedState.billState.bill is Bill.Cash,
+                shareAction = updatedState.billState.shareAction,
                 isSending = updatedState.isRemoteSendLoading,
                 onSend = { homeViewModel.onRemoteSend(context) },
+                showCancel = updatedState.billState.showCancelAction,
                 canCancel = canCancel,
                 onCancel = {
                     homeViewModel.cancelSend()
@@ -504,11 +524,7 @@ private fun BillContainer(
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            if (dataState.buyKinEnabled) {
-                                navigator.show(BuyMoreKinModal(showClose = true))
-                            } else {
-                                navigator.show(GetKinModal)
-                            }
+                            navigator.show(BuyMoreKinModal(showClose = true))
                         },
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {
@@ -536,6 +552,26 @@ private fun BillContainer(
                         onCancel = {
                             homeViewModel.rejectLogin()
                         }
+                    )
+                }
+            }
+        }
+
+        // Tip Confirmation container
+        AnimatedContent(
+            modifier = Modifier.align(BottomCenter),
+            targetState = updatedState.billState.tipConfirmation?.payload, // payload is constant across state changes
+            transitionSpec = AnimationUtils.modalAnimationSpec(),
+            label = "tip confirmation",
+        ) {
+            if (it != null) {
+                Box(
+                    contentAlignment = BottomCenter
+                ) {
+                    TipConfirmation(
+                        confirmation = updatedState.billState.tipConfirmation,
+                        onSend = { homeViewModel.completeTipPayment() },
+                        onCancel = { homeViewModel.cancelTip() }
                     )
                 }
             }
