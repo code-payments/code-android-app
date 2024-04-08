@@ -29,7 +29,7 @@ import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.ReferFriend
 import com.getcode.view.main.tip.EnterTipScreen
-import com.getcode.view.main.tip.TipCardScreen
+import com.getcode.view.main.tip.RequestTipScreen
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -388,7 +388,7 @@ data object EnterTipModal: MainGraph, ModalRoot {
 }
 
 @Parcelize
-data object TipCard: MainGraph, ModalContent {
+data object RequestTip: MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -398,13 +398,13 @@ data object TipCard: MainGraph, ModalContent {
         ModalContainer(
             backButton = {
                 if (navigator.isVisible) {
-                    it is TipCard
+                    it is RequestTip
                 } else {
                     navigator.progress > 0f
                 }
             }
         ) {
-            TipCardScreen(getViewModel())
+            RequestTipScreen(getViewModel())
         }
     }
 }

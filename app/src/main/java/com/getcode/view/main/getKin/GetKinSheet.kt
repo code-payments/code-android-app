@@ -28,7 +28,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
-import com.getcode.navigation.screens.TipCard
+import com.getcode.navigation.screens.RequestTip
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
@@ -88,7 +88,7 @@ fun GetKinSheet(
                 if (dataState.isTipCardConnected) {
                     navigator.hideWithResult(HomeResult.ShowTipCard)
                 } else {
-                    navigator.push(TipCard)
+                    navigator.push(RequestTip)
                 }
             },
         ),

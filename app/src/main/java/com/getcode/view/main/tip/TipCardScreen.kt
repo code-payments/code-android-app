@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 @Composable
-fun TipCardScreen(
+fun RequestTipScreen(
     viewModel: TipConnectViewModel = hiltViewModel()
 ) {
     val state by viewModel.stateFlow.collectAsState()
