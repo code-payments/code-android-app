@@ -57,7 +57,6 @@ import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.client.transferWithResult
-import com.getcode.network.client.transferWithResultSingle
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PaymentRepository
@@ -151,6 +150,7 @@ data class HomeUiModel(
     val chatUnreadCount: Int = 0,
     val requestKinEnabled: Boolean = false,
     val tipsEnabled: Boolean = false,
+    val tipCardConnected: Boolean = false,
 )
 
 sealed interface HomeEvent {
@@ -216,6 +216,16 @@ class HomeViewModel @Inject constructor(
                     if (organizer.relationshipFor(domain) == null) {
                         client.awaitEstablishRelationship(organizer, domain)
                     }
+                }
+            }.launchIn(viewModelScope)
+
+        tipController.connectedAccount
+            .filterNotNull()
+            .onEach { username ->
+                uiFlow.update {
+                    it.copy(
+                        tipCardConnected = username.isNotEmpty()
+                    )
                 }
             }.launchIn(viewModelScope)
 
@@ -651,7 +661,7 @@ class HomeViewModel @Inject constructor(
                 )
 
                 it.copy(
-                    presentationStyle = PresentationStyle.Pop,
+                    presentationStyle = PresentationStyle.Slide,
                     billState = billState,
                 )
             }
@@ -1280,7 +1290,7 @@ class HomeViewModel @Inject constructor(
             }
 
             is Bill.Tip -> {
-
+                shareTipCard(context)
             }
 
             else -> Unit
@@ -1325,6 +1335,25 @@ class HomeViewModel @Inject constructor(
                 { showRemoteSendDialog(context, giftCard, amount) },
                 ErrorUtils::handleError
             )
+    }
+
+    private fun shareTipCard(context: Context) = viewModelScope.launch {
+        val username = prefRepository.get(
+            PrefsString.KEY_TWITTER_USERNAME,
+            ""
+        ).takeIf { it.isNotEmpty() } ?: return@launch
+
+        val url = "https://tipcard.getcode.com/x/$username"
+
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+        withContext(Dispatchers.Main) {
+            val shareIntent = Intent.createChooser(sendIntent, null)
+            context.startActivity(shareIntent)
+        }
     }
 
     private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) =

@@ -26,6 +26,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.navigation.screens.TipCard
 import com.getcode.theme.CodeTheme
@@ -84,7 +85,11 @@ fun GetKinSheet(
             titleTextResId = R.string.title_requestTip,
             isVisible = dataState.isTipsEnabled,
             onClick = {
-                navigator.push(TipCard)
+                if (dataState.isTipCardConnected) {
+                    navigator.hideWithResult(HomeResult.ShowTipCard)
+                } else {
+                    navigator.push(TipCard)
+                }
             },
         ),
         GetKinItem(
