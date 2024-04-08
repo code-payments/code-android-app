@@ -47,7 +47,7 @@ object BetaFlags {
      */
     fun canMutate(flag: PrefsBool): Boolean {
         return when (flag) {
-            PrefsBool.BUY_KIN_ENABLED -> false
+            PrefsBool.BUY_KIN_ENABLED -> true
             else -> true
         }
     }
