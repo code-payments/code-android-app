@@ -19,7 +19,6 @@ class SendTransactionRepository @Inject constructor(
     private val messagingRepository: MessagingRepository,
     private val analyticsManager: AnalyticsService,
     private val client: Client,
-    @ApplicationContext private val context: Context
 ) {
     private lateinit var amount: KinAmount
     private lateinit var owner: Ed25519.KeyPair
@@ -72,7 +71,7 @@ class SendTransactionRepository @Inject constructor(
                     )
 
                     // 2. Send the funds to destination
-                    sendFundsAndPoll(context, organizer, paymentRequest.account)
+                    sendFundsAndPoll(organizer, paymentRequest.account)
                 }
             }
             .doOnError {
@@ -84,7 +83,6 @@ class SendTransactionRepository @Inject constructor(
     }
 
     private fun sendFundsAndPoll(
-        context: Context,
         organizer: Organizer,
         destination: PublicKey
     ): Flowable<IntentMetadata> {
@@ -103,7 +101,6 @@ class SendTransactionRepository @Inject constructor(
         // deposit the funds and the transaction size exceeds what's
         // in the buckets, the send will fail.
         return client.transfer(
-            context = context,
             amount = amount.copy(kin = amount.kin.toKinTruncating()),
             fee = Kin.fromKin(0),
             additionalFees = emptyList(),

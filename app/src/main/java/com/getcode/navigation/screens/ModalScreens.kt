@@ -28,6 +28,8 @@ import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.ReferFriend
+import com.getcode.view.main.tip.EnterTipScreen
+import com.getcode.view.main.tip.RequestTipScreen
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -354,6 +356,56 @@ data class BuyMoreKinModal(
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.BuyMoreKin
         )
+    }
+}
+
+@Parcelize
+data object EnterTipModal: MainGraph, ModalRoot {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.action_tipKin)
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        ModalContainer(
+            closeButton = {
+                if (navigator.isVisible) {
+                    it is EnterTipModal
+                } else {
+                    navigator.progress > 0f
+                }
+            }
+        ) {
+            EnterTipScreen(getViewModel())
+        }
+    }
+
+}
+
+@Parcelize
+data object RequestTip: MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        ModalContainer(
+            backButton = {
+                if (navigator.isVisible) {
+                    it is RequestTip
+                } else {
+                    navigator.progress > 0f
+                }
+            }
+        ) {
+            RequestTipScreen(getViewModel())
+        }
     }
 }
 

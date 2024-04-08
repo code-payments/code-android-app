@@ -3,15 +3,10 @@ package com.getcode.navigation.core
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ProvidableCompositionLocal
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
-import com.getcode.navigation.screens.AppScreen
-import timber.log.Timber
 
 val LocalCodeNavigator: ProvidableCompositionLocal<CodeNavigator> =
     staticCompositionLocalOf { NavigatorNull() }
@@ -67,6 +62,7 @@ interface CodeNavigator {
     val isVisible: Boolean
     val progress: Float
     var screensNavigator: Navigator?
+
     fun show(screen: Screen)
     fun hide()
     fun <T> hideWithResult(result: T)

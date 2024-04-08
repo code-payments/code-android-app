@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -20,16 +21,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.models.ShareAction
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Gray50
 import com.getcode.theme.White
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.Pill
 
 @Composable
 internal fun BillManagementOptions(
     modifier: Modifier = Modifier,
-    showSend: Boolean = true,
+    shareAction: ShareAction? = null,
     isSending: Boolean = false,
     showCancel: Boolean = true,
     canCancel: Boolean = true,
@@ -47,14 +50,13 @@ internal fun BillManagementOptions(
                 .align(Alignment.BottomCenter),
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8)
         ) {
-            if (showSend) {
-                Row(
+            if (shareAction != null) {
+                Pill(
                     modifier = Modifier
-                        .background(Gray50, CircleShape)
-                        .clip(CircleShape)
                         .rememberedClickable(enabled = !isSending) { onSend() }
                         .padding(vertical = 15.dp, horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    contentPadding = PaddingValues(),
+                    backgroundColor = Gray50,
                 ) {
                     Box {
                         Row(
@@ -67,7 +69,7 @@ internal fun BillManagementOptions(
                             )
                             Text(
                                 modifier = Modifier.padding(start = 10.dp),
-                                text = stringResource(R.string.action_send)
+                                text = stringResource(shareAction.label)
                             )
                         }
 
@@ -81,17 +83,15 @@ internal fun BillManagementOptions(
                             )
                         }
                     }
-
                 }
             }
             if (showCancel) {
-                Row(
+                Pill(
                     modifier = Modifier
-                        .background(Gray50, CircleShape)
-                        .clip(CircleShape)
                         .rememberedClickable(enabled = canCancel) { onCancel() }
                         .padding(vertical = 15.dp, horizontal = 20.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    contentPadding = PaddingValues(),
+                    backgroundColor = Gray50,
                 ) {
                     Image(
                         painter = painterResource(R.drawable.ic_bill_close),

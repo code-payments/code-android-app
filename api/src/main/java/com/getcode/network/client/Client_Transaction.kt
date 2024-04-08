@@ -2,7 +2,6 @@ package com.getcode.network.client
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.codeinc.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptResponse
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -32,7 +31,6 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.flowInterval
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +55,6 @@ fun Client.createAccounts(organizer: Organizer): Completable {
 }
 
 fun Client.transfer(
-    context: Context,
     amount: KinAmount,
     fee: Kin,
     additionalFees: List<Fee>,
@@ -66,8 +63,7 @@ fun Client.transfer(
     destination: PublicKey,
     isWithdrawal: Boolean
 ): Completable {
-    return transferWithResult(
-        context,
+    return transferWithResultSingle(
         amount,
         fee,
         additionalFees,
@@ -85,8 +81,7 @@ fun Client.transfer(
     }
 }
 
-fun Client.transferWithResult(
-    context: Context,
+fun Client.transferWithResultSingle(
     amount: KinAmount,
     fee: Kin,
     additionalFees: List<Fee>,
@@ -108,6 +103,20 @@ fun Client.transferWithResult(
         }.map { Result.success(Unit) }
         .onErrorReturn { Result.failure(it) }
 }
+
+fun Client.transferWithResult(
+    amount: KinAmount,
+    fee: Kin,
+    additionalFees: List<Fee>,
+    organizer: Organizer,
+    rendezvousKey: PublicKey,
+    destination: PublicKey,
+    isWithdrawal: Boolean
+): Result<Unit> {
+    return transferWithResultSingle(amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal)
+        .blockingGet()
+}
+
 
 fun Client.sendRemotely(
     amount: KinAmount,
@@ -295,7 +304,6 @@ fun Client.withdrawExternally(
         if (missingBalance > 0) {
             // Move funds into primary from buckets
             transfer(
-                context = context,
                 amount = KinAmount.newInstance(kin = missingBalance, rate = Rate.oneToOne),
                 fee = Kin.fromKin(0),
                 additionalFees = emptyList(),

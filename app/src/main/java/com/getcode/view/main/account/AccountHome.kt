@@ -67,13 +67,6 @@ fun AccountHome(
         { item: AccountPage ->
             composeScope.launch {
                 when (item) {
-                    AccountPage.BUY_KIN -> {
-                        if (dataState.buyKinEnabled) {
-                            navigator.push(BuyMoreKinModal())
-                        } else {
-                            navigator.push(BuySellScreen)
-                        }
-                    }
                     AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
                     AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
                     AccountPage.FAQ -> navigator.push(FaqScreen)

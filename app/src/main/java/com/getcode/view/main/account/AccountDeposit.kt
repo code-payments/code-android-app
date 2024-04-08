@@ -105,7 +105,7 @@ fun AccountDeposit() {
             },
             text = stringResource(if (!isCopied) R.string.action_copyAddress else R.string.action_copied),
             enabled = !isCopied,
-            isTextSuccess = isCopied,
+            isSuccess = isCopied,
             buttonState = ButtonState.Filled,
         )
     }

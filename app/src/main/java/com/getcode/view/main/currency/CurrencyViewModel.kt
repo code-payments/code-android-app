@@ -251,16 +251,6 @@ class CurrencyViewModel @Inject constructor(
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            Timber
-                .tag("currency(${hashCode()})")
-                .d(
-                    when (event) {
-                        is Event.OnLoadingChanged -> "Loading => ${event.loading}"
-                        is Event.OnSelectedCurrencyChanged -> "Selected ${event.currency.code} byUser=${event.fromUser}"
-                        else -> event.javaClass.simpleName
-                    }
-                )
-
             when (event) {
                 is Event.OnLoadingChanged -> { state -> state.copy(loading = event.loading) }
                 is Event.OnCurrenciesLoaded -> { state ->

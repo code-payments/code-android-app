@@ -94,6 +94,8 @@ sealed interface Verb {
     data object Spent : Verb
     data object Paid : Verb
     data object Purchased : Verb
+    data object ReceivedTip: Verb
+    data object SentTip: Verb
 
     companion object {
         operator fun invoke(proto: ChatService.ExchangeDataContent.Verb): Verb {
@@ -109,6 +111,8 @@ sealed interface Verb {
                 ChatService.ExchangeDataContent.Verb.PAID -> Paid
                 ChatService.ExchangeDataContent.Verb.PURCHASED -> Purchased
                 ChatService.ExchangeDataContent.Verb.UNRECOGNIZED -> Unknown
+                ChatService.ExchangeDataContent.Verb.RECEIVED_TIP -> ReceivedTip
+                ChatService.ExchangeDataContent.Verb.SENT_TIP -> SentTip
             }
         }
     }

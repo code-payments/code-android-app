@@ -2,15 +2,12 @@ package com.getcode.view.main.giveKin
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
-import com.getcode.model.Limits
+import com.getcode.model.KinAmount
 import com.getcode.model.PrefsString
-import com.getcode.model.SendLimit
 import com.getcode.network.client.Client
-import com.getcode.network.client.fetchTransactionLimits
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
@@ -21,23 +18,17 @@ import com.getcode.util.Kin
 import com.getcode.util.NumberInputHelper
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel
-import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
-import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import kotlin.math.min
 
@@ -58,6 +49,10 @@ sealed interface FlowType {
         override val direction: FundsDirection = FundsDirection.Outgoing
     }
 
+    data object Tip: FlowType {
+        override val direction: FundsDirection = FundsDirection.Outgoing
+    }
+
     data object Withdrawal: FlowType {
         override val direction: FundsDirection = FundsDirection.Outgoing
     }
@@ -74,7 +69,6 @@ sealed interface FlowType {
 data class CurrencyUiModel(
     val currencies: List<Currency> = listOf(),
     val listItems: List<CurrencyListItem> = listOf(),
-    val limits: Limits? = null,
     val selectedCurrencyCode: String? = null,
     val selectedCurrencyResId: Int? = null,
 )
@@ -118,15 +112,6 @@ abstract class BaseAmountCurrencyViewModel(
 
     open fun init() {
         numberInputHelper.reset()
-
-        flowOf(SessionManager.getKeyPair())
-            .filterNotNull()
-            .flatMapLatest {
-                flowOf(client.fetchTransactionLimits(it))
-            }.filterNotNull()
-            .onEach { limits ->
-                setCurrencyUiModel(getCurrencyUiModel().copy(limits = limits))
-            }.launchIn(viewModelScope)
 
         combine(
             exchange.observeRates()
@@ -245,7 +230,7 @@ abstract class BaseAmountCurrencyViewModel(
 
         val currency = CurrencyCode.tryValueOf(selectedCurrency.code)
         val sendLimit = currency?.let {
-            getCurrencyUiModel().limits?.todaysAllowanceFor(it)
+            transactionRepository.sendLimitFor(it)?.nextTransaction
         } ?: fiatValue
         val buyLimit = currency?.let {
             transactionRepository.buyLimitFor(it)?.max
@@ -253,7 +238,6 @@ abstract class BaseAmountCurrencyViewModel(
         val buyLimitKin = FormatUtils.getKinValue(buyLimit, selectedCurrency.rate)
             .inflating()
 
-        Timber.d("buy limit=$buyLimit")
         val amountAvailable = min(sendLimit, fiatValue)
 
         val isInsufficient = when (flowType.direction) {
@@ -368,10 +352,27 @@ abstract class BaseAmountCurrencyViewModel(
                             getString(R.string.core_ofKin)
                 } else {
                     if (amountInput > amountAvailable) {
-                        getString(R.string.subtitle_canOnlyGiveUpTo)
-                            .replaceParam(FormatUtils.formatCurrency(amountAvailable, currency.code))
-                            .plus(" ")
-                            .plus(getString(R.string.core_ofKin))
+                        if (flowType is FlowType.Tip) {
+                            getString(R.string.subtitle_canOnlyTipUpTo)
+                                .replaceParam(
+                                    FormatUtils.formatCurrency(
+                                        amountAvailable,
+                                        currency.code
+                                    )
+                                )
+                                .plus(" ")
+                                .plus(getString(R.string.core_ofKin))
+                        } else {
+                            getString(R.string.subtitle_canOnlyGiveUpTo)
+                                .replaceParam(
+                                    FormatUtils.formatCurrency(
+                                        amountAvailable,
+                                        currency.code
+                                    )
+                                )
+                                .plus(" ")
+                                .plus(getString(R.string.core_ofKin))
+                        }
                     } else {
                         String.format("%,.0f", amountInputKin)
                     }

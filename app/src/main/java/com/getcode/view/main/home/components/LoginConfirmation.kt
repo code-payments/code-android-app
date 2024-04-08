@@ -1,31 +1,19 @@
 package com.getcode.view.main.home.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.models.ConfirmationState
 import com.getcode.models.LoginConfirmation
-import com.getcode.models.LoginState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
@@ -45,7 +33,7 @@ internal fun LoginConfirmation(
     }
 
     val isSending by remember(state) {
-        derivedStateOf { state is LoginState.Sending }
+        derivedStateOf { state is ConfirmationState.Sending }
     }
 
     val domain by remember(confirmation?.domain) {
@@ -66,13 +54,13 @@ internal fun LoginConfirmation(
             SlideToConfirm(
                 isLoading = isSending,
                 trackColor = SlideToConfirmDefaults.BlackTrackColor,
-                isSuccess = state is LoginState.Sent,
+                isSuccess = state is ConfirmationState.Sent,
                 onConfirm = { onSend() },
                 label = stringResource(R.string.action_swipeToLogin)
             )
         }
 
-        val enabled = !isSending && state !is LoginState.Sent
+        val enabled = !isSending && state !is ConfirmationState.Sent
         val alpha by animateFloatAsState(targetValue = if (enabled) 1f else 0f, label = "alpha")
         CodeButton(
             modifier = Modifier.fillMaxWidth().alpha(alpha),
