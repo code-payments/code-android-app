@@ -14,6 +14,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
 import com.getcode.network.HistoryController
+import com.getcode.network.TipController
 import com.getcode.network.repository.PushRepository
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.CurrencyUtils
@@ -54,6 +55,9 @@ class CodePushMessagingService : FirebaseMessagingService(),
     @Inject
     lateinit var historyController: HistoryController
 
+    @Inject
+    lateinit var tipController: TipController
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Timber.d("onMessageReceived")
         if (SessionManager.isAuthenticated() == null) {
@@ -82,6 +86,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
                 if (type == NotificationType.ChatMessage) {
                     launch { historyController.fetchChats() }
+                    launch { tipController.checkForConnection() }
                 }
             } else {
                 notify(

@@ -1,14 +1,17 @@
 package com.getcode.model
 
 import android.webkit.MimeTypeMap
+import com.codeinc.gen.user.v1.IdentityService
 import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserResponse
 import com.getcode.solana.keys.PublicKey
 
 data class TwitterUser(
     val username: String,
+    val displayName: String,
     val imageUrl: String,
     val followerCount: Int,
     val tipAddress: PublicKey,
+    val verificationStatus: VerificationStatus
 ) {
 
     val imageUrlSanitized: String
@@ -21,18 +24,23 @@ data class TwitterUser(
             return urlWithoutType.plus(".$extension")
         }
 
+    enum class VerificationStatus {
+        none, blue, government, unknown
+    }
+
     companion object {
-        fun invoke(proto: GetTwitterUserResponse): TwitterUser? {
+        fun invoke(proto: IdentityService.TwitterUser): TwitterUser? {
             val avatarUrl = proto.profilePicUrl
-            val avatarBytes = proto.profilePicUrlBytes
 
             val tipAddress = runCatching { PublicKey.fromByteString(proto.tipAddress.value) }.getOrNull() ?: return null
 
             return TwitterUser(
-                username = proto.name,
+                username = proto.username,
+                displayName = proto.name,
                 imageUrl = avatarUrl,
                 followerCount = proto.followerCount,
-                tipAddress = tipAddress
+                tipAddress = tipAddress,
+                verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown
             )
         }
     }

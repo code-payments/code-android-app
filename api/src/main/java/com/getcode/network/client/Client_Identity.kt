@@ -18,5 +18,9 @@ suspend fun Client.updatePreferences(organizer: Organizer): Result<Boolean> {
 }
 
 suspend fun Client.fetchTwitterUser(username: String): Result<TwitterUser> {
-    return identityRepository.fetchTwitterUser(username)
+    return identityRepository.fetchTwitterUserByUsername(username)
+}
+
+suspend fun Client.fetchTwitterUser(address: PublicKey): Result<TwitterUser> {
+    return identityRepository.fetchTwitterUserByAddress(address)
 }

@@ -7,7 +7,6 @@ import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppResponse
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
-import com.codeinc.gen.user.v1.IdentityService.User
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -23,10 +22,8 @@ import com.google.common.collect.Sets
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -296,19 +293,18 @@ class IdentityRepository @Inject constructor(
         }
     }
 
-    suspend fun fetchTwitterUser(username: String): Result<TwitterUser> {
+    suspend fun fetchTwitterUserByUsername(username: String): Result<TwitterUser> {
         val request = GetTwitterUserRequest.newBuilder()
             .setUsername(username)
             .build()
 
         return try {
-            Timber.d("fetchTwitterUser")
             networkOracle.managedRequest(identityApi.fetchTwitterUser(request))
                 .map { response ->
                     when (response.result) {
                         IdentityService.GetTwitterUserResponse.Result.OK -> {
                             Timber.d("user ok")
-                            val user = TwitterUser.invoke(response)
+                            val user = TwitterUser.invoke(response.twitterUser)
                             if (user == null) {
                                 val error =
                                     Throwable("Error: failed to parse twitter user.")
@@ -322,6 +318,55 @@ class IdentityRepository @Inject constructor(
 
                         IdentityService.GetTwitterUserResponse.Result.NOT_FOUND -> {
                             val error = Throwable("Error: user $username not found.")
+                            ErrorUtils.handleError(error)
+                            Result.failure(error)
+                        }
+
+                        IdentityService.GetTwitterUserResponse.Result.UNRECOGNIZED -> {
+                            val error = Throwable("Error: fetchTwitterUser Unrecognized request.")
+                            ErrorUtils.handleError(error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = Throwable("Error: fetchTwitterUser Unknown")
+                            ErrorUtils.handleError(error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ErrorUtils.handleError(e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchTwitterUserByAddress(address: PublicKey): Result<TwitterUser> {
+        val request = GetTwitterUserRequest.newBuilder()
+            .setTipAddress(address.byteArray.toSolanaAccount())
+            .build()
+
+        return try {
+            networkOracle.managedRequest(identityApi.fetchTwitterUser(request))
+                .map { response ->
+                    when (response.result) {
+                        IdentityService.GetTwitterUserResponse.Result.OK -> {
+                            Timber.d("user ok")
+                            val user = TwitterUser.invoke(response.twitterUser)
+                            if (user == null) {
+                                val error =
+                                    Throwable("Error: failed to parse twitter user.")
+                                ErrorUtils.handleError(error)
+                                Result.failure(error)
+                            } else {
+                                Timber.d("user found")
+                                Result.success(user)
+                            }
+                        }
+
+                        IdentityService.GetTwitterUserResponse.Result.NOT_FOUND -> {
+                            val error = Throwable("Error: user for address not found.")
                             ErrorUtils.handleError(error)
                             Result.failure(error)
                         }
