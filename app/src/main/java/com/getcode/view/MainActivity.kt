@@ -16,6 +16,7 @@ import com.getcode.LocalPhoneFormatter
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
+import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
@@ -44,6 +45,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var client: Client
+
+    @Inject
+    lateinit var tipController: TipController
 
     @Inject
     lateinit var analyticsManager: AnalyticsService
@@ -111,11 +115,13 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         client.startTimer()
+        tipController.checkForConnection()
     }
 
     override fun onPause() {
         super.onPause()
         client.stopTimer()
+        tipController.stopTimer()
     }
 
     private fun setFullscreen() {

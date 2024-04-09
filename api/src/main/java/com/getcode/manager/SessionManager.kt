@@ -72,8 +72,6 @@ class SessionManager @Inject constructor(
             client.registerInstallation(organizer.ownerKeyPair, installationId)
         }
 
-        tipController.checkForConnection()
-
         return client.updatePreferences(organizer)
             .onSuccess {
                 update { it.copy(userPrefsUpdated = true) }

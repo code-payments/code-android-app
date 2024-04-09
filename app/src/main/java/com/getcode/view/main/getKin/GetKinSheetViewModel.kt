@@ -61,6 +61,8 @@ class GetKinSheetViewModel @Inject constructor(
     sealed interface Event {
         data class OnBetaFlagsChanged(val options: BetaOptions) : Event
         data class OnTipCardConnectionChanged(val connected: Boolean): Event
+
+        data object ShowConnectionSuccess: Event
     }
 
     init {
@@ -74,6 +76,12 @@ class GetKinSheetViewModel @Inject constructor(
             .onEach { username ->
                 dispatchEvent(Event.OnTipCardConnectionChanged(username.isNotEmpty()))
             }.launchIn(viewModelScope)
+
+        tipController.showTwitterSplat
+            .distinctUntilChanged()
+            .filter { it }
+            .onEach { dispatchEvent(Event.ShowConnectionSuccess) }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -91,6 +99,8 @@ class GetKinSheetViewModel @Inject constructor(
                         isTipCardConnected = event.connected
                     )
                 }
+
+                Event.ShowConnectionSuccess -> { state -> state }
             }
         }
     }

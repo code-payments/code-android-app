@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +37,18 @@ import com.getcode.theme.White05
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.delayFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.take
+import timber.log.Timber
 
 data class GetKinItem(
     val imageResId: Int,
@@ -101,6 +115,16 @@ fun GetKinSheet(
             },
         ),
     )
+
+    LaunchedEffect(viewModel) {
+        viewModel.eventFlow
+            .filterIsInstance<GetKinSheetViewModel.Event.ShowConnectionSuccess>()
+            .flatMapLatest { snapshotFlow { navigator.sheetFullyVisible } }
+            .filter { it }
+            .onEach {
+                navigator.push(RequestTip, delay = 150)
+            }.launchIn(this)
+    }
 
     ConstraintLayout(
         modifier = Modifier

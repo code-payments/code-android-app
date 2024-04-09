@@ -31,6 +31,11 @@
     <string name="action_share">Share</string>
     <string name="action_connect_to_x_message">I\’m connecting my X account with @getcode so I can receive tips from people all over the world.</string>
 
+    <string name="title_success">Success</string>
+    <string name="subtitle_xAccountConnected">Your X account %1$s is now connected to your Code account.</string>
+
+    <string name="action_shareTipCard">Share My Tip Card</string>
+
     <string name="subtitle_youReceivedTip">Someone tipped you $1$s</string>
     <string name="subtitle_youSentTip">You tipped someone $1$s</string>
 </resources>

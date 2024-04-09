@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -27,12 +28,19 @@ import com.getcode.view.main.currency.CurrencySelectionSheet
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
+import com.getcode.view.main.getKin.GetKinSheetViewModel
 import com.getcode.view.main.getKin.ReferFriend
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.RequestTipScreen
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.delayFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-
+import timber.log.Timber
 
 
 @Parcelize
@@ -418,6 +426,7 @@ data object GetKinModal : MainGraph, ModalRoot {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
 
+        val viewModel = getViewModel<GetKinSheetViewModel>()
         ModalContainer(
             closeButton = {
                 if (navigator.isVisible) {
@@ -427,7 +436,7 @@ data object GetKinModal : MainGraph, ModalRoot {
                 }
             },
         ) {
-            GetKinSheet(getViewModel())
+            GetKinSheet(viewModel)
         }
 
         AnalyticsScreenWatcher(
