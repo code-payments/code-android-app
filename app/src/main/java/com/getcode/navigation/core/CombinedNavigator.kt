@@ -8,11 +8,16 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.Navigator
 import com.getcode.navigation.screens.AppScreen
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class CombinedNavigator(
     var sheetNavigator: BottomSheetNavigator
-) : CodeNavigator {
+) : CodeNavigator, CoroutineScope by CoroutineScope(Dispatchers.Main) {
     override var screensNavigator: Navigator? = null
 
     override val lastItem: Screen?
@@ -30,6 +35,9 @@ class CombinedNavigator(
 
     override val isVisible: Boolean
         get() = sheetNavigator.isVisible
+
+    override val sheetFullyVisible: Boolean
+        get() = sheetNavigator.isVisible && sheetNavigator.progress == 1f
 
     override val progress: Float
         get() = sheetNavigator.progress
@@ -59,11 +67,14 @@ class CombinedNavigator(
         }
     }
 
-    override fun push(item: Screen) {
-        if (isVisible) {
-            sheetNavigator.push(item)
-        } else {
-            screensNavigator?.push(item)
+    override fun push(item: Screen, delay: Long) {
+        launch {
+            delay(delay)
+            if (isVisible) {
+                sheetNavigator.push(item)
+            } else {
+                screensNavigator?.push(item)
+            }
         }
     }
 

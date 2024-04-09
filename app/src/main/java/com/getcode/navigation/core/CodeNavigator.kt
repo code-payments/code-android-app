@@ -17,6 +17,7 @@ class NavigatorNull : CodeNavigator {
     override val sheetStackRoot: Screen? = null
     override val lastEvent: StackEvent = StackEvent.Idle
     override val isVisible: Boolean = false
+    override val sheetFullyVisible: Boolean = false
     override val progress: Float = 0f
 
     override var screensNavigator: Navigator? = null
@@ -26,7 +27,7 @@ class NavigatorNull : CodeNavigator {
     override fun hide() = Unit
     override fun <T> hideWithResult(result: T) = Unit
 
-    override fun push(item: Screen) = Unit
+    override fun push(item: Screen, delay: Long) = Unit
 
     override fun push(items: List<Screen>) = Unit
 
@@ -60,13 +61,14 @@ interface CodeNavigator {
     val sheetStackRoot: Screen?
     val lastEvent: StackEvent
     val isVisible: Boolean
+    val sheetFullyVisible: Boolean
     val progress: Float
     var screensNavigator: Navigator?
 
     fun show(screen: Screen)
     fun hide()
     fun <T> hideWithResult(result: T)
-    infix fun push(item: Screen)
+    fun push(item: Screen, delay: Long = 0)
 
     infix fun push(items: List<Screen>)
 

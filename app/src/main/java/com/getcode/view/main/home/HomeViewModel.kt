@@ -148,6 +148,7 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
+    val showTwitterSplat: Boolean = false,
     val requestKinEnabled: Boolean = false,
     val tipsEnabled: Boolean = false,
     val tipCardConnected: Boolean = false,
@@ -216,6 +217,13 @@ class HomeViewModel @Inject constructor(
                     if (organizer.relationshipFor(domain) == null) {
                         client.awaitEstablishRelationship(organizer, domain)
                     }
+                }
+            }.launchIn(viewModelScope)
+
+        tipController.showTwitterSplat
+            .onEach {  show ->
+                uiFlow.update {
+                    it.copy(showTwitterSplat = show)
                 }
             }.launchIn(viewModelScope)
 
@@ -667,6 +675,8 @@ class HomeViewModel @Inject constructor(
                 )
             }
         }
+
+        tipController.clearTwitterSplat()
     }
 
     private suspend fun presentTipCard(
