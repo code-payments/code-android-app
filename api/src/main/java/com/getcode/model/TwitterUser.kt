@@ -23,15 +23,15 @@ data class TwitterUser(
 
     companion object {
         fun invoke(proto: GetTwitterUserResponse): TwitterUser? {
-            val avatarUrl = proto.profilePicUrl
-            val avatarBytes = proto.profilePicUrlBytes
+            val user = proto.twitterUser
+            val avatarUrl = user.profilePicUrl
 
-            val tipAddress = runCatching { PublicKey.fromByteString(proto.tipAddress.value) }.getOrNull() ?: return null
+            val tipAddress = runCatching { PublicKey.fromByteString(user.tipAddress.value) }.getOrNull() ?: return null
 
             return TwitterUser(
-                username = proto.name,
+                username = user.name,
                 imageUrl = avatarUrl,
-                followerCount = proto.followerCount,
+                followerCount = user.followerCount,
                 tipAddress = tipAddress
             )
         }
