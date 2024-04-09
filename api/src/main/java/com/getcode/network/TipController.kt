@@ -1,5 +1,6 @@
 package com.getcode.network
 
+import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.PrefsString
 import com.getcode.model.TwitterUser
@@ -18,7 +19,7 @@ typealias TipUser = Pair<String, CodePayload>
 @Singleton
 class TipController @Inject constructor(
     private val client: Client,
-    prefRepository: PrefRepository,
+    private val prefRepository: PrefRepository,
 ) {
 
     val connectedAccount: Flow<String?> = prefRepository.observeOrDefault(PrefsString.KEY_TWITTER_USERNAME, "")
@@ -32,6 +33,19 @@ class TipController @Inject constructor(
         private set
 
     private var cachedUsers = mutableMapOf<String, TwitterUser>()
+
+    suspend fun checkForConnection() {
+        val tipAddress = SessionManager.getOrganizer()?.primaryVault ?: return
+        client.fetchTwitterUser(tipAddress)
+            .onSuccess {
+                Timber.d("current user twitter connected @ ${it.username}")
+                prefRepository.set(PrefsString.KEY_TWITTER_USERNAME, it.username)
+            }
+            .onFailure {
+                it.printStackTrace()
+                prefRepository.set(PrefsString.KEY_TWITTER_USERNAME, "")
+            }
+    }
 
     suspend fun fetch(username: String, payload: CodePayload) {
         val metadata = fetch(username)

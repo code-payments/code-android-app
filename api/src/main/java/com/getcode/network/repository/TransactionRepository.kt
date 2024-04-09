@@ -122,7 +122,8 @@ class TransactionRepository @Inject constructor(
         organizer: Organizer,
         rendezvousKey: PublicKey,
         destination: PublicKey,
-        isWithdrawal: Boolean
+        isWithdrawal: Boolean,
+        tippedUsername: String? = null,
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
@@ -135,7 +136,8 @@ class TransactionRepository @Inject constructor(
                 fee = fee,
                 additionalFees = emptyList(),
                 resultTray = organizer.tray,
-                isWithdrawal = isWithdrawal
+                isWithdrawal = isWithdrawal,
+                tippedUsername = tippedUsername
             ) as IntentType
         )
             .delay(1, TimeUnit.SECONDS)
@@ -148,7 +150,8 @@ class TransactionRepository @Inject constructor(
             amount = amount.copy(kin = amount.kin.toKinTruncating()),
             fee = fee,
             additionalFees = additionalFees,
-            isWithdrawal = isWithdrawal
+            isWithdrawal = isWithdrawal,
+            tippedUsername = tippedUsername,
         )
 
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)

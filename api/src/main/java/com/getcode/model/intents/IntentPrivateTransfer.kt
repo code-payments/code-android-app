@@ -2,6 +2,7 @@ package com.getcode.model.intents
 
 import android.content.Context
 import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.TransactionService.TippedUser.Platform
 import com.getcode.model.Fee
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -28,6 +29,7 @@ class IntentPrivateTransfer(
     private val fee: Kin,
     private val additionalFees: List<Fee>,
     private val isWithdrawal: Boolean,
+    private val tippedUsername: String?,
     val resultTray: Tray,
 
     override val actionGroup: ActionGroup,
@@ -35,16 +37,25 @@ class IntentPrivateTransfer(
     override fun metadata(): TransactionService.Metadata {
         return TransactionService.Metadata.newBuilder()
             .setSendPrivatePayment(
-                TransactionService.SendPrivatePaymentMetadata.newBuilder()
-                    .setDestination(destination.bytes.toSolanaAccount())
-                    .setIsWithdrawal(isWithdrawal)
-                    .setExchangeData(
+                TransactionService.SendPrivatePaymentMetadata.newBuilder().apply {
+                    setDestination(this@IntentPrivateTransfer.destination.bytes.toSolanaAccount())
+                    setIsWithdrawal(isWithdrawal)
+                    setExchangeData(
                         TransactionService.ExchangeData.newBuilder()
                             .setQuarks(grossAmount.kin.quarks)
                             .setCurrency(grossAmount.rate.currency.name.lowercase())
                             .setExchangeRate(grossAmount.rate.fx)
                             .setNativeAmount(grossAmount.fiat)
+                    )
+
+                    if (tippedUsername != null) {
+                        setIsTip(true)
+                        setTippedUser(TransactionService.TippedUser.newBuilder()
+                            .setPlatformValue(Platform.TWITTER_VALUE)
+                            .setUsername(tippedUsername)
                         )
+                    }
+                }
             )
             .build()
     }
@@ -59,6 +70,7 @@ class IntentPrivateTransfer(
             fee: Kin,
             additionalFees: List<Fee>,
             isWithdrawal: Boolean,
+            tippedUsername: String?
         ): IntentPrivateTransfer {
             if (fee > amount.kin) {
                 throw IntentPrivateTransferException.InvalidFeeException()
@@ -203,6 +215,7 @@ class IntentPrivateTransfer(
                 fee = fee,
                 additionalFees = additionalFees,
                 isWithdrawal = isWithdrawal,
+                tippedUsername = tippedUsername,
                 actionGroup = group,
                 resultTray = currentTray,
             )

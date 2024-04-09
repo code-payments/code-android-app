@@ -304,7 +304,7 @@ class IdentityRepository @Inject constructor(
                     when (response.result) {
                         IdentityService.GetTwitterUserResponse.Result.OK -> {
                             Timber.d("user ok")
-                            val user = TwitterUser.invoke(response)
+                            val user = TwitterUser.invoke(response.twitterUser)
                             if (user == null) {
                                 val error =
                                     Throwable("Error: failed to parse twitter user.")
@@ -353,7 +353,7 @@ class IdentityRepository @Inject constructor(
                     when (response.result) {
                         IdentityService.GetTwitterUserResponse.Result.OK -> {
                             Timber.d("user ok")
-                            val user = TwitterUser.invoke(response)
+                            val user = TwitterUser.invoke(response.twitterUser)
                             if (user == null) {
                                 val error =
                                     Throwable("Error: failed to parse twitter user.")

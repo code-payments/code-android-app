@@ -61,7 +61,8 @@ fun Client.transfer(
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
-    isWithdrawal: Boolean
+    isWithdrawal: Boolean,
+    tippedUsername: String? = null,
 ): Completable {
     return transferWithResultSingle(
         amount,
@@ -88,12 +89,13 @@ fun Client.transferWithResultSingle(
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
-    isWithdrawal: Boolean
+    isWithdrawal: Boolean,
+    tippedUsername: String? = null,
 ): Single<Result<Unit>> {
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal
+                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tippedUsername
             )
         })
         .map {
@@ -111,9 +113,10 @@ fun Client.transferWithResult(
     organizer: Organizer,
     rendezvousKey: PublicKey,
     destination: PublicKey,
-    isWithdrawal: Boolean
+    isWithdrawal: Boolean,
+    tippedUsername: String? = null,
 ): Result<Unit> {
-    return transferWithResultSingle(amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal)
+    return transferWithResultSingle(amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tippedUsername)
         .blockingGet()
 }
 

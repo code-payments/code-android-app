@@ -762,7 +762,8 @@ class HomeViewModel @Inject constructor(
             additionalFees = emptyList(),
             rendezvousKey = rendezvous,
             destination = metadata.tipAddress,
-            isWithdrawal = true
+            isWithdrawal = true,
+            tippedUsername = metadata.username
         ).onFailure {
             analytics.transferForTip(amount = amount, successful = false)
             cancelTip()
