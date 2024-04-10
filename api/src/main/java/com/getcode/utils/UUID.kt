@@ -1,6 +1,6 @@
 package com.getcode.utils
 
-import android.util.Base64
+import com.getcode.vendor.Base58
 import org.kin.sdk.base.tools.intToByteArray
 import java.nio.ByteBuffer
 import java.util.UUID
@@ -29,7 +29,7 @@ val UUID.blockchainMemo: String
 
         data.addAll(this.bytes.toList())
 
-        return Base64.encodeToString(data.toByteArray(), Base64.NO_WRAP)
+        return Base58.encode(data.toByteArray())
     }
 
 val List<Byte>.toUuid: UUID
