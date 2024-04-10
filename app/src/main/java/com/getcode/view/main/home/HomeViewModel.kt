@@ -221,7 +221,7 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
-            .onEach {  show ->
+            .onEach { show ->
                 uiFlow.update {
                     it.copy(showTwitterSplat = show)
                 }
@@ -498,6 +498,7 @@ class HomeViewModel @Inject constructor(
             }
 
             historyController.fetchChats()
+            balanceController.fetchBalanceSuspend()
 
             if (shown) {
                 delay(300)
@@ -1197,7 +1198,9 @@ class HomeViewModel @Inject constructor(
                     client.fetchLimits(isForce = true),
                 )
             }
-            .subscribe({ viewModelScope.launch { historyController.fetchChats() } }, {
+            .subscribe({
+                viewModelScope.launch { historyController.fetchChats() }
+            }, {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
             })

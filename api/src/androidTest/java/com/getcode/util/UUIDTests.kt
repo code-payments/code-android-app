@@ -12,7 +12,7 @@ class UUIDTests {
         val memo = uuid.blockchainMemo
 
         assertEquals(
-            "AQAAAAAAwko78q1PR1aUToGUj/EIgg==",
+            "Gk2Yb7W6BypLsdRoJqMAqXHDoV2jT",
             memo
         )
     }

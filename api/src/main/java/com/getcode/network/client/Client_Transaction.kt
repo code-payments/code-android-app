@@ -116,8 +116,16 @@ fun Client.transferWithResult(
     isWithdrawal: Boolean,
     tippedUsername: String? = null,
 ): Result<Unit> {
-    return transferWithResultSingle(amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tippedUsername)
-        .blockingGet()
+    return transferWithResultSingle(
+        amount = amount,
+        fee = fee,
+        additionalFees = additionalFees,
+        organizer = organizer,
+        rendezvousKey = rendezvousKey,
+        destination = destination,
+        isWithdrawal = isWithdrawal,
+        tippedUsername = tippedUsername
+    ).blockingGet()
 }
 
 
