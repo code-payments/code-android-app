@@ -206,8 +206,6 @@ class IntentPrivateTransfer(
                 *rotation.toTypedArray()
             )
 
-            Timber.d("iswith=$isWithdrawal")
-
             return IntentPrivateTransfer(
                 id = rendezvousKey,
                 organizer = organizer,
