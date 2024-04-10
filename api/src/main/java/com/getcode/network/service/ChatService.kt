@@ -60,7 +60,7 @@ class ChatService @Inject constructor(
 
     @Throws(NoSuchElementException::class)
     suspend fun fetchChats(owner: KeyPair): Result<List<Chat>> {
-        return observeChats(owner).first()
+        return runCatching { observeChats(owner).first() }.getOrDefault(Result.success(emptyList()))
     }
 
     suspend fun setMuteState(owner: KeyPair, chatId: ID, muted: Boolean): Result<Boolean> {

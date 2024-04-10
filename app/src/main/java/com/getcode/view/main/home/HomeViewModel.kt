@@ -651,11 +651,7 @@ class HomeViewModel @Inject constructor(
         }
 
     fun presentShareableTipCard() = viewModelScope.launch {
-        val username = prefRepository.get(
-            PrefsString.KEY_TWITTER_USERNAME,
-            ""
-        ).takeIf { it.isNotEmpty() } ?: return@launch
-
+        val username = tipController.connectedAccount.value ?: return@launch
         val code = CodePayload(
             kind = Kind.Tip,
             value = Username(username)
@@ -1350,10 +1346,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun shareTipCard(context: Context) = viewModelScope.launch {
-        val username = prefRepository.get(
-            PrefsString.KEY_TWITTER_USERNAME,
-            ""
-        ).takeIf { it.isNotEmpty() } ?: return@launch
+        val username = tipController.connectedAccount.value ?: return@launch
 
         val url = "https://tipcard.getcode.com/x/$username"
 

@@ -51,7 +51,7 @@ class BuyKinViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
-    networkObserver: NetworkConnectivityListener,
+    private val networkObserver: NetworkConnectivityListener,
     resources: ResourceHelper,
     private val phoneRepository: PhoneRepository,
 ) : BaseAmountCurrencyViewModel(
@@ -91,7 +91,7 @@ class BuyKinViewModel @Inject constructor(
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
         // force currency to be local to device
-        with (localeHelper.getDefaultCurrency()) {
+        with(localeHelper.getDefaultCurrency()) {
             state.update {
                 it.copy(
                     currencyModel = currencyUiModel.copy(
@@ -104,7 +104,7 @@ class BuyKinViewModel @Inject constructor(
     }
 
     override fun setAmountUiModel(amountUiModel: AmountUiModel) {
-        with (localeHelper.getDefaultCurrency()) {
+        with(localeHelper.getDefaultCurrency()) {
             state.update { s ->
                 s.copy(
                     amountModel = amountUiModel.copy(
@@ -124,7 +124,7 @@ class BuyKinViewModel @Inject constructor(
 
     override fun getCurrencyUiModel(): CurrencyUiModel {
         // force currency to be local to device
-        return with (localeHelper.getDefaultCurrency()) {
+        return with(localeHelper.getDefaultCurrency()) {
             state.value.currencyModel.copy(
                 selectedCurrencyCode = this?.code,
                 selectedCurrencyResId = this?.resId,
@@ -134,7 +134,7 @@ class BuyKinViewModel @Inject constructor(
 
     override fun getAmountUiModel(): AmountUiModel {
         // force currency to be local to device
-        return with (localeHelper.getDefaultCurrency()) {
+        return with(localeHelper.getDefaultCurrency()) {
             state.value.amountModel.copy(
                 amountPrefix = formatPrefix(this)
                     .takeIf { it != this?.code }.orEmpty()
@@ -157,7 +157,11 @@ class BuyKinViewModel @Inject constructor(
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
         super.onAmountChanged(lastPressedBackspace)
         state.update {
-            it.copy(continueEnabled = numberInputHelper.amount > 0.0 && BuildConfig.KADO_API_KEY.isNotEmpty())
+            it.copy(
+                continueEnabled = numberInputHelper.amount > 0.0 &&
+                        BuildConfig.KADO_API_KEY.isNotEmpty() &&
+                        networkObserver.isConnected
+            )
         }
     }
 
@@ -175,10 +179,12 @@ class BuyKinViewModel @Inject constructor(
             owner = organizer.ownerKeyPair,
             linkedAccount = organizer.swapKeyPair
         ).onFailure {
-            TopBarManager.showMessage(
-                resources.getString(R.string.error_title_account_error),
-                resources.getString(R.string.error_description_usdc_deposit_failure)
-            )
+            if (networkObserver.isConnected) {
+                TopBarManager.showMessage(
+                    resources.getString(R.string.error_title_account_error),
+                    resources.getString(R.string.error_description_usdc_deposit_failure)
+                )
+            }
         }.onSuccess {
             state.update { it.copy(relationshipEstablished = true) }
         }
