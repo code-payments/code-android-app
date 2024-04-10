@@ -303,7 +303,6 @@ class IdentityRepository @Inject constructor(
                 .map { response ->
                     when (response.result) {
                         IdentityService.GetTwitterUserResponse.Result.OK -> {
-                            Timber.d("user ok")
                             val user = TwitterUser.invoke(response.twitterUser)
                             if (user == null) {
                                 val error =
@@ -311,7 +310,6 @@ class IdentityRepository @Inject constructor(
                                 ErrorUtils.handleError(error)
                                 Result.failure(error)
                             } else {
-                                Timber.d("user found")
                                 Result.success(user)
                             }
                         }
@@ -348,37 +346,35 @@ class IdentityRepository @Inject constructor(
             .build()
 
         return try {
+            Timber.d("fetchTwitterUserByAddress")
             networkOracle.managedRequest(identityApi.fetchTwitterUser(request))
                 .map { response ->
                     when (response.result) {
                         IdentityService.GetTwitterUserResponse.Result.OK -> {
-                            Timber.d("user ok")
                             val user = TwitterUser.invoke(response.twitterUser)
                             if (user == null) {
-                                val error =
-                                    Throwable("Error: failed to parse twitter user.")
+                                val error = TwitterUserFetchError.FailedToParse()
                                 ErrorUtils.handleError(error)
                                 Result.failure(error)
                             } else {
-                                Timber.d("user found")
                                 Result.success(user)
                             }
                         }
 
                         IdentityService.GetTwitterUserResponse.Result.NOT_FOUND -> {
-                            val error = Throwable("Error: user for address not found.")
+                            val error = TwitterUserFetchError.NotFound()
                             ErrorUtils.handleError(error)
                             Result.failure(error)
                         }
 
                         IdentityService.GetTwitterUserResponse.Result.UNRECOGNIZED -> {
-                            val error = Throwable("Error: fetchTwitterUser Unrecognized request.")
+                            val error = TwitterUserFetchError.UnrecognizedRequest()
                             ErrorUtils.handleError(error)
                             Result.failure(error)
                         }
 
                         else -> {
-                            val error = Throwable("Error: fetchTwitterUser Unknown")
+                            val error = TwitterUserFetchError.Unknown()
                             ErrorUtils.handleError(error)
                             Result.failure(error)
                         }
@@ -390,4 +386,11 @@ class IdentityRepository @Inject constructor(
             Result.failure(e)
         }
     }
+}
+
+sealed class TwitterUserFetchError : Exception() {
+    class Unknown: TwitterUserFetchError()
+    class UnrecognizedRequest: TwitterUserFetchError()
+    class NotFound: TwitterUserFetchError()
+    class FailedToParse: TwitterUserFetchError()
 }
