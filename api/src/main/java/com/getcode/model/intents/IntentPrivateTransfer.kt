@@ -39,7 +39,7 @@ class IntentPrivateTransfer(
             .setSendPrivatePayment(
                 TransactionService.SendPrivatePaymentMetadata.newBuilder().apply {
                     setDestination(this@IntentPrivateTransfer.destination.bytes.toSolanaAccount())
-                    setIsWithdrawal(isWithdrawal)
+                    setIsWithdrawal(this@IntentPrivateTransfer.isWithdrawal)
                     setExchangeData(
                         TransactionService.ExchangeData.newBuilder()
                             .setQuarks(grossAmount.kin.quarks)
@@ -205,6 +205,8 @@ class IntentPrivateTransfer(
                 *redistributes.toTypedArray(),
                 *rotation.toTypedArray()
             )
+
+            Timber.d("iswith=$isWithdrawal")
 
             return IntentPrivateTransfer(
                 id = rendezvousKey,
