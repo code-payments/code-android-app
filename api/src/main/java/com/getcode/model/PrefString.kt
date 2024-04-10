@@ -14,5 +14,5 @@ enum class PrefsString(val value: String) {
     KEY_DATA_CONTAINER_ID("data_container_id"),
     KEY_CURRENCY_SELECTED("currency_selected"),//keep
     KEY_CURRENCIES_RECENT("currencies_recent"),//keep
-    KEY_TWITTER_USERNAME("twitter_username")
+    KEY_TWITTER_USER("twitter_user")
 }

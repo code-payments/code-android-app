@@ -122,7 +122,7 @@ fun GetKinSheet(
             .flatMapLatest { snapshotFlow { navigator.sheetFullyVisible } }
             .filter { it }
             .onEach {
-                navigator.push(RequestTip, delay = 150)
+                navigator.push(RequestTip, delay = 225)
             }.launchIn(this)
     }
 

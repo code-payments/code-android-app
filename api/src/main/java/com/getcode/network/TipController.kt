@@ -8,18 +8,26 @@ import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.PrefRepository
+import com.getcode.network.repository.TwitterUserFetchError
 import com.getcode.utils.combine
 import com.getcode.utils.getOrPutIfNonNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.Timer
 import javax.inject.Inject
@@ -38,10 +46,17 @@ class TipController @Inject constructor(
     private var lastPoll: Long = 0L
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    val connectedAccount: StateFlow<String?> = prefRepository.observeOrDefault(PrefsString.KEY_TWITTER_USERNAME, "")
-        .map {
-            it.ifEmpty { null }
-        }.stateIn(
+    private var cachedUsers = mutableMapOf<String, TwitterUser>()
+
+    var scannedUserData: TipUser? = null
+        private set
+    var userMetadata: TwitterUser? = null
+        private set
+
+    val connectedAccount: StateFlow<String?> = prefRepository.observeOrDefault(PrefsString.KEY_TWITTER_USER, "")
+        .map { runCatching { Json.decodeFromString<TwitterUser>(it) }.getOrNull() }
+        .map { it?.username }
+        .stateIn(
             scope = scope,
             started = SharingStarted.Eagerly,
             initialValue = null
@@ -55,38 +70,47 @@ class TipController @Inject constructor(
             connected != null && !seen
         }
 
-    var scannedUserData: TipUser? = null
-        private set
-    var userMetadata: TwitterUser? = null
-        private set
-
-    private var cachedUsers = mutableMapOf<String, TwitterUser>()
-
     private fun startPollTimer() {
+        Timber.d("twitter poll start")
         pollTimer?.cancel()
         pollTimer = fixedRateTimer("twitterPollTimer", false, 0, 1000 * 20) {
             scope.launch {
                 val time = System.currentTimeMillis()
                 val isPastThrottle = time - lastPoll > 1000 * 10 || lastPoll == 0L
 
-                if (connectedAccount.value == null && isPastThrottle) {
+                if (isPastThrottle) {
                     callForConnectedUser()
-                    lastPoll = time
                 }
             }
         }
     }
 
     private suspend fun callForConnectedUser() {
+        Timber.d("twitter poll call")
         val tipAddress = SessionManager.getOrganizer()?.primaryVault ?: return
+        // only set lastPoll if we actively attempt to reach RPC
+        lastPoll = System.currentTimeMillis()
         client.fetchTwitterUser(tipAddress)
             .onSuccess {
                 Timber.d("current user twitter connected @ ${it.username}")
-                prefRepository.set(PrefsString.KEY_TWITTER_USERNAME, it.username)
+                prefRepository.set(PrefsString.KEY_TWITTER_USER, Json.encodeToString(it))
             }
             .onFailure {
-                prefRepository.set(PrefsString.KEY_TWITTER_USERNAME, "")
+                when (it) {
+                    is TwitterUserFetchError -> {
+                        prefRepository.set(PrefsString.KEY_TWITTER_USER, "")
+                    }
+                }
             }
+    }
+
+    init {
+        SessionManager.authState
+            .map { it.organizer }
+            .filterNotNull()
+            .map { it.primaryVault }
+            .onEach { checkForConnection() }
+            .launchIn(scope)
     }
 
     fun checkForConnection() {
