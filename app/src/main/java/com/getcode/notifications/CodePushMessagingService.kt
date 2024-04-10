@@ -13,6 +13,7 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
+import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.PushRepository
@@ -53,6 +54,9 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var authManager: AuthManager
 
     @Inject
+    lateinit var balanceController: BalanceController
+
+    @Inject
     lateinit var historyController: HistoryController
 
     @Inject
@@ -86,6 +90,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
                 if (type == NotificationType.ChatMessage) {
                     launch { historyController.fetchChats() }
+                    launch { balanceController.fetchBalanceSuspend() }
                     launch { tipController.checkForConnection() }
                 }
             } else {
