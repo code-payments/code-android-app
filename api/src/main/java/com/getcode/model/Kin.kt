@@ -3,6 +3,7 @@ package com.getcode.model
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.floor
+import kotlin.math.min
 
 data class Kin(val quarks: Long): Value {
     init {
@@ -27,6 +28,7 @@ data class Kin(val quarks: Long): Value {
         if (this <= other) return fromKin(0)
         return Kin(this.quarks - other.quarks)
     }
+
     operator fun div(other: Kin): Kin = Kin(this.quarks / other.quarks)
     operator fun div(other: Int): Kin = this / fromQuarks(other.toLong())
     operator fun times(other: Kin): Kin = Kin(this.quarks * other.quarks)
@@ -59,4 +61,12 @@ data class Kin(val quarks: Long): Value {
         fun fromQuarks(quarks: Long) = Kin(quarks)
         fun fromFiat(fiat: Double, fx: Double) = fromKin(fiat / fx)
     }
+}
+
+fun min(a: Kin, b: Kin): Kin {
+    if (a.quarks > b.quarks) {
+        return b
+    }
+
+    return a
 }
