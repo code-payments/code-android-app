@@ -743,15 +743,7 @@ class HomeViewModel @Inject constructor(
         val tipConfirmation = uiFlow.value.billState.tipConfirmation ?: return@launch
         val metadata = tipController.userMetadata ?: return@launch
 
-        val organizer = SessionManager.getOrganizer() ?: return@launch
-
         val amount = tipConfirmation.amount
-
-        // Generally, we would use the rendezvous key that
-        // was generated from the scan code payload, however,
-        // tip codes are inherently deterministic and won't
-        // change so we need a unique rendezvous for every tx.
-        val rendezvous = PublicKey.generate()
 
         uiFlow.update {
             val billState = it.billState
@@ -762,34 +754,43 @@ class HomeViewModel @Inject constructor(
             )
         }
 
-        client.transferWithResult(
-            amount = amount,
-            organizer = organizer,
-            fee = Kin.fromKin(0),
-            additionalFees = emptyList(),
-            rendezvousKey = rendezvous,
-            destination = metadata.tipAddress,
-            isWithdrawal = true,
-            tippedUsername = metadata.username
-        ).onFailure {
-            analytics.transferForTip(amount = amount, successful = false)
-            cancelTip()
+        runCatching {
+            paymentRepository.completeTipPayment(metadata, amount)
         }.onSuccess {
-            analytics.transferForTip(amount = amount, successful = true)
+            historyController.fetchChats()
             uiFlow.update {
                 val billState = it.billState
-                val confirmation = it.billState.paymentConfirmation ?: return@update it
+                val confirmation = it.billState.tipConfirmation ?: return@update it
 
                 it.copy(
                     billState = billState.copy(
-                        paymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                        tipConfirmation = confirmation.copy(state = ConfirmationState.Sent),
                     ),
                 )
             }
             delay(400.milliseconds)
             cancelTip()
             showToast(amount, isDeposit = false)
-            historyController.fetchChats()
+        }.onFailure {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_payment_failed),
+                resources.getString(R.string.error_description_payment_failed),
+            )
+
+            uiFlow.update { uiModel ->
+                uiModel.copy(
+                    presentationStyle = PresentationStyle.Hidden,
+                    billState = uiModel.billState.copy(
+                        bill = null,
+                        showToast = false,
+                        tipConfirmation = null,
+                        toast = null,
+                        valuation = null,
+                        shareAction = null,
+                        showCancelAction = false,
+                    )
+                )
+            }
         }
     }
 
