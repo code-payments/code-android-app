@@ -5,7 +5,6 @@ import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
-import com.getcode.model.KinAmount
 import com.getcode.model.PrefsString
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange

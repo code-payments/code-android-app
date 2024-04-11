@@ -87,6 +87,14 @@ class TransactionRepository @Inject constructor(
         return limits?.sendLimitFor(currencyCode)
     }
 
+    fun hasAvailableTransactionLimit(amount: KinAmount): Boolean {
+        return (sendLimitFor(amount.rate.currency)?.nextTransaction ?: 0.0) >= amount.fiat
+    }
+
+    fun hasAvailableDailyLimit(): Boolean {
+        return (sendLimitFor(currencyCode = CurrencyCode.USD)?.nextTransaction ?: 0.0) > 0
+    }
+
     private fun setLimits(limits: Limits) {
         this.limits = limits
     }
