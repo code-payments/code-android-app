@@ -95,16 +95,15 @@ class TipPaymentViewModel @Inject constructor(
     }
 
     private fun minLimit(rate: Rate): Kin {
-        return KinAmount.fromFiatAmount(minFiatLimit(rate), rate).kin
+        return KinAmount.fromFiatAmount(minFiatLimit, rate).kin
     }
 
-    private fun maxFiatLimit(rate: Rate): Double {
-        return (transactionRepository.sendLimitFor(rate.currency) ?: SendLimit.Zero).nextTransaction
+    private val maxFiatLimit: (rate: Rate) -> Double = { rate ->
+        (transactionRepository.sendLimitFor(rate.currency) ?: SendLimit.Zero).nextTransaction
     }
 
-    private fun minFiatLimit(rate: Rate): Double {
-        return (transactionRepository.sendLimitFor(rate.currency) ?: SendLimit.Zero).maxPerTransaction / 250.0
-    }
+    private val minFiatLimit: Double
+        get() = (transactionRepository.sendLimitFor(CurrencyCode.USD) ?: SendLimit.Zero).maxPerTransaction / 250.0
 
     private val hasAvailableTransactionLimit: (amount: KinAmount, rate: Rate) -> Boolean = { amount, _ ->
         transactionRepository.hasAvailableTransactionLimit(amount)
@@ -162,7 +161,7 @@ class TipPaymentViewModel @Inject constructor(
         }
 
         if (!isTipLargeEnough(amount, rate)) {
-            val formatted = FormatUtils.formatCurrency(minFiatLimit(rate), rate.currency)
+            val formatted = FormatUtils.formatCurrency(minFiatLimit, rate.currency)
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_tipTooSmall),
                 resources.getString(R.string.error_description_tipTooSmall, formatted)
