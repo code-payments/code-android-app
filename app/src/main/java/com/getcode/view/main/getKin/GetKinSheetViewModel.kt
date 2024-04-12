@@ -35,6 +35,7 @@ class GetKinSheetViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnBetaFlagsChanged(val options: BetaOptions) : Event
+        data class OnConnectionStateChanged(val connected: Boolean): Event
         data class ShowSnackbar(val data: SnackData?) : Event
         data object ClearSnackbar : Event
     }
@@ -49,19 +50,22 @@ class GetKinSheetViewModel @Inject constructor(
             tipController.connectedAccount,
             tipController.showTwitterSplat
         ) { username, show ->
-            if (!username.isNullOrEmpty() && show) {
-                dispatchEvent(
-                    Event.ShowSnackbar(
-                        data = SnackData(
-                            message = resources.getString(
-                                R.string.subtitle_xAccountConnected,
-                                username
-                            ),
-                            actionLabel = resources.getString(R.string.action_shareTipCard),
-                            duration = SnackbarDuration.Indefinite
+            dispatchEvent(Event.OnConnectionStateChanged(!username.isNullOrEmpty()))
+            if (!username.isNullOrEmpty()) {
+                if (show) {
+                    dispatchEvent(
+                        Event.ShowSnackbar(
+                            data = SnackData(
+                                message = resources.getString(
+                                    R.string.subtitle_xAccountConnected,
+                                    username
+                                ),
+                                actionLabel = resources.getString(R.string.action_shareTipCard),
+                                duration = SnackbarDuration.Indefinite
+                            )
                         )
                     )
-                )
+                }
             }
         }.launchIn(viewModelScope)
     }
@@ -76,6 +80,9 @@ class GetKinSheetViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnConnectionStateChanged -> { state ->
+                    state.copy(isTipCardConnected = event.connected)
+                }
 
                 is Event.ShowSnackbar -> { state ->
                     state.copy(snackbarData = event.data)
