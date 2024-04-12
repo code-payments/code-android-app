@@ -3,7 +3,6 @@ package com.getcode.view.main.tip
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
-import com.getcode.model.BuyLimit
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -33,7 +32,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.min
 
 @HiltViewModel
 class TipPaymentViewModel @Inject constructor(
@@ -88,22 +86,18 @@ class TipPaymentViewModel @Inject constructor(
         }
     }
 
-    private fun maxLimit(rate: Rate): Kin {
-        val limit = KinAmount.fromFiatAmount(maxFiatLimit(rate), rate)
-
-        return min(getAmountUiModel().amountKin, limit.kin)
-    }
-
-    private fun minLimit(rate: Rate): Kin {
-        return KinAmount.fromFiatAmount(minFiatLimit, rate).kin
+    private val minUsdLimit: Kin
+        get() {
+            return KinAmount.fromFiatAmount(minUsdFiatLimit, exchange.rateForUsd()!!).kin
     }
 
     private val maxFiatLimit: (rate: Rate) -> Double = { rate ->
         (transactionRepository.sendLimitFor(rate.currency) ?: SendLimit.Zero).nextTransaction
     }
 
-    private val minFiatLimit: Double
+    private val minUsdFiatLimit: Double
         get() = (transactionRepository.sendLimitFor(CurrencyCode.USD) ?: SendLimit.Zero).maxPerTransaction / 250.0
+
 
     private val hasAvailableTransactionLimit: (amount: KinAmount, rate: Rate) -> Boolean = { amount, _ ->
         transactionRepository.hasAvailableTransactionLimit(amount)
@@ -116,8 +110,8 @@ class TipPaymentViewModel @Inject constructor(
     private val hasAvailableDailyLimit: Boolean
         get() = transactionRepository.hasAvailableDailyLimit()
 
-    private val isTipLargeEnough: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
-        amount.kin >= minLimit(rate)
+    private val isTipLargeEnough: (amount: KinAmount) -> Boolean = { amount ->
+        amount.kin >= minUsdLimit
     }
 
     suspend fun onSubmit(): KinAmount? {
@@ -160,8 +154,13 @@ class TipPaymentViewModel @Inject constructor(
             return null
         }
 
-        if (!isTipLargeEnough(amount, rate)) {
-            val formatted = FormatUtils.formatCurrency(minFiatLimit, rate.currency)
+        if (!isTipLargeEnough(amount)) {
+            // min amount is based on send limit for USD
+            val kin = KinAmount.fromFiatAmount(minUsdFiatLimit, exchange.rateForUsd()!!).kin
+            // convert min amount in USD to selected currency
+            val normalizedAmount = KinAmount.newInstance(kin, rate)
+            // format for display
+            val formatted = FormatUtils.formatCurrency(normalizedAmount.fiat, rate.currency)
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_tipTooSmall),
                 resources.getString(R.string.error_description_tipTooSmall, formatted)
