@@ -10,11 +10,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Snackbar
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.material.SnackbarResult
 import androidx.compose.material.Text
+import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,24 +41,18 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.navigation.screens.RequestTip
+import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.theme.green
 import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.showSnackbar
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.delayFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.sample
-import kotlinx.coroutines.flow.take
-import timber.log.Timber
 
 data class GetKinItem(
     val imageResId: Int,
@@ -68,6 +72,10 @@ fun GetKinSheet(
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by viewModel.stateFlow.collectAsState()
+
+    var sheetAnimatedIn by rememberSaveable(viewModel) {
+        mutableStateOf(false)
+    }
 
     val items = listOf(
 //        GetKinItem(
@@ -117,137 +125,172 @@ fun GetKinSheet(
     )
 
     LaunchedEffect(viewModel) {
-        viewModel.eventFlow
-            .filterIsInstance<GetKinSheetViewModel.Event.ShowConnectionSuccess>()
-            .flatMapLatest { snapshotFlow { navigator.sheetFullyVisible } }
-            .filter { it }
+        snapshotFlow { navigator.sheetFullyVisible }
             .onEach {
-                navigator.push(RequestTip, delay = 225)
+                sheetAnimatedIn = true
             }.launchIn(this)
     }
 
-    ConstraintLayout(
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scaffoldState = rememberScaffoldState(snackbarHostState = snackbarHostState)
+
+    Scaffold(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight()
-            .padding(horizontal = CodeTheme.dimens.inset),
-    ) {
-        val (topSection, bottomSection) = createRefs()
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .constrainAs(topSection) {
-                    top.linkTo(parent.top)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                },
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_graphic_wallet),
-                contentDescription = "",
-                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
-            )
-            Text(
-                text = stringResource(R.string.title_getKin),
-                style = CodeTheme.typography.h1,
-                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
-            )
-            Text(
-                text = stringResource(R.string.subtitle_getKin),
-                style = CodeTheme.typography.body1,
-                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
-            )
+            .fillMaxHeight(),
+        backgroundColor = CodeTheme.colors.background,
+        contentColor = CodeTheme.colors.onBackground,
+        scaffoldState = scaffoldState,
+        snackbarHost = {
+            SnackbarHost(it) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    shape = CodeTheme.shapes.small,
+                    backgroundColor = BrandMuted,
+                    contentColor = CodeTheme.colors.onBackground,
+                    actionColor = green
+                )
+            }
         }
-
-        val x10 = CodeTheme.dimens.grid.x10
-        Column(
+    ) { padding ->
+        ConstraintLayout(
             modifier = Modifier
                 .fillMaxWidth()
-                .constrainAs(bottomSection) {
-                    top.linkTo(topSection.bottom, margin = x10)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                },
+                .fillMaxHeight()
+                .padding(horizontal = CodeTheme.dimens.inset)
+                .then(Modifier.padding(padding)),
         ) {
-            Column {
-                for (item in items) {
-                    if (!item.isVisible) {
-                        continue
-                    }
+            val (topSection, bottomSection) = createRefs()
 
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(White05),
-                    )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(topSection) {
+                        top.linkTo(parent.top)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    },
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.ic_graphic_wallet),
+                    contentDescription = "",
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                )
+                Text(
+                    text = stringResource(R.string.title_getKin),
+                    style = CodeTheme.typography.h1,
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
+                )
+                Text(
+                    text = stringResource(R.string.subtitle_getKin),
+                    style = CodeTheme.typography.body1,
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                )
+            }
 
-                    Row(
-                        modifier = Modifier
-                            .addIf(
-                                item.isStrikeThrough.not(),
-                            ) {
-                                Modifier.rememberedClickable { item.onClick() }
-                            }
-                            .padding(
-                                vertical = CodeTheme.dimens.grid.x4,
-                                horizontal = CodeTheme.dimens.grid.x2
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Image(
-                            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
-                            painter = if (item.isActive) painterResource(id = item.imageResId) else painterResource(id = item.inactiveImageResId),
-                            contentDescription = "",
-                        )
-                        Column(
+            val x10 = CodeTheme.dimens.grid.x10
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(bottomSection) {
+                        top.linkTo(topSection.bottom, margin = x10)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    },
+            ) {
+                Column {
+                    for (item in items) {
+                        if (!item.isVisible) {
+                            continue
+                        }
+
+                        Spacer(
                             modifier = Modifier
-                                .padding(start = CodeTheme.dimens.grid.x3)
-                                .weight(1f),
-                        ) {
-                            Text(
-                                text = stringResource(item.titleTextResId),
-                                color = if (item.isActive) Color.White else colorResource(R.color.code_brand_light),
-                                style = CodeTheme.typography.button.copy(
-                                    textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(White05),
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .addIf(
+                                    item.isStrikeThrough.not(),
+                                ) {
+                                    Modifier.rememberedClickable { item.onClick() }
+                                }
+                                .padding(
+                                    vertical = CodeTheme.dimens.grid.x4,
+                                    horizontal = CodeTheme.dimens.grid.x2
                                 ),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Image(
+                                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+                                painter = if (item.isActive) painterResource(id = item.imageResId) else painterResource(
+                                    id = item.inactiveImageResId
+                                ),
+                                contentDescription = "",
                             )
-                            item.subtitleTextResId?.let {
+                            Column(
+                                modifier = Modifier
+                                    .padding(start = CodeTheme.dimens.grid.x3)
+                                    .weight(1f),
+                            ) {
                                 Text(
-                                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
-                                    text = stringResource(it),
-                                    style = CodeTheme.typography.body2,
-                                    color = colorResource(R.color.code_brand_light),
+                                    text = stringResource(item.titleTextResId),
+                                    color = if (item.isActive) Color.White else colorResource(R.color.code_brand_light),
+                                    style = CodeTheme.typography.button.copy(
+                                        textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
+                                    ),
+                                )
+                                item.subtitleTextResId?.let {
+                                    Text(
+                                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                                        text = stringResource(it),
+                                        style = CodeTheme.typography.body2,
+                                        color = colorResource(R.color.code_brand_light),
+                                    )
+                                }
+                            }
+
+                            if (item.isLoading) {
+                                CodeCircularProgressIndicator(
+                                    strokeWidth = CodeTheme.dimens.thickBorder,
+                                    color = White,
+                                    modifier = Modifier
+                                        .size(CodeTheme.dimens.grid.x3)
+                                        .align(Alignment.CenterVertically),
+                                )
+                            } else if (item.isActive) {
+                                Image(
+                                    modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
+                                    painter = painterResource(R.drawable.ic_chevron_right),
+                                    contentDescription = "",
                                 )
                             }
                         }
-
-                        if (item.isLoading) {
-                            CodeCircularProgressIndicator(
-                                strokeWidth = CodeTheme.dimens.thickBorder,
-                                color = White,
-                                modifier = Modifier
-                                    .size(CodeTheme.dimens.grid.x3)
-                                    .align(Alignment.CenterVertically),
-                            )
-                        } else if (item.isActive) {
-                            Image(
-                                modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
-                                painter = painterResource(R.drawable.ic_chevron_right),
-                                contentDescription = "",
-                            )
-                        }
                     }
                 }
-            }
 
-            Spacer(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(White05),
-            )
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(White05),
+                )
+            }
+        }
+    }
+
+
+    LaunchedEffect(sheetAnimatedIn, dataState.snackbarData) {
+        dataState.snackbarData?.let {
+            delay(400)
+            val result = snackbarHostState.showSnackbar(it)
+            if (result == SnackbarResult.ActionPerformed) {
+                navigator.hideWithResult(HomeResult.ShowTipCard)
+            }
+            viewModel.dispatchEvent(GetKinSheetViewModel.Event.ClearSnackbar)
         }
     }
 }
