@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Snackbar
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
@@ -47,6 +46,7 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.green
 import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.showSnackbar
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
@@ -134,12 +134,10 @@ fun GetKinSheet(
     val snackbarHostState = remember { SnackbarHostState() }
     val scaffoldState = rememberScaffoldState(snackbarHostState = snackbarHostState)
 
-    Scaffold(
+    CodeScaffold(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight(),
-        backgroundColor = CodeTheme.colors.background,
-        contentColor = CodeTheme.colors.onBackground,
         scaffoldState = scaffoldState,
         snackbarHost = {
             SnackbarHost(it) { data ->
