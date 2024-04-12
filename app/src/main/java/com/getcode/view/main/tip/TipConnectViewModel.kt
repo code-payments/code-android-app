@@ -25,35 +25,23 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TipConnectViewModel @Inject constructor(
-    tipController: TipController,
     resources: ResourceHelper,
 ) : BaseViewModel2<TipConnectViewModel.State, TipConnectViewModel.Event>(
-    initialState = State("", "", false),
+    initialState = State(""),
     updateStateForEvent = updateStateForEvent
 ) {
 
     data class State(
-        val username: String,
         val xMessage: String,
-        val connected: Boolean
     )
 
     sealed interface Event {
-        data class UpdateUsername(val username: String): Event
         data class UpdateMessage(val message: String): Event
         data object PostToX: Event
         data class OpenX(val intent: Intent): Event
-        data class SetConnected(val connected: Boolean): Event
     }
 
     init {
-
-        tipController.connectedAccount
-            .onEach {
-                dispatchEvent(Event.UpdateUsername(it.orEmpty()))
-                dispatchEvent(Event.SetConnected(it != null))
-            }.launchIn(viewModelScope)
-
         val authority = SessionManager.getOrganizer()?.tray?.owner?.getCluster()?.authority
         val tipAddress = SessionManager.getOrganizer()?.primaryVault
             ?.let { Base58.encode(it.byteArray) }
@@ -86,9 +74,7 @@ class TipConnectViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.UpdateUsername -> { state -> state.copy(username = event.username) }
                 is Event.UpdateMessage -> { state -> state.copy(xMessage = event.message) }
-                is Event.SetConnected -> { state -> state.copy(connected = event.connected) }
                 is Event.OpenX -> { state -> state }
                 Event.PostToX -> { state -> state }
             }

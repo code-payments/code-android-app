@@ -23,12 +23,15 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.time.Duration.Companion.milliseconds
 
 
 class PaymentRepository @Inject constructor(
@@ -184,6 +187,48 @@ class PaymentRepository @Inject constructor(
 
     suspend fun rejectPayment(payload: CodePayload) {
         messagingRepository.rejectPayment(payload.rendezvous)
+    }
+
+    suspend fun completeTipPayment(metadata: TwitterUser, amount: KinAmount) {
+        return suspendCancellableCoroutine { cont ->
+            val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
+
+            // Generally, we would use the rendezvous key that
+            // was generated from the scan code payload, however,
+            // tip codes are inherently deterministic and won't
+            // change so we need a unique rendezvous for every tx.
+            val rendezvous = PublicKey.generate()
+
+            runCatching {
+                val transferResult = client.transferWithResult(
+                    amount = amount,
+                    organizer = organizer,
+                    fee = Kin.fromKin(0),
+                    additionalFees = emptyList(),
+                    rendezvousKey = rendezvous,
+                    destination = metadata.tipAddress,
+                    isWithdrawal = true,
+                    tippedUsername = metadata.username
+                )
+
+                if (transferResult.isSuccess) {
+                    Completable.concatArray(
+                        balanceController.fetchBalance(),
+                        client.fetchLimits(isForce = true)
+                    ).doOnComplete {
+                        analytics.transferForTip(amount = amount, successful = true)
+                        cont.resume(Unit)
+                    }.subscribe()
+                } else {
+                    // pass exception down to onFailure for isolated handling
+                    throw transferResult.exceptionOrNull()
+                        ?: Throwable("Unable to complete payment")
+                }
+            }.onFailure { error ->
+                ErrorUtils.handleError(error)
+                cont.resumeWithException(error)
+            }
+        }
     }
 }
 

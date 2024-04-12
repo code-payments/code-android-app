@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun EnterTipScreen(
-    viewModel: EnterTipViewModel = hiltViewModel()
+    viewModel: TipPaymentViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current

@@ -1,50 +1,24 @@
 package com.getcode.view.main.getKin
 
+import androidx.compose.material.SnackbarDuration
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.manager.SessionManager
-import com.getcode.manager.TopBarManager
-import com.getcode.model.KinAmount
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
-import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
 import com.getcode.network.TipController
-import com.getcode.network.client.Client
-import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
-import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
-import com.getcode.network.repository.PrefRepository
-import com.getcode.network.repository.TransactionRepository
+import com.getcode.ui.components.SnackData
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.util.showNetworkError
-import com.getcode.utils.ErrorUtils
-import com.getcode.utils.catchSafely
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.reactivex.rxjava3.core.Completable
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactive.asFlow
-import timber.log.Timber
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class GetKinSheetViewModel @Inject constructor(
+    resources: ResourceHelper,
     betaFlags: BetaFlagsRepository,
     tipController: TipController,
 ) : BaseViewModel2<GetKinSheetViewModel.State, GetKinSheetViewModel.Event>(
@@ -56,13 +30,13 @@ class GetKinSheetViewModel @Inject constructor(
         val isTipsEnabled: Boolean = false,
         val isTipCardConnected: Boolean = false,
         val isRequestKinEnabled: Boolean = false,
+        val snackbarData: SnackData? = null,
     )
 
     sealed interface Event {
         data class OnBetaFlagsChanged(val options: BetaOptions) : Event
-        data class OnTipCardConnectionChanged(val connected: Boolean): Event
-
-        data object ShowConnectionSuccess: Event
+        data class ShowSnackbar(val data: SnackData?) : Event
+        data object ClearSnackbar : Event
     }
 
     init {
@@ -71,17 +45,25 @@ class GetKinSheetViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnBetaFlagsChanged(it)) }
             .launchIn(viewModelScope)
 
-        tipController.connectedAccount
-            .filterNotNull()
-            .onEach { username ->
-                dispatchEvent(Event.OnTipCardConnectionChanged(username.isNotEmpty()))
-            }.launchIn(viewModelScope)
-
-        tipController.showTwitterSplat
-            .distinctUntilChanged()
-            .filter { it }
-            .onEach { dispatchEvent(Event.ShowConnectionSuccess) }
-            .launchIn(viewModelScope)
+        combine(
+            tipController.connectedAccount,
+            tipController.showTwitterSplat
+        ) { username, show ->
+            if (!username.isNullOrEmpty() && show) {
+                dispatchEvent(
+                    Event.ShowSnackbar(
+                        data = SnackData(
+                            message = resources.getString(
+                                R.string.subtitle_xAccountConnected,
+                                username
+                            ),
+                            actionLabel = resources.getString(R.string.action_shareTipCard),
+                            duration = SnackbarDuration.Indefinite
+                        )
+                    )
+                )
+            }
+        }.launchIn(viewModelScope)
     }
 
     companion object {
@@ -94,13 +76,12 @@ class GetKinSheetViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnTipCardConnectionChanged -> { state ->
-                    state.copy(
-                        isTipCardConnected = event.connected
-                    )
+
+                is Event.ShowSnackbar -> { state ->
+                    state.copy(snackbarData = event.data)
                 }
 
-                Event.ShowConnectionSuccess -> { state -> state }
+                Event.ClearSnackbar -> { state -> state.copy(snackbarData = null) }
             }
         }
     }

@@ -1,8 +1,15 @@
 package com.getcode.view.main.tip
 
 import androidx.lifecycle.viewModelScope
+import com.getcode.R
+import com.getcode.manager.TopBarManager
+import com.getcode.model.BuyLimit
 import com.getcode.model.CurrencyCode
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.Rate
+import com.getcode.model.SendLimit
+import com.getcode.model.min
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
@@ -13,6 +20,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountUiModel
@@ -25,14 +33,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.min
 
 @HiltViewModel
-class EnterTipViewModel @Inject constructor(
+class TipPaymentViewModel @Inject constructor(
     client: Client,
     exchange: Exchange,
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
-    transactionRepository: TransactionRepository,
+    private val transactionRepository: TransactionRepository,
     localeHelper: LocaleHelper,
     currencyUtils: CurrencyUtils,
     networkObserver: NetworkConnectivityListener,
@@ -79,6 +88,38 @@ class EnterTipViewModel @Inject constructor(
         }
     }
 
+    private fun maxLimit(rate: Rate): Kin {
+        val limit = KinAmount.fromFiatAmount(maxFiatLimit(rate), rate)
+
+        return min(getAmountUiModel().amountKin, limit.kin)
+    }
+
+    private fun minLimit(rate: Rate): Kin {
+        return KinAmount.fromFiatAmount(minFiatLimit, rate).kin
+    }
+
+    private val maxFiatLimit: (rate: Rate) -> Double = { rate ->
+        (transactionRepository.sendLimitFor(rate.currency) ?: SendLimit.Zero).nextTransaction
+    }
+
+    private val minFiatLimit: Double
+        get() = (transactionRepository.sendLimitFor(CurrencyCode.USD) ?: SendLimit.Zero).maxPerTransaction / 250.0
+
+    private val hasAvailableTransactionLimit: (amount: KinAmount, rate: Rate) -> Boolean = { amount, _ ->
+        transactionRepository.hasAvailableTransactionLimit(amount)
+    }
+
+    private val hasSufficientFundsToSend: (amount: KinAmount, rate: Rate) -> Boolean = { amount, _ ->
+        getAmountUiModel().amountKin >= amount.kin
+    }
+
+    private val hasAvailableDailyLimit: Boolean
+        get() = transactionRepository.hasAvailableDailyLimit()
+
+    private val isTipLargeEnough: (amount: KinAmount, rate: Rate) -> Boolean = { amount, rate ->
+        amount.kin >= minLimit(rate)
+    }
+
     suspend fun onSubmit(): KinAmount? {
         val uiModel = state.value
 
@@ -92,7 +133,43 @@ class EnterTipViewModel @Inject constructor(
         exchange.fetchRatesIfNeeded()
         val rate = exchange.rateFor(currencyCode) ?: return null
 
-        return KinAmount.fromFiatAmount(amountKin, amountFiat, rate.fx, currencyCode)
+        val amount =  KinAmount.fromFiatAmount(amountKin, amountFiat, rate.fx, currencyCode)
+
+        if (!hasSufficientFundsToSend(amount, rate)) {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_insuffiecientKin),
+                resources.getString(R.string.error_description_insuffiecientKin)
+            )
+            return null
+        }
+
+        if (!hasAvailableDailyLimit) {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_giveLimitReached),
+                resources.getString(R.string.error_description_giveLimitReached)
+            )
+            return null
+        }
+
+        if (!hasAvailableTransactionLimit(amount, rate)) {
+            val formatted = FormatUtils.formatCurrency(maxFiatLimit(rate), rate.currency)
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_tipTooLarge),
+                resources.getString(R.string.error_description_tipTooLarge, formatted)
+            )
+            return null
+        }
+
+        if (!isTipLargeEnough(amount, rate)) {
+            val formatted = FormatUtils.formatCurrency(minFiatLimit, rate.currency)
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_tipTooSmall),
+                resources.getString(R.string.error_description_tipTooSmall, formatted)
+            )
+            return null
+        }
+
+        return amount
     }
 
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
@@ -102,8 +179,7 @@ class EnterTipViewModel @Inject constructor(
                 if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
                 continueEnabled = numberInputHelper.amount >= minValue &&
-                        !it.amountModel.isInsufficient &&
-                        numberInputHelper.amount <= it.amountModel.sendLimit
+                        !it.amountModel.isInsufficient
             )
         }
     }
