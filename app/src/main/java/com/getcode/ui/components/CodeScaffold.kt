@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.DrawerDefaults
 import androidx.compose.material.FabPosition
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Scaffold
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.SnackbarHost
@@ -18,18 +17,22 @@ import androidx.compose.ui.unit.Dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 
-
 @Composable
 fun CodeScaffold(
     modifier: Modifier = Modifier,
     scaffoldState: ScaffoldState = rememberScaffoldState(),
-    topBar: @Composable (() -> Unit) = {},
-    bottomBar: @Composable (() -> Unit) = {},
-    snackbarHost: @Composable (SnackbarHostState) -> Unit = { SnackbarHost(it) },
-    floatingActionButton: @Composable (() -> Unit) = {},
+    topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable (SnackbarHostState) -> Unit = {
+        SnackbarHost(it) { data ->
+            CodeSnackbar(snackbarData = data)
+        }
+    },
+    floatingActionButton: @Composable () -> Unit = {},
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     isFloatingActionButtonDocked: Boolean = false,
     drawerContent: @Composable (ColumnScope.() -> Unit)? = null,
+    drawerGesturesEnabled: Boolean = true,
     drawerShape: Shape = CodeTheme.shapes.extraLarge,
     drawerElevation: Dp = DrawerDefaults.Elevation,
     drawerBackgroundColor: Color = CodeTheme.colors.background,
@@ -49,6 +52,7 @@ fun CodeScaffold(
         floatingActionButtonPosition = floatingActionButtonPosition,
         isFloatingActionButtonDocked = isFloatingActionButtonDocked,
         drawerContent = drawerContent,
+        drawerGesturesEnabled = drawerGesturesEnabled,
         drawerShape = drawerShape,
         drawerElevation = drawerElevation,
         drawerBackgroundColor = drawerBackgroundColor,
