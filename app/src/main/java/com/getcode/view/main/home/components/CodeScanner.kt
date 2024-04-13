@@ -26,6 +26,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.asFlow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.startupLog
+import com.getcode.ui.utils.AnimationUtils
 import com.getcode.util.toByteArray
 import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.KikCodeScanner
@@ -124,9 +125,9 @@ fun CodeScanner(
         modifier = Modifier.fillMaxSize(),
         visible = streamState != PreviewView.StreamState.STREAMING,
         enter = fadeIn(
-            animationSpec = tween(100)
+            animationSpec = tween(AnimationUtils.animationTime / 2)
         ),
-        exit = fadeOut(tween(100))
+        exit = fadeOut(tween(AnimationUtils.animationTime / 2))
     ) {
         Box(
             Modifier
