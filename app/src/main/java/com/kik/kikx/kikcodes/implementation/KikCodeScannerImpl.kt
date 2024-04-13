@@ -12,9 +12,6 @@ import com.kik.scan.KikCode
 import com.kik.scan.RemoteKikCode
 import com.kik.scan.Scanner
 import com.kik.scan.UsernameKikCode
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
-import timber.log.Timber
 import java.io.ByteArrayOutputStream
 
 class KikCodeScannerImpl : KikCodeScanner {
@@ -38,20 +35,19 @@ class KikCodeScannerImpl : KikCodeScanner {
         }
     }
 
-    override fun scanKikCode(imageData: ByteArray, width: Int, height: Int): Single<ScannableKikCode> {
-        return Single.fromCallable {
-            val source = PlanarYUVLuminanceSource(imageData, width, height, 0, 0, width, height, false)
+    override suspend fun scanKikCode(imageData: ByteArray, width: Int, height: Int): Result<ScannableKikCode> {
+        val source = PlanarYUVLuminanceSource(imageData, width, height, 0, 0, width, height, false)
 
-            val yuv = YuvImage(imageData, ImageFormat.NV21, width, height, null)
+        val yuv = YuvImage(imageData, ImageFormat.NV21, width, height, null)
 
-            val bos = ByteArrayOutputStream()
-            yuv.compressToJpeg(Rect(0, 0, yuv.width, yuv.height), 100, bos)
+        val bos = ByteArrayOutputStream()
+        yuv.compressToJpeg(Rect(0, 0, yuv.width, yuv.height), 100, bos)
 
+        return try {
             val scanResult = Scanner.scan(source.matrix, width, height, SCAN_QUALITY)
-                ?: throw KikCodeScanner.NoKikCodeFoundException()
-
-            KikCode.parse(scanResult.data)?.toModelKikCode()
-                ?: throw KikCodeScanner.NoKikCodeFoundException()
-        }.subscribeOn(Schedulers.computation())
+            runCatching { KikCode.parse(scanResult.data)?.toModelKikCode() ?: throw KikCodeScanner.NoKikCodeFoundException() }
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
     }
 }
