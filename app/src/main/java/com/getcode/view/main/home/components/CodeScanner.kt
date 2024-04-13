@@ -101,14 +101,12 @@ fun CodeScanner(
                                 imageProxy.height,
                             ).onSuccess { result ->
                                 onCodeScanned(result)
-                                delay(500)
                                 imageProxy.close()
                             }.onFailure { error ->
                                 when (error) {
                                     is KikCodeScanner.NoKikCodeFoundException -> Unit
                                     else -> ErrorUtils.handleError(error)
                                 }
-                                delay(500)
                                 imageProxy.close()
                             }
                         }
