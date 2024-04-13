@@ -2,6 +2,7 @@ package com.getcode.network
 
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
+import com.getcode.model.ConnectedTipAccount
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.model.TwitterUser
@@ -9,23 +10,19 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
-import com.getcode.utils.combine
 import com.getcode.utils.getOrPutIfNonNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
@@ -53,9 +50,8 @@ class TipController @Inject constructor(
     var userMetadata: TwitterUser? = null
         private set
 
-    val connectedAccount: StateFlow<String?> = prefRepository.observeOrDefault(PrefsString.KEY_TWITTER_USER, "")
+    val connectedAccount: StateFlow<ConnectedTipAccount?> = prefRepository.observeOrDefault(PrefsString.KEY_TIP_ACCOUNT, "")
         .map { runCatching { Json.decodeFromString<TwitterUser>(it) }.getOrNull() }
-        .map { it?.username }
         .stateIn(
             scope = scope,
             started = SharingStarted.Eagerly,
@@ -93,12 +89,12 @@ class TipController @Inject constructor(
         client.fetchTwitterUser(tipAddress)
             .onSuccess {
                 Timber.d("current user twitter connected @ ${it.username}")
-                prefRepository.set(PrefsString.KEY_TWITTER_USER, Json.encodeToString(it))
+                prefRepository.set(PrefsString.KEY_TIP_ACCOUNT, Json.encodeToString(it))
             }
             .onFailure {
                 when (it) {
                     is TwitterUserFetchError -> {
-                        prefRepository.set(PrefsString.KEY_TWITTER_USER, "")
+                        prefRepository.set(PrefsString.KEY_TIP_ACCOUNT, "")
                     }
                 }
             }

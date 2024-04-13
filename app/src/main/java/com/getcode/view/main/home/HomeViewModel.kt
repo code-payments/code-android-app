@@ -228,11 +228,10 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.connectedAccount
-            .filterNotNull()
-            .onEach { username ->
+            .onEach { account ->
                 uiFlow.update {
                     it.copy(
-                        tipCardConnected = username.isNotEmpty()
+                        tipCardConnected = account != null
                     )
                 }
             }.launchIn(viewModelScope)
@@ -652,7 +651,7 @@ class HomeViewModel @Inject constructor(
         }
 
     fun presentShareableTipCard() = viewModelScope.launch {
-        val username = tipController.connectedAccount.value ?: return@launch
+        val username = tipController.connectedAccount.value?.username ?: return@launch
         val code = CodePayload(
             kind = Kind.Tip,
             value = Username(username)

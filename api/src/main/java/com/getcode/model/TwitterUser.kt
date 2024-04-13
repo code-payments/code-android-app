@@ -15,14 +15,16 @@ import kotlinx.serialization.encoding.Encoder
 
 @Serializable
 data class TwitterUser(
-    val username: String,
+    override val username: String,
     val displayName: String,
     val imageUrl: String,
     val followerCount: Int,
     @Serializable(with = PublicKeyAsStringSerializer::class)
     val tipAddress: PublicKey,
     val verificationStatus: VerificationStatus
-) {
+): ConnectedTipAccount {
+
+    override val platform: String = "X"
 
     val imageUrlSanitized: String
         get() {
