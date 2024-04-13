@@ -42,6 +42,9 @@ fun ByteArray.toSignature(): Model.Signature {
         .build()
 }
 
+val ByteArray.base58: String
+    get() = Base58.encode(this)
+
 fun PublicKey.toIntentId(): Model.IntentId {
     return Model.IntentId.newBuilder().setValue(this.byteArray.toByteString()).build()
 }

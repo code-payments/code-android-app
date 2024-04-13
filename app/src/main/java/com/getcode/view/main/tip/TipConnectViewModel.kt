@@ -7,6 +7,7 @@ import com.getcode.R
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.SessionManager
 import com.getcode.network.TipController
+import com.getcode.network.repository.base58
 import com.getcode.network.repository.urlEncode
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.bytes
@@ -48,14 +49,18 @@ class TipConnectViewModel @Inject constructor(
 
         if (tipAddress != null && authority != null) {
             val nonce = UUID.randomUUID()
-            val signature = Base58.encode(Ed25519.sign(nonce.bytes.toByteArray(), authority.keyPair))
-            val encodedNonce = Base58.encode(nonce.bytes.toByteArray())
-            val verificationMessage = "$tipAddress:$encodedNonce:$signature"
+            val signature = authority.keyPair.sign(nonce.bytes.toByteArray())
+            val verificationMessage = listOf(
+                "CodeAccount",
+                tipAddress,
+                Base58.encode(nonce.bytes.toByteArray()),
+                signature.base58
+            ).joinToString(":")
 
             val message = """
                 ${resources.getString(R.string.action_connect_to_x_message)}
                 
-                CodeAccount:$verificationMessage
+                $verificationMessage
             """.trimIndent()
             dispatchEvent(Event.UpdateMessage(message))
         }
