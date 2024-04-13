@@ -102,6 +102,10 @@ public class Ed25519 {
             return Base64.decode(publicKey, Base64.DEFAULT);
         }
 
+        public byte[] sign(byte[] message) {
+            return Ed25519.sign(message, this);
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
