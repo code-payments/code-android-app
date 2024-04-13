@@ -2,6 +2,7 @@ package com.getcode.view.main.getKin
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +41,7 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.navigation.screens.RequestTip
+import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
@@ -57,10 +59,11 @@ import kotlinx.coroutines.flow.onEach
 data class GetKinItem(
     val imageResId: Int,
     val inactiveImageResId: Int = imageResId,
-    val titleTextResId: Int,
-    val subtitleTextResId: Int? = null,
+    val titleText: String,
+    val subtitleText: String? = null,
     val isVisible: Boolean = true,
     val isActive: Boolean = true,
+    val isNavigation: Boolean = true,
     val isLoading: Boolean = false,
     val isStrikeThrough: Boolean = false,
     val onClick: () -> Unit,
@@ -78,34 +81,19 @@ fun GetKinSheet(
     }
 
     val items = listOf(
-//        GetKinItem(
-//            imageResId = R.drawable.ic_send2,
-//            inactiveImageResId = R.drawable.ic_send2_inactive,
-//            titleTextResId = R.string.title_referFriend,
-//            subtitleTextResId = R.string.title_limitedTimeOffer,
-//            isVisible = dataState.isEligibleGiveFirstKinAirdrop,
-//            isActive = dataState.isEligibleGiveFirstKinAirdrop,
-//            isLoading = false,
-//            isStrikeThrough = !dataState.isEligibleGiveFirstKinAirdrop,
-//            onClick = {
-//                if (!dataState.isEligibleGiveFirstKinAirdrop) {
-//                    return@GetKinItem
-//                }
-//
-//                navigator.push(ReferFriendScreen)
-//            },
-//        ),
         GetKinItem(
-            imageResId = R.drawable.ic_menu_buy_kin,
-            titleTextResId = R.string.subtitle_buyKin,
+            imageResId = R.drawable.ic_currency_dollar_active,
+            titleText = stringResource(R.string.subtitle_buyKin),
             onClick = {
                 navigator.push(BuyMoreKinModal())
             },
         ),
         GetKinItem(
             imageResId = R.drawable.ic_menu_tip_card,
-            titleTextResId = R.string.title_requestTip,
+            titleText = stringResource(R.string.title_requestTip),
+            subtitleText = dataState.tipsSubtitle,
             isVisible = dataState.isTipsEnabled,
+            isNavigation = false,
             onClick = {
                 if (dataState.isTipCardConnected) {
                     navigator.hideWithResult(HomeResult.ShowTipCard)
@@ -115,8 +103,8 @@ fun GetKinSheet(
             },
         ),
         GetKinItem(
-            imageResId = R.drawable.ic_currency_dollar_active,
-            titleTextResId = R.string.title_requestKin,
+            imageResId = R.drawable.ic_menu_buy_kin,
+            titleText = stringResource(R.string.title_requestKin),
             isVisible = dataState.isRequestKinEnabled,
             onClick = {
                 navigator.push(RequestKinModal())
@@ -186,12 +174,13 @@ fun GetKinSheet(
                 )
             }
 
-            val x10 = CodeTheme.dimens.grid.x10
+            val x10 = CodeTheme.dimens.grid.x15
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = x10)
                     .constrainAs(bottomSection) {
-                        top.linkTo(topSection.bottom, margin = x10)
+                        top.linkTo(topSection.bottom)
                         start.linkTo(parent.start)
                         end.linkTo(parent.end)
                     },
@@ -235,18 +224,18 @@ fun GetKinSheet(
                                     .weight(1f),
                             ) {
                                 Text(
-                                    text = stringResource(item.titleTextResId),
-                                    color = if (item.isActive) Color.White else colorResource(R.color.code_brand_light),
-                                    style = CodeTheme.typography.button.copy(
+                                    text = item.titleText,
+                                    color = if (item.isActive) Color.White else BrandLight,
+                                    style = CodeTheme.typography.body2.copy(
                                         textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
                                     ),
                                 )
-                                item.subtitleTextResId?.let {
+                                item.subtitleText?.let {
                                     Text(
                                         modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
-                                        text = stringResource(it),
-                                        style = CodeTheme.typography.body2,
-                                        color = colorResource(R.color.code_brand_light),
+                                        text = it,
+                                        style = CodeTheme.typography.caption,
+                                        color = BrandLight
                                     )
                                 }
                             }
@@ -259,7 +248,7 @@ fun GetKinSheet(
                                         .size(CodeTheme.dimens.grid.x3)
                                         .align(Alignment.CenterVertically),
                                 )
-                            } else if (item.isActive) {
+                            } else if (item.isNavigation) {
                                 Image(
                                     modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
                                     painter = painterResource(R.drawable.ic_chevron_right),

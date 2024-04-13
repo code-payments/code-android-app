@@ -3,6 +3,7 @@ package com.getcode.view.main.getKin
 import androidx.compose.material.SnackbarDuration
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
+import com.getcode.model.TwitterUser
 import com.getcode.network.TipController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
@@ -29,13 +30,18 @@ class GetKinSheetViewModel @Inject constructor(
     data class State(
         val isTipsEnabled: Boolean = false,
         val isTipCardConnected: Boolean = false,
+        val tipsSubtitle: String? = null,
         val isRequestKinEnabled: Boolean = false,
         val snackbarData: SnackData? = null,
     )
 
     sealed interface Event {
         data class OnBetaFlagsChanged(val options: BetaOptions) : Event
-        data class OnConnectionStateChanged(val connected: Boolean): Event
+        data class OnConnectionStateChanged(
+            val connected: Boolean,
+            val tipsSubtitle: String?,
+        ) : Event
+
         data class ShowSnackbar(val data: SnackData?) : Event
         data object ClearSnackbar : Event
     }
@@ -49,22 +55,40 @@ class GetKinSheetViewModel @Inject constructor(
         combine(
             tipController.connectedAccount,
             tipController.showTwitterSplat
-        ) { username, show ->
-            dispatchEvent(Event.OnConnectionStateChanged(!username.isNullOrEmpty()))
-            if (!username.isNullOrEmpty()) {
+        ) { connectedAccount, show ->
+            val subtitle = if (connectedAccount != null) {
+                resources.getString(
+                    R.string.subtitle_tips_linked_to_account,
+                    connectedAccount.platform.capitalize(),
+                    connectedAccount.username
+                )
+            } else {
+                null
+            }
+            dispatchEvent(
+                Event.OnConnectionStateChanged(
+                    connected = connectedAccount != null,
+                    tipsSubtitle = subtitle,
+                )
+            )
+            if (connectedAccount != null) {
                 if (show) {
-                    dispatchEvent(
-                        Event.ShowSnackbar(
-                            data = SnackData(
-                                message = resources.getString(
-                                    R.string.subtitle_xAccountConnected,
-                                    username
-                                ),
-                                actionLabel = resources.getString(R.string.action_shareTipCard),
-                                duration = SnackbarDuration.Indefinite
+                    when (connectedAccount) {
+                        is TwitterUser -> {
+                            dispatchEvent(
+                                Event.ShowSnackbar(
+                                    data = SnackData(
+                                        message = resources.getString(
+                                            R.string.subtitle_xAccountConnected,
+                                            connectedAccount.username
+                                        ),
+                                        actionLabel = resources.getString(R.string.action_shareTipCard),
+                                        duration = SnackbarDuration.Indefinite
+                                    )
+                                )
                             )
-                        )
-                    )
+                        }
+                    }
                 }
             }
         }.launchIn(viewModelScope)
@@ -81,7 +105,10 @@ class GetKinSheetViewModel @Inject constructor(
                 }
 
                 is Event.OnConnectionStateChanged -> { state ->
-                    state.copy(isTipCardConnected = event.connected)
+                    state.copy(
+                        isTipCardConnected = event.connected,
+                        tipsSubtitle = event.tipsSubtitle
+                    )
                 }
 
                 is Event.ShowSnackbar -> { state ->
