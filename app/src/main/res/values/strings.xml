@@ -42,4 +42,5 @@
     <string name="subtitle_youSentTip">You tipped someone $1$s</string>
 
     <string name="title_chat_tips">Tips</string>
+    <string name="subtitle_tips_linked_to_account">Tips linked to %1$s account: %2$s</string>
 </resources>

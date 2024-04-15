@@ -26,16 +26,15 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
 import com.getcode.model.Rate
 import com.getcode.model.Username
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
+import com.getcode.models.ConfirmationState
 import com.getcode.models.DeepLinkRequest
 import com.getcode.models.LoginConfirmation
 import com.getcode.models.PaymentConfirmation
-import com.getcode.models.ConfirmationState
 import com.getcode.models.PaymentValuation
 import com.getcode.models.ShareAction
 import com.getcode.models.TipConfirmation
@@ -56,7 +55,6 @@ import com.getcode.network.client.rejectLogin
 import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
-import com.getcode.network.client.transferWithResult
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PaymentRepository
@@ -67,7 +65,6 @@ import com.getcode.network.repository.StatusRepository
 import com.getcode.network.repository.hexEncodedString
 import com.getcode.network.repository.replaceParam
 import com.getcode.network.repository.toPublicKey
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.util.CurrencyUtils
@@ -83,16 +80,9 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
-import com.getcode.view.camera.CameraController
-import com.getcode.view.camera.KikCodeScannerView
-import com.getcode.view.camera.LegacyCameraController
-import com.kik.kikx.kikcodes.KikCodeScanner
-import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Flowable
-import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
@@ -228,11 +218,10 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.connectedAccount
-            .filterNotNull()
-            .onEach { username ->
+            .onEach { account ->
                 uiFlow.update {
                     it.copy(
-                        tipCardConnected = username.isNotEmpty()
+                        tipCardConnected = account != null
                     )
                 }
             }.launchIn(viewModelScope)
@@ -652,7 +641,7 @@ class HomeViewModel @Inject constructor(
         }
 
     fun presentShareableTipCard() = viewModelScope.launch {
-        val username = tipController.connectedAccount.value ?: return@launch
+        val username = tipController.connectedAccount.value?.username ?: return@launch
         val code = CodePayload(
             kind = Kind.Tip,
             value = Username(username)
@@ -1207,26 +1196,6 @@ class HomeViewModel @Inject constructor(
             })
     }
 
-    fun startScan(view: KikCodeScannerView) {
-        if (cameraStarted) {
-            return
-        }
-        Timber.i("startScan")
-        uiFlow.update { it.copy(isCameraScanEnabled = true) }
-
-        val scanner = KikCodeScannerImpl()
-
-        scanPreviewBufferDisposable?.dispose()
-        scanPreviewBufferDisposable = scanPreviewBuffer(view, scanner)
-            .subscribe({}, ErrorUtils::handleError)
-        cameraStarted = true
-    }
-
-    fun stopScan() {
-        uiFlow.value = uiFlow.value.copy(isCameraScanEnabled = false)
-        cameraStarted = false
-    }
-
     fun startSheetDismissTimer(function: () -> Unit) {
         sheetDismissTimer?.cancel()
         sheetDismissTimer = Timer().schedule((1000 * 60).toLong()) {
@@ -1247,45 +1216,14 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun scanPreviewBuffer(
-        view: KikCodeScannerView,
-        scanner: KikCodeScanner
-    ): Flowable<ScannableKikCode> {
-        return Single.defer {
-            view.previewSize()
-                .subscribeOn(Schedulers.computation())
-                .onBackpressureLatest()
-                .delay(100, TimeUnit.MILLISECONDS)
-                .filter { uiFlow.value.isCameraScanEnabled }
-                .filter { it.isPresent }
-                .map { it.get()!! }
-                .firstOrError()
-                .flatMap { previewSize: CameraController.PreviewSize? ->
-                    view.getPreviewBuffer()
-                        .flatMap { imageData ->
-                            scanner.scanKikCode(
-                                imageData,
-                                previewSize?.width ?: 0,
-                                previewSize?.height ?: 0
-                            )
-                        }
-                }
-        }.filter {
-            uiFlow.value.billState.bill == null
-        }.doOnSuccess { code: ScannableKikCode ->
+    fun onCodeScan(
+        code: ScannableKikCode,
+    ) {
+        if (uiFlow.value.billState.bill == null) {
             if (code is ScannableKikCode.RemoteKikCode) {
                 onCodeScan(code.payloadId)
             }
-        }.delay(3000, TimeUnit.MILLISECONDS)
-            .repeat()
-            .onErrorResumeNext { error ->
-                when (error) {
-                    is KikCodeScanner.NoKikCodeFoundException -> Unit // Timber.i("Code Not Found")
-                    is LegacyCameraController.NoPreviewException -> Timber.i("No preview")
-                    else -> ErrorUtils.handleError(error)
-                }
-                scanPreviewBuffer(view, scanner)
-            }
+        }
     }
 
     fun logout(activity: Activity) {

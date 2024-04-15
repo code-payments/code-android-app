@@ -161,6 +161,12 @@ dependencies {
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
 
+    // cameraX
+    implementation(Libs.androidx_camerax_core)
+    implementation(Libs.androidx_camerax_camera2)
+    implementation(Libs.androidx_camerax_lifecycle)
+    implementation(Libs.androidx_camerax_view)
+
     implementation(Libs.coil3)
     implementation(Libs.coil3_network)
 

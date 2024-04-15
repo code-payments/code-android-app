@@ -2,7 +2,13 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -19,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
@@ -39,15 +44,15 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import cafe.adriel.voyager.core.stack.StackEvent
+import androidx.lifecycle.asFlow
 import com.getcode.models.Bill
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -65,22 +70,31 @@ import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
-import com.getcode.view.camera.KikCodeScannerView
+import com.getcode.util.toByteArray
+import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.home.components.BillManagementOptions
+import com.getcode.view.main.home.components.CodeScanner
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import com.getcode.view.main.home.components.TipConfirmation
+import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
+import com.kik.kikx.models.ScannableKikCode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -167,14 +181,12 @@ private fun HomeScan(
 
     var isPaused by remember { mutableStateOf(false) }
 
-    var kikCodeScannerView: KikCodeScannerView? by remember { mutableStateOf(null) }
+    val context = LocalContext.current
+    var previewing by remember {
+        mutableStateOf(false)
+    }
 
     val focusManager = LocalFocusManager.current
-    LaunchedEffect(dataState.isCameraScanEnabled) {
-        if (dataState.isCameraScanEnabled) {
-            focusManager.clearFocus()
-        }
-    }
 
     var deepLinkSaved by remember(deepLink) {
         mutableStateOf(deepLink)
@@ -184,8 +196,12 @@ private fun HomeScan(
         mutableStateOf(requestPayload)
     }
 
-    LaunchedEffect(kikCodeScannerView?.previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
-        if (kikCodeScannerView?.previewing == true) {
+    LaunchedEffect(previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
+        if (previewing) {
+            focusManager.clearFocus()
+        }
+
+        if (previewing) {
             if (!deepLinkSaved.isNullOrBlank()) {
                 homeViewModel.openCashLink(deepLink)
                 deepLinkSaved = null
@@ -199,25 +215,6 @@ private fun HomeScan(
         }
     }
 
-    LaunchedEffect(kikCodeScannerView?.previewing) {
-        val view = kikCodeScannerView ?: return@LaunchedEffect
-        if (view.previewing) { // kick off preview scanning once preview established
-            homeViewModel.startScan(view)
-        }
-    }
-
-    fun startScanPreview() {
-        val view = kikCodeScannerView ?: return
-        // establish preview
-        view.startPreview()
-    }
-
-    fun stopScanPreview() {
-        kikCodeScannerView?.stopPreview()
-        Timber.i("Stop")
-        homeViewModel.stopScan()
-    }
-
     fun showBottomSheet(bottomSheet: HomeBottomSheet) {
         scope.launch {
             when (bottomSheet) {
@@ -228,9 +225,11 @@ private fun HomeScan(
                         dataState.tipsEnabled || dataState.requestKinEnabled -> {
                             navigator.show(GetKinModal)
                         }
+
                         else -> navigator.show(BuyMoreKinModal(showClose = true))
                     }
                 }
+
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
                 HomeBottomSheet.NONE -> Unit
             }
@@ -243,20 +242,15 @@ private fun HomeScan(
         dataState = dataState,
         homeViewModel = homeViewModel,
         scannerView = {
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(0, 0, 5, 5)),
-                factory = { context ->
-                    KikCodeScannerView(context).apply {
-                        kikCodeScannerView = this
-                        startScanPreview()
+            CodeScanner(
+                onPreviewStateChanged = { previewing = it },
+                onCodeScanned = {
+                    if (previewing) {
+                        homeViewModel.onCodeScan(it)
                     }
-                },
-                update = { }
+                }
             )
         },
-        isCameraReady = kikCodeScannerView?.previewing == true,
         showBottomSheet = { showBottomSheet(it) }
     )
 
@@ -265,12 +259,10 @@ private fun HomeScan(
             Lifecycle.Event.ON_START -> {
                 Timber.d("onStart")
                 isPaused = false
-                startScanPreview()
             }
 
             Lifecycle.Event.ON_STOP -> {
                 Timber.d("onStop")
-                stopScanPreview()
             }
 
             Lifecycle.Event.ON_PAUSE -> {
@@ -294,21 +286,16 @@ private fun HomeScan(
 
     DisposableEffect(LocalCodeNavigator.current) {
         onDispose {
-            kikCodeScannerView?.stopPreview()
+            previewing = false
         }
     }
 
     LaunchedEffect(navigator.isVisible) {
-        if (!navigator.isVisible) {
-            kikCodeScannerView?.let(homeViewModel::startScan)
-        } else {
-            homeViewModel.stopScan()
-        }
+        previewing = !navigator.isVisible
     }
 
-    val context = LocalContext.current as Activity
     LaunchedEffect(dataState.billState.bill) {
-        homeViewModel.resetScreenTimeout(context)
+        homeViewModel.resetScreenTimeout(context as Activity)
     }
 }
 
@@ -318,7 +305,6 @@ private fun BillContainer(
     modifier: Modifier = Modifier,
     navigator: CodeNavigator,
     isPaused: Boolean,
-    isCameraReady: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
     scannerView: @Composable () -> Unit,
@@ -342,12 +328,6 @@ private fun BillContainer(
         )
     }
 
-
-    LaunchedEffect(isCameraReady) {
-        if (isCameraReady) {
-            startupLog("camera ready")
-        }
-    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -356,23 +336,6 @@ private fun BillContainer(
     ) {
         if (dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null) {
             scannerView()
-
-            AnimatedVisibility(
-                modifier = Modifier.fillMaxSize(),
-                // camera isn't really usable on an emulator so don't fade in wacky
-                // camera feed
-                visible = !isCameraReady,
-                enter = fadeIn(
-                    animationSpec = tween(AnimationUtils.animationTime)
-                ),
-                exit = fadeOut(tween(AnimationUtils.animationTime))
-            ) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(CodeTheme.colors.background)
-                )
-            }
         } else {
             PermissionsBlockingView(
                 modifier = Modifier

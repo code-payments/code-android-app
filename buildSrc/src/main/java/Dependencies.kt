@@ -18,6 +18,7 @@ object Versions {
     const val android_gradle_build_tools = "8.2.2"
     const val google_services = "4.3.15"
 
+    const val androidx_camerax = "1.3.2"
     const val androidx_core = "1.12.0"
     const val androidx_constraint_layout = "2.1.3"
     const val androidx_lifecycle = "2.6.2"
@@ -109,6 +110,19 @@ object Plugins {
 }
 
 object Libs {
+    // CameraX core library
+    const val androidx_camerax_core = "androidx.camera:camera-core:${Versions.androidx_camerax}"
+
+    // CameraX Camera2 extensions
+    const val androidx_camerax_camera2 = "androidx.camera:camera-camera2:${Versions.androidx_camerax}"
+
+    // CameraX Lifecycle library
+    const val androidx_camerax_lifecycle = "androidx.camera:camera-lifecycle:${Versions.androidx_camerax}"
+
+    // CameraX View class
+    const val androidx_camerax_view=  "androidx.camera:camera-view:${Versions.androidx_camerax}"
+
+
     const val androidx_core = "androidx.core:core-ktx:${Versions.androidx_core}"
     const val androidx_constraint_layout =
         "androidx.constraintlayout:constraintlayout:${Versions.androidx_constraint_layout}"
