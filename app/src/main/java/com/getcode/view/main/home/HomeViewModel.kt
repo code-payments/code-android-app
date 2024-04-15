@@ -1288,7 +1288,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun shareTipCard(context: Context) = viewModelScope.launch {
-        val username = tipController.connectedAccount.value ?: return@launch
+        val username = tipController.connectedAccount.value?.username ?: return@launch
 
         val url = "https://tipcard.getcode.com/x/$username"
 
