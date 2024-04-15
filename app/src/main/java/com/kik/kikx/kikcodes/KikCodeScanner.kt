@@ -6,5 +6,5 @@ import io.reactivex.rxjava3.core.Single
 interface KikCodeScanner {
     class NoKikCodeFoundException : Exception("No Kik Code found in image buffer")
 
-    fun scanKikCode(imageData: ByteArray, width: Int, height: Int): Single<ScannableKikCode>
+    suspend fun scanKikCode(imageData: ByteArray, width: Int, height: Int): Result<ScannableKikCode>
 }

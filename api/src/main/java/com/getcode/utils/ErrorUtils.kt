@@ -45,7 +45,9 @@ object ErrorUtils {
             throwable !is ConnectException
         ) {
             FirebaseCrashlytics.getInstance().recordException(throwable)
-            Bugsnag.notify(throwable)
+            if (Bugsnag.isStarted()) {
+                Bugsnag.notify(throwable)
+            }
         }
     }
 
