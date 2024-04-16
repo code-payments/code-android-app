@@ -49,7 +49,7 @@ internal fun TipConfirmation(
         derivedStateOf { state is ConfirmationState.Sending }
     }
 
-    Modal(modifier, backgroundColor = Color.Black) {
+    Modal(modifier) {
         AsyncImage(
             modifier = Modifier
                 .padding(top = CodeTheme.dimens.grid.x12)
@@ -100,7 +100,6 @@ internal fun TipConfirmation(
 
         SlideToConfirm(
             isLoading = isSending,
-            trackColor = SlideToConfirmDefaults.BlackTrackColor,
             isSuccess = state is ConfirmationState.Sent,
             onConfirm = { onSend() },
             label = stringResource(R.string.action_swipeToTip)
