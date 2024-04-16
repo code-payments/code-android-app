@@ -1,9 +1,9 @@
 package com.getcode.solana.builder
 
+import com.getcode.model.TipMetadata
 import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.model.intents.SwapConfigParameters
-import com.getcode.solana.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType
@@ -16,9 +16,7 @@ import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PreSwapStateAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.TimelockDerivedAccounts
-import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountCluster
-import org.kin.sdk.base.models.Key
 import timber.log.Timber
 
 object TransactionBuilder {
@@ -106,22 +104,24 @@ object TransactionBuilder {
         nonce: PublicKey,
         recentBlockhash: Hash,
         kreIndex: Int,
-        legacy: Boolean = false
+        legacy: Boolean = false,
+        tipMetadata: TipMetadata? = null,
     ): SolanaTransaction {
-        return SolanaTransaction.newInstance(
-            payer = subsidizer,
-            recentBlockhash = recentBlockhash,
-            instructions = listOf(
-                SystemProgram_AdvanceNonce(
-                    nonce = nonce,
-                    authority = subsidizer
-                ).instruction(),
+        val instructions = mutableListOf<Instruction>()
 
-                MemoProgram_Memo.newInstance(
-                    transferType = TransferType.p2p,
-                    kreIndex = kreIndex
-                ).instruction(),
+        instructions.add(SystemProgram_AdvanceNonce(nonce = nonce, authority = subsidizer).instruction())
+        instructions.add(
+            MemoProgram_Memo.newInstance(
+                transferType = TransferType.p2p,
+                kreIndex = kreIndex
+            ).instruction(),
+        )
+        if (tipMetadata != null) {
+            instructions.add(MemoProgram_Memo.newInstance(tipMetadata).instruction())
+        }
 
+        instructions.addAll(
+            listOf(
                 TimelockProgram_RevokeLockWithAuthority(
                     timelock = timelockDerivedAccounts.state.publicKey,
                     vault = timelockDerivedAccounts.vault.publicKey,
@@ -155,11 +155,18 @@ object TransactionBuilder {
                     closeAuthority = subsidizer,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy
-                ).instruction(),
-                )
+                    legacy = legacy,
+                ).instruction()
+            ),
+        )
+
+        return SolanaTransaction.newInstance(
+            payer = subsidizer,
+            recentBlockhash = recentBlockhash,
+            instructions = instructions,
         )
     }
+
 
     // Swap performs an on-chain swap. The high-level flow mirrors SubmitIntent
     // closely. However, due to the time-sensitive nature and unreliability of
@@ -180,7 +187,11 @@ object TransactionBuilder {
     // Note: Currently limited to swapping USDC to Kin.
     // Note: Kin is deposited into the primary account.
     //
-    fun swap(fromUsdc: AccountCluster, toPrimary: PublicKey, parameters: SwapConfigParameters): SolanaTransaction {
+    fun swap(
+        fromUsdc: AccountCluster,
+        toPrimary: PublicKey,
+        parameters: SwapConfigParameters
+    ): SolanaTransaction {
         val payer = parameters.payer
         val destination = toPrimary
 
@@ -194,9 +205,9 @@ object TransactionBuilder {
         Timber.d("swap accounts=${parameters.swapAccounts.map { it.description }}")
         val remainingAccounts = parameters.swapAccounts.filter {
             (it.isSigner || it.isWritable) &&
-            (it.publicKey != fromUsdc.authorityPublicKey &&
-            it.publicKey != fromUsdc.vaultPublicKey &&
-            it.publicKey != destination)
+                    (it.publicKey != fromUsdc.authorityPublicKey &&
+                            it.publicKey != fromUsdc.vaultPublicKey &&
+                            it.publicKey != destination)
         }
 
         return SolanaTransaction.newInstance(

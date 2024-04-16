@@ -60,7 +60,7 @@ class IntentPrivateTransferTest {
             isWithdrawal = false,
             fee = Kin.fromKin(0),
             additionalFees = emptyList(),
-            tippedUsername = null,
+            tipMetadata = null,
         )
 
         assertEquals(rendezvous, intent.id)

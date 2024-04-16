@@ -7,6 +7,9 @@ import com.getcode.model.intents.actions.ActionType
 import com.getcode.model.intents.actions.numberActions
 import com.getcode.network.integrity.toDeviceToken
 import com.getcode.network.repository.*
+import com.getcode.solana.Message
+import com.getcode.solana.SolanaTransaction
+import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.sign
 
@@ -28,6 +31,14 @@ abstract class IntentType {
             }
             actionGroup.actions[index].serverParameter = parameter
         }
+    }
+
+    fun transaction(): SolanaTransaction {
+        val message = actionGroup.actions.flatMap { it.transactions() }.map { it.message }
+            .let { Message.newInstance(it.map { it.encode().toList() }.flatten()) }!!
+        val sigs = actionGroup.actions.flatMap { it.signatures() }
+
+        return SolanaTransaction(message, sigs)
     }
 
     fun signatures(): List<Signature> =

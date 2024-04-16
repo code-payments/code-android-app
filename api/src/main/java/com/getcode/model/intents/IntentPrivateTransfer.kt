@@ -3,6 +3,7 @@ package com.getcode.model.intents
 import android.content.Context
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.codeinc.gen.transaction.v2.TransactionService.TippedUser.Platform
+import com.getcode.model.TipMetadata
 import com.getcode.model.Fee
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -29,7 +30,7 @@ class IntentPrivateTransfer(
     private val fee: Kin,
     private val additionalFees: List<Fee>,
     private val isWithdrawal: Boolean,
-    private val tippedUsername: String?,
+    private val tipMetadata: TipMetadata?,
     val resultTray: Tray,
 
     override val actionGroup: ActionGroup,
@@ -48,11 +49,11 @@ class IntentPrivateTransfer(
                             .setNativeAmount(grossAmount.fiat)
                     )
 
-                    if (tippedUsername != null) {
+                    if (tipMetadata != null) {
                         setIsTip(true)
                         setTippedUser(TransactionService.TippedUser.newBuilder()
                             .setPlatformValue(Platform.TWITTER_VALUE)
-                            .setUsername(tippedUsername)
+                            .setUsername(tipMetadata.username)
                         )
                     }
                 }
@@ -70,7 +71,7 @@ class IntentPrivateTransfer(
             fee: Kin,
             additionalFees: List<Fee>,
             isWithdrawal: Boolean,
-            tippedUsername: String?
+            tipMetadata: TipMetadata?
         ): IntentPrivateTransfer {
             if (fee > amount.kin) {
                 throw IntentPrivateTransferException.InvalidFeeException()
@@ -151,7 +152,8 @@ class IntentPrivateTransfer(
             val outgoing = ActionWithdraw.newInstance(
                 kind = ActionWithdraw.Kind.NoPrivacyWithdraw(netAmount.kin),
                 cluster = currentTray.outgoing.getCluster(),
-                destination = destination
+                destination = destination,
+                tipMetadata = tipMetadata
             )
 
             // 3. Redistribute the funds to optimize for a
@@ -215,7 +217,7 @@ class IntentPrivateTransfer(
                 fee = fee,
                 additionalFees = additionalFees,
                 isWithdrawal = isWithdrawal,
-                tippedUsername = tippedUsername,
+                tipMetadata = tipMetadata,
                 actionGroup = group,
                 resultTray = currentTray,
             )

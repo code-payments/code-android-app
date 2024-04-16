@@ -27,15 +27,18 @@ import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.integrity.DeviceCheck
+import com.getcode.solana.SolanaTransaction
+import com.getcode.solana.diff
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
+import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.blockchainMemo
 import com.getcode.utils.bytes
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -131,7 +134,7 @@ class TransactionRepository @Inject constructor(
         rendezvousKey: PublicKey,
         destination: PublicKey,
         isWithdrawal: Boolean,
-        tippedUsername: String? = null,
+        tipMetadata: TipMetadata? = null,
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
@@ -145,7 +148,7 @@ class TransactionRepository @Inject constructor(
                 additionalFees = emptyList(),
                 resultTray = organizer.tray,
                 isWithdrawal = isWithdrawal,
-                tippedUsername = tippedUsername
+                tipMetadata = tipMetadata
             ) as IntentType
         )
             .delay(1, TimeUnit.SECONDS)
@@ -159,7 +162,7 @@ class TransactionRepository @Inject constructor(
             fee = fee,
             additionalFees = additionalFees,
             isWithdrawal = isWithdrawal,
-            tippedUsername = tippedUsername,
+            tipMetadata = tipMetadata
         )
 
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
@@ -323,6 +326,7 @@ class TransactionRepository @Inject constructor(
                                 "Received ${value.serverParameters.serverParametersList.size} parameters. Submitting signatures..."
                             )
                         } catch (e: Exception) {
+                            e.printStackTrace()
                             Timber.i(
                                 "Received ${value.serverParameters.serverParametersList.size} parameters but failed to apply them: ${e.javaClass.simpleName} ${e.message})"
                             )
@@ -340,11 +344,33 @@ class TransactionRepository @Inject constructor(
                     // intent is considered failed. Something must have gone wrong
                     // on the transaction creation or signing on our side.
                     ERROR -> {
-                        val errorReason =
-                            value.error.errorDetailsList.firstOrNull()?.reasonString?.reason.orEmpty()
+                        val errors = mutableListOf<String>()
+
                         value.error.errorDetailsList.forEach { error ->
+                            when (error.typeCase) {
+                                TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
+                                    errors.add("Reason: ${error.reasonString}")
+                                }
+                                TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
+                                    val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
+                                    val produced = intent.transaction()
+                                    errors.addAll(
+                                        listOf(
+                                            "Action index: ${error.invalidSignature.actionId}",
+                                            "Invalid signature: ${Signature(error.invalidSignature.providedSignature.value.toByteArray().toList()).base58()}",
+                                            "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
+                                            "Transaction expected: $expected",
+                                            "Android produced: $produced"
+                                        )
+                                    )
+
+                                    expected?.diff(produced)
+                                }
+                                else -> Unit
+                            }
+
                             Timber.e(
-                                "Error: ${error.reasonString.reason} | ${error.typeCase.name}"
+                                "Error: ${errors.joinToString("\n")}"
                             )
                         }
 
@@ -352,8 +378,6 @@ class TransactionRepository @Inject constructor(
                         subject.onError(
                             ErrorSubmitIntentException(
                                 ErrorSubmitIntent.fromValue(value.error.codeValue),
-                                null,
-                                errorReason
                             )
                         )
                     }

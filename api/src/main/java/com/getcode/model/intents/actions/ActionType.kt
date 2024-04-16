@@ -5,6 +5,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.solana.keys.Signature
 import com.getcode.model.intents.ServerParameter
 import com.getcode.solana.SolanaTransaction
+import timber.log.Timber
 
 abstract class ActionType {
     abstract var id: Int
@@ -18,7 +19,7 @@ abstract class ActionType {
     fun signatures(): List<Signature> {
         return signer?.let { s ->
             transactions().map { transaction -> transaction.sign(s).first() }
-        } ?: listOf()
+        }.orEmpty()
     }
 
     abstract fun action(): TransactionService.Action
