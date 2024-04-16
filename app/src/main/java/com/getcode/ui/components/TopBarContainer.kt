@@ -13,10 +13,13 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.getcode.CodeAppState
@@ -91,7 +94,7 @@ private fun TopBarView(
                     WARNING -> topWarning
                     NOTIFICATION -> topNotification
                     NEUTRAL -> topNeutral
-                    INFO -> topInfo
+                    SUCCESS -> topSuccess
 
                 }
             )
@@ -113,7 +116,7 @@ private fun TopBarView(
                             WARNING -> R.drawable.ic_exclamation_octagon_fill
                             NOTIFICATION -> R.drawable.ic_exclamation_octagon_fill
                             NEUTRAL -> R.drawable.ic_exclamation_octagon_fill
-                            INFO -> R.drawable.ic_checked_blue
+                            SUCCESS -> R.drawable.ic_checked_green
                         }
                     ),
                     contentDescription = "",
@@ -152,7 +155,17 @@ private fun TopBarView(
                     .height(CodeTheme.dimens.border)
                     .background(Black10)
             )
-            Row {
+            Row(modifier = Modifier.height(IntrinsicSize.Min)
+                .drawBehind {
+                    val strokeWidth = Dp.Hairline.toPx()
+                    drawLine(
+                        color = BrandLight,
+                        Offset(0f, 0f),
+                        Offset(size.width, 0f),
+                        strokeWidth
+                    )
+                }
+            ) {
                 Button(
                     modifier = Modifier
                         .weight(1f)
@@ -164,6 +177,7 @@ private fun TopBarView(
                     Text(text = topBarMessage.primaryText ?: stringResource(R.string.action_ok))
                 }
                 if (topBarMessage.secondaryText != null) {
+                    VerticalDivider(thickness = Dp.Hairline,)
                     Button(
                         modifier = Modifier
                             .weight(1f)

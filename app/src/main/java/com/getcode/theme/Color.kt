@@ -28,7 +28,7 @@ val errorText = Color(0xFFDD8484)
 val topWarning = Color(0xFFf1ab1f)
 val topNotification = Color(0xFF4f49ce)
 val topNeutral = Color(0xFF747474)
-val topInfo = Brand
+val topSuccess = Brand
 
 val green = Color(0xFF87D300)
 
