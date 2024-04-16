@@ -60,14 +60,6 @@ internal fun HomeBottom(
             imageSize = CodeTheme.dimens.grid.x7,
             painter = painterResource(R.drawable.ic_wallet),
             onClick = { onPress(HomeBottomSheet.GET_KIN) },
-            badge = {
-                Badge(
-                    modifier = Modifier.padding(top = 2.dp, start = 2.dp),
-                    count = if (state.showTwitterSplat) 1 else 0,
-                    color = ChatNodeDefaults.UnreadIndicator,
-                    enterTransition = scaleIn(animationSpec = tween(durationMillis = 300, delayMillis = 1000)) + fadeIn()
-                )
-            }
         )
         Spacer(modifier = Modifier.weight(1f))
         BottomBarAction(

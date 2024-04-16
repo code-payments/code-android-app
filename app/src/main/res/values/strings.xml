@@ -36,11 +36,14 @@
     <string name="title_success">Success</string>
     <string name="subtitle_xAccountConnected">Your X account %1$s is now connected to your Code account.</string>
 
-    <string name="action_shareTipCard">Share My Tip Card</string>
+    <string name="action_showMyTipCard">Show My Tip Card</string>
 
     <string name="subtitle_youReceivedTip">Someone tipped you $1$s</string>
     <string name="subtitle_youSentTip">You tipped someone $1$s</string>
 
     <string name="title_chat_tips">Tips</string>
     <string name="subtitle_tips_linked_to_account">Tips linked to %1$s account: %2$s</string>
+    <string name="success_title_xAccountLinked">X Account Successfully Connected</string>
+    <string name="success_description_xAccountLinked">Your X account has been successfully connected to your Code account. You can now request Tips.</string>
+    <string name="action_later">Later</string>
 </resources>

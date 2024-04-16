@@ -89,8 +89,10 @@ private fun TopBarView(
                 when (topBarMessage.type) {
                     ERROR_NETWORK, ERROR -> CodeTheme.colors.error
                     WARNING -> topWarning
-                    NOTIFICATION -> topInfo
+                    NOTIFICATION -> topNotification
                     NEUTRAL -> topNeutral
+                    INFO -> topInfo
+
                 }
             )
             .statusBarsPadding()
@@ -111,6 +113,7 @@ private fun TopBarView(
                             WARNING -> R.drawable.ic_exclamation_octagon_fill
                             NOTIFICATION -> R.drawable.ic_exclamation_octagon_fill
                             NEUTRAL -> R.drawable.ic_exclamation_octagon_fill
+                            INFO -> R.drawable.ic_checked_blue
                         }
                     ),
                     contentDescription = "",

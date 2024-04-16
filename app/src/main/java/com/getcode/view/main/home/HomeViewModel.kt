@@ -138,7 +138,6 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
-    val showTwitterSplat: Boolean = false,
     val requestKinEnabled: Boolean = false,
     val tipsEnabled: Boolean = false,
     val tipCardConnected: Boolean = false,
@@ -182,8 +181,6 @@ class HomeViewModel @Inject constructor(
 
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
-    private var cameraStarted = false
-    private var scanPreviewBufferDisposable: Disposable? = null
     private var sendTransactionDisposable: Disposable? = null
 
     init {
@@ -211,10 +208,21 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
-            .onEach { show ->
-                uiFlow.update {
-                    it.copy(showTwitterSplat = show)
-                }
+            .filter { it }
+            .onEach { delay(500) }
+            .flatMapLatest { tipController.connectedAccount }
+            .filterNotNull()
+            .onEach {
+                TopBarManager.showMessage(
+                    topBarMessage = TopBarManager.TopBarMessage(
+                        type = TopBarManager.TopBarMessageType.SUCCESS,
+                        title = resources.getString(R.string.success_title_xAccountLinked),
+                        message = resources.getString(R.string.success_description_xAccountLinked),
+                        primaryText = resources.getString(R.string.action_showMyTipCard),
+                        primaryAction = ::presentShareableTipCard,
+                        secondaryText = resources.getString(R.string.action_later),
+                    )
+                )
             }.launchIn(viewModelScope)
 
         tipController.connectedAccount
