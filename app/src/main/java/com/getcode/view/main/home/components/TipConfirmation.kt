@@ -22,6 +22,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.error
 import com.getcode.R
+import com.getcode.model.TwitterUser
 import com.getcode.models.ConfirmationState
 import com.getcode.models.TipConfirmation
 import com.getcode.theme.BrandLight
@@ -31,7 +32,6 @@ import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Modal
 import com.getcode.ui.components.SlideToConfirm
-import com.getcode.ui.components.SlideToConfirmDefaults
 import com.getcode.ui.components.TwitterUsernameDisplay
 
 @Composable
@@ -58,18 +58,19 @@ internal fun TipConfirmation(
             model = ImageRequest.Builder(LocalPlatformContext.current)
                 .data(confirmation?.imageUrl)
                 .error(R.drawable.ic_placeholder_user)
-                .placeholderMemoryCacheKey(confirmation?.username)
+                .placeholderMemoryCacheKey(confirmation?.metadata?.username)
                 .build(),
             contentDescription = null,
         )
 
         TwitterUsernameDisplay(
             modifier = Modifier.fillMaxWidth(),
-            username = confirmation?.username.orEmpty()
+            username = confirmation?.metadata?.username.orEmpty(),
+            verificationStatus = (confirmation?.metadata as? TwitterUser)?.verificationStatus
         )
-        if (confirmation?.followerCount != null) {
+        if (confirmation?.followerCountFormatted != null) {
             Text(
-                text = "${confirmation.followCountFormatted} Followers",
+                text = "${confirmation.followerCountFormatted} Followers",
                 color = BrandLight,
                 style = CodeTheme.typography.body2
             )
