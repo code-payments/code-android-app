@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
 fun EnterTipScreen(
@@ -49,8 +52,14 @@ fun EnterTipScreen(
             .padding(bottom = CodeTheme.dimens.grid.x4),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val color =
-            if (dataState.amountModel.amountKin > dataState.amountModel.buyLimitKin) Alert else BrandLight
+        val isInError by remember(dataState.amountModel) {
+            derivedStateOf {
+                dataState.amountModel.amountKin > dataState.amountModel.sendLimitKin ||
+                        dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()
+            }
+        }
+
+        val color = if (isInError) Alert else BrandLight
         Box(
             modifier = Modifier.weight(0.65f)
         ) {
@@ -60,6 +69,7 @@ fun EnterTipScreen(
                 amountText = dataState.amountModel.amountText,
                 captionText = dataState.amountModel.captionText,
                 isAltCaption = dataState.amountModel.isCaptionConversion,
+                isAltCaptionKinIcon = !isInError,
                 altCaptionColor = color,
                 currencyResId = dataState.currencyModel.selectedCurrencyResId,
                 uiModel = dataState.amountAnimatedModel,

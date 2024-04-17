@@ -138,7 +138,6 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
-    val showTwitterSplat: Boolean = false,
     val requestKinEnabled: Boolean = false,
     val tipsEnabled: Boolean = false,
     val tipCardConnected: Boolean = false,
@@ -182,8 +181,6 @@ class HomeViewModel @Inject constructor(
 
     private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
-    private var cameraStarted = false
-    private var scanPreviewBufferDisposable: Disposable? = null
     private var sendTransactionDisposable: Disposable? = null
 
     init {
@@ -211,10 +208,24 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
-            .onEach { show ->
-                uiFlow.update {
-                    it.copy(showTwitterSplat = show)
-                }
+            .filter { it }
+            .onEach { delay(500) }
+            .flatMapLatest { tipController.connectedAccount }
+            .filterNotNull()
+            .onEach {
+                TopBarManager.showMessage(
+                    topBarMessage = TopBarManager.TopBarMessage(
+                        type = TopBarManager.TopBarMessageType.SUCCESS,
+                        title = resources.getString(R.string.success_title_xAccountLinked),
+                        message = resources.getString(R.string.success_description_xAccountLinked),
+                        primaryText = resources.getString(R.string.action_showMyTipCard),
+                        primaryAction = ::presentShareableTipCard,
+                        secondaryText = resources.getString(R.string.action_later),
+                        secondaryAction = {
+                            tipController.clearTwitterSplat()
+                        }
+                    )
+                )
             }.launchIn(viewModelScope)
 
         tipController.connectedAccount
@@ -709,18 +720,16 @@ class HomeViewModel @Inject constructor(
 
     fun presentTipConfirmation(amount: KinAmount) {
         val data = tipController.scannedUserData ?: return
-        val (username, payload) = data
+        val (_, payload) = data
 
-        val metadata = tipController.userMetadata
+        val metadata = tipController.userMetadata ?: return
         uiFlow.update {
             val billState = it.billState.copy(
                 tipConfirmation = TipConfirmation(
                     state = ConfirmationState.AwaitingConfirmation,
                     payload = payload,
                     amount = amount,
-                    username = username,
-                    imageUrl = metadata?.imageUrlSanitized,
-                    followerCount = metadata?.followerCount ?: 0,
+                    metadata = metadata,
                 )
             )
 
@@ -1288,7 +1297,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun shareTipCard(context: Context) = viewModelScope.launch {
-        val username = tipController.connectedAccount.value ?: return@launch
+        val username = tipController.connectedAccount.value?.username ?: return@launch
 
         val url = "https://tipcard.getcode.com/x/$username"
 

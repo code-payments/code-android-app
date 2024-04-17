@@ -83,6 +83,7 @@ data class AmountUiModel(
     val isCaptionConversion: Boolean = false,
     val isInsufficient: Boolean = false,
     val sendLimit: Double = 0.0,
+    val sendLimitKin: Kin = Kin(0),
     val buyLimit: Double = 0.0,
     val buyLimitKin: Kin = Kin(0),
     val isDecimalAllowed: Boolean = false,
@@ -231,6 +232,10 @@ abstract class BaseAmountCurrencyViewModel(
         val sendLimit = currency?.let {
             transactionRepository.sendLimitFor(it)?.nextTransaction
         } ?: fiatValue
+
+        val sendLimitKin = FormatUtils.getKinValue(sendLimit, selectedCurrency.rate)
+            .inflating()
+
         val buyLimit = currency?.let {
             transactionRepository.buyLimitFor(it)?.max
         } ?: 0.0
@@ -268,6 +273,7 @@ abstract class BaseAmountCurrencyViewModel(
             sendLimit = sendLimit,
             buyLimit = buyLimit,
             buyLimitKin = buyLimitKin,
+            sendLimitKin = sendLimitKin
         )
     }
 

@@ -157,7 +157,7 @@ fun SlideToConfirm(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     trackShape: Shape = Track.Shape,
-    trackColor: Color = Track.BlackColor,
+    trackColor: Color = Track.BlueColor,
     thumbShape: Shape = Thumb.Shape,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,

@@ -57,5 +57,5 @@ object TopBarManager {
             currentMessages.filterNot { it.id == currentMessages.first().id }
         }
     }
-    enum class TopBarMessageType { ERROR_NETWORK, ERROR, WARNING, NOTIFICATION, NEUTRAL }
+    enum class TopBarMessageType { ERROR_NETWORK, ERROR, WARNING, NOTIFICATION, NEUTRAL, SUCCESS }
 }

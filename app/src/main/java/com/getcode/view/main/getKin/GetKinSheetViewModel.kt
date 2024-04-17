@@ -1,9 +1,7 @@
 package com.getcode.view.main.getKin
 
-import androidx.compose.material.SnackbarDuration
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.model.TwitterUser
 import com.getcode.network.TipController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
@@ -13,14 +11,15 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
 class GetKinSheetViewModel @Inject constructor(
-    resources: ResourceHelper,
     betaFlags: BetaFlagsRepository,
+    resources: ResourceHelper,
     tipController: TipController,
 ) : BaseViewModel2<GetKinSheetViewModel.State, GetKinSheetViewModel.Event>(
     initialState = State(),
@@ -52,46 +51,24 @@ class GetKinSheetViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnBetaFlagsChanged(it)) }
             .launchIn(viewModelScope)
 
-        combine(
-            tipController.connectedAccount,
-            tipController.showTwitterSplat
-        ) { connectedAccount, show ->
-            val subtitle = if (connectedAccount != null) {
-                resources.getString(
-                    R.string.subtitle_tips_linked_to_account,
-                    connectedAccount.platform.capitalize(),
-                    connectedAccount.username
-                )
-            } else {
-                null
-            }
-            dispatchEvent(
-                Event.OnConnectionStateChanged(
-                    connected = connectedAccount != null,
-                    tipsSubtitle = subtitle,
-                )
-            )
-            if (connectedAccount != null) {
-                if (show) {
-                    when (connectedAccount) {
-                        is TwitterUser -> {
-                            dispatchEvent(
-                                Event.ShowSnackbar(
-                                    data = SnackData(
-                                        message = resources.getString(
-                                            R.string.subtitle_xAccountConnected,
-                                            connectedAccount.username
-                                        ),
-                                        actionLabel = resources.getString(R.string.action_shareTipCard),
-                                        duration = SnackbarDuration.Indefinite
-                                    )
-                                )
-                            )
-                        }
-                    }
+        tipController.connectedAccount
+            .onEach { connectedAccount ->
+                val subtitle = if (connectedAccount != null) {
+                    resources.getString(
+                        R.string.subtitle_tips_linked_to_account,
+                        connectedAccount.platform.capitalize(),
+                        connectedAccount.username
+                    )
+                } else {
+                    null
                 }
-            }
-        }.launchIn(viewModelScope)
+                dispatchEvent(
+                    Event.OnConnectionStateChanged(
+                        connected = connectedAccount != null,
+                        tipsSubtitle = subtitle,
+                    )
+                )
+            }.launchIn(viewModelScope)
     }
 
     companion object {

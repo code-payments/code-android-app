@@ -1,9 +1,9 @@
 package com.getcode.models
 
-import android.webkit.MimeTypeMap
 import androidx.compose.runtime.Composable
 import com.getcode.R
 import com.getcode.model.CodePayload
+import com.getcode.model.TipMetadata
 import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -164,20 +164,33 @@ data class TipConfirmation(
     val state: ConfirmationState,
     val amount: KinAmount,
     val payload: CodePayload?,
-    val username: String,
-    val imageUrl: String?,
-    val followerCount: Int?
+    val metadata: TipMetadata,
 ) {
-    val followCountFormatted: String?
+    val imageUrl: String?
         get() {
-            return when {
-                followerCount == null -> null
-                followerCount > 1000 -> {
-                    val decimal = followerCount.toDouble() / 1_000
-                    val formattedString = String.format("%.1fK", decimal)
-                    formattedString
+            return when (metadata) {
+                is TwitterUser -> {
+                    metadata.imageUrlSanitized
                 }
-                else -> followerCount.toString()
+
+                else -> null
+            }
+        }
+
+    val followerCountFormatted: String?
+        get() {
+            return when (metadata) {
+                is TwitterUser -> {
+                    when  {
+                        metadata.followerCount > 1000 -> {
+                            val decimal = metadata.followerCount.toDouble() / 1_000
+                            val formattedString = String.format("%.1fK", decimal)
+                            formattedString
+                        }
+                        else -> metadata.followerCount.toString()
+                    }
+                }
+                else -> null
             }
         }
 }
