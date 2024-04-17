@@ -221,6 +221,9 @@ class HomeViewModel @Inject constructor(
                         primaryText = resources.getString(R.string.action_showMyTipCard),
                         primaryAction = ::presentShareableTipCard,
                         secondaryText = resources.getString(R.string.action_later),
+                        secondaryAction = {
+                            tipController.clearTwitterSplat()
+                        }
                     )
                 )
             }.launchIn(viewModelScope)
@@ -717,18 +720,16 @@ class HomeViewModel @Inject constructor(
 
     fun presentTipConfirmation(amount: KinAmount) {
         val data = tipController.scannedUserData ?: return
-        val (username, payload) = data
+        val (_, payload) = data
 
-        val metadata = tipController.userMetadata
+        val metadata = tipController.userMetadata ?: return
         uiFlow.update {
             val billState = it.billState.copy(
                 tipConfirmation = TipConfirmation(
                     state = ConfirmationState.AwaitingConfirmation,
                     payload = payload,
                     amount = amount,
-                    username = username,
-                    imageUrl = metadata?.imageUrlSanitized,
-                    followerCount = metadata?.followerCount ?: 0,
+                    metadata = metadata,
                 )
             )
 

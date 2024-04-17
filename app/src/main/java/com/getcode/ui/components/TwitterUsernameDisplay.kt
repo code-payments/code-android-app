@@ -11,12 +11,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.vectorResource
 import com.getcode.R
+import com.getcode.model.TwitterUser
 import com.getcode.theme.CodeTheme
 
 @Composable
 fun TwitterUsernameDisplay(
     modifier: Modifier = Modifier,
-    username: String
+    username: String,
+    verificationStatus: TwitterUser.VerificationStatus? = null
 ) {
     Row(
         modifier = modifier,
@@ -31,5 +33,24 @@ fun TwitterUsernameDisplay(
             contentDescription = null
         )
         Text(text = username, style = CodeTheme.typography.subtitle1)
+        verificationStatus?.let { status ->
+            if (status.hasCheckmark()) {
+                Image(
+                    painter = rememberVectorPainter(image = status.checkmark()),
+                    contentDescription = null
+                )
+            }
+        }
+    }
+}
+
+fun TwitterUser.VerificationStatus.hasCheckmark(): Boolean = this == TwitterUser.VerificationStatus.blue || this == TwitterUser.VerificationStatus.government
+
+@Composable
+fun TwitterUser.VerificationStatus.checkmark(): ImageVector {
+    return when (this) {
+        TwitterUser.VerificationStatus.blue -> ImageVector.vectorResource(id = R.drawable.ic_twitter_verified_badge)
+        TwitterUser.VerificationStatus.government -> ImageVector.vectorResource(id = R.drawable.ic_twitter_verified_badge_gray)
+        else -> throw NotImplementedError()
     }
 }
