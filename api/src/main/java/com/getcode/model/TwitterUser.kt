@@ -2,7 +2,6 @@ package com.getcode.model
 
 import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
-import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserResponse
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import kotlinx.serialization.KSerializer
@@ -16,13 +15,13 @@ import kotlinx.serialization.encoding.Encoder
 @Serializable
 data class TwitterUser(
     override val username: String,
+    @Serializable(with = PublicKeyAsStringSerializer::class)
+    override val tipAddress: PublicKey,
     val displayName: String,
     val imageUrl: String,
     val followerCount: Int,
-    @Serializable(with = PublicKeyAsStringSerializer::class)
-    val tipAddress: PublicKey,
     val verificationStatus: VerificationStatus
-): ConnectedTipAccount {
+): TipMetadata {
 
     override val platform: String = "X"
 
