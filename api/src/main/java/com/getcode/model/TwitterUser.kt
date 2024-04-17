@@ -4,6 +4,7 @@ import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
+import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -54,18 +55,5 @@ data class TwitterUser(
                 verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown
             )
         }
-    }
-}
-
-object PublicKeyAsStringSerializer : KSerializer<PublicKey> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("PublicKey", PrimitiveKind.STRING)
-
-    override fun serialize(encoder: Encoder, value: PublicKey) {
-        encoder.encodeString(value.base58())
-    }
-
-    override fun deserialize(decoder: Decoder): PublicKey {
-        val base58 = decoder.decodeString()
-        return PublicKey.fromBase58(base58)
     }
 }

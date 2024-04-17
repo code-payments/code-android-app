@@ -8,6 +8,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.AccountInfo
+import com.getcode.model.TipMetadata
 import com.getcode.model.Domain
 import com.getcode.model.Fee
 import com.getcode.model.GiftCard
@@ -90,12 +91,12 @@ fun Client.transferWithResultSingle(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    tippedUsername: String? = null,
+    tipMetadata: TipMetadata? = null,
 ): Single<Result<Unit>> {
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tippedUsername
+                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tipMetadata
             )
         })
         .map {
@@ -114,7 +115,7 @@ fun Client.transferWithResult(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    tippedUsername: String? = null,
+    tipMetadata: TipMetadata? = null,
 ): Result<Unit> {
     return transferWithResultSingle(
         amount = amount,
@@ -124,7 +125,7 @@ fun Client.transferWithResult(
         rendezvousKey = rendezvousKey,
         destination = destination,
         isWithdrawal = isWithdrawal,
-        tippedUsername = tippedUsername
+        tipMetadata = tipMetadata
     ).blockingGet()
 }
 
