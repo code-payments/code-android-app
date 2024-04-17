@@ -131,7 +131,6 @@ data class SolanaTransaction(val message: Message, val signatures: List<Signatur
             val accounts = mutableListOf<AccountMeta>()
             accounts.add(AccountMeta.payer(publicKey = payer))
 
-            Timber.d("instruction count=${instructions.count()}")
             instructions.forEach {
                 accounts.add(AccountMeta.program(publicKey = it.program))
                 accounts.addAll(it.accounts)

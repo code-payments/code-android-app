@@ -1,12 +1,11 @@
 package com.getcode.solana.instructions.programs
 
+import com.getcode.model.TipMetadata
 import com.getcode.solana.AgoraMemo
 import com.getcode.solana.Instruction
 import com.getcode.solana.TransferType
 
 class MemoProgram_Memo(data: List<Byte>) : MemoProgram(data) {
-    val agoraMemo = AgoraMemo.newInstance(data)
-
     fun instruction(): Instruction {
         return Instruction(
             program = address,
@@ -22,6 +21,12 @@ class MemoProgram_Memo(data: List<Byte>) : MemoProgram(data) {
             return MemoProgram_Memo(
                 data = AgoraMemo(transferType = transferType, appIndex = kreIndex).encode().toList()
             )
+        }
+
+        fun newInstance(tipMetadata: TipMetadata): MemoProgram_Memo {
+            val memo = "tip:${tipMetadata.platform}:${tipMetadata.username}"
+
+            return MemoProgram_Memo(memo.toByteArray().toList())
         }
 
         /*fun newInstance(instruction: Instruction): MemoProgram_Memo {

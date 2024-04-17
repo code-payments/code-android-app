@@ -1,7 +1,6 @@
 package com.getcode.network.repository
 
 import android.annotation.SuppressLint
-import android.content.Context
 import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
@@ -15,23 +14,18 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.establishRelationshipSingle
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.transferWithResult
-import com.getcode.network.client.transferWithResultSingle
 import com.getcode.network.exchange.Exchange
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.time.Duration.Companion.milliseconds
 
 
 class PaymentRepository @Inject constructor(
@@ -208,7 +202,7 @@ class PaymentRepository @Inject constructor(
                     rendezvousKey = rendezvous,
                     destination = metadata.tipAddress,
                     isWithdrawal = true,
-                    tippedUsername = metadata.username
+                    tipMetadata = metadata,
                 )
 
                 if (transferResult.isSuccess) {

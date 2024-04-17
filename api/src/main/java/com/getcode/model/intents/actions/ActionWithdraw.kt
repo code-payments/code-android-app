@@ -2,6 +2,7 @@ package com.getcode.model.intents.actions
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
+import com.getcode.model.TipMetadata
 import com.getcode.model.Kin
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.repository.toPublicKey
@@ -21,7 +22,8 @@ class ActionWithdraw(
 
     val cluster: AccountCluster,
     val destination: PublicKey,
-    val legacy: Boolean
+    val legacy: Boolean,
+    val tipMetadata: TipMetadata? = null,
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> {
@@ -35,8 +37,9 @@ class ActionWithdraw(
                 recentBlockhash = config.blockhash,
                 kreIndex =  kreIndex,
                 legacy = legacy,
+                tipMetadata = tipMetadata,
             )
-        } ?: listOf()
+        }.orEmpty()
     }
 
     override fun action(): TransactionService.Action {
@@ -83,7 +86,8 @@ class ActionWithdraw(
             kind: Kind,
             cluster: AccountCluster,
             destination: PublicKey,
-            legacy: Boolean = false
+            legacy: Boolean = false,
+            tipMetadata: TipMetadata? = null,
         ): ActionWithdraw {
             return ActionWithdraw(
                 id = 0,
@@ -92,7 +96,8 @@ class ActionWithdraw(
                 kind = kind,
                 cluster = cluster,
                 destination = destination,
-                legacy = legacy
+                legacy = legacy,
+                tipMetadata = tipMetadata
             )
         }
 
