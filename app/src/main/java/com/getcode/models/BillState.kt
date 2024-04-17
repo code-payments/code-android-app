@@ -3,11 +3,11 @@ package com.getcode.models
 import androidx.compose.runtime.Composable
 import com.getcode.R
 import com.getcode.model.CodePayload
+import com.getcode.model.TipMetadata
 import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
-import com.getcode.model.TipMetadata
 import com.getcode.model.TwitterUser
 import com.getcode.util.formatted
 
