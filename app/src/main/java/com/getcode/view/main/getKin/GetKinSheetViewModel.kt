@@ -27,6 +27,7 @@ class GetKinSheetViewModel @Inject constructor(
 ) {
 
     data class State(
+        val isBuyKinEnabled: Boolean = false,
         val isTipsEnabled: Boolean = false,
         val isTipCardConnected: Boolean = false,
         val tipsSubtitle: String? = null,
@@ -76,6 +77,7 @@ class GetKinSheetViewModel @Inject constructor(
             when (event) {
                 is Event.OnBetaFlagsChanged -> { state ->
                     state.copy(
+                        isBuyKinEnabled = event.options.buyKinEnabled,
                         isTipsEnabled = event.options.tipsEnabled,
                         isRequestKinEnabled = event.options.giveRequestsEnabled,
                     )

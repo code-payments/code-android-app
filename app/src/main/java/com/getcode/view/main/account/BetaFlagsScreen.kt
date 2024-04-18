@@ -155,7 +155,7 @@ fun BetaFlagsScreen(
 
 private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
-        PrefsBool.BUY_KIN_ENABLED -> false
+//        PrefsBool.BUY_KIN_ENABLED -> false
         PrefsBool.TIPS_CHAT_ENABLED -> chatMessageV2Enabled && tipsEnabled
         else -> true
     }
