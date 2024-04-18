@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -22,6 +24,7 @@ import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
+import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.utils.network.NetworkState
@@ -57,7 +60,7 @@ fun AmountArea(
     ) {
         if (!isLoading) {
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = CenterVertically
             ) {
                 if (!isAnimated) {
                     AmountText(
@@ -77,37 +80,85 @@ fun AmountArea(
                 }
             }
         }
-        Row(
-            modifier = Modifier
-                .wrapContentHeight()
-                .align(Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isAltCaption && isAltCaptionKinIcon) {
-                Image(
-                    modifier = Modifier
-                        .padding(end = CodeTheme.dimens.staticGrid.x1)
-                        .requiredSize(CodeTheme.dimens.staticGrid.x2),
-                    painter = painterResource(
-                        id = if (altCaptionColor == Alert) R.drawable.ic_kin_red
-                        else R.drawable.ic_kin_brand
-                    ),
-                    contentDescription = ""
-                )
-            }
-            if (!networkState.connected) {
-                ConnectionStatus(state = networkState)
-            } else if (captionText != null) {
-                Text(
-                    text = captionText,
-                    color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-                    style = CodeTheme.typography.body1.copy(
-                        textAlign = TextAlign.Center
-                    )
-                )
-            }
+        KinValueHint(
+            modifier = Modifier.align(CenterHorizontally),
+            showIcon = isAltCaption && isAltCaptionKinIcon,
+            iconColor = altCaptionColor ?: BrandLight,
+            captionColor = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
+            captionText = captionText,
+            networkState = networkState
+        )
+//        Row(
+//            modifier = Modifier
+//                .wrapContentHeight()
+//                .align(Alignment.CenterHorizontally),
+//            verticalAlignment = CenterVertically
+//        ) {
+//            if (isAltCaption && isAltCaptionKinIcon) {
+//                Image(
+//                    modifier = Modifier
+//                        .padding(end = CodeTheme.dimens.staticGrid.x1)
+//                        .requiredSize(CodeTheme.dimens.staticGrid.x2),
+//                    painter = painterResource(
+//                        id = if (altCaptionColor == Alert) R.drawable.ic_kin_red
+//                        else R.drawable.ic_kin_brand
+//                    ),
+//                    contentDescription = ""
+//                )
+//            }
+//            if (!networkState.connected) {
+//                ConnectionStatus(state = networkState)
+//            } else if (captionText != null) {
+//                Text(
+//                    text = captionText,
+//                    color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
+//                    style = CodeTheme.typography.body1.copy(
+//                        textAlign = TextAlign.Center
+//                    )
+//                )
+//            }
+//
+//        }
+    }
+}
 
+@Composable
+fun KinValueHint(
+    modifier: Modifier = Modifier,
+    showIcon: Boolean = true,
+    iconColor: Color = BrandLight,
+    captionText: String?,
+    captionColor: Color = BrandLight,
+    networkState: NetworkState? = null
+) {
+    Row(
+        modifier = Modifier
+            .wrapContentHeight()
+            .then(modifier),
+        verticalAlignment = CenterVertically
+    ) {
+        if (showIcon) {
+            Image(
+                modifier = Modifier
+                    .padding(end = CodeTheme.dimens.staticGrid.x1)
+                    .requiredSize(CodeTheme.dimens.staticGrid.x2),
+                painter = painterResource(R.drawable.ic_kin_brand),
+                colorFilter = ColorFilter.tint(iconColor),
+                contentDescription = ""
+            )
         }
+        if (networkState?.connected == false) {
+            ConnectionStatus(state = networkState)
+        } else if (captionText != null) {
+            Text(
+                text = captionText,
+                color = captionColor,
+                style = CodeTheme.typography.body1.copy(
+                    textAlign = TextAlign.Center
+                )
+            )
+        }
+
     }
 }
 

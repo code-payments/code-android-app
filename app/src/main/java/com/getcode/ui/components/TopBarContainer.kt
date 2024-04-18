@@ -91,7 +91,7 @@ private fun TopBarView(
             .background(
                 when (topBarMessage.type) {
                     ERROR_NETWORK, ERROR -> CodeTheme.colors.error
-                    WARNING -> topWarning
+                    WARNING -> Warning
                     NOTIFICATION -> topNotification
                     NEUTRAL -> topNeutral
                     SUCCESS -> topSuccess

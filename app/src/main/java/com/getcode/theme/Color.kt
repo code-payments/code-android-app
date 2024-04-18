@@ -23,14 +23,19 @@ val Gray50 = Color(0x803C3C3C)
 val DashEffect = Color(0xFF303137)
 
 val Alert = Color(0xFFFF8383)
-val topError = Color(0xFFA42D2D)
+val Warning = Color(0xFFf1ab1f)
+val Success = Color(0xFF87D300)
+val Error = Color(0xFFA42D2D)
+
+val ChatOutgoing = Color(0xFF443091)
 val errorText = Color(0xFFDD8484)
-val topWarning = Color(0xFFf1ab1f)
+
 val topNotification = Color(0xFF4f49ce)
 val topNeutral = Color(0xFF747474)
 val topSuccess = Brand
 
-val green = Color(0xFF87D300)
+
+
 
 val textSelectionColors = TextSelectionColors(
     handleColor = White,

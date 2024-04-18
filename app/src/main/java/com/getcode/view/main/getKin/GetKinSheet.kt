@@ -44,7 +44,7 @@ import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
-import com.getcode.theme.green
+import com.getcode.theme.Success
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.showSnackbar
@@ -132,7 +132,7 @@ fun GetKinSheet(
                     shape = CodeTheme.shapes.small,
                     backgroundColor = BrandMuted,
                     contentColor = CodeTheme.colors.onBackground,
-                    actionColor = green
+                    actionColor = Success
                 )
             }
         }

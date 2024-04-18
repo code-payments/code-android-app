@@ -1,11 +1,9 @@
 package com.getcode.network.repository
 
-import com.getcode.model.BetaFlags
 import com.getcode.model.PrefsBool
 import com.getcode.utils.combine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 data class BetaOptions(
@@ -20,6 +18,8 @@ data class BetaOptions(
     val establishCodeRelationship: Boolean = false,
     val chatUnsubEnabled: Boolean = false,
     val tipsEnabled: Boolean = false,
+    val chatMessageV2Enabled: Boolean = false,
+    val tipsChatEnabled: Boolean = false,
 )
 
 class BetaFlagsRepository @Inject constructor(
@@ -46,8 +46,10 @@ class BetaFlagsRepository @Inject constructor(
         observeBetaFlag(PrefsBool.ESTABLISH_CODE_RELATIONSHIP),
         observeBetaFlag(PrefsBool.CHAT_UNSUB_ENABLED),
         observeBetaFlag(PrefsBool.TIPS_ENABLED),
+        observeBetaFlag(PrefsBool.MESSAGE_PAYMENT_NODE_V2),
+        observeBetaFlag(PrefsBool.TIPS_CHAT_ENABLED),
         observeBetaFlag(PrefsBool.DISPLAY_ERRORS),
-    ) { network, buckets, vibez, times, giveRequests, buyKin, relationship, chatUnsub, tips, errors ->
+    ) { network, buckets, vibez, times, giveRequests, buyKin, relationship, chatUnsub, tips, chatMessageV2, tipsChat, errors ->
         BetaOptions(
             showNetworkDropOff = network,
             canViewBuckets = buckets,
@@ -58,6 +60,8 @@ class BetaFlagsRepository @Inject constructor(
             establishCodeRelationship = relationship,
             chatUnsubEnabled = chatUnsub,
             tipsEnabled = tips,
+            chatMessageV2Enabled = chatMessageV2,
+            tipsChatEnabled = tipsChat,
             displayErrors = errors
         )
     }
@@ -66,15 +70,8 @@ class BetaFlagsRepository @Inject constructor(
         return combine(
             prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false),
             prefRepository.observeOrDefault(flag, default)
-                .map {
-                    if (BetaFlags.isAvailable(flag)) {
-                        it
-                    } else {
-                        false
-                    }
-                }
         ) { a, b ->
-            if (a) b else false
+            b.takeIf { a } ?: false
         }
     }
 }

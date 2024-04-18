@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
+import com.getcode.theme.BrandLight
 
 inline fun Modifier.addIf(
     predicate: Boolean,
@@ -191,6 +192,16 @@ fun Modifier.punchCircle(color: Color) = this.drawWithContent {
     )
 
     drawContent()
+}
+
+fun Modifier.withTopBorder(color: Color = BrandLight) = drawBehind {
+    val strokeWidth = Dp.Hairline.toPx()
+    drawLine(
+        color = color,
+        Offset(0f, 0f),
+        Offset(size.width, 0f),
+        strokeWidth
+    )
 }
 
 fun Modifier.drawWithGradient(

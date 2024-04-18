@@ -84,18 +84,44 @@ sealed interface Title {
 }
 
 sealed interface Verb {
-    data object Unknown : Verb
-    data object Gave : Verb
-    data object Received : Verb
-    data object Withdrew : Verb
-    data object Deposited: Verb
-    data object Sent : Verb
-    data object Returned : Verb
-    data object Spent : Verb
-    data object Paid : Verb
-    data object Purchased : Verb
-    data object ReceivedTip: Verb
-    data object SentTip: Verb
+    val increasesBalance: Boolean
+    data object Unknown : Verb {
+        override val increasesBalance: Boolean = false
+    }
+
+    data object Gave : Verb {
+        override val increasesBalance: Boolean = false
+    }
+    data object Received : Verb {
+        override val increasesBalance: Boolean = true
+    }
+    data object Withdrew : Verb {
+        override val increasesBalance: Boolean = false
+    }
+    data object Deposited: Verb {
+        override val increasesBalance: Boolean = true
+    }
+    data object Sent : Verb {
+        override val increasesBalance: Boolean = false
+    }
+    data object Returned : Verb {
+        override val increasesBalance: Boolean = true
+    }
+    data object Spent : Verb {
+        override val increasesBalance: Boolean = false
+    }
+    data object Paid : Verb {
+        override val increasesBalance: Boolean = false
+    }
+    data object Purchased : Verb {
+        override val increasesBalance: Boolean = true
+    }
+    data object ReceivedTip: Verb {
+        override val increasesBalance: Boolean = true
+    }
+    data object SentTip: Verb {
+        override val increasesBalance: Boolean = false
+    }
 
     companion object {
         operator fun invoke(proto: ChatService.ExchangeDataContent.Verb): Verb {

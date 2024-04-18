@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -58,6 +60,8 @@ fun TextInput(
     minLines: Int = 1,
     maxLines: Int = 4,
     state: TextFieldState,
+    minHeight: Dp = 56.dp,
+    contentPadding: PaddingValues = PaddingValues(),
     onStateChanged: () -> Unit = { },
     keyboardActions: KeyboardActions = KeyboardActions(),
     keyboardOptions: KeyboardOptions = KeyboardOptions(),
@@ -77,7 +81,7 @@ fun TextInput(
     BasicTextField2(
         modifier = modifier
             .background(backgroundColor, shape)
-            .defaultMinSize(minHeight = 56.dp),
+            .defaultMinSize(minHeight = minHeight),
         enabled = enabled,
         readOnly = readOnly,
         state = state,
@@ -99,7 +103,11 @@ fun TextInput(
                 leadingIcon = leadingIcon,
                 trailingIcon = trailingIcon,
                 shape = shape,
-                innerTextField = it
+                innerTextField = {
+                    Box(modifier = Modifier.padding(contentPadding)) {
+                        it()
+                    }
+                }
             )
         },
         scrollState = scrollState
