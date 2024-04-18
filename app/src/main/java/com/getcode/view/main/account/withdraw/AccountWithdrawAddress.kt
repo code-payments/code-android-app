@@ -23,13 +23,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.sp
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.green
+import com.getcode.theme.Success
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.TextInput
@@ -94,7 +93,7 @@ fun AccountWithdrawAddress(
                     modifier = Modifier
                         .padding(start = CodeTheme.dimens.grid.x2),
                     text = text,
-                    color = if (isValid) green else Color.Red,
+                    color = if (isValid) Success else Color.Red,
                     style = CodeTheme.typography.caption
                 )
             }

@@ -7,6 +7,7 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.exchange.ExchangeNull
+import com.getcode.network.repository.BetaOptions
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
@@ -20,4 +21,5 @@ val LocalCurrencyUtils: ProvidableCompositionLocal<CurrencyUtils?> = staticCompo
 val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
 val LocalTopBarPadding: ProvidableCompositionLocal<PaddingValues> = staticCompositionLocalOf { PaddingValues() }
+val LocalBetaFlags: ProvidableCompositionLocal<BetaOptions> = staticCompositionLocalOf { BetaOptions() }
 

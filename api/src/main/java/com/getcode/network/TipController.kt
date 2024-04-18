@@ -61,9 +61,10 @@ class TipController @Inject constructor(
     val showTwitterSplat: Flow<Boolean> =
         combine(
             connectedAccount,
+            prefRepository.observeOrDefault(PrefsBool.TIPS_ENABLED, false),
             prefRepository.observeOrDefault(PrefsBool.SEEN_TIP_CARD, false)
-        ) { connected, seen ->
-            connected != null && !seen
+        ) { connected, tipsEnabled, seen ->
+            connected != null && !seen && tipsEnabled
         }
 
     private fun startPollTimer() {

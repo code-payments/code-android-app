@@ -11,6 +11,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +31,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.MainRoot
 import com.getcode.navigation.transitions.SheetSlideTransition
+import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.utils.getActivity
@@ -45,10 +47,12 @@ import com.getcode.ui.components.TopBarContainer
 fun CodeApp() {
     val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
     val activity = LocalContext.current.getActivity()
+
     CodeTheme {
         val appState = rememberCodeAppState()
         AppNavHost {
             val codeNavigator = LocalCodeNavigator.current
+
 
             CodeScaffold(
                 scaffoldState = appState.scaffoldState
@@ -68,6 +72,7 @@ fun CodeApp() {
                     var topBarHeight by remember {
                         mutableStateOf(0.dp)
                     }
+
                     val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
                     if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
                         TitleBar(
@@ -80,7 +85,9 @@ fun CodeApp() {
                         topBarHeight = 0.dp
                     }
 
-                    CompositionLocalProvider(value = LocalTopBarPadding provides PaddingValues(top = topBarHeight)) {
+                    CompositionLocalProvider(
+                        LocalTopBarPadding provides PaddingValues(top = topBarHeight),
+                    ) {
                         Box(
                             modifier = Modifier
                                 .padding(innerPaddingModifier)
@@ -89,7 +96,10 @@ fun CodeApp() {
                                 StackEvent.Push,
                                 StackEvent.Pop -> {
                                     when (navigator.lastItem) {
-                                        is LoginScreen, is MainRoot -> CrossfadeTransition(navigator = navigator)
+                                        is LoginScreen, is MainRoot -> CrossfadeTransition(
+                                            navigator = navigator
+                                        )
+
                                         else -> SlideTransition(navigator = navigator)
                                     }
                                 }

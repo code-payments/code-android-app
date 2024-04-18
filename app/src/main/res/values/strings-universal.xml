@@ -16,6 +16,8 @@
     <string translatable="false" name="beta_vibrate_on_scan">Vibrate on Scan</string>
     <string translatable="false" name="beta_network_dropoff">Show Connectivity Status</string>
     <string translatable="false" name="beta_tipcard">Tip Card</string>
+    <string translatable="false" name="beta_chatmessage_v2_ui">Chat Message V2 UI</string>
+    <string translatable="false" name="beta_tipchats">Tip Chats</string>
     <string translatable="false" name="beta_scan_times">Log Scan Processing Times</string>
     <string translatable="false" name="beta_display_errors">Show Errors</string>
     <string name="beta_bucket_debugger_description" translatable="false">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
@@ -27,6 +29,8 @@
     <string name="beta_code_relationship_description" translatable="false">If enabled, a relationship account will be established with getcode.com if it doesn\'t yet exist.</string>
     <string name="beta_chat_unsub_description" translatable="false">If enabled, an option to unsubscribe from a chat will appear for supported chats.</string>
     <string name="beta_tipcard_description" translatable="false">If enabled, you\'ll gain the ability to share a tip card.</string>
+    <string name="beta_chatmessage_v2_ui_description" translatable="false">If enabled, chat messages will render in the new UI for payment messages.</string>
+    <string name="beta_tipchats_description" translatable="false">If enabled, you\'ll gain the ability to chat with tippers.</string>
     <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
 
     <string translatable="false" name="empty" />

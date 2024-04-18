@@ -295,6 +295,9 @@ private fun HomeScan(
     }
 
     LaunchedEffect(dataState.billState.bill) {
+        if (dataState.billState.bill != null) {
+            navigator.hide()
+        }
         homeViewModel.resetScreenTimeout(context as Activity)
     }
 }

@@ -12,11 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -27,7 +27,6 @@ import androidx.paging.compose.itemKey
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.BrandDark
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatDateRelatively
 import com.getcode.ui.components.ButtonState
@@ -37,6 +36,7 @@ import com.getcode.ui.components.Row
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageNode
 import com.getcode.ui.components.chat.localized
+import com.getcode.ui.utils.withTopBorder
 
 @Composable
 fun ChatScreen(
@@ -90,6 +90,7 @@ fun ChatScreen(
                             date = item.date,
                             isPreviousSameMessage = prev == item.chatMessageId,
                             isNextSameMessage = next == item.chatMessageId,
+                            openTipChat = { dispatch(ChatViewModel.Event.OpenTipChat(item.chatMessageId)) }
                         )
                     }
 
@@ -121,15 +122,7 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
-                .drawBehind {
-                    val strokeWidth = Dp.Hairline.toPx()
-                    drawLine(
-                        color = BrandLight,
-                        Offset(0f, 0f),
-                        Offset(size.width, 0f),
-                        strokeWidth
-                    )
-                }
+                .withTopBorder()
         ) {
             if (state.canMute) {
                 CodeButton(
