@@ -31,6 +31,7 @@ data class AccountMainItem(
 )
 
 enum class AccountPage {
+    BUY_KIN,
     DEPOSIT,
     WITHDRAW,
     PHONE,
@@ -42,7 +43,6 @@ enum class AccountPage {
     LOGOUT
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
@@ -53,7 +53,6 @@ class AccountSheetViewModel @Inject constructor(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
-
     @Stable
     data class State(
         val logoClickCount: Int = 0,
@@ -62,11 +61,12 @@ class AccountSheetViewModel @Inject constructor(
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
         val betaFlagsVisible: Boolean = false,
+        val buyKinEnabled: Boolean = false,
     )
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
-        data class BetaFlagsChanged(val options: BetaOptions): Event
+        data class BetaFlagsChanged(val options: BetaOptions) : Event
         data class OnBetaVisibilityChanged(val visible: Boolean) : Event
         data object LogoClicked : Event
         data class Navigate(val page: AccountPage) : Event
@@ -109,6 +109,11 @@ class AccountSheetViewModel @Inject constructor(
     companion object {
         private val fullItemSet = listOf(
             AccountMainItem(
+                type = AccountPage.BUY_KIN,
+                name = R.string.title_buySellKin,
+                icon = R.drawable.ic_currency_dollar_active
+            ),
+            AccountMainItem(
                 type = AccountPage.DEPOSIT,
                 name = R.string.title_depositKin,
                 icon = R.drawable.ic_menu_deposit
@@ -142,10 +147,23 @@ class AccountSheetViewModel @Inject constructor(
 
         private fun buildItemSet(
             betaFlagsVisible: Boolean,
+            buyKinEnabled: Boolean,
         ): List<AccountMainItem> {
             val fullItems = fullItemSet
 
             val items = fullItems
+                .map {
+                    when (it.type) {
+                        AccountPage.BUY_KIN -> {
+                            if (buyKinEnabled) {
+                                it.copy(name = R.string.action_buyMoreKin)
+                            } else {
+                                it.copy(name = R.string.title_buySellKin)
+                            }
+                        }
+                        else -> it
+                    }
+                }
                 .filter {
                     if (it.type == AccountPage.ACCOUNT_DEBUG_OPTIONS) {
                         betaFlagsVisible
@@ -167,17 +185,20 @@ class AccountSheetViewModel @Inject constructor(
 
                 is Event.BetaFlagsChanged -> { state ->
                     val items = buildItemSet(
-                        betaFlagsVisible = state.betaFlagsVisible
+                        betaFlagsVisible = state.betaFlagsVisible,
+                        buyKinEnabled = event.options.buyKinEnabled,
                     )
 
                     state.copy(
                         items = items,
+                        buyKinEnabled = event.options.buyKinEnabled
                     )
                 }
 
                 is Event.OnBetaVisibilityChanged -> { state ->
                     val items = buildItemSet(
-                        betaFlagsVisible = event.visible
+                        betaFlagsVisible = event.visible,
+                        buyKinEnabled = state.buyKinEnabled
                     )
 
                     state.copy(
