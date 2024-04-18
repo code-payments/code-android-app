@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +52,15 @@ fun GiveKinScreen(
             .padding(bottom = CodeTheme.dimens.grid.x4),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        val isInError by remember(dataState.amountModel) {
+            derivedStateOf {
+                dataState.amountModel.amountKin > dataState.amountModel.sendLimitKin ||
+                        dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()
+            }
+        }
+
         val color =
-            if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
+            if (isInError) Alert else BrandLight
         Box(
             modifier = Modifier.weight(0.65f)
         ) {
@@ -61,6 +70,7 @@ fun GiveKinScreen(
                 amountText = dataState.amountModel.amountText,
                 captionText = dataState.amountModel.captionText,
                 isAltCaption = dataState.amountModel.isCaptionConversion,
+                isAltCaptionKinIcon = !isInError,
                 altCaptionColor = color,
                 currencyResId = dataState.currencyModel.selectedCurrencyResId,
                 uiModel = dataState.amountAnimatedModel,
