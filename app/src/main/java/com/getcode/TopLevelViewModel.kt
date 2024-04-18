@@ -28,7 +28,7 @@ class TopLevelViewModel @Inject constructor(
     val eventFlow: SharedFlow<Event> = _eventFlow.asSharedFlow()
 
     val betaFlags = betaFlagsRepository.observe()
-        .stateIn(viewModelScope, started = SharingStarted.Eagerly, BetaOptions())
+        .stateIn(viewModelScope, started = SharingStarted.Eagerly, BetaOptions.Defaults)
 
     sealed interface Event {
         data object LogoutRequested: Event
