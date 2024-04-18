@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.green
+import com.getcode.theme.Success
 
 @Composable
 fun CodeSnackbar(
@@ -20,7 +20,7 @@ fun CodeSnackbar(
     shape: Shape = CodeTheme.shapes.small,
     backgroundColor: Color = BrandMuted,
     contentColor: Color = CodeTheme.colors.onBackground,
-    actionColor: Color = green,
+    actionColor: Color = Success,
     elevation: Dp = 6.dp
 ) {
     Snackbar(

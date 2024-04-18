@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,13 +23,17 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.getcode.LocalBetaFlags
+import com.getcode.TopLevelViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitle
 import com.getcode.ui.components.keyboardAsState
+import com.getcode.ui.utils.getActivityScopedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 
 @Composable
@@ -97,13 +102,13 @@ internal fun Screen.ModalContainer(
         val keyboardController = LocalSoftwareKeyboardController.current
         val composeScope = rememberCoroutineScope()
 
-        val hideSheet = {
+        val hideSheet = { callback: () -> Unit ->
             composeScope.launch {
                 if (keyboardVisible) {
                     keyboardController?.hide()
                     delay(500)
                 }
-                navigator.hide()
+                callback()
             }
         }
         SheetTitle(
@@ -121,15 +126,18 @@ internal fun Screen.ModalContainer(
             // hide while transitioning to/from other destinations
             backButton = isBackEnabled,
             closeButton = isCloseEnabled,
-            onBackIconClicked = onBackClicked?.let { { it() } } ?: { navigator.pop() },
-            onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { hideSheet() }
+            onBackIconClicked = onBackClicked?.let { { it() } } ?: { hideSheet { navigator.pop() } },
+            onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { hideSheet { navigator.hide() } }
         )
         Box(
             modifier = Modifier
                 .windowInsetsPadding(WindowInsets.navigationBars)
         ) {
+            val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
+            val betaOptions by tlvm.betaFlags.collectAsState()
             CompositionLocalProvider(
-                LocalOverscrollConfiguration provides null
+                LocalOverscrollConfiguration provides null,
+                LocalBetaFlags provides betaOptions
             ) {
                 screenContent()
             }

@@ -28,7 +28,7 @@ private val DarkColorPalette = CodeColors(
     onBackground = White,
     surface = Brand,
     onSurface = White,
-    error = topError,
+    error = Error,
     errorText = errorText
 )
 
@@ -172,12 +172,20 @@ fun debugColors(
 )
 
 @Composable
-fun inputColors() = TextFieldDefaults.textFieldColors(
-    textColor = Color.White,
-    disabledTextColor = Color.White,
-    backgroundColor = White05,
-    placeholderColor = White50,
-    focusedIndicatorColor = Color.Transparent,
-    unfocusedIndicatorColor = Color.Transparent,
-    cursorColor = Color.White,
+fun inputColors(
+    textColor: Color = Color.White,
+    disabledTextColor: Color = Color.White,
+    backgroundColor: Color = White05,
+    placeholderColor: Color = White50,
+    focusedIndicatorColor: Color = Color.Transparent,
+    unfocusedIndicatorColor: Color = Color.Transparent,
+    cursorColor: Color = Color.White,
+) = TextFieldDefaults.textFieldColors(
+    textColor = textColor,
+    disabledTextColor = disabledTextColor,
+    backgroundColor = backgroundColor,
+    placeholderColor = placeholderColor,
+    focusedIndicatorColor = focusedIndicatorColor,
+    unfocusedIndicatorColor = unfocusedIndicatorColor,
+    cursorColor = cursorColor,
 )

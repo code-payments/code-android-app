@@ -1,9 +1,12 @@
 package com.getcode.view.main.account
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
@@ -14,13 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
-import com.getcode.model.BetaFlags
 import com.getcode.model.PrefsBool
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeSwitch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BetaFlagsScreen(
     viewModel: BetaFlagsViewModel,
@@ -85,6 +88,18 @@ fun BetaFlagsScreen(
             state.tipsEnabled,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipCard(it)) },
         BetaFeature(
+            PrefsBool.MESSAGE_PAYMENT_NODE_V2,
+            R.string.beta_chatmessage_v2_ui,
+            stringResource(id = R.string.beta_chatmessage_v2_ui_description),
+            state.chatMessageV2Enabled,
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableChatMessageV2Ui(it)) },
+        BetaFeature(
+            PrefsBool.TIPS_CHAT_ENABLED,
+            R.string.beta_tipchats,
+            stringResource(id = R.string.beta_tipchats_description),
+            state.tipsChatEnabled,
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipChats(it)) },
+        BetaFeature(
             PrefsBool.LOG_SCAN_TIMES,
             R.string.beta_scan_times,
             stringResource(R.string.beta_scan_times_description),
@@ -96,10 +111,10 @@ fun BetaFlagsScreen(
             "",
             state.displayErrors,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowErrors(it)) }
-    ).filter { BetaFlags.canMutate(it.flag) }
+    ).filter { state.canMutate(it.flag) }
 
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        for (option in options) {
+    LazyColumn {
+        items(options) { option ->
             Row(
                 modifier = Modifier
                     .rememberedClickable { option.onChange(!option.dataState) }
@@ -135,5 +150,13 @@ fun BetaFlagsScreen(
                 )
             }
         }
+    }
+}
+
+private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
+    return when (flag) {
+//        PrefsBool.BUY_KIN_ENABLED -> false
+        PrefsBool.TIPS_CHAT_ENABLED -> chatMessageV2Enabled && tipsEnabled
+        else -> true
     }
 }

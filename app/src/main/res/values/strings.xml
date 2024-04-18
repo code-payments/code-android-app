@@ -46,4 +46,5 @@
     <string name="success_title_xAccountLinked">X Account Successfully Connected</string>
     <string name="success_description_xAccountLinked">Your X account has been successfully connected to your Code account. You can now request Tips.</string>
     <string name="action_later">Later</string>
+    <string name="action_sayThankYou">Say Thank You</string>
 </resources>

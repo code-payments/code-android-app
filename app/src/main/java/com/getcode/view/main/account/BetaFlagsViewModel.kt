@@ -29,12 +29,13 @@ class BetaFlagsViewModel @Inject constructor(
         val isVibrateOnScan: Boolean = false,
         val debugScanTimesEnabled: Boolean = false,
         val displayErrors: Boolean = false,
-        val remoteSendEnabled: Boolean = false,
         val giveRequestsEnabled: Boolean = false,
         val buyKinEnabled: Boolean = false,
         val establishCodeRelationship: Boolean = false,
         val chatUnsubEnabled: Boolean = false,
         val tipsEnabled: Boolean = false,
+        val chatMessageV2Enabled: Boolean = false,
+        val tipsChatEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -50,6 +51,8 @@ class BetaFlagsViewModel @Inject constructor(
         data class EnableTipCard(val enabled: Boolean) : Event
         data class EnableCodeRelationshipEstablish(val enabled: Boolean) : Event
         data class EnableChatUnsubscribe(val enabled: Boolean) : Event
+        data class EnableChatMessageV2Ui(val enabled: Boolean) : Event
+        data class EnableTipChats(val enabled: Boolean) : Event
     }
 
     init {
@@ -59,86 +62,29 @@ class BetaFlagsViewModel @Inject constructor(
                 dispatchEvent(Event.UpdateSettings(settings))
             }.launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.ShowErrors>()
-            .map { it.display }
-            .onEach {
-                prefRepository.set(PrefsBool.DISPLAY_ERRORS, it)
-                ErrorUtils.setDisplayErrors(it)
-            }
-            .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.SetVibrateOnScan>()
-            .map { it.vibrate }
-            .onEach {
-                prefRepository.set(PrefsBool.VIBRATE_ON_SCAN, it)
-            }
-            .launchIn(viewModelScope)
+            .onEach { event ->
+                 when (event) {
+                     is Event.EnableBuyKin -> prefRepository.set(PrefsBool.BUY_KIN_ENABLED, event.enabled)
+                     is Event.EnableChatMessageV2Ui -> prefRepository.set(PrefsBool.MESSAGE_PAYMENT_NODE_V2, event.enabled)
+                     is Event.EnableChatUnsubscribe -> prefRepository.set(PrefsBool.CHAT_UNSUB_ENABLED, event.enabled)
+                     is Event.EnableCodeRelationshipEstablish -> prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, event.enabled)
+                     is Event.EnableGiveRequests -> prefRepository.set(PrefsBool.GIVE_REQUESTS_ENABLED, event.enabled)
+                     is Event.EnableTipCard -> prefRepository.set(PrefsBool.TIPS_ENABLED, event.enabled)
+                     is Event.EnableTipChats -> prefRepository.set(PrefsBool.TIPS_CHAT_ENABLED, event.enabled)
+                     is Event.SetLogScanTimes -> prefRepository.set(PrefsBool.LOG_SCAN_TIMES, event.log)
+                     is Event.SetVibrateOnScan -> prefRepository.set(PrefsBool.VIBRATE_ON_SCAN, event.vibrate)
+                     is Event.ShowErrors -> {
+                         prefRepository.set(PrefsBool.DISPLAY_ERRORS, event.display)
+                         ErrorUtils.setDisplayErrors(event.display)
+                     }
+                     is Event.ShowNetworkDropOff ->  prefRepository.set(PrefsBool.SHOW_CONNECTIVITY_STATUS, event.show)
+                     is Event.UseDebugBuckets -> prefRepository.set(PrefsBool.BUCKET_DEBUGGER_ENABLED, event.enabled)
 
-        eventFlow
-            .filterIsInstance<Event.ShowNetworkDropOff>()
-            .map { it.show }
-            .onEach {
-                prefRepository.set(PrefsBool.SHOW_CONNECTIVITY_STATUS, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.SetLogScanTimes>()
-            .map { it.log }
-            .onEach {
-                prefRepository.set(PrefsBool.LOG_SCAN_TIMES, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.UseDebugBuckets>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.BUCKET_DEBUGGER_ENABLED, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.EnableGiveRequests>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.GIVE_REQUESTS_ENABLED, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.EnableBuyKin>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.BUY_KIN_ENABLED, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.EnableCodeRelationshipEstablish>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.EnableChatUnsubscribe>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.CHAT_UNSUB_ENABLED, it)
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.EnableTipCard>()
-            .map { it.enabled }
-            .onEach {
-                prefRepository.set(PrefsBool.TIPS_ENABLED, it)
-            }
-            .launchIn(viewModelScope)
+                     is Event.UpdateSettings -> Unit
+                 }
+            }.launchIn(viewModelScope)
     }
 
     companion object {
@@ -152,12 +98,13 @@ class BetaFlagsViewModel @Inject constructor(
                             isVibrateOnScan = tickOnScan,
                             debugScanTimesEnabled = debugScanTimesEnabled,
                             displayErrors = displayErrors,
-                            remoteSendEnabled = remoteSendEnabled,
                             giveRequestsEnabled = giveRequestsEnabled,
                             buyKinEnabled = buyKinEnabled,
                             establishCodeRelationship = establishCodeRelationship,
                             chatUnsubEnabled = chatUnsubEnabled,
                             tipsEnabled = tipsEnabled,
+                            chatMessageV2Enabled = chatMessageV2Enabled,
+                            tipsChatEnabled = tipsChatEnabled,
                         )
                     }
                 }
@@ -171,6 +118,8 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.SetVibrateOnScan,
                 is Event.EnableCodeRelationshipEstablish,
                 is Event.EnableChatUnsubscribe,
+                is Event.EnableChatMessageV2Ui,
+                is Event.EnableTipChats,
                 is Event.ShowErrors -> { state -> state }
             }
         }

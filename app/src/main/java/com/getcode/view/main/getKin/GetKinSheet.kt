@@ -36,6 +36,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.navigation.screens.RequestTip
@@ -44,7 +45,7 @@ import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.White05
-import com.getcode.theme.green
+import com.getcode.theme.Success
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.showSnackbar
@@ -83,7 +84,11 @@ fun GetKinSheet(
             imageResId = R.drawable.ic_currency_dollar_active,
             titleText = stringResource(R.string.subtitle_buyKin),
             onClick = {
-                navigator.push(BuyMoreKinModal())
+                if (dataState.isBuyKinEnabled) {
+                    navigator.push(BuyMoreKinModal())
+                } else {
+                    navigator.push(BuySellScreen)
+                }
             },
         ),
         GetKinItem(
@@ -132,7 +137,7 @@ fun GetKinSheet(
                     shape = CodeTheme.shapes.small,
                     backgroundColor = BrandMuted,
                     contentColor = CodeTheme.colors.onBackground,
-                    actionColor = green
+                    actionColor = Success
                 )
             }
         }

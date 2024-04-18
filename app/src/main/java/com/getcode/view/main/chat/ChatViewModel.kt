@@ -59,7 +59,7 @@ class ChatViewModel @Inject constructor(
         isMuted = false,
         _canUnsubscribe = false,
         unsubscribeEnabled = false,
-        isSubscribed = false
+        isSubscribed = false,
     ),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -84,6 +84,7 @@ class ChatViewModel @Inject constructor(
         data class SetMuted(val muted: Boolean) : Event
         data class SetSubscribed(val subscribed: Boolean) : Event
         data class EnableUnsubscribe(val enabled: Boolean): Event
+        data class OpenTipChat(val messageId: ID): Event
     }
 
     init {
@@ -144,6 +145,13 @@ class ChatViewModel @Inject constructor(
             .onEach {
                 dispatchEvent(Event.EnableUnsubscribe(it))
             }.launchIn(viewModelScope)
+
+//        betaFlags.observe()
+//            .map { it.chatMessageV2Enabled }
+//            .distinctUntilChanged()
+//            .onEach {
+//                dispatchEvent(Event.EnableMessageV2Ui(it))
+//            }.launchIn(viewModelScope)
     }
 
     val chatMessages = stateFlow
@@ -196,6 +204,7 @@ class ChatViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OpenTipChat,
                 Event.OnMuteToggled,
                 Event.OnSubscribeToggled -> { state -> state }
 

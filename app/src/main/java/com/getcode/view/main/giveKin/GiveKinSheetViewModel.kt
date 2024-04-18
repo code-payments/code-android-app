@@ -1,14 +1,10 @@
 package com.getcode.view.main.giveKin
 
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
-import com.getcode.model.BetaFlags
-import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
-import com.getcode.model.PrefsBool
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
@@ -17,7 +13,6 @@ import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -25,10 +20,6 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject

@@ -33,24 +33,6 @@ sealed class PrefsBool(val value: String) {
     data object ESTABLISH_CODE_RELATIONSHIP : PrefsBool("establish_code_relationship_enabled"), BetaFlag
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
-
-}
-
-object BetaFlags {
-    /**
-     * Override to disable beta flags in app while WIP.
-     */
-    fun isAvailable(flag: PrefsBool): Boolean {
-        return true
-    }
-
-    /**
-     * Override to disabling UI interaction for beta flags.
-     */
-    fun canMutate(flag: PrefsBool): Boolean {
-        return when (flag) {
-            PrefsBool.BUY_KIN_ENABLED -> true
-            else -> true
-        }
-    }
+    data object MESSAGE_PAYMENT_NODE_V2: PrefsBool("message_payment_node_v2"), BetaFlag
+    data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag
 }

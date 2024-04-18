@@ -220,16 +220,7 @@ private fun HomeScan(
             when (bottomSheet) {
                 HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
-                HomeBottomSheet.GET_KIN -> {
-                    when {
-                        dataState.tipsEnabled || dataState.requestKinEnabled -> {
-                            navigator.show(GetKinModal)
-                        }
-
-                        else -> navigator.show(BuyMoreKinModal(showClose = true))
-                    }
-                }
-
+                HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
                 HomeBottomSheet.NONE -> Unit
             }
@@ -295,6 +286,9 @@ private fun HomeScan(
     }
 
     LaunchedEffect(dataState.billState.bill) {
+        if (dataState.billState.bill != null) {
+            navigator.hide()
+        }
         homeViewModel.resetScreenTimeout(context as Activity)
     }
 }
