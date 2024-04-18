@@ -163,6 +163,9 @@ message GetUserResponse {
     bool enable_internal_flags = 6;
     // Set of which airdrops the user is eligible to receive
     repeated transaction.v2.AirdropType eligible_airdrops = 7;
+
+    // Wether the buy module is enabled for this user
+    bool enable_buy_module = 8;
 }
 
 message UpdatePreferencesRequest {
