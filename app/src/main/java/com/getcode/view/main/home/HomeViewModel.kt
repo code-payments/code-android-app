@@ -37,7 +37,6 @@ import com.getcode.models.DeepLinkRequest
 import com.getcode.models.LoginConfirmation
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentValuation
-import com.getcode.models.ShareAction
 import com.getcode.models.TipConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
@@ -83,6 +82,7 @@ import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -158,6 +158,7 @@ enum class RestrictionType {
 @SuppressLint("CheckResult")
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val client: Client,
     private val sendTransactionRepository: SendTransactionRepository,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
@@ -376,8 +377,8 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update {
                         it.copy(
                             billState = it.billState.copy(
-                                shareAction = null,
-                                showCancelAction = false,
+                                primaryAction = null,
+                                secondaryAction = null,
                             )
                         )
                     }
@@ -385,8 +386,8 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update {
                         it.copy(
                             billState = it.billState.copy(
-                                showCancelAction = true,
-                                shareAction = ShareAction.Send,
+                                primaryAction = BillState.Action.Send { onRemoteSend(context) },
+                                secondaryAction = BillState.Action.Cancel(::cancelSend)
                             )
                         )
                     }
@@ -496,8 +497,8 @@ class HomeViewModel @Inject constructor(
                     billState = it.billState.copy(
                         bill = null,
                         valuation = null,
-                        shareAction = null,
-                        showCancelAction = false,
+                        primaryAction = null,
+                        secondaryAction = null,
                     )
                 )
             }
@@ -667,8 +668,8 @@ class HomeViewModel @Inject constructor(
             uiFlow.update {
                 val billState = it.billState.copy(
                     bill = Bill.Tip(code),
-                    shareAction = ShareAction.Share,
-                    showCancelAction = true
+                    primaryAction = BillState.Action.Share { onRemoteSend(context) },
+                    secondaryAction = BillState.Action.Done(::cancelSend)
                 )
 
                 it.copy(
@@ -691,8 +692,8 @@ class HomeViewModel @Inject constructor(
             uiFlow.update {
                 val billState = it.billState.copy(
                     bill = Bill.Tip(payload),
-                    shareAction = null,
-                    showCancelAction = false
+                    primaryAction = null,
+                    secondaryAction = null,
                 )
 
                 it.copy(
@@ -789,8 +790,8 @@ class HomeViewModel @Inject constructor(
                         tipConfirmation = null,
                         toast = null,
                         valuation = null,
-                        shareAction = null,
-                        showCancelAction = false,
+                        primaryAction = null,
+                        secondaryAction = null,
                     )
                 )
             }
@@ -813,8 +814,8 @@ class HomeViewModel @Inject constructor(
                 bill = null,
                 tipConfirmation = null,
                 valuation = null,
-                showCancelAction = false,
-                shareAction = null,
+                primaryAction = null,
+                secondaryAction = null,
             )
 
             it.copy(
@@ -856,7 +857,7 @@ class HomeViewModel @Inject constructor(
                 var billState = it.billState.copy(
                     bill = Bill.Payment(amount, code, request),
                     valuation = PaymentValuation(amount),
-                    shareAction = null,
+                    primaryAction = null,
                 )
 
                 if (isReceived) {
@@ -945,8 +946,8 @@ class HomeViewModel @Inject constructor(
                         paymentConfirmation = null,
                         toast = null,
                         valuation = null,
-                        shareAction = null,
-                        showCancelAction = false,
+                        primaryAction = null,
+                        secondaryAction = null,
                     )
                 )
             }
@@ -972,8 +973,8 @@ class HomeViewModel @Inject constructor(
                     bill = null,
                     paymentConfirmation = null,
                     valuation = null,
-                    showCancelAction = false,
-                    shareAction = null,
+                    primaryAction = null,
+                    secondaryAction = null,
                 )
             )
         }
@@ -1040,8 +1041,8 @@ class HomeViewModel @Inject constructor(
                         payload = payload,
                         domain = domain
                     ),
-                    showCancelAction = false,
-                    shareAction = null,
+                    primaryAction = null,
+                    secondaryAction = null,
                 )
             )
         }
@@ -1093,8 +1094,8 @@ class HomeViewModel @Inject constructor(
                         loginConfirmation = null,
                         toast = null,
                         valuation = null,
-                        shareAction = null,
-                        showCancelAction = false,
+                        primaryAction = null,
+                        secondaryAction = null,
                     )
                 )
             }
@@ -1128,8 +1129,8 @@ class HomeViewModel @Inject constructor(
                     loginConfirmation = null,
                     toast = null,
                     valuation = null,
-                    shareAction = null,
-                    showCancelAction = false,
+                    primaryAction = null,
+                    secondaryAction = null,
                 )
             )
         }
@@ -1312,7 +1313,9 @@ class HomeViewModel @Inject constructor(
             type = "text/plain"
         }
         withContext(Dispatchers.Main) {
-            val shareIntent = Intent.createChooser(sendIntent, null)
+            val shareIntent = Intent.createChooser(sendIntent, null).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
             context.startActivity(shareIntent)
         }
     }
@@ -1349,7 +1352,9 @@ class HomeViewModel @Inject constructor(
             putExtra(Intent.EXTRA_TEXT, text)
             type = "text/plain"
         }
-        val shareIntent = Intent.createChooser(sendIntent, null)
+        val shareIntent = Intent.createChooser(sendIntent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
         context.startActivity(shareIntent)
 
         CoroutineScope(Dispatchers.IO).launch {

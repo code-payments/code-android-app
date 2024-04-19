@@ -1,6 +1,9 @@
 package com.getcode.models
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import com.getcode.R
 import com.getcode.model.CodePayload
 import com.getcode.model.TipMetadata
@@ -11,19 +14,6 @@ import com.getcode.model.Rate
 import com.getcode.model.TwitterUser
 import com.getcode.util.formatted
 
-sealed interface ShareAction {
-
-    val label: Int
-    data object Send: ShareAction {
-        override val label: Int
-            get() = R.string.action_send
-    }
-
-    data object Share: ShareAction {
-        override val label: Int
-            get() = R.string.action_share
-    }
-}
 data class BillState(
     val bill: Bill?,
     val showToast: Boolean,
@@ -32,11 +22,12 @@ data class BillState(
     val paymentConfirmation: PaymentConfirmation?,
     val loginConfirmation: LoginConfirmation?,
     val tipConfirmation: TipConfirmation?,
-    val shareAction: ShareAction?,
-    val showCancelAction: Boolean,
+    val primaryAction: Action?,
+    val secondaryAction: Action?,
 ) {
     val hideBillButtons: Boolean
-        get() = shareAction == null && !showCancelAction
+        get() = primaryAction == null && secondaryAction == null
+
     val canSwipeToDismiss: Boolean
         get() = bill?.canSwipeToDismiss ?: false
 
@@ -49,9 +40,50 @@ data class BillState(
             paymentConfirmation = null,
             loginConfirmation = null,
             tipConfirmation = null,
-            shareAction = null,
-            showCancelAction = false
+            primaryAction = null,
+            secondaryAction = null,
         )
+    }
+
+    sealed interface Action {
+
+        val label: String
+            @Composable get
+        val asset: Painter
+            @Composable get
+
+        val action: () -> Unit
+
+        data class Send(override val action: () -> Unit): Action {
+            override val label: String
+                @Composable get() = stringResource(R.string.action_send)
+            override val asset: Painter
+                @Composable get() = painterResource(id = R.drawable.ic_remote_send)
+        }
+
+        data class Share(override val action: () -> Unit): Action {
+            override val label: String
+                @Composable get() = stringResource(R.string.action_share)
+
+            override val asset: Painter
+                @Composable get() = painterResource(id = R.drawable.ic_remote_send)
+        }
+
+        data class Cancel(override val action: () -> Unit): Action {
+            override val label: String
+                @Composable get() = stringResource(R.string.action_cancel)
+
+            override val asset: Painter
+                @Composable get() = painterResource(R.drawable.ic_bill_close)
+        }
+
+        data class Done(override val action: () -> Unit): Action {
+            override val label: String
+                @Composable get() = stringResource(R.string.action_done)
+
+            override val asset: Painter
+                @Composable get() = painterResource(R.drawable.ic_bill_close)
+        }
     }
 }
 
