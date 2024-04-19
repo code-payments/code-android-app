@@ -10,11 +10,12 @@ data class CodeNotification(
 
 enum class NotificationType {
     ChatMessage,
+    Twitter,
     Unknown;
 
     companion object {
-        fun tryValueOf(value: String): NotificationType? {
-            return runCatching { valueOf(value) }.getOrNull()
+        fun tryValueOf(value: String): NotificationType {
+            return runCatching { valueOf(value) }.getOrNull() ?: Unknown
         }
     }
 }
