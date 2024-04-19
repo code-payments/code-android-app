@@ -30,7 +30,6 @@ class GetKinSheetViewModel @Inject constructor(
         val isBuyKinEnabled: Boolean = false,
         val isTipsEnabled: Boolean = false,
         val isTipCardConnected: Boolean = false,
-        val tipsSubtitle: String? = null,
         val isRequestKinEnabled: Boolean = false,
         val snackbarData: SnackData? = null,
     )
@@ -39,7 +38,6 @@ class GetKinSheetViewModel @Inject constructor(
         data class OnBetaFlagsChanged(val options: BetaOptions) : Event
         data class OnConnectionStateChanged(
             val connected: Boolean,
-            val tipsSubtitle: String?,
         ) : Event
 
         data class ShowSnackbar(val data: SnackData?) : Event
@@ -54,19 +52,9 @@ class GetKinSheetViewModel @Inject constructor(
 
         tipController.connectedAccount
             .onEach { connectedAccount ->
-                val subtitle = if (connectedAccount != null) {
-                    resources.getString(
-                        R.string.subtitle_tips_linked_to_account,
-                        connectedAccount.platform.capitalize(),
-                        connectedAccount.username
-                    )
-                } else {
-                    null
-                }
                 dispatchEvent(
                     Event.OnConnectionStateChanged(
                         connected = connectedAccount != null,
-                        tipsSubtitle = subtitle,
                     )
                 )
             }.launchIn(viewModelScope)
@@ -86,7 +74,6 @@ class GetKinSheetViewModel @Inject constructor(
                 is Event.OnConnectionStateChanged -> { state ->
                     state.copy(
                         isTipCardConnected = event.connected,
-                        tipsSubtitle = event.tipsSubtitle
                     )
                 }
 
