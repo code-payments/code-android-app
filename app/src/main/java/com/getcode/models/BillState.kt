@@ -38,11 +38,7 @@ data class BillState(
     val hideBillButtons: Boolean
         get() = shareAction == null && !showCancelAction
     val canSwipeToDismiss: Boolean
-        get() = when (bill) {
-            is Bill.Cash -> true
-            is Bill.Login -> true
-            else -> false
-        }
+        get() = bill?.canSwipeToDismiss ?: false
 
     companion object {
         val Default = BillState(
@@ -67,6 +63,14 @@ sealed interface Bill {
     enum class Kind {
         cash, remote, firstKin, referral, tip
     }
+
+    val canSwipeToDismiss: Boolean
+        get() = when (this) {
+            is Cash -> true
+            is Login -> false
+            is Payment -> false
+            is Tip -> true
+        }
 
     val metadata: Metadata
         get() {
