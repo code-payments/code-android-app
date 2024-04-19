@@ -27,6 +27,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
+import com.getcode.model.TwitterUser
 import com.getcode.model.Username
 import com.getcode.models.Bill
 import com.getcode.models.BillState
@@ -213,19 +214,23 @@ class HomeViewModel @Inject constructor(
             .flatMapLatest { tipController.connectedAccount }
             .filterNotNull()
             .onEach {
-                TopBarManager.showMessage(
-                    topBarMessage = TopBarManager.TopBarMessage(
-                        type = TopBarManager.TopBarMessageType.SUCCESS,
-                        title = resources.getString(R.string.success_title_xAccountLinked),
-                        message = resources.getString(R.string.success_description_xAccountLinked),
-                        primaryText = resources.getString(R.string.action_showMyTipCard),
-                        primaryAction = ::presentShareableTipCard,
-                        secondaryText = resources.getString(R.string.action_later),
-                        secondaryAction = {
-                            tipController.clearTwitterSplat()
-                        }
-                    )
-                )
+                when (it) {
+                    is TwitterUser -> {
+                        TopBarManager.showMessage(
+                            topBarMessage = TopBarManager.TopBarMessage(
+                                type = TopBarManager.TopBarMessageType.SUCCESS,
+                                title = resources.getString(R.string.success_title_xConnected),
+                                message = resources.getString(R.string.success_description_xConnected),
+                                primaryText = resources.getString(R.string.action_showMyTipCard),
+                                primaryAction = ::presentShareableTipCard,
+                                secondaryText = resources.getString(R.string.action_later),
+                                secondaryAction = {
+                                    tipController.clearTwitterSplat()
+                                }
+                            )
+                        )
+                    }
+                }
             }.launchIn(viewModelScope)
 
         tipController.connectedAccount

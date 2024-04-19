@@ -94,7 +94,6 @@ fun GetKinSheet(
         GetKinItem(
             imageResId = R.drawable.ic_menu_tip_card,
             titleText = stringResource(R.string.title_requestTip),
-            subtitleText = dataState.tipsSubtitle,
             isVisible = dataState.isTipsEnabled,
             isNavigation = false,
             onClick = {
