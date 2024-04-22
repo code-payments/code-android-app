@@ -1,5 +1,6 @@
 package com.getcode.view.main.bill
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -80,8 +81,8 @@ private fun HazedBackground(
     val hazeState = remember { HazeState() }
     Box(
         modifier = Modifier
-            .border(1.dp, Color.Black)
             .background(color = Brand)
+            .cardBorder()
             .haze(state = hazeState)
     ) {
         val background = CodeTheme.colors.background
@@ -97,12 +98,18 @@ private fun HazedBackground(
                 .drawBehind {
                     drawRect(
                         brush = Brush.radialGradient(
-                            colors = listOf(Color.White.copy(0.45f), background.copy(alpha = 0.24f)),
+                            colors = listOf(
+                                Color.White.copy(0.45f),
+                                background.copy(alpha = 0.24f)
+                            ),
                             center = Offset.Zero,
                             radius = size.maxDimension
                         ),
                         size = size.copy(width = size.width * 0.9f, height = size.height * 0.93f),
-                        topLeft = Offset(geometry.size.width.value * 0.1f, geometry.size.height.value * 0.07f)
+                        topLeft = Offset(
+                            geometry.size.width.value * 0.1f,
+                            geometry.size.height.value * 0.07f
+                        )
                     )
                 }
         )
@@ -136,3 +143,16 @@ private fun Contents(
         Spacer(modifier = Modifier.weight(1f))
     }
 }
+
+@Composable
+private fun Modifier.cardBorder() = border(
+    BorderStroke(
+        1.dp,
+        Brush.linearGradient(
+            colorStops = arrayOf(
+                0f to Color(0xFF15141B),
+                1f to Color(0xFF161325)
+            )
+        )
+    )
+)
