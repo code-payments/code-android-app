@@ -57,6 +57,7 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
 import com.getcode.view.main.home.components.BillManagementOptions
@@ -494,7 +495,7 @@ private fun BillContainer(
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
             targetState = updatedState.billState.tipConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = AnimationUtils.modalAnimationSpec(),
+            transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast),
             label = "tip confirmation",
         ) {
             if (it != null) {

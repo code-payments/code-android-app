@@ -42,12 +42,35 @@ object AnimationUtils {
 
     val modalEnter: EnterTransition = slideInVertically(
         initialOffsetY = { it },
-        animationSpec = tween(durationMillis = 450, delayMillis = 450)
+        animationSpec = tween(durationMillis = ModalAnimationSpeed.Normal.duration, delayMillis = ModalAnimationSpeed.Normal.delay)
+    )
+
+    val modalEnterSlow: EnterTransition = slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = tween(durationMillis = ModalAnimationSpeed.Slow.duration, delayMillis = ModalAnimationSpeed.Slow.delay)
+    )
+
+    val modalEnterFast: EnterTransition = slideInVertically(
+        initialOffsetY = { it },
+        animationSpec = tween(durationMillis = ModalAnimationSpeed.Fast.duration, delayMillis = ModalAnimationSpeed.Fast.delay)
     )
 
     val modalExit: ExitTransition = slideOutVertically(targetOffsetY = { it })
 
-    fun <S> modalAnimationSpec(): AnimatedContentTransitionScope<S>.() -> ContentTransform = {
-        modalEnter togetherWith modalExit
+    fun <S> modalAnimationSpec(speed: ModalAnimationSpeed = ModalAnimationSpeed.Normal): AnimatedContentTransitionScope<S>.() -> ContentTransform = {
+        when (speed) {
+            ModalAnimationSpeed.Fast -> modalEnterFast
+            ModalAnimationSpeed.Normal -> modalEnter
+            ModalAnimationSpeed.Slow -> modalEnterSlow
+        }  togetherWith modalExit
     }
+}
+
+sealed class ModalAnimationSpeed(
+    val duration: Int,
+    val delay: Int
+) {
+    data object Slow : ModalAnimationSpeed(750, 750)
+    data object Normal: ModalAnimationSpeed(450, 450)
+    data object Fast: ModalAnimationSpeed(200, 200)
 }
