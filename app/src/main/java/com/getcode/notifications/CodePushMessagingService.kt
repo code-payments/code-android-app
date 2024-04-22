@@ -88,10 +88,15 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 val body = messageContent.localizedText(title, resources, currencyUtils)
                 notify(type, title, body)
 
-                if (type == NotificationType.ChatMessage) {
-                    launch { historyController.fetchChats() }
-                    launch { balanceController.fetchBalanceSuspend() }
-                    launch { tipController.checkForConnection() }
+                when (type) {
+                    NotificationType.ChatMessage -> {
+                        launch { historyController.fetchChats() }
+                        launch { balanceController.fetchBalanceSuspend() }
+                    }
+                    NotificationType.Twitter -> {
+                        launch { tipController.checkForConnection() }
+                    }
+                    NotificationType.Unknown -> Unit
                 }
             } else {
                 notify(

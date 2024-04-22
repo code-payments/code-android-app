@@ -1,7 +1,6 @@
 package com.getcode.view.main.home.components
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,34 +9,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.getcode.R
-import com.getcode.models.ShareAction
+import com.getcode.models.BillState
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Gray50
 import com.getcode.theme.White
-import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Pill
+import com.getcode.ui.utils.rememberedClickable
 
 @Composable
 internal fun BillManagementOptions(
     modifier: Modifier = Modifier,
-    shareAction: ShareAction? = null,
     isSending: Boolean = false,
-    showCancel: Boolean = true,
-    canCancel: Boolean = true,
-    onSend: () -> Unit,
-    onCancel: () -> Unit,
+    isInteractable: Boolean = true,
+    primaryAction: BillState.Action? = null,
+    secondaryAction: BillState.Action? = null,
 ) {
     Box(
         modifier = Modifier
@@ -50,10 +42,10 @@ internal fun BillManagementOptions(
                 .align(Alignment.BottomCenter),
             horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x8)
         ) {
-            if (shareAction != null) {
+            if (primaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = !isSending) { onSend() }
+                        .rememberedClickable(enabled = !isSending) { primaryAction.action() }
                         .padding(vertical = 15.dp, horizontal = 20.dp),
                     contentPadding = PaddingValues(),
                     backgroundColor = Gray50,
@@ -63,13 +55,13 @@ internal fun BillManagementOptions(
                             modifier = Modifier.alpha(if (!isSending) 1f else 0f)
                         ) {
                             Image(
-                                painter = painterResource(R.drawable.ic_remote_send),
+                                painter = primaryAction.asset,
                                 contentDescription = "",
                                 modifier = Modifier.width(22.dp)
                             )
                             Text(
                                 modifier = Modifier.padding(start = 10.dp),
-                                text = stringResource(shareAction.label)
+                                text = primaryAction.label
                             )
                         }
 
@@ -85,22 +77,22 @@ internal fun BillManagementOptions(
                     }
                 }
             }
-            if (showCancel) {
+            if (secondaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = canCancel) { onCancel() }
+                        .rememberedClickable(enabled = isInteractable) { secondaryAction.action() }
                         .padding(vertical = 15.dp, horizontal = 20.dp),
                     contentPadding = PaddingValues(),
                     backgroundColor = Gray50,
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.ic_bill_close),
+                        painter = secondaryAction.asset,
                         contentDescription = "",
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
                         modifier = Modifier.padding(start = 10.dp),
-                        text = stringResource(R.string.action_cancel)
+                        text = secondaryAction.label
                     )
                 }
             }

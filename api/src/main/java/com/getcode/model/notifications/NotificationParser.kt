@@ -23,7 +23,7 @@ fun RemoteMessage.parse(): CodeNotification? {
     }
 
     val type = NotificationType.tryValueOf(typeString)
-    if (type == null) {
+    if (type == NotificationType.Unknown) {
         Timber.e("Unknown notification type: $typeString")
         ErrorUtils.handleError(Throwable("Unknown notification type: $typeString"))
         return null

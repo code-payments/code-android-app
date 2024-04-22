@@ -2,13 +2,7 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -47,12 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.asFlow
 import com.getcode.models.Bill
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -62,16 +53,12 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
-import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
-import com.getcode.util.toByteArray
-import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.CodeScanner
 import com.getcode.view.main.home.components.HomeBill
@@ -80,21 +67,14 @@ import com.getcode.view.main.home.components.PaymentConfirmation
 import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import com.getcode.view.main.home.components.TipConfirmation
-import com.kik.kikx.kikcodes.KikCodeScanner
-import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
-import com.kik.kikx.models.ScannableKikCode
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import timber.log.Timber
-import java.util.concurrent.Executors
 import kotlin.time.Duration.Companion.milliseconds
 
 
@@ -426,14 +406,10 @@ private fun BillContainer(
             BillManagementOptions(
                 modifier = Modifier
                     .windowInsetsPadding(WindowInsets.navigationBars),
-                shareAction = updatedState.billState.shareAction,
+                primaryAction = updatedState.billState.primaryAction,
+                secondaryAction = updatedState.billState.secondaryAction,
                 isSending = updatedState.isRemoteSendLoading,
-                onSend = { homeViewModel.onRemoteSend(context) },
-                showCancel = updatedState.billState.showCancelAction,
-                canCancel = canCancel,
-                onCancel = {
-                    homeViewModel.cancelSend()
-                }
+                isInteractable = canCancel,
             )
 
             LaunchedEffect(transition.isRunning, transition.targetState) {
