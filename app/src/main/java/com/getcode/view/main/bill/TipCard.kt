@@ -55,9 +55,8 @@ fun TipCard(
         Box(
             modifier = Modifier
                 .aspectRatio(0.57f, matchHeightConstraintsFirst = true)
-                .fillMaxHeight(0.6f)
                 .padding(bottom = screenHeight * 0.05f)
-                .padding(top = CodeTheme.dimens.grid.x12)
+                .padding(top = CodeTheme.dimens.grid.x9)
                 .clip(RectangleShape)
         ) {
             BoxWithConstraints(
