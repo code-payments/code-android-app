@@ -82,7 +82,7 @@ data class BillState(
                 @Composable get() = stringResource(R.string.action_done)
 
             override val asset: Painter
-                @Composable get() = painterResource(R.drawable.ic_bill_close)
+                @Composable get() = painterResource(R.drawable.ic_check_white)
         }
     }
 }
