@@ -62,7 +62,6 @@ data class GetKinItem(
     val subtitleText: String? = null,
     val isVisible: Boolean = true,
     val isActive: Boolean = true,
-    val isNavigation: Boolean = true,
     val isLoading: Boolean = false,
     val isStrikeThrough: Boolean = false,
     val onClick: () -> Unit,
@@ -95,7 +94,6 @@ fun GetKinSheet(
             imageResId = R.drawable.ic_menu_tip_card,
             titleText = stringResource(R.string.title_requestTip),
             isVisible = dataState.isTipsEnabled,
-            isNavigation = false,
             onClick = {
                 if (dataState.isTipCardConnected) {
                     navigator.hideWithResult(HomeResult.ShowTipCard)
@@ -250,12 +248,8 @@ fun GetKinSheet(
                                         .size(CodeTheme.dimens.grid.x3)
                                         .align(Alignment.CenterVertically),
                                 )
-                            } else if (item.isNavigation) {
-                                Image(
-                                    modifier = Modifier.padding(start = CodeTheme.dimens.grid.x2),
-                                    painter = painterResource(R.drawable.ic_chevron_right),
-                                    contentDescription = "",
-                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
                     }
