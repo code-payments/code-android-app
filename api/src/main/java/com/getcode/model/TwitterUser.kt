@@ -37,7 +37,7 @@ data class TwitterUser(
         }
 
     enum class VerificationStatus {
-        none, blue, government, unknown
+        none, blue, business, government, unknown
     }
 
     companion object {
