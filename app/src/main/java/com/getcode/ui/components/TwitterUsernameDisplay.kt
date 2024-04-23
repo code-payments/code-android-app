@@ -34,9 +34,9 @@ fun TwitterUsernameDisplay(
         )
         Text(text = username, style = CodeTheme.typography.subtitle1)
         verificationStatus?.let { status ->
-            if (status.hasCheckmark()) {
+            status.checkmark()?.let { asset ->
                 Image(
-                    painter = rememberVectorPainter(image = status.checkmark()),
+                    painter = rememberVectorPainter(image = asset),
                     contentDescription = null
                 )
             }
@@ -44,13 +44,12 @@ fun TwitterUsernameDisplay(
     }
 }
 
-fun TwitterUser.VerificationStatus.hasCheckmark(): Boolean = this == TwitterUser.VerificationStatus.blue || this == TwitterUser.VerificationStatus.government
-
 @Composable
-fun TwitterUser.VerificationStatus.checkmark(): ImageVector {
+fun TwitterUser.VerificationStatus.checkmark(): ImageVector? {
     return when (this) {
         TwitterUser.VerificationStatus.blue -> ImageVector.vectorResource(id = R.drawable.ic_twitter_verified_badge)
+        TwitterUser.VerificationStatus.business -> ImageVector.vectorResource(id = R.drawable.ic_twitter_verified_badge_gold)
         TwitterUser.VerificationStatus.government -> ImageVector.vectorResource(id = R.drawable.ic_twitter_verified_badge_gray)
-        else -> throw NotImplementedError()
+        else -> null
     }
 }
