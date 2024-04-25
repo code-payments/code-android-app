@@ -44,8 +44,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
-import com.getcode.LocalBetaFlags
-import com.getcode.LocalBuyModuleAvailable
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
