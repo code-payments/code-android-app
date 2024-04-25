@@ -139,6 +139,8 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
+    val buyModuleEnabled: Boolean = false,
+    val buyModuleAvailable: Boolean = false,
     val requestKinEnabled: Boolean = false,
     val tipsEnabled: Boolean = false,
     val tipCardConnected: Boolean = false,
@@ -195,6 +197,7 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         requestKinEnabled = beta.giveRequestsEnabled,
                         tipsEnabled = beta.tipsEnabled,
+                        buyModuleEnabled = beta.buyModuleEnabled
                     )
                 }
 
@@ -206,6 +209,15 @@ class HomeViewModel @Inject constructor(
                     if (organizer.relationshipFor(domain) == null) {
                         client.awaitEstablishRelationship(organizer, domain)
                     }
+                }
+            }.launchIn(viewModelScope)
+
+        prefRepository.observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
+            .onEach {available ->
+                uiFlow.update {
+                    it.copy(
+                        buyModuleAvailable = available
+                    )
                 }
             }.launchIn(viewModelScope)
 

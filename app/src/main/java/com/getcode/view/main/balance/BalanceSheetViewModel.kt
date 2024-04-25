@@ -66,7 +66,7 @@ class BalanceSheetViewModel @Inject constructor(
         betaFlags.observe()
             .distinctUntilChanged()
             .onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyKinEnabled))
+                dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyModuleEnabled))
             }.launchIn(viewModelScope)
 
         prefsRepository.observeOrDefault(PrefsBool.BUCKET_DEBUGGER_ENABLED, false)

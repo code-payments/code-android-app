@@ -28,12 +28,14 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
@@ -78,13 +80,24 @@ fun GetKinSheet(
         mutableStateOf(false)
     }
 
+    val context = LocalContext.current
     val items = listOf(
         GetKinItem(
             imageResId = R.drawable.ic_currency_dollar_active,
             titleText = stringResource(R.string.subtitle_buyKin),
             onClick = {
-                if (dataState.isBuyKinEnabled) {
-                    navigator.push(BuyMoreKinModal())
+                if (dataState.isBuyModuleEnabled) {
+                    if (dataState.isBuyModuleAvailable) {
+                        navigator.push(BuyMoreKinModal())
+                    } else {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                title = context.getString(R.string.error_title_buyModuleUnavailable),
+                                message = context.getString(R.string.error_description_buyModuleUnavailable),
+                                type = TopBarManager.TopBarMessageType.ERROR
+                            )
+                        )
+                    }
                 } else {
                     navigator.push(BuySellScreen)
                 }
