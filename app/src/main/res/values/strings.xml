@@ -17,37 +17,14 @@
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
 
-    <string name="action_requestTip">Request a Tip</string>
-    <string name="title_requestTip">Request a Tip</string>
     <string name="action_tipKin">Tip Kin</string>
-    <string name="action_swipeToTip">Swipe to Tip</string>
-    <string name="subtitle_canOnlyTipUpTo">You can only tip up to %1$s</string>
-    <string name="error_title_invalidTipCard">Invalid Tip Card</string>
-    <string name="error_description_invalidTipCard">This is an invalid Tip Card.</string>
+
     <string name="error_title_buyModuleUnavailable">Temporarily Unavailable</string>
     <string name="error_description_buyModuleUnavailable">The ability to buy Kin is temporarily unavailable due to network congestion. Please try again later.</string>
-    <string name="error_title_tipTooLarge">Tip Too Large</string>
-    <string name="error_title_tipTooSmall">Tip Too Small</string>
-    <string name="error_description_tipTooSmall">The minimum you can tip is %1$s. Please enter a larger amount.</string>
-    <string name="error_description_tipTooLarge">The maximum you can tip is %1$s. Please enter a smaller amount.</string>
-    <string name="subtitle_requestTip">Your Tip Card lets you to receive tips from Code users all over the world. To access your Tip Card post to X.</string>
     <string name="action_connectXAccount">Post to Connect Your Account</string>
-    <string name="action_share">Share</string>
-    <string name="action_done">Done</string>
-    <string name="action_connect_to_x_message">I\’m connecting my X account with @getcode so I can receive tips from people all over the world.</string>
 
     <string name="title_success">Success</string>
-    <string name="subtitle_xAccountConnected">Your X account %1$s is now connected to your Code account.</string>
 
-    <string name="action_showMyTipCard">Show My Tip Card</string>
-
-    <string name="subtitle_youReceivedTip">Someone tipped you</string>
-    <string name="subtitle_youSentTip">You tipped someone</string>
-
-    <string name="title_chat_tips">Tips</string>
     <string name="subtitle_tips_linked_to_account">Tips linked to %1$s account: %2$s</string>
-    <string name="success_title_xConnected">X Account Successfully Connected</string>
-    <string name="success_description_xConnected">Your X account has been successfully connected to your Code account. You can now request Tips.</string>
-    <string name="action_later">Later</string>
     <string name="action_sayThankYou">Say Thank You</string>
 </resources>

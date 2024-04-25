@@ -152,11 +152,23 @@ fun Verb.localizedText(resources: ResourceHelper): String {
         Verb.Received,
         Verb.Sent,
         Verb.Spent,
-        Verb.Withdrew,
-        Verb.ReceivedTip,
-        Verb.SentTip -> {
+        Verb.Withdrew  -> {
             resources.getIdentifier(
                 "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+        }
+
+        Verb.ReceivedTip -> {
+            resources.getIdentifier(
+                "subtitle_someoneTippedYou",
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+        }
+
+        Verb.SentTip -> {
+            resources.getIdentifier(
+                "subtitle_youTipped",
                 ResourceType.String,
             ).let { if (it == 0) null else it }
         }
@@ -187,11 +199,25 @@ val Verb.localizedText: String
             Verb.Received,
             Verb.Sent,
             Verb.Spent,
-            Verb.Withdrew,
-            Verb.ReceivedTip,
-            Verb.SentTip -> {
+            Verb.Withdrew  -> {
                 resources.getIdentifier(
                     "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+            }
+
+            Verb.ReceivedTip -> {
+                resources.getIdentifier(
+                    "subtitle_someoneTippedYou",
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+            }
+
+            Verb.SentTip -> {
+                resources.getIdentifier(
+                    "subtitle_youTipped",
                     "string",
                     BuildConfig.APPLICATION_ID
                 ).let { if (it == 0) null else it }

@@ -24,7 +24,6 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.LocalBetaFlags
-import com.getcode.LocalBuyModuleAvailable
 import com.getcode.TopLevelViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -138,7 +137,6 @@ internal fun Screen.ModalContainer(
             CompositionLocalProvider(
                 LocalOverscrollConfiguration provides null,
                 LocalBetaFlags provides state.betaFlags,
-                LocalBuyModuleAvailable provides state.buyModuleAvailable
             ) {
                 screenContent()
             }
