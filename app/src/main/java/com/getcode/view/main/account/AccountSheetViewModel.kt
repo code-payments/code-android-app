@@ -13,14 +13,12 @@ import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import timber.log.Timber
 import javax.inject.Inject
 
 data class AccountMainItem(
@@ -61,13 +59,15 @@ class AccountSheetViewModel @Inject constructor(
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
         val betaFlagsVisible: Boolean = false,
-        val buyKinEnabled: Boolean = false,
+        val buyModuleEnabled: Boolean = false,
+        val buyModuleAvailable: Boolean = false,
     )
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
         data class BetaFlagsChanged(val options: BetaOptions) : Event
         data class OnBetaVisibilityChanged(val visible: Boolean) : Event
+        data class OnBuyModuleAvailabilityChanged(val available: Boolean): Event
         data object LogoClicked : Event
         data class Navigate(val page: AccountPage) : Event
         data class OnItemsChanged(val items: List<AccountMainItem>) : Event
@@ -88,6 +88,12 @@ class AccountSheetViewModel @Inject constructor(
             .observeOrDefault(PrefsBool.IS_DEBUG_ACTIVE, false)
             .distinctUntilChanged()
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnBetaVisibilityChanged(it)) }
+            .launchIn(viewModelScope)
+
+        prefRepository
+            .observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
+            .distinctUntilChanged()
+            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBuyModuleAvailabilityChanged(it)) }
             .launchIn(viewModelScope)
 
         phoneRepository
@@ -186,19 +192,19 @@ class AccountSheetViewModel @Inject constructor(
                 is Event.BetaFlagsChanged -> { state ->
                     val items = buildItemSet(
                         betaFlagsVisible = state.betaFlagsVisible,
-                        buyKinEnabled = event.options.buyKinEnabled,
+                        buyKinEnabled = event.options.buyModuleEnabled,
                     )
 
                     state.copy(
                         items = items,
-                        buyKinEnabled = event.options.buyKinEnabled
+                        buyModuleEnabled = event.options.buyModuleEnabled
                     )
                 }
 
                 is Event.OnBetaVisibilityChanged -> { state ->
                     val items = buildItemSet(
                         betaFlagsVisible = event.visible,
-                        buyKinEnabled = state.buyKinEnabled
+                        buyKinEnabled = state.buyModuleEnabled
                     )
 
                     state.copy(
@@ -210,6 +216,7 @@ class AccountSheetViewModel @Inject constructor(
 
                 is Event.OnItemsChanged -> { state -> state.copy(items = event.items) }
                 is Event.Navigate -> { state -> state }
+                is Event.OnBuyModuleAvailabilityChanged -> { state -> state.copy(buyModuleAvailable = event.available) }
             }
         }
     }

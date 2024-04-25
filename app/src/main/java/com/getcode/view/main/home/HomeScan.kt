@@ -44,12 +44,17 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
+import com.getcode.LocalBetaFlags
+import com.getcode.LocalBuyModuleAvailable
+import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
@@ -453,12 +458,27 @@ private fun BillContainer(
                 Box(
                     contentAlignment = BottomCenter
                 ) {
+
                     PaymentConfirmation(
                         confirmation = updatedState.billState.paymentConfirmation,
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            navigator.show(BuyMoreKinModal(showClose = true))
+                            if (updatedState.buyModuleEnabled) {
+                                if (updatedState.buyModuleAvailable) {
+                                    navigator.show(BuyMoreKinModal(showClose = true))
+                                } else {
+                                    TopBarManager.showMessage(
+                                        TopBarManager.TopBarMessage(
+                                            title = context.getString(R.string.error_title_buyModuleUnavailable),
+                                            message = context.getString(R.string.error_description_buyModuleUnavailable),
+                                            type = TopBarManager.TopBarMessageType.ERROR
+                                        )
+                                    )
+                                }
+                            } else {
+                                navigator.show(BuySellScreen)
+                            }
                         },
                         onSend = { homeViewModel.completePayment() },
                         onCancel = {

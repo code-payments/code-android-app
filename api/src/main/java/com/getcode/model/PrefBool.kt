@@ -22,6 +22,8 @@ sealed class PrefsBool(val value: String) {
     data object HAS_REMOVED_LOCAL_CURRENCY: PrefsBool("removed_local_currency")
     data object SEEN_TIP_CARD : PrefsBool("seen_tip_card")
 
+    data object BUY_MODULE_AVAILABLE : PrefsBool("buy_module_available")
+
     // beta flags
     data object BUCKET_DEBUGGER_ENABLED: PrefsBool("debug_buckets"), BetaFlag
     data object VIBRATE_ON_SCAN: PrefsBool("vibrate_on_scan"), BetaFlag
@@ -29,7 +31,8 @@ sealed class PrefsBool(val value: String) {
     data object DISPLAY_ERRORS: PrefsBool("debug_display_errors"), BetaFlag
     data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
-    data object BUY_KIN_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
+    data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
+
     data object ESTABLISH_CODE_RELATIONSHIP : PrefsBool("establish_code_relationship_enabled"), BetaFlag
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag

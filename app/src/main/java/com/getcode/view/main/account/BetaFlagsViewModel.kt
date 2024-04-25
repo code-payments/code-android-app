@@ -9,9 +9,7 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
@@ -66,7 +64,7 @@ class BetaFlagsViewModel @Inject constructor(
         eventFlow
             .onEach { event ->
                  when (event) {
-                     is Event.EnableBuyKin -> prefRepository.set(PrefsBool.BUY_KIN_ENABLED, event.enabled)
+                     is Event.EnableBuyKin -> prefRepository.set(PrefsBool.BUY_MODULE_ENABLED, event.enabled)
                      is Event.EnableChatMessageV2Ui -> prefRepository.set(PrefsBool.MESSAGE_PAYMENT_NODE_V2, event.enabled)
                      is Event.EnableChatUnsubscribe -> prefRepository.set(PrefsBool.CHAT_UNSUB_ENABLED, event.enabled)
                      is Event.EnableCodeRelationshipEstablish -> prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, event.enabled)
@@ -99,7 +97,7 @@ class BetaFlagsViewModel @Inject constructor(
                             debugScanTimesEnabled = debugScanTimesEnabled,
                             displayErrors = displayErrors,
                             giveRequestsEnabled = giveRequestsEnabled,
-                            buyKinEnabled = buyKinEnabled,
+                            buyKinEnabled = buyModuleEnabled,
                             establishCodeRelationship = establishCodeRelationship,
                             chatUnsubEnabled = chatUnsubEnabled,
                             tipsEnabled = tipsEnabled,

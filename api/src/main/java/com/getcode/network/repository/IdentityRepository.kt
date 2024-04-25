@@ -40,11 +40,11 @@ class IdentityRepository @Inject constructor(
         val enableDebugOptions: Boolean,
         val eligibleAirdrops: Set<AirdropType>,
         val isPhoneNumberLinked: Boolean,
-        val buyModuleEnabled: Boolean,
+        val buyModuleAvailable: Boolean,
     )
 
     fun getUser(
-        keyPair: Ed25519.KeyPair,
+        keyPair: KeyPair,
         phoneValue: String
     ): Flowable<GetUserResponse> {
         if (isMock()) return Flowable.just(
@@ -54,7 +54,7 @@ class IdentityRepository @Inject constructor(
                 enableDebugOptions = false,
                 eligibleAirdrops = setOf(),
                 isPhoneNumberLinked = true,
-                buyModuleEnabled = false,
+                buyModuleAvailable = false
             )
         )
 
@@ -78,7 +78,7 @@ class IdentityRepository @Inject constructor(
                         )
                     }?.toSet() ?: throw Exception("Error: Null data"),
                     isPhoneNumberLinked = it.phone?.isLinked ?: throw Exception("Error: Null data"),
-                    buyModuleEnabled = it.enableBuyModule
+                    buyModuleAvailable = false,
                 )
             }
             .let { networkOracle.managedRequest(it) }
@@ -102,8 +102,8 @@ class IdentityRepository @Inject constructor(
                         user.enableDebugOptions
                     )
                     prefRepository.set(
-                        PrefsBool.BUY_KIN_ENABLED,
-                        user.buyModuleEnabled
+                        PrefsBool.BUY_MODULE_AVAILABLE,
+                        user.buyModuleAvailable
                     )
                     prefRepository.set(
                         PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP,
@@ -130,9 +130,9 @@ class IdentityRepository @Inject constructor(
             prefRepository.getFlowable(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP),
             prefRepository.getFlowable(PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP),
             Flowable.just(phoneRepository.phoneLinked),
-            prefRepository.getFlowable(PrefsBool.BUY_KIN_ENABLED),
-        ) { userId, dataContainerId, isDebugAllowed, isEligibleGetFirstKinAirdrop, isEligibleGiveFirstKinAirdrop, isPhoneNumberLinked, buyModuleEnabled ->
-            var eligibleAirdrops = Sets.newHashSet<AirdropType>()
+            prefRepository.getFlowable(PrefsBool.BUY_MODULE_AVAILABLE),
+        ) { userId, dataContainerId, isDebugAllowed, isEligibleGetFirstKinAirdrop, isEligibleGiveFirstKinAirdrop, isPhoneNumberLinked, buyModuleAvailable ->
+            val eligibleAirdrops = Sets.newHashSet<AirdropType>()
             if (isEligibleGetFirstKinAirdrop) {
                 eligibleAirdrops.add(AirdropType.GetFirstKin)
             }
@@ -145,7 +145,7 @@ class IdentityRepository @Inject constructor(
                 enableDebugOptions = isDebugAllowed,
                 eligibleAirdrops = eligibleAirdrops,
                 isPhoneNumberLinked = isPhoneNumberLinked.value,
-                buyModuleEnabled = buyModuleEnabled
+                buyModuleAvailable = buyModuleAvailable,
             )
         }
             .filter { it.userId.isNotEmpty() && it.dataContainerId.isNotEmpty() }
@@ -154,7 +154,7 @@ class IdentityRepository @Inject constructor(
 
 
     fun linkAccount(
-        keyPair: Ed25519.KeyPair,
+        keyPair: KeyPair,
         phoneValue: String,
         code: String
     ): Single<IdentityService.LinkAccountResponse.Result> {
@@ -183,7 +183,7 @@ class IdentityRepository @Inject constructor(
     }
 
     fun unlinkAccount(
-        keyPair: Ed25519.KeyPair,
+        keyPair: KeyPair,
         phoneValue: String
     ): Single<IdentityService.UnlinkAccountResponse.Result> {
         if (isMock()) return Single.just(IdentityService.UnlinkAccountResponse.Result.OK)

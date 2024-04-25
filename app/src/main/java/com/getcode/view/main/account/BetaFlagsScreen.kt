@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -64,7 +62,7 @@ fun BetaFlagsScreen(
             state.giveRequestsEnabled
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableGiveRequests(it)) },
         BetaFeature(
-            PrefsBool.BUY_KIN_ENABLED,
+            PrefsBool.BUY_MODULE_ENABLED,
             R.string.beta_buy_kin,
             stringResource(id = R.string.beta_buy_kin_description),
             state.buyKinEnabled

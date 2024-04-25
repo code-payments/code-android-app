@@ -53,7 +53,6 @@ fun CodeApp() {
         AppNavHost {
             val codeNavigator = LocalCodeNavigator.current
 
-
             CodeScaffold(
                 scaffoldState = appState.scaffoldState
             ) { innerPaddingModifier ->

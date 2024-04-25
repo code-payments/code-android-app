@@ -24,6 +24,8 @@
     <string name="subtitle_canOnlyTipUpTo">You can only tip up to %1$s</string>
     <string name="error_title_invalidTipCard">Invalid Tip Card</string>
     <string name="error_description_invalidTipCard">This is an invalid Tip Card.</string>
+    <string name="error_title_buyModuleUnavailable">Temporarily Unavailable</string>
+    <string name="error_description_buyModuleUnavailable">The ability to buy Kin is temporarily unavailable due to network congestion. Please try again later.</string>
     <string name="error_title_tipTooLarge">Tip Too Large</string>
     <string name="error_title_tipTooSmall">Tip Too Small</string>
     <string name="error_description_tipTooSmall">The minimum you can tip is %1$s. Please enter a larger amount.</string>
