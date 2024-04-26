@@ -78,7 +78,7 @@ class IdentityRepository @Inject constructor(
                         )
                     }?.toSet() ?: throw Exception("Error: Null data"),
                     isPhoneNumberLinked = it.phone?.isLinked ?: throw Exception("Error: Null data"),
-                    buyModuleAvailable = false,
+                    buyModuleAvailable = it.enableBuyModule,
                 )
             }
             .let { networkOracle.managedRequest(it) }
