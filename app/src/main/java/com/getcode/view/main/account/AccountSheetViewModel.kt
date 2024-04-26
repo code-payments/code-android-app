@@ -5,9 +5,12 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.AuthManager
+import com.getcode.model.BuyModuleFeature
+import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
+import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.view.BaseViewModel2
@@ -46,6 +49,7 @@ class AccountSheetViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val prefRepository: PrefRepository,
     betaFlags: BetaFlagsRepository,
+    features: FeatureRepository,
     phoneRepository: PhoneRepository,
 ) : BaseViewModel2<AccountSheetViewModel.State, AccountSheetViewModel.Event>(
     initialState = State(),
@@ -59,15 +63,14 @@ class AccountSheetViewModel @Inject constructor(
         val page: AccountPage? = null,
         val isPhoneLinked: Boolean = false,
         val betaFlagsVisible: Boolean = false,
-        val buyModuleEnabled: Boolean = false,
-        val buyModuleAvailable: Boolean = false,
+        val buyModule: Feature = BuyModuleFeature(),
     )
 
     sealed interface Event {
         data class OnPhoneLinked(val linked: Boolean) : Event
         data class BetaFlagsChanged(val options: BetaOptions) : Event
         data class OnBetaVisibilityChanged(val visible: Boolean) : Event
-        data class OnBuyModuleAvailabilityChanged(val available: Boolean): Event
+        data class OnBuyModuleStateChanged(val module: Feature) : Event
         data object LogoClicked : Event
         data class Navigate(val page: AccountPage) : Event
         data class OnItemsChanged(val items: List<AccountMainItem>) : Event
@@ -90,10 +93,8 @@ class AccountSheetViewModel @Inject constructor(
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnBetaVisibilityChanged(it)) }
             .launchIn(viewModelScope)
 
-        prefRepository
-            .observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
-            .distinctUntilChanged()
-            .onEach { dispatchEvent(Dispatchers.Main, Event.OnBuyModuleAvailabilityChanged(it)) }
+        features.buyModule
+            .onEach { dispatchEvent(Event.OnBuyModuleStateChanged(it)) }
             .launchIn(viewModelScope)
 
         phoneRepository
@@ -153,7 +154,7 @@ class AccountSheetViewModel @Inject constructor(
 
         private fun buildItemSet(
             betaFlagsVisible: Boolean,
-            buyKinEnabled: Boolean,
+            buyModuleEnabled: Boolean,
         ): List<AccountMainItem> {
             val fullItems = fullItemSet
 
@@ -161,7 +162,7 @@ class AccountSheetViewModel @Inject constructor(
                 .map {
                     when (it.type) {
                         AccountPage.BUY_KIN -> {
-                            if (buyKinEnabled) {
+                            if (buyModuleEnabled) {
                                 it.copy(name = R.string.action_buyMoreKin)
                             } else {
                                 it.copy(name = R.string.title_buySellKin)
@@ -192,19 +193,16 @@ class AccountSheetViewModel @Inject constructor(
                 is Event.BetaFlagsChanged -> { state ->
                     val items = buildItemSet(
                         betaFlagsVisible = state.betaFlagsVisible,
-                        buyKinEnabled = event.options.buyModuleEnabled,
+                        buyModuleEnabled = event.options.buyModuleEnabled,
                     )
 
-                    state.copy(
-                        items = items,
-                        buyModuleEnabled = event.options.buyModuleEnabled
-                    )
+                    state.copy(items = items,)
                 }
 
                 is Event.OnBetaVisibilityChanged -> { state ->
                     val items = buildItemSet(
                         betaFlagsVisible = event.visible,
-                        buyKinEnabled = state.buyModuleEnabled
+                        buyModuleEnabled = state.buyModule.enabled
                     )
 
                     state.copy(
@@ -216,7 +214,7 @@ class AccountSheetViewModel @Inject constructor(
 
                 is Event.OnItemsChanged -> { state -> state.copy(items = event.items) }
                 is Event.Navigate -> { state -> state }
-                is Event.OnBuyModuleAvailabilityChanged -> { state -> state.copy(buyModuleAvailable = event.available) }
+                is Event.OnBuyModuleStateChanged -> { state -> state.copy(buyModule = event.module) }
             }
         }
     }

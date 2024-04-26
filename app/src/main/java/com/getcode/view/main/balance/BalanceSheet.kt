@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.ID
@@ -105,6 +106,8 @@ fun BalanceContent(
         derivedStateOf { state.isBucketDebuggerEnabled }
     }
 
+    val context = LocalContext.current
+
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth(),
@@ -130,14 +133,26 @@ fun BalanceContent(
                     KinValueHint(faqOpen)
                 }
 
-                if (!chatsEmpty && !state.chatsLoading && state.isBuyKinEnabled) {
+                if (!chatsEmpty && !state.chatsLoading && state.buyModule.enabled) {
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.grid.x5),
                         buttonState = ButtonState.Filled,
-                        onClick = buyMoreKin,
+                        onClick = {
+                            if (state.buyModule.available) {
+                                buyMoreKin()
+                            } else {
+                                TopBarManager.showMessage(
+                                    TopBarManager.TopBarMessage(
+                                        title = context.getString(R.string.error_title_buyModuleUnavailable),
+                                        message = context.getString(R.string.error_description_buyModuleUnavailable),
+                                        type = TopBarManager.TopBarMessageType.ERROR
+                                    )
+                                )
+                            }
+                        },
                         text = stringResource(id = R.string.action_buyMoreKin)
                     )
                 }

@@ -17,9 +17,11 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Domain
+import com.getcode.model.Feature
 import com.getcode.model.Fiat
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
@@ -27,6 +29,8 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
+import com.getcode.model.RequestKinFeature
+import com.getcode.model.TipCardFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
 import com.getcode.models.Bill
@@ -57,6 +61,7 @@ import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
@@ -139,10 +144,9 @@ data class HomeUiModel(
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
     val chatUnreadCount: Int = 0,
-    val buyModuleEnabled: Boolean = false,
-    val buyModuleAvailable: Boolean = false,
-    val requestKinEnabled: Boolean = false,
-    val tipsEnabled: Boolean = false,
+    val buyModule: Feature = BuyModuleFeature(),
+    val requestKin: Feature = RequestKinFeature(),
+    val tips: Feature = TipCardFeature(),
     val tipCardConnected: Boolean = false,
 )
 
@@ -177,6 +181,7 @@ class HomeViewModel @Inject constructor(
     private val currencyUtils: CurrencyUtils,
     private val exchange: Exchange,
     betaFlags: BetaFlagsRepository,
+    features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
 
@@ -193,14 +198,6 @@ class HomeViewModel @Inject constructor(
         betaFlags.observe()
             .distinctUntilChanged()
             .onEach { beta ->
-                uiFlow.update {
-                    it.copy(
-                        requestKinEnabled = beta.giveRequestsEnabled,
-                        tipsEnabled = beta.tipsEnabled,
-                        buyModuleEnabled = beta.buyModuleEnabled
-                    )
-                }
-
                 ErrorUtils.setDisplayErrors(beta.displayErrors)
 
                 if (beta.establishCodeRelationship) {
@@ -212,12 +209,24 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        prefRepository.observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
-            .onEach {available ->
+        features.buyModule
+            .onEach {  module ->
                 uiFlow.update {
-                    it.copy(
-                        buyModuleAvailable = available
-                    )
+                    it.copy(buyModule = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.tipCards
+            .onEach {  module ->
+                uiFlow.update {
+                    it.copy(tips = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.requestKin
+            .onEach {  module ->
+                uiFlow.update {
+                    it.copy(requestKin = module)
                 }
             }.launchIn(viewModelScope)
 
@@ -659,7 +668,7 @@ class HomeViewModel @Inject constructor(
 
     private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) =
         viewModelScope.launch {
-            if (!uiFlow.value.tipsEnabled) return@launch
+            if (!uiFlow.value.tips.enabled) return@launch
             BottomBarManager.clear()
             val username = codePayload.username ?: request?.tipRequest?.username ?: return@launch
             presentTipCard(payload = codePayload, username = username)
