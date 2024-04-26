@@ -462,8 +462,8 @@ private fun BillContainer(
                         balance = updatedState.balance,
                         onAddKin = {
                             homeViewModel.rejectPayment()
-                            if (updatedState.buyModuleEnabled) {
-                                if (updatedState.buyModuleAvailable) {
+                            if (updatedState.buyModule.enabled) {
+                                if (updatedState.buyModule.available) {
                                     navigator.show(BuyMoreKinModal(showClose = true))
                                 } else {
                                     TopBarManager.showMessage(

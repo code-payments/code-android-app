@@ -1,15 +1,19 @@
 package com.getcode.view.main.balance
 
 import androidx.lifecycle.viewModelScope
+import com.getcode.model.BuyModuleFeature
 import com.getcode.model.Chat
+import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
+import com.getcode.view.main.getKin.GetKinSheetViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -26,8 +30,8 @@ class BalanceSheetViewModel @Inject constructor(
     balanceController: BalanceController,
     historyController: HistoryController,
     prefsRepository: PrefRepository,
+    features: FeatureRepository,
     networkObserver: NetworkConnectivityListener,
-    betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -41,13 +45,13 @@ class BalanceSheetViewModel @Inject constructor(
         val chats: List<Chat> = emptyList(),
         val isBucketDebuggerEnabled: Boolean = false,
         val isBucketDebuggerVisible: Boolean = false,
-        val isBuyKinEnabled: Boolean = false,
+        val buyModule: Feature = BuyModuleFeature(),
     )
 
     sealed interface Event {
         data class OnDebugBucketsEnabled(val enabled: Boolean) : Event
         data class OnDebugBucketsVisible(val show: Boolean) : Event
-        data class OnBuyKinEnabled(val enabled: Boolean): Event
+        data class OnBuyModuleStateChanged(val module: Feature) : Event
         data class OnLatestRateChanged(
             val rate: Rate,
             ) : Event
@@ -63,11 +67,9 @@ class BalanceSheetViewModel @Inject constructor(
     }
 
     init {
-        betaFlags.observe()
-            .distinctUntilChanged()
-            .onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnBuyKinEnabled(it.buyModuleEnabled))
-            }.launchIn(viewModelScope)
+        features.buyModule
+            .onEach { dispatchEvent(Event.OnBuyModuleStateChanged(it)) }
+            .launchIn(viewModelScope)
 
         prefsRepository.observeOrDefault(PrefsBool.BUCKET_DEBUGGER_ENABLED, false)
             .distinctUntilChanged()
@@ -122,8 +124,10 @@ class BalanceSheetViewModel @Inject constructor(
                     state.copy(isBucketDebuggerVisible = event.show)
                 }
 
-                is Event.OnBuyKinEnabled -> { state ->
-                    state.copy(isBuyKinEnabled = event.enabled)
+                is Event.OnBuyModuleStateChanged -> { state ->
+                    state.copy(
+                        buyModule = event.module
+                    )
                 }
 
                 is Event.OnLatestRateChanged -> { state ->
