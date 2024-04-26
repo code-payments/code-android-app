@@ -80,7 +80,7 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
         style = CodeTheme.typography.h1
     )
     Text(
-        text = stringResource(id = R.string.subtitle_requestTip),
+        text = stringResource(id = R.string.subtitle_tipCardForX),
         style = CodeTheme.typography.body2
     )
     Spacer(modifier = Modifier.weight(0.3f))

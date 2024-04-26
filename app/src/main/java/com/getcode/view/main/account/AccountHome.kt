@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountDebugOptionsScreen
 import com.getcode.navigation.screens.AccountDetailsScreen
@@ -68,8 +69,18 @@ fun AccountHome(
             composeScope.launch {
                 when (item) {
                     AccountPage.BUY_KIN -> {
-                        if (dataState.buyKinEnabled) {
-                            navigator.push(BuyMoreKinModal())
+                        if (dataState.buyModuleEnabled) {
+                            if (dataState.buyModuleAvailable) {
+                                navigator.push(BuyMoreKinModal())
+                            } else {
+                                TopBarManager.showMessage(
+                                    TopBarManager.TopBarMessage(
+                                        title = context.getString(R.string.error_title_buyModuleUnavailable),
+                                        message = context.getString(R.string.error_description_buyModuleUnavailable),
+                                        type = TopBarManager.TopBarMessageType.ERROR
+                                    )
+                                )
+                            }
                         } else {
                             navigator.push(BuySellScreen)
                         }

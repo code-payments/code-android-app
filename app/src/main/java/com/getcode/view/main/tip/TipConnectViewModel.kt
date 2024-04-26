@@ -58,7 +58,7 @@ class TipConnectViewModel @Inject constructor(
             ).joinToString(":")
 
             val message = """
-                ${resources.getString(R.string.action_connect_to_x_message)}
+                ${resources.getString(R.string.subtitle_linkingTwitter)}
                 
                 $verificationMessage
             """.trimIndent()

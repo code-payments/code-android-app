@@ -33,7 +33,6 @@ import com.getcode.ui.components.keyboardAsState
 import com.getcode.ui.utils.getActivityScopedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 
 @Composable
@@ -134,10 +133,10 @@ internal fun Screen.ModalContainer(
                 .windowInsetsPadding(WindowInsets.navigationBars)
         ) {
             val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
-            val betaOptions by tlvm.betaFlags.collectAsState()
+            val state by tlvm.state.collectAsState()
             CompositionLocalProvider(
                 LocalOverscrollConfiguration provides null,
-                LocalBetaFlags provides betaOptions
+                LocalBetaFlags provides state.betaFlags,
             ) {
                 screenContent()
             }

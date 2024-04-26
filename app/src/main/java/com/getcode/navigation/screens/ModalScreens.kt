@@ -285,7 +285,7 @@ data object ReferFriendScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data object CurrencySelectionModal: MainGraph, ModalContent {
+data object CurrencySelectionModal : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -313,7 +313,7 @@ data object CurrencySelectionModal: MainGraph, ModalContent {
 @Parcelize
 data class BuyMoreKinModal(
     val showClose: Boolean = false,
-): MainGraph, ModalRoot {
+) : MainGraph, ModalRoot {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -325,13 +325,16 @@ data class BuyMoreKinModal(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val content = @Composable {
-            BuyKinScreen(getViewModel()) {
-                if (showClose) {
-                    navigator.hide()
-                } else {
-                    navigator.popAll()
+            BuyKinScreen(
+                viewModel = getViewModel(),
+                onRedirected = {
+                    if (showClose) {
+                        navigator.hide()
+                    } else {
+                        navigator.popAll()
+                    }
                 }
-            }
+            )
         }
 
         if (showClose) {
@@ -368,7 +371,7 @@ data class BuyMoreKinModal(
 }
 
 @Parcelize
-data object EnterTipModal: MainGraph, ModalRoot {
+data object EnterTipModal : MainGraph, ModalRoot {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -396,7 +399,7 @@ data object EnterTipModal: MainGraph, ModalRoot {
 }
 
 @Parcelize
-data object RequestTip: MainGraph, ModalContent {
+data object RequestTip : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
