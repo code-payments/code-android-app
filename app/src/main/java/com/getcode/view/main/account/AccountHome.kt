@@ -69,8 +69,8 @@ fun AccountHome(
             composeScope.launch {
                 when (item) {
                     AccountPage.BUY_KIN -> {
-                        if (dataState.buyModuleEnabled) {
-                            if (dataState.buyModuleAvailable) {
+                        if (dataState.buyModule.enabled) {
+                            if (dataState.buyModule.available) {
                                 navigator.push(BuyMoreKinModal())
                             } else {
                                 TopBarManager.showMessage(

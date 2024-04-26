@@ -86,8 +86,8 @@ fun GetKinSheet(
             imageResId = R.drawable.ic_currency_dollar_active,
             titleText = stringResource(R.string.subtitle_buyKin),
             onClick = {
-                if (dataState.isBuyModuleEnabled) {
-                    if (dataState.isBuyModuleAvailable) {
+                if (dataState.buyModule.enabled) {
+                    if (dataState.buyModule.available) {
                         navigator.push(BuyMoreKinModal())
                     } else {
                         TopBarManager.showMessage(
@@ -106,7 +106,7 @@ fun GetKinSheet(
         GetKinItem(
             imageResId = R.drawable.ic_menu_tip_card,
             titleText = stringResource(R.string.title_requestTip),
-            isVisible = dataState.isTipsEnabled,
+            isVisible = dataState.tips.enabled,
             onClick = {
                 if (dataState.isTipCardConnected) {
                     navigator.hideWithResult(HomeResult.ShowTipCard)
@@ -118,7 +118,7 @@ fun GetKinSheet(
         GetKinItem(
             imageResId = R.drawable.ic_menu_buy_kin,
             titleText = stringResource(R.string.title_requestKin),
-            isVisible = dataState.isRequestKinEnabled,
+            isVisible = dataState.requestKin.enabled,
             onClick = {
                 navigator.push(RequestKinModal())
             },
