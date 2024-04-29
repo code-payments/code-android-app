@@ -15,7 +15,10 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
+import com.getcode.util.formatted
+import com.getcode.util.formattedRaw
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -146,7 +149,11 @@ class TipPaymentViewModel @Inject constructor(
         }
 
         if (!hasAvailableTransactionLimit(amount, rate)) {
-            val formatted = FormatUtils.formatCurrency(maxFiatLimit(rate), rate.currency)
+            val formatted = if (rate.currency == CurrencyCode.KIN) {
+                "${FormatUtils.formatWholeRoundDown(maxFiatLimit(rate))} ${resources.getString(R.string.core_kin)}"
+            } else {
+                FormatUtils.formatCurrency(maxFiatLimit(rate), rate.currency)
+            }
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_tipTooLarge),
                 resources.getString(R.string.error_description_tipTooLarge, formatted)
@@ -160,7 +167,11 @@ class TipPaymentViewModel @Inject constructor(
             // convert min amount in USD to selected currency
             val normalizedAmount = KinAmount.newInstance(kin, rate)
             // format for display
-            val formatted = FormatUtils.formatCurrency(normalizedAmount.fiat, rate.currency)
+            val formatted = if (rate.currency == CurrencyCode.KIN) {
+                "${normalizedAmount.formattedRaw()} ${resources.getString(R.string.core_kin)}"
+            } else {
+                FormatUtils.formatCurrency(normalizedAmount.fiat, rate.currency)
+            }
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_tipTooSmall),
                 resources.getString(R.string.error_description_tipTooSmall, formatted)
