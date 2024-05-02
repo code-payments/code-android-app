@@ -44,7 +44,7 @@ class KikCodeScannerImpl : KikCodeScanner {
         yuv.compressToJpeg(Rect(0, 0, yuv.width, yuv.height), 100, bos)
 
         return try {
-            val scanResult = Scanner.scan(source.matrix, width, height, SCAN_QUALITY)
+            val scanResult = Scanner.scan(source.matrix, width, height, SCAN_QUALITY) ?: throw KikCodeScanner.NoKikCodeFoundException()
             runCatching { KikCode.parse(scanResult.data)?.toModelKikCode() ?: throw KikCodeScanner.NoKikCodeFoundException() }
         } catch (e: Exception) {
             return Result.failure(e)
