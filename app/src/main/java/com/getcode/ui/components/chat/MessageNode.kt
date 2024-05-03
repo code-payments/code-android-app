@@ -1,19 +1,33 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChatBubbleOutline
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.HeartBroken
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,12 +43,17 @@ import com.getcode.model.KinAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.Rate
 import com.getcode.model.Verb
+import com.getcode.model.orOneToOne
+import com.getcode.theme.Alert
 import com.getcode.theme.BrandDark
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraLarge
+import com.getcode.theme.extraSmall
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.ui.utils.unboundedClickable
 import com.getcode.util.formatTimeRelatively
 import com.getcode.utils.FormatUtils
 import com.getcode.view.main.giveKin.KinValueHint
@@ -65,14 +84,13 @@ fun MessageNode(
     date: Instant,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
-    openTipChat: () -> Unit,
+    thankUser: () -> Unit,
+    openMessageChat: () -> Unit,
 ) {
     Box(
         modifier = modifier
             .padding(vertical = CodeTheme.dimens.grid.x1)
     ) {
-        val exchange = LocalExchange.current
-
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.895f)
@@ -90,39 +108,12 @@ fun MessageNode(
         ) {
             when (contents) {
                 is MessageContent.Exchange -> {
-                    val rate = exchange.rateFor(contents.amount.currencyCode)
-                    val isV2Enabled = LocalBetaFlags.current.chatMessageV2Enabled
-                    if (rate != null) {
-                        if (isV2Enabled) {
-                            MessagePaymentV2(
-                                verb = contents.verb,
-                                amount = contents.amount.amountUsing(rate),
-                                caption = contents.localizedText,
-                                date = date,
-                                openTipChat = openTipChat
-                            )
-                        } else {
-                            MessagePayment(
-                                verb = contents.verb,
-                                amount = contents.amount.amountUsing(rate),
-                            )
-                        }
-                    } else {
-                        if (isV2Enabled) {
-                            MessagePaymentV2(
-                                verb = Verb.Unknown,
-                                amount = KinAmount.newInstance(0, Rate.oneToOne),
-                                caption = contents.localizedText,
-                                date = date,
-                                openTipChat = openTipChat
-                            )
-                        } else {
-                            MessagePayment(
-                                verb = Verb.Unknown,
-                                amount = KinAmount.newInstance(0, Rate.oneToOne)
-                            )
-                        }
-                    }
+                    MessagePayment(
+                        contents = contents,
+                        thankUser = thankUser,
+                        date = date,
+                        openMessageChat = openMessageChat
+                    )
                 }
 
                 is MessageContent.Localized -> {
@@ -155,8 +146,10 @@ fun MessageNode(
 @Composable
 private fun MessagePayment(
     modifier: Modifier = Modifier,
-    verb: Verb,
-    amount: KinAmount,
+    contents: MessageContent.Exchange,
+    date: Instant,
+    thankUser: () -> Unit,
+    openMessageChat: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -165,7 +158,17 @@ private fun MessagePayment(
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (verb == Verb.Returned) {
+        val exchange = LocalExchange.current
+        val rate by remember(contents.amount.currencyCode) {
+            derivedStateOf {
+                exchange.rateFor(contents.amount.currencyCode).orOneToOne()
+            }
+        }
+        val amount by remember(rate) {
+            derivedStateOf { contents.amount.amountUsing(rate) }
+        }
+
+        if (contents.verb == Verb.Returned) {
             PriceWithFlag(
                 currencyCode = amount.rate.currency,
                 amount = amount,
@@ -178,12 +181,12 @@ private fun MessagePayment(
                 }
             )
             Text(
-                text = verb.localizedText,
+                text = contents.verb.localizedText,
                 style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
             )
         } else {
             Text(
-                text = verb.localizedText,
+                text = contents.verb.localizedText,
                 style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
             )
             PriceWithFlag(
@@ -198,53 +201,50 @@ private fun MessagePayment(
                 }
             )
         }
-    }
-}
 
-@Composable
-private fun MessagePaymentV2(
-    modifier: Modifier = Modifier,
-    verb: Verb,
-    amount: KinAmount,
-    caption: String,
-    date: Instant,
-    openTipChat: () -> Unit,
-) {
-    val tipChatsEnabled = LocalBetaFlags.current.tipsChatEnabled
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        CodeTransactionDisplay(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(),
-            amount = amount,
-            verb = verb
-        )
-        
-        Text(
-            text = caption,
-            style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
-        )
-
-        if (tipChatsEnabled && verb is Verb.ReceivedTip) {
-            CodeButton(
-                modifier = Modifier.fillMaxWidth(),
-                buttonState = ButtonState.Filled,
-                onClick = openTipChat,
-                text = stringResource(R.string.action_sayThankYou)
-            )
+        val tipChatsEnabled = LocalBetaFlags.current.tipsChatEnabled
+        var thanked by remember(contents.thanked) {
+            mutableStateOf(contents.thanked)
         }
 
-        Text(
-            modifier = Modifier.align(Alignment.End),
-            text = date.formatTimeRelatively(),
-            style = CodeTheme.typography.caption,
-            color = BrandLight,
-        )
+        val sendThanks = {
+            thanked = true
+            thankUser()
+        }
+
+        if (tipChatsEnabled && contents.verb is Verb.ReceivedTip) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            ) {
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    enabled = !thanked,
+                    buttonState = if (thanked) ButtonState.Bordered else ButtonState.Filled,
+                    onClick = sendThanks,
+                    shape = CodeTheme.shapes.extraSmall,
+                    text = if (thanked) stringResource(R.string.action_thanked) else stringResource(R.string.action_thank)
+                )
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    buttonState = ButtonState.Filled,
+                    onClick = openMessageChat,
+                    shape = CodeTheme.shapes.extraSmall,
+                    text = stringResource(R.string.action_message)
+                )
+            }
+            Text(
+                modifier = Modifier.align(Alignment.End),
+                text = date.formatTimeRelatively(),
+                style = CodeTheme.typography.caption,
+                color = BrandLight,
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+        }
     }
 }
+
 @Composable
 private fun CodeTransactionDisplay(
     modifier: Modifier = Modifier,

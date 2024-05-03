@@ -1,0 +1,192 @@
+package com.getcode.ui.components.conversation
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import com.getcode.model.ConversationMessageContent
+import com.getcode.model.MessageStatus
+import com.getcode.theme.BrandDark
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.MessageNodeDefaults
+import com.getcode.util.formatDateRelatively
+import kotlinx.datetime.Instant
+
+@Composable
+fun MessageBubble(
+    modifier: Modifier = Modifier,
+    content: ConversationMessageContent.Text,
+    date: Instant,
+) {
+    val alignment = if (content.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
+    val color = if (content.isFromSelf) Color(0xFF443091) else BrandDark
+    BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .widthIn(max = maxWidth * 0.895f)
+                .background(
+                    color = color,
+                    shape = MessageNodeDefaults.DefaultShape
+                )
+                .padding(CodeTheme.dimens.grid.x2)
+        ) contents@{
+            val maxWidthPx = with (LocalDensity.current) { maxWidth.roundToPx() }
+            Column(
+                modifier = Modifier
+                    .background(color)
+                    // add top padding to accommodate ascents
+                    .padding(top = CodeTheme.dimens.grid.x1),
+            ) {
+                MessageContent(
+                    maxWidth = maxWidthPx,
+                    message = content.message, date = date, status = content.status)
+            }
+        }
+    }
+}
+
+@Composable
+private fun rememberAlignmentRule(
+    contentTextStyle: TextStyle,
+    maxWidth: Int,
+    message: String,
+    date: Instant
+): State<AlignmentRule?> {
+    val density = LocalDensity.current
+    val dateTextStyle = DateWithStatusDefaults.DateTextStyle
+    val iconSizePx = with (density) { DateWithStatusDefaults.IconWidth.roundToPx() }
+    val spacingPx = with (density) { DateWithStatusDefaults.Spacing.roundToPx() }
+    val contentPaddingPx = with (density) { CodeTheme.dimens.grid.x2.roundToPx() }
+
+    return remember(maxWidth, message, date) {
+        mutableStateOf<AlignmentRule?>(null)
+    }.apply {
+        val textMeasurer = rememberTextMeasurer()
+        val dateStatusWidth = remember(message, date) {
+            val result = textMeasurer.measure(
+                text = date.formatDateRelatively(),
+                style = dateTextStyle, 
+                maxLines = 1
+            )
+            result.size.width + spacingPx + iconSizePx
+        }
+
+        val bufferSize by remember(dateStatusWidth) {
+            derivedStateOf {
+                dateStatusWidth + spacingPx + contentPaddingPx * 2
+            }
+        }
+
+        if (value == null) {
+            Text(
+                modifier = Modifier.drawWithContent {  },
+                text = message,
+                style = contentTextStyle,
+                onTextLayout = { textLayoutResult ->
+                    val lastLineNum = textLayoutResult.lineCount - 1
+                    val lineStart = textLayoutResult.getLineStart(lastLineNum)
+                    val lineEnd =
+                        textLayoutResult.getLineEnd(lastLineNum, visibleEnd = true)
+                    val lineContent = message.substring(lineStart, lineEnd)
+
+                    val lineContentWidth =
+                        textMeasurer.measure(lineContent, contentTextStyle).size.width
+
+                    println("lcw=$lineContentWidth")
+                    println("bw=$bufferSize")
+                    println("result=${lineContentWidth + bufferSize}, max=$maxWidth")
+                    value = when {
+                        lineContentWidth + bufferSize > maxWidth -> AlignmentRule.Column
+                        textLayoutResult.lineCount == 1 -> AlignmentRule.SingleLineEnd
+                        else -> AlignmentRule.ParagraphLastLine
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun MessageContent(maxWidth: Int, message: String, date: Instant, status: MessageStatus) {
+    val contentStyle = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+    val alignmentRule by rememberAlignmentRule(
+        contentTextStyle = contentStyle,
+        maxWidth = maxWidth,
+        message = message,
+        date = date,
+    )
+
+    when (alignmentRule) {
+        AlignmentRule.Column -> {
+            Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
+                Text(
+                    text = message,
+                    style = contentStyle,
+                )
+                DateWithStatus(
+                    modifier = Modifier
+                        .align(Alignment.End),
+                    date = date,
+                    status = status
+                )
+            }
+        }
+        AlignmentRule.ParagraphLastLine -> {
+            Column(verticalArrangement = Arrangement.spacedBy(-(CodeTheme.dimens.grid.x2))) {
+                Text(
+                    text = message,
+                    style = contentStyle,
+                )
+                DateWithStatus(
+                    modifier = Modifier
+                        .align(Alignment.End),
+                    date = date,
+                    status = status
+                )
+            }
+        }
+        AlignmentRule.SingleLineEnd -> {
+            Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+                Text(
+                    text = message,
+                    style = contentStyle,
+                )
+                DateWithStatus(
+                    modifier = Modifier
+                        .padding(top = CodeTheme.dimens.grid.x1),
+                    date = date,
+                    status = status
+                )
+            }
+        }
+        else -> Unit
+    }
+}
+
+sealed interface AlignmentRule {
+    data object ParagraphLastLine: AlignmentRule
+    data object Column: AlignmentRule
+    data object SingleLineEnd: AlignmentRule
+}

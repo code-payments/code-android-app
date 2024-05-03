@@ -32,7 +32,6 @@ class BetaFlagsViewModel @Inject constructor(
         val establishCodeRelationship: Boolean = false,
         val chatUnsubEnabled: Boolean = false,
         val tipsEnabled: Boolean = false,
-        val chatMessageV2Enabled: Boolean = false,
         val tipsChatEnabled: Boolean = false,
     )
 
@@ -49,7 +48,6 @@ class BetaFlagsViewModel @Inject constructor(
         data class EnableTipCard(val enabled: Boolean) : Event
         data class EnableCodeRelationshipEstablish(val enabled: Boolean) : Event
         data class EnableChatUnsubscribe(val enabled: Boolean) : Event
-        data class EnableChatMessageV2Ui(val enabled: Boolean) : Event
         data class EnableTipChats(val enabled: Boolean) : Event
     }
 
@@ -65,7 +63,6 @@ class BetaFlagsViewModel @Inject constructor(
             .onEach { event ->
                  when (event) {
                      is Event.EnableBuyKin -> prefRepository.set(PrefsBool.BUY_MODULE_ENABLED, event.enabled)
-                     is Event.EnableChatMessageV2Ui -> prefRepository.set(PrefsBool.MESSAGE_PAYMENT_NODE_V2, event.enabled)
                      is Event.EnableChatUnsubscribe -> prefRepository.set(PrefsBool.CHAT_UNSUB_ENABLED, event.enabled)
                      is Event.EnableCodeRelationshipEstablish -> prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, event.enabled)
                      is Event.EnableGiveRequests -> prefRepository.set(PrefsBool.GIVE_REQUESTS_ENABLED, event.enabled)
@@ -101,7 +98,6 @@ class BetaFlagsViewModel @Inject constructor(
                             establishCodeRelationship = establishCodeRelationship,
                             chatUnsubEnabled = chatUnsubEnabled,
                             tipsEnabled = tipsEnabled,
-                            chatMessageV2Enabled = chatMessageV2Enabled,
                             tipsChatEnabled = tipsChatEnabled,
                         )
                     }
@@ -116,7 +112,6 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.SetVibrateOnScan,
                 is Event.EnableCodeRelationshipEstablish,
                 is Event.EnableChatUnsubscribe,
-                is Event.EnableChatMessageV2Ui,
                 is Event.EnableTipChats,
                 is Event.ShowErrors -> { state -> state }
             }

@@ -161,8 +161,8 @@ fun BalanceContent(
         itemsIndexed(
             state.chats,
             key = { _, item -> item.id },
-            contentType = { _, item -> item }) { index, event ->
-            ChatNode(chat = event, onClick = { openChat(event.id) })
+            contentType = { _, item -> item }) { index, chat ->
+            ChatNode(chat = chat, onClick = { openChat(chat.id) })
             Divider(
                 modifier = Modifier.padding(start = CodeTheme.dimens.inset),
                 color = White10,

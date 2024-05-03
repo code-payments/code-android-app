@@ -51,8 +51,7 @@ class HistoryController @Inject constructor(
     private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
 
     private val pagingConfig = PagingConfig(pageSize = 20)
-
-
+    
     fun reset() {
         pagerMap.clear()
         chatFlows.clear()

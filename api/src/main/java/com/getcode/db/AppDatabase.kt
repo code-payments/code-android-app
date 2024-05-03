@@ -30,12 +30,15 @@ import java.io.File
         PrefDouble::class,
         GiftCard::class,
         ExchangeRate::class,
+        Conversation::class,
+        ConversationMessage::class,
+        ConversationMessageRemoteKey::class,
     ],
     autoMigrations = [
         AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class),
         AutoMigration(from = 8, to = 9, spec = AppDatabase.Migration8To9::class)
     ],
-    version = 9
+    version = 10
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -45,6 +48,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun prefDoubleDao(): PrefDoubleDao
     abstract fun giftCardDao(): GiftCardDao
     abstract fun exchangeDao(): ExchangeDao
+
+    abstract fun conversationDao(): ConversationDao
+    abstract fun conversationMessageDao(): ConversationMessageDao
+    abstract fun conversationMessageRemoteKeyDao(): ConversationMessageRemoteKeyDao
 
     @DeleteTable(tableName = "HistoricalTransaction")
     class Migration7To8 : AutoMigrationSpec
@@ -75,6 +82,10 @@ object Database {
                 .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                 .fallbackToDestructiveMigration()
                 .build()
+
+        instance?.conversationDao()?.clearConversations()
+        instance?.conversationMessageDao()?.clearMessages()
+        instance?.conversationMessageRemoteKeyDao()?.clearRemoteKeys()
 
         isInitSubject.onNext(true)
     }

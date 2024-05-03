@@ -2,13 +2,11 @@ package com.getcode.view.main.account.withdraw
 
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
-import android.content.Context
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.navigation.screens.WithdrawalSummaryScreen
@@ -30,7 +28,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.kin.sdk.base.tools.Base58
 import javax.inject.Inject

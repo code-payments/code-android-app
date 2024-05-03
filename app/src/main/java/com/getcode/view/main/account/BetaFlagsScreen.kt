@@ -86,12 +86,6 @@ fun BetaFlagsScreen(
             state.tipsEnabled,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipCard(it)) },
         BetaFeature(
-            PrefsBool.MESSAGE_PAYMENT_NODE_V2,
-            R.string.beta_chatmessage_v2_ui,
-            stringResource(id = R.string.beta_chatmessage_v2_ui_description),
-            state.chatMessageV2Enabled,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableChatMessageV2Ui(it)) },
-        BetaFeature(
             PrefsBool.TIPS_CHAT_ENABLED,
             R.string.beta_tipchats,
             stringResource(id = R.string.beta_tipchats_description),
@@ -154,7 +148,6 @@ fun BetaFlagsScreen(
 private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
 //        PrefsBool.BUY_KIN_ENABLED -> false
-        PrefsBool.TIPS_CHAT_ENABLED -> chatMessageV2Enabled && tipsEnabled
         else -> true
     }
 }

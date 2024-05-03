@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import timber.log.Timber
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)

@@ -6,7 +6,6 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsService
 import com.getcode.model.Currency
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.api.TransactionApiV2

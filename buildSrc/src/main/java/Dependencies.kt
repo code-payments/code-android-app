@@ -18,6 +18,7 @@ object Versions {
     const val android_gradle_build_tools = "8.2.2"
     const val google_services = "4.3.15"
 
+    const val androidx_annotation = "1.7.1"
     const val androidx_camerax = "1.3.2"
     const val androidx_core = "1.12.0"
     const val androidx_constraint_layout = "2.1.3"
@@ -123,6 +124,7 @@ object Libs {
     const val androidx_camerax_view=  "androidx.camera:camera-view:${Versions.androidx_camerax}"
 
 
+    const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
     const val androidx_core = "androidx.core:core-ktx:${Versions.androidx_core}"
     const val androidx_constraint_layout =
         "androidx.constraintlayout:constraintlayout:${Versions.androidx_constraint_layout}"
@@ -139,6 +141,7 @@ object Libs {
     const val androidx_room_rxjava3 = "androidx.room:room-rxjava3:${Versions.androidx_room}"
     const val androidx_room_compiler = "androidx.room:room-compiler:${Versions.androidx_room}"
     const val androidx_room_ktx = "androidx.room:room-ktx:${Versions.androidx_room}"
+    const val androidx_room_paging = "androidx.room:room-paging:${Versions.androidx_room}"
     const val sqlcipher = "net.zetetic:android-database-sqlcipher:${Versions.sqlcipher}"
 
     const val coil3 = "io.coil-kt.coil3:coil-compose:${Versions.compose_coil}"

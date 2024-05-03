@@ -27,7 +27,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

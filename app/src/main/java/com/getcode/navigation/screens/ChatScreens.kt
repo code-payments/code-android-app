@@ -1,7 +1,6 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -14,9 +13,7 @@ import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.LocalBetaFlags
 import com.getcode.R
-import com.getcode.TopLevelViewModel
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.ID
@@ -28,6 +25,7 @@ import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.chat.ChatScreen
 import com.getcode.view.main.chat.ChatViewModel
 import com.getcode.view.main.chat.conversation.ChatConversationScreen
+import com.getcode.view.main.chat.conversation.ConversationViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -117,7 +115,7 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
 
         LaunchedEffect(vm) {
             vm.eventFlow
-                .filterIsInstance<ChatViewModel.Event.OpenTipChat>()
+                .filterIsInstance<ChatViewModel.Event.OpenMessageChat>()
                 .map { it.messageId }
                 .onEach { navigator.push(ChatMessageConversationScreen(it)) }
                 .launchIn(this)
@@ -136,28 +134,21 @@ data class ChatMessageConversationScreen(val messageId: ID): ChatGraph, ModalCon
 
     @Composable
     override fun Content() {
-//        val vm = getViewModel<ChatViewModel>()
-//        val state by vm.stateFlow.collectAsState()
         val navigator = LocalCodeNavigator.current
+        val vm = getViewModel<ConversationViewModel>()
+        val state by vm.stateFlow.collectAsState()
 
         ModalContainer(
-            title = { "Anonymous Tipper" },
+            title = { state.title },
             backButton = { it is ChatMessageConversationScreen },
         ) {
-            ChatConversationScreen(s = "")
+            val messages = vm.messages.collectAsLazyPagingItems()
+            ChatConversationScreen(state, messages, vm::dispatchEvent)
         }
 
-//        LaunchedEffect(vm) {
-//            vm.eventFlow
-//                .filterIsInstance<ChatViewModel.Event.OpenTipChat>()
-//                .map { it.id }
-//                .onEach {
-////                    navigator.push()
-//                }.launchIn(this)
-//        }
 
         LaunchedEffect(messageId) {
-//            vm.dispatchEvent(ChatViewModel.Event.OnChatIdChanged(chatId))
+            vm.dispatchEvent(ConversationViewModel.Event.OnMessageIdChanged(messageId))
         }
     }
 }

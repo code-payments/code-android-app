@@ -4,6 +4,7 @@ date="$(date '+%m.%d.%y')"
 
 export NOTIFY_ERRORS=true
 export DEBUG_MINIFY=true
+export DEBUG_CRASHLYTICS_UPLOAD=true
 
 ./gradlew assembleDebug
 
@@ -12,3 +13,4 @@ mv "${outputDir}/app-debug.apk" "${outputDir}/app-${date}-debug.apk"
 
 unset NOTIFY_ERRORS
 unset DEBUG_MINIFY
+unset DEBUG_CRASHLYTICS_UPLOAD

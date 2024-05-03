@@ -68,6 +68,7 @@ sealed interface Pointer {
 
 sealed interface Title {
     val value: String
+
     data class Localized(override val value: String) : Title
     data class Domain(override val value: String) : Title
 
@@ -85,6 +86,7 @@ sealed interface Title {
 
 sealed interface Verb {
     val increasesBalance: Boolean
+
     data object Unknown : Verb {
         override val increasesBalance: Boolean = false
     }
@@ -92,34 +94,44 @@ sealed interface Verb {
     data object Gave : Verb {
         override val increasesBalance: Boolean = false
     }
+
     data object Received : Verb {
         override val increasesBalance: Boolean = true
     }
+
     data object Withdrew : Verb {
         override val increasesBalance: Boolean = false
     }
-    data object Deposited: Verb {
+
+    data object Deposited : Verb {
         override val increasesBalance: Boolean = true
     }
+
     data object Sent : Verb {
         override val increasesBalance: Boolean = false
     }
+
     data object Returned : Verb {
         override val increasesBalance: Boolean = true
     }
+
     data object Spent : Verb {
         override val increasesBalance: Boolean = false
     }
+
     data object Paid : Verb {
         override val increasesBalance: Boolean = false
     }
+
     data object Purchased : Verb {
         override val increasesBalance: Boolean = true
     }
-    data object ReceivedTip: Verb {
+
+    data object ReceivedTip : Verb {
         override val increasesBalance: Boolean = true
     }
-    data object SentTip: Verb {
+
+    data object SentTip : Verb {
         override val increasesBalance: Boolean = false
     }
 
@@ -128,7 +140,7 @@ sealed interface Verb {
             return when (proto) {
                 ChatService.ExchangeDataContent.Verb.UNKNOWN -> Unknown
                 ChatService.ExchangeDataContent.Verb.GAVE -> Gave
-                ChatService.ExchangeDataContent.Verb.RECEIVED ->Received
+                ChatService.ExchangeDataContent.Verb.RECEIVED -> Received
                 ChatService.ExchangeDataContent.Verb.WITHDREW -> Withdrew
                 ChatService.ExchangeDataContent.Verb.DEPOSITED -> Deposited
                 ChatService.ExchangeDataContent.Verb.SENT -> Sent
@@ -181,10 +193,11 @@ data class ChatMessage(
 
 sealed interface MessageContent {
     data class Localized(val value: String) : MessageContent
-    data class Exchange(val amount: GenericAmount, val verb: Verb) : MessageContent
-    data class SodiumBox(val data: EncryptedData) : MessageContent
-    data class Decrypted(val data: String): MessageContent
+    data class Exchange(val amount: GenericAmount, val verb: Verb, val thanked: Boolean = false) :
+        MessageContent
 
+    data class SodiumBox(val data: EncryptedData) : MessageContent
+    data class Decrypted(val data: String) : MessageContent
 
     companion object {
         operator fun invoke(proto: Content): MessageContent? {
@@ -206,6 +219,7 @@ sealed interface MessageContent {
 
                             Exchange(GenericAmount.Exact(kinAmount), verb)
                         }
+
                         ChatService.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
                             val partial = proto.exchangeData.partial
                             val currency = CurrencyCode.tryValueOf(partial.currency) ?: return null
@@ -217,13 +231,16 @@ sealed interface MessageContent {
 
                             Exchange(GenericAmount.Partial(fiat), verb)
                         }
+
                         ChatService.ExchangeDataContent.ExchangeDataCase.EXCHANGEDATA_NOT_SET -> return null
                         else -> return null
                     }
                 }
+
                 Content.TypeCase.NACL_BOX -> {
                     val encryptedContent = proto.naclBox
-                    val peerPublicKey = encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
+                    val peerPublicKey =
+                        encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
 
                     val data = EncryptedData(
                         peerPublicKey = peerPublicKey,
@@ -232,6 +249,7 @@ sealed interface MessageContent {
                     )
                     SodiumBox(data = data)
                 }
+
                 Content.TypeCase.TYPE_NOT_SET -> return null
                 else -> return null
             }

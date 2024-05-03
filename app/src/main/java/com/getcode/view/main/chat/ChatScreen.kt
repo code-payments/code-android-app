@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -90,7 +88,8 @@ fun ChatScreen(
                             date = item.date,
                             isPreviousSameMessage = prev == item.chatMessageId,
                             isNextSameMessage = next == item.chatMessageId,
-                            openTipChat = { dispatch(ChatViewModel.Event.OpenTipChat(item.chatMessageId)) }
+                            thankUser = { dispatch(ChatViewModel.Event.ThankUser(item.chatMessageId)) },
+                            openMessageChat = { dispatch(ChatViewModel.Event.OpenMessageChat(item.chatMessageId)) }
                         )
                     }
 

@@ -49,7 +49,7 @@ android {
 
     java {
         toolchain {
-            languageVersion.set(JavaLanguageVersion.of(17))
+            languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
 
@@ -69,14 +69,10 @@ android {
 }
 
 dependencies {
-    implementation(project(":model"))
-    implementation(project(":ed25519"))
+    implementation(project(":common"))
 
-    implementation(Libs.kotlin_stdlib)
     implementation(Libs.rxjava)
-    api(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_coroutines_core)
-    api(Libs.kotlinx_coroutines_rx3)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)
 
@@ -85,6 +81,7 @@ dependencies {
     implementation(Libs.androidx_room_runtime)
     implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)
+    implementation(Libs.androidx_room_paging)
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)
 
@@ -112,8 +109,6 @@ dependencies {
     androidTestImplementation(Libs.junit)
     androidTestImplementation(Libs.androidx_test_runner)
     implementation(Libs.hilt)
-
-    implementation(Libs.kin_sdk)
 
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
