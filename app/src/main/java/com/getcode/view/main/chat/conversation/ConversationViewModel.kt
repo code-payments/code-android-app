@@ -10,13 +10,17 @@ import androidx.paging.cachedIn
 import com.getcode.model.Conversation
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.model.TipMetadata
+import com.getcode.model.TwitterUser
 import com.getcode.network.ConversationController
+import com.getcode.solana.keys.PublicKey
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
@@ -26,6 +30,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -47,8 +53,15 @@ class ConversationViewModel @Inject constructor(
         val tipAmountFormatted: String?,
         val textFieldState: TextFieldState,
         val identityRevealed: Boolean,
-        val user: String?,
+        val user: User?,
+        val lastSeen: Instant?
     ) {
+        data class User(
+            val username: String,
+            val publicKey: PublicKey,
+            val imageUrl: String?,
+        )
+
         companion object {
             val Default = State(
                 messageId = null,
@@ -59,6 +72,7 @@ class ConversationViewModel @Inject constructor(
                 textFieldState = TextFieldState(),
                 identityRevealed = false,
                 user = null,
+                lastSeen = null
             )
         }
     }
@@ -66,19 +80,27 @@ class ConversationViewModel @Inject constructor(
     sealed interface Event {
         data class OnMessageIdChanged(val id: ID?) : Event
         data class OnConversationChanged(val conversation: Conversation) : Event
-        data class OnUserRevealed(val user: String): Event
-        data class OnTitleChanged(val title: String): Event
-        data class OnTipAmountFormatted(val amount: String): Event
+        data class OnUserRevealed(
+            val username: String,
+            val publicKey: PublicKey,
+            val imageUrl: String?,
+        ) : Event
+
+        data class OnUserActivity(val activity: Instant) : Event
+        data class OnTitleChanged(val title: String) : Event
+        data class OnTipAmountFormatted(val amount: String) : Event
         data object SendMessage : Event
         data object RevealIdentity : Event
+
+        data object OnIdentityRevealed: Event
     }
 
     init {
         stateFlow
             .map { it.messageId }
             .filterNotNull()
-            .mapNotNull { conversationController.getConversationForMessage(it) }
-            .distinctUntilChangedBy { it.id }
+            .flatMapLatest { conversationController.observeConversationForMessage(it) }
+            .filterNotNull()
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
@@ -87,8 +109,10 @@ class ConversationViewModel @Inject constructor(
             .filterNotNull()
             .distinctUntilChanged()
             .mapNotNull {
-                val currency = currencyUtils.getCurrency(it.rate.currency.name) ?: return@mapNotNull null
-                val title = it.formatted(currency = currency, resources = resources, suffix = "Tipper")
+                val currency =
+                    currencyUtils.getCurrency(it.rate.currency.name) ?: return@mapNotNull null
+                val title =
+                    it.formatted(currency = currency, resources = resources, suffix = "Tipper")
                 val formatted = it.formatted(currency = currency, resources = resources)
                 title to formatted
             }
@@ -107,6 +131,13 @@ class ConversationViewModel @Inject constructor(
                 textFieldState.clearText()
                 conversationController.sendMessage(it.conversationId!!, text)
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.RevealIdentity>()
+            .mapNotNull { stateFlow.value.messageId  }
+            .onEach { delay(300) }
+            .onEach { conversationController.revealIdentity(it) }
+            .launchIn(viewModelScope)
     }
 
     val messages = stateFlow
@@ -123,7 +154,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnConversationChanged -> { state ->
                     state.copy(
                         conversationId = event.conversation.id,
-                        tipAmount = event.conversation.tipAmount
+                        tipAmount = event.conversation.tipAmount,
+                        identityRevealed = event.conversation.hasRevealedIdentity
                     )
                 }
 
@@ -144,8 +176,22 @@ class ConversationViewModel @Inject constructor(
                     state.copy(messageId = event.id)
                 }
 
+                is Event.OnIdentityRevealed -> { state ->
+                    state.copy(identityRevealed = true)
+                }
+
                 is Event.OnUserRevealed -> { state ->
-                    state.copy(user = event.user)
+                    state.copy(
+                        user = State.User(
+                            username = event.username,
+                            publicKey = event.publicKey,
+                            imageUrl = event.imageUrl,
+                        )
+                    )
+                }
+
+                is Event.OnUserActivity -> { state ->
+                    state.copy(lastSeen = event.activity)
                 }
             }
         }

@@ -12,6 +12,7 @@ import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.SheetTitle
+import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.getPermissionLauncher
 
 @Preview
@@ -50,7 +51,7 @@ fun InvitesSheet(upPress: () -> Unit = {}) {
                 else stringResource(id = R.string.title_inviteFriend)
 
             SheetTitle(
-                title = { title },
+                title = { SheetTitleText(text = title) },
                 onCloseIconClicked = upPress
             )
 

@@ -26,6 +26,20 @@ interface ConversationDao {
     }
 
     @Query("SELECT * FROM conversations WHERE idBase58 = :conversationId")
+    fun observeConversation(conversationId: String): Flow<Conversation?>
+
+    fun observeConversation(conversationId: ID): Flow<Conversation?> {
+        return observeConversation(conversationId.base58)
+    }
+
+    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
+    fun observeConversationForMessage(messageId: String): Flow<Conversation?>
+
+    fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
+        return observeConversationForMessage(messageId.base58)
+    }
+
+    @Query("SELECT * FROM conversations WHERE idBase58 = :conversationId")
     suspend fun findConversation(conversationId: String): Conversation?
 
     suspend fun findConversation(conversationId: ID): Conversation? {
@@ -54,6 +68,13 @@ interface ConversationDao {
 
     suspend fun hasThanked(conversationId: ID): Boolean {
         return hasThanked(conversationId.base58)
+    }
+
+    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :conversationId AND content LIKE '%4|%')")
+    suspend fun hasRevealedIdentity(conversationId: String): Boolean
+
+    suspend fun hasRevealedIdentity(conversationId: ID): Boolean {
+        return hasRevealedIdentity(conversationId.base58)
     }
 
     @Query("DELETE FROM conversations")

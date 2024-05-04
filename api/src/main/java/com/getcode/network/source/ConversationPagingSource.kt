@@ -42,6 +42,8 @@ object ConversationMockProvider {
             createdByUser = true,
             hasRevealedIdentity = false,
             user = null,
+            userImage = null,
+            lastActivity = null,
         )
 
         Timber.d("Created conversation ${id.base58} from ${tipAmount.fiat}")
@@ -73,6 +75,19 @@ object ConversationMockProvider {
         }
 
         return createMessage(conversation.id, ConversationMessageContent.ThanksSent)
+    }
+
+    suspend fun revealIdentity(messageId: ID): ConversationMessage? {
+        val conversation =
+            db.conversationDao().findConversationForMessage(messageId) ?: return null
+
+        if (db.conversationDao().hasRevealedIdentity(conversation.id)) {
+            return null
+        }
+
+        db.conversationDao().upsertConversations(conversation.copy(hasRevealedIdentity = true))
+
+        return createMessage(conversation.id, ConversationMessageContent.IdentityRevealed)
     }
 
     private fun generateId() = UUID.randomUUID().toByteArray().toList()

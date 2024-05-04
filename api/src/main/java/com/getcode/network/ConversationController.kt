@@ -31,11 +31,13 @@ import java.util.UUID
 import javax.inject.Inject
 
 interface ConversationController {
+    fun observeConversationForMessage(messageId: ID): Flow<Conversation?>
     suspend fun getConversationForMessage(messageId: ID): Conversation?
     suspend fun getConversation(conversationId: ID): Conversation?
     suspend fun createConversation(messageId: ID)
     suspend fun hasThanked(messageId: ID): Boolean
     suspend fun thankTipper(messageId: ID)
+    suspend fun revealIdentity(messageId: ID)
     fun sendMessage(conversationId: ID, message: String)
     fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessage>>
 }
@@ -52,6 +54,9 @@ class ConversationMockController @Inject constructor(
     private fun conversationPagingSource(conversationId: ID) =
         db.conversationMessageDao().observeConversationMessages(conversationId.base58)
 
+    override fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
+        return db.conversationDao().observeConversationForMessage(messageId)
+    }
     override suspend fun getConversationForMessage(messageId: ID): Conversation? {
         return db.conversationDao().findConversationForMessage(messageId)
     }
@@ -103,6 +108,11 @@ class ConversationMockController @Inject constructor(
         }
 
         val message = ConversationMockProvider.thankTipper(messageId) ?: return
+        db.conversationMessageDao().upsertMessages(message)
+    }
+
+    override suspend fun revealIdentity(messageId: ID) {
+        val message = ConversationMockProvider.revealIdentity(messageId) ?: return
         db.conversationMessageDao().upsertMessages(message)
     }
 

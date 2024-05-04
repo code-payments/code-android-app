@@ -26,6 +26,8 @@ data class Conversation(
     val createdByUser: Boolean, // if this conversation was created as a result of the user messaging the tipper.,
     val hasRevealedIdentity: Boolean,
     val user: String?,
+    val userImage: String?,
+    val lastActivity: Long?,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()

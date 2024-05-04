@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 10,
-    "identityHash": "77b82b833853b340858b2d2606bfdfd6",
+    "identityHash": "d5660e6875cc3237f2282f65ccd11b66",
     "entities": [
       {
         "tableName": "CurrencyRate",
@@ -238,7 +238,7 @@
       },
       {
         "tableName": "conversations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `messageIdBase58` TEXT NOT NULL, `cursorBase58` TEXT NOT NULL, `tipAmount` TEXT NOT NULL, `createdByUser` INTEGER NOT NULL, `hasRevealedIdentity` INTEGER NOT NULL, `user` TEXT, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `messageIdBase58` TEXT NOT NULL, `cursorBase58` TEXT NOT NULL, `tipAmount` TEXT NOT NULL, `createdByUser` INTEGER NOT NULL, `hasRevealedIdentity` INTEGER NOT NULL, `user` TEXT, `userImage` TEXT, `lastActivity` INTEGER, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -280,6 +280,18 @@
             "fieldPath": "user",
             "columnName": "user",
             "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "userImage",
+            "columnName": "userImage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastActivity",
+            "columnName": "lastActivity",
+            "affinity": "INTEGER",
             "notNull": false
           }
         ],
@@ -372,7 +384,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '77b82b833853b340858b2d2606bfdfd6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd5660e6875cc3237f2282f65ccd11b66')"
     ]
   }
 }
