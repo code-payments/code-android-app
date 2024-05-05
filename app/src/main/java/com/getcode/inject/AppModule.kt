@@ -23,8 +23,7 @@ import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
-import com.getcode.utils.network.Api22NetworkObserver
-import com.getcode.utils.network.Api23NetworkObserver
+import com.getcode.utils.network.Api24NetworkObserver
 import com.getcode.utils.network.Api29NetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.mixpanel.android.mpmetrics.MixpanelAPI
@@ -77,11 +76,8 @@ object AppModule {
         telephonyManager: TelephonyManager,
         wifiManager: WifiManager
     ): NetworkConnectivityListener = when (Build.VERSION.SDK_INT) {
-        in Build.VERSION_CODES.BASE..Build.VERSION_CODES.LOLLIPOP_MR1 -> {
-            Api22NetworkObserver(wifiManager, connectivityManager, telephonyManager)
-        }
-        in Build.VERSION_CODES.M .. Build.VERSION_CODES.P -> {
-            Api23NetworkObserver(wifiManager, connectivityManager, telephonyManager)
+        in Build.VERSION_CODES.N .. Build.VERSION_CODES.P -> {
+            Api24NetworkObserver(wifiManager, connectivityManager, telephonyManager)
         }
         else -> Api29NetworkObserver(connectivityManager, telephonyManager)
     }
