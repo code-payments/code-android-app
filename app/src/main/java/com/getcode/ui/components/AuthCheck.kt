@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
+import com.bugsnag.android.Bugsnag
 import com.getcode.LocalDeeplinks
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
@@ -142,7 +143,12 @@ fun AuthCheck(
     }
 }
 
-fun startupLog(message: String) = Timber.tag(APP_STARTUP_TAG).d(message)
+fun startupLog(message: String) {
+    Timber.tag(APP_STARTUP_TAG).d(message)
+    if (Bugsnag.isStarted()) {
+        Bugsnag.leaveBreadcrumb("$APP_STARTUP_TAG | $message")
+    }
+}
 
 private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
     map { (data, auth) ->
