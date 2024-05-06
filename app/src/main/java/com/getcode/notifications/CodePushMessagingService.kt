@@ -142,6 +142,8 @@ class CodePushMessagingService : FirebaseMessagingService(),
         title: String,
         content: String,
     ) {
+        if (!type.isNotifiable()) return
+
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
