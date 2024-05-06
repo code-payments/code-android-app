@@ -11,6 +11,7 @@ data class CodeNotification(
 enum class NotificationType {
     ChatMessage,
     Twitter,
+    ExecuteSwap,
     Unknown;
 
     companion object {
