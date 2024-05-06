@@ -11,6 +11,7 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.Re
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.manager.SessionManager
 import com.getcode.model.*
 import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
