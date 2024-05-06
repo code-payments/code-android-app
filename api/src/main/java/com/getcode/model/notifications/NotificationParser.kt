@@ -29,6 +29,8 @@ fun RemoteMessage.parse(): CodeNotification? {
         return null
     }
 
+    if (!type.isNotifiable()) return CodeNotification(type, "", MessageContent.Localized(""))
+
     val chatTitle = data[NOTIFICATION_TITLE_KEY].let {
         if (it == null) {
             Timber.e("$NOTIFICATION_TITLE_KEY unspecified")
