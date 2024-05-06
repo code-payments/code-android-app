@@ -91,9 +91,11 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
             if (notification != null) {
                 val (type, titleKey, messageContent) = notification
-                val title = titleKey.localizedStringByKey(resources) ?: titleKey
-                val body = messageContent.localizedText(title, resources, currencyUtils)
-                notify(type, title, body)
+                if (type.isNotifiable()) {
+                    val title = titleKey.localizedStringByKey(resources) ?: titleKey
+                    val body = messageContent.localizedText(title, resources, currencyUtils)
+                    notify(type, title, body)
+                }
 
                 when (type) {
                     NotificationType.ChatMessage -> {
@@ -139,8 +141,6 @@ class CodePushMessagingService : FirebaseMessagingService(),
         title: String,
         content: String,
     ) {
-        if (!type.isNotifiable()) return
-
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
