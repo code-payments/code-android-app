@@ -16,7 +16,9 @@ import com.getcode.model.notifications.parse
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.TipController
+import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
+import com.getcode.network.repository.TransactionRepository
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
@@ -27,7 +29,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +44,12 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
     @Inject
     lateinit var pushRepository: PushRepository
+
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
+
+    @Inject
+    lateinit var accountRepository: AccountRepository
 
     @Inject
     lateinit var resources: ResourceHelper
@@ -93,6 +100,9 @@ class CodePushMessagingService : FirebaseMessagingService(),
                         launch { historyController.fetchChats() }
                         launch { balanceController.fetchBalanceSuspend() }
                     }
+                    NotificationType.ExecuteSwap -> {
+                       updateOrganizerAndSwap()
+                    }
                     NotificationType.Twitter -> {
                         launch { tipController.checkForConnection() }
                     }
@@ -129,6 +139,8 @@ class CodePushMessagingService : FirebaseMessagingService(),
         title: String,
         content: String,
     ) {
+        if (!type.isNotifiable()) return
+
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
@@ -166,14 +178,30 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
         notificationManager.notify(title.hashCode(), notificationBuilder.build())
     }
+
+    private fun updateOrganizerAndSwap() = launch {
+        val owner = SessionManager.getKeyPair()
+        if (owner == null) {
+            ErrorUtils.handleError(Throwable("ExecuteSwap:: Missing owner"))
+            return@launch
+        }
+
+        val organizer = SessionManager.getOrganizer()
+        if (organizer == null) {
+            ErrorUtils.handleError(Throwable("ExecuteSwap:: Missing organizer"))
+            return@launch
+        }
+
+        val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
+        organizer.setAccountInfo(accountInfo)
+        transactionRepository.swapIfNeeded(organizer)
+    }
 }
 
+
+
 private fun NotificationManager.getActiveNotification(notificationId: Int): Notification? {
-    val barNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        getActiveNotifications()
-    } else {
-       emptyArray()
-    }
+    val barNotifications = getActiveNotifications()
     for (notification in barNotifications) {
         if (notification.id == notificationId) {
             return notification.notification
@@ -181,6 +209,7 @@ private fun NotificationManager.getActiveNotification(notificationId: Int): Noti
     }
     return null
 }
+
 private fun String.localizedStringByKey(resources: ResourceHelper): String? {
     val name = this.replace(".", "_")
     val resId = resources.getIdentifier(
