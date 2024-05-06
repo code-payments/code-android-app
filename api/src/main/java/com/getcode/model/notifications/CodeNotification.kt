@@ -14,6 +14,8 @@ enum class NotificationType {
     ExecuteSwap,
     Unknown;
 
+    fun isNotifiable() = this != ExecuteSwap
+
     companion object {
         fun tryValueOf(value: String): NotificationType {
             return runCatching { valueOf(value) }.getOrNull() ?: Unknown
