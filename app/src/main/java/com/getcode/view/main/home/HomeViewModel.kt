@@ -216,13 +216,6 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        features.tipCards
-            .onEach {  module ->
-                uiFlow.update {
-                    it.copy(tips = module)
-                }
-            }.launchIn(viewModelScope)
-
         features.requestKin
             .onEach {  module ->
                 uiFlow.update {
@@ -668,7 +661,6 @@ class HomeViewModel @Inject constructor(
 
     private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) =
         viewModelScope.launch {
-            if (!uiFlow.value.tips.enabled) return@launch
             BottomBarManager.clear()
             val username = codePayload.username ?: request?.tipRequest?.username ?: return@launch
             presentTipCard(payload = codePayload, username = username)
