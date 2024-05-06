@@ -17,6 +17,7 @@ import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.PushRepository
+import com.getcode.network.repository.TransactionRepository
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
@@ -27,7 +28,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +43,9 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
     @Inject
     lateinit var pushRepository: PushRepository
+
+    @Inject
+    lateinit var transactionRepository: TransactionRepository
 
     @Inject
     lateinit var resources: ResourceHelper
@@ -92,6 +95,16 @@ class CodePushMessagingService : FirebaseMessagingService(),
                     NotificationType.ChatMessage -> {
                         launch { historyController.fetchChats() }
                         launch { balanceController.fetchBalanceSuspend() }
+                    }
+                    NotificationType.ExecuteSwap -> {
+                        launch {
+                            val organizer = SessionManager.getOrganizer()
+                            if (organizer == null) {
+                                ErrorUtils.handleError(Throwable("ExecuteSwap:: Missing organizer"))
+                                return@launch
+                            }
+                            transactionRepository.swapIfNeeded(organizer)
+                        }
                     }
                     NotificationType.Twitter -> {
                         launch { tipController.checkForConnection() }
