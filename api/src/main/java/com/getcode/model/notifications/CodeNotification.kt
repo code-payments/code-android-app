@@ -11,7 +11,10 @@ data class CodeNotification(
 enum class NotificationType {
     ChatMessage,
     Twitter,
+    ExecuteSwap,
     Unknown;
+
+    fun isNotifiable() = this != ExecuteSwap
 
     companion object {
         fun tryValueOf(value: String): NotificationType {

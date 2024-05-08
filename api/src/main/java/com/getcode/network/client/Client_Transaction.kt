@@ -231,7 +231,7 @@ suspend fun Client.cancelRemoteSend(
     giftCard: GiftCardAccount,
     amount: Kin,
     organizer: Organizer
-): Double {
+): Result<Double> = runCatching {
     transactionReceiver.receiveRemotely(
         amount = amount,
         organizer = organizer,
@@ -240,7 +240,8 @@ suspend fun Client.cancelRemoteSend(
     ).blockingAwait()
 
     balanceController.fetchBalanceSuspend()
-    return balanceController.rawBalance
+
+    balanceController.rawBalance
 }
 
 
