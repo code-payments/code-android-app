@@ -210,14 +210,14 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         features.buyModule
-            .onEach {  module ->
+            .onEach { module ->
                 uiFlow.update {
                     it.copy(buyModule = module)
                 }
             }.launchIn(viewModelScope)
 
         features.requestKin
-            .onEach {  module ->
+            .onEach { module ->
                 uiFlow.update {
                     it.copy(requestKin = module)
                 }
@@ -1337,11 +1337,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val organizer = SessionManager.getOrganizer() ?: return@launch
             client.cancelRemoteSend(giftCard, amount.kin, organizer)
-            analytics.remoteSendIncoming(
-                kin = amount.kin,
-                currencyCode = amount.rate.currency,
-                isVoiding = true
-            )
+                .onSuccess {
+                    analytics.remoteSendIncoming(
+                        kin = amount.kin,
+                        currencyCode = amount.rate.currency,
+                        isVoiding = true
+                    )
+                }
         }
 
     private fun showRemoteSendDialog(
