@@ -29,7 +29,7 @@ object LocaleUtils {
         } else null
 
         val localeIsoCurrency =
-            Currency.getInstance(localCountry).currencyCode
+            runCatching { Currency.getInstance(localCountry).currencyCode }.getOrNull()
                 ?.let { CurrencyCode.tryValueOf(it) }
                 ?: CurrencyCode.USD
 

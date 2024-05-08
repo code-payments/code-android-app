@@ -11,11 +11,11 @@ object Android {
 
 object Versions {
     const val java = "17"
-    const val kotlin = "1.9.22"
+    const val kotlin = "1.9.23"
     const val kotlinx_coroutines = "1.7.3"
     const val kotlinx_serialization = "1.6.2"
     const val kotlinx_datetime = "0.5.0"
-    const val android_gradle_build_tools = "8.2.2"
+    const val android_gradle_build_tools = "8.4.0"
     const val google_services = "4.3.15"
 
     const val androidx_annotation = "1.7.1"
@@ -29,11 +29,11 @@ object Versions {
     const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2024.01.00"
+    const val compose = "2024.05.00"
     // compose compiler is tied to [Versions.kotlin]
     // See compatibility mapping here:
     // https://developer.android.com/jetpack/androidx/releases/compose-compiler
-    const val compose_compiler = "1.5.8"
+    const val compose_compiler = "1.5.11"
     const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
