@@ -325,7 +325,6 @@ class IdentityRepository @Inject constructor(
 
                         IdentityService.GetTwitterUserResponse.Result.NOT_FOUND -> {
                             val error = Throwable("Error: user $username not found.")
-                            ErrorUtils.handleError(error)
                             Result.failure(error)
                         }
 
