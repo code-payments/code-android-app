@@ -9,6 +9,7 @@ import com.codeinc.gen.transaction.v2.TransactionService.ExchangeDataWithoutRate
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
+import com.getcode.api.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
@@ -327,7 +328,9 @@ class TransactionRepository @Inject constructor(
                                 "Received ${value.serverParameters.serverParametersList.size} parameters. Submitting signatures..."
                             )
                         } catch (e: Exception) {
-                            e.printStackTrace()
+                            if (BuildConfig.DEBUG) {
+                                e.printStackTrace()
+                            }
                             Timber.i(
                                 "Received ${value.serverParameters.serverParametersList.size} parameters but failed to apply them: ${e.javaClass.simpleName} ${e.message})"
                             )
@@ -539,7 +542,6 @@ class TransactionRepository @Inject constructor(
                 .asFlow()
                 .flowOn(Dispatchers.IO)
                 .map {
-                    Timber.d("${it.result}")
                     if (it.result != TransactionService.GetIntentMetadataResponse.Result.OK) {
                         throw IllegalStateException()
                     } else {
