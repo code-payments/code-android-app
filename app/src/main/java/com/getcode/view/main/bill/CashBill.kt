@@ -2,6 +2,7 @@ package com.getcode.view.main.bill
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -111,15 +112,19 @@ object CashBillAssets {
         ratio: Float = 1f,
         alpha: Float = 1f
     ): Bitmap {
-
-        // on below line we are getting drawable
         val db = ContextCompat.getDrawable(context, drawable)
 
-        // in below line we are creating our bitmap and initializing it.
-        val bit = Bitmap.createBitmap(
-            db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.ARGB_8888
+        // create bitmap from drawable
+        val bit = BitmapFactory.decodeResource(
+            context.resources,
+            drawable,
+            BitmapFactory.Options().apply {
+                inJustDecodeBounds = false
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
         )
 
+        // determine best sizing based on width and height of bitmap
         var width = bit.width
         var height = bit.height
         val bitmapRatio = width.toFloat() / height.toFloat()
@@ -132,26 +137,23 @@ object CashBillAssets {
             width = (height * bitmapRatio).toInt()
         }
 
+        // create a scaled/compressed bitmap
         val compressed: Bitmap = Bitmap.createScaledBitmap(
             bit, (width * ratio).roundToInt(), (height * ratio).roundToInt(), false
         )
 
-
-        // on below line we are
-        // creating a variable for canvas.
+        // setup canvas from compressed bitmap
         val canvas = android.graphics.Canvas(compressed)
 
-        // on below line we are setting bounds for our bitmap.
-        db.setBounds(0, 0, canvas.width, canvas.height)
-
+        // update bounds of drawable from compressed bitmap
+        db!!.setBounds(0, 0, canvas.width, canvas.height)
+        // set alpha to desired level
         db.alpha = (255 * alpha).roundToInt()
 
-        // on below line we are simply
-        // calling draw to draw our canvas.
+        // draw drawable to canvas
         db.draw(canvas)
 
-        // on below line we are
-        // returning our bitmap.
+        // return our bitmap.
         return compressed
     }
 }
