@@ -218,6 +218,7 @@ private fun HomeScan(
         homeViewModel = homeViewModel,
         scannerView = {
             CodeScanner(
+                scanningEnabled = previewing,
                 onPreviewStateChanged = { previewing = it },
                 onCodeScanned = {
                     if (previewing) {
