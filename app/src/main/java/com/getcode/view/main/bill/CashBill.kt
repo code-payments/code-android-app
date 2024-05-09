@@ -115,14 +115,20 @@ object CashBillAssets {
         val db = ContextCompat.getDrawable(context, drawable)
 
         // create bitmap from drawable
-        val bit = BitmapFactory.decodeResource(
-            context.resources,
-            drawable,
-            BitmapFactory.Options().apply {
-                inJustDecodeBounds = false
-                inPreferredConfig = Bitmap.Config.RGB_565
-            }
-        )
+        val bit: Bitmap = runCatching {
+            BitmapFactory.decodeResource(
+                context.resources,
+                drawable,
+                BitmapFactory.Options().apply {
+                    inJustDecodeBounds = false
+                    inPreferredConfig = Bitmap.Config.RGB_565
+                }
+            )
+        }.getOrElse {
+            Bitmap.createBitmap(
+                db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.RGB_565
+            )
+        }
 
         // determine best sizing based on width and height of bitmap
         var width = bit.width
