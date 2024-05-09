@@ -29,7 +29,7 @@ data class BetaOptions(
             debugScanTimesEnabled = false,
             displayErrors = false,
             giveRequestsEnabled = false,
-            buyModuleEnabled = false,
+            buyModuleEnabled = true,
             establishCodeRelationship = false,
             chatUnsubEnabled = false,
             tipsEnabled = false,
