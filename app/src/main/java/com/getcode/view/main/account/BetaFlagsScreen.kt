@@ -1,6 +1,5 @@
 package com.getcode.view.main.account
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -21,7 +20,6 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeSwitch
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BetaFlagsScreen(
     viewModel: BetaFlagsViewModel,
@@ -153,7 +151,7 @@ fun BetaFlagsScreen(
 
 private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
-//        PrefsBool.BUY_KIN_ENABLED -> false
+        PrefsBool.BUY_MODULE_ENABLED -> false
         PrefsBool.TIPS_CHAT_ENABLED -> chatMessageV2Enabled && tipsEnabled
         else -> true
     }
