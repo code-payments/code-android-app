@@ -28,7 +28,7 @@ data class BetaOptions(
             debugScanTimesEnabled = false,
             displayErrors = false,
             giveRequestsEnabled = false,
-            buyModuleEnabled = false,
+            buyModuleEnabled = true,
             establishCodeRelationship = false,
             chatUnsubEnabled = false,
             tipsEnabled = false,
@@ -86,7 +86,7 @@ class BetaFlagsRepository @Inject constructor(
             prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false),
             prefRepository.observeOrDefault(flag, default)
         ) { a, b ->
-            b.takeIf { a } ?: false
+            b.takeIf { a } ?: default
         }
     }
 }

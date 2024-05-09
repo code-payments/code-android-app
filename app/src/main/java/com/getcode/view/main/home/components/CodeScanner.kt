@@ -5,6 +5,7 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -27,46 +28,61 @@ import androidx.lifecycle.asFlow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.util.toByteArray
-import com.getcode.utils.ErrorUtils
-import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.Executors
 
 @Composable
 fun CodeScanner(
+    scanningEnabled: Boolean,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (ScannableKikCode) -> Unit
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
     val scanner = remember { KikCodeScannerImpl() }
-    val previewView = remember(context) { PreviewView(context) }
 
-    val imageAnalysis = ImageAnalysis.Builder()
-        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
-        .build()
+    val cameraController = remember { LifecycleCameraController(context) }
+
+    val previewView = remember(context, cameraController) {
+        PreviewView(context).apply { controller = cameraController }
+    }
+
+    val preview = remember {
+        Preview.Builder().build().apply { setSurfaceProvider(previewView.surfaceProvider) }
+    }
+
+    val cameraSelector = remember {
+        val lensFacing = CameraSelector.LENS_FACING_BACK
+        CameraSelector.Builder().requireLensFacing(lensFacing).build()
+    }
+
+    val imageAnalysis = remember {
+        ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
+            .build()
+    }
+
+    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+
+    val kikCodeAnalyzer = remember(scanner, onCodeScanned) {
+        KikCodeAnalyzer(scanner, onCodeScanned)
+    }
 
     LaunchedEffect(scanner) {
-        val preview = Preview.Builder().build()
-        preview.setSurfaceProvider(previewView.surfaceProvider)
-
         val cameraProvider = context.getCameraProvider()
         cameraProvider.unbindAll()
-
-        val lensFacing = CameraSelector.LENS_FACING_BACK
-        val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
         cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
     }
 
@@ -80,8 +96,15 @@ fun CodeScanner(
         }
     }
 
+    LaunchedEffect(streamState, scanningEnabled) {
+        if (streamState == PreviewView.StreamState.STREAMING && scanningEnabled) {
+            imageAnalysis.setAnalyzer(cameraExecutor, kikCodeAnalyzer)
+        } else {
+            imageAnalysis.clearAnalyzer()
+        }
+    }
+
     LaunchedEffect(previewView) {
-        val scope = this
         previewView.previewStreamState.asFlow()
             .distinctUntilChanged()
             .onEach { Timber.d(it.name) }
@@ -92,31 +115,7 @@ fun CodeScanner(
                     onPreviewStateChanged(streaming)
                 } == PreviewView.StreamState.STREAMING
             }
-            .onEach { streaming ->
-                if (streaming) {
-                    imageAnalysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
-                        scope.launch(Dispatchers.IO) {
-                            scanner.scanKikCode(
-                                imageProxy.toByteArray(),
-                                imageProxy.width,
-                                imageProxy.height,
-                            ).onSuccess { result ->
-                                onCodeScanned(result)
-                                imageProxy.close()
-                            }.onFailure { error ->
-                                when (error) {
-                                    is KikCodeScanner.NoKikCodeFoundException -> Unit
-                                    else -> ErrorUtils.handleError(error)
-                                }
-                                imageProxy.close()
-                            }
-                        }
-                    }
-                } else {
-                    imageAnalysis.clearAnalyzer()
-                }
-
-            }.launchIn(this)
+            .launchIn(this)
     }
 
     AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
