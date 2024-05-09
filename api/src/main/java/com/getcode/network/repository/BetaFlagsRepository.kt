@@ -90,7 +90,7 @@ class BetaFlagsRepository @Inject constructor(
             prefRepository.observeOrDefault(PrefsBool.IS_DEBUG_ALLOWED, false),
             prefRepository.observeOrDefault(flag, default)
         ) { a, b ->
-            b.takeIf { a } ?: false
+            b.takeIf { a } ?: default
         }
     }
 }
