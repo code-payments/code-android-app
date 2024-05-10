@@ -1,4 +1,4 @@
-package com.getcode.ui.components.conversation
+package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,14 +13,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.getcode.theme.BrandDark
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.chat.MessageNodeDefaults
 
 @Composable
 fun AnnouncementMessage(
     modifier: Modifier = Modifier,
     text: String,
 ) {
-    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier
                 .background(

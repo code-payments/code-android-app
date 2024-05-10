@@ -6,21 +6,31 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import androidx.paging.map
+import com.getcode.R
 import com.getcode.model.Conversation
+import com.getcode.model.ConversationMessageContent
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.model.MessageContent
+import com.getcode.model.MessageStatus
 import com.getcode.model.TipMetadata
 import com.getcode.model.TwitterUser
 import com.getcode.network.ConversationController
 import com.getcode.solana.keys.PublicKey
+import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.to
+import com.getcode.util.toInstantFromMillis
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
@@ -140,11 +150,83 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    val messages = stateFlow
+    val messages: Flow<PagingData<ChatItem>> = stateFlow
         .map { it.conversationId }
         .filterNotNull()
         .flatMapLatest { conversationController.conversationPagingData(it) }
-        .cachedIn(viewModelScope)
+        .map { page ->
+            val state = stateFlow.value
+            val username = state.user?.username.orEmpty()
+            val tipAmount = state.tipAmountFormatted.orEmpty()
+
+            page.map { message ->
+                val content = when (val contents = message.content) {
+                    ConversationMessageContent.IdentityRevealed -> {
+                        MessageContent.Localized(
+                            value = resources.getString(
+                                resourceId = R.string.title_chat_announcement_identityRevealed,
+                                username
+                            ),
+                            status = MessageStatus.Unknown,
+                            isAnnouncement = true,
+                        )
+                    }
+                    ConversationMessageContent.IdentityRevealedToYou -> {
+                        MessageContent.Localized(
+                            value = resources.getString(
+                                resourceId = R.string.title_chat_announcement_identityRevealedToYou,
+                                username
+                            ),
+                            status = MessageStatus.Unknown,
+                            isAnnouncement = true,
+                        )
+                    }
+                    is ConversationMessageContent.Text -> {
+                        MessageContent.Localized(
+                            value = contents.message,
+                            status = contents.status,
+                            isAnnouncement = false,
+                        )
+                    }
+                    ConversationMessageContent.ThanksReceived -> {
+                        MessageContent.Localized(
+                            value = resources.getString(
+                                resourceId = R.string.title_chat_announcement_thanksReceived,
+                                username
+                            ),
+                            status = MessageStatus.Unknown,
+                            isAnnouncement = true,
+                        )
+                    }
+                    ConversationMessageContent.ThanksSent -> {
+                        MessageContent.Localized(
+                            value = resources.getString(
+                                resourceId = R.string.title_chat_announcement_thanksSent,
+                            ),
+                            status = MessageStatus.Unknown,
+                            isAnnouncement = true,
+                        )
+                    }
+                    ConversationMessageContent.TipMessage -> {
+                        MessageContent.Localized(
+                            value = resources.getString(
+                                resourceId = R.string.title_chat_announcement_tipHeader,
+                                tipAmount
+                            ),
+                            status = MessageStatus.Unknown,
+                            isAnnouncement = true,
+                        )
+                    }
+                }
+
+                ChatItem.Message(
+                    id = message.idBase58,
+                    chatMessageId = stateFlow.value.messageId!!,
+                    message = content,
+                    date = message.dateMillis.toInstantFromMillis(),
+                )
+            }
+        }
 
 
     internal companion object {

@@ -14,6 +14,8 @@ import com.getcode.network.ConversationController
 import com.getcode.network.HistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.base58
+import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.ChatMessageIndice
 import com.getcode.util.formatDateRelatively
 import com.getcode.util.toInstantFromMillis
 import com.getcode.view.BaseViewModel2
@@ -35,20 +37,6 @@ import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
-
-typealias ChatMessageIndice = Triple<MessageContent, ID, Instant>
-
-sealed class ChatItem(val key: Any) {
-    data class Message(
-        val id: String = UUID.randomUUID().toString(),
-        val chatMessageId: ID,
-        val message: MessageContent,
-        val date: Instant,
-
-    ) : ChatItem(id)
-
-    data class Date(val date: String) : ChatItem(date)
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -185,10 +173,11 @@ class ChatViewModel @Inject constructor(
                 } else {
                     contents
                 }
+
                 ChatItem.Message(
                     chatMessageId = id,
                     message = message,
-                    date = date
+                    date = date,
                 )
             }
         }

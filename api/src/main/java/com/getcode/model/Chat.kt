@@ -160,7 +160,7 @@ data class ChatMessage(
     val id: ID,
     val cursor: Cursor,
     val dateMillis: Long,
-    val contents: List<MessageContent>
+    val contents: List<MessageContent>,
 ) {
     val hasEncryptedContent: Boolean
         get() {
@@ -192,12 +192,34 @@ data class ChatMessage(
 }
 
 sealed interface MessageContent {
-    data class Localized(val value: String) : MessageContent
-    data class Exchange(val amount: GenericAmount, val verb: Verb, val thanked: Boolean = false) :
-        MessageContent
+    val isAnnouncement: Boolean
+    val status: MessageStatus
 
-    data class SodiumBox(val data: EncryptedData) : MessageContent
-    data class Decrypted(val data: String) : MessageContent
+    data class Localized(
+        val value: String,
+        override val isAnnouncement: Boolean = false,
+        override val status: MessageStatus = MessageStatus.Unknown
+    ) : MessageContent
+
+    data class Exchange(
+        val amount: GenericAmount,
+        val verb: Verb,
+        val thanked: Boolean = false,
+        override val isAnnouncement: Boolean = false,
+        override val status: MessageStatus = MessageStatus.Unknown
+    ) : MessageContent
+
+    data class SodiumBox(
+        val data: EncryptedData,
+        override val isAnnouncement: Boolean = false,
+        override val status: MessageStatus = MessageStatus.Unknown
+    ) : MessageContent
+
+    data class Decrypted(
+        val data: String,
+        override val isAnnouncement: Boolean = false,
+        override val status: MessageStatus = MessageStatus.Unknown
+    ) : MessageContent
 
     companion object {
         operator fun invoke(proto: Content): MessageContent? {

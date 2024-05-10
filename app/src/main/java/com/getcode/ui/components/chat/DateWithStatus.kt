@@ -1,4 +1,4 @@
-package com.getcode.ui.components.conversation
+package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +21,6 @@ import com.getcode.R
 import com.getcode.model.MessageStatus
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.util.formatTimeRelatively
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -52,7 +51,7 @@ internal fun DateWithStatus(
             color = BrandLight,
             maxLines = 1
         )
-        if (status != MessageStatus.Incoming) {
+        if (status.isValid() && status != MessageStatus.Incoming) {
             Icon(
                 modifier = Modifier
                     .requiredWidth(width = DateWithStatusDefaults.IconWidth)

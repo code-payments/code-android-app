@@ -161,5 +161,14 @@ sealed interface ConversationMessageContent {
 }
 
 enum class MessageStatus {
-    Incoming, Sent, Delivered, Read
+    Incoming, Sent, Delivered, Read, Unknown;
+
+    fun isOutgoing() = when (this) {
+        Incoming -> false
+        Sent,
+        Delivered,
+        Read -> true
+        Unknown -> false
+    }
+    fun isValid() = this != Unknown
 }

@@ -12,17 +12,20 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.model.ConversationMessage
 import com.getcode.model.ConversationMessageContent
+import com.getcode.model.MessageContent
+import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.utils.isScrolledToTheBeginning
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 
 @Composable
 internal fun HandleMessageChanges(
     listState: LazyListState,
-    items: LazyPagingItems<ConversationMessage>,
+    items: LazyPagingItems<ChatItem>,
 ) {
     var lastMessageSent by rememberSaveable {
         mutableLongStateOf(0L)
@@ -38,18 +41,22 @@ internal fun HandleMessageChanges(
         snapshotFlow { items.itemSnapshotList }
             .map { it.firstOrNull() }
             .filterNotNull()
-            .distinctUntilChangedBy { it.dateMillis }
-            .filter { it.content is ConversationMessageContent.Text }
+            .filterIsInstance<ChatItem.Message>()
+            .distinctUntilChangedBy { it.date }
+            .filter { it.message is MessageContent.Localized || it.message is MessageContent.Exchange }
             .collect { newMessage ->
-                val content = newMessage.content as? ConversationMessageContent.Text ?: return@collect
-                if (content.isFromSelf && newMessage.dateMillis > lastMessageSent) {
+                val date = newMessage.date
+                val isTextMessage = newMessage.message is MessageContent.Localized
+                val isExchangeMessage = newMessage.message is MessageContent.Exchange
+
+                if (newMessage.message.status.isOutgoing() && newMessage.date.toEpochMilliseconds() > lastMessageSent) {
                     listState.handleAndReplayAfter(300) {
                         scrollToItem(0)
-                        lastMessageSent = newMessage.dateMillis
+                        lastMessageSent = newMessage.date.toEpochMilliseconds()
                     }
                 } else {
                     listState.handleAndReplayAfter(300) {
-                        if (listState.isScrolledToTheBeginning() && newMessage.dateMillis > lastMessageReceived) {
+                        if (listState.isScrolledToTheBeginning() && newMessage.date.toEpochMilliseconds() > lastMessageReceived) {
                             // Android 10 (specifically the S1?) we have to utilize a mimic for IME nested scrolling
                             // using the [LazyListState#isScrollInProgress] which animateScrollToItem triggers
                             // thus causing the IME to be dismissed when we trigger the sync.
@@ -59,7 +66,7 @@ internal fun HandleMessageChanges(
                                 listState.animateScrollToItem(0)
                             }
                         }
-                        lastMessageReceived = newMessage.dateMillis
+                        lastMessageReceived = newMessage.date.toEpochMilliseconds()
                     }
                 }
             }

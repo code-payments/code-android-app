@@ -1,15 +1,12 @@
-package com.getcode.ui.components.conversation
+package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -26,22 +23,23 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import com.getcode.model.ConversationMessageContent
 import com.getcode.model.MessageStatus
 import com.getcode.theme.BrandDark
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
 
 @Composable
-fun MessageBubble(
+fun MessageText(
     modifier: Modifier = Modifier,
-    content: ConversationMessageContent.Text,
+    content: String,
+    isFromSelf: Boolean,
     date: Instant,
+    status: MessageStatus = MessageStatus.Unknown,
 ) {
-    val alignment = if (content.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
-    val color = if (content.isFromSelf) Color(0xFF443091) else BrandDark
+    val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
+    val color = if (isFromSelf) Color(0xFF443091) else BrandDark
+
     BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
         BoxWithConstraints(
             modifier = Modifier
@@ -61,7 +59,7 @@ fun MessageBubble(
             ) {
                 MessageContent(
                     maxWidth = maxWidthPx,
-                    message = content.message, date = date, status = content.status)
+                    message = content, date = date, status = status)
             }
         }
     }
@@ -87,7 +85,7 @@ private fun rememberAlignmentRule(
         val dateStatusWidth = remember(message, date) {
             val result = textMeasurer.measure(
                 text = date.formatDateRelatively(),
-                style = dateTextStyle, 
+                style = dateTextStyle,
                 maxLines = 1
             )
             result.size.width + spacingPx + iconSizePx

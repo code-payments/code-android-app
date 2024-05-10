@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -33,22 +32,18 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
-import com.getcode.R
-import com.getcode.model.ConversationMessage
-import com.getcode.model.ConversationMessageContent
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CodeScaffold
-import com.getcode.ui.components.conversation.AnnouncementMessage
+import com.getcode.ui.components.chat.MessageNode
+import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.conversation.ChatInput
-import com.getcode.ui.components.conversation.MessageBubble
 import com.getcode.ui.components.conversation.utils.HandleMessageChanges
-import com.getcode.util.toInstantFromMillis
 import kotlinx.coroutines.delay
 
 @Composable
 fun ChatConversationScreen(
     state: ConversationViewModel.State,
-    messages: LazyPagingItems<ConversationMessage>,
+    messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
     CodeScaffold(
@@ -83,60 +78,77 @@ fun ChatConversationScreen(
         ) {
             items(
                 count = messages.itemCount,
-                key = messages.itemKey { item -> item.id },
+                key = messages.itemKey { item -> item.key },
             ) { index ->
-                val message = messages[index]
-                when (val content = message?.content) {
-                    ConversationMessageContent.IdentityRevealed -> {
-                        AnnouncementMessage(
-                            text = stringResource(
-                                id = R.string.title_chat_announcement_identityRevealed,
-                                state.user?.username.orEmpty()
-                            )
-                        )
+                when (val item = messages[index]) {
+                    is ChatItem.Date -> {
+
                     }
 
-                    ConversationMessageContent.IdentityRevealedToYou -> {
-                        AnnouncementMessage(
-                            text = stringResource(
-                                id = R.string.title_chat_announcement_identityRevealedToYou,
-                                state.user?.username.orEmpty()
-                            )
+                    is ChatItem.Message -> {
+                        MessageNode(
+                            modifier = Modifier.fillMaxWidth(),
+                            contents = item.message,
+                            date = item.date,
+                            isPreviousSameMessage = false,
+                            isNextSameMessage = false,
+                            showTipActions = false,
                         )
-                    }
-
-                    is ConversationMessageContent.Text -> {
-                        MessageBubble(
-                            content = content,
-                            date = message.dateMillis.toInstantFromMillis()
-                        )
-                    }
-
-                    ConversationMessageContent.ThanksSent -> {
-                        AnnouncementMessage(
-                            text = stringResource(id = R.string.title_chat_announcement_thanksSent)
-                        )
-                    }
-
-                    ConversationMessageContent.TipMessage -> {
-                        AnnouncementMessage(
-                            text = stringResource(
-                                id = R.string.title_chat_announcement_tipHeader,
-                                state.tipAmountFormatted.orEmpty()
-                            )
-                        )
-                    }
-
-                    ConversationMessageContent.ThanksReceived -> {
-                        AnnouncementMessage(
-                            text = stringResource(
-                                id = R.string.title_chat_announcement_thanksReceived,
-                                state.user?.username.orEmpty()
-                            )
-                        )
+//                        when (val contents = item.message) {
+//                            is MessageContent.Decrypted -> MessageBubble(
+//                                contents = contents,
+//                                alignment = when {
+//                                    item.isFromSelf -> Alignment.CenterEnd
+//                                    else -> Alignment.CenterStart
+//                                }
+//                            ) {
+//                                MessageText(
+//                                    modifier = Modifier
+//                                        .align(Alignment.TopStart)
+//                                        .padding(CodeTheme.dimens.grid.x2),
+//                                    text = contents.data,
+//                                    date = item.date
+//                                )
+//                            }
+//
+//                            is MessageContent.Exchange -> MessageBubble(
+//                                contents = contents,
+//                                alignment = when {
+//                                    item.isFromSelf -> Alignment.CenterEnd
+//                                    else -> Alignment.CenterStart
+//                                }
+//                            ) {
+//
+//                            }
+//
+//                            is MessageContent.Localized -> MessageBubble(
+//                                contents = contents,
+//                                alignment = Alignment.Center
+//                            ) {
+//                                if (contents.isAnnouncement) {
+//                                    AnnouncementMessage(
+//                                        modifier = Modifier.align(Alignment.Center),
+//                                        text = contents.localizedText
+//                                    )
+//                                } else {
+//                                    MessageText(
+//                                        modifier = Modifier
+//                                            .align(Alignment.TopStart)
+//                                            .padding(CodeTheme.dimens.grid.x2),
+//                                        text = contents.localizedText,
+//                                        date = item.date
+//                                    )
+//                                }
+//                            }
+//
+//                            is MessageContent.SodiumBox -> MessageBubble(contents = contents) {
+//
+//                            }
+//                        }
                     }
 
                     else -> Unit
+
                 }
             }
         }
@@ -194,7 +206,8 @@ private fun IdentityRevealHeader(
                         text = text,
                         style = CodeTheme.typography.button.copy(
                             color = Color.White,
-                            fontWeight = FontWeight.W700),
+                            fontWeight = FontWeight.W700
+                        ),
                     ) { offset ->
                         text.getStringAnnotations(
                             tag = "reveal",

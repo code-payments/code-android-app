@@ -34,6 +34,7 @@ import com.getcode.ui.components.Row
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageNode
 import com.getcode.ui.components.chat.localized
+import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.utils.withTopBorder
 
 @Composable
