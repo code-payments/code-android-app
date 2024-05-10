@@ -114,7 +114,7 @@ object DeviceCheck: CoroutineScope by CoroutineScope(Dispatchers.IO) {
                 onIdentifier(Result.success(it.visitorId)) },
             errorListener = {
                 val error = Throwable("Device Check failed:: ${it.description}")
-                ErrorUtils.handleError(error)
+//                ErrorUtils.handleError(error)
 //                onIdentifier(Result.failure(error))
                 onIdentifier(Result.success(null))
             }
