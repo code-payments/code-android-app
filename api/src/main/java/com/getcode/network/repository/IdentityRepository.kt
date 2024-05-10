@@ -371,7 +371,6 @@ class IdentityRepository @Inject constructor(
 
                         IdentityService.GetTwitterUserResponse.Result.NOT_FOUND -> {
                             val error = TwitterUserFetchError.NotFound()
-                            ErrorUtils.handleError(error)
                             Result.failure(error)
                         }
 
