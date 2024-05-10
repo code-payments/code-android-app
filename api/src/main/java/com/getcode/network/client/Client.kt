@@ -14,6 +14,7 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
 import com.getcode.network.service.DeviceService
+import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,10 +86,13 @@ class Client @Inject constructor(
 
     private suspend fun poll() {
         if (networkObserver.isConnected) {
-            balanceController.fetchBalanceSuspend()
-            exchange.fetchRatesIfNeeded()
-            fetchLimits()
-            fetchPrivacyUpgrades()
+            try {
+                balanceController.fetchBalanceSuspend()
+                exchange.fetchRatesIfNeeded()
+            } catch (e: Exception) {
+                ErrorUtils.handleError(e)
+            }
+            fetchLimits().andThen(fetchPrivacyUpgrades()).blockingSubscribe()
         }
     }
 
