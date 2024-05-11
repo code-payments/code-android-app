@@ -8,6 +8,7 @@ import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
 import com.getcode.model.Title
+import com.getcode.network.repository.base58
 import com.getcode.network.repository.encodeBase64
 import timber.log.Timber
 
@@ -50,7 +51,7 @@ suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? 
             }
         }
         .onSuccess {
-            Timber.d("messages fetched=${it.count()} for ${chat.id.toByteArray().encodeBase64()}")
+            Timber.d("messages fetched=${it.count()} for ${chat.id.base58}")
             Timber.d("start=${it.minOf { it.dateMillis }}, end=${it.maxOf { it.dateMillis }}")
         }.onFailure {
             Timber.e(t = it, "Failed fetching messages.")

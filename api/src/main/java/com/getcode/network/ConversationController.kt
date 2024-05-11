@@ -74,11 +74,23 @@ class ConversationMockController @Inject constructor(
         ) { conversationPagingSource(conversationId) }.flow
 
     override suspend fun createConversation(messageId: ID) {
+        Timber.d("creating conversation: ${messageId.base58}")
         val message =
-            historyController.chats.value?.find { it.messages.firstOrNull { it.id == messageId } != null }
-                ?.messages?.find { it.id == messageId } ?: return
+            historyController.chats.value?.find {
+                Timber.d("messages=${it.messages.joinToString { it.id.base58 }}")
+                it.messages.firstOrNull { it.id == messageId } != null
+            }?.messages?.find { it.id == messageId }
 
-        val conversation = ConversationMockProvider.createConversation(exchange, message) ?: return
+        if (message == null) {
+            Timber.e("No message for ${messageId.base58} found")
+            return
+        }
+
+        val conversation = ConversationMockProvider.createConversation(exchange, message)
+        if (conversation == null) {
+            Timber.e("Failed to create conversation!")
+            return
+        }
 
         db.conversationDao().upsertConversations(conversation)
 

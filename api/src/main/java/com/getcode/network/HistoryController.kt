@@ -59,7 +59,26 @@ class HistoryController @Inject constructor(
 
     private fun chatMessagePager(chatId: ID) = Pager(pagingConfig) {
         val chat = _chats.value?.find { it.id == chatId }
-        pagerMap[chatId] ?: ChatMessagePagingSource(client, owner()!!, chat).also {
+        pagerMap[chatId] ?: ChatMessagePagingSource(
+            client = client,
+            owner = owner()!!,
+            chat = chat,
+            onMessagesFetched = { messages ->
+                chat ?: return@ChatMessagePagingSource
+                val updatedMessages = (chat.messages + messages).distinctBy { it.id }
+                val updatedChat = chat.copy(messages = updatedMessages)
+                _chats.update { chats ->
+                    val index = chats.orEmpty().indexOfFirst { it.id == chat.id }
+                    if (index >= 0) {
+                        chats.orEmpty().toMutableList().apply {
+                            this[index] = updatedChat
+                        }.toList()
+                    } else {
+                        chats
+                    }
+                }
+            }
+        ).also {
             pagerMap[chatId] = it
         }
     }
@@ -82,7 +101,6 @@ class HistoryController @Inject constructor(
         chatFlows.clear()
 
         val containers = fetchChatsWithoutMessages()
-        Timber.d("chats fetched = ${containers.count()}")
         _chats.value = containers
 
         val updatedWithMessages = mutableListOf<Chat>()

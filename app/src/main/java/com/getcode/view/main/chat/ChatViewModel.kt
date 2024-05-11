@@ -85,6 +85,7 @@ class ChatViewModel @Inject constructor(
     init {
         stateFlow
             .map { it.chatId }
+            .onEach { Timber.d("chatid=${it?.base58}") }
             .filterNotNull()
             .onEach { historyController.advanceReadPointer(it) }
             .flatMapLatest { historyController.chats }
