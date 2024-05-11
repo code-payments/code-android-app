@@ -3,7 +3,6 @@ package com.getcode.view.main.account.withdraw
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
-import com.getcode.model.Currency
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.WithdrawalAddressScreen
 import com.getcode.network.client.Client
@@ -13,7 +12,6 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils

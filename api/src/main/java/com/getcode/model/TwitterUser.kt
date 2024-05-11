@@ -18,17 +18,17 @@ data class TwitterUser(
     override val username: String,
     @Serializable(with = PublicKeyAsStringSerializer::class)
     override val tipAddress: PublicKey,
+    override val imageUrl: String?,
     val displayName: String,
-    val imageUrl: String,
     val followerCount: Int,
     val verificationStatus: VerificationStatus
 ): TipMetadata {
 
     override val platform: String = "X"
 
-    val imageUrlSanitized: String
+    override val imageUrlSanitized: String?
         get() {
-            val url = imageUrl
+            val url = imageUrl ?: return null
             val extension = MimeTypeMap.getFileExtensionFromUrl(url)
             val urlWithoutExtension = url.removeSuffix(extension)
             val urlWithoutType = urlWithoutExtension.substringBeforeLast("_")

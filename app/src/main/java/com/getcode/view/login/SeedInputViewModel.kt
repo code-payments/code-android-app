@@ -13,7 +13,6 @@ import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
-import com.getcode.navigation.screens.PhoneVerificationScreen
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers

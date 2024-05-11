@@ -167,7 +167,6 @@ data object AccountModal : MainGraph, ModalRoot {
         val viewModel = getActivityScopedViewModel<AccountSheetViewModel>()
         ModalContainer(
             displayLogo = true,
-            title = { null },
             onLogoClicked = { viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked) },
             closeButton = {
                 if (navigator.isVisible) {

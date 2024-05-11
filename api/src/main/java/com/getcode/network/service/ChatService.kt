@@ -10,6 +10,7 @@ import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.network.api.ChatApi
 import com.getcode.network.core.NetworkOracle
+import com.getcode.network.repository.base58
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -162,7 +163,7 @@ class ChatService @Inject constructor(
                         }
 
                         ChatService.GetMessagesResponse.Result.NOT_FOUND -> {
-                            val error = Throwable("Error: messages not found for chat $chatId")
+                            val error = Throwable("Error: messages not found for chat ${chatId.base58}")
                             Timber.e(t = error)
                             Result.failure(error)
                         }

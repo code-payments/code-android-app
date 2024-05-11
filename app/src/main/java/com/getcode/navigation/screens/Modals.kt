@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -29,6 +30,7 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitle
+import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.keyboardAsState
 import com.getcode.ui.utils.getActivityScopedViewModel
 import kotlinx.coroutines.delay
@@ -36,7 +38,7 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-internal fun Screen.ModalContainer(
+internal fun NamedScreen.ModalContainer(
     closeButton: (Screen?) -> Boolean = { false },
     screenContent: @Composable () -> Unit
 ) {
@@ -51,7 +53,7 @@ internal fun Screen.ModalContainer(
 }
 
 @Composable
-internal fun Screen.ModalContainer(
+internal fun NamedScreen.ModalContainer(
     displayLogo: Boolean = false,
     onLogoClicked: () -> Unit = { },
     closeButton: (Screen?) -> Boolean = { false },
@@ -69,10 +71,11 @@ internal fun Screen.ModalContainer(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun Screen.ModalContainer(
+internal fun NamedScreen.ModalContainer(
     navigator: CodeNavigator = LocalCodeNavigator.current,
     displayLogo: Boolean = false,
-    title: @Composable (Screen?) -> String? = { null },
+    titleString: @Composable (NamedScreen?) -> String? = { name },
+    title: @Composable BoxScope.() -> Unit = { },
     backButton: (Screen?) -> Boolean = { false },
     onBackClicked: (() -> Unit)? = null,
     closeButton: (Screen?) -> Boolean = { false },
@@ -113,12 +116,9 @@ internal fun Screen.ModalContainer(
         SheetTitle(
             modifier = Modifier,
             title = {
-                val screenName = (lastItem as? NamedScreen)?.name
-                val sheetName by remember(lastItem) {
-                    derivedStateOf { screenName }
-                }
-                val name = title(lastItem) ?: sheetName
-                name.takeIf { !displayLogo && lastItem == this@ModalContainer }
+                    titleString(this@ModalContainer)?.let {
+                        SheetTitleText(text = it)
+                    } ?: title()
             },
             displayLogo = displayLogo,
             onLogoClicked = onLogoClicked,

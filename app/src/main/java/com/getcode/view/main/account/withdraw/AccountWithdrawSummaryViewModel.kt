@@ -2,7 +2,6 @@ package com.getcode.view.main.account.withdraw
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.R
 import com.getcode.solana.keys.PublicKey
 import com.getcode.manager.BottomBarManager

@@ -137,7 +137,7 @@ fun HomeScreen(
                 homeViewModel.eventFlow
                     .filterIsInstance<HomeEvent.PresentTipEntry>()
                     .onEach {
-                        navigator.show(EnterTipModal)
+                        navigator.show(EnterTipModal())
                     }.launchIn(this)
             }
 

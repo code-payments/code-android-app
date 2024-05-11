@@ -10,9 +10,7 @@ import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
-import com.getcode.App
 import com.getcode.BuildConfig
-import com.getcode.R
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import dagger.hilt.android.qualifiers.ApplicationContext

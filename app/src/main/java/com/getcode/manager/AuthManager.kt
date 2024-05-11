@@ -9,7 +9,6 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
-import com.getcode.ed25519.Ed25519
 import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
@@ -40,12 +39,9 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 @Singleton
 class AuthManager @Inject constructor(

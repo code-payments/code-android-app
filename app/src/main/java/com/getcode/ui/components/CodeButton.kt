@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -37,7 +36,6 @@ enum class ButtonState {
     Subtle
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun CodeButton(
     modifier: Modifier = Modifier,
@@ -191,7 +189,7 @@ fun getButtonColors(
 
         ButtonState.Bordered ->
             ButtonDefaults.outlinedButtonColors(
-                backgroundColor = Brand,
+                backgroundColor = Transparent,
                 disabledContentColor = Color.LightGray,
                 contentColor = textColor.takeOrElse { Color.LightGray }
             )
@@ -213,13 +211,12 @@ fun getButtonColors(
 }
 
 @Composable
-fun getButtonBorder(buttonState: ButtonState, isEnabled: Boolean = true): BorderStroke? {
+fun getButtonBorder(buttonState: ButtonState, isEnabled: Boolean = true): BorderStroke {
     val border = CodeTheme.dimens.border
     return remember(buttonState, isEnabled) {
-        if (buttonState == ButtonState.Bordered && isEnabled) {
-            BorderStroke(border, White50)
-        } else {
-            BorderStroke(border, Transparent)
+        when (buttonState) {
+            ButtonState.Bordered -> BorderStroke(border, if (isEnabled) White50 else White20)
+            else -> BorderStroke(border, Transparent)
         }
     }
 }

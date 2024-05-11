@@ -1,43 +1,37 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.getcode.LocalBetaFlags
 import com.getcode.LocalExchange
-import com.getcode.R
-import com.getcode.model.KinAmount
 import com.getcode.model.MessageContent
-import com.getcode.model.Rate
+import com.getcode.model.MessageStatus
 import com.getcode.model.Verb
+import com.getcode.model.orOneToOne
 import com.getcode.theme.BrandDark
-import com.getcode.theme.BrandLight
+import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.util.formatTimeRelatively
-import com.getcode.utils.FormatUtils
-import com.getcode.view.main.giveKin.KinValueHint
+import com.getcode.ui.utils.addIf
 import com.getcode.view.main.home.components.PriceWithFlag
 import kotlinx.datetime.Instant
 
@@ -65,88 +59,98 @@ fun MessageNode(
     date: Instant,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
-    openTipChat: () -> Unit,
+    showTipActions: Boolean = true,
+    thankUser: () -> Unit = { },
+    openMessageChat: () -> Unit = { },
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .padding(vertical = CodeTheme.dimens.grid.x1)
     ) {
-        val exchange = LocalExchange.current
+        val color = if (contents is MessageContent.Exchange && !contents.verb.increasesBalance) {
+            ChatOutgoing
+        } else {
+            BrandDark
+        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(0.895f)
-                .background(
-                    color = BrandDark,
-                    shape = when {
-                        isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
-                        isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
-                        isNextSameMessage -> MessageNodeDefaults.NextSameShape
-                        else -> MessageNodeDefaults.DefaultShape
-                    }
+        val isAnnouncement =
+            remember { (contents as? MessageContent.Localized)?.isAnnouncement ?: false }
+
+        when (contents) {
+            is MessageContent.Exchange -> {
+                MessagePayment(
+                    modifier = Modifier
+                        .align(if (contents.verb.increasesBalance) Alignment.CenterStart else Alignment.CenterEnd)
+                        .widthIn(max = maxWidth * 0.75f)
+                        .background(
+                            color = color,
+                            shape = when {
+                                isAnnouncement -> MessageNodeDefaults.DefaultShape
+                                isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
+                                isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
+                                isNextSameMessage -> MessageNodeDefaults.NextSameShape
+                                else -> MessageNodeDefaults.DefaultShape
+                            }
+                        ),
+                    contents = contents,
+                    showTipActions = showTipActions,
+                    thankUser = thankUser,
+                    status = contents.status,
+                    date = date,
+                    openMessageChat = openMessageChat
                 )
-                .padding(CodeTheme.dimens.grid.x2),
-            contentAlignment = Alignment.Center
-        ) {
-            when (contents) {
-                is MessageContent.Exchange -> {
-                    val rate = exchange.rateFor(contents.amount.currencyCode)
-                    val isV2Enabled = LocalBetaFlags.current.chatMessageV2Enabled
-                    if (rate != null) {
-                        if (isV2Enabled) {
-                            MessagePaymentV2(
-                                verb = contents.verb,
-                                amount = contents.amount.amountUsing(rate),
-                                caption = contents.localizedText,
-                                date = date,
-                                openTipChat = openTipChat
-                            )
-                        } else {
-                            MessagePayment(
-                                verb = contents.verb,
-                                amount = contents.amount.amountUsing(rate),
-                            )
-                        }
-                    } else {
-                        if (isV2Enabled) {
-                            MessagePaymentV2(
-                                verb = Verb.Unknown,
-                                amount = KinAmount.newInstance(0, Rate.oneToOne),
-                                caption = contents.localizedText,
-                                date = date,
-                                openTipChat = openTipChat
-                            )
-                        } else {
-                            MessagePayment(
-                                verb = Verb.Unknown,
-                                amount = KinAmount.newInstance(0, Rate.oneToOne)
-                            )
-                        }
-                    }
-                }
+            }
 
-                is MessageContent.Localized -> {
+            is MessageContent.Localized -> {
+                if (contents.isAnnouncement) {
+                    AnnouncementMessage(
+                        modifier = Modifier
+                            .align(Alignment.Center),
+                        text = contents.localizedText
+                    )
+                } else {
                     MessageText(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = contents.localizedText,
-                        date = date
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(CodeTheme.dimens.grid.x2),
+                        content = contents.localizedText,
+                        date = date,
+                        status = contents.status,
+                        isFromSelf = contents.status.isOutgoing()
                     )
                 }
+            }
 
-                is MessageContent.SodiumBox -> {
-                    MessageEncrypted(
-                        modifier = Modifier.fillMaxWidth(),
-                        date = date
-                    )
-                }
+            is MessageContent.SodiumBox -> {
+                EncryptedContent(
+                    modifier = Modifier
+                        .align(if (contents.status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
+                        .widthIn(max = maxWidth * 0.75f)
+                        .background(
+                            color = color,
+                            shape = when {
+                                isAnnouncement -> MessageNodeDefaults.DefaultShape
+                                isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
+                                isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
+                                isNextSameMessage -> MessageNodeDefaults.NextSameShape
+                                else -> MessageNodeDefaults.DefaultShape
+                            }
+                        )
+                        .padding(CodeTheme.dimens.grid.x2),
+                    date = date
+                )
+            }
 
-                is MessageContent.Decrypted -> {
-                    MessageText(
-                        modifier = Modifier.fillMaxWidth(),
-                        text = contents.data,
-                        date = date
-                    )
-                }
+            is MessageContent.Decrypted -> {
+                MessageText(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(CodeTheme.dimens.grid.x2),
+                    content = contents.data,
+                    date = date,
+                    status = contents.status,
+                    isFromSelf = contents.status.isOutgoing()
+                )
             }
         }
     }
@@ -155,168 +159,86 @@ fun MessageNode(
 @Composable
 private fun MessagePayment(
     modifier: Modifier = Modifier,
-    verb: Verb,
-    amount: KinAmount,
+    contents: MessageContent.Exchange,
+    date: Instant,
+    status: MessageStatus = MessageStatus.Unknown,
+    showTipActions: Boolean = true,
+    thankUser: () -> Unit,
+    openMessageChat: () -> Unit,
 ) {
     Column(
         modifier = modifier
             // payments have an extra 10.dp inner padding
+            .padding(CodeTheme.dimens.grid.x1)
+            .background(CodeTheme.colors.background, RoundedCornerShape(3.dp)) // small - padding
             .padding(CodeTheme.dimens.grid.x2),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        if (verb == Verb.Returned) {
-            PriceWithFlag(
-                currencyCode = amount.rate.currency,
-                amount = amount,
-                text = { price ->
-                    Text(
-                        text = price,
-                        color = Color.White,
-                        style = CodeTheme.typography.h3
-                    )
-                }
-            )
-            Text(
-                text = verb.localizedText,
-                style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
-            )
-        } else {
-            Text(
-                text = verb.localizedText,
-                style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
-            )
-            PriceWithFlag(
-                currencyCode = amount.rate.currency,
-                amount = amount,
-                text = { price ->
-                    Text(
-                        text = price,
-                        color = Color.White,
-                        style = CodeTheme.typography.h3
-                    )
-                }
-            )
+        val exchange = LocalExchange.current
+        val rate by remember(contents.amount.currencyCode) {
+            derivedStateOf {
+                exchange.rateFor(contents.amount.currencyCode).orOneToOne()
+            }
         }
-    }
-}
+        val amount by remember(rate) {
+            derivedStateOf { contents.amount.amountUsing(rate) }
+        }
 
-@Composable
-private fun MessagePaymentV2(
-    modifier: Modifier = Modifier,
-    verb: Verb,
-    amount: KinAmount,
-    caption: String,
-    date: Instant,
-    openTipChat: () -> Unit,
-) {
-    val tipChatsEnabled = LocalBetaFlags.current.tipsChatEnabled
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-    ) {
-        CodeTransactionDisplay(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(),
-            amount = amount,
-            verb = verb
-        )
-        
-        Text(
-            text = caption,
-            style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
-        )
-
-        if (tipChatsEnabled && verb is Verb.ReceivedTip) {
-            CodeButton(
-                modifier = Modifier.fillMaxWidth(),
-                buttonState = ButtonState.Filled,
-                onClick = openTipChat,
-                text = stringResource(R.string.action_sayThankYou)
-            )
-        }
-
-        Text(
-            modifier = Modifier.align(Alignment.End),
-            text = date.formatTimeRelatively(),
-            style = CodeTheme.typography.caption,
-            color = BrandLight,
-        )
-    }
-}
-@Composable
-private fun CodeTransactionDisplay(
-    modifier: Modifier = Modifier,
-    amount: KinAmount,
-    verb: Verb,
-) {
-    Column(
-        modifier = modifier
-            .background(CodeTheme.colors.background)
-            .padding(vertical = CodeTheme.dimens.grid.x2),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        PriceWithFlag(
-            currencyCode = amount.rate.currency,
-            amount = amount,
-            text = { price ->
-                val prefix = if (verb.increasesBalance) "+" else "-"
+                .padding(top = CodeTheme.dimens.grid.x3)
+                .padding(horizontal = CodeTheme.dimens.grid.x6),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (contents.verb == Verb.Returned) {
+                PriceWithFlag(
+                    currencyCode = amount.rate.currency,
+                    amount = amount,
+                    text = { price ->
+                        Text(
+                            text = price,
+                            color = Color.White,
+                            style = CodeTheme.typography.h3
+                        )
+                    }
+                )
                 Text(
-                    text = "$prefix$price",
-                    color = Color.White,
-                    style = CodeTheme.typography.h3
+                    text = contents.verb.localizedText,
+                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+                )
+            } else {
+                Text(
+                    text = contents.verb.localizedText,
+                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+                )
+                PriceWithFlag(
+                    currencyCode = amount.rate.currency,
+                    amount = amount,
+                    text = { price ->
+                        Text(
+                            text = price,
+                            color = Color.White,
+                            style = CodeTheme.typography.h3
+                        )
+                    }
                 )
             }
-        )
-        KinValueHint(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            captionText = FormatUtils.formatWholeRoundDown(amount.kin.toKinValueDouble()),
-        )
-    }
-}
+        }
 
-@Composable
-private fun MessageText(modifier: Modifier = Modifier, text: String, date: Instant) {
-    Column(
-        modifier = modifier
-            // add top padding to accommodate ascents
-            .padding(top = CodeTheme.dimens.grid.x1),
-    ) {
-        Text(
-            text = text,
-            style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+        TipChatActions(
+            contents = contents,
+            showTipActions = showTipActions,
+            thankUser = thankUser,
+            openMessageChat = openMessageChat
         )
-        Text(
-            modifier = Modifier.align(Alignment.End),
-            text = date.formatTimeRelatively(),
-            style = CodeTheme.typography.caption,
-            color = BrandLight,
-        )
-    }
-}
 
-@Composable
-private fun MessageEncrypted(modifier: Modifier = Modifier, date: Instant) {
-    Column(
-        modifier = modifier
-            // add top padding to accommodate ascents
-            .padding(top = CodeTheme.dimens.grid.x1),
-    ) {
-        Image(
+        DateWithStatus(
             modifier = Modifier
-                .padding(CodeTheme.dimens.grid.x2)
-                .size(CodeTheme.dimens.staticGrid.x6)
-                .align(Alignment.CenterHorizontally),
-            painter = painterResource(id = R.drawable.lock_app_dashed),
-            colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground),
-            contentDescription = null
-        )
-        Text(
-            modifier = Modifier.align(Alignment.End),
-            text = date.formatTimeRelatively(),
-            style = CodeTheme.typography.caption,
-            color = BrandLight,
+                .align(Alignment.End),
+            date = date,
+            status = status
         )
     }
 }

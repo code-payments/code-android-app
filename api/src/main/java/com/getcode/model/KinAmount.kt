@@ -3,10 +3,17 @@ package com.getcode.model
 import com.codeinc.gen.transaction.v2.TransactionService.ExchangeData
 import com.getcode.model.Kin.Companion.fromKin
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.serializer.KinQuarksSerializer
+import com.getcode.utils.serializer.PublicKeyAsStringSerializer
+import com.getcode.utils.serializer.RateAsStringSerializer
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class KinAmount(
+    @Serializable(with = KinQuarksSerializer::class)
     val kin: Kin,
     val fiat: Double,
+    @Serializable(with = RateAsStringSerializer::class)
     val rate: Rate
 ) {
     fun truncating() = KinAmount(

@@ -1,131 +1,144 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.getcode.view.main.chat.conversation
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text2.input.rememberTextFieldState
-import androidx.compose.material.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import com.getcode.theme.ChatOutgoing
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
+import androidx.paging.compose.LazyPagingItems
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.extraLarge
-import com.getcode.theme.inputColors
 import com.getcode.ui.components.CodeScaffold
-import com.getcode.ui.components.Row
-import com.getcode.ui.components.TextInput
-import com.getcode.ui.utils.withTopBorder
+import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.MessageList
+import com.getcode.ui.components.chat.utils.HandleMessageChanges
+import kotlinx.coroutines.delay
 
 @Composable
 fun ChatConversationScreen(
-    s: String = ""
+    state: ConversationViewModel.State,
+    messages: LazyPagingItems<ChatItem>,
+    dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
     CodeScaffold(
+        topBar = {
+            IdentityRevealHeader(state = state) {
+                dispatchEvent(ConversationViewModel.Event.RevealIdentity)
+            }
+        },
         bottomBar = {
-            ChatInput {
-
+            Column(
+                modifier = Modifier
+                    .imePadding()
+            ) {
+                ChatInput(
+                    state = state.textFieldState,
+                    sendCashEnabled = state.tipChatCash.enabled,
+                    onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
+                    onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                )
             }
         }
     ) { padding ->
+        val lazyListState = rememberLazyListState()
+        MessageList(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            messages = messages,
+            listState = lazyListState,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3, Alignment.Top),
+        )
 
+        HandleMessageChanges(listState = lazyListState, items = messages)
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ChatInput(
-    modifier: Modifier = Modifier,
-    onSend: (String) -> Unit,
+private fun IdentityRevealHeader(
+    state: ConversationViewModel.State,
+    onClick: () -> Unit
 ) {
-    val state = rememberTextFieldState()
+    var showRevealHeader by remember {
+        mutableStateOf(false)
+    }
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .withTopBorder()
-            .padding(CodeTheme.dimens.grid.x2)
-            .imePadding(),
-        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        TextInput(
-            modifier = Modifier
-                .weight(1f),
-            minHeight = 40.dp,
-            state = state,
-            shape = CodeTheme.shapes.extraLarge,
-            contentPadding = PaddingValues(8.dp),
-            colors = inputColors(
-                backgroundColor = Color.White,
-                textColor = CodeTheme.colors.background,
-                cursorColor = CodeTheme.colors.brand,
-            )
-        )
-        AnimatedContent(
-            targetState = state.text.isNotEmpty(),
-            label = "show/hide send button",
-            transitionSpec = {
-                slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Start
-                ) togetherWith slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.End
-                )
-            }
-        ) { show ->
-            if (show) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.Bottom)
-                        .background(ChatOutgoing, shape = CircleShape)
-                        .clip(CircleShape)
-                        .clickable { onSend(state.text.toString()) }
-                        .size(ChatInput_Size)
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center,
+    LaunchedEffect(state.identityRevealed, state.user) {
+        if (!state.identityRevealed) {
+            delay(500)
+        }
+        showRevealHeader = !state.identityRevealed && state.user != null
+    }
+
+    AnimatedContent(
+        targetState = showRevealHeader,
+        label = "show/hide identity reveal header"
+    ) { show ->
+        if (show) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = CodeTheme.dimens.grid.x2),
+                color = CodeTheme.colors.background,
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(
-                        modifier = Modifier
-                            .size(CodeTheme.dimens.staticGrid.x6),
-                        imageVector = Icons.AutoMirrored.Rounded.Send,
-                        tint = Color.White,
-                        contentDescription = "Send message"
+                    Text(
+                        text = "Your messages are showing up anonymously.",
+                        style = CodeTheme.typography.button.copy(fontWeight = FontWeight.W700),
                     )
+                    val text = buildAnnotatedString {
+                        pushStringAnnotation(
+                            tag = "reveal",
+                            annotation = "reveal identity"
+                        )
+                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                            append("Tap to Reveal Your Identity")
+                        }
+                    }
+
+                    ClickableText(
+                        text = text,
+                        style = CodeTheme.typography.button.copy(
+                            color = Color.White,
+                            fontWeight = FontWeight.W700
+                        ),
+                    ) { offset ->
+                        text.getStringAnnotations(
+                            tag = "reveal",
+                            start = offset,
+                            end = offset
+                        ).firstOrNull()?.let { onClick() }
+                    }
                 }
             }
         }
     }
+
 }
 
-@Preview
-@Composable
-private fun Preview_ChatInput() {
-    CodeTheme {
-        ChatInput {
-
-        }
-    }
-}
-
-private val ChatInput_Size
-    @Composable get() = CodeTheme.dimens.grid.x8

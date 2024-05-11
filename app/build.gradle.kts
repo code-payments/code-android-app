@@ -1,5 +1,6 @@
 import com.android.SdkConstants.FN_LOCAL_PROPERTIES
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
 import java.io.FileInputStream
 import java.io.InputStreamReader
@@ -81,6 +82,10 @@ android {
                     "proguard-rules.pro"
                 )
             }
+
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanLenient() ?: false
+            }
         }
     }
 
@@ -110,16 +115,13 @@ android {
     }
 }
 
-
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":api"))
-    implementation(project(":model"))
-    implementation(project(":ed25519"))
+    implementation(project(":common"))
 
     //standard libraries
-    implementation(Libs.kotlin_stdlib)
     implementation(Libs.kotlinx_collections_immutable)
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.kotlinx_datetime)
@@ -178,7 +180,6 @@ dependencies {
 
     implementation(Libs.slf4j)
     implementation(Libs.grpc_android)
-    implementation(Libs.kin_sdk)
 
     implementation(platform(Libs.firebase_bom))
     implementation(Libs.firebase_analytics)
@@ -205,6 +206,7 @@ dependencies {
     implementation(Libs.androidx_room_runtime)
     implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)
+    implementation(Libs.androidx_room_paging)
     kapt(Libs.androidx_room_compiler)
 
     implementation(Libs.markwon_core)

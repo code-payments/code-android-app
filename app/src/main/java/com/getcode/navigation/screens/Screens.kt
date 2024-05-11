@@ -7,11 +7,11 @@ import timber.log.Timber
 
 sealed interface NamedScreen {
 
-    val name: String
-        @Composable get() = ""
+    val name: String?
+        @Composable get() = null
 
     val hasName: Boolean
-        @Composable get() = name.isNotEmpty()
+        @Composable get() = !name.isNullOrEmpty()
 }
 
 abstract class AppScreen: Screen {

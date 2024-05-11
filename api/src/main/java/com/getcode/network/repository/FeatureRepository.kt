@@ -4,6 +4,8 @@ import com.getcode.model.BuyModuleFeature
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
+import com.getcode.model.TipChatCashFeature
+import com.getcode.model.TipChatFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -21,6 +23,9 @@ class FeatureRepository @Inject constructor(
         ) { enabled, available -> BuyModuleFeature(enabled, available) }
 
     val tipCards = betaFlags.observe().map { TipCardFeature(it.tipsEnabled) }
+
+    val tipChat = betaFlags.observe().map { TipChatFeature(it.tipsChatEnabled) }
+    val tipChatCash = betaFlags.observe().map { TipChatCashFeature(it.tipsChatCashEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 }

@@ -42,6 +42,9 @@ fun ByteArray.toSignature(): Model.Signature {
         .build()
 }
 
+val List<Byte>.base58: String
+    get() = Base58.encode(toByteArray())
+
 val ByteArray.base58: String
     get() = Base58.encode(this)
 

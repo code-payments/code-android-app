@@ -2,8 +2,6 @@ package com.getcode.view
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.model.ScreenModel
-import com.getcode.App
 import com.getcode.util.resources.ResourceHelper
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import kotlinx.coroutines.Dispatchers

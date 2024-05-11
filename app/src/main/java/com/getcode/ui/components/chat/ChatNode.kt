@@ -42,8 +42,6 @@ fun ChatNode(
     chat: Chat,
     onClick: () -> Unit,
 ) {
-    val context = LocalContext.current
-
     Column(
         modifier = modifier
             .clickable { onClick() }

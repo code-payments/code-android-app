@@ -8,16 +8,13 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.model.SendLimit
-import com.getcode.model.min
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.repository.replaceParam
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.formatted
 import com.getcode.util.formattedRaw
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper

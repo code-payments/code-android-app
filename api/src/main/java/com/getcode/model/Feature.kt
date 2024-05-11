@@ -15,6 +15,16 @@ data class TipCardFeature(
     override val available: Boolean = true, // always enabled
 ): Feature
 
+data class TipChatFeature(
+    override val enabled: Boolean = false,
+    override val available: Boolean = true, // always enabled
+): Feature
+
+data class TipChatCashFeature(
+    override val enabled: Boolean = false,
+    override val available: Boolean = true, // always enabled
+): Feature
+
 
 data class RequestKinFeature(
     override val enabled: Boolean = false,

@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
 
 
+@Serializable
 data class Rate(
     val fx: Double,
     val currency: CurrencyCode
@@ -14,6 +15,8 @@ data class Rate(
         val oneToOne = Rate(fx = 1.0, currency = CurrencyCode.KIN)
     }
 }
+
+fun Rate?.orOneToOne() = this ?: Rate.oneToOne
 
 @Serializable
 @Entity(tableName = "exchangeData")

@@ -3,11 +3,11 @@ package com.getcode.util
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.getcode.LocalCurrencyUtils
+import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.KinAmount
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
-import timber.log.Timber
 
 fun KinAmount.formattedRaw() = FormatUtils.formatWholeRoundDown(kin.toKin().toDouble())
 
@@ -25,8 +25,15 @@ fun KinAmount.formatted(): String {
     return formatted(currency = currency)
 }
 
-fun KinAmount.formatted(resources: ResourceHelper, currency: Currency) = formatAmountString(
-    resources,
-    currency,
-    fiat
+fun KinAmount.formatted(
+    resources: ResourceHelper,
+    currency: Currency,
+    kinSuffix: String = "",
+    suffix: String = resources.getString(R.string.core_ofKin)
+) = formatAmountString(
+    resources = resources,
+    currency = currency,
+    amount = fiat,
+    kinSuffix = kinSuffix,
+    suffix = suffix
 )

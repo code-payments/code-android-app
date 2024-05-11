@@ -9,8 +9,13 @@ import com.getcode.model.Chat
 import com.getcode.model.ID
 import com.getcode.model.MessageContent
 import com.getcode.model.Title
+import com.getcode.model.Verb
+import com.getcode.network.ConversationController
 import com.getcode.network.HistoryController
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.base58
+import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.ChatMessageIndice
 import com.getcode.util.formatDateRelatively
 import com.getcode.util.toInstantFromMillis
 import com.getcode.view.BaseViewModel2
@@ -33,23 +38,11 @@ import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
 
-typealias ChatMessageIndice = Triple<MessageContent, ID, Instant>
-
-sealed class ChatItem(val key: Any) {
-    data class Message(
-        val id: String = UUID.randomUUID().toString(),
-        val chatMessageId: ID,
-        val message: MessageContent,
-        val date: Instant
-    ) : ChatItem(id)
-
-    data class Date(val date: String) : ChatItem(date)
-}
-
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     historyController: HistoryController,
+    conversationController: ConversationController,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
@@ -84,12 +77,15 @@ class ChatViewModel @Inject constructor(
         data class SetMuted(val muted: Boolean) : Event
         data class SetSubscribed(val subscribed: Boolean) : Event
         data class EnableUnsubscribe(val enabled: Boolean): Event
-        data class OpenTipChat(val messageId: ID): Event
+
+        data class ThankUser(val message: ID): Event
+        data class OpenMessageChat(val messageId: ID): Event
     }
 
     init {
         stateFlow
             .map { it.chatId }
+            .onEach { Timber.d("chatid=${it?.base58}") }
             .filterNotNull()
             .onEach { historyController.advanceReadPointer(it) }
             .flatMapLatest { historyController.chats }
@@ -139,19 +135,24 @@ class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        eventFlow
+            .filterIsInstance<Event.ThankUser>()
+            .map { it.message }
+            .onEach { conversationController.thankTipper(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OpenMessageChat>()
+            .map { it.messageId }
+            .onEach { conversationController.createConversation(it) }
+            .launchIn(viewModelScope)
+
         betaFlags.observe()
             .map { it.chatUnsubEnabled }
             .distinctUntilChanged()
             .onEach {
                 dispatchEvent(Event.EnableUnsubscribe(it))
             }.launchIn(viewModelScope)
-
-//        betaFlags.observe()
-//            .map { it.chatMessageV2Enabled }
-//            .distinctUntilChanged()
-//            .onEach {
-//                dispatchEvent(Event.EnableMessageV2Ui(it))
-//            }.launchIn(viewModelScope)
     }
 
     val chatMessages = stateFlow
@@ -159,18 +160,25 @@ class ChatViewModel @Inject constructor(
         .filterNotNull()
         .flatMapLatest { historyController.chatFlow(it) }
         .mapLatest { page ->
-            page.flatMap { chat ->
-                chat.contents
+            page.flatMap { message ->
+                message.contents
                     .sortedWith(compareBy { it is MessageContent.Localized })
-                    .map { ChatMessageIndice(it, chat.id, chat.dateMillis.toInstantFromMillis()) }
+                    .map { ChatMessageIndice(it, message.id, message.dateMillis.toInstantFromMillis()) }
             }
         }
         .mapLatest { page ->
-            page.map { (message, id, date) ->
+            page.map { (contents, id, date) ->
+                val message = if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
+                    val tipThanked = conversationController.hasThanked(id)
+                    MessageContent.Exchange(contents.amount, contents.verb, thanked = tipThanked)
+                } else {
+                    contents
+                }
+
                 ChatItem.Message(
                     chatMessageId = id,
                     message = message,
-                    date = date
+                    date = date,
                 )
             }
         }
@@ -185,7 +193,7 @@ class ChatViewModel @Inject constructor(
                     null
                 }
             }
-        }.cachedIn(viewModelScope)
+        }
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -204,7 +212,8 @@ class ChatViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OpenTipChat,
+                is Event.ThankUser,
+                is Event.OpenMessageChat,
                 Event.OnMuteToggled,
                 Event.OnSubscribeToggled -> { state -> state }
 

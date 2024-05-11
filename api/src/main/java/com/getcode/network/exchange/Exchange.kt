@@ -1,8 +1,6 @@
 package com.getcode.network.exchange
 
 import android.annotation.SuppressLint
-import android.text.format.DateUtils
-import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
@@ -14,18 +12,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.coroutines.resume
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.convert
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.DurationUnit

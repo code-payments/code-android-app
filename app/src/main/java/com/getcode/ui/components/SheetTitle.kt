@@ -25,9 +25,22 @@ import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.unboundedClickable
 
 @Composable
+fun BoxScope.SheetTitleText(modifier: Modifier = Modifier, text: String) {
+    Text(
+        text = text,
+        color = Color.White,
+        style = CodeTheme.typography.h6.copy(
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        ),
+        modifier = modifier.align(Alignment.Center)
+    )
+}
+
+@Composable
 fun SheetTitle(
     modifier: Modifier = Modifier,
-    title: (@Composable () -> String?)? = null,
+    title: @Composable BoxScope.() -> Unit = { },
     displayLogo: Boolean = false,
     onLogoClicked: () -> Unit = { },
     backButton: Boolean = false,
@@ -90,17 +103,7 @@ fun SheetTitle(
                         ) { onLogoClicked() }
                 )
             } else {
-                Text(
-                    text = title?.invoke().orEmpty(),
-                    color = Color.White,
-                    style = CodeTheme.typography.h6.copy(
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .fillMaxWidth()
-                )
+                title()
             }
         }
     }
@@ -110,6 +113,8 @@ fun SheetTitle(
 @Composable
 fun TitlePreview() {
     SheetTitle(
-        title = { "Sheet Title" }
+        title = {
+            SheetTitleText(text = "Sheet Title")
+        }
     )
 }

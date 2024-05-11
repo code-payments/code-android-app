@@ -97,20 +97,24 @@ fun Currency.format(resources: ResourceHelper, amount: Double): String {
     )
 }
 
-fun formatAmountString(resources: ResourceHelper, currency: Currency, amount: Double): String {
+fun formatAmountString(
+    resources: ResourceHelper,
+    currency: Currency,
+    amount: Double,
+    kinSuffix: String = "",
+    suffix: String = resources.getString(R.string.core_ofKin)
+): String {
     val isKin = currency.code == Currency.Kin.code
 
     return if (isKin) {
-        "${FormatUtils.formatWholeRoundDown(amount)} ${
-            resources.getString(R.string.core_kin)
-        }"
+        "${FormatUtils.formatWholeRoundDown(amount)} ${resources.getString(R.string.core_kin)} $kinSuffix"
     } else {
         when {
             currency.code == currency.symbol -> {
-                "${FormatUtils.format(amount)} ${resources.getString(R.string.core_ofKin)}"
+                "${FormatUtils.format(amount)} $suffix"
             }
             else -> {
-                "${currency.symbol}${FormatUtils.format(amount)} ${resources.getString(R.string.core_ofKin)}"
+                "${currency.symbol}${FormatUtils.format(amount)} $suffix"
             }
         }
     }

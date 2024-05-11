@@ -14,11 +14,11 @@ class ChatMessagePagingSource(
     private val client: Client,
     private val owner: KeyPair,
     private val chat: Chat?,
+    private val onMessagesFetched: (List<ChatMessage>) -> Unit,
 ) : PagingSource<Cursor, ChatMessage>() {
     override suspend fun load(
         params: LoadParams<Cursor>
     ): LoadResult<Cursor, ChatMessage> {
-        // Start refresh at page 1 if undefined.
         val nextCursor = params.key
 
         chat ?: return LoadResult.Error(Throwable("Chat not found"))
@@ -29,10 +29,11 @@ class ChatMessagePagingSource(
         }
 
         val messages = response.getOrDefault(emptyList())
+        onMessagesFetched(messages)
         return LoadResult.Page(
             data = messages,
             prevKey = null, // Only paging forward.
-            nextKey = messages.last().cursor
+            nextKey = messages.lastOrNull()?.cursor
         )
     }
 
