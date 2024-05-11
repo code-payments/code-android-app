@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.Dp
 import com.getcode.R
 import com.getcode.model.MessageStatus
 import com.getcode.theme.BrandLight
+import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatTimeRelatively
 import kotlinx.datetime.Clock
@@ -83,7 +84,7 @@ private fun Preview_DateWithStatus() {
                 modifier = Modifier
                     .wrapContentWidth()
                     .background(
-                        color = Color(0xFF443091),
+                        color = ChatOutgoing,
                         shape = MessageNodeDefaults.DefaultShape
                     )
                     .padding(CodeTheme.dimens.grid.x2)
@@ -94,7 +95,7 @@ private fun Preview_DateWithStatus() {
                 modifier = Modifier
                     .wrapContentWidth()
                     .background(
-                        color = Color(0xFF443091),
+                        color = ChatOutgoing,
                         shape = MessageNodeDefaults.DefaultShape
                     )
                     .padding(CodeTheme.dimens.grid.x2)
@@ -105,7 +106,7 @@ private fun Preview_DateWithStatus() {
                 modifier = Modifier
                     .wrapContentWidth()
                     .background(
-                        color = Color(0xFF443091),
+                        color = ChatOutgoing,
                         shape = MessageNodeDefaults.DefaultShape
                     )
                     .padding(CodeTheme.dimens.grid.x2)

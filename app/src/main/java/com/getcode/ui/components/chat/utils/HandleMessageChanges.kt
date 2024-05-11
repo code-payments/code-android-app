@@ -1,4 +1,4 @@
-package com.getcode.ui.components.conversation.utils
+package com.getcode.ui.components.chat.utils
 
 import android.os.Build
 import androidx.compose.foundation.lazy.LazyListState
@@ -10,10 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.paging.compose.LazyPagingItems
-import com.getcode.model.ConversationMessage
-import com.getcode.model.ConversationMessageContent
 import com.getcode.model.MessageContent
-import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.utils.isScrolledToTheBeginning
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChangedBy

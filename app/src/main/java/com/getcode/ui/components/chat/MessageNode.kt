@@ -3,9 +3,11 @@ package com.getcode.ui.components.chat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
@@ -61,7 +63,7 @@ fun MessageNode(
     thankUser: () -> Unit = { },
     openMessageChat: () -> Unit = { },
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .padding(vertical = CodeTheme.dimens.grid.x1)
     ) {
@@ -78,7 +80,8 @@ fun MessageNode(
             is MessageContent.Exchange -> {
                 MessagePayment(
                     modifier = Modifier
-                        .fillMaxWidth(0.895f)
+                        .align(if (contents.verb.increasesBalance) Alignment.CenterStart else Alignment.CenterEnd)
+                        .widthIn(max = maxWidth * 0.75f)
                         .background(
                             color = color,
                             shape = when {
@@ -92,6 +95,7 @@ fun MessageNode(
                     contents = contents,
                     showTipActions = showTipActions,
                     thankUser = thankUser,
+                    status = contents.status,
                     date = date,
                     openMessageChat = openMessageChat
                 )
@@ -120,7 +124,8 @@ fun MessageNode(
             is MessageContent.SodiumBox -> {
                 EncryptedContent(
                     modifier = Modifier
-                        .fillMaxWidth(0.895f)
+                        .align(if (contents.status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
+                        .widthIn(max = maxWidth * 0.75f)
                         .background(
                             color = color,
                             shape = when {

@@ -1,4 +1,4 @@
-package com.getcode.ui.components.conversation
+package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope

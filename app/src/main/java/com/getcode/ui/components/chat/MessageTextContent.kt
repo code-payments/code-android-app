@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.getcode.model.MessageStatus
 import com.getcode.theme.BrandDark
+import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
@@ -38,12 +39,12 @@ fun MessageText(
     status: MessageStatus = MessageStatus.Unknown,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
-    val color = if (isFromSelf) Color(0xFF443091) else BrandDark
+    val color = if (isFromSelf) ChatOutgoing else BrandDark
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
         BoxWithConstraints(
             modifier = Modifier
-                .widthIn(max = maxWidth * 0.895f)
+                .widthIn(max = maxWidth * 0.75f)
                 .background(
                     color = color,
                     shape = MessageNodeDefaults.DefaultShape

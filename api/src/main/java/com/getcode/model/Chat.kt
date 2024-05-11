@@ -227,6 +227,7 @@ sealed interface MessageContent {
                 Content.TypeCase.LOCALIZED -> Localized(proto.localized.keyOrText)
                 Content.TypeCase.EXCHANGE_DATA -> {
                     val verb = Verb(proto.exchangeData.verb)
+                    val messageStatus = if (verb.increasesBalance) MessageStatus.Incoming else MessageStatus.Delivered
                     when (proto.exchangeData.exchangeDataCase) {
                         ChatService.ExchangeDataContent.ExchangeDataCase.EXACT -> {
                             val exact = proto.exchangeData.exact
@@ -239,7 +240,7 @@ sealed interface MessageContent {
                                 )
                             )
 
-                            Exchange(GenericAmount.Exact(kinAmount), verb)
+                            Exchange(GenericAmount.Exact(kinAmount), verb, status = messageStatus)
                         }
 
                         ChatService.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
@@ -251,7 +252,7 @@ sealed interface MessageContent {
                                 amount = partial.nativeAmount
                             )
 
-                            Exchange(GenericAmount.Partial(fiat), verb)
+                            Exchange(GenericAmount.Partial(fiat), verb, status = messageStatus)
                         }
 
                         ChatService.ExchangeDataContent.ExchangeDataCase.EXCHANGEDATA_NOT_SET -> return null

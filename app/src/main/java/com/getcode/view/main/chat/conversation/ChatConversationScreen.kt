@@ -36,8 +36,9 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.chat.MessageNode
 import com.getcode.ui.components.chat.utils.ChatItem
-import com.getcode.ui.components.conversation.ChatInput
-import com.getcode.ui.components.conversation.utils.HandleMessageChanges
+import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.MessageList
+import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import kotlinx.coroutines.delay
 
 @Composable
@@ -64,94 +65,14 @@ fun ChatConversationScreen(
         }
     ) { padding ->
         val lazyListState = rememberLazyListState()
-        LazyColumn(
+        MessageList(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
-            state = lazyListState,
-            reverseLayout = true,
-            contentPadding = PaddingValues(
-                horizontal = CodeTheme.dimens.inset,
-                vertical = CodeTheme.dimens.inset,
-            ),
+            messages = messages,
+            listState = lazyListState,
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3, Alignment.Top),
-        ) {
-            items(
-                count = messages.itemCount,
-                key = messages.itemKey { item -> item.key },
-            ) { index ->
-                when (val item = messages[index]) {
-                    is ChatItem.Date -> {
-
-                    }
-
-                    is ChatItem.Message -> {
-                        MessageNode(
-                            modifier = Modifier.fillMaxWidth(),
-                            contents = item.message,
-                            date = item.date,
-                            isPreviousSameMessage = false,
-                            isNextSameMessage = false,
-                            showTipActions = false,
-                        )
-//                        when (val contents = item.message) {
-//                            is MessageContent.Decrypted -> MessageBubble(
-//                                contents = contents,
-//                                alignment = when {
-//                                    item.isFromSelf -> Alignment.CenterEnd
-//                                    else -> Alignment.CenterStart
-//                                }
-//                            ) {
-//                                MessageText(
-//                                    modifier = Modifier
-//                                        .align(Alignment.TopStart)
-//                                        .padding(CodeTheme.dimens.grid.x2),
-//                                    text = contents.data,
-//                                    date = item.date
-//                                )
-//                            }
-//
-//                            is MessageContent.Exchange -> MessageBubble(
-//                                contents = contents,
-//                                alignment = when {
-//                                    item.isFromSelf -> Alignment.CenterEnd
-//                                    else -> Alignment.CenterStart
-//                                }
-//                            ) {
-//
-//                            }
-//
-//                            is MessageContent.Localized -> MessageBubble(
-//                                contents = contents,
-//                                alignment = Alignment.Center
-//                            ) {
-//                                if (contents.isAnnouncement) {
-//                                    AnnouncementMessage(
-//                                        modifier = Modifier.align(Alignment.Center),
-//                                        text = contents.localizedText
-//                                    )
-//                                } else {
-//                                    MessageText(
-//                                        modifier = Modifier
-//                                            .align(Alignment.TopStart)
-//                                            .padding(CodeTheme.dimens.grid.x2),
-//                                        text = contents.localizedText,
-//                                        date = item.date
-//                                    )
-//                                }
-//                            }
-//
-//                            is MessageContent.SodiumBox -> MessageBubble(contents = contents) {
-//
-//                            }
-//                        }
-                    }
-
-                    else -> Unit
-
-                }
-            }
-        }
+        )
 
         HandleMessageChanges(listState = lazyListState, items = messages)
     }

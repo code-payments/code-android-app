@@ -36,6 +36,7 @@ internal fun TipChatActions(
         thankUser()
     }
 
+    if (showTipActions) {
     if (tipChatsEnabled && contents.verb is Verb.ReceivedTip) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -60,4 +61,5 @@ internal fun TipChatActions(
             )
         }
     }
+        }
 }
