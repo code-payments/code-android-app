@@ -228,6 +228,7 @@ class HomeViewModel @Inject constructor(
             .onEach { delay(500) }
             .flatMapLatest { tipController.connectedAccount }
             .filterNotNull()
+            .distinctUntilChanged()
             .onEach {
                 when (it) {
                     is TwitterUser -> {
@@ -677,6 +678,8 @@ class HomeViewModel @Inject constructor(
             value = Username(username)
         )
 
+        tipController.clearTwitterSplat()
+
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
@@ -691,8 +694,6 @@ class HomeViewModel @Inject constructor(
                 )
             }
         }
-
-        tipController.clearTwitterSplat()
     }
 
     private suspend fun presentTipCard(
