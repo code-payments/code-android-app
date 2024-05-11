@@ -95,7 +95,7 @@ class ConversationMockController @Inject constructor(
         db.conversationDao().upsertConversations(conversation)
 
         val tipMessage = ConversationMockProvider.createMessage(
-            conversation.id,
+            conversation.messageId,
             ConversationMessageContent.TipMessage
         )
 
@@ -105,7 +105,7 @@ class ConversationMockController @Inject constructor(
 
     override suspend fun hasThanked(messageId: ID): Boolean {
         val conversation = db.conversationDao().findConversationForMessage(messageId) ?: return false
-        return db.conversationDao().hasThanked(conversation.id)
+        return db.conversationDao().hasThanked(conversation.messageId)
     }
 
     override suspend fun thankTipper(messageId: ID) {

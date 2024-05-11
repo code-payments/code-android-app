@@ -334,6 +334,7 @@ class AnalyticsManager @Inject constructor(
         Debug("Debug Screen"),
         ForceUpgrade("Force Upgrade"),
         BuyMoreKin("Buy More Kin Screen"),
+        SendKin("Send Kin Screen"),
     }
 
     enum class BillPresentationStyle(val value: String) {

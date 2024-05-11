@@ -33,6 +33,7 @@ class BetaFlagsViewModel @Inject constructor(
         val chatUnsubEnabled: Boolean = false,
         val tipsEnabled: Boolean = false,
         val tipsChatEnabled: Boolean = false,
+        val tipsChatCashEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -49,6 +50,7 @@ class BetaFlagsViewModel @Inject constructor(
         data class EnableCodeRelationshipEstablish(val enabled: Boolean) : Event
         data class EnableChatUnsubscribe(val enabled: Boolean) : Event
         data class EnableTipChats(val enabled: Boolean) : Event
+        data class EnableTipsChatCash(val enabled: Boolean) : Event
     }
 
     init {
@@ -61,24 +63,69 @@ class BetaFlagsViewModel @Inject constructor(
 
         eventFlow
             .onEach { event ->
-                 when (event) {
-                     is Event.EnableBuyKin -> prefRepository.set(PrefsBool.BUY_MODULE_ENABLED, event.enabled)
-                     is Event.EnableChatUnsubscribe -> prefRepository.set(PrefsBool.CHAT_UNSUB_ENABLED, event.enabled)
-                     is Event.EnableCodeRelationshipEstablish -> prefRepository.set(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, event.enabled)
-                     is Event.EnableGiveRequests -> prefRepository.set(PrefsBool.GIVE_REQUESTS_ENABLED, event.enabled)
-                     is Event.EnableTipCard -> prefRepository.set(PrefsBool.TIPS_ENABLED, event.enabled)
-                     is Event.EnableTipChats -> prefRepository.set(PrefsBool.TIPS_CHAT_ENABLED, event.enabled)
-                     is Event.SetLogScanTimes -> prefRepository.set(PrefsBool.LOG_SCAN_TIMES, event.log)
-                     is Event.SetVibrateOnScan -> prefRepository.set(PrefsBool.VIBRATE_ON_SCAN, event.vibrate)
-                     is Event.ShowErrors -> {
-                         prefRepository.set(PrefsBool.DISPLAY_ERRORS, event.display)
-                         ErrorUtils.setDisplayErrors(event.display)
-                     }
-                     is Event.ShowNetworkDropOff ->  prefRepository.set(PrefsBool.SHOW_CONNECTIVITY_STATUS, event.show)
-                     is Event.UseDebugBuckets -> prefRepository.set(PrefsBool.BUCKET_DEBUGGER_ENABLED, event.enabled)
+                when (event) {
+                    is Event.EnableBuyKin -> prefRepository.set(
+                        PrefsBool.BUY_MODULE_ENABLED,
+                        event.enabled
+                    )
 
-                     is Event.UpdateSettings -> Unit
-                 }
+                    is Event.EnableChatUnsubscribe -> prefRepository.set(
+                        PrefsBool.CHAT_UNSUB_ENABLED,
+                        event.enabled
+                    )
+
+                    is Event.EnableCodeRelationshipEstablish -> prefRepository.set(
+                        PrefsBool.ESTABLISH_CODE_RELATIONSHIP,
+                        event.enabled
+                    )
+
+                    is Event.EnableGiveRequests -> prefRepository.set(
+                        PrefsBool.GIVE_REQUESTS_ENABLED,
+                        event.enabled
+                    )
+
+                    is Event.EnableTipCard -> prefRepository.set(
+                        PrefsBool.TIPS_ENABLED,
+                        event.enabled
+                    )
+
+                    is Event.EnableTipChats -> prefRepository.set(
+                        PrefsBool.TIPS_CHAT_ENABLED,
+                        event.enabled
+                    )
+
+                    is Event.EnableTipsChatCash -> prefRepository.set(
+                        PrefsBool.TIPS_CHAT_CASH_ENABLED,
+                        event.enabled
+                    )
+
+                    is Event.SetLogScanTimes -> prefRepository.set(
+                        PrefsBool.LOG_SCAN_TIMES,
+                        event.log
+                    )
+
+                    is Event.SetVibrateOnScan -> prefRepository.set(
+                        PrefsBool.VIBRATE_ON_SCAN,
+                        event.vibrate
+                    )
+
+                    is Event.ShowErrors -> {
+                        prefRepository.set(PrefsBool.DISPLAY_ERRORS, event.display)
+                        ErrorUtils.setDisplayErrors(event.display)
+                    }
+
+                    is Event.ShowNetworkDropOff -> prefRepository.set(
+                        PrefsBool.SHOW_CONNECTIVITY_STATUS,
+                        event.show
+                    )
+
+                    is Event.UseDebugBuckets -> prefRepository.set(
+                        PrefsBool.BUCKET_DEBUGGER_ENABLED,
+                        event.enabled
+                    )
+
+                    is Event.UpdateSettings -> Unit
+                }
             }.launchIn(viewModelScope)
     }
 
@@ -99,6 +146,7 @@ class BetaFlagsViewModel @Inject constructor(
                             chatUnsubEnabled = chatUnsubEnabled,
                             tipsEnabled = tipsEnabled,
                             tipsChatEnabled = tipsChatEnabled,
+                            tipsChatCashEnabled = tipsChatCashEnabled,
                         )
                     }
                 }
@@ -113,6 +161,7 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.EnableCodeRelationshipEstablish,
                 is Event.EnableChatUnsubscribe,
                 is Event.EnableTipChats,
+                is Event.EnableTipsChatCash,
                 is Event.ShowErrors -> { state -> state }
             }
         }

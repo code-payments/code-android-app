@@ -6,12 +6,10 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Surface
@@ -31,10 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.paging.compose.LazyPagingItems
-import androidx.paging.compose.itemKey
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CodeScaffold
-import com.getcode.ui.components.chat.MessageNode
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
@@ -60,7 +56,10 @@ fun ChatConversationScreen(
             ) {
                 ChatInput(
                     state = state.textFieldState,
-                    onSend = { dispatchEvent(ConversationViewModel.Event.SendMessage) })
+                    sendCashEnabled = state.tipChatCash.enabled,
+                    onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
+                    onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                )
             }
         }
     ) { padding ->

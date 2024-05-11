@@ -7,24 +7,23 @@ import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
-import androidx.paging.cachedIn
 import androidx.paging.map
 import com.getcode.R
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationMessageContent
+import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.MessageContent
 import com.getcode.model.MessageStatus
-import com.getcode.model.TipMetadata
-import com.getcode.model.TwitterUser
+import com.getcode.model.TipChatCashFeature
 import com.getcode.network.ConversationController
+import com.getcode.network.repository.FeatureRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.util.to
 import com.getcode.util.toInstantFromMillis
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,7 +31,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -40,7 +38,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import javax.inject.Inject
@@ -50,6 +47,7 @@ class ConversationViewModel @Inject constructor(
     conversationController: ConversationController,
     currencyUtils: CurrencyUtils,
     resources: ResourceHelper,
+    features: FeatureRepository,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -57,11 +55,11 @@ class ConversationViewModel @Inject constructor(
 
     data class State(
         val messageId: ID?,
-        val conversationId: ID?,
         val title: String,
         val tipAmount: KinAmount?,
         val tipAmountFormatted: String?,
         val textFieldState: TextFieldState,
+        val tipChatCash: Feature,
         val identityRevealed: Boolean,
         val user: User?,
         val lastSeen: Instant?
@@ -75,7 +73,7 @@ class ConversationViewModel @Inject constructor(
         companion object {
             val Default = State(
                 messageId = null,
-                conversationId = null,
+                tipChatCash = TipChatCashFeature(),
                 title = "Anonymous Tipper",
                 tipAmount = null,
                 tipAmountFormatted = null,
@@ -96,13 +94,16 @@ class ConversationViewModel @Inject constructor(
             val imageUrl: String?,
         ) : Event
 
+        data class OnTipsChatCashChanged(val module: Feature) : Event
+
         data class OnUserActivity(val activity: Instant) : Event
         data class OnTitleChanged(val title: String) : Event
         data class OnTipAmountFormatted(val amount: String) : Event
+        data object SendCash : Event
         data object SendMessage : Event
         data object RevealIdentity : Event
 
-        data object OnIdentityRevealed: Event
+        data object OnIdentityRevealed : Event
     }
 
     init {
@@ -131,6 +132,10 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnTipAmountFormatted(formattedAmount))
             }.launchIn(viewModelScope)
 
+        features.tipChatCash
+            .onEach { dispatchEvent(Event.OnTipsChatCashChanged(it)) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.SendMessage>()
             .map { stateFlow.value }
@@ -139,19 +144,19 @@ class ConversationViewModel @Inject constructor(
                 val text = textFieldState.text.toString()
                 Timber.d("sending message of $text")
                 textFieldState.clearText()
-                conversationController.sendMessage(it.conversationId!!, text)
+                conversationController.sendMessage(it.messageId!!, text)
             }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.RevealIdentity>()
-            .mapNotNull { stateFlow.value.messageId  }
+            .mapNotNull { stateFlow.value.messageId }
             .onEach { delay(300) }
             .onEach { conversationController.revealIdentity(it) }
             .launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
-        .map { it.conversationId }
+        .map { it.messageId }
         .filterNotNull()
         .flatMapLatest { conversationController.conversationPagingData(it) }
         .map { page ->
@@ -171,6 +176,7 @@ class ConversationViewModel @Inject constructor(
                             isAnnouncement = true,
                         )
                     }
+
                     ConversationMessageContent.IdentityRevealedToYou -> {
                         MessageContent.Localized(
                             value = resources.getString(
@@ -181,6 +187,7 @@ class ConversationViewModel @Inject constructor(
                             isAnnouncement = true,
                         )
                     }
+
                     is ConversationMessageContent.Text -> {
                         MessageContent.Localized(
                             value = contents.message,
@@ -188,6 +195,7 @@ class ConversationViewModel @Inject constructor(
                             isAnnouncement = false,
                         )
                     }
+
                     ConversationMessageContent.ThanksReceived -> {
                         MessageContent.Localized(
                             value = resources.getString(
@@ -198,6 +206,7 @@ class ConversationViewModel @Inject constructor(
                             isAnnouncement = true,
                         )
                     }
+
                     ConversationMessageContent.ThanksSent -> {
                         MessageContent.Localized(
                             value = resources.getString(
@@ -207,6 +216,7 @@ class ConversationViewModel @Inject constructor(
                             isAnnouncement = true,
                         )
                     }
+
                     ConversationMessageContent.TipMessage -> {
                         MessageContent.Localized(
                             value = resources.getString(
@@ -235,9 +245,14 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     state.copy(
-                        conversationId = event.conversation.id,
                         tipAmount = event.conversation.tipAmount,
                         identityRevealed = event.conversation.hasRevealedIdentity
+                    )
+                }
+
+                is Event.OnTipsChatCashChanged -> { state ->
+                    state.copy(
+                        tipChatCash = event.module
                     )
                 }
 
@@ -252,6 +267,7 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 Event.RevealIdentity,
+                Event.SendCash,
                 is Event.SendMessage -> { state -> state }
 
                 is Event.OnMessageIdChanged -> { state ->

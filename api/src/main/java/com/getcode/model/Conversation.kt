@@ -19,7 +19,6 @@ import kotlinx.serialization.modules.SerializersModule
 @Entity(tableName = "conversations")
 data class Conversation(
     @PrimaryKey
-    val idBase58: String,
     val messageIdBase58: String,
     val cursorBase58: String,
     val tipAmount: KinAmount,
@@ -30,8 +29,6 @@ data class Conversation(
     val lastActivity: Long?,
 ) {
     @Ignore
-    val id: ID = Base58.decode(idBase58).toList()
-    @Ignore
     val messageId: ID = Base58.decode(messageIdBase58).toList()
     @Ignore
     val cursor: Cursor = Base58.decode(cursorBase58).toList()
@@ -39,7 +36,6 @@ data class Conversation(
     override fun toString(): String {
         return """
             {
-            id:${idBase58},
             messageId:${messageIdBase58},
             tipAmount:$tipAmount,
             createByUser:$createdByUser,
@@ -72,7 +68,7 @@ data class ConversationMessage(
 data class ConversationWithMessages(
     @Embedded val user: Conversation,
     @Relation(
-        parentColumn = "idBase58",
+        parentColumn = "messageIdBase58",
         entityColumn = "conversationIdBase58"
     )
     val messages: List<ConversationMessage>,

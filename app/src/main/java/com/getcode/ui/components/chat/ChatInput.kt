@@ -5,12 +5,14 @@ import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,8 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.getcode.LocalBetaFlags
+import com.getcode.R
 import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
@@ -40,7 +45,9 @@ import com.getcode.ui.utils.withTopBorder
 fun ChatInput(
     modifier: Modifier = Modifier,
     state: TextFieldState = rememberTextFieldState(),
-    onSend: () -> Unit,
+    sendCashEnabled: Boolean = false,
+    onSendMessage: () -> Unit,
+    onSendCash: () -> Unit,
 ) {
     Row(
         modifier = modifier
@@ -51,6 +58,27 @@ fun ChatInput(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2),
         verticalAlignment = Alignment.Bottom
     ) {
+        if (sendCashEnabled) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Bottom)
+                    .border(width = 1.dp, color = Color.White, shape = CircleShape)
+                    .clip(CircleShape)
+                    .clickable { onSendCash() }
+                    .size(ChatInput_Size)
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    modifier = Modifier
+                        .size(CodeTheme.dimens.staticGrid.x6),
+                    painter = painterResource(id = R.drawable.ic_kin_white),
+                    tint = Color.White,
+                    contentDescription = "Send message"
+                )
+            }
+        }
+
         TextInput(
             modifier = Modifier
                 .weight(1f),
@@ -65,6 +93,7 @@ fun ChatInput(
             )
         )
         AnimatedContent(
+            modifier = Modifier.fillMaxHeight(),
             targetState = state.text.isNotEmpty(),
             label = "show/hide send button",
             transitionSpec = {
@@ -81,7 +110,7 @@ fun ChatInput(
                         .align(Alignment.Bottom)
                         .background(ChatOutgoing, shape = CircleShape)
                         .clip(CircleShape)
-                        .clickable { onSend() }
+                        .clickable { onSendMessage() }
                         .size(ChatInput_Size)
                         .padding(8.dp),
                     contentAlignment = Alignment.Center,
@@ -104,9 +133,11 @@ fun ChatInput(
 @Composable
 private fun Preview_ChatInput() {
     CodeTheme {
-        ChatInput {
-
-        }
+        ChatInput(
+            sendCashEnabled = true,
+            onSendMessage = {},
+            onSendCash = {}
+        )
     }
 }
 

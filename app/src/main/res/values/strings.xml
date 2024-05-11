@@ -35,4 +35,6 @@
     <string name="title_chat_announcement_tipHeader">This person tipped you %1$s</string>
     <string name="title_chat_announcement_thanksSent">🙏 You thanked them</string>
     <string name="title_chat_announcement_thanksReceived">🙏 %1$s thanked you for your tip</string>
+
+    <string name="title_sendKin">Send Kin</string>
 </resources>

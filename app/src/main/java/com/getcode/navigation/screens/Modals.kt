@@ -38,7 +38,7 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-internal fun Screen.ModalContainer(
+internal fun NamedScreen.ModalContainer(
     closeButton: (Screen?) -> Boolean = { false },
     screenContent: @Composable () -> Unit
 ) {
@@ -53,7 +53,7 @@ internal fun Screen.ModalContainer(
 }
 
 @Composable
-internal fun Screen.ModalContainer(
+internal fun NamedScreen.ModalContainer(
     displayLogo: Boolean = false,
     onLogoClicked: () -> Unit = { },
     closeButton: (Screen?) -> Boolean = { false },
@@ -71,10 +71,10 @@ internal fun Screen.ModalContainer(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun Screen.ModalContainer(
+internal fun NamedScreen.ModalContainer(
     navigator: CodeNavigator = LocalCodeNavigator.current,
     displayLogo: Boolean = false,
-    titleString: @Composable (Screen?) -> String? = { null },
+    titleString: @Composable (NamedScreen?) -> String? = { name },
     title: @Composable BoxScope.() -> Unit = { },
     backButton: (Screen?) -> Boolean = { false },
     onBackClicked: (() -> Unit)? = null,

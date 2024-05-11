@@ -18,6 +18,7 @@ data class BetaOptions(
     val chatUnsubEnabled: Boolean,
     val tipsEnabled: Boolean,
     val tipsChatEnabled: Boolean,
+    val tipsChatCashEnabled: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -32,7 +33,8 @@ data class BetaOptions(
             establishCodeRelationship = false,
             chatUnsubEnabled = false,
             tipsEnabled = false,
-            tipsChatEnabled = false
+            tipsChatEnabled = false,
+            tipsChatCashEnabled = false
         )
     }
 }
@@ -63,8 +65,9 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.CHAT_UNSUB_ENABLED, default = defaults.chatUnsubEnabled),
             observeBetaFlag(PrefsBool.TIPS_ENABLED, default = defaults.tipsEnabled),
             observeBetaFlag(PrefsBool.TIPS_CHAT_ENABLED, default = defaults.tipsChatEnabled),
+            observeBetaFlag(PrefsBool.TIPS_CHAT_CASH_ENABLED, default = defaults.tipsChatCashEnabled),
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
-        ) { network, buckets, vibez, times, giveRequests, buyKin, relationship, chatUnsub, tips, tipsChat, errors ->
+        ) { network, buckets, vibez, times, giveRequests, buyKin, relationship, chatUnsub, tips, tipsChat, tipsChatCash, errors ->
             BetaOptions(
                 showNetworkDropOff = network,
                 canViewBuckets = buckets,
@@ -76,6 +79,7 @@ class BetaFlagsRepository @Inject constructor(
                 chatUnsubEnabled = chatUnsub,
                 tipsEnabled = tips,
                 tipsChatEnabled = tipsChat,
+                tipsChatCashEnabled = tipsChatCash,
                 displayErrors = errors
             )
         }

@@ -371,28 +371,48 @@ data class BuyMoreKinModal(
 }
 
 @Parcelize
-data object EnterTipModal : MainGraph, ModalRoot {
+data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.action_tipKin)
+        @Composable get() =
+            if (isInChat) stringResource(R.string.title_sendKin)
+            else stringResource(id = R.string.action_tipKin)
 
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-        ModalContainer(
-            closeButton = {
-                if (navigator.isVisible) {
-                    it is EnterTipModal
-                } else {
-                    navigator.progress > 0f
+        if (isInChat) {
+            ModalContainer(
+                backButton = {
+                    if (navigator.isVisible) {
+                        it is EnterTipModal
+                    } else {
+                        navigator.progress > 0f
+                    }
+                }
+            ) {
+                EnterTipScreen(getViewModel()) { result ->
+                    navigator.popWithResult(result)
                 }
             }
-        ) {
-            EnterTipScreen(getViewModel())
+        } else {
+            ModalContainer(
+                closeButton = {
+                    if (navigator.isVisible) {
+                        it is EnterTipModal
+                    } else {
+                        navigator.progress > 0f
+                    }
+                }
+            ) {
+                EnterTipScreen(getViewModel()) { result ->
+                    navigator.hideWithResult(result)
+                }
+            }
         }
     }
 

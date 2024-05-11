@@ -1,5 +1,6 @@
 package com.getcode.view.main.account
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -20,6 +21,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeSwitch
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun BetaFlagsScreen(
     viewModel: BetaFlagsViewModel,
@@ -90,6 +92,12 @@ fun BetaFlagsScreen(
             state.tipsChatEnabled,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipChats(it)) },
         BetaFeature(
+            PrefsBool.TIPS_CHAT_CASH_ENABLED,
+            R.string.beta_tipchats_cash,
+            stringResource(id = R.string.beta_tipchats_cash_description),
+            state.tipsChatCashEnabled,
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipsChatCash(it)) },
+        BetaFeature(
             PrefsBool.LOG_SCAN_TIMES,
             R.string.beta_scan_times,
             stringResource(R.string.beta_scan_times_description),
@@ -107,6 +115,7 @@ fun BetaFlagsScreen(
         items(options) { option ->
             Row(
                 modifier = Modifier
+                    .animateItemPlacement()
                     .rememberedClickable { option.onChange(!option.dataState) }
                     .padding(horizontal = CodeTheme.dimens.grid.x3)
                     .padding(end = CodeTheme.dimens.grid.x3),
@@ -146,7 +155,7 @@ fun BetaFlagsScreen(
 private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         PrefsBool.BUY_MODULE_ENABLED -> false
-        PrefsBool.TIPS_CHAT_ENABLED -> tipsEnabled
+        PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
         else -> true
     }
 }

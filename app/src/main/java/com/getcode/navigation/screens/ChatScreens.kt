@@ -45,6 +45,8 @@ import com.getcode.view.main.chat.ChatScreen
 import com.getcode.view.main.chat.ChatViewModel
 import com.getcode.view.main.chat.conversation.ChatConversationScreen
 import com.getcode.view.main.chat.conversation.ConversationViewModel
+import com.getcode.view.main.giveKin.GiveKinScreen
+import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -147,13 +149,14 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
 }
 
 @Parcelize
-data class ChatMessageConversationScreen(val messageId: ID) : ChatGraph, ModalContent {
+data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val homeViewModel = getViewModel<HomeViewModel>()
         val vm = getViewModel<ConversationViewModel>()
         val state by vm.stateFlow.collectAsState()
 
@@ -201,6 +204,13 @@ data class ChatMessageConversationScreen(val messageId: ID) : ChatGraph, ModalCo
             ChatConversationScreen(state, messages, vm::dispatchEvent)
         }
 
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ConversationViewModel.Event.SendCash>()
+                .onEach {
+                    navigator.push(EnterTipModal(isInChat = true))
+                }.launchIn(this)
+        }
 
         LaunchedEffect(messageId) {
             vm.dispatchEvent(ConversationViewModel.Event.OnMessageIdChanged(messageId))

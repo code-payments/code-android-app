@@ -22,7 +22,7 @@ object ConversationMockProvider {
 
     suspend fun createConversation(exchange: Exchange, message: ChatMessage): Conversation? {
         val ret = db.conversationDao().findConversationForMessage(message.id)
-        val hasTipMessage = ret?.let { db.conversationDao().hasTipMessage(it.id) } ?: false
+        val hasTipMessage = ret?.let { db.conversationDao().hasTipMessage(it.messageId) } ?: false
         if (hasTipMessage) return null
 
         val tipAmountRaw = message.contents.filterIsInstance<MessageContent.Exchange>()
@@ -32,12 +32,9 @@ object ConversationMockProvider {
         val rate = exchange.rateFor(tipAmountRaw.currencyCode).orOneToOne()
         val tipAmount = tipAmountRaw.amountUsing(rate)
 
-        val id = generateId()
-
         val conversation = Conversation(
-            idBase58 = id.base58,
             messageIdBase58 = message.id.base58,
-            cursorBase58 = id.base58,
+            cursorBase58 = message.id.base58,
             tipAmount = tipAmount,
             createdByUser = true,
             hasRevealedIdentity = false,
@@ -46,7 +43,7 @@ object ConversationMockProvider {
             lastActivity = null,
         )
 
-        Timber.d("Created conversation ${id.base58} from ${tipAmount.fiat}")
+        Timber.d("Created conversation from ${tipAmount.fiat}")
 
         return conversation
     }
@@ -67,27 +64,24 @@ object ConversationMockProvider {
     }
 
     suspend fun thankTipper(messageId: ID): ConversationMessage? {
-        val conversation =
-            db.conversationDao().findConversationForMessage(messageId) ?: return null
-
-        if (db.conversationDao().hasThanked(conversation.id)) {
+        if (db.conversationDao().hasThanked(messageId)) {
             return null
         }
 
-        return createMessage(conversation.id, ConversationMessageContent.ThanksSent)
+        return createMessage(messageId, ConversationMessageContent.ThanksSent)
     }
 
     suspend fun revealIdentity(messageId: ID): ConversationMessage? {
         val conversation =
             db.conversationDao().findConversationForMessage(messageId) ?: return null
 
-        if (db.conversationDao().hasRevealedIdentity(conversation.id)) {
+        if (db.conversationDao().hasRevealedIdentity(conversation.messageId)) {
             return null
         }
 
         db.conversationDao().upsertConversations(conversation.copy(hasRevealedIdentity = true))
 
-        return createMessage(conversation.id, ConversationMessageContent.IdentityRevealed)
+        return createMessage(conversation.messageId, ConversationMessageContent.IdentityRevealed)
     }
 
     private fun generateId() = UUID.randomUUID().toByteArray().toList()

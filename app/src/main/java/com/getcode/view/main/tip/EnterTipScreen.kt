@@ -36,7 +36,8 @@ import timber.log.Timber
 
 @Composable
 fun EnterTipScreen(
-    viewModel: TipPaymentViewModel = hiltViewModel()
+    viewModel: TipPaymentViewModel = hiltViewModel(),
+    onSendTip: (HomeResult.ConfirmTip) -> Unit,
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
@@ -107,7 +108,7 @@ fun EnterTipScreen(
                 composeScope.launch {
                     val amount = viewModel.onSubmit() ?: return@launch
                     val result = HomeResult.ConfirmTip(amount)
-                    navigator.hideWithResult(result)
+                    onSendTip(result)
                 }
             },
             enabled = dataState.continueEnabled,

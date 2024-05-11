@@ -18,18 +18,18 @@ interface ConversationDao {
     suspend fun upsertConversations(vararg conversation: Conversation)
 
     @Transaction
-    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :id")
     fun observeConversationWithMessages(id: String): Flow<ConversationWithMessages>
 
-    fun observeConversationWithMessages(id: ID): Flow<ConversationWithMessages> {
-        return observeConversationWithMessages(id.base58)
+    fun observeConversationWithMessages(messageId: ID): Flow<ConversationWithMessages> {
+        return observeConversationWithMessages(messageId.base58)
     }
 
-    @Query("SELECT * FROM conversations WHERE idBase58 = :conversationId")
-    fun observeConversation(conversationId: String): Flow<Conversation?>
+    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
+    fun observeConversation(messageId: String): Flow<Conversation?>
 
-    fun observeConversation(conversationId: ID): Flow<Conversation?> {
-        return observeConversation(conversationId.base58)
+    fun observeConversation(messageId: ID): Flow<Conversation?> {
+        return observeConversation(messageId.base58)
     }
 
     @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
@@ -39,11 +39,11 @@ interface ConversationDao {
         return observeConversationForMessage(messageId.base58)
     }
 
-    @Query("SELECT * FROM conversations WHERE idBase58 = :conversationId")
-    suspend fun findConversation(conversationId: String): Conversation?
+    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
+    suspend fun findConversation(messageId: String): Conversation?
 
-    suspend fun findConversation(conversationId: ID): Conversation? {
-        return findConversation(conversationId.base58)
+    suspend fun findConversation(messageId: ID): Conversation? {
+        return findConversation(messageId.base58)
     }
 
     @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
@@ -56,25 +56,25 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations")
     suspend fun queryConversations(): List<Conversation>
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :conversationId AND content LIKE '%1|%')")
-    suspend fun hasTipMessage(conversationId: String): Boolean
+    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%1|%')")
+    suspend fun hasTipMessage(messageId: String): Boolean
 
-    suspend fun hasTipMessage(conversationId: ID): Boolean {
-        return hasTipMessage(conversationId.base58)
+    suspend fun hasTipMessage(messageId: ID): Boolean {
+        return hasTipMessage(messageId.base58)
     }
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :conversationId AND content LIKE '%2|%')")
-    suspend fun hasThanked(conversationId: String): Boolean
+    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%2|%')")
+    suspend fun hasThanked(messageId: String): Boolean
 
-    suspend fun hasThanked(conversationId: ID): Boolean {
-        return hasThanked(conversationId.base58)
+    suspend fun hasThanked(messageId: ID): Boolean {
+        return hasThanked(messageId.base58)
     }
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :conversationId AND content LIKE '%4|%')")
-    suspend fun hasRevealedIdentity(conversationId: String): Boolean
+    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")
+    suspend fun hasRevealedIdentity(messageId: String): Boolean
 
-    suspend fun hasRevealedIdentity(conversationId: ID): Boolean {
-        return hasRevealedIdentity(conversationId.base58)
+    suspend fun hasRevealedIdentity(messageId: ID): Boolean {
+        return hasRevealedIdentity(messageId.base58)
     }
 
     @Query("DELETE FROM conversations")
