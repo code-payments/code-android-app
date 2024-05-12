@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Разрешить доступ к контактам</string>
   <string name="action_allowPushNotifications">Разрешить push-уведомления</string>
   <string name="action_balance">Баланс</string>
+  <string name="action_buyKin">Купить кин</string>
   <string name="action_buyMoreKin">Купить больше Kin</string>
   <string name="action_cancel">Отменить</string>
   <string name="action_cancelSend">Отменить отправку</string>
   <string name="action_collectCash">Заберите эти деньги</string>
   <string name="action_confirm">Подтвердить</string>
+  <string name="action_connectToX">Подключиться к X</string>
   <string name="action_continue">Продолжить</string>
   <string name="action_copied">Скопировано</string>
   <string name="action_copy">Копировать</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Создать учетную запись</string>
   <string name="action_createNewCodeAccount">Создать новую учетную запись Code</string>
   <string name="action_deleteAccount">Удалить учетную запись</string>
+  <string name="action_done">Готово</string>
   <string name="action_downloadNow">Скачать сейчас</string>
   <string name="action_enableFaceID">Включить Face ID</string>
   <string name="action_enableTouchID">Включить Touch ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Пригласить</string>
   <string name="action_invites">Приглашения</string>
   <string name="action_joinWaitlist">Присоединиться к списку ожидания</string>
+  <string name="action_later">Позже</string>
   <string name="action_learnBuyKin">Узнать, как купить Kin</string>
   <string name="action_learnSellKin">Узнать, как продать Kin</string>
   <string name="action_linkPhoneNumber">Привязать номер телефона</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Напомнить</string>
   <string name="action_removePhoneNumber">Удалить номер телефона</string>
   <string name="action_removeYourPhoneNumber">Удалить ваш номер телефона</string>
+  <string name="action_requestTip">Запросить чаевые</string>
   <string name="action_saveAccessKey">Сохранить ключ доступа в мои фото</string>
   <string name="action_saveToPhotos">Сохранить в фото</string>
   <string name="action_send">Отправить</string>
   <string name="action_sendVerificationCode">Отправить код проверки</string>
+  <string name="action_share">Поделиться</string>
   <string name="action_shareDownloadLink">Поделитесь ссылкой для загрузки</string>
   <string name="action_shareVideo">Поделитесь этим видео</string>
+  <string name="action_showMyTipCard">Показать мою карту чаевых</string>
+  <string name="action_subscribe">Подписаться</string>
   <string name="action_swipeToLogin">Войдите, проведя пальцем</string>
   <string name="action_swipeToPay">Проведите, чтобы оплатить</string>
+  <string name="action_swipeToTip">Прведите, чтобы дать чаевые </string>
   <string name="action_tryDifferentCodeAccount">Попробовать другую учетную запись Code</string>
   <string name="action_unmute">Включить звук</string>
   <string name="action_unsubscribe">Отписаться</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Чтобы узнать, как получить больше Kin, посетите раздел с частыми вопросами в настройках.</string>
   <string name="error_description_invalidInviteCode">Введите другой пригласительный код и повторите попытку.</string>
   <string name="error_description_invalidInvitePhone">Введите верный номер телефона и повторите попытку.</string>
+  <string name="error_description_invalidTipCard">Это недействительная карта чаевых.</string>
   <string name="error_description_invalidVerificationCode">Введите верный код и попробуйте снова.</string>
   <string name="error_description_invitationFailed">Извините, у нас возникла проблема с сетью. Попробуйте пригласить друга снова.</string>
   <string name="error_description_linkExpired">Этот Kin был автоматически возвращен отправителю, так как не был получен в течение 24 часов. Пожалуйста, попросите их снова прислать Kin.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Максимальное количество, которое вы можете приобрести, — %1$s. Введите меньшее количество.</string>
   <string name="error_description_purchaseTooSmall">Минимальное количество, которое вы можете приобрести, — %1$s. Введите большее количество.</string>
   <string name="error_description_timelockUnlocked">Ваш ключ доступа инициировал снятие блокировки. В результате вы больше не сможете использовать этот ключ доступа в Code.</string>
+  <string name="error_description_tipTooLarge">Максимальный размер чаевых — %1$s. Введите меньшую сумму.</string>
+  <string name="error_description_tipTooSmall">Минимальный размер чаевых — %1$s. Введите большую сумму.</string>
   <string name="error_description_tooManyAccounts">Вы можете создать лишь столько новых учетных записей в день.</string>
   <string name="error_title_alreadyCollected">Kin уже получен</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin уже получен</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Недостаточно Kin</string>
   <string name="error_title_invalidInviteCode">Пригласительный код недействителен или просрочен</string>
   <string name="error_title_invalidInvitePhone">Неверный номер телефона</string>
+  <string name="error_title_invalidTipCard">Недействительная карта чаевых</string>
   <string name="error_title_invalidVerificationCode">Неверный код</string>
   <string name="error_title_invitationFailed">Сбой приглашения</string>
   <string name="error_title_linkExpired">Срок действия ссылки истек</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Слишком большая сумма покупки</string>
   <string name="error_title_purchaseTooSmall">Слишком маленькая сумма покупки</string>
   <string name="error_title_timelockUnlocked">Ключ доступа больше нельзя использовать в Code</string>
+  <string name="error_title_tipTooLarge">Чаевые слишком большие</string>
+  <string name="error_title_tipTooSmall">Чаевые слишком маленькие</string>
   <string name="error_title_tooManyAccounts">Создано слишком много учетных записей</string>
   <string name="faq_a__1">Code — это платежное приложение, которое упрощает отправку денег кому угодно и в любую точку мира.</string>
   <string name="faq_a__10">Мы планируем поддерживать себя с помощью будущей модели подписки, аналогичной тому, что делают Signal и Twitter.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Любой Kin, который не будет получен в течение 24 часов, автоматически возвращается на ваш баланс.</string>
   <string name="prompt_description_exitAccountCreation">Вам придется начать создание учетной записи заново и подтвердить свой номер телефона снова.</string>
   <string name="prompt_description_logout">Вы можете войти в эту учетную запись снова при помощи своего ключа доступа</string>
+  <string name="prompt_description_mute">Вы не будете получать уведомления о новых сообщениях от %1$s. Вы можете включить звук в любое время.</string>
   <string name="prompt_description_notCodeAccount">На данный момент поддерживаются только учетные записи, созданные через Code.</string>
   <string name="prompt_description_unlinkPhoneNumber">Ваши друзья больше не смогут найти вас по этому номеру телефона.</string>
+  <string name="prompt_description_unmute">Вы будете получать уведомления обо всех новых сообщениях от %1$s. Вы можете отключить звук в любое время.</string>
+  <string name="prompt_description_unsubscribe">Вы не будете получать сообщения от %1$s до тех пор, пока не заплатите ему (ей) снова.</string>
   <string name="prompt_description_viewAccessKey">Ваш ключ доступа предоставит доступ к вашей учетной записи Code. Храните его в безопасном месте и не разглашайте.</string>
   <string name="prompt_description_wroteThemDown">Эти 12 слов — единственный способ восстановить вашу учетную запись Code. Обязательно запишите их, храните в безопасном месте и не разглашайте.</string>
   <string name="prompt_title_confirmWithdrawal">Вы уверены?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Вы отправили ссылку?</string>
   <string name="prompt_title_exitAccountCreation">Вы точно хотите выйти?</string>
   <string name="prompt_title_logout">Вы точно хотите выйти?</string>
+  <string name="prompt_title_mute">Отключить звук %1$s?</string>
   <string name="prompt_title_notCodeAccount">Не является учетной записью Code</string>
   <string name="prompt_title_unlinkPhoneNumber">Вы уверены?</string>
+  <string name="prompt_title_unmute">Включить звук %1$s?</string>
+  <string name="prompt_title_unsubscribe">Отписаться от %1$s?</string>
   <string name="prompt_title_viewAccessKey">Показать ваш ключ доступа?</string>
   <string name="prompt_title_wroteThemDown">Вы уверены?</string>
   <string name="push_subtitle_depositReceived">На ваш счет зачислено %1$s Kin.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Купить Kin (скоро)</string>
   <string name="subtitle_buySellDescription">Купля-продажа Kin в настоящее время представляет собой сложный процесс. Со временем эти процессы станут проще. Если вы хотите узнать, как покупать и продавать Kin сегодня, вы можете посмотреть ниже видеоинструкции.</string>
   <string name="subtitle_canOnlyGiveUpTo">Вы можете отправить не более %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Вы можете оставить чаевые только до %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Kin теперь доступны для использования в приложении Code</string>
   <string name="subtitle_chat_referralBonus">Вы послали кому-то его/ее первый Kin! Вот ваш реферальный бонус:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC конвертируются в Kin. Это должно занять примерно одну минуту</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code — это новое приложение-криптокошелек, в настоящее время доступное только по приглашениям. Чтобы загрузить Code, перейдите на %1$s</string>
   <string name="subtitle_learnMore">Узнать больше</string>
   <string name="subtitle_linkedPhoneNumberDescription">Ваш номер телефона привязан к этой учетной записи Code. Друзья смогут вас по нему найти.</string>
+  <string name="subtitle_linkingTwitter">Я подключаю свой аккаунт X к @getcode, чтобы получать советы от людей со всего мира.</string>
   <string name="subtitle_loadingBalance">Загрузка вашего баланса и истории транзакций</string>
   <string name="subtitle_loginDescription">Проверьте свои фото на наличие ключа доступа, который вы сохранили при создании своей учетной записи.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Вы вошли в аккаунт. Прежде чем продолжить, убедитесь, что вы сохранили ключ доступа. Хотите выйти из системы и войти под новым аккаунтом?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Этого номера нет в ваших контактах. Но вы все равно можете пригласить этого человека в Code.</string>
   <string name="subtitle_phoneVerificationDescription">Введите свой номер телефона вместе с кодом страны. Убедитесь, что используете тот же номер, на который пришло приглашение.</string>
   <string name="subtitle_poweredBy">На платформе</string>
+  <string name="subtitle_push_twitterAccountConnected">Теперь вы можете запросить чаевые</string>
   <string name="subtitle_referralBonusReceived">Реферальный бонус получен</string>
   <string name="subtitle_remoteSendShareSheetTitle">Отправить %1$s</string>
   <string name="subtitle_remoteSendSubject">Вот %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Искать контакты</string>
   <string name="subtitle_smsWasSent">На ваш номер телефона было отправлено SMS-сообщение с кодом подтверждения. Введите код подтверждения выше.</string>
   <string name="subtitle_someoneSendYouCash">Кто-то отправил вам деньги</string>
+  <string name="subtitle_someoneTippedYou">Кто-то дал вам чаевые</string>
+  <string name="subtitle_tipCardForX">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к своей карте чаевых, подключите свою личность X.</string>
   <string name="subtitle_typeDelete">Введите «%1$s‎»</string>
   <string name="subtitle_updateRequiredDescription">Мы кое-что изменили, чтобы улучшить ваш опыт пользования. Вам придется обновить приложение, чтобы продолжить пользоваться Code.</string>
   <string name="subtitle_validOwnerAccount">Действительный счет владельца</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Вы получили</string>
   <string name="subtitle_youSent">Вы отправили</string>
   <string name="subtitle_youSpent">Вы потратили</string>
+  <string name="subtitle_youTipped">Вы дали кому-то чаевые</string>
   <string name="subtitle_youWithdrew">Вы вывели</string>
   <string name="success_description_withdrawalComplete">Ваши средства успешно выведены.</string>
+  <string name="success_description_xConnected">Ваш аккаунт X был успешно подключен к вашему аккаунту Code. Теперь вы можете запросить чаевые.</string>
   <string name="success_title_withdrawalComplete">Выведение прошло успешно</string>
+  <string name="success_title_xConnected">Аккаунт X успешно подключен</string>
   <string name="title_accessExpired">Время на доступ вышло</string>
   <string name="title_accessKey">Ключ доступа</string>
   <string name="title_balance">Баланс</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Купля и продажа Kin</string>
   <string name="title_chat_cashTransactions">Платежи наличными</string>
   <string name="title_chat_codeTeam">Команда Code</string>
+  <string name="title_chat_kinPurchases">Покупки за кины</string>
   <string name="title_chat_payments">Онлайн-платежи</string>
+  <string name="title_chat_tips">Чаевые</string>
   <string name="title_debugOptions">Опции отладки</string>
   <string name="title_depositKin">Внести Kin</string>
   <string name="title_deposited">Внес(-ла)</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Номер телефона</string>
   <string name="title_privacyPolicy">Политика конфиденциальности</string>
   <string name="title_purchased">Куплено</string>
+  <string name="title_push_twitterAccountConnected">Аккаунт X успешно подключен</string>
   <string name="title_received">Получил(-а)</string>
   <string name="title_recentCurrencies">Недавние валюты</string>
   <string name="title_referFriend">Приведите друга, получите 5 долл. США</string>
   <string name="title_referralBonus">Реферальный бонус</string>
+  <string name="title_requestKin">Запросить кин</string>
+  <string name="title_requestTip">Запросить чаевые</string>
   <string name="title_results">Результаты</string>
   <string name="title_returned">Возвращено</string>
   <string name="title_selectAccount">Выберите учетную запись</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Потрачено</string>
   <string name="title_switchAccounts">Переключить учетные записи</string>
   <string name="title_termsOfService">Условия пользования</string>
+  <string name="title_tipKin">Дать чаевые в кин</string>
   <string name="title_unknown">Неизвестный</string>
   <string name="title_updateRequired">Требуется обновление</string>
   <string name="title_verifyPhoneNumber">Подтвердить номер телефона</string>

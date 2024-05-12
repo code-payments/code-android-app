@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Permitir acceso a contactos</string>
   <string name="action_allowPushNotifications">Permitir notificaciones Push</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Comprar Kin</string>
   <string name="action_buyMoreKin">Comprar más Kin</string>
   <string name="action_cancel">Cancelar</string>
   <string name="action_cancelSend">Cancelar envío</string>
   <string name="action_collectCash">Cobra este dinero</string>
   <string name="action_confirm">Confirmar</string>
+  <string name="action_connectToX">Conectar con X</string>
   <string name="action_continue">Continuar</string>
   <string name="action_copied">Copiado</string>
   <string name="action_copy">Copiar</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Crear una cuenta</string>
   <string name="action_createNewCodeAccount">Crear una cuenta Code nueva</string>
   <string name="action_deleteAccount">Borrar cuenta</string>
+  <string name="action_done">Hecho</string>
   <string name="action_downloadNow">Descárgala ya</string>
   <string name="action_enableFaceID">Habilitar identificación facial</string>
   <string name="action_enableTouchID">Habilitar identificación táctil</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Invitar</string>
   <string name="action_invites">Invitaciones</string>
   <string name="action_joinWaitlist">Unirse a la lista de espera</string>
+  <string name="action_later">Después</string>
   <string name="action_learnBuyKin">Aprenda cómo comprar Kin</string>
   <string name="action_learnSellKin">Aprenda cómo vender Kin</string>
   <string name="action_linkPhoneNumber">Vincular un número de teléfono</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Recordar</string>
   <string name="action_removePhoneNumber">Eliminar número de teléfono</string>
   <string name="action_removeYourPhoneNumber">Eliminar tu número de teléfono</string>
+  <string name="action_requestTip">Solicitar una propina</string>
   <string name="action_saveAccessKey">Guardar clave de acceso en mis fotos</string>
   <string name="action_saveToPhotos">Guardar en fotos</string>
   <string name="action_send">Enviar</string>
   <string name="action_sendVerificationCode">Enviar código de verificación</string>
+  <string name="action_share">Compartir</string>
   <string name="action_shareDownloadLink">Compartir enlace de descarga</string>
   <string name="action_shareVideo">Compartir este vídeo</string>
+  <string name="action_showMyTipCard">Mostrar mi tarjeta de propinas</string>
+  <string name="action_subscribe">Suscribirse</string>
   <string name="action_swipeToLogin">Deslizar para iniciar sesión</string>
   <string name="action_swipeToPay">Deslizar para pagar</string>
+  <string name="action_swipeToTip">Deslizar para dar propina</string>
   <string name="action_tryDifferentCodeAccount">Probar con una cuenta Code diferente</string>
   <string name="action_unmute">Anular silencio</string>
   <string name="action_unsubscribe">Cancelar suscripción</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Para saber cómo conseguir más Kin, consulta las FAQ en Ajustes.</string>
   <string name="error_description_invalidInviteCode">Introduzca otra invitación diferente e inténtelo de nuevo.</string>
   <string name="error_description_invalidInvitePhone">Introduce un número de teléfono válido e inténtalo de nuevo.</string>
+  <string name="error_description_invalidTipCard">Esta tarjeta de propinas no es válida.</string>
   <string name="error_description_invalidVerificationCode">Introduce un código válido e inténtalo de nuevo.</string>
   <string name="error_description_invitationFailed">Lo sentimos, hemos tenido un problema con la red. Intenta invitar de nuevo a tu amigo.</string>
   <string name="error_description_linkExpired">Este Kin fue devuelto automáticamente al remitente porque no fue recogido en 24 horas. Pídeles que vuelvan a enviar el Kin.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">El máximo que puedes comprar es %1$s. Introduce una cantidad menor.</string>
   <string name="error_description_purchaseTooSmall">El mínimo que puedes comprar es %1$s. Introduce una cantidad mayor.</string>
   <string name="error_description_timelockUnlocked">Su Clave de Acceso ha iniciado un desbloqueo. Por consiguiente, ya no podrá utilizar esta clave de acceso en Code.</string>
+  <string name="error_description_tipTooLarge">La propina máxima es %1$s. Debes introducir una cantidad menor.</string>
+  <string name="error_description_tipTooSmall">La propina mínima es %1$s. Debes introducir una cantidad mayor.</string>
   <string name="error_description_tooManyAccounts">Solo puedes crear un número limitado de cuentas nuevas cada día.</string>
   <string name="error_title_alreadyCollected">Kin Ya recogido</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin ya recogido</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Kin insuficientes</string>
   <string name="error_title_invalidInviteCode">La invitación a Code no es válida o ha caducado</string>
   <string name="error_title_invalidInvitePhone">Número de teléfono no válido</string>
+  <string name="error_title_invalidTipCard">Tarjeta de propinas no válida</string>
   <string name="error_title_invalidVerificationCode">Código no válido</string>
   <string name="error_title_invitationFailed">Invitación fallida</string>
   <string name="error_title_linkExpired">Enlace caducado</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">La compra es demasiado grande</string>
   <string name="error_title_purchaseTooSmall">La compra es demasiado pequeña</string>
   <string name="error_title_timelockUnlocked">Esta clave de acceso ya no se podrá utilizar en Code</string>
+  <string name="error_title_tipTooLarge">Propina demasiado grande</string>
+  <string name="error_title_tipTooSmall">Propina demasiado pequeña</string>
   <string name="error_title_tooManyAccounts">Has creado demasiadas cuentas</string>
   <string name="faq_a__1">Code es una aplicación de pagos que facilita el envío de dinero a cualquier persona, en cualquier lugar del mundo.</string>
   <string name="faq_a__10">Planeamos mantenernos mediante un modelo de suscripción, similar al de Signal y Twitter.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Los Kin que no se cobren en un plazo de 24 horas se devolverán automáticamente a tu saldo.</string>
   <string name="prompt_description_exitAccountCreation">Tendrás que reanudar la creación de la cuenta y verificar de nuevo tu número de teléfono.</string>
   <string name="prompt_description_logout">Puedes volver a entrar en esta cuenta con tu clave de acceso</string>
+  <string name="prompt_description_mute">No recibirás ninguna notificación de nuevos mensajes de %1$s. Puedes anular el modo silencio en cualquier momento.</string>
   <string name="prompt_description_notCodeAccount">Actualmente, solo se admiten las cuentas creadas a través de Code.</string>
   <string name="prompt_description_unlinkPhoneNumber">Tus amigos ya no podrán encontrarte con este número de teléfono.</string>
+  <string name="prompt_description_unmute">Recibirás todas las notificaciones de nuevos mensajes de %1$s. Puedes silenciarlo en cualquier momento.</string>
+  <string name="prompt_description_unsubscribe">No recibirás ningún mensaje de %1$s hasta que pagues otra vez.</string>
   <string name="prompt_description_viewAccessKey">Tu clave de acceso te permitirá acceder a tu cuenta Code. Guárdala de forma privada y segura.</string>
   <string name="prompt_description_wroteThemDown">Estas 12 palabras son la única manera de recuperar tu cuenta Code. Asegúrate de anotarlas y guardarlas de forma privada y segura.</string>
   <string name="prompt_title_confirmWithdrawal">¿Seguro?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">¿Enviaste el enlace?</string>
   <string name="prompt_title_exitAccountCreation">¿Seguro que quieres salir?</string>
   <string name="prompt_title_logout">¿Seguro que quieres cerrar la sesión?</string>
+  <string name="prompt_title_mute">¿Silenciar %1$s?</string>
   <string name="prompt_title_notCodeAccount">No es una cuenta Code</string>
   <string name="prompt_title_unlinkPhoneNumber">¿Seguro?</string>
+  <string name="prompt_title_unmute">¿Dejar de silenciar %1$s?</string>
+  <string name="prompt_title_unsubscribe">¿Cancelar suscripción de %1$s?</string>
   <string name="prompt_title_viewAccessKey">¿Ver tu clave de acceso?</string>
   <string name="prompt_title_wroteThemDown">¿Seguro?</string>
   <string name="push_subtitle_depositReceived">Se ha(n) depositado %1$s Kin en tu cuenta</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Comprar Kin (muy pronto)</string>
   <string name="subtitle_buySellDescription">Actualmente, comprar y vender Kin es un proceso complejo. Estos procesos se simplificarán con el tiempo. Si desea aprender hoy mismo a comprar y vender Kin, puede ver los siguientes vídeos explicativos.</string>
   <string name="subtitle_canOnlyGiveUpTo">Solo puedes dar hasta %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Solo puedes dar propinas hasta %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Tu Kin ya está disponible para su uso en la aplicación Code</string>
   <string name="subtitle_chat_referralBonus">¡Has enviado a alguien su primer Kin! Aquí tienes tu bonificación por recomendación:</string>
   <string name="subtitle_chat_usdcBeingConverted">Tus USDC se están convirtiendo a Kin. Esto debería tardar aproximadamente un minuto en completarse.</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code es una nueva aplicación de monedero criptográfico a la que sólo se puede acceder por invitación. Para descargar Code, visita %1$s.</string>
   <string name="subtitle_learnMore">Más información</string>
   <string name="subtitle_linkedPhoneNumberDescription">Tu número de teléfono está vinculado a esta cuenta Code. Tus amigos pueden utilizarlo para localizarte.</string>
+  <string name="subtitle_linkingTwitter">Estoy conectando mi cuenta de X con @getcode para poder recibir propinas de gente de todo el mundo.</string>
   <string name="subtitle_loadingBalance">Cargando tu saldo e historial de transacciones</string>
   <string name="subtitle_loginDescription">Busca en tus fotos la clave de acceso que guardaste al crear tu cuenta.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Actualmente estás conectado a una cuenta. Asegúrate de haber guardado tu clave de acceso antes de continuar. ¿Deseas desconectarte e iniciar sesión con una nueva cuenta?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Este número de teléfono no está en tus contactos. Pero puedes invitarle a Code.</string>
   <string name="subtitle_phoneVerificationDescription">Introduce tu número de teléfono incluyendo el código de país. Asegúrate de utilizar el mismo número en el que recibiste la invitación.</string>
   <string name="subtitle_poweredBy">Desarrollado por</string>
+  <string name="subtitle_push_twitterAccountConnected">Ahora puedes solicitar propinas</string>
   <string name="subtitle_referralBonusReceived">Bono por recomendación recibido</string>
   <string name="subtitle_remoteSendShareSheetTitle">Enviar %1$s</string>
   <string name="subtitle_remoteSendSubject">Aquí está %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Buscar contactos</string>
   <string name="subtitle_smsWasSent">Se ha enviado un mensaje SMS con un código de verificación a su número de teléfono. Introduzca aquí dicho código.</string>
   <string name="subtitle_someoneSendYouCash">Alguien te ha enviado dinero</string>
+  <string name="subtitle_someoneTippedYou">Alguien te ha dado una propina</string>
+  <string name="subtitle_tipCardForX">Tu tarjeta de propinas te permite recibir propinas de usuarios de Code de todo el mundo. Para poder acceder a tu tarjeta de propinas, conecta con tu identidad de X.</string>
   <string name="subtitle_typeDelete">Escribe \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Hemos realizado algunos cambios para mejorar la experiencia. Tendrás que actualizar la aplicación para seguir utilizando Code.</string>
   <string name="subtitle_validOwnerAccount">Cuenta de titular válida</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Has recibido</string>
   <string name="subtitle_youSent">Has enviado</string>
   <string name="subtitle_youSpent">Has gastado</string>
+  <string name="subtitle_youTipped">Le has dado una propina a alguien</string>
   <string name="subtitle_youWithdrew">Has retirado</string>
   <string name="success_description_withdrawalComplete">Tus fondos se han retirado con éxito.</string>
+  <string name="success_description_xConnected">Tu cuenta de X se ha conectado correctamente a tu cuenta de Code. Ahora puede solicitar propinas.</string>
   <string name="success_title_withdrawalComplete">Retirada realizada con éxito</string>
+  <string name="success_title_xConnected">Cuenta de X conectada correctamente</string>
   <string name="title_accessExpired">Acceso caducado</string>
   <string name="title_accessKey">Clave de acceso</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Comprar y vender Kin</string>
   <string name="title_chat_cashTransactions">Pagos en efectivo</string>
   <string name="title_chat_codeTeam">Equipo de código</string>
+  <string name="title_chat_kinPurchases">Compras de Kin</string>
   <string name="title_chat_payments">Pagos por Internet</string>
+  <string name="title_chat_tips">Propinas</string>
   <string name="title_debugOptions">Opciones de depuración</string>
   <string name="title_depositKin">Depositar Kin</string>
   <string name="title_deposited">Depositó</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Número de teléfono</string>
   <string name="title_privacyPolicy">Política de privacidad</string>
   <string name="title_purchased">Comprado</string>
+  <string name="title_push_twitterAccountConnected">Cuenta de X conectada correctamente</string>
   <string name="title_received">Recibió</string>
   <string name="title_recentCurrencies">Divisas recientes</string>
   <string name="title_referFriend">Recomienda a un amigo y consigue 5 $</string>
   <string name="title_referralBonus">Bono por recomendación</string>
+  <string name="title_requestKin">Solicitar Kin</string>
+  <string name="title_requestTip">Solicitar una propina</string>
   <string name="title_results">Resultados</string>
   <string name="title_returned">Devuelto</string>
   <string name="title_selectAccount">Seleccionar una cuenta</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Gastado</string>
   <string name="title_switchAccounts">Cambiar de cuenta</string>
   <string name="title_termsOfService">Términos y condiciones</string>
+  <string name="title_tipKin">Dar Kin de propina</string>
   <string name="title_unknown">Desconocido</string>
   <string name="title_updateRequired">Actualización requerida</string>
   <string name="title_verifyPhoneNumber">Verificar número de teléfono</string>

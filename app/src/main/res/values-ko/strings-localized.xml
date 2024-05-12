@@ -4,11 +4,13 @@
   <string name="action_allowContacts">연락처 접근 허용</string>
   <string name="action_allowPushNotifications">푸쉬 알림 허용</string>
   <string name="action_balance">잔액</string>
+  <string name="action_buyKin">킨 구매</string>
   <string name="action_buyMoreKin">더 많은 Kin 구매</string>
   <string name="action_cancel">취소</string>
   <string name="action_cancelSend">보내기 취소</string>
   <string name="action_collectCash">이 현금 모으기</string>
   <string name="action_confirm">확인</string>
+  <string name="action_connectToX">X에 연결</string>
   <string name="action_continue">계속</string>
   <string name="action_copied">복사됨</string>
   <string name="action_copy">복사</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">계정 생성하기</string>
   <string name="action_createNewCodeAccount">새로운 Code 계정 생성</string>
   <string name="action_deleteAccount">계정 삭제</string>
+  <string name="action_done">완료</string>
   <string name="action_downloadNow">지금 다운로드</string>
   <string name="action_enableFaceID">Face ID 활성화</string>
   <string name="action_enableTouchID">Touch ID 활성화</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">초대</string>
   <string name="action_invites">초대</string>
   <string name="action_joinWaitlist">대기자 명단에 등록하기</string>
+  <string name="action_later">나중에</string>
   <string name="action_learnBuyKin">킨(Kin) 매입 방법 알아보기</string>
   <string name="action_learnSellKin">킨 매도 방법 알아보기</string>
   <string name="action_linkPhoneNumber">전화번호 연결</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">알림</string>
   <string name="action_removePhoneNumber">전화번호 삭제</string>
   <string name="action_removeYourPhoneNumber">전화번호를 삭제하세요 </string>
+  <string name="action_requestTip">팁 요청</string>
   <string name="action_saveAccessKey">액세스 키를 사진첩에 저장</string>
   <string name="action_saveToPhotos">사진첩에 저장</string>
   <string name="action_send">보내기</string>
   <string name="action_sendVerificationCode">인증 코드 보내기 </string>
+  <string name="action_share">공유</string>
   <string name="action_shareDownloadLink">다운로드 링크 공유</string>
   <string name="action_shareVideo">이 동영상 공유</string>
+  <string name="action_showMyTipCard">내 팁 카드 표시</string>
+  <string name="action_subscribe">구독</string>
   <string name="action_swipeToLogin">스와이프하여 로그인</string>
   <string name="action_swipeToPay">스와이프하여 결제</string>
+  <string name="action_swipeToTip">팁으로 스와이프</string>
   <string name="action_tryDifferentCodeAccount">다른 Code 계정을 시도하세요</string>
   <string name="action_unmute">음소거 해제</string>
   <string name="action_unsubscribe">구독 취소</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">더 많은 Kin을 얻는 방법은 설정의 자주 묻는 질문에서 알아보십시오. </string>
   <string name="error_description_invalidInviteCode">다른 초대 코드를 입력하고 다시 시도해 주세요.</string>
   <string name="error_description_invalidInvitePhone">올바른 휴대전화 번호를 입력한 후 다시 시도해 주세요.</string>
+  <string name="error_description_invalidTipCard">잘못된 팁 카드입니다.</string>
   <string name="error_description_invalidVerificationCode">유효한 코드를 입력한 후 다시 시도하십시오. </string>
   <string name="error_description_invitationFailed">죄송합니다, 네트워크 문제가 발생했습니다. 친구 초대를 다시 시도하십시오. </string>
   <string name="error_description_linkExpired">이 Kin은 24시간 이내에 수령하지 않았기 때문에 보낸 사람에게 자동으로 반환되었습니다. Kin을 다시 보내달라고 요청하세요.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">구매할 수 있는 최대 금액은 %1$s입니다. 더 적은 금액을 입력하세요.</string>
   <string name="error_description_purchaseTooSmall">구매할 수 있는 최소 금액은 %1$s입니다. 더 큰 금액을 입력하세요.</string>
   <string name="error_description_timelockUnlocked">액세스 키로 잠금 해제를 시작했습니다. 이제 Code에서 이 액세스 키를 더 이상 사용할 수 없습니다.</string>
+  <string name="error_description_tipTooLarge">팁을 줄 수 있는 최대 금액은 %1$s입니다. 더 작은 금액을 입력하세요.</string>
+  <string name="error_description_tipTooSmall">팁을 줄 수 있는 최소 금액은 %1$s입니다. 더 큰 금액을 입력하세요.</string>
   <string name="error_description_tooManyAccounts">하루에 생성할 수 있는 계정 수가 정해져 있습니다. </string>
   <string name="error_title_alreadyCollected">Kin이 이미 수령됨</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin 이미 수집됨</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">부족한 Kin</string>
   <string name="error_title_invalidInviteCode">초대 코드 유효하지 않음 또는 만료됨</string>
   <string name="error_title_invalidInvitePhone">올바르지 않은 휴대전화 번호</string>
+  <string name="error_title_invalidTipCard">잘못된 팁 카드</string>
   <string name="error_title_invalidVerificationCode">잘못된 코드</string>
   <string name="error_title_invitationFailed">초대 실패</string>
   <string name="error_title_linkExpired">링크가 만료됨</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">구매 금액이 너무 큼</string>
   <string name="error_title_purchaseTooSmall">구매 금액이 너무 작음</string>
   <string name="error_title_timelockUnlocked">Code에서 더 이상 사용할 수 없는 액세스 키입니다</string>
+  <string name="error_title_tipTooLarge">팁이 너무 큼</string>
+  <string name="error_title_tipTooSmall">팁이 너무 작음</string>
   <string name="error_title_tooManyAccounts">너무 많은 계정이 생성됨</string>
   <string name="faq_a__1">코드는 전 세계 어디서든 누구에게나 간편하게 송금할 수 있는 결제 앱입니다.</string>
   <string name="faq_a__10">저희는 시그널(Signal) 및 트위터(Twitter)가 하는 것과 유사한 향후 구독 모델을 통해 자립할 예정입니다.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">24시간 이내에 수령되지 않은 Kin은 내 잔액으로 자동 반환됩니다.</string>
   <string name="prompt_description_exitAccountCreation">계정 생성을 다시 시작하고 전화번호를 다시 인증해야합니다. </string>
   <string name="prompt_description_logout">액세스 키를 이용하여 다시 이 계정에 들어올 수 있습니다. </string>
+  <string name="prompt_description_mute">%1$s에서 보내는 모든 새 메시지에 대한 알림을 받지 않게 됩니다. 언제든지 음소거를 해제할 수 있습니다.</string>
   <string name="prompt_description_notCodeAccount">Code를 통해 생성된 계정만 지원합니다. </string>
   <string name="prompt_description_unlinkPhoneNumber">친구들이 이 전화번호를 사용하여 더 이상 귀하를 찾을 수 없게 됩니다. </string>
+  <string name="prompt_description_unmute">%1$s에서 보내는 모든 새 메시지에 대한 알림을 받게 됩니다. 언제든지 음소거할 수 있습니다.</string>
+  <string name="prompt_description_unsubscribe">다시 결제하기 전까지는 %1$s에서 보내는 메시지를 받지 않게 됩니다.</string>
   <string name="prompt_description_viewAccessKey">액세스 키는 Code 계정에 접근할 수 있게 합니다. 비공개로 안전하게 보관하십시오. </string>
   <string name="prompt_description_wroteThemDown">이 12개의 단어들은 Code 계정을 복원하는 유일한 방법입니다. 따로 적어서 비공개로 안전하게 보관하십시오. </string>
   <string name="prompt_title_confirmWithdrawal">확실합니까?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">링크를 보내셨습니까?</string>
   <string name="prompt_title_exitAccountCreation">나가시겠습니까?</string>
   <string name="prompt_title_logout">로그아웃 하시겠습니까?</string>
+  <string name="prompt_title_mute">%1$s을(를) 음소거할까요?</string>
   <string name="prompt_title_notCodeAccount">Code 계정이 아님</string>
   <string name="prompt_title_unlinkPhoneNumber">확실합니까?</string>
+  <string name="prompt_title_unmute">%1$s의 음소거를 해제할까요?</string>
+  <string name="prompt_title_unsubscribe">%1$s 구독을 취소할까요?</string>
   <string name="prompt_title_viewAccessKey">액세스 키 보기?</string>
   <string name="prompt_title_wroteThemDown">확실합니까?</string>
   <string name="push_subtitle_depositReceived">Kin %1$s 이(가) 귀하의 계좌에 입금되었습니다.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kin 구매(곧 제공)</string>
   <string name="subtitle_buySellDescription">현재 킨의 매입 및 매도 절차가 복잡합니다. 시간이 지남에 따라 이러한 복잡한 절차도 수월해질 것입니다. 오늘 킨의 매입 및 매도 방법을 배우고 싶으시다면 아래 동영상을 시청해 주세요.</string>
   <string name="subtitle_canOnlyGiveUpTo">최대 %1$s까지만 보낼 수 있습니다</string>
+  <string name="subtitle_canOnlyTipUpTo">최대 %1$s까지만 팁을 줄 수 있습니다.</string>
   <string name="subtitle_chat_kinAvailableForUse">이제 Code 앱에서 Kin을 사용할 수 있습니다</string>
   <string name="subtitle_chat_referralBonus">누군가에게 첫 Kin을 보냈습니다! 추천 보너스는 다음과 같습니다.</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC를 Kin으로 변환하는 중입니다. 완료하는 데 약 1분 정도 소요됩니다.</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">코드는 현재 초대 전용의 새로운 암호화폐 월렛 앱입니다. 코드를 다운로드하려면 %1$s(으)로 이동하세요.</string>
   <string name="subtitle_learnMore">더 알아보기</string>
   <string name="subtitle_linkedPhoneNumberDescription">귀하의 전화번호가 이 Code 게정과 연결되어 있습니다. 친구들이 이 전화번호를 이용하여 귀하를 찾을 수 있습니다. </string>
+  <string name="subtitle_linkingTwitter">전 세계 사람들로부터 팁을 받을 수 있도록 내 X 계정을 @getcode와 연결합니다.</string>
   <string name="subtitle_loadingBalance">잔액 및 거래 기록 로드 중</string>
   <string name="subtitle_loginDescription">처음 계정을 생성했을 때 사진첩에 저장한 액세스 키를 확인하세요. </string>
   <string name="subtitle_logoutAndLoginConfirmation">현재 계정에 로그인되어 있습니다. 계속하기 전에 액세스 키를 저장했는지 확인하세요. 로그아웃하고 새 계정으로 로그인하시겠습니까?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">이 휴대전화 번호는 연락처에 없지만, Code로 초대할 수 있습니다.</string>
   <string name="subtitle_phoneVerificationDescription">국가 코드를 포함한 전화번호를 입력하세요. 초대를 받은 번호와 같은 번호를 사용하십시오. </string>
   <string name="subtitle_poweredBy">제공자:</string>
+  <string name="subtitle_push_twitterAccountConnected">이제 팁을 요청할 수 있습니다.</string>
   <string name="subtitle_referralBonusReceived">추천 보너스 받음</string>
   <string name="subtitle_remoteSendShareSheetTitle">%1$s 보내기</string>
   <string name="subtitle_remoteSendSubject">%1$s입니다.</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">연락처 검색</string>
   <string name="subtitle_smsWasSent">전화번호로 인증 코드가 포함된 SMS 메시지를 보내드렸습니다. 위에 인증 코드를 입력해 주세요.</string>
   <string name="subtitle_someoneSendYouCash">누군가 현금을 보냈습니다</string>
+  <string name="subtitle_someoneTippedYou">누군가 귀하에게 팁을 주었습니다.</string>
+  <string name="subtitle_tipCardForX">팁 카드를 사용하면 전 세계 Code 사용자로부터 팁을 받을 수 있습니다. 팁 카드에 액세스하려면 X-Identity를 연결하세요.</string>
   <string name="subtitle_typeDelete">유형 \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">경험 개선을 위해 변경사항을 적용했습니다. Code를 계속 사용하려면 앱을 업데이트 하세요. </string>
   <string name="subtitle_validOwnerAccount">유효한 소유자 계좌</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">받음</string>
   <string name="subtitle_youSent">보냄</string>
   <string name="subtitle_youSpent">사용함</string>
+  <string name="subtitle_youTipped">귀하가 누군가에게 팁을 주었습니다.</string>
   <string name="subtitle_youWithdrew">출금함</string>
   <string name="success_description_withdrawalComplete">자금이 성공적으로 인출되었습니다. </string>
+  <string name="success_description_xConnected">X 계정이 코드 계정에 성공적으로 연결되었습니다. 이제 팁을 요청할 수 있습니다.</string>
   <string name="success_title_withdrawalComplete">인출 성공</string>
+  <string name="success_title_xConnected">X 계정이 성공적으로 연결됨</string>
   <string name="title_accessExpired">접근 만료됨</string>
   <string name="title_accessKey">액세스 키</string>
   <string name="title_balance">잔액</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">킨 매입 및 매도</string>
   <string name="title_chat_cashTransactions">현금 결제</string>
   <string name="title_chat_codeTeam">Code 팀</string>
+  <string name="title_chat_kinPurchases">킨 구매</string>
   <string name="title_chat_payments">웹 결제</string>
+  <string name="title_chat_tips">팁</string>
   <string name="title_debugOptions">디버그 옵션</string>
   <string name="title_depositKin">Kin 입금하기</string>
   <string name="title_deposited">입금 내역</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">전화번호</string>
   <string name="title_privacyPolicy">개인정보 보호정책</string>
   <string name="title_purchased">구매 완료</string>
+  <string name="title_push_twitterAccountConnected">X 계정이 성공적으로 연결됨</string>
   <string name="title_received">받은 내역</string>
   <string name="title_recentCurrencies">최근 통화</string>
   <string name="title_referFriend">친구 추천하고 $5 받으세요</string>
   <string name="title_referralBonus">추천 보너스</string>
+  <string name="title_requestKin">킨 요청</string>
+  <string name="title_requestTip">팁 요청</string>
   <string name="title_results">결과</string>
   <string name="title_returned">반환됨</string>
   <string name="title_selectAccount">계정 선택</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">지출</string>
   <string name="title_switchAccounts">계정 바꾸기</string>
   <string name="title_termsOfService">서비스 약관</string>
+  <string name="title_tipKin">팁 킨</string>
   <string name="title_unknown">알 수 없음</string>
   <string name="title_updateRequired">업데이트 요구됨</string>
   <string name="title_verifyPhoneNumber">전화번호 인증</string>

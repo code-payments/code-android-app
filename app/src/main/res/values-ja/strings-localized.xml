@@ -4,11 +4,13 @@
   <string name="action_allowContacts">連絡先へのアクセスを許可する</string>
   <string name="action_allowPushNotifications">プッシュ通知を許可する</string>
   <string name="action_balance">残高</string>
+  <string name="action_buyKin">Kinを購入する</string>
   <string name="action_buyMoreKin">さらにKinを購入</string>
   <string name="action_cancel">キャンセル</string>
   <string name="action_cancelSend">送信をキャンセル</string>
   <string name="action_collectCash">このお金を受け取る</string>
   <string name="action_confirm">確認する</string>
+  <string name="action_connectToX">Xに接続する</string>
   <string name="action_continue">続行</string>
   <string name="action_copied">コピー済み</string>
   <string name="action_copy">コピー</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">アカウントを作成する</string>
   <string name="action_createNewCodeAccount">新規Codeアカウントを作成する</string>
   <string name="action_deleteAccount">アカウントを削除する</string>
+  <string name="action_done">完了</string>
   <string name="action_downloadNow">今すぐダウンロード</string>
   <string name="action_enableFaceID">Face IDを有効にする</string>
   <string name="action_enableTouchID">Touch IDを有効にする</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">招待</string>
   <string name="action_invites">招待</string>
   <string name="action_joinWaitlist">順番待ちリストに参加する</string>
+  <string name="action_later">後で</string>
   <string name="action_learnBuyKin">Kinの購入方法を知る</string>
   <string name="action_learnSellKin">Kinの売却方法を知る</string>
   <string name="action_linkPhoneNumber">電話番号をリンクする</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">リマインド</string>
   <string name="action_removePhoneNumber">電話番号を削除する</string>
   <string name="action_removeYourPhoneNumber">お客様の電話番号を削除する</string>
+  <string name="action_requestTip">チップをリクエストする</string>
   <string name="action_saveAccessKey">アクセスキーをマイフォトに保存する</string>
   <string name="action_saveToPhotos">フォトに保存する</string>
   <string name="action_send">送信</string>
   <string name="action_sendVerificationCode">確認コードを送信する</string>
+  <string name="action_share">共有</string>
   <string name="action_shareDownloadLink">ダウンロードリンクを共有</string>
   <string name="action_shareVideo">この動画をシェアする</string>
+  <string name="action_showMyTipCard">チップカードを表示する</string>
+  <string name="action_subscribe">購読</string>
   <string name="action_swipeToLogin">スワイプしてログイン</string>
   <string name="action_swipeToPay">スワイプして支払う</string>
+  <string name="action_swipeToTip">スワイプしてチップを支払う</string>
   <string name="action_tryDifferentCodeAccount">別のCodeアカウントを試す</string>
   <string name="action_unmute">ミュート解除</string>
   <string name="action_unsubscribe">登録解除</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">より多くのKinを取得する方法については,［設定］のよくある質問（FAQ）を参照してください。</string>
   <string name="error_description_invalidInviteCode">別の招待コードを入力して,もう一度お試しください。</string>
   <string name="error_description_invalidInvitePhone">有効な電話番号を入力して,もう一度お試しください。</string>
+  <string name="error_description_invalidTipCard">このチップカードは無効です。</string>
   <string name="error_description_invalidVerificationCode">有効なコードを入力して,再試行してください。</string>
   <string name="error_description_invitationFailed">申し訳ありませんが,ネットワークの問題が発生しました。もう一度お友達を招待してみてください。</string>
   <string name="error_description_linkExpired">このKinは24時間以内に収集されなかったため,自動的に送信者に返送されました。もう一度Kinを送ってもらうようリクエストしてください。</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">購入最大金額は%1$sです。もっと少ない金額を入力してください。</string>
   <string name="error_description_purchaseTooSmall">購入最小金額は%1$sです。もっと大きい金額を入力してください。</string>
   <string name="error_description_timelockUnlocked">アクセスキーがロック解除を開始しました。 その結果,このアクセスキーをCodeで使用できなくなります。</string>
+  <string name="error_description_tipTooLarge">チップの最大額は%1$sです。もっと小さな額を入力してください。</string>
+  <string name="error_description_tipTooSmall">チップの最小額は%1$sです。もっと大きな額を入力してください。</string>
   <string name="error_description_tooManyAccounts">1日に作成できる新規アカウントの数は限られています。</string>
   <string name="error_title_alreadyCollected">Kinはすでに収集されています</string>
   <string name="error_title_alreadyCollectedBySomeone">すでに受取済みのKin</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Kinが不足しています</string>
   <string name="error_title_invalidInviteCode">招待コードが無効または期限切れです</string>
   <string name="error_title_invalidInvitePhone">無効な電話番号</string>
+  <string name="error_title_invalidTipCard">無効なチップ カードです</string>
   <string name="error_title_invalidVerificationCode">コードが無効です</string>
   <string name="error_title_invitationFailed">招待に失敗しました</string>
   <string name="error_title_linkExpired">リンクの有効期限が切れています</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">購入が大きすぎます</string>
   <string name="error_title_purchaseTooSmall">購入が少なすぎます</string>
   <string name="error_title_timelockUnlocked">Codeで使用できなくなったアクセス キー</string>
+  <string name="error_title_tipTooLarge">チップ額が多すぎます</string>
+  <string name="error_title_tipTooSmall">チップ額が少なすぎます</string>
   <string name="error_title_tooManyAccounts">作成されたアカウントが多すぎます</string>
   <string name="faq_a__1">Codeは,世界中のあらゆる人に対して簡単に送金できるようにする,決済アプリです。</string>
   <string name="faq_a__10">私たちは今後,SignalやTwitterが行っているのと同様のサブスクリプションモデルを導入するによって,存続を図ることを計画しています。</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">24時間以内に収集されなかったKinは自動的に残高に返されます。</string>
   <string name="prompt_description_exitAccountCreation">アカウントの作成を再開し,電話番号を再度確認する必要があります。</string>
   <string name="prompt_description_logout">アクセスキーを使用して,このアカウントに戻ることができます。</string>
+  <string name="prompt_description_mute">%1$sからの新着メッセージは通知されません。ミュートはいつでも解除できます。</string>
   <string name="prompt_description_notCodeAccount">Codeで作成されたアカウントのみが現在サポートされています。</string>
   <string name="prompt_description_unlinkPhoneNumber">お友達は,この電話番号でお客様を見つけることができなくなります</string>
+  <string name="prompt_description_unmute">%1$sからの新着メッセージはすべて通知されます。いつでもミュートにすることができます。</string>
+  <string name="prompt_description_unsubscribe">再度支払うまで%1$sからのメッセージは受信できません。</string>
   <string name="prompt_description_viewAccessKey">アクセスキーにより,Codeアカウントへのアクセスが許可されます。アクセスキーは公開せずに安全に保管してください。</string>
   <string name="prompt_description_wroteThemDown">この12ワードは,Codeアカウントを復元する唯一の方法です。必ず書き留めて,公開せずに安全に保管してください。</string>
   <string name="prompt_title_confirmWithdrawal">よろしいですか？</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">リンクを送信しましたか？</string>
   <string name="prompt_title_exitAccountCreation">終了してよろしいですか？</string>
   <string name="prompt_title_logout">ログアウトしてもよろしいですか？</string>
+  <string name="prompt_title_mute">%1$sをミュートしますか?</string>
   <string name="prompt_title_notCodeAccount">Codeアカウントではありません</string>
   <string name="prompt_title_unlinkPhoneNumber">よろしいですか？</string>
+  <string name="prompt_title_unmute">%1$sのミュートを解除しますか?</string>
+  <string name="prompt_title_unsubscribe">%1$sの購読を解除しますか?</string>
   <string name="prompt_title_viewAccessKey">アクセスキーを表示しますか？</string>
   <string name="prompt_title_wroteThemDown">よろしいですか？</string>
   <string name="push_subtitle_depositReceived">%1$sKinがあなたのアカウントに入金されました</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kinを購入する（近日実装予定）</string>
   <string name="subtitle_buySellDescription">今はKinの売買プロセスは複雑ですが,時がたつにつれ,プロセスは簡単になります。今すぐKinの売買方法を知りたい場合は,以下の説明動画をご覧ください。</string>
   <string name="subtitle_canOnlyGiveUpTo">%1$s まであきらめることができます</string>
+  <string name="subtitle_canOnlyTipUpTo">チップを支払えるのは%1$sまでです</string>
   <string name="subtitle_chat_kinAvailableForUse">KinがCodeアプリで使用できるようになりました</string>
   <string name="subtitle_chat_referralBonus">あなたは誰かに最初のKinを送りました！紹介ボーナスは次のとおりです:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDCはKinに変換されます。完了するまでおよそ1分かかります。</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Codeは新たな仮想通貨ウォレットアプリで,現在は招待限定となっています。Codeをダウンロードするには%1$sにアクセスしてください</string>
   <string name="subtitle_learnMore">さらに詳しく</string>
   <string name="subtitle_linkedPhoneNumberDescription">お客様の電話番号は,このCodeアカウントとリンクしています。お友達はこの電話番号を使ってお客様を見つけることができます。</string>
+  <string name="subtitle_linkingTwitter">Xアカウントを@getcodeに接続して,世界中の人々からチップを受け取れるようにしています。</string>
   <string name="subtitle_loadingBalance">残高および取引履歴を読み込んでいます</string>
   <string name="subtitle_loginDescription">最初にアカウントを作成したときに保存したアクセスキーが存在するかどうか写真を確認してください。</string>
   <string name="subtitle_logoutAndLoginConfirmation">現在アカウントにログインしています。続行する前に,アクセスキーを保存していることを確認してください。ログアウトして新しいアカウントでログインしますか？</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">この電話番号は連絡先にありません。彼らをCodeに招待することはできます。</string>
   <string name="subtitle_phoneVerificationDescription">国番号を含めた電話番号を入力します。招待を受け取ったのと同じ電話番号を使用していることを確認してください。</string>
   <string name="subtitle_poweredBy">提供：</string>
+  <string name="subtitle_push_twitterAccountConnected">チップをリクエストできるようになりました</string>
   <string name="subtitle_referralBonusReceived">受取済みの紹介ボーナス</string>
   <string name="subtitle_remoteSendShareSheetTitle">%1$sを送信</string>
   <string name="subtitle_remoteSendSubject">こちらが%1$sです</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">連絡先を検索する</string>
   <string name="subtitle_smsWasSent">確認コードを含むSMSメッセージが電話番号に送信されました。 上記の確認コードを入力してください。</string>
   <string name="subtitle_someoneSendYouCash">誰かがあなたに送金しました</string>
+  <string name="subtitle_someoneTippedYou">誰かがあなたにチップを支払いました</string>
+  <string name="subtitle_tipCardForX">チップカードを使用すると,世界中のCodeユーザーからチップを受け取ることができます。チップカードにアクセスするには,XのIDを接続してください。</string>
   <string name="subtitle_typeDelete">\"%1$s\"と入力</string>
   <string name="subtitle_updateRequiredDescription">エクスペリエンスを向上させるために,いくつかの変更を行いました。Codeを使い続けるには,アプリを更新する必要があります。</string>
   <string name="subtitle_validOwnerAccount">有効なオーナーアカウント</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">受け取りました</string>
   <string name="subtitle_youSent">送信した</string>
   <string name="subtitle_youSpent">支出した</string>
+  <string name="subtitle_youTipped">あなたが誰かにチップを支払いました</string>
   <string name="subtitle_youWithdrew">引き落とした</string>
   <string name="success_description_withdrawalComplete">お客様の資金は正常に引き出されました。</string>
+  <string name="success_description_xConnected">XアカウントがCodeアカウントに正常に接続されました。チップをリクエストできるようになりました。</string>
   <string name="success_title_withdrawalComplete">引き出し成功</string>
+  <string name="success_title_xConnected">Xアカウントが正常に接続されました</string>
   <string name="title_accessExpired">アクセスの有効期限が切れました</string>
   <string name="title_accessKey">アクセスキー</string>
   <string name="title_balance">残高</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kinの購入＆売却</string>
   <string name="title_chat_cashTransactions">現金支払い</string>
   <string name="title_chat_codeTeam">Codeチーム</string>
+  <string name="title_chat_kinPurchases">Kinの購入</string>
   <string name="title_chat_payments">ウェブ支払い</string>
+  <string name="title_chat_tips">チップ</string>
   <string name="title_debugOptions">デバッグオプション</string>
   <string name="title_depositKin">Kinを入金する</string>
   <string name="title_deposited">入金済み</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">電話番号</string>
   <string name="title_privacyPolicy">プライバシーポリシー</string>
   <string name="title_purchased">購入済み</string>
+  <string name="title_push_twitterAccountConnected">Xアカウントが正常に接続されました</string>
   <string name="title_received">受信済み</string>
   <string name="title_recentCurrencies">最近の通貨</string>
   <string name="title_referFriend">友だちを紹介して5ドルもらおう</string>
   <string name="title_referralBonus">紹介ボーナス</string>
+  <string name="title_requestKin">Kinをリクエスト</string>
+  <string name="title_requestTip">チップをリクエストする</string>
   <string name="title_results">結果</string>
   <string name="title_returned">返送済み</string>
   <string name="title_selectAccount">アカウントを選択</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">使用済み</string>
   <string name="title_switchAccounts">アカウントを切り替える</string>
   <string name="title_termsOfService">利用規約</string>
+  <string name="title_tipKin">Kinにチップを支払う</string>
   <string name="title_unknown">不明</string>
   <string name="title_updateRequired">更新が必要です</string>
   <string name="title_verifyPhoneNumber">電話番号を確認する</string>

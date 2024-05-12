@@ -4,11 +4,13 @@
   <string name="action_allowContacts">السماح بإتاحة الوصول إلى جهات الاتصال</string>
   <string name="action_allowPushNotifications">السماح بالإشعارات اللحظية</string>
   <string name="action_balance">الرصيد</string>
+  <string name="action_buyKin">شراء Kin</string>
   <string name="action_buyMoreKin">اشترِ مزيدًا من عملات Kin</string>
   <string name="action_cancel">إلغاء</string>
   <string name="action_cancelSend">إلغاء الإرسال</string>
   <string name="action_collectCash">اجمع هذه النقود</string>
   <string name="action_confirm">تأكيد</string>
+  <string name="action_connectToX">الربط بحساب X</string>
   <string name="action_continue">الاستمرار</string>
   <string name="action_copied">تمّ النسخ</string>
   <string name="action_copy">نسخ</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">إنشاء حساب</string>
   <string name="action_createNewCodeAccount">إنشاء حساب Code جديد</string>
   <string name="action_deleteAccount">حذف الحساب</string>
+  <string name="action_done">تم</string>
   <string name="action_downloadNow">قم بالتنزيل الآن</string>
   <string name="action_enableFaceID">تفعيل خاصية التعرّف على الوجه</string>
   <string name="action_enableTouchID">تفعيل خاصية التعرّف على بصمة الإصبع</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">الدعوة</string>
   <string name="action_invites">الدعوات</string>
   <string name="action_joinWaitlist">الانضمام إلى قائمة الانتظار</string>
+  <string name="action_later">لاحقًا</string>
   <string name="action_learnBuyKin">تعلّم كيف تشتري Kin</string>
   <string name="action_learnSellKin">تعلّم كيف تبيع Kin</string>
   <string name="action_linkPhoneNumber">إرفاق رقم الهاتف</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">التذكير</string>
   <string name="action_removePhoneNumber">حذف رقم الهاتف</string>
   <string name="action_removeYourPhoneNumber">حذف رقم هاتفك</string>
+  <string name="action_requestTip">اطلب الإكرامية</string>
   <string name="action_saveAccessKey">حفظ مفتاح الوصول في \"صوري\"</string>
   <string name="action_saveToPhotos">الحفظ في \"الصور\"</string>
   <string name="action_send">تم الإرسال</string>
   <string name="action_sendVerificationCode">إرسال رمز التحقق</string>
+  <string name="action_share">مشاركة</string>
   <string name="action_shareDownloadLink">شارك رابط التنزيل</string>
   <string name="action_shareVideo">شارك مقطع الفيديو هذا</string>
+  <string name="action_showMyTipCard">عرض بطاقة الإكرامية الخاصة بي</string>
+  <string name="action_subscribe">اشترك</string>
   <string name="action_swipeToLogin">قم بالتمرير لتسجيل الدخول</string>
   <string name="action_swipeToPay">مرر للدفع</string>
+  <string name="action_swipeToTip">تخطي إلى الإكرامية</string>
   <string name="action_tryDifferentCodeAccount">تجربة حساب Code مختلف</string>
   <string name="action_unmute">إلغاء كتم الصوت</string>
   <string name="action_unsubscribe">إلغاء الاشتراك</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">لمعرفة كيفية الحصول على المزيد من الأموال, انتقل إلى الأسئلة الشائعة في الإعدادات.</string>
   <string name="error_description_invalidInviteCode">يُرجى إدخال رمز دعوة مختلف والمحاولة مرة أخرى.</string>
   <string name="error_description_invalidInvitePhone">يُرجى إدخال رقم هاتف صالح والمحاولة مرة أخرى.</string>
+  <string name="error_description_invalidTipCard">بطاقة الإكرامية هذه غير صالحة.</string>
   <string name="error_description_invalidVerificationCode">يُرجى إدخال رمز صالح والمحاولة مرة أخرى.</string>
   <string name="error_description_invitationFailed">عذرًا, لقد واجهنا مشكلة في الشبكة. يُرجى محاولة دعوة صديقك مرة أخرى.</string>
   <string name="error_description_linkExpired">تمت إعادة عملة Kin هذه تلقائيًا إلى المرسل لأنه لم يتم جمعها في غضون 24 ساعة. من فضلك اطلب منهم إرسال Kin مرة أخرى.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">أكبر مبلغ يمكنك الشراء به هو %1$s. يرجى إدخال مبلغ أصغر.</string>
   <string name="error_description_purchaseTooSmall">أصغر مبلغ يمكنك الشراء به هو %1$s. يرجى إدخال مبلغ أكبر.</string>
   <string name="error_description_timelockUnlocked">بدأ مفتاح الوصول الخاص بك في إلغاء القفل. نتيجة لذلك, لن تتمكن بعد الآن من استخدام مفتاح الوصول هذا في Code.</string>
+  <string name="error_description_tipTooLarge">الحد الأقصى الذي يمكنك منح إكرامية به هو %1$s. يُرجى إدخال مبلغ أصغر.</string>
+  <string name="error_description_tipTooSmall">الحد الأدنى الذي يمكنك منح إكرامية به هو %1$s. يُرجى إدخال مبلغ أكبر.</string>
   <string name="error_description_tooManyAccounts">لا يُمكنك إلا إنشاء عدد محدد من الحسابات الجديدة في اليوم.</string>
   <string name="error_title_alreadyCollected">تم جمع Kin بالفعل</string>
   <string name="error_title_alreadyCollectedBySomeone">تم جمع وحدات Kin بالفعل</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">أموال غير كافية</string>
   <string name="error_title_invalidInviteCode">إن رمز الدعوة غير صالح أو منتهي الصلاحية</string>
   <string name="error_title_invalidInvitePhone">رقم الهاتف غير صالح</string>
+  <string name="error_title_invalidTipCard">بطاقة الإكرامية غير صالحة</string>
   <string name="error_title_invalidVerificationCode">رمز غير صالح</string>
   <string name="error_title_invitationFailed">فشلت الدعوة</string>
   <string name="error_title_linkExpired">انتهت صلاحية الرابط</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">مبلغ الشراء كبير جدًا</string>
   <string name="error_title_purchaseTooSmall">مبلغ الشراء صغير جدًا</string>
   <string name="error_title_timelockUnlocked">إن مفتاح الوصول لم يعد صالحًا للاستخدام في Code</string>
+  <string name="error_title_tipTooLarge">الإكرامية أكثر من الحد المسموح به</string>
+  <string name="error_title_tipTooSmall">الإكرامية أقل من الحد المسموح به</string>
   <string name="error_title_tooManyAccounts">تم إنشاء حسابات أكثر من المسموح به</string>
   <string name="faq_a__1">Code هو تطبيق للمدفوعات يجعل من السهل إرسال الأموال إلى أي شخص في أي مكان في العالم.</string>
   <string name="faq_a__10">نخطط للحفاظ على تطبيقنا من خلال نموذج اشتراك قادم, على غرار ما يفعله Signal وTwitter.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">سيتم إرجاع أي Kin لم يتم تحصيله خلال 24 ساعة إلى رصيدك تلقائيًا.</string>
   <string name="prompt_description_exitAccountCreation">ستحتاج إلى إعادة إنشاء الحساب والتحقق من رقم هاتفك مرة أخرى.</string>
   <string name="prompt_description_logout">يُمكنك العودة إلى هذا الحساب باستخدام مفتاح الوصول الخاص بك</string>
+  <string name="prompt_description_mute">لن يتم إعلامك بأي رسائل جديدة من %1$s. يمكنك إلغاء كتم الصوت في أي وقت.</string>
   <string name="prompt_description_notCodeAccount">يتم دعم الحسابات التي تم إنشاؤها من خلال Code فقط حاليًا.</string>
   <string name="prompt_description_unlinkPhoneNumber">لن يتمكن أصدقاؤك بعد الآن من العثور عليك باستخدام رقم الهاتف هذا.</string>
+  <string name="prompt_description_unmute">سيتم إعلامك بجميع الرسائل الجديدة من %1$s. يمكنك كتم الصوت في أي وقت.</string>
+  <string name="prompt_description_unsubscribe">لن تتلقى أي رسائل من %1$s حتى تدفع مرة أخرى.</string>
   <string name="prompt_description_viewAccessKey">يمنحك مفتاح الوصول حق الوصول إلى حساب Code الخاص بك. حافظ على خصوصيته وأمنه.</string>
   <string name="prompt_description_wroteThemDown">هذه الكلمات الاثنا عشر هي الطريقة الوحيدة لاستعادة حساب Code الخاص بك. تأكد من كتابتها, وحافظ على خصوصيتها وأمنها.</string>
   <string name="prompt_title_confirmWithdrawal">هل أنت متأكد؟</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">هل أرسلت الرابط؟</string>
   <string name="prompt_title_exitAccountCreation">هل أنت متأكد أنك تودّ الخروج؟</string>
   <string name="prompt_title_logout">هل أنت متأكد أنك تريد تسجيل الخروج؟</string>
+  <string name="prompt_title_mute">هل تريد كتم الصوت في %1$s؟</string>
   <string name="prompt_title_notCodeAccount">هذا ليس حساب في Code</string>
   <string name="prompt_title_unlinkPhoneNumber">هل أنت متأكد؟</string>
+  <string name="prompt_title_unmute">هل تريد إلغاء كتم الصوت في %1$s؟</string>
+  <string name="prompt_title_unsubscribe">هل تريد إلغاء الاشتراك في %1$s؟</string>
   <string name="prompt_title_viewAccessKey">هل تودّ عرض مفتاح الوصول الخاص بك؟</string>
   <string name="prompt_title_wroteThemDown">هل أنت متأكد؟</string>
   <string name="push_subtitle_depositReceived">تم إيداع %1$s وحدات Kin في حسابك.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">قم بشراء Kin (مُتاحة قريبًا)</string>
   <string name="subtitle_buySellDescription">يُعد شراء وبيع Kin حاليًا عملية معقدة. ستصبح هذه العمليات أسهل بمرور الوقت. إذا كنت تريد معرفة كيفية شراء وبيع Kin اليوم, فيمكنك مشاهدة مقاطع الفيديو أدناه.\n</string>
   <string name="subtitle_canOnlyGiveUpTo">يمكنك إعطاء ما يصل إلى %1$s فقط</string>
+  <string name="subtitle_canOnlyTipUpTo">يمكنك منح إكرامية تصل إلى %1$s فقط</string>
   <string name="subtitle_chat_kinAvailableForUse">عملة Kin الخاصة بك متوفرة الآن للاستخدام في تطبيق Code لديك</string>
   <string name="subtitle_chat_referralBonus">لقد أرسلت إلى شخص ما أول Kin له! إليك مكافأة الإحالة الخاصة بك:</string>
   <string name="subtitle_chat_usdcBeingConverted">جارٍ تحويل عملة الدولار الأمريكي الخاصة بك إلى عملة Kin. سوف يستغرق هذا الأمر دقيقة واحدة تقريبًا حتى يكتمل</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code هو تطبيق محفظة عملات مشفرة جديد للدعوات فقط حاليًا. لتنزيل Code, انتقل إلى %1$s</string>
   <string name="subtitle_learnMore">معرفة المزيد</string>
   <string name="subtitle_linkedPhoneNumberDescription">رقم هاتفك مُرفق بحساب Code هذا. يُمكن لأصدقائك العثور عليك باستخدام رقم الهاتف هذا.</string>
+  <string name="subtitle_linkingTwitter">أربط حساب X الخاص بي بـ @getcode حتى أتمكن من تلقي الإكراميات من الأشخاص في جميع أنحاء العالم.</string>
   <string name="subtitle_loadingBalance">تحميل رصيدك وسجل معاملاتك</string>
   <string name="subtitle_loginDescription">تحقق من صورك بحثًا عن مفتاح الوصول الذي حفظته عند إنشاء حسابك لأول مرة.</string>
   <string name="subtitle_logoutAndLoginConfirmation">أنت حاليًا مسجل الدخول في حساب. يُرجى التأكد من حفظ مفتاح الوصول الخاص بك قبل المتابعة. هل ترغب في تسجيل الخروج والدخول بحساب جديد؟</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">لا يوجد رقم الهاتف هذا في جهات الاتصال الخاصة بك. لا يزال بإمكانك دعوتهم إلى Code.</string>
   <string name="subtitle_phoneVerificationDescription">أدخل رقم هاتفك متضمنًا رمز البلد. تأكّد من استخدام نفس رقم الهاتف الذي تلقّى الدعوة.</string>
   <string name="subtitle_poweredBy">مشغّل بواسطة</string>
+  <string name="subtitle_push_twitterAccountConnected">يمكنك الآن طلب الإكراميات</string>
   <string name="subtitle_referralBonusReceived">تم الحصول على مكافأة الإحالة</string>
   <string name="subtitle_remoteSendShareSheetTitle">إرسال %1$s</string>
   <string name="subtitle_remoteSendSubject">إليك %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">البحث عن جهات الاتصال</string>
   <string name="subtitle_smsWasSent">تم إرسال رسالة نصية قصيرة بها رمز التحقق إلى رقم هاتفك. يُرجى إدخال رمز التحقق أعلاه.</string>
   <string name="subtitle_someoneSendYouCash">أرسل إليك شخص ما النقود</string>
+  <string name="subtitle_someoneTippedYou">منحك شخص ما إكرامية</string>
+  <string name="subtitle_tipCardForX">تتيح لك بطاقة الإكرامية الخاصة بك تلقي الإكراميات من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة الإكرامية الخاصة بك, قم بتوصيل هوية X الخاصة بك.</string>
   <string name="subtitle_typeDelete">اكتب \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">لقد أجرينا بعض التغييرات لتحسين التجربة. ستحتاج إلى تحديث التطبيق للاستمرار في استخدام Code.</string>
   <string name="subtitle_validOwnerAccount">حساب المالك صحيح</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">لقد تلقيت</string>
   <string name="subtitle_youSent">لقد أرسلت</string>
   <string name="subtitle_youSpent">لقد أنفقت</string>
+  <string name="subtitle_youTipped">لقد منحك أحد ما إكرامية</string>
   <string name="subtitle_youWithdrew">لقد سحبت</string>
   <string name="success_description_withdrawalComplete">تم سحب أموالك بنجاح.</string>
+  <string name="success_description_xConnected">لقد تم ربط حساب X الخاص بك بحساب Code الخاص بك بنجاح. يمكنك الآن طلب الإكراميات.</string>
   <string name="success_title_withdrawalComplete">نجحت عملية السحب</string>
+  <string name="success_title_xConnected">تم ربط حساب X بنجاح</string>
   <string name="title_accessExpired">انتهت صلاحية إتاحة الوصول</string>
   <string name="title_accessKey">مفتاح الوصول</string>
   <string name="title_balance">الرصيد</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">اشترِ وبع Kin</string>
   <string name="title_chat_cashTransactions">مدفوعات نقدية</string>
   <string name="title_chat_codeTeam">فريق Code</string>
+  <string name="title_chat_kinPurchases">عمليات شراء Kin</string>
   <string name="title_chat_payments">المدفوعات عن طريق الويب</string>
+  <string name="title_chat_tips">الإكراميات</string>
   <string name="title_debugOptions">خيارات إصلاح الأخطاء</string>
   <string name="title_depositKin">إيداع الأموال</string>
   <string name="title_deposited">المودعة</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">رقم الهاتف</string>
   <string name="title_privacyPolicy">سياسة الخصوصية</string>
   <string name="title_purchased">تم الشراء</string>
+  <string name="title_push_twitterAccountConnected">تم ربط حساب X بنجاح</string>
   <string name="title_received">المستلمة</string>
   <string name="title_recentCurrencies">العملات الأخيرة</string>
   <string name="title_referFriend">ارسل طلب إحالة لصديق, واحصل على 5 دولارات</string>
   <string name="title_referralBonus">مكافأة الإحالة</string>
+  <string name="title_requestKin">اطلب Kin</string>
+  <string name="title_requestTip">اطلب إكرامية</string>
   <string name="title_results">النتائج</string>
   <string name="title_returned">تم الإرجاع</string>
   <string name="title_selectAccount">حدد حسابًا</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">النقود المصروفة</string>
   <string name="title_switchAccounts">تبديل الحسابات</string>
   <string name="title_termsOfService">شروط الخدمة</string>
+  <string name="title_tipKin">إكرامية Kin</string>
   <string name="title_unknown">غير معروف</string>
   <string name="title_updateRequired">التحديث مطلوب</string>
   <string name="title_verifyPhoneNumber">التحقق من رقم الهاتف</string>
