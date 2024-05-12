@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Zezwól na dostęp do kontaktów</string>
   <string name="action_allowPushNotifications">Zezwól na powiadomienia typu push</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Kup Kin</string>
   <string name="action_buyMoreKin">Kup więcej Kin</string>
   <string name="action_cancel">Anuluj</string>
   <string name="action_cancelSend">Anuluj wysyłanie</string>
   <string name="action_collectCash">Odbierz te pieniądze</string>
   <string name="action_confirm">Potwierdź</string>
+  <string name="action_connectToX">Połącz z X</string>
   <string name="action_continue">Kontynuuj</string>
   <string name="action_copied">Skopiowano</string>
   <string name="action_copy">Skopiuj</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Utwórz konto</string>
   <string name="action_createNewCodeAccount">Utwórz nowe konto Code</string>
   <string name="action_deleteAccount">Usuń konto</string>
+  <string name="action_done">Gotowe</string>
   <string name="action_downloadNow">Pobierz ją teraz</string>
   <string name="action_enableFaceID">Włącz funkcję Face ID</string>
   <string name="action_enableTouchID">Włącz funkcję Touch ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Zaproś</string>
   <string name="action_invites">Zaproszenia</string>
   <string name="action_joinWaitlist">Dołącz do listy oczekujących</string>
+  <string name="action_later">Później</string>
   <string name="action_learnBuyKin">Dowiedz się, jak kupić Kin</string>
   <string name="action_learnSellKin">Dowiedz się, jak sprzedawać Kin</string>
   <string name="action_linkPhoneNumber">Linkuj numer telefonu</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Przypomnij</string>
   <string name="action_removePhoneNumber">Usuń numer telefonu</string>
   <string name="action_removeYourPhoneNumber">Usuń swój numer telefonu</string>
+  <string name="action_requestTip">Poproś o napiwek</string>
   <string name="action_saveAccessKey">Zapisz klucz dostępu w sekcji Moje zdjęcia</string>
   <string name="action_saveToPhotos">Zapisz do Zdjęcia</string>
   <string name="action_send">Wyślij</string>
   <string name="action_sendVerificationCode">Wyślij kod weryfikacyjny</string>
+  <string name="action_share">Udostępnij</string>
   <string name="action_shareDownloadLink">Udostępnij odnośnik do pobrania</string>
   <string name="action_shareVideo">Udostępnij ten film</string>
+  <string name="action_showMyTipCard">Pokaż moją kartę napiwków</string>
+  <string name="action_subscribe">Subskrybuj</string>
   <string name="action_swipeToLogin">Przesuń, aby zalogować</string>
   <string name="action_swipeToPay">Przeciągnij, aby zapłacić</string>
+  <string name="action_swipeToTip">Przesuń do napiwku</string>
   <string name="action_tryDifferentCodeAccount">Wypróbuj inne konto Code</string>
   <string name="action_unmute">Wyłącz wyciszenie</string>
   <string name="action_unsubscribe">Zrezygnuj z subkrypcji</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Żeby dowiedzieć się, jak uzyskać więcej Kin, przejdź do sekcji Ustawienia &gt; Często zadawane pytania.</string>
   <string name="error_description_invalidInviteCode">Wpisz inny kod zaproszenia i spróbuj ponownie.</string>
   <string name="error_description_invalidInvitePhone">Podaj poprawny numer telefonu i spróbuj ponownie. </string>
+  <string name="error_description_invalidTipCard">To jest nieprawidłowa karta napiwków.</string>
   <string name="error_description_invalidVerificationCode">Wpisz prawidłowy kod i spróbuj ponownie.</string>
   <string name="error_description_invitationFailed">Przepraszamy, wystąpił problem z siecią. Spróbuj jeszcze raz zaprosić znajomego.</string>
   <string name="error_description_linkExpired">Kin został automatycznie zwrócony do nadawcy, ponieważ nie został odebrany w ciągu 24 godzin. Poproś go o ponowne wysłanie tej kryptowaluty.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Maksymalny zakup to %1$s. Wprowadź mniejszą kwotę.</string>
   <string name="error_description_purchaseTooSmall">Minimalny zakup to %1$s. Wprowadź większą kwotę.</string>
   <string name="error_description_timelockUnlocked">Twój klucz dostępu inicjował odblokowanie. W rezultacie nie możesz już używać tego klucza dostępu w kodzie.</string>
+  <string name="error_description_tipTooLarge">Maksymalny napiwek, jaki możesz dać, to %1$s. Wprowadź mniejszą kwotę.</string>
+  <string name="error_description_tipTooSmall">Minimalny napiwek, jaki możesz dać, to %1$s. Wprowadź wyższą kwotę.</string>
   <string name="error_description_tooManyAccounts">Liczba kont, które można utworzyć dziennie, jest ograniczona.</string>
   <string name="error_title_alreadyCollected">Odebrano już kin</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin został już odebrany</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">niewystarczająca ilość Kin</string>
   <string name="error_title_invalidInviteCode">Kod zaproszenia jest nieważny lub wygasł.</string>
   <string name="error_title_invalidInvitePhone">Niepoprawny numer telefonu</string>
+  <string name="error_title_invalidTipCard">Nieprawidłowa karta napiwków</string>
   <string name="error_title_invalidVerificationCode">Nieprawidłowy kod</string>
   <string name="error_title_invitationFailed">Zaproszenie nie powiodło się</string>
   <string name="error_title_linkExpired">Odnośnik wygasł</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Zakup jest zbyt duży</string>
   <string name="error_title_purchaseTooSmall">Zakup za mały</string>
   <string name="error_title_timelockUnlocked">Nie da się już użytkować klucza dostępu w kodzie</string>
+  <string name="error_title_tipTooLarge">Napiwek jest za duży</string>
+  <string name="error_title_tipTooSmall">Napiwek jest za mały</string>
   <string name="error_title_tooManyAccounts">Utworzono za wiele kont</string>
   <string name="faq_a__1">Code to aplikacja do płatności, która ułatwia wysyłanie pieniędzy dowolnej osobie w dowolnym miejscu na świecie.</string>
   <string name="faq_a__10">Planujemy się utrzymywać dzięki przyszłemu modelowi subskrypcji, podobnie jak Signal i Twitter.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Kin nieodebrany w ciągu 24 godzin zostanie automatycznie zwrócony na Twoje konto.</string>
   <string name="prompt_description_exitAccountCreation">Trzeba będzie zrestartować tworzenie konta i jeszcze raz zweryfikować numer telefonu.</string>
   <string name="prompt_description_logout">Możesz wrócić do tego konta przy użyciu swojego klucza dostępu</string>
+  <string name="prompt_description_mute">Nie będziesz otrzymywać powiadomień o nowych wiadomościach od %1$s. Możesz wyłączyć wyciszenie w dowolnym momencie.</string>
   <string name="prompt_description_notCodeAccount">Aktualnie wspierane są tylko konta utworzone przez Code.</string>
   <string name="prompt_description_unlinkPhoneNumber">Twoi znajomi nie będą już mogli Cię znaleźć z użyciem tego numeru telefonu.</string>
+  <string name="prompt_description_unmute">Będziesz otrzymywać powiadomienia o wszystkich nowych wiadomościach od %1$s. Możesz je wyciszyć w dowolnym momencie.</string>
+  <string name="prompt_description_unsubscribe">Nie będziesz otrzymywać żadnych wiadomości od %1$s, dopóki nie zapłacisz mu ponownie.</string>
   <string name="prompt_description_viewAccessKey">Twój klucz dostępu zapewni Ci dostęp do konta Code. Nie udostępniaj go nikomu i przechowuj go bezpiecznie.</string>
   <string name="prompt_description_wroteThemDown">Te 12 słów to jedyna metoda odzyskania Twojego konta Code. Pamiętaj, żeby je zapisać, nikomu nie pokazywać i przechowywać w bezpiecznym miejscu.</string>
   <string name="prompt_title_confirmWithdrawal">Czy na pewno?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Czy wysłałeś(-aś) odnośnik?</string>
   <string name="prompt_title_exitAccountCreation">Czy na pewno chcesz wyjść?</string>
   <string name="prompt_title_logout">Czy na pewno chcesz się wylogować?</string>
+  <string name="prompt_title_mute">Wyciszyć %1$s?</string>
   <string name="prompt_title_notCodeAccount">Nie konto Code</string>
   <string name="prompt_title_unlinkPhoneNumber">Czy na pewno?</string>
+  <string name="prompt_title_unmute">Wyłączyć wyciszenie %1$s?</string>
+  <string name="prompt_title_unsubscribe">Anulować subskrypcję %1$s?</string>
   <string name="prompt_title_viewAccessKey">Chcesz zobaczyć swój klucz dostępu?</string>
   <string name="prompt_title_wroteThemDown">Czy na pewno?</string>
   <string name="push_subtitle_depositReceived">Na Twoim koncie złożono %1$s Kin.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kup kin (wkrótce)</string>
   <string name="subtitle_buySellDescription">Kupno i sprzedaż Kin jest obecnie złożonym procesem. Z czasem procesy te staną się prostsze. Jeśli chcesz dowiedzieć się, jak kupować i sprzedawać Kin już dziś, możesz obejrzeć poniższe filmy instruktażowe.</string>
   <string name="subtitle_canOnlyGiveUpTo">Możesz dać tylko do %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Maksymalny napiwek to %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Kin jest dostępny do użycia w aplikacji Code</string>
   <string name="subtitle_chat_referralBonus">Wysłałeś(-aś) komuś pierwszego Kina! Oto Twój bonus za polecenie:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC jest w trakcie konwerscji na Kin. Zajmie to około minuty</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code to nowa aplikacja-portfel krypto, obecnie dostępna tylko na zaproszenie. Żeby ją pobrać, przejdź do %1$s</string>
   <string name="subtitle_learnMore">Dowiedz się więcej</string>
   <string name="subtitle_linkedPhoneNumberDescription">Twój numer telefonu jest połączony z tym kontem Code. Znajomi mogą Cię znaleźć, używając tego numeru telefonu.</string>
+  <string name="subtitle_linkingTwitter">Łączę moje konto X z @getcode, dzięki czemu mogę otrzymywać napiwki od ludzi z całego świata.</string>
   <string name="subtitle_loadingBalance">Ładowanie salda i historii transakcji</string>
   <string name="subtitle_loginDescription">Sprawdź w zdjęciach klucz dostępu zapisany podczas tworzenia konta.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Obecnie jesteś zalogowany(-a) do konta. Zanim przejdziesz dalej, sprawdź, czy zapisałeś(-aś) klucz dostępu. Czy chcesz się wylogować i zalogować z użyciem nowego konta?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Tego numeru telefonu nie ma w twoich kontaktach. Wciąż możesz zaprosić jego użytkownika do aplikacji Code.</string>
   <string name="subtitle_phoneVerificationDescription">Wpisz numer telefonu, w tym kod kraju. Pamiętaj o tym, żeby użyć numeru telefonu, na który przyszło zaproszenie.</string>
   <string name="subtitle_poweredBy">Obsługiwane przez</string>
+  <string name="subtitle_push_twitterAccountConnected">Możesz teraz poprosić o napiwki.</string>
   <string name="subtitle_referralBonusReceived">Otrzymano bonus za polecenie</string>
   <string name="subtitle_remoteSendShareSheetTitle">Wyślij %1$s</string>
   <string name="subtitle_remoteSendSubject">Oto %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Szukaj kontaktów</string>
   <string name="subtitle_smsWasSent">Na Twój numer telefonu przesłano wiadomość SMS z kodem weryfikacyjnym. Wpisz go powyżej.</string>
   <string name="subtitle_someoneSendYouCash">Ktoś wysłał ci pieniądze</string>
+  <string name="subtitle_someoneTippedYou">Ktoś dał Ci napiwek</string>
+  <string name="subtitle_tipCardForX">Twoja karta napiwków umożliwia otrzymywanie napiwków od użytkowników Code na całym świecie. Aby uzyskać dostęp do karty napiwków, połącz swoją tożsamość X.</string>
   <string name="subtitle_typeDelete">Wpisz „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Dokonaliśmy paru zmian, żeby usprawnić korzystanie z usługi. Żeby nadal używać Code, musisz zaktualizować aplikację.</string>
   <string name="subtitle_validOwnerAccount">Prawidłowe konto właściciela</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Otrzymałeś</string>
   <string name="subtitle_youSent">Wysłałeś(-aś)</string>
   <string name="subtitle_youSpent">Wydałeś(-aś)</string>
+  <string name="subtitle_youTipped">Dałeś komuś napiwek</string>
   <string name="subtitle_youWithdrew">Wypłaciłeś(-aś)</string>
   <string name="success_description_withdrawalComplete">Twoje środki zostały wypłacone.</string>
+  <string name="success_description_xConnected">Twoje konto X zostało pomyślnie połączone z kontem Code. Możesz teraz poprosić o napiwki.</string>
   <string name="success_title_withdrawalComplete">Wypłacenie powiodło się</string>
+  <string name="success_title_xConnected">Pomyślnie połączono konto X</string>
   <string name="title_accessExpired">Dostęp wygasł</string>
   <string name="title_accessKey">Klucz dostępu</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kupuj i sprzedawaj Kin</string>
   <string name="title_chat_cashTransactions">Płatności gotówką</string>
   <string name="title_chat_codeTeam">Zespół Code</string>
+  <string name="title_chat_kinPurchases">Zakupy Kin</string>
   <string name="title_chat_payments">Płatności online</string>
+  <string name="title_chat_tips">Napiwki</string>
   <string name="title_debugOptions">Debuguj opcje</string>
   <string name="title_depositKin">Zdeponuj Kin</string>
   <string name="title_deposited">Zdeponowane</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Numer telefonu</string>
   <string name="title_privacyPolicy">Zasady prywatności</string>
   <string name="title_purchased">Kupione</string>
+  <string name="title_push_twitterAccountConnected">Pomyślnie połączono konto X</string>
   <string name="title_received">Otrzymane</string>
   <string name="title_recentCurrencies">Niedawne waluty</string>
   <string name="title_referFriend">Poleć znajomemu i otrzymaj 5 $</string>
   <string name="title_referralBonus">Bonus za polecenie</string>
+  <string name="title_requestKin">Poproś o Kin</string>
+  <string name="title_requestTip">Poproś o napiwek</string>
   <string name="title_results">Wyniki</string>
   <string name="title_returned">Zwrócone</string>
   <string name="title_selectAccount">Wybierz konto</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Wydano</string>
   <string name="title_switchAccounts">Przełącz konta</string>
   <string name="title_termsOfService">Warunki świadczenia usług</string>
+  <string name="title_tipKin">Napiwek Kin</string>
   <string name="title_unknown">Nieznane</string>
   <string name="title_updateRequired">Wymagana aktualizacja</string>
   <string name="title_verifyPhoneNumber">Zweryfikuj numer telefonu</string>

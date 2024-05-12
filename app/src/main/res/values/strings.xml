@@ -3,8 +3,6 @@
     <string name="action_nevermind">Nevermind</string>
     <string name="error_description_payment_failed">This payment request could not be paid at this time. Please try again later.</string>
     <string name="error_description_login_failed">This login request could not be completed at this time. Please try again later.</string>
-    <string name="error_description_buy_kin_too_small">The minimum amount you can purchase is %1$s. Please enter a larger amount.</string>
-    <string name="error_description_buy_kin_too_large">The maximum amount you can purchase is %1$s. Please enter a smaller amount.</string>
     <string name="error_description_usdc_deposit_failure">Failed to create a USDC deposit account.</string>
     <string name="error_title_payment_failed">Payment Failed</string>
     <string name="error_title_login_failed">Login Failed</string>
@@ -16,8 +14,6 @@
     <string name="subtitle_youHaveInvitesSingular">You Have %d Invite</string>
     <string name="today">Today</string>
     <string name="yesterday">Yesterday</string>
-
-    <string name="action_tipKin">Tip Kin</string>
 
     <string name="error_title_buyModuleUnavailable">Temporarily Unavailable</string>
     <string name="error_description_buyModuleUnavailable">The ability to buy Kin is temporarily unavailable due to network congestion. Please try again later.</string>

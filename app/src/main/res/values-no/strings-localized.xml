@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Gi tilgang til kontakter</string>
   <string name="action_allowPushNotifications">Tillat push-varsler</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Kjøp Kin</string>
   <string name="action_buyMoreKin">Kjøp mer Kin</string>
   <string name="action_cancel">Kanseller</string>
   <string name="action_cancelSend">Kanseller sending</string>
   <string name="action_collectCash">Ta i mot disse pengene</string>
   <string name="action_confirm">Bekreft</string>
+  <string name="action_connectToX">Koble til X</string>
   <string name="action_continue">Fortsett</string>
   <string name="action_copied">Kopiert</string>
   <string name="action_copy">Kopier</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Opprett en konto</string>
   <string name="action_createNewCodeAccount">Opprett en ny kodekonto</string>
   <string name="action_deleteAccount">Slett konto</string>
+  <string name="action_done">Ferdig</string>
   <string name="action_downloadNow">Last den ned nå</string>
   <string name="action_enableFaceID">Aktiver Face ID</string>
   <string name="action_enableTouchID">Aktiver Touch ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Inviter</string>
   <string name="action_invites">Invitasjoner</string>
   <string name="action_joinWaitlist">Bli med på ventelisten</string>
+  <string name="action_later">Senere</string>
   <string name="action_learnBuyKin">Lær hvordan du kjøper Kin</string>
   <string name="action_learnSellKin">Lær hvordan du selger Kin</string>
   <string name="action_linkPhoneNumber">Koble til et telefonnummer</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Påminn</string>
   <string name="action_removePhoneNumber">Fjern telefonnummer</string>
   <string name="action_removeYourPhoneNumber">Fjern telefonnummeret ditt</string>
+  <string name="action_requestTip">Be om tips</string>
   <string name="action_saveAccessKey">Lagre tilgangsnøkkel til Bildene mine</string>
   <string name="action_saveToPhotos">Lagre i Bilder</string>
   <string name="action_send">Send</string>
   <string name="action_sendVerificationCode">Send bekreftelseskode</string>
+  <string name="action_share">Del</string>
   <string name="action_shareDownloadLink">Del nedlastingslenke</string>
   <string name="action_shareVideo">Del denne videoen</string>
+  <string name="action_showMyTipCard">Vis tipskortet mitt</string>
+  <string name="action_subscribe">Abonner</string>
   <string name="action_swipeToLogin">Sveip for å logge inn</string>
   <string name="action_swipeToPay">Sveip for å betale</string>
+  <string name="action_swipeToTip">Sveip for å tipse</string>
   <string name="action_tryDifferentCodeAccount">Prøv en annen kodekonto</string>
   <string name="action_unmute">Slå på lyden</string>
   <string name="action_unsubscribe">Avslutt abonnement</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">For å lære hvordan du får mer Kin gå til «Vanlige spørsmål» i «Innstillinger».</string>
   <string name="error_description_invalidInviteCode">Skriv inn en annen invitasjonskode og prøv på nytt.</string>
   <string name="error_description_invalidInvitePhone">Legg inn et gyldig telefonnummer og prøv igjen.</string>
+  <string name="error_description_invalidTipCard">Dette er et ugyldig tipskort.</string>
   <string name="error_description_invalidVerificationCode">Vennligst skriv inn en gyldig kode og prøv igjen.</string>
   <string name="error_description_invitationFailed">Beklager, vi har hadde et nettverksproblem. Prøv å invitere vennen din på nytt.</string>
   <string name="error_description_linkExpired">Denne Kin ble automatisk returnert til avsenderen fordi den ikke ble hentet innen 24 timer. Be dem sende Kin igjen.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Det maksimale antallet du kan kjøpe er %1$s. Angi en mindre mengde.</string>
   <string name="error_description_purchaseTooSmall">Det minimale antallet du kan kjøpe er %1$s. Angi en større mengde.</string>
   <string name="error_description_timelockUnlocked">Tilgangsnøkkelen din har åpnet for tilgang. Derfor kan du ikke lenger bruke denne tilgangsnøkkelen i Code.</string>
+  <string name="error_description_tipTooLarge">Det meste du kan tipse er %1$s. Legg inn et mindre beløp.</string>
+  <string name="error_description_tipTooSmall">Det minste du kan tipse er %1$s. Legg inn et større beløp.</string>
   <string name="error_description_tooManyAccounts">Du kan bare opprette et visst antall nye kontoer hver dag.</string>
   <string name="error_title_alreadyCollected">Noen gjorde allerede krav på Kin</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin allerede hentet</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Utilstrekkelig Kin</string>
   <string name="error_title_invalidInviteCode">Invitasjonskoden er ugyldig eller utløpt</string>
   <string name="error_title_invalidInvitePhone">Ugyldig telefonnummer</string>
+  <string name="error_title_invalidTipCard">Ugyldig tipskort</string>
   <string name="error_title_invalidVerificationCode">Ugyldig kode</string>
   <string name="error_title_invitationFailed">Invitasjon mislyktes</string>
   <string name="error_title_linkExpired">Lenke utløpt</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Kjøpet er for stort</string>
   <string name="error_title_purchaseTooSmall">Kjøpet er for lite</string>
   <string name="error_title_timelockUnlocked">Tilgangsnøkkel kan ikke lenger brukes i Code</string>
+  <string name="error_title_tipTooLarge">For stort tips</string>
+  <string name="error_title_tipTooSmall">For lite tips</string>
   <string name="error_title_tooManyAccounts">For mange kontoer er opprettet</string>
   <string name="faq_a__1">Code er en betalingsapp som gjør det enkelt å sende penger til hvem som helst, hvor som helst i verden.</string>
   <string name="faq_a__10">Vi planlegger å holde oss økonomisk oppegående gjennom en kommende abonnementsmodell, tilsvarende slik Signal og Twitter gjør det.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Kin som ingen har gjort krav på innen 24 timer vil automatisk bli returnert til saldoen din.</string>
   <string name="prompt_description_exitAccountCreation">Du må starte kontoopprettelsen på nytt og bekrefte telefonnummeret ditt på nytt.</string>
   <string name="prompt_description_logout">Du kan gå tilbake til denne kontoen ved å bruke tilgangsnøkkelen din.</string>
+  <string name="prompt_description_mute">Du varsles ikke om nye meldinger fra %1$s. Du kan slå på lyden igjen når som helst.</string>
   <string name="prompt_description_notCodeAccount">Bare kontoer opprettet med en kode støttes for øyeblikket.</string>
   <string name="prompt_description_unlinkPhoneNumber">Vennene dine kan ikke lenger finne deg med dette telefonnummeret.</string>
+  <string name="prompt_description_unmute">Du varsles om alle nye meldinger fra %1$s. Du kan slå av lyden når som helst.</string>
+  <string name="prompt_description_unsubscribe">Du mottar ingen meldinger fra %1$s før du betaler dem igjen.</string>
   <string name="prompt_description_viewAccessKey">Tilgangsnøkkelen din gir deg tilgang til kodekontoen din. Bevar den privat og trygt.</string>
   <string name="prompt_description_wroteThemDown">Disse 12 ordene er den eneste måten å gjenopprette kodekontoen din på. Sørg for at du skrev dem ned, og bevar dem privat og trygt.</string>
   <string name="prompt_title_confirmWithdrawal">Er du sikker?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Har du sendt lenken?</string>
   <string name="prompt_title_exitAccountCreation">Er du sikker på at du vil avslutte?</string>
   <string name="prompt_title_logout">Er du sikker på at du vil logge ut?</string>
+  <string name="prompt_title_mute">Slå av lyden på %1$s?</string>
   <string name="prompt_title_notCodeAccount">Dette er ikke en kodekonto</string>
   <string name="prompt_title_unlinkPhoneNumber">Er du sikker?</string>
+  <string name="prompt_title_unmute">Slå på lyden på %1$s?</string>
+  <string name="prompt_title_unsubscribe">Avslutt abonnement på %1$s?</string>
   <string name="prompt_title_viewAccessKey">Vil du se tilgangsnøkkelen din?</string>
   <string name="prompt_title_wroteThemDown">Er du sikker?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin ble satt inn på kontoen din.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kjøp Kin (kommer snart)</string>
   <string name="subtitle_buySellDescription">Kjøp og salg av Kin er for tiden en kompleks prosess. Disse prosessene vil bli enklere over tid. Hvis du vil lære hvordan du kjøper og selger Kin i dag, kan du se instruksjonsvideoene nedenfor.</string>
   <string name="subtitle_canOnlyGiveUpTo">Du kan bare gi opptil %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Du kan bare tipse opptil %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Du har nå tilgjengelige Kin i Code-appen</string>
   <string name="subtitle_chat_referralBonus">Du har sendt noen sin første Kin! Her er henvisningsbonusen din:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC veksles til Kin. Dette tar cirka ett minutt</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code er en ny lommebok-app for kryptovaluta. For tiden kun er for inviterte brukere. Gå til %1$s for å laste ned Code.</string>
   <string name="subtitle_learnMore">Lær mer</string>
   <string name="subtitle_linkedPhoneNumberDescription">Telefonnummeret ditt er koblet til denne kodekontoen. Vennene dine kan finne deg ved å bruke dette telefonnummeret.</string>
+  <string name="subtitle_linkingTwitter">Jeg kobler X-kontoen min med @getcode slik at jeg kan motta tips fra personer over hele verden.</string>
   <string name="subtitle_loadingBalance">Vi laster inn saldo og transaksjonshistorikk</string>
   <string name="subtitle_loginDescription">Sjekk bildene dine for tilgangsnøkkelen du lagret da du først opprettet kontoen din.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Du er for øyeblikket logget på en konto. Sørg for at du har lagret tilgangsnøkkelen din før du fortsetter. Vil du logge ut og logge på med en ny konto?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Dette telefonnummeret er ikke i kontaktlisten din. Du kan likevel invitere dem til Code.</string>
   <string name="subtitle_phoneVerificationDescription">Skriv inn telefonnummeret ditt inkludert landskoden. Pass på at du bruker samme telefonnummer som mottok invitasjonen.</string>
   <string name="subtitle_poweredBy">Driftet av</string>
+  <string name="subtitle_push_twitterAccountConnected">Du kan nå be om tips</string>
   <string name="subtitle_referralBonusReceived">Henvisningsbonus mottatt</string>
   <string name="subtitle_remoteSendShareSheetTitle">Send %1$s</string>
   <string name="subtitle_remoteSendSubject">Her er %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Søk etter kontakter</string>
   <string name="subtitle_smsWasSent">En SMS-melding ble sendt til telefonnummeret ditt med en bekreftelseskode. Vennligst skriv inn bekreftelseskoden ovenfor.</string>
   <string name="subtitle_someoneSendYouCash">Noen sendte deg penger</string>
+  <string name="subtitle_someoneTippedYou">Noen tipset deg</string>
+  <string name="subtitle_tipCardForX">Tipskortet ditt lar deg motta tips fra Code-brukere over hele verden. For tilgang til tipskortet ditt koble deg opp til X-identiteten din.</string>
   <string name="subtitle_typeDelete">Skriv \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Vi har gjort noen endringer for å forbedre opplevelsen. Du må oppdatere appen for å fortsette å bruke koden.</string>
   <string name="subtitle_validOwnerAccount">Gyldig eierkonto</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Du mottok</string>
   <string name="subtitle_youSent">Du sendte</string>
   <string name="subtitle_youSpent">Du brukte</string>
+  <string name="subtitle_youTipped">Du tipset noen</string>
   <string name="subtitle_youWithdrew">Du tok ut</string>
   <string name="success_description_withdrawalComplete">Midlene dine har blitt tatt ut.</string>
+  <string name="success_description_xConnected">X-kontoen din er koblet opp til Code-kontoen din. Du kan nå be om tips.</string>
   <string name="success_title_withdrawalComplete">Uttak lyktes</string>
+  <string name="success_title_xConnected">X-konto koblet opp</string>
   <string name="title_accessExpired">Tilgang utløpt</string>
   <string name="title_accessKey">Tilgangsnøkkel</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kjøp og selg Kin</string>
   <string name="title_chat_cashTransactions">Kontantbetalinger</string>
   <string name="title_chat_codeTeam">Kodeteam</string>
+  <string name="title_chat_kinPurchases">Kin-kjøp</string>
   <string name="title_chat_payments">Nettbetalinger</string>
+  <string name="title_chat_tips">Tips</string>
   <string name="title_debugOptions">Feilsøkingsalternativer</string>
   <string name="title_depositKin">Innskudd Kin</string>
   <string name="title_deposited">Deponerte</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Telefonnummer</string>
   <string name="title_privacyPolicy">Personvernerklæring</string>
   <string name="title_purchased">Kjøpt</string>
+  <string name="title_push_twitterAccountConnected">X-kontoen koblet opp</string>
   <string name="title_received">Mottok</string>
   <string name="title_recentCurrencies">Nylige valutaer</string>
   <string name="title_referFriend">Henvis en venn, få USD 5</string>
   <string name="title_referralBonus">Henvisningsbonus</string>
+  <string name="title_requestKin">Be om Kin</string>
+  <string name="title_requestTip">Be om tips</string>
   <string name="title_results">Resultater</string>
   <string name="title_returned">Returnert</string>
   <string name="title_selectAccount">Velg konto</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Brukt</string>
   <string name="title_switchAccounts">Bytt konto</string>
   <string name="title_termsOfService">Brukervilkår</string>
+  <string name="title_tipKin">Tips Kin</string>
   <string name="title_unknown">Ukjent</string>
   <string name="title_updateRequired">Oppdatering kreves</string>
   <string name="title_verifyPhoneNumber">Bekreft telefonnummer</string>

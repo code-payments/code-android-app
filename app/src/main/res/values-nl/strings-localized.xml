@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Toegang tot contacten toestaan</string>
   <string name="action_allowPushNotifications">Pushmeldingen toestaan</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Kin kopen</string>
   <string name="action_buyMoreKin">Koop meer Kin</string>
   <string name="action_cancel">Annuleren</string>
   <string name="action_cancelSend">Verzenden Annuleren</string>
   <string name="action_collectCash">Claim dit geld</string>
   <string name="action_confirm">Bevestigen</string>
+  <string name="action_connectToX">Verbinden met X</string>
   <string name="action_continue">Doorgaan</string>
   <string name="action_copied">Gekopieerd</string>
   <string name="action_copy">Kopiëren</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Een account aanmaken</string>
   <string name="action_createNewCodeAccount">Een nieuw Code-account aanmaken</string>
   <string name="action_deleteAccount">Account verwijderen</string>
+  <string name="action_done">Klaar</string>
   <string name="action_downloadNow">Download hem nu</string>
   <string name="action_enableFaceID">Gezichts-ID inschakelen</string>
   <string name="action_enableTouchID">Touch-ID inschakelen</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Uitnodigen</string>
   <string name="action_invites">Uitnodigingen</string>
   <string name="action_joinWaitlist">Inschrijven op wachtlijst</string>
+  <string name="action_later">Later</string>
   <string name="action_learnBuyKin">Leer hoe Kin te kopen</string>
   <string name="action_learnSellKin">Leer hoe Kin te verkopen</string>
   <string name="action_linkPhoneNumber">Een telefoonnummer koppelen</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Herinneren</string>
   <string name="action_removePhoneNumber">Telefoonnummer verwijderen</string>
   <string name="action_removeYourPhoneNumber">Je telefoonnummer verwijderen</string>
+  <string name="action_requestTip">Een fooi aanvragen</string>
   <string name="action_saveAccessKey">Toegangscode opslaan in Mijn Foto\'s</string>
   <string name="action_saveToPhotos">Opslaan in Foto\'s</string>
   <string name="action_send">Verzenden</string>
   <string name="action_sendVerificationCode">Verificatiecode sturen</string>
+  <string name="action_share">Delen</string>
   <string name="action_shareDownloadLink">Downloadlink delen</string>
   <string name="action_shareVideo">Deel deze video</string>
+  <string name="action_showMyTipCard">Toon mijn fooikaart</string>
+  <string name="action_subscribe">Zich abonneren</string>
   <string name="action_swipeToLogin">Swipe om in te loggen</string>
   <string name="action_swipeToPay">Veeg om te betalen</string>
+  <string name="action_swipeToTip">Veeg naar fooi geven</string>
   <string name="action_tryDifferentCodeAccount">Probeer een ander Code-account</string>
   <string name="action_unmute">Dempen opheffen</string>
   <string name="action_unsubscribe">Uitschrijven</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Ga naar de Veelgestelde Vragen in Instellingen om te leren hoe je meer KIN kunt krijgen.</string>
   <string name="error_description_invalidInviteCode">Voer een andere uitnodigingscode in en probeer het opnieuw.</string>
   <string name="error_description_invalidInvitePhone">Voer een geldig telefoonnummer in en probeer het opnieuw.</string>
+  <string name="error_description_invalidTipCard">Dit is een ongeldige fooikaart.</string>
   <string name="error_description_invalidVerificationCode">Voer een geldige code in en probeer het opnieuw.</string>
   <string name="error_description_invitationFailed">Het spijt ons, er is een netwerkprobleem opgetreden. Probeer je vriend opnieuw uit te nodigen.</string>
   <string name="error_description_linkExpired">Deze Kin is automatisch teruggestuurd naar de afzender omdat deze niet binnen 24 uur is opgehaald. Vraag ze alsjeblieft om de Kin opnieuw te sturen.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Het maximale bedrag dat je kunt kopen is %1$s. Voer een kleiner bedrag in.</string>
   <string name="error_description_purchaseTooSmall">Het minimale bedrag dat je kunt kopen is %1$s. Voer een groter bedrag in.</string>
   <string name="error_description_timelockUnlocked">Je toegangssleutel heeft een ontgrendeling geactiveerd. Hierdoor kun je deze Toegangscode in code niet meer gebruiken.</string>
+  <string name="error_description_tipTooLarge">De maximale fooi is %1$s. Voer een kleiner bedrag in.</string>
+  <string name="error_description_tipTooSmall">De minimale fooi is %1$s. Voer een groter bedrag in.</string>
   <string name="error_description_tooManyAccounts">Je kunt maar een beperkt aantal nieuwe accounts per dag aanmaken.</string>
   <string name="error_title_alreadyCollected">Kin is al verzameld</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin al opgehaald</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Onvoldoende KIN</string>
   <string name="error_title_invalidInviteCode">Uitnodigingscode ongeldig of verlopen</string>
   <string name="error_title_invalidInvitePhone">Ongeldig telefoonnummer</string>
+  <string name="error_title_invalidTipCard">Ongeldige fooikaart</string>
   <string name="error_title_invalidVerificationCode">Ongeldige code</string>
   <string name="error_title_invitationFailed">Uitnodiging mislukt</string>
   <string name="error_title_linkExpired">Link Verlopen</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Aankoop te groot</string>
   <string name="error_title_purchaseTooSmall">Aankoop te klein</string>
   <string name="error_title_timelockUnlocked">Toegangssleutel niet langer bruikbaar in code</string>
+  <string name="error_title_tipTooLarge">De fooi is te groot</string>
+  <string name="error_title_tipTooSmall">De fooi is te klein</string>
   <string name="error_title_tooManyAccounts">Te veel accounts aangemaakt</string>
   <string name="faq_a__1">Code is een betalingsapp die het eenvoudig maakt om geld te sturen naar iedereen, waar dan ook ter wereld.</string>
   <string name="faq_a__10">We zijn van plan onszelf in stand te houden door middel van een aankomend abonnementsmodel, vergelijkbaar met wat Signal en Twitter doen.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Elke Kin die niet binnen 24 uur wordt verzameld, wordt automatisch teruggestort op je saldo.</string>
   <string name="prompt_description_exitAccountCreation">Je dient het aanmaken van een account opnieuw te starten en je telefoonnummer opnieuw te verifiëren.</string>
   <string name="prompt_description_logout">Je kunt weer toegang krijgen tot dit account met je toegangscode</string>
+  <string name="prompt_description_mute">Je wordt niet geïnformeerd over nieuwe berichten van %1$s. Je kunt het dempen op elk moment opheffen.</string>
   <string name="prompt_description_notCodeAccount">Alleen accounts die via Code zijn aangemaakt, worden momenteel ondersteund.</string>
   <string name="prompt_description_unlinkPhoneNumber">Je vrienden kunnen je niet meer vinden via dit telefoonnummer.</string>
+  <string name="prompt_description_unmute">Je wordt geïnformeerd over alle nieuwe berichten van %1$s. Je kunt dempen op elk moment.</string>
+  <string name="prompt_description_unsubscribe">Je ontvangt geen berichten van %1$s totdat je ze opnieuw betaalt.</string>
   <string name="prompt_description_viewAccessKey">Je toegangscode geeft toegang tot je Code-account. Houd ze privé en sla ze veilig op.</string>
   <string name="prompt_description_wroteThemDown">Deze 12 woorden zijn de enige manier om je Code-account te herstellen. Zorg ervoor dat je ze opschrijft, privé houdt en veilig opslaat.</string>
   <string name="prompt_title_confirmWithdrawal">Weet je het zeker?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Heb je de link gestuurd?</string>
   <string name="prompt_title_exitAccountCreation">Weet je zeker dat je wilt afsluiten?</string>
   <string name="prompt_title_logout">Weet je zeker dat je wilt uitloggen?</string>
+  <string name="prompt_title_mute">Dempen %1$s?</string>
   <string name="prompt_title_notCodeAccount">Geen Code-account</string>
   <string name="prompt_title_unlinkPhoneNumber">Weet je het zeker?</string>
+  <string name="prompt_title_unmute">Dempen opheffen %1$s?</string>
+  <string name="prompt_title_unsubscribe">Zich uitschrijven voor %1$s?</string>
   <string name="prompt_title_viewAccessKey">Je toegangscode tonen?</string>
   <string name="prompt_title_wroteThemDown">Weet je het zeker?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin is op je account gestort.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kin kopen (binnenkort beschikbaar)</string>
   <string name="subtitle_buySellDescription">Het kopen en verkopen van Kin is momenteel een complex proces. Deze processen zullen in de toekomst eenvoudiger worden. Als je wilt leren hoe je op dit moment Kin kunt kopen en verkopen, kun je de onderstaande video\'s bekijken.</string>
   <string name="subtitle_canOnlyGiveUpTo">Je kunt slechts %1$s geven</string>
+  <string name="subtitle_canOnlyTipUpTo">Je kunt maximaal %1$s fooi geven</string>
   <string name="subtitle_chat_kinAvailableForUse">Je Kin is vanaf nu beschikbaar voor gebruik in je Code-app</string>
   <string name="subtitle_chat_referralBonus">Je hebt iemand hun eerste Kin gestuurd! Hier is je referentiebonus:</string>
   <string name="subtitle_chat_usdcBeingConverted">Je USDC wordt geconverteerd naar Kin. Dit duurt ongeveer een minuut</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code is een nieuwe cryptowallet-app die momenteel invite-only is. Om Code te downloaden gaat u naar %1$s</string>
   <string name="subtitle_learnMore">Meer informatie</string>
   <string name="subtitle_linkedPhoneNumberDescription">Je telefoonnummer is gekoppeld aan dit Code-account. Vrienden kunnen je vinden via dit telefoonnummer.</string>
+  <string name="subtitle_linkingTwitter">Ik verbind mijn X-account met @getcode zodat ik fooien kan ontvangen van mensen over de hele wereld.</string>
   <string name="subtitle_loadingBalance">Je saldo en transactiegeschiedenis worden geladen</string>
   <string name="subtitle_loginDescription">Controleer je foto\'s voor de toegangscode die je hebt opgeslagen toen je je account voor het eerst aanmaakte.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Je bent momenteel ingelogd op een account. Zorg ervoor dat je je toegangssleutel hebt opgeslagen voordat je doorgaat. Wil je uitloggen en inloggen met een nieuw account?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Dit telefoonnummer staat niet in je Contacten. Je kunt deze persoon nog steeds uitnodigen voor Code.</string>
   <string name="subtitle_phoneVerificationDescription">Voer je telefoonnummer in, inclusief de landcode. Zorg ervoor dat je hetzelfde telefoonnummer gebruikt waarop je de uitnodiging hebt ontvangen.</string>
   <string name="subtitle_poweredBy">Mogelijk gemaakt door</string>
+  <string name="subtitle_push_twitterAccountConnected">Je kunt nu fooien aanvragen</string>
   <string name="subtitle_referralBonusReceived">Verwijzingsbonus ontvangen</string>
   <string name="subtitle_remoteSendShareSheetTitle">Verstuur %1$s</string>
   <string name="subtitle_remoteSendSubject">Hier is %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Zoeken naar contacten</string>
   <string name="subtitle_smsWasSent">Er is een sms-bericht naar je telefoonnummer verzonden met een verificatiecode. Voer de bovenstaande verificatiecode in.</string>
   <string name="subtitle_someoneSendYouCash">Iemand heeft je geld gestuurd</string>
+  <string name="subtitle_someoneTippedYou">Iemand heeft je een fooi gegeven</string>
+  <string name="subtitle_tipCardForX">Met je fooikaart kunt je fooien ontvangen van codegebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, verbind je X-identiteit.</string>
   <string name="subtitle_typeDelete">Typ \'%1$s\'</string>
   <string name="subtitle_updateRequiredDescription">We hebben enkele wijzigingen doorgevoerd om de ervaring te verbeteren. Je dient de app te updaten om Code te blijven gebruiken.</string>
   <string name="subtitle_validOwnerAccount">Geldig eigenaarsaccount</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Je ontving</string>
   <string name="subtitle_youSent">Je stuurde</string>
   <string name="subtitle_youSpent">Je hebt uitgegeven</string>
+  <string name="subtitle_youTipped">Je hebt iemand een fooi gegeven</string>
   <string name="subtitle_youWithdrew">Je hebt opgenomen</string>
   <string name="success_description_withdrawalComplete">Je geldopname werd met succes uitgevoerd.</string>
+  <string name="success_description_xConnected">Je X-account is met succes verbonden met je code-account. Je kunt nu fooien aanvragen.</string>
   <string name="success_title_withdrawalComplete">Geldopname gelukt</string>
+  <string name="success_title_xConnected">Het X-account is met succes verbonden</string>
   <string name="title_accessExpired">Toegang verlopen</string>
   <string name="title_accessKey">Toegangscode</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kin kopen en verkopen</string>
   <string name="title_chat_cashTransactions">Betalingen in contanten</string>
   <string name="title_chat_codeTeam">Code van team</string>
+  <string name="title_chat_kinPurchases">Kin-aankopen</string>
   <string name="title_chat_payments">Online betalingen</string>
+  <string name="title_chat_tips">Fooien</string>
   <string name="title_debugOptions">Debug-opties</string>
   <string name="title_depositKin">KIN storten</string>
   <string name="title_deposited">Gestort</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Telefoonnummer</string>
   <string name="title_privacyPolicy">Privacybeleid</string>
   <string name="title_purchased">Aangeschaft</string>
+  <string name="title_push_twitterAccountConnected">Het X-account is met succes verbonden</string>
   <string name="title_received">Ontvangen</string>
   <string name="title_recentCurrencies">Recente valuta</string>
   <string name="title_referFriend">Verwijs een vriend en ontvang $5</string>
   <string name="title_referralBonus">Verwijzingsbonus</string>
+  <string name="title_requestKin">Kin aanvragen</string>
+  <string name="title_requestTip">Een fooi aanvragen</string>
   <string name="title_results">Resultaten</string>
   <string name="title_returned">Geretourneerd</string>
   <string name="title_selectAccount">Selecteer een Account</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Besteed</string>
   <string name="title_switchAccounts">Wisselen van account</string>
   <string name="title_termsOfService">Servicevoorwaarden</string>
+  <string name="title_tipKin">Fooi-kin</string>
   <string name="title_unknown">Onbekend</string>
   <string name="title_updateRequired">Update vereist</string>
   <string name="title_verifyPhoneNumber">Telefoonnummer verifiëren</string>
