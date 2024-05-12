@@ -34,7 +34,6 @@ import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -110,8 +109,7 @@ fun CodeScanner(
             .onEach {
                 val streaming = it == PreviewView.StreamState.STREAMING
                 onPreviewStateChanged(streaming)
-            }
-            .launchIn(this)
+            }.launchIn(this)
     }
 
     AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
@@ -119,9 +117,7 @@ fun CodeScanner(
     AnimatedVisibility(
         modifier = Modifier.fillMaxSize(),
         visible = streamState != PreviewView.StreamState.STREAMING,
-        enter = fadeIn(
-            animationSpec = tween(AnimationUtils.animationTime / 2)
-        ),
+        enter = fadeIn(tween(AnimationUtils.animationTime / 2)),
         exit = fadeOut(tween(AnimationUtils.animationTime / 2))
     ) {
         Box(

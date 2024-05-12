@@ -176,17 +176,15 @@ private fun HomeScan(
             focusManager.clearFocus()
         }
 
-        if (previewing) {
-            if (!deepLinkSaved.isNullOrBlank()) {
-                homeViewModel.openCashLink(deepLink)
-                deepLinkSaved = null
-            }
+        if (!deepLinkSaved.isNullOrBlank()) {
+            homeViewModel.openCashLink(deepLink)
+            deepLinkSaved = null
+        }
 
-            if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
-                delay(500.milliseconds)
-                homeViewModel.handleRequest(requestPayload)
-                requestPayloadSaved = null
-            }
+        if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
+            delay(500.milliseconds)
+            homeViewModel.handleRequest(requestPayload)
+            requestPayloadSaved = null
         }
     }
 
