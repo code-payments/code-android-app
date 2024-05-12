@@ -96,7 +96,7 @@ fun Client.transferWithResultSingle(
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                context, amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tipMetadata
+                amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tipMetadata
             )
         })
         .map {
@@ -141,7 +141,6 @@ fun Client.sendRemotely(
         getTransferPreflightAction(truncatedAmount.kin)
             .andThen(
                 sendRemotely(
-                    context = context,
                     amount = truncatedAmount,
                     organizer = organizer,
                     rendezvousKey = rendezvousKey,
@@ -150,7 +149,7 @@ fun Client.sendRemotely(
                     .doOnComplete {
                         val giftCardItem = GiftCard(
                             key = giftCard.cluster.vaultPublicKey.base58(),
-                            entropy = giftCard.mnemonicPhrase.getBase58EncodedEntropy(context),
+                            entropy = mnemonicManager.getEncodedBase58(giftCard.mnemonicPhrase),
                             amount = truncatedAmount.kin.quarks,
                             date = System.currentTimeMillis()
                         )
@@ -367,7 +366,6 @@ private fun Client.withdraw(
 }
 
 fun Client.sendRemotely(
-    context: Context,
     amount: KinAmount,
     organizer: Organizer,
     rendezvousKey: PublicKey,
@@ -375,7 +373,7 @@ fun Client.sendRemotely(
 ): Completable {
     return Completable.defer {
         transactionRepository.sendRemotely(
-            context, amount, organizer, rendezvousKey, giftCard
+            amount, organizer, rendezvousKey, giftCard
         )
             .map {
                 if (it is IntentRemoteSend) {

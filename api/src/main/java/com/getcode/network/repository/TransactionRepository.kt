@@ -128,7 +128,6 @@ class TransactionRepository @Inject constructor(
     }
 
     fun transfer(
-        context: Context,
         amount: KinAmount,
         fee: Kin,
         additionalFees: List<Fee>,
@@ -254,7 +253,6 @@ class TransactionRepository @Inject constructor(
     }
 
     fun sendRemotely(
-        context: Context,
         amount: KinAmount,
         organizer: Organizer,
         rendezvousKey: PublicKey,

@@ -22,7 +22,7 @@ object Versions {
     const val androidx_camerax = "1.3.2"
     const val androidx_core = "1.12.0"
     const val androidx_constraint_layout = "2.1.3"
-    const val androidx_lifecycle = "2.6.2"
+    const val androidx_lifecycle = "2.7.0"
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"

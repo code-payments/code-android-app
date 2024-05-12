@@ -1,15 +1,13 @@
 package com.getcode.network
 
-import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
-import com.getcode.model.TipMetadata
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
+import com.getcode.model.TipMetadata
 import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
