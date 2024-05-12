@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Hozzáférés engedélyezése a névjegyekhez</string>
   <string name="action_allowPushNotifications">Push értesítések engedélyezése</string>
   <string name="action_balance">Egyenleg</string>
+  <string name="action_buyKin">Kin vásárlása</string>
   <string name="action_buyMoreKin">További Kinek vásárlása</string>
   <string name="action_cancel">Mégsem</string>
   <string name="action_cancelSend">Küldés törlése</string>
   <string name="action_collectCash">Gyűjtsd össze ezt a pénzt</string>
   <string name="action_confirm">Megerősít</string>
+  <string name="action_connectToX">Csatlakozás X-hez</string>
   <string name="action_continue">Folytatás</string>
   <string name="action_copied">Bemásolva</string>
   <string name="action_copy">Másol</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Fiók létrehozása</string>
   <string name="action_createNewCodeAccount">Hozzon létre egy új kódfiókot</string>
   <string name="action_deleteAccount">Fiók törlése</string>
+  <string name="action_done">Kész</string>
   <string name="action_downloadNow">Töltsd le most</string>
   <string name="action_enableFaceID">Arc azonosítás bekapcsolása</string>
   <string name="action_enableTouchID">Érintéses azonosítás bekapcsolása</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Meghív</string>
   <string name="action_invites">Meghívottak</string>
   <string name="action_joinWaitlist">Csatlakozás a várólistához</string>
+  <string name="action_later">Később</string>
   <string name="action_learnBuyKin">Tudja meg, hogyan kell Kin-t vásárolni</string>
   <string name="action_learnSellKin">Tudja meg, hogyan kell eladni a Kin-t</string>
   <string name="action_linkPhoneNumber">Kapcsoljon telefonszámot</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Emlékeztet</string>
   <string name="action_removePhoneNumber">Telefonszám eltávolítása</string>
   <string name="action_removeYourPhoneNumber">Távolítsa el a telefonszámát</string>
+  <string name="action_requestTip">Kérj borravalót</string>
   <string name="action_saveAccessKey">Mentse a hozzáférési kulcsot a Saját fotók közé</string>
   <string name="action_saveToPhotos">Mentés a Fotók közé</string>
   <string name="action_send">Küldés</string>
   <string name="action_sendVerificationCode">Ellenőrző kód küldése</string>
+  <string name="action_share">Megosztás</string>
   <string name="action_shareDownloadLink">Letöltési hivatkozás megosztása</string>
   <string name="action_shareVideo">Ossza meg ezt a videót</string>
+  <string name="action_showMyTipCard">Borravalós kártyám mutatása</string>
+  <string name="action_subscribe">Feliratkozás</string>
   <string name="action_swipeToLogin">Húzza el az ujját a bejelentkezéshez</string>
   <string name="action_swipeToPay">Fizessen húzással</string>
+  <string name="action_swipeToTip">Lapozás a borravalóhoz</string>
   <string name="action_tryDifferentCodeAccount">Próbáljon ki egy másik kódfiókot</string>
   <string name="action_unmute">Némítás feloldása</string>
   <string name="action_unsubscribe">Leiratkozás</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Ha többet szeretne megtudni a Kin beszerzéséről, keresse fel a Beállítások menü GYIK részét.</string>
   <string name="error_description_invalidInviteCode">Kérjük, adjon meg egy másik meghívó kódot, és próbálja újra.</string>
   <string name="error_description_invalidInvitePhone">Adj meg egy érvényes telefonszámot és próbáld újra. </string>
+  <string name="error_description_invalidTipCard">Ez egy érvénytelen borravalós kártya.</string>
   <string name="error_description_invalidVerificationCode">Adjon meg egy érvényes kódot, és próbálja újra.</string>
   <string name="error_description_invitationFailed">Sajnáljuk, hálózati problémát tapasztaltunk. Kérjük, próbálja meg újra meghívni barátját.</string>
   <string name="error_description_linkExpired">Ez a Kin automatikusan visszaérkezett a küldőhöz, mert 24 órán belül nem vették fel. Légyszíves kérdezd meg őket, hogy elküldjed-e ismét.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">A maximálisan megvásárolható összeg %1$s. Adjon meg kisebb összeget</string>
   <string name="error_description_purchaseTooSmall">A minimális vásárlási összeg %1$s. Adjon meg nagyobb összeget.</string>
   <string name="error_description_timelockUnlocked">A hozzáférési kulcsa feloldást kezdeményezett. Ennek eredményeként a továbbiakban nem fogja tudni használni ezt a hozzáférési kulcsot a kódban.</string>
+  <string name="error_description_tipTooLarge">A maximálisan adható borravaló %1$s. Adj meg egy kisebb összeget.</string>
+  <string name="error_description_tipTooSmall">A minimálisan adható borravaló %1$s. Adj meg egy nagyobb összeget.</string>
   <string name="error_description_tooManyAccounts">Naponta csak annyi új fiókot hozhat létre.</string>
   <string name="error_title_alreadyCollected">A Kin-t már felvették</string>
   <string name="error_title_alreadyCollectedBySomeone">A Kin már összegyűjtve</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Nem elegendő kin</string>
   <string name="error_title_invalidInviteCode">A meghívó kódja érvénytelen vagy lejárt</string>
   <string name="error_title_invalidInvitePhone">Hibás telefonszám</string>
+  <string name="error_title_invalidTipCard">Érvénytelen borravalós kártya</string>
   <string name="error_title_invalidVerificationCode">Érvénytelen kód</string>
   <string name="error_title_invitationFailed">Meghívás sikertelen</string>
   <string name="error_title_linkExpired">A link lejárt</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">A vásárlási összeg túl nagy</string>
   <string name="error_title_purchaseTooSmall">A vásárlási összeg túl kicsi</string>
   <string name="error_title_timelockUnlocked">A hozzáférési kulcs már nem használható a kódban</string>
+  <string name="error_title_tipTooLarge">A borravaló túl sok</string>
+  <string name="error_title_tipTooSmall">A borravaló túl kevés</string>
   <string name="error_title_tooManyAccounts">Túl sok fiók jött létre</string>
   <string name="faq_a__1">A Code egy fizetési alkalmazás, amellyel egyszerűen küldhet pénzt bárkinek, bárhol a világon.</string>
   <string name="faq_a__10">Terveink szerint egy közelgő előfizetési modellen keresztül tartjuk fenn magunkat, hasonlóan ahhoz, amit a Signal és a Twitter csinál.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Minden Kin, amit 24 órán nem vesznek fel automatikusan visszaérkezik az egyenlegedre.</string>
   <string name="prompt_description_exitAccountCreation">Újra kell indítania a fiók létrehozását, és újra igazolnia kell telefonszámát.</string>
   <string name="prompt_description_logout">Hozzáférési kulcsa segítségével visszaléphet ebbe a fiókba</string>
+  <string name="prompt_description_mute">Nem kapsz értesítést %1$s új üzeneteiről. A némítás bármikor visszavonható.</string>
   <string name="prompt_description_notCodeAccount">Jelenleg csak a Code segítségével létrehozott fiókok támogatottak.</string>
   <string name="prompt_description_unlinkPhoneNumber">Ismerősei többé nem találják meg ezzel a telefonszámmal.</string>
+  <string name="prompt_description_unmute">Értesítést kapsz %1$s új üzeneteiről. Bármikor elnémíthatod.</string>
+  <string name="prompt_description_unsubscribe">Nem kapsz %1$s üzenetet, amíg újra nem fizetsz nekik.</string>
   <string name="prompt_description_viewAccessKey">Hozzáférési kulcsa hozzáférést biztosít kódfiókjához. Tartsa privátban és biztonságban.</string>
   <string name="prompt_description_wroteThemDown">Ez a 12 szó az egyetlen módja a Code-fiók helyreállításának. Ügyeljen arra, hogy felírta őket, és kezelje bizalmasan és biztonságosan.</string>
   <string name="prompt_title_confirmWithdrawal">Biztos benne?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Elküldted a linket?</string>
   <string name="prompt_title_exitAccountCreation">Biztos ki akar lépni?</string>
   <string name="prompt_title_logout">Biztosan ki akar jelentkezni?</string>
+  <string name="prompt_title_mute">%1$s némítása?</string>
   <string name="prompt_title_notCodeAccount">Nem kódszámla</string>
   <string name="prompt_title_unlinkPhoneNumber">Biztos benne?</string>
+  <string name="prompt_title_unmute">Visszavonod %1$s némítását?</string>
+  <string name="prompt_title_unsubscribe">%1$s elhagyása?</string>
   <string name="prompt_title_viewAccessKey">Megnézi a hozzáférési kulcsát?</string>
   <string name="prompt_title_wroteThemDown">Biztos benne?</string>
   <string name="push_subtitle_depositReceived">%1$s A Kint jóváírtuk a számládon.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Vásárolj Kin-t (Hamarosan)</string>
   <string name="subtitle_buySellDescription">A Kin vétele és eladása jelenleg bonyolult folyamat. Ezek a folyamatok idővel egyszerűsödni fognak. Ha szeretné megtanulni, hogyan vásároljon és adjon el Kin-t még ma, akkor nézze meg az alábbi videókat.</string>
   <string name="subtitle_canOnlyGiveUpTo">Legfeljebb ennyit adhatsz: %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Legfeljebb %1$s borravalót adhatsz</string>
   <string name="subtitle_chat_kinAvailableForUse">Mostantól használhatja Kinjeit a Code alkalmazásban</string>
   <string name="subtitle_chat_referralBonus">Elküldte valakinek az első Kin-jét! Itt van az ajánlói bónusza:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC-it átváltjuk Kinre. A művelet körülbelül egy percet vesz igénybe</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">A Code egy új kriptotárca-alkalmazás, amely jelenleg csak meghívásra használható. A Code letöltéséhez menj ide: %1$s</string>
   <string name="subtitle_learnMore">Tudj meg többet</string>
   <string name="subtitle_linkedPhoneNumberDescription">Az Ön telefonszáma ehhez a Code fiókhoz van kapcsolva. Ismerősei megtalálhatják Önt ezen a telefonszámon.</string>
+  <string name="subtitle_linkingTwitter">Az X-fiókomat összekötöm a @getcode fiókkal, hogy borravalót kaphassak a világ minden tájáról.</string>
   <string name="subtitle_loadingBalance">Egyenleg és tranzakciós előzmények betöltése</string>
   <string name="subtitle_loginDescription">Nézze meg fotóin a hozzáférési kulcsot, amelyet a fiók létrehozásakor mentett.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Jelenleg be vagy jelentkezve egy fiókkal. Mielőtt tovább lépsz, győződj meg róla, hogy a Hozzáférési kulcsodat elmentetted. Kijelentkezel és bejelentkezel egy új fiókkal?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Ez a telefonszám nincs a kapcsolataid között. Továbbra is meghívhatod a Code alkalmazásba.</string>
   <string name="subtitle_phoneVerificationDescription">Adja meg telefonszámát az országkóddal együtt. Győződjön meg arról, hogy ugyanazt a telefonszámot használja, amelyre a meghívót kapta.</string>
   <string name="subtitle_poweredBy">A következő jóvoltából:</string>
+  <string name="subtitle_push_twitterAccountConnected">Most már kérhetsz borravalót.</string>
   <string name="subtitle_referralBonusReceived">Ajánlói bónusz megérkezett</string>
   <string name="subtitle_remoteSendShareSheetTitle">%1$s küldés</string>
   <string name="subtitle_remoteSendSubject">Itt van %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Névjegyek keresése</string>
   <string name="subtitle_smsWasSent">SMS-t küldtünk a telefonszámára egy ellenőrző kóddal. Kérjük, írja be a fenti ellenőrző kódot.</string>
   <string name="subtitle_someoneSendYouCash">Valaki pénzt küldött neked</string>
+  <string name="subtitle_someoneTippedYou">Valaki borravalót adott neked</string>
+  <string name="subtitle_tipCardForX">A Borravalós kártya lehetővé teszi, hogy borravalót kapj a Code felhasználóitól a világ minden tájáról. A Borravalós kártyához való hozzáféréshez csatlakoztasd az X azonosítódat.</string>
   <string name="subtitle_typeDelete">Írd be: \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Néhány változtatást eszközöltünk az élmény javítása érdekében. A Code használatának folytatásához frissítenie kell az alkalmazást.</string>
   <string name="subtitle_validOwnerAccount">Érvényes tulajdonosi fiók</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Ennyit kaptál</string>
   <string name="subtitle_youSent">Ön küldött</string>
   <string name="subtitle_youSpent">Ön elköltött</string>
+  <string name="subtitle_youTipped">Valakinek borravalót adtál</string>
   <string name="subtitle_youWithdrew">Ön kivett</string>
   <string name="success_description_withdrawalComplete">Az összeget sikeresen visszavontuk.</string>
+  <string name="success_description_xConnected">Az X-fiókodat sikeresen összekapcsoltuk a Code-fiókoddal. Most már kérhetsz borravalót.</string>
   <string name="success_title_withdrawalComplete">A visszavonás sikeres</string>
+  <string name="success_title_xConnected">X-fiók sikeresen csatlakoztatva</string>
   <string name="title_accessExpired">Hozzáférés lejárt</string>
   <string name="title_accessKey">Hozzáférési kulcs</string>
   <string name="title_balance">Egyenleg</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kin vásárlás és eladás</string>
   <string name="title_chat_cashTransactions">Készpénzes kifizetések</string>
   <string name="title_chat_codeTeam">Code csapat</string>
+  <string name="title_chat_kinPurchases">Kin vásárlások</string>
   <string name="title_chat_payments">Webes kifizetések</string>
+  <string name="title_chat_tips">Borravalók</string>
   <string name="title_debugOptions">Bugmentesítő opciók</string>
   <string name="title_depositKin">Kin küldése</string>
   <string name="title_deposited">Pénzt átutalt</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Telefonszám</string>
   <string name="title_privacyPolicy">Adatvédelmi irányelvek</string>
   <string name="title_purchased">Megvásárolva</string>
+  <string name="title_push_twitterAccountConnected">X-fiók sikeresen csatlakoztatva</string>
   <string name="title_received">Fogadva</string>
   <string name="title_recentCurrencies">Legutóbbi pénznemek</string>
   <string name="title_referFriend">Ajánlj egy barátot, kapsz 5 dollárt</string>
   <string name="title_referralBonus">Ajánlói bónusz</string>
+  <string name="title_requestKin">Kin kérése</string>
+  <string name="title_requestTip">Kérj borravalót</string>
   <string name="title_results">Eredmények</string>
   <string name="title_returned">Visszatérítve</string>
   <string name="title_selectAccount">Válassz egy fiókot</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Elköltött</string>
   <string name="title_switchAccounts">Fiókcsere</string>
   <string name="title_termsOfService">Szolgáltatási feltételek</string>
+  <string name="title_tipKin">Kin borravaló</string>
   <string name="title_unknown">Ismeretlen</string>
   <string name="title_updateRequired">Frissítés szükséges</string>
   <string name="title_verifyPhoneNumber">Telefonszám ellenőrzése</string>

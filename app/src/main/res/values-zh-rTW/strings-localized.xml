@@ -4,11 +4,13 @@
   <string name="action_allowContacts">允許存取聯絡人</string>
   <string name="action_allowPushNotifications">允許推播通知</string>
   <string name="action_balance">餘額</string>
+  <string name="action_buyKin">購買 Kin</string>
   <string name="action_buyMoreKin">購買更多 Kin</string>
   <string name="action_cancel">取消</string>
   <string name="action_cancelSend">取消發送</string>
   <string name="action_collectCash">收取這筆現金</string>
   <string name="action_confirm">確認</string>
+  <string name="action_connectToX">連結至 X</string>
   <string name="action_continue">繼續</string>
   <string name="action_copied">已複製</string>
   <string name="action_copy">複製</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">建立帳戶</string>
   <string name="action_createNewCodeAccount">建立新的 Code 帳戶</string>
   <string name="action_deleteAccount">刪除帳戶</string>
+  <string name="action_done">完成</string>
   <string name="action_downloadNow">現在就下載</string>
   <string name="action_enableFaceID">啟用 Face ID</string>
   <string name="action_enableTouchID">啟用 Face ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">邀請</string>
   <string name="action_invites">邀請</string>
   <string name="action_joinWaitlist">加入候補名單</string>
+  <string name="action_later">晚點再說</string>
   <string name="action_learnBuyKin">學習如何購買 Kin</string>
   <string name="action_learnSellKin">學習如何賣掉 Kin</string>
   <string name="action_linkPhoneNumber">連結電話號碼</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">提醒</string>
   <string name="action_removePhoneNumber">移除電話號碼</string>
   <string name="action_removeYourPhoneNumber">移除您的電話號碼</string>
+  <string name="action_requestTip">要求小費</string>
   <string name="action_saveAccessKey">將存取金鑰儲存至我的相簿</string>
   <string name="action_saveToPhotos">儲存至相簿</string>
   <string name="action_send">發送</string>
   <string name="action_sendVerificationCode">傳送驗證碼</string>
+  <string name="action_share">分享</string>
   <string name="action_shareDownloadLink">分享下載連結</string>
   <string name="action_shareVideo">分享該影片</string>
+  <string name="action_showMyTipCard">顯示我的 Tip Card</string>
+  <string name="action_subscribe">訂閱</string>
   <string name="action_swipeToLogin">滑動以登入</string>
   <string name="action_swipeToPay">刷卡支付</string>
+  <string name="action_swipeToTip">滑動來給小費</string>
   <string name="action_tryDifferentCodeAccount">嘗試不同的 Code 帳戶</string>
   <string name="action_unmute">取消靜音</string>
   <string name="action_unsubscribe">取消訂閱</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">要瞭解獲得更多 Kin 的方法,請前往設定中的常見問題集。</string>
   <string name="error_description_invalidInviteCode">請輸入另一個邀請碼再試一次。</string>
   <string name="error_description_invalidInvitePhone">請輸入有效的電話號碼並重試。</string>
+  <string name="error_description_invalidTipCard">這是無效的 Tip Card。</string>
   <string name="error_description_invalidVerificationCode">請輸入有效的驗證碼,然後再試一次。</string>
   <string name="error_description_invitationFailed">抱歉,我們遇到了網路問題。請嘗試再次邀請您的朋友。</string>
   <string name="error_description_linkExpired">這個 Kin 自動歸還給了發送者,因為 24 小時内沒被領取。請要求他們再次發送 Kin。</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">您可購買的上限為 %1$s。請輸入較小數量。</string>
   <string name="error_description_purchaseTooSmall">您可購買的下限為 %1$s。請輸入較大數量。</string>
   <string name="error_description_timelockUnlocked">您的存取鑰匙已經啓動解鎖。因此,您不能再在 Code 使用此存取鑰匙。</string>
+  <string name="error_description_tipTooLarge">您可以給予的小費最大值為 %1$s。請輸入較小的金額。</string>
+  <string name="error_description_tipTooSmall">您可以給予的小費最小值為 %1$s。請輸入較大的金額。</string>
   <string name="error_description_tooManyAccounts">您每天只能建立如此數目的新帳戶。</string>
   <string name="error_title_alreadyCollected">已領取 Kin</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin 已收取</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Kin 不足</string>
   <string name="error_title_invalidInviteCode">邀請碼無效或過期</string>
   <string name="error_title_invalidInvitePhone">無效的電話號碼</string>
+  <string name="error_title_invalidTipCard">無效的 Tip Card</string>
   <string name="error_title_invalidVerificationCode">無效的驗證碼</string>
   <string name="error_title_invitationFailed">邀請失敗</string>
   <string name="error_title_linkExpired">連結過期</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">購買量太大</string>
   <string name="error_title_purchaseTooSmall">購買量太小</string>
   <string name="error_title_timelockUnlocked">存取鑰匙在 Code 已經失效</string>
+  <string name="error_title_tipTooLarge">小費金額過高</string>
+  <string name="error_title_tipTooSmall">小費金額過低</string>
   <string name="error_title_tooManyAccounts">建立太多帳戶了</string>
   <string name="faq_a__1">Code 是一個支付應用程式,讓你可以輕鬆付款給在世界任何一個地方的任何一個人。</string>
   <string name="faq_a__10">我們計畫未來會推出訂閱模式,類似 Signal 和 Twitter 的做法,以維持我們的營運。</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">24 小時内沒被領取的 Kin 將會自動歸還到您的餘額。</string>
   <string name="prompt_description_exitAccountCreation">您將需要重新建立帳戶並再次驗證您的電話號碼。</string>
   <string name="prompt_description_logout">您可以使用您的存取金鑰重新進入此帳戶</string>
+  <string name="prompt_description_mute">您將不會收到來自 %1$s 的任何新訊息通知。您可以隨時解除靜音。</string>
   <string name="prompt_description_notCodeAccount">目前僅支援透過 Code 建立的帳戶。</string>
   <string name="prompt_description_unlinkPhoneNumber">您的朋友將再也無法使用此電話號碼找到您。</string>
+  <string name="prompt_description_unmute">您將會收到來自 %1$s 的所有新訊息通知。您可以隨時將其靜音。</string>
+  <string name="prompt_description_unsubscribe">您將不會收到任何來自 %1$s 的訊息,直到再次付款。</string>
   <string name="prompt_description_viewAccessKey">您的存取金鑰將授予存取 Code 帳戶的權限。請隱密並妥善地保管您的存取金鑰。</string>
   <string name="prompt_description_wroteThemDown">這 12 個字詞是恢復您 Code 帳戶的唯一辦法。請一定要將這些字詞寫下來,並隱密且妥善地保管它們。</string>
   <string name="prompt_title_confirmWithdrawal">您確定嗎？</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">您是否發送了連結？</string>
   <string name="prompt_title_exitAccountCreation">您確定要退出嗎？</string>
   <string name="prompt_title_logout">您確定要登出嗎？</string>
+  <string name="prompt_title_mute">將 %1$s 靜音？</string>
   <string name="prompt_title_notCodeAccount">不是 Code 帳戶</string>
   <string name="prompt_title_unlinkPhoneNumber">您確定嗎？</string>
+  <string name="prompt_title_unmute">要解除靜音 %1$s 嗎？</string>
+  <string name="prompt_title_unsubscribe">要取消訂閱 %1$s 嗎？</string>
   <string name="prompt_title_viewAccessKey">要查看您的存取金鑰嗎？</string>
   <string name="prompt_title_wroteThemDown">您確定嗎？</string>
   <string name="push_subtitle_depositReceived">%1$s 的 Kin 已存入您的帳戶。</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">購買 Kin（即將推出）</string>
   <string name="subtitle_buySellDescription">目前買賣 Kin 的流程相當複雜,但這些流程以後會改進得更簡便。如果您現在想要學習如何購買和販售 Kin,可以觀看下方的操作影片。</string>
   <string name="subtitle_canOnlyGiveUpTo">您最多只能轉移 %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">您最多只能給予 %1$s 的小費。</string>
   <string name="subtitle_chat_kinAvailableForUse">您的 Kin 現已可在 Code 應用程式中使用</string>
   <string name="subtitle_chat_referralBonus">您發送給某人第一筆 Kin！這裡是您的推薦獎勵:</string>
   <string name="subtitle_chat_usdcBeingConverted">您的 USDC 正在轉為 Kin。這大約需要一分鐘才能完成</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code 是新推出的加密貨幣錢包應用程式,目前僅限受邀者使用。請前往 %1$s 下載 Code</string>
   <string name="subtitle_learnMore">瞭解更多</string>
   <string name="subtitle_linkedPhoneNumberDescription">您的電話號碼已與此 Code 帳戶連結。朋友可以使用這個電話號碼找到您。</string>
+  <string name="subtitle_linkingTwitter">我將把我的 X 帳戶與 @getcode 連結,讓我能夠接收來自世界各地的小費。</string>
   <string name="subtitle_loadingBalance">正在加載您的餘額及交易記錄</string>
   <string name="subtitle_loginDescription">檢查您的相簿以取得首次建立帳戶時儲存的存取金鑰。</string>
   <string name="subtitle_logoutAndLoginConfirmation">您現時已登入一個帳戶。繼續之前,請確保已儲存您的存取密鑰。您想登出並登入一個新帳戶嗎？</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">此電話號碼不在您的聯絡人中,但您仍可以邀請他們加入 Code。</string>
   <string name="subtitle_phoneVerificationDescription">輸入包含國際區號的電話號碼。請確定您使用的電話號碼與收到邀請的電話號碼相同。</string>
   <string name="subtitle_poweredBy">技術提供者：</string>
+  <string name="subtitle_push_twitterAccountConnected">您現在可以提出小費要求了</string>
   <string name="subtitle_referralBonusReceived">已收到推薦獎勵</string>
   <string name="subtitle_remoteSendShareSheetTitle">發送%1$s</string>
   <string name="subtitle_remoteSendSubject">這是%1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">搜尋聯絡人</string>
   <string name="subtitle_smsWasSent">一條帶有驗證碼的短訊已發送到您的電話號碼。請輸入上面的驗證碼。</string>
   <string name="subtitle_someoneSendYouCash">有人傳送了現金給您</string>
+  <string name="subtitle_someoneTippedYou">有人給您小費</string>
+  <string name="subtitle_tipCardForX">您的 Tip Card 可讓您從世界各地的 Code 使用者接收小費。想使用您的 Tip Card,請連結您的 X 身分。</string>
   <string name="subtitle_typeDelete">輸入「%1$s」</string>
   <string name="subtitle_updateRequiredDescription">我們進行了一些變更來改善體驗。您需要更新應用程式才能夠繼續使用 Code。</string>
   <string name="subtitle_validOwnerAccount">有效的所有人帳戶</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">您收到的</string>
   <string name="subtitle_youSent">您發送了</string>
   <string name="subtitle_youSpent">您花費了</string>
+  <string name="subtitle_youTipped">您給了某人小費</string>
   <string name="subtitle_youWithdrew">您提領了</string>
   <string name="success_description_withdrawalComplete">已成功提領您的資金。</string>
+  <string name="success_description_xConnected">您的 X 帳戶已成功與 Code 帳戶連結。您現在可以提出小費要求了。</string>
   <string name="success_title_withdrawalComplete">提領成功</string>
+  <string name="success_title_xConnected">已成功連結 X 帳戶</string>
   <string name="title_accessExpired">存取權已過期</string>
   <string name="title_accessKey">存取金鑰</string>
   <string name="title_balance">餘額</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">購買＆販售 Kin</string>
   <string name="title_chat_cashTransactions">現金付款</string>
   <string name="title_chat_codeTeam">程式碼團隊</string>
+  <string name="title_chat_kinPurchases">Kin 購買紀錄</string>
   <string name="title_chat_payments">網路付款</string>
+  <string name="title_chat_tips">小費</string>
   <string name="title_debugOptions">偵錯選項</string>
   <string name="title_depositKin">存入 Kin</string>
   <string name="title_deposited">已存入</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">電話號碼</string>
   <string name="title_privacyPolicy">隱私權政策</string>
   <string name="title_purchased">已購買</string>
+  <string name="title_push_twitterAccountConnected">已成功連結 X 帳戶</string>
   <string name="title_received">已收到</string>
   <string name="title_recentCurrencies">最近使用的貨幣</string>
   <string name="title_referFriend">推薦一位朋友,可獲 5 美元獎勵</string>
   <string name="title_referralBonus">推薦獎勵</string>
+  <string name="title_requestKin">要求 Kin</string>
+  <string name="title_requestTip">要求小費</string>
   <string name="title_results">結果</string>
   <string name="title_returned">已歸還</string>
   <string name="title_selectAccount">選擇一個帳戶</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">花費</string>
   <string name="title_switchAccounts">切換帳戶</string>
   <string name="title_termsOfService">服務條款</string>
+  <string name="title_tipKin">以 Kin 給小費</string>
   <string name="title_unknown">不明</string>
   <string name="title_updateRequired">需要更新</string>
   <string name="title_verifyPhoneNumber">驗證電話號碼</string>

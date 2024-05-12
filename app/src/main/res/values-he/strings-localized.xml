@@ -4,11 +4,13 @@
   <string name="action_allowContacts">אפשר גישה לאנשי הקשר</string>
   <string name="action_allowPushNotifications">אפשר הודעות דחיפה</string>
   <string name="action_balance">מצב חשבון</string>
+  <string name="action_buyKin">רכישת Kin</string>
   <string name="action_buyMoreKin">לקנות kin יותר</string>
   <string name="action_cancel">ביטול</string>
   <string name="action_cancelSend">בטל שליחה</string>
   <string name="action_collectCash">אסוף את המזומן הזה</string>
   <string name="action_confirm">אישור</string>
+  <string name="action_connectToX">התחבר ל-X</string>
   <string name="action_continue">המשך</string>
   <string name="action_copied">הועתק</string>
   <string name="action_copy">העתק</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">צור חשבון</string>
   <string name="action_createNewCodeAccount">צור חשבון קוד חדש</string>
   <string name="action_deleteAccount">מחיקת חשבון</string>
+  <string name="action_done">בוצע</string>
   <string name="action_downloadNow">הורד אותה עכשיו</string>
   <string name="action_enableFaceID">הפוך Face ID לזמין</string>
   <string name="action_enableTouchID">הפוך Touch ID לזמין</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">הזמן</string>
   <string name="action_invites">הזמנות</string>
   <string name="action_joinWaitlist">הצטרף לרשימת ההמתנה</string>
+  <string name="action_later">מאוחר יותר</string>
   <string name="action_learnBuyKin">למדו כיצד לקנות Kin</string>
   <string name="action_learnSellKin">למדו כיצד למכור Kin</string>
   <string name="action_linkPhoneNumber">קשר מספר טלפון</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">הזכר</string>
   <string name="action_removePhoneNumber">הסר מספר טלפון</string>
   <string name="action_removeYourPhoneNumber">הסר את מספר הטלפון שלך</string>
+  <string name="action_requestTip">בקשת טיפ</string>
   <string name="action_saveAccessKey">שמור מפתח גישה בתמונות שלי</string>
   <string name="action_saveToPhotos">שמור בתמונות</string>
   <string name="action_send">שליחה</string>
   <string name="action_sendVerificationCode">שלח קוד אימות</string>
+  <string name="action_share">שיתוף</string>
   <string name="action_shareDownloadLink">שתף קישור להורדה</string>
   <string name="action_shareVideo">שתפו סרטון זה</string>
+  <string name="action_showMyTipCard">הצג את כרטיס הטיפים שלי</string>
+  <string name="action_subscribe">הרשמה</string>
   <string name="action_swipeToLogin">גלגל להתחבר</string>
   <string name="action_swipeToPay">החליקו כדי לשלם</string>
+  <string name="action_swipeToTip">החליקו כדי לתת טיפ</string>
   <string name="action_tryDifferentCodeAccount">נסה חשבון קוד אחר</string>
   <string name="action_unmute">בטל השתקה</string>
   <string name="action_unsubscribe">בטל מנוי</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">כדי לגלות איך להשיג עוד קין לך לשאלות נפוצות בעמוד ההגדרות.</string>
   <string name="error_description_invalidInviteCode">אנא הזן קוד הזמנה אחר ונסה שוב.</string>
   <string name="error_description_invalidInvitePhone">נא להזין מספר טלפון חוקי ולנסות שוב.</string>
+  <string name="error_description_invalidTipCard">זהו כרטיס טיפים לא חוקי.</string>
   <string name="error_description_invalidVerificationCode">אנא הכנס קוד חוקי ונסה שנית.</string>
   <string name="error_description_invitationFailed">מצטערים, חווינו בעיית תקשורת. אנא נסה שנית להזמין את חברך.</string>
   <string name="error_description_linkExpired">Kin זה הוחזר אוטומטית לשולח מכיוון שהוא לא נאסף תוך 24 שעות. נא לבקש מהם לשלוח שוב את ה-Kin.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">המקסימום שתוכל לרכוש הוא %1$s. נא להזין סכום קטן יותר.</string>
   <string name="error_description_purchaseTooSmall">המינימום שניתן לרכוש הוא %1$s. נא להזין סכום גדול יותר.</string>
   <string name="error_description_timelockUnlocked">מפתח הגישה שלך יזם ביטול נעילה. כתוצאה מכך, לא תוכל עוד להשתמש במפתח גישה זה ב-Code.</string>
+  <string name="error_description_tipTooLarge">המקסימום שאתם יכולים לתת כטיפ הוא %1$s. נא להזין סכום קטן יותר.</string>
+  <string name="error_description_tipTooSmall">המינימום שאתם יכולים לתת כטיפ הוא %1$s. נא להזין סכום גדול יותר.</string>
   <string name="error_description_tooManyAccounts">אתה יכול ליצור כמות מוגבלת של חשבונות חדשים בכל יום.</string>
   <string name="error_title_alreadyCollected">ה-Kin כבר נאסף</string>
   <string name="error_title_alreadyCollectedBySomeone">ה-Kin כבר נאסף</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">אין מספיק קין</string>
   <string name="error_title_invalidInviteCode">קוד ההזמנה לא חוקי או פג תוקף</string>
   <string name="error_title_invalidInvitePhone">מספר טלפון לא חוקי</string>
+  <string name="error_title_invalidTipCard">כרטיס טיפים לא חוקי</string>
   <string name="error_title_invalidVerificationCode">קוד לא חוקי</string>
   <string name="error_title_invitationFailed">ההזמנה נכשלה</string>
   <string name="error_title_linkExpired">פג תוקף הקישור</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">רכישה גדולה מדי</string>
   <string name="error_title_purchaseTooSmall">קנייה קטנה מדי</string>
   <string name="error_title_timelockUnlocked">מפתח הגישה אינו שמיש יותר ב-Code</string>
+  <string name="error_title_tipTooLarge">הטיפ גדול מדי</string>
+  <string name="error_title_tipTooSmall">הטיפ קטן מדי</string>
   <string name="error_title_tooManyAccounts">יותר מדי חשבונות נוצרו</string>
   <string name="faq_a__1">Code היא אפליקציית תשלומים שמפשטת שליחת כסף לכל אחד, בכל מקום בעולם.</string>
   <string name="faq_a__10">אנו מתכננים לתמוך בעצמנו בעתיד באמצעות מודל מינויים, בדומה למה שסיגנל וטוויטר עושות.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">כל Kin שלא נאסף תוך 24 שעות יוחזר אוטומטית ליתרה שלך.</string>
   <string name="prompt_description_exitAccountCreation">תצטרך להתחיל מחדש את יצירת החשבון ולאמת שוב את מספר הטלפון שלך.</string>
   <string name="prompt_description_logout">אתה יכול לחזור לחשבון הזה באמצעות שימוש במפתח הגישה שלך</string>
+  <string name="prompt_description_mute">לא תקבלו התראה על הודעות חדשות מ-%1$s. אתם יכולים לבטל את ההשתקה בכל עת.</string>
   <string name="prompt_description_notCodeAccount">רק חשבונות שנוצרו באמצעות קוד נתמכים כרגע.</string>
   <string name="prompt_description_unlinkPhoneNumber">החברים שלך לא יוכלו יותר למצוא אותך באמצעות מספר הטלפון הזה.</string>
+  <string name="prompt_description_unmute">תקבלו התראה על כל ההודעות החדשות מ-%1$s. אתם יכולים להשתיק זאת בכל עת.</string>
+  <string name="prompt_description_unsubscribe">לא תקבלו הודעות כלשהן מ-%1$s עד שתשלמו להם שוב.</string>
   <string name="prompt_description_viewAccessKey">מפתח הגישה שלך נותן גישה לחשבון הקוד שלך. שמור עליו בסוד ובמקום בטוח.</string>
   <string name="prompt_description_wroteThemDown">12 המילים האלה הן הדרך היחידה לשחזר את חשבון הקוד שלך. וודא שרשמת אותן ושמור עליהן בסוד ובמקום בטוח.</string>
   <string name="prompt_title_confirmWithdrawal">אתה בטוח?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">שלחת את הקישור?</string>
   <string name="prompt_title_exitAccountCreation">אתה בטוח שברצונך לצאת?</string>
   <string name="prompt_title_logout">אתה בטוח שברצונך לצאת מהחשבון?</string>
+  <string name="prompt_title_mute">להשתיק את %1$s?</string>
   <string name="prompt_title_notCodeAccount">לא חשבון קוד</string>
   <string name="prompt_title_unlinkPhoneNumber">אתה בטוח?</string>
+  <string name="prompt_title_unmute">לבטל את השתקת %1$s?</string>
+  <string name="prompt_title_unsubscribe">לבטל את הרישום ל-%1$s?</string>
   <string name="prompt_title_viewAccessKey">צפייה במפתח הגישה שלך?</string>
   <string name="prompt_title_wroteThemDown">אתה בטוח?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin הופקדו בחשבון שלך.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">רכישת Kin (בקרוב)</string>
   <string name="subtitle_buySellDescription">קנייה ומכירה של Kin הוא תהליך מורכב. תהליכים אלו יעשו פשוטים יותר עם הזמן. אם אתם רוצים ללמוד כיצד לקנות ולמכור Kin היום, ניתן לצפות בסרטוני ההדרכה למטה.</string>
   <string name="subtitle_canOnlyGiveUpTo">באפשרותך לתת רק עד %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">אתם יכולים לתת טיפ רק עד %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">ה-Kin שלך זמין כעת לשימוש באפליקציית הקוד שלך</string>
   <string name="subtitle_chat_referralBonus">שלחת למישהו את ה-Kin הראשון שלו! הנה בונוס ההפניה שלך:</string>
   <string name="subtitle_chat_usdcBeingConverted">ה-USDC שלך מומר ל-Kin. תהליך זה אמור להימשך כדקה אחת.</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code היא אפליקציית ארנק קריפטו חדשה שכרגע על בסיס הזמנה בלבד. להורדת Code יש לגשת ל: %1$s</string>
   <string name="subtitle_learnMore">למד עוד</string>
   <string name="subtitle_linkedPhoneNumberDescription">מספר הטלפון שלך מקושר עם חשבון הקוד הזה. חברים יכולים למצוא אותך באמצעות שימוש במספר הטלפון הזה.</string>
+  <string name="subtitle_linkingTwitter">אני מחבר/ת את חשבון X שלי עם @getcode כדי שאוכל לקבל טיפים מאנשים מכל רחבי העולם.</string>
   <string name="subtitle_loadingBalance">טוען את היתרה והיסטוריית העסקאות שלך</string>
   <string name="subtitle_loginDescription">בדוק את התמונות של מפתח הגישה ששמרת כשיצרת לראשונה את החשבון.</string>
   <string name="subtitle_logoutAndLoginConfirmation">הנך מחובר/ת כעת לחשבון. נא לוודא ששמרת את מפתח הגישה שלך בטרם תמשיכ/י. האם ברצונך להתנתק ולהתחבר עם חשבון חדש?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">מספר הטלפון הזה אינו נמצא באנשי הקשר שלך. באפשרותך עדיין להזמין אותם ל-Code.</string>
   <string name="subtitle_phoneVerificationDescription">הכנס את מספר הטלפון שלך כולל קידומת מדינה. וודא שאתה משתמש במספר טלפון זהה לזה שדרכו קיבלת את ההזמנה.</string>
   <string name="subtitle_poweredBy">מופעל ע\"י</string>
+  <string name="subtitle_push_twitterAccountConnected">עכשיו אתם יכולים לבקש טיפים</string>
   <string name="subtitle_referralBonusReceived">בונוס ההפניה התקבל</string>
   <string name="subtitle_remoteSendShareSheetTitle">שלח %1$s</string>
   <string name="subtitle_remoteSendSubject">הנה %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">חפש אנשי קשר</string>
   <string name="subtitle_smsWasSent">הודעת SMS נשלחה למספר הטלפון שלך עם קוד אימות. נא להזין את קוד האימות למעלה.</string>
   <string name="subtitle_someoneSendYouCash">מישהו שלח לך מזומן</string>
+  <string name="subtitle_someoneTippedYou">מישהו נתן לכם טיפ</string>
+  <string name="subtitle_tipCardForX">כרטיס הטיפים שלכם מאפשר לכם לקבל טיפים ממשתמשי Code מכל רחבי העולם. כדי לגשת לכרטיס הטיפים שלכם חברו את זהות X שלכם.</string>
   <string name="subtitle_typeDelete">יש להקליד \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">עשינו כמה שינויים כדי לשפר את חווית המשתמש. תצטרך לעדכן את האפליקציה כדי להמשיך להשתמש בקוד.</string>
   <string name="subtitle_validOwnerAccount">חשבון בעלים תקף</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">קיבלת</string>
   <string name="subtitle_youSent">שלחת</string>
   <string name="subtitle_youSpent">הוצאת</string>
+  <string name="subtitle_youTipped">נתתם למישהו טיפ</string>
   <string name="subtitle_youWithdrew">משכת</string>
   <string name="success_description_withdrawalComplete">הכספים שלך נמשכו בהצלחה.</string>
+  <string name="success_description_xConnected">חשבון X שלכם חובר בהצלחה לחשבון Code שלכם. עכשיו אתם יכולים לבקש טיפים.</string>
   <string name="success_title_withdrawalComplete">המשיכה עברה בהצלחה</string>
+  <string name="success_title_xConnected">חשבון X חובר בהצלחה</string>
   <string name="title_accessExpired">פג תוקף הגישה</string>
   <string name="title_accessKey">מפתח גישה</string>
   <string name="title_balance">מצב חשבון</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">קנו ומכרו Kin</string>
   <string name="title_chat_cashTransactions">תשלומים במזומן</string>
   <string name="title_chat_codeTeam">צוות קוד</string>
+  <string name="title_chat_kinPurchases">רכישות Kin</string>
   <string name="title_chat_payments">תשלום באינטרנט</string>
+  <string name="title_chat_tips">טיפים</string>
   <string name="title_debugOptions">אפשרויות תיקון שגיאות</string>
   <string name="title_depositKin">הפקד קין</string>
   <string name="title_deposited">הפקדות שבוצעו</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">מספר טלפון</string>
   <string name="title_privacyPolicy">מדיניות פרטיות</string>
   <string name="title_purchased">נרכש</string>
+  <string name="title_push_twitterAccountConnected">חשבון X חובר בהצלחה</string>
   <string name="title_received">הפקדות שהתקבלו</string>
   <string name="title_recentCurrencies">סוגי מטבע בשימוש לאחרונה</string>
   <string name="title_referFriend">הפנה חבר, קבל 5$</string>
   <string name="title_referralBonus">בונוס הפניה</string>
+  <string name="title_requestKin">בקשת Kin</string>
+  <string name="title_requestTip">בקשת טיפ</string>
   <string name="title_results">תוצאות</string>
   <string name="title_returned">הוחזר</string>
   <string name="title_selectAccount">בחר חשבון</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">הוצאו</string>
   <string name="title_switchAccounts">החלף חשבון</string>
   <string name="title_termsOfService">תנאי שימוש</string>
+  <string name="title_tipKin">מתן Kin כטיפ</string>
   <string name="title_unknown">לא ידוע</string>
   <string name="title_updateRequired">נדרש עדכון</string>
   <string name="title_verifyPhoneNumber">אימות מספר טלפון</string>

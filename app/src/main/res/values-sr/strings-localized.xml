@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Dozvoli pristup kontaktima</string>
   <string name="action_allowPushNotifications">Dozvoli prosleđena obaveštenja</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Купи Кин</string>
   <string name="action_buyMoreKin">Kupite više valuta Kin</string>
   <string name="action_cancel">Otkaži</string>
   <string name="action_cancelSend">Откажи слање</string>
   <string name="action_collectCash">Покупите овај новац</string>
   <string name="action_confirm">Potvrdi</string>
+  <string name="action_connectToX">Повежи се на X</string>
   <string name="action_continue">Настави</string>
   <string name="action_copied">Kopirano</string>
   <string name="action_copy">Kopiraj</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Napravi nalog</string>
   <string name="action_createNewCodeAccount">Napravi novi Code nalog</string>
   <string name="action_deleteAccount">Obriši nalog</string>
+  <string name="action_done">Готово</string>
   <string name="action_downloadNow">Преузмите је одмах</string>
   <string name="action_enableFaceID">Омогући Face ID  </string>
   <string name="action_enableTouchID">Омогући Touch ID  </string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Pozovi</string>
   <string name="action_invites">Pozivi</string>
   <string name="action_joinWaitlist">Pridruži se listi čekanja</string>
+  <string name="action_later">Касније</string>
   <string name="action_learnBuyKin">Научите како се купује кин</string>
   <string name="action_learnSellKin">Научите како се продаје кин</string>
   <string name="action_linkPhoneNumber">Poveži broj telefona</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Podseti</string>
   <string name="action_removePhoneNumber">Ukloni broj telefona</string>
   <string name="action_removeYourPhoneNumber">Ukloni svoj broj telefona</string>
+  <string name="action_requestTip">Затражи напојницу</string>
   <string name="action_saveAccessKey">Sačuvaj ključ za pristup u Moje fotografije</string>
   <string name="action_saveToPhotos">Sačuvaj u Fotografije</string>
   <string name="action_send">Пошаљи</string>
   <string name="action_sendVerificationCode">Pošalji verifikacioni kod</string>
+  <string name="action_share">Подели</string>
   <string name="action_shareDownloadLink">Подели везу за преузимање</string>
   <string name="action_shareVideo">Дели овај видео-запис</string>
+  <string name="action_showMyTipCard">Покажи моју картицу за напојнице</string>
+  <string name="action_subscribe">Претплати се</string>
   <string name="action_swipeToLogin">Prevuci za prijavu</string>
   <string name="action_swipeToPay">Брзо превуците да бисте платили</string>
+  <string name="action_swipeToTip">Превуци да даш напојницу</string>
   <string name="action_tryDifferentCodeAccount">Isprobaj drugi Code nalog</string>
   <string name="action_unmute">Укључи звук</string>
   <string name="action_unsubscribe">Откажи претплату</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Da biste saznali kako da dobijete više Kin-a, idite na Najčešća pitanja u podešavanjima.</string>
   <string name="error_description_invalidInviteCode">Унесите други позивни Код и покушајте поново.</string>
   <string name="error_description_invalidInvitePhone">Унесите важећи број телефона и покушајте поново.</string>
+  <string name="error_description_invalidTipCard">Ово је неисправна картица за напојнице.</string>
   <string name="error_description_invalidVerificationCode">Unesite važeći kod i pokušajte ponovo.</string>
   <string name="error_description_invitationFailed">Žao nam je, došlo je do problema sa mrežom. Pokušajte ponovo da pozovete svog prijatelja.</string>
   <string name="error_description_linkExpired">Овај Кин је аутоматски враћен пошиљаоцу јер није преузет у року од 24 сата. Замолите их да поново пошаљу Кин.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Najviše možete da kupite %1$s. Unesite manji iznos.</string>
   <string name="error_description_purchaseTooSmall">Najmanje možete da kupite %1$s. Unesite veći iznos.</string>
   <string name="error_description_timelockUnlocked">Ваш приступни кључ је покренуо откључавање. Као резултат тога, више нећете моћи да користите овај приступни кључ у Kоду.</string>
+  <string name="error_description_tipTooLarge">Максимални износ који можете дати као напојницу је %1$s. Унесите мањи износ.</string>
+  <string name="error_description_tipTooSmall">Минимални износ који можете дати као напојницу је %1$s. Унесите већи износ.</string>
   <string name="error_description_tooManyAccounts">Svakog dana možete kreirati samo ovoliko novih naloga.</string>
   <string name="error_title_alreadyCollected">Кин је већ прикупљен</string>
   <string name="error_title_alreadyCollectedBySomeone">Кин је већ прикупљен</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Nedovoljan Kin</string>
   <string name="error_title_invalidInviteCode">Позивни Код је неважећи или истекао</string>
   <string name="error_title_invalidInvitePhone">Неважећи број телефона</string>
+  <string name="error_title_invalidTipCard">Неисправна картица за напојнице</string>
   <string name="error_title_invalidVerificationCode">Nevažeći kod</string>
   <string name="error_title_invitationFailed">Poziv nije uspeo</string>
   <string name="error_title_linkExpired">Веза је истекла</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Kupovina je prevelika</string>
   <string name="error_title_purchaseTooSmall">Kupovina je premala</string>
   <string name="error_title_timelockUnlocked">Приступни кључ се више не може користити у Kоду</string>
+  <string name="error_title_tipTooLarge">Напојница је превелика</string>
+  <string name="error_title_tipTooSmall">Напојница је премала</string>
   <string name="error_title_tooManyAccounts">Napravljeno je previše naloga</string>
   <string name="faq_a__1">Код је апликација за плаћање која олакшава слање новца било коме, било где у свету.</string>
   <string name="faq_a__10">Планирамо да се одржимо кроз предстојећи модел претплате, сличан ономе што раде Сигнал и Твитер.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Било који Кин који се не прикупи у року од 24 сата биће аутоматски враћен на Ваше стање.</string>
   <string name="prompt_description_exitAccountCreation">Moraćete ponovo da pokrenete kreiranje naloga i verifikujete svoj broj telefona.</string>
   <string name="prompt_description_logout">Možete se vratiti na ovaj nalog koristeći svoj ključ za pristup</string>
+  <string name="prompt_description_mute">Нећете бити обавештени о новим порукама од %1$s. Можете да укључите звук ћаскања у било ком тренутку.</string>
   <string name="prompt_description_notCodeAccount">Trenutno su podržani samo nalozi kreirani preko aplikacije Code.</string>
   <string name="prompt_description_unlinkPhoneNumber">Vaši prijatelji više neće moći da vas pronađu sa ovim brojem telefona.</string>
+  <string name="prompt_description_unmute">Бићете обавештени о свим новим порукама од %1$s. Можете да утишате ћаскање у било ком тренутку.</string>
+  <string name="prompt_description_unsubscribe">Нећете добити никакве поруке од %1$s док их поново не платите.</string>
   <string name="prompt_description_viewAccessKey">Vaš ključ za pristup će omogućiti pristupanje vašem Code nalogu. Čuvajte ga u privatnosti i na sigurnom.</string>
   <string name="prompt_description_wroteThemDown">Ovih 12 reči su jedini način da oporavite svoj Code nalog. Obavezno ih zapišite, i čuvajte ih u privatnosti i na sigurnom.</string>
   <string name="prompt_title_confirmWithdrawal">Jeste li sigurni?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Да ли сте послали везу?</string>
   <string name="prompt_title_exitAccountCreation">Da li ste sigurni da želite da izađete?</string>
   <string name="prompt_title_logout">Da li ste sigurni da želite da se odjavite?</string>
+  <string name="prompt_title_mute">Утишај %1$s?</string>
   <string name="prompt_title_notCodeAccount">Nije Code nalog</string>
   <string name="prompt_title_unlinkPhoneNumber">Jeste li sigurni?</string>
+  <string name="prompt_title_unmute">Укључи звук ћаскања %1$s?</string>
+  <string name="prompt_title_unsubscribe">Откажи претплату на %1$s?</string>
   <string name="prompt_title_viewAccessKey">Želite li da vidite svoj ključ za pristup?</string>
   <string name="prompt_title_wroteThemDown">Da li ste sigurni?</string>
   <string name="push_subtitle_depositReceived">%1$s Кин је депонован на Ваш рачун.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Купи Кин (ускоро)</string>
   <string name="subtitle_buySellDescription">Тренутно је куповина и продаја криптовалуте кин сложен процес. Током времена ће ови процеси постати једноставнији. Ако желите да сазнате како се купује и продаје кин данас, у наставку можете да погледате видео-записе који ће вас провести кроз поступак.</string>
   <string name="subtitle_canOnlyGiveUpTo">Можете да дате највише %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Можете давати напојнице само у износу до %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Vaš Kin je sada dostupan za upotrebu u aplikaciji Code</string>
   <string name="subtitle_chat_referralBonus">Послали сте неком први Кин! Ово је ваш бонус за препоруку:</string>
   <string name="subtitle_chat_usdcBeingConverted">Vaš USDC se pretvara u Kin. Ovo bi trebalo da traje otprilike jedan minut da se završi</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code je nova aplikacija kripto novčanika koja trenutno radi samo po principu pozivnice. Kako biste preuzeli Code, idite na %1$s</string>
   <string name="subtitle_learnMore">Saznaj više</string>
   <string name="subtitle_linkedPhoneNumberDescription">Vaš broj telefona je povezan sa ovim Code nalogom. Prijatelji vas mogu pronaći pomoću ovog broja telefona.</string>
+  <string name="subtitle_linkingTwitter">Повезујем свој X налог са @getcode да бих могао/ла да примам напојнице од људи из целог света.</string>
   <string name="subtitle_loadingBalance">Učitavanje vašeg stanja i istorije transakcija</string>
   <string name="subtitle_loginDescription">Proverite svoje fotografije za ključ za pristup koji ste sačuvali kada ste prvi put otvorili nalog.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Тренутно сте пријављени на налог. Уверите се да сте сачували свој приступни кључ пре него што наставите. Да ли желите да се одјавите и пријавите са новим налогом?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Овај број телефона није у вашим контактима. И даље можете да их позовете у Code.</string>
   <string name="subtitle_phoneVerificationDescription">Unesite svoj broj telefona uključujući pozivni broj zemlje. Proverite da li koristite isti broj telefona koji je primio pozivnicu.</string>
   <string name="subtitle_poweredBy">Omogućava</string>
+  <string name="subtitle_push_twitterAccountConnected">Сада можете да затражите напојнице</string>
   <string name="subtitle_referralBonusReceived">Примљен бонус за препоруку</string>
   <string name="subtitle_remoteSendShareSheetTitle">Пошаљи %1$s</string>
   <string name="subtitle_remoteSendSubject">Ево %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Potražite kontakte</string>
   <string name="subtitle_smsWasSent">На Ваш број телефона је послата СМС порука са верификационим кодом. Унесите верификациони код изнад.</string>
   <string name="subtitle_someoneSendYouCash">Неко вам је послао новац</string>
+  <string name="subtitle_someoneTippedYou">Неко вам ја дао напојницу</string>
+  <string name="subtitle_tipCardForX">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице повежите се са својим X идентитетом.</string>
   <string name="subtitle_typeDelete">Откуцајте \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Napravili smo neke izmene da bismo poboljšali iskustvo. Moraćete da ažurirate aplikaciju da biste nastavili da koristite Code.</string>
   <string name="subtitle_validOwnerAccount">Важећи налог власника</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Dobili ste</string>
   <string name="subtitle_youSent">Послали сте</string>
   <string name="subtitle_youSpent">Потрошили сте</string>
+  <string name="subtitle_youTipped">Дали сте неком напојницу</string>
   <string name="subtitle_youWithdrew">Подигли сте</string>
   <string name="success_description_withdrawalComplete">Vaša sredstva su uspešno povučena.</string>
+  <string name="success_description_xConnected">Ваш X налог је успешно повезан са вашим Code налогом. Сада можете затражити напојнице.</string>
   <string name="success_title_withdrawalComplete">Povlačenje je uspelo</string>
+  <string name="success_title_xConnected">X налог успешно повезан</string>
   <string name="title_accessExpired">Pristup je istekao</string>
   <string name="title_accessKey">Ključ za pristup</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Куповина и продаја кина</string>
   <string name="title_chat_cashTransactions">Plaćanja u gotovini</string>
   <string name="title_chat_codeTeam">Code tim</string>
+  <string name="title_chat_kinPurchases">Куповине Кина</string>
   <string name="title_chat_payments">Veb plaćanja</string>
+  <string name="title_chat_tips">Напојнице</string>
   <string name="title_debugOptions">Opcije za otklanjanje grešaka</string>
   <string name="title_depositKin">Uloži Kin</string>
   <string name="title_deposited">Uloženo</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Broj telefona</string>
   <string name="title_privacyPolicy">Pravila o privatnosti</string>
   <string name="title_purchased">Kupljeno</string>
+  <string name="title_push_twitterAccountConnected">X налог успешно повезан</string>
   <string name="title_received">Primljeno</string>
   <string name="title_recentCurrencies">Nedavne valute</string>
   <string name="title_referFriend">Препоручите пријатеља, узмите 5$</string>
   <string name="title_referralBonus">Бонус за препоруке</string>
+  <string name="title_requestKin">Затражи Кин</string>
+  <string name="title_requestTip">Затражи напојницу</string>
   <string name="title_results">Rezultati</string>
   <string name="title_returned">Враћено</string>
   <string name="title_selectAccount">Избор налога</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Потрошено</string>
   <string name="title_switchAccounts">Promeni naloge</string>
   <string name="title_termsOfService">Uslovi korišcenja usluge</string>
+  <string name="title_tipKin">Дај напојницу у виду Кина</string>
   <string name="title_unknown">Непознато</string>
   <string name="title_updateRequired">Potrebno je ažuriranje</string>
   <string name="title_verifyPhoneNumber">Potvrdi broj telefona</string>
