@@ -4,6 +4,7 @@ import android.content.Context
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.manager.MnemonicManager
 import com.getcode.model.Currency
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
@@ -155,7 +156,6 @@ object ApiModule {
     @Singleton
     @Provides
     fun provideClient(
-        @ApplicationContext context: Context,
         identityRepository: IdentityRepository,
         transactionRepository: TransactionRepository,
         messagingRepository: MessagingRepository,
@@ -169,9 +169,9 @@ object ApiModule {
         networkObserver: NetworkConnectivityListener,
         chatService: ChatService,
         deviceService: DeviceService,
+        mnemonicManager: MnemonicManager,
     ): Client {
         return Client(
-            context,
             identityRepository,
             transactionRepository,
             messagingRepository,
@@ -185,6 +185,7 @@ object ApiModule {
             networkObserver,
             chatService,
             deviceService,
+            mnemonicManager
         )
     }
 

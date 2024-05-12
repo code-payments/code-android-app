@@ -1,30 +1,27 @@
 package com.getcode.network.client
 
-import android.content.Context
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.LifecycleOwner
 import com.getcode.analytics.AnalyticsService
+import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
 import com.getcode.network.service.DeviceService
 import com.getcode.utils.ErrorUtils
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.getcode.utils.network.NetworkConnectivityListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Timer
@@ -36,8 +33,6 @@ internal const val TAG = "Client"
 
 @Singleton
 class Client @Inject constructor(
-    @ApplicationContext
-    internal val context: Context,
     internal val identityRepository: IdentityRepository,
     internal val transactionRepository: TransactionRepository,
     internal val messagingRepository: MessagingRepository,
@@ -51,9 +46,9 @@ class Client @Inject constructor(
     internal val networkObserver: NetworkConnectivityListener,
     internal val chatService: ChatService,
     internal val deviceService: DeviceService,
-) : LifecycleEventObserver {
+    internal val mnemonicManager: MnemonicManager,
+) {
 
-    private val TAG = "PollTimer"
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private var pollTimer: Timer? = null
@@ -62,13 +57,15 @@ class Client @Inject constructor(
     private fun startPollTimerWhenAuthenticated() {
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
-            SessionManager.authState.collect {
-                if (it.isAuthenticated == true) {
+            SessionManager.authState
+                .map { it.isAuthenticated }
+                .filterNotNull()
+                .filter { it }
+                .onEach {
                     Timber.tag(TAG).i("User Authenticated - starting timer")
                     startPollTimer()
                     this.cancel()
-                }
-            }
+                }.launchIn(this)
         }
     }
 
@@ -101,28 +98,12 @@ class Client @Inject constructor(
         }
     }
 
-    private fun startTimer() {
+    fun startTimer() {
         startPollTimerWhenAuthenticated()
     }
 
-    fun pollOnce(delay: Long = 2_000L) {
-        scope.launch {
-            delay(delay)
-            Timber.tag(TAG).i("Poll Once")
-            poll()
-        }
-    }
-
-    private fun stopTimer() {
+    fun stopTimer() {
         Timber.tag(TAG).i("Cancelling Poller")
         pollTimer?.cancel()
-    }
-
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        when (event) {
-            Lifecycle.Event.ON_RESUME -> startTimer()
-            Lifecycle.Event.ON_STOP -> stopTimer()
-            else -> Unit
-        }
     }
 }

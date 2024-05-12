@@ -30,5 +30,9 @@ class MnemonicManager @Inject constructor(
         return mnemonicPhrase.getBase64EncodedEntropy(context)
     }
 
+    fun getEncodedBase58(mnemonicPhrase: MnemonicPhrase): String {
+        return mnemonicPhrase.getBase58EncodedEntropy(context)
+    }
+
     val mnemonicCode: MnemonicCode = context.resources.let(::MnemonicCode)
 }

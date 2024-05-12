@@ -14,6 +14,7 @@ import com.getcode.LocalExchange
 import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
 import com.getcode.analytics.AnalyticsService
+import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.ui.utils.handleUncaughtException
 import com.getcode.util.CurrencyUtils
@@ -29,6 +30,9 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    @Inject
+    lateinit var client: Client
 
     @Inject
     lateinit var analyticsManager: AnalyticsService
@@ -95,6 +99,16 @@ class MainActivity : FragmentActivity() {
 
     private fun setFullscreen() {
         enableEdgeToEdge()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        client.startTimer()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        client.stopTimer()
     }
 }
 
