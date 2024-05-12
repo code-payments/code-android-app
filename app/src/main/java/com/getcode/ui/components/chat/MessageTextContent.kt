@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -18,20 +17,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.getcode.model.MessageStatus
-import com.getcode.theme.BrandDark
-import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
 
 @Composable
-fun MessageText(
+fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
     content: String,
     isFromSelf: Boolean,
@@ -39,12 +35,11 @@ fun MessageText(
     status: MessageStatus = MessageStatus.Unknown,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
-    val color = if (isFromSelf) ChatOutgoing else BrandDark
 
     BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
         BoxWithConstraints(
             modifier = Modifier
-                .widthIn(max = maxWidth * 0.75f)
+                .sizeableWidth()
                 .background(
                     color = color,
                     shape = MessageNodeDefaults.DefaultShape
