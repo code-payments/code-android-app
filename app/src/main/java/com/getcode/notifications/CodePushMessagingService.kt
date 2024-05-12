@@ -74,7 +74,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
         if (SessionManager.isAuthenticated() == null) {
             // sodium initialized internally during init
             Timber.d("initializing session")
-            authManager.init(this) {
+            authManager.init {
                 handleMessage(remoteMessage)
             }
         } else {

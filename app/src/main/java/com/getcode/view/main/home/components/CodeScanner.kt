@@ -26,15 +26,13 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.asFlow
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.utils.startupLog
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -109,11 +107,9 @@ fun CodeScanner(
             .distinctUntilChanged()
             .onEach { Timber.d(it.name) }
             .onEach { streamState = it }
-            .map {
-                it.also {
-                    val streaming = it == PreviewView.StreamState.STREAMING
-                    onPreviewStateChanged(streaming)
-                } == PreviewView.StreamState.STREAMING
+            .onEach {
+                val streaming = it == PreviewView.StreamState.STREAMING
+                onPreviewStateChanged(streaming)
             }
             .launchIn(this)
     }

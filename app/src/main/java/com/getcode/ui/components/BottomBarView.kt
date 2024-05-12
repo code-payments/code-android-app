@@ -22,6 +22,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.utils.rememberedClickable
+import com.getcode.utils.startupLog
 
 @Composable
 fun BottomBarView(

@@ -2,10 +2,12 @@ package com.getcode.view.login
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.getcode.App
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
+import com.getcode.manager.AccountManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.MnemonicManager
@@ -13,7 +15,9 @@ import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
+import com.getcode.util.AccountUtils
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.ErrorUtils
 import com.getcode.view.*
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
@@ -39,9 +43,21 @@ class SeedInputViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
+    private val accountManager: AccountManager,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
     private val mnemonicCode = mnemonicManager.mnemonicCode
+
+    init {
+        viewModelScope.launch {
+            val token = accountManager.getToken()
+            if (token != null) {
+                ErrorUtils.handleError(
+                    Throwable("We shouldn't be here. Login screen visible with associated account in AccountManager.")
+                )
+            }
+        }
+    }
 
     fun onTextChange(wordsString: String) {
         val isLoading = uiFlow.value.isLoading

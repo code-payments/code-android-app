@@ -1,5 +1,10 @@
 package com.getcode.network
 
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.TipMetadata
@@ -38,7 +43,7 @@ typealias TipUser = Pair<String, CodePayload>
 class TipController @Inject constructor(
     private val client: Client,
     private val prefRepository: PrefRepository,
-) {
+): LifecycleEventObserver {
 
     private var pollTimer: Timer? = null
     private var lastPoll: Long = 0L
@@ -139,7 +144,15 @@ class TipController @Inject constructor(
         prefRepository.set(PrefsBool.SEEN_TIP_CARD, true)
     }
 
-    fun stopTimer() {
+    private fun stopTimer() {
         pollTimer?.cancel()
+    }
+
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        when (event) {
+            Lifecycle.Event.ON_RESUME -> checkForConnection()
+            Lifecycle.Event.ON_STOP -> stopTimer()
+            else -> Unit
+        }
     }
 }

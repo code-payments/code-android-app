@@ -12,9 +12,9 @@ import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.ui.components.startupLog
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.utils.startupLog
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen

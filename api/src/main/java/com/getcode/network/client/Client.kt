@@ -1,6 +1,11 @@
 package com.getcode.network.client
 
 import android.content.Context
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
@@ -46,7 +51,7 @@ class Client @Inject constructor(
     internal val networkObserver: NetworkConnectivityListener,
     internal val chatService: ChatService,
     internal val deviceService: DeviceService,
-) {
+) : LifecycleEventObserver {
 
     private val TAG = "PollTimer"
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -96,7 +101,7 @@ class Client @Inject constructor(
         }
     }
 
-    fun startTimer() {
+    private fun startTimer() {
         startPollTimerWhenAuthenticated()
     }
 
@@ -108,8 +113,16 @@ class Client @Inject constructor(
         }
     }
 
-    fun stopTimer() {
+    private fun stopTimer() {
         Timber.tag(TAG).i("Cancelling Poller")
         pollTimer?.cancel()
+    }
+
+    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+        when (event) {
+            Lifecycle.Event.ON_RESUME -> startTimer()
+            Lifecycle.Event.ON_STOP -> stopTimer()
+            else -> Unit
+        }
     }
 }

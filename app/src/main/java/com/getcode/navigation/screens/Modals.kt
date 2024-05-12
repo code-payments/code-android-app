@@ -1,8 +1,11 @@
 package com.getcode.navigation.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollConfiguration
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -14,21 +17,29 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.LocalBetaFlags
+import com.getcode.MainRoot
+import com.getcode.R
 import com.getcode.TopLevelViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.SheetTitle
 import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.keyboardAsState
@@ -116,17 +127,19 @@ internal fun NamedScreen.ModalContainer(
         SheetTitle(
             modifier = Modifier,
             title = {
-                    titleString(this@ModalContainer)?.let {
-                        SheetTitleText(text = it)
-                    } ?: title()
+                titleString(this@ModalContainer)?.let {
+                    SheetTitleText(text = it)
+                } ?: title()
             },
             displayLogo = displayLogo,
             onLogoClicked = onLogoClicked,
             // hide while transitioning to/from other destinations
             backButton = isBackEnabled,
             closeButton = isCloseEnabled,
-            onBackIconClicked = onBackClicked?.let { { it() } } ?: { hideSheet { navigator.pop() } },
-            onCloseIconClicked = onCloseClicked?.let { { it() } } ?: { hideSheet { navigator.hide() } }
+            onBackIconClicked = onBackClicked?.let { { it() } }
+                ?: { hideSheet { navigator.pop() } },
+            onCloseIconClicked = onCloseClicked?.let { { it() } }
+                ?: { hideSheet { navigator.hide() } }
         )
         Box(
             modifier = Modifier
@@ -146,18 +159,3 @@ internal fun NamedScreen.ModalContainer(
 
 internal interface ModalContent
 internal sealed interface ModalRoot : ModalContent
-
-data object MainRoot : Screen {
-    override val key: ScreenKey = uniqueScreenKey
-    private fun readResolve(): Any = this
-
-    @Composable
-    override fun Content() {
-        // TODO: potentially add a loading state here
-        //  so app doesn't appear stuck in a dead state
-        //  while we wait for auth check to complete
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .background(CodeTheme.colors.background))
-    }
-}

@@ -17,7 +17,7 @@ import kotlin.concurrent.timerTask
 
 @Composable
 fun BottomBarContainer(appState: CodeAppState) {
-    val bottomBarMessage by appState.bottomBarMessage.observeAsState()
+    val bottomBarMessage by appState.bottomBarMessage.collectAsState()
     val bottomBarVisibleState = remember { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
     val onClose: (bottomBarActionType: BottomBarManager.BottomBarActionType?) -> Unit = {
