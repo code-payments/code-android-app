@@ -22,7 +22,6 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        instance = this
 
         CashBillAssets.load(this)
 
@@ -61,15 +60,6 @@ class App : Application() {
             })
         } else {
             Bugsnag.start(this)
-        }
-    }
-
-    companion object {
-        private lateinit var instance: Application
-
-        @Deprecated(message = "Anti-pattern; inject @ApplicationContext where needed. Convert objects to classes.")
-        fun getInstance(): Application {
-            return instance
         }
     }
 }

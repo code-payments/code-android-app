@@ -78,7 +78,7 @@ object AccountUtils {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
-                val result = getAccountNoActivity(App.getInstance())
+                val result = getAccountNoActivity(context)
                 subject.onSuccess(result ?: (null to null))
             }
         }

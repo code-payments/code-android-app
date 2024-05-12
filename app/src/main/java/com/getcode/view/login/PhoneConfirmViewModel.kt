@@ -7,8 +7,8 @@ import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.App
 import com.getcode.R
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
+import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
@@ -64,6 +64,7 @@ class PhoneConfirmViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
+    private val mnemonicManager: MnemonicManager,
 ) : BaseViewModel(resources) {
 
     companion object {
@@ -273,11 +274,10 @@ class PhoneConfirmViewModel @Inject constructor(
         try {
             keyPair = if (isNewAccount) {
                 seedB64 = Ed25519.createSeed16().encodeBase64()
-                MnemonicPhrase.fromEntropyB64(App.getInstance(), seedB64)
-                    .getSolanaKeyPair(App.getInstance())
+                mnemonicManager.getKeyPair(seedB64)
             } else {
                 seedB64 = ""
-                SessionManager.getOrganizer()?.mnemonic?.getSolanaKeyPair(App.getInstance())!!
+                SessionManager.getOrganizer()?.mnemonic?.let(mnemonicManager::getKeyPair)!!
             }
         } catch (e: Exception) {
             e.printStackTrace()

@@ -54,7 +54,6 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.util.IntentUtils
 import com.getcode.ui.utils.measured
 import com.getcode.ui.components.AccessKeySelectionContainer
 import com.getcode.ui.components.ButtonState
@@ -65,6 +64,7 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.debugBounds
+import com.getcode.util.launchAppSettings
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Preview
@@ -93,7 +93,7 @@ fun AccessKey(
                     message = context.getString(R.string.error_description_failedToSave),
                     type = TopBarManager.TopBarMessageType.ERROR,
                     secondaryText = context.getString(R.string.action_openSettings),
-                    secondaryAction = { IntentUtils.launchAppSettings() }
+                    secondaryAction = { context.launchAppSettings() }
                 )
             )
         }

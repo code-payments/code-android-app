@@ -2,19 +2,19 @@ package com.getcode.view.main.home
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.view.WindowManager
+import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.model.ScreenModel
-import com.getcode.App
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.GiftCardManager
+import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyModuleFeature
@@ -87,7 +87,6 @@ import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -151,8 +150,8 @@ data class HomeUiModel(
 )
 
 sealed interface HomeEvent {
-    data class OpenUrl(val url: String) : HomeEvent
     data object PresentTipEntry : HomeEvent
+    data class SendIntent(val intent: Intent): HomeEvent
 }
 
 enum class RestrictionType {
@@ -164,7 +163,6 @@ enum class RestrictionType {
 @SuppressLint("CheckResult")
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
     private val client: Client,
     private val sendTransactionRepository: SendTransactionRepository,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
@@ -180,6 +178,8 @@ class HomeViewModel @Inject constructor(
     private val vibrator: Vibrator,
     private val currencyUtils: CurrencyUtils,
     private val exchange: Exchange,
+    private val giftCardManager: GiftCardManager,
+    private val mnemonicManager: MnemonicManager,
     betaFlags: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
@@ -401,7 +401,7 @@ class HomeViewModel @Inject constructor(
                     uiFlow.update {
                         it.copy(
                             billState = it.billState.copy(
-                                primaryAction = BillState.Action.Send { onRemoteSend(context) },
+                                primaryAction = BillState.Action.Send { onRemoteSend() },
                                 secondaryAction = BillState.Action.Cancel(::cancelSend)
                             )
                         )
@@ -684,7 +684,7 @@ class HomeViewModel @Inject constructor(
             uiFlow.update {
                 val billState = it.billState.copy(
                     bill = Bill.Tip(code),
-                    primaryAction = BillState.Action.Share { onRemoteSend(context) },
+                    primaryAction = BillState.Action.Share { onRemoteSend() },
                     secondaryAction = BillState.Action.Done(::cancelSend)
                 )
 
@@ -997,16 +997,28 @@ class HomeViewModel @Inject constructor(
             delay(300)
             if (rejected) {
                 if (!ignoreRedirect) {
-                    request?.cancelUrl?.let {
-                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    request?.cancelUrl?.let { url ->
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            url.toUri()
+                        ).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        _eventFlow.emit(HomeEvent.SendIntent(intent))
                     }
                 }
             } else {
                 showToast(amount, isDeposit = false)
 
                 if (!ignoreRedirect) {
-                    request?.successUrl?.let {
-                        _eventFlow.emit(HomeEvent.OpenUrl(it))
+                    request?.successUrl?.let { url ->
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            url.toUri()
+                        ).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        _eventFlow.emit(HomeEvent.SendIntent(intent))
                     }
                 }
             }
@@ -1152,12 +1164,24 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             delay(300)
             if (rejected) {
-                request?.cancelUrl?.let {
-                    _eventFlow.emit(HomeEvent.OpenUrl(it))
+                request?.cancelUrl?.let { url ->
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        url.toUri()
+                    ).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    _eventFlow.emit(HomeEvent.SendIntent(intent))
                 }
             } else {
-                request?.successUrl?.let {
-                    _eventFlow.emit(HomeEvent.OpenUrl(it))
+                request?.successUrl?.let { url ->
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        url.toUri()
+                    ).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    _eventFlow.emit(HomeEvent.SendIntent(intent))
                 }
             }
         }
@@ -1261,23 +1285,23 @@ class HomeViewModel @Inject constructor(
 
 
     @SuppressLint("CheckResult")
-    fun onRemoteSend(context: Context) {
+    fun onRemoteSend() {
         val bill = uiFlow.value.billState.bill
         when (bill) {
             is Bill.Cash -> {
-                shareGiftCard(context)
+                shareGiftCard()
             }
 
             is Bill.Tip -> {
-                shareTipCard(context)
+                shareTipCard()
             }
 
             else -> Unit
         }
     }
 
-    private fun shareGiftCard(context: Context) {
-        val giftCard = GiftCardAccount.newInstance(context)
+    private fun shareGiftCard() {
+        val giftCard = giftCardManager.createGiftCard()
         val amount = sendTransactionRepository.getAmount()
         var loadingIndicatorTimer: TimerTask? = null
 
@@ -1311,12 +1335,12 @@ class HomeViewModel @Inject constructor(
             }
             .timeout(15, TimeUnit.SECONDS)
             .subscribe(
-                { showRemoteSendDialog(context, giftCard, amount) },
+                { showRemoteSendDialog(giftCard, amount) },
                 ErrorUtils::handleError
             )
     }
 
-    private fun shareTipCard(context: Context) = viewModelScope.launch {
+    private fun shareTipCard() = viewModelScope.launch {
         val username = tipController.connectedAccount.value?.username ?: return@launch
 
         val url = "https://tipcard.getcode.com/x/$username"
@@ -1330,7 +1354,8 @@ class HomeViewModel @Inject constructor(
             val shareIntent = Intent.createChooser(sendIntent, null).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
-            context.startActivity(shareIntent)
+
+            _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
         }
     }
 
@@ -1348,12 +1373,10 @@ class HomeViewModel @Inject constructor(
         }
 
     private fun showRemoteSendDialog(
-        context: Context,
         giftCard: GiftCardAccount,
         amount: KinAmount
     ) {
-        val url = "https://cash.getcode.com/c/#/e=" +
-                giftCard.mnemonicPhrase.getBase58EncodedEntropy(context)
+        val url = "https://cash.getcode.com/c/#/e=" + giftCardManager.getEntropy(giftCard)
         val text = getString(R.string.subtitle_remoteSendText)
             .replaceParam(
                 amount.formatted(
@@ -1371,9 +1394,11 @@ class HomeViewModel @Inject constructor(
         val shareIntent = Intent.createChooser(sendIntent, null).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        context.startActivity(shareIntent)
 
         CoroutineScope(Dispatchers.IO).launch {
+            viewModelScope.launch {
+                _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
+            }
             delay(2500)
 
             BottomBarManager.showMessage(
@@ -1387,7 +1412,7 @@ class HomeViewModel @Inject constructor(
                         cancelSend(style = PresentationStyle.Pop)
                         vibrator.vibrate()
                     },
-                    onNegative = { showRemoteSendDialog(context, giftCard, amount) },
+                    onNegative = { showRemoteSendDialog(giftCard, amount) },
                     onTertiary = {
                         cancelRemoteSend(giftCard, amount)
                         cancelSend(style = PresentationStyle.Slide)
@@ -1481,10 +1506,8 @@ class HomeViewModel @Inject constructor(
         openedLinks.add(cashLink)
 
         try {
-            val mnemonic =
-                MnemonicPhrase.fromEntropyB58(App.getInstance(), cashLink)
-            val giftCardAccount =
-                GiftCardAccount.newInstance(App.getInstance(), mnemonic)
+            val mnemonic = mnemonicManager.fromCashLink(cashLink)
+            val giftCardAccount = giftCardManager.createGiftCard(mnemonic)
 
             viewModelScope.launch {
                 withContext(Dispatchers.IO) {

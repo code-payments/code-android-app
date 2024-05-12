@@ -2,13 +2,13 @@ package com.getcode.view.login
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import com.getcode.crypt.MnemonicCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.getcode.App
 import com.getcode.R
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.MnemonicManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
@@ -38,9 +38,10 @@ data class SeedInputUiModel(
 class SeedInputViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
+    private val mnemonicManager: MnemonicManager,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
-    private val mnemonicCode = MnemonicCode(App.getInstance().resources)
+    private val mnemonicCode = mnemonicManager.mnemonicCode
 
     fun onTextChange(wordsString: String) {
         val isLoading = uiFlow.value.isLoading
@@ -68,7 +69,7 @@ class SeedInputViewModel @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             val entropyB64: String
             try {
-                entropyB64 = mnemonic.getBase64EncodedEntropy(App.getInstance())
+                entropyB64 = mnemonicManager.getEncodedBase64(mnemonic)
             } catch (e: Exception) {
                 showError(navigator)
                 return@launch
