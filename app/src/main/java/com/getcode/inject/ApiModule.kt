@@ -73,12 +73,8 @@ object ApiModule {
         val DEV_URL = "api.codeinfra.dev"
         val PROD_URL = "api.codeinfra.net"
 
-        return AndroidChannelBuilder.usingBuilder(
-            OkHttpChannelBuilderForcedTls12.forAddress(
-                PROD_URL,
-                TLS_PORT
-            )
-        )
+        return AndroidChannelBuilder
+            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(PROD_URL, TLS_PORT))
             .context(context)
             .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
             .keepAliveTime(4, TimeUnit.MINUTES)
@@ -87,7 +83,9 @@ object ApiModule {
 
     @Singleton
     @Provides
-    fun provideAccountAuthenticator(@ApplicationContext context: Context): AccountAuthenticator {
+    fun provideAccountAuthenticator(
+        @ApplicationContext context: Context,
+    ): AccountAuthenticator {
         return AccountAuthenticator(context)
     }
 

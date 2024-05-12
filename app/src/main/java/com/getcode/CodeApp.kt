@@ -200,36 +200,7 @@ internal data object MainRoot : Screen {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(CodeTheme.colors.background),
-            contentAlignment = Alignment.Center
-        ) {
-            var show by remember {
-                mutableStateOf(false)
-            }
-
-            AnimatedContent(show, transitionSpec = { fadeIn() togetherWith fadeOut() }) {
-                if (it) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-                    ) {
-                        Image(
-                            painter = painterResource(R.drawable.ic_code_logo_near_white),
-                            contentDescription = "",
-                            modifier = Modifier
-                                .fillMaxWidth(0.65f)
-                                .fillMaxHeight(0.65f)
-                        )
-
-                        CodeCircularProgressIndicator()
-                    }
-                }
-            }
-
-            LaunchedEffect(Unit) {
-                delay(1_000)
-                show = true
-            }
-        }
+                .background(CodeTheme.colors.background)
+        )
     }
 }
