@@ -4,21 +4,22 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
-import android.media.MediaScannerConnection
 import android.os.Environment
 import androidmads.library.qrgenearator.QRGContents
 import androidmads.library.qrgenearator.QRGEncoder
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
-import com.getcode.App
 import com.getcode.R
-import com.getcode.crypt.MnemonicPhrase
+import com.getcode.media.MediaScanner
+import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.network.repository.ApiDeniedException
 import com.getcode.network.repository.decodeBase64
-import com.getcode.theme.*
+import com.getcode.theme.Brand
+import com.getcode.theme.Transparent
+import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -34,7 +35,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.text.DateFormat
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 
 data class AccessKeyUiModel(
@@ -48,8 +50,11 @@ data class AccessKeyUiModel(
     val accessKeyCroppedBitmap: Bitmap? = null,
 )
 
-abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
-    BaseViewModel(resources) {
+abstract class BaseAccessKeyViewModel(
+    private val resources: ResourceHelper,
+    private val mnemonicManager: MnemonicManager,
+    private val mediaScanner: MediaScanner,
+) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
     fun init() {
@@ -63,7 +68,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
     fun initWithEntropy(entropyB64: String) {
         if (uiFlow.value.entropyB64 == entropyB64) return
         Timber.d("entropy=$entropyB64")
-        val words = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64).words
+        val words = mnemonicManager.fromEntropyBase64(entropyB64).words
         val wordsFormatted = getAccessKeyText(words).joinToString("\n")
 
         uiFlow.value = uiFlow.value.copy(
@@ -74,8 +79,10 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
 
         CoroutineScope(Dispatchers.IO).launch {
             val accessKeyBitmap = createBitmapForExport(words = words, entropyB64 = entropyB64)
-            val accessKeyBitmapDisplay = createBitmapForExport(drawBackground = false, words, entropyB64)
-            val accessKeyCroppedBitmap = Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 300, 1200, 1450)
+            val accessKeyBitmapDisplay =
+                createBitmapForExport(drawBackground = false, words, entropyB64)
+            val accessKeyCroppedBitmap =
+                Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 300, 1200, 1450)
 
             uiFlow.value = uiFlow.value.copy(
                 accessKeyBitmap = accessKeyBitmap,
@@ -123,7 +130,7 @@ abstract class BaseAccessKeyViewModel(private val resources: ResourceHelper) :
             ErrorUtils.handleError(e)
             return false
         }
-        MediaScannerConnection.scanFile(App.getInstance(), arrayOf(sd.toString()), null, null)
+        mediaScanner.scan(sd)
         return true
     }
 

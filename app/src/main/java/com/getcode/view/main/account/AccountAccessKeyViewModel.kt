@@ -1,6 +1,8 @@
 package com.getcode.view.main.account
 
 import android.annotation.SuppressLint
+import com.getcode.media.MediaScanner
+import com.getcode.manager.MnemonicManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.login.BaseAccessKeyViewModel
@@ -14,7 +16,9 @@ import javax.inject.Inject
 @HiltViewModel
 class AccountAccessKeyViewModel @Inject constructor(
     resources: ResourceHelper,
-) : BaseAccessKeyViewModel(resources) {
+    mnemonicManager: MnemonicManager,
+    mediaScanner: MediaScanner,
+) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator) {
         Completable.create {

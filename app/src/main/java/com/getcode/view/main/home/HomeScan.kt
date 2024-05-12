@@ -119,26 +119,17 @@ fun HomeScreen(
             val context = LocalContext.current
             LaunchedEffect(homeViewModel) {
                 homeViewModel.eventFlow
-                    .filterIsInstance<HomeEvent.OpenUrl>()
-                    .map { it.url }
                     .onEach {
-                        context.startActivity(
-                            Intent(
-                                Intent.ACTION_VIEW,
-                                it.toUri()
-                            ).apply {
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        when (it) {
+                            HomeEvent.PresentTipEntry -> {
+                                navigator.show(EnterTipModal())
                             }
-                        )
-                    }.launchIn(this)
-            }
-
-            LaunchedEffect(homeViewModel) {
-                homeViewModel.eventFlow
-                    .filterIsInstance<HomeEvent.PresentTipEntry>()
-                    .onEach {
-                        navigator.show(EnterTipModal())
-                    }.launchIn(this)
+                            is HomeEvent.SendIntent -> {
+                                context.startActivity(it.intent)
+                            }
+                        }
+                    }
+                    .launchIn(this)
             }
 
             LaunchedEffect(navigator) {

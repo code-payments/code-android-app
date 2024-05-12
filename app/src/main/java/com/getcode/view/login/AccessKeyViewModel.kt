@@ -3,24 +3,24 @@ package com.getcode.view.login
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Build
-import dagger.hilt.android.lifecycle.HiltViewModel
-import com.getcode.App
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
-import com.getcode.navigation.screens.CodeLoginPermission
+import com.getcode.media.MediaScanner
+import com.getcode.manager.MnemonicManager
 import com.getcode.navigation.core.CodeNavigator
+import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
-import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 
 @HiltViewModel
@@ -28,8 +28,10 @@ class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val analytics: AnalyticsService,
     private val permissions: PermissionChecker,
+    private val mnemonicManager: MnemonicManager,
     resources: ResourceHelper,
-) : BaseAccessKeyViewModel(resources) {
+    mediaScanner: MediaScanner,
+) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return
@@ -69,8 +71,7 @@ class AccessKeyViewModel @Inject constructor(
     }
 
     private fun onComplete(navigator: CodeNavigator, entropyB64: String) {
-        val owner = MnemonicPhrase.fromEntropyB64(App.getInstance(), entropyB64)
-            .getSolanaKeyPair(App.getInstance())
+        val owner = mnemonicManager.getKeyPair(entropyB64)
         analytics.createAccount(true, owner.getPublicKeyBase58())
 
         val cameraPermissionDenied = permissions.isDenied(Manifest.permission.CAMERA)

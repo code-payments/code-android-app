@@ -12,7 +12,7 @@ import com.getcode.network.repository.ContactsRepository
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.InviteRepository
 import com.getcode.network.repository.replaceParam
-import com.getcode.util.IntentUtils
+import com.getcode.util.IntentLauncher
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.makeE164
 import com.getcode.view.BaseViewModel
@@ -53,6 +53,7 @@ class InvitesSheetViewModel @Inject constructor(
     private val localContactsManager: LocalContactsManager,
     private val identityRepository: IdentityRepository,
     private val resources: ResourceHelper,
+    private val intentLauncher: IntentLauncher,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(InvitesSheetUiModel())
 
@@ -156,7 +157,7 @@ class InvitesSheetViewModel @Inject constructor(
                             R.string.error_description_noInvitesLeft)
                     )
                 } else {
-                    IntentUtils.launchSmsIntent(
+                    intentLauncher.launchSmsIntent(
                         phoneValue,
                         getString(R.string.subtitle_inviteText).replaceParam("getcode.com/download")
                     )
@@ -185,7 +186,7 @@ class InvitesSheetViewModel @Inject constructor(
                     message = "Please allow Code access to Contacts in Settings.",
                     type = TopBarManager.TopBarMessageType.ERROR,
                     secondaryText = resources.getString(R.string.action_openSettings),
-                    secondaryAction = { IntentUtils.launchAppSettings() }
+                    secondaryAction = { intentLauncher.launchAppSettings() }
                 )
             )
         }
