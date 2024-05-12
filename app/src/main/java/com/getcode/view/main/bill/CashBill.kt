@@ -96,13 +96,13 @@ object CashBillAssets {
                 context = context,
                 drawable = R.drawable.ic_bill_globe,
                 ratio = 0.18f,
-            ).asImageBitmap()
+            )?.asImageBitmap()
 
             grid = getBitmapFromImage(
                 context = context,
                 ratio = 0.3f,
                 drawable = R.drawable.ic_bill_grid,
-            ).asImageBitmap()
+            )?.asImageBitmap()
         }
     }
 
@@ -111,11 +111,11 @@ object CashBillAssets {
         drawable: Int,
         ratio: Float = 1f,
         alpha: Float = 1f
-    ): Bitmap {
+    ): Bitmap? {
         val db = ContextCompat.getDrawable(context, drawable)
 
         // create bitmap from drawable
-        val bit: Bitmap = runCatching {
+        var bit: Bitmap? = runCatching {
             BitmapFactory.decodeResource(
                 context.resources,
                 drawable,
@@ -124,11 +124,17 @@ object CashBillAssets {
                     inPreferredConfig = Bitmap.Config.RGB_565
                 }
             )
-        }.getOrElse {
-            Bitmap.createBitmap(
-                db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.RGB_565
-            )
+        }.getOrNull()
+
+        if (bit == null) {
+            bit = runCatching {
+                Bitmap.createBitmap(
+                    db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.RGB_565
+                )
+            }.getOrNull()
         }
+
+        if (bit == null) return null
 
         // determine best sizing based on width and height of bitmap
         var width = bit.width
