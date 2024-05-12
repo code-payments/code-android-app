@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Cho phép Truy cập vào Danh bạ</string>
   <string name="action_allowPushNotifications">Cho phép Thông báo Đẩy</string>
   <string name="action_balance">Số dư</string>
+  <string name="action_buyKin">Mua Kin</string>
   <string name="action_buyMoreKin">Mua thêm Kin</string>
   <string name="action_cancel">Hủy</string>
   <string name="action_cancelSend">Hủy Gửi</string>
   <string name="action_collectCash">Thu Số tiền Này</string>
   <string name="action_confirm">Xác nhận</string>
+  <string name="action_connectToX">Kết nối với X</string>
   <string name="action_continue">Tiếp tục</string>
   <string name="action_copied">Đã sao chép</string>
   <string name="action_copy">Sao chép</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Tạo Tài khoản</string>
   <string name="action_createNewCodeAccount">Tạo Tài khoản Mã Mới</string>
   <string name="action_deleteAccount">Xóa Tài khoản</string>
+  <string name="action_done">Xong</string>
   <string name="action_downloadNow">Tải xuống Ngay</string>
   <string name="action_enableFaceID">Bật Face ID</string>
   <string name="action_enableTouchID">Bật Touch ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Mời</string>
   <string name="action_invites">Lời mời</string>
   <string name="action_joinWaitlist">Tham gia Danh sách chờ</string>
+  <string name="action_later">Để sau</string>
   <string name="action_learnBuyKin">Tìm hiểu Cách Mua Kin</string>
   <string name="action_learnSellKin">Tìm hiểu Cách Bán Kin</string>
   <string name="action_linkPhoneNumber">Liên kết Số Điện thoại</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Nhắc nhở</string>
   <string name="action_removePhoneNumber">Xóa Số Điện thoại</string>
   <string name="action_removeYourPhoneNumber">Xóa Số Điện thoại của Bạn</string>
+  <string name="action_requestTip">Yêu cầu Tiền boa</string>
   <string name="action_saveAccessKey">Lưu Khóa Truy cập vào Ảnh của Tôi</string>
   <string name="action_saveToPhotos">Lưu vào Ảnh</string>
   <string name="action_send">Gửi</string>
   <string name="action_sendVerificationCode">Gửi Mã Xác minh</string>
+  <string name="action_share">Chia sẻ</string>
   <string name="action_shareDownloadLink">Chia sẻ đường liên kết tải xuống</string>
   <string name="action_shareVideo">Chia sẻ Video Này</string>
+  <string name="action_showMyTipCard">Hiển thị Thẻ tiền boa của tôi</string>
+  <string name="action_subscribe">Đăng ký</string>
   <string name="action_swipeToLogin">Vuốt để đăng nhập</string>
   <string name="action_swipeToPay">Vuốt để Thanh toán</string>
+  <string name="action_swipeToTip">Vuốt để Boa</string>
   <string name="action_tryDifferentCodeAccount">Thử Tài khoản Mã Khác</string>
   <string name="action_unmute">Bật tiếng</string>
   <string name="action_unsubscribe">Hủy đăng ký</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Để tìm hiểu cách nhận thêm Kin, hãy chuyển đến phần Hỏi Đáp trong mục Cài đặt.</string>
   <string name="error_description_invalidInviteCode">Vui lòng nhập Mã Mời khác và thử lại.</string>
   <string name="error_description_invalidInvitePhone">Vui lòng nhập số điện thoại hợp lệ và thử lại.</string>
+  <string name="error_description_invalidTipCard">Đây là Thẻ Tiền boa không hợp lệ.</string>
   <string name="error_description_invalidVerificationCode">Xin vui lòng nhập mã xác minh hợp lệ và thử lại.</string>
   <string name="error_description_invitationFailed">Rất tiếc, chúng tôi đã gặp sự cố mạng. Hãy thử mời lại bạn bè của bạn.</string>
   <string name="error_description_linkExpired">Kin này đã tự động được trả lại cho người gửi vì đã không được thu thập trong vòng 24 giờ. Xin vui lòng yêu cầu họ gửi Kin một lần nữa.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Số tiền tối đa bạn có thể mua là %1$s. Vui lòng nhập số tiền nhỏ hơn.</string>
   <string name="error_description_purchaseTooSmall">Số tiền tối thiểu bạn có thể mua là %1$s. Vui lòng nhập số tiền lớn hơn.</string>
   <string name="error_description_timelockUnlocked">Khóa Truy cập của bạn đã kích hoạt mở khóa. Do đó, bạn sẽ không còn có thể sử dụng Khóa Truy cập này trong Mã.</string>
+  <string name="error_description_tipTooLarge">Số tiền tối đa bạn có thể boa là %1$s. Vui lòng nhập số tiền nhỏ hơn.</string>
+  <string name="error_description_tipTooSmall">Số tiền tối thiểu bạn có thể boa là %1$s. Vui lòng nhập số tiền lớn hơn.</string>
   <string name="error_description_tooManyAccounts">Bạn chỉ có thể tạo rất nhiều tài khoản mới mỗi ngày.</string>
   <string name="error_title_alreadyCollected">Kin Đã được Thu thập</string>
   <string name="error_title_alreadyCollectedBySomeone">Đã có người thu thập Kin</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Không đủ Kin</string>
   <string name="error_title_invalidInviteCode">Mã Mời Không hợp lệ hoặc Đã hết hạn</string>
   <string name="error_title_invalidInvitePhone">Số Điện thoại Không hợp lệ</string>
+  <string name="error_title_invalidTipCard">Thẻ Tiền boa không hợp lệ</string>
   <string name="error_title_invalidVerificationCode">Mã Không hợp lệ</string>
   <string name="error_title_invitationFailed">Lời mời Không thành công</string>
   <string name="error_title_linkExpired">Liên kết Đã hết hạn</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Giao dịch mua quá lớn</string>
   <string name="error_title_purchaseTooSmall">Giao dịch mua quá nhỏ</string>
   <string name="error_title_timelockUnlocked">Bạn Không Còn Có thể Sử dụng Khóa Truy cập trong Mã</string>
+  <string name="error_title_tipTooLarge">Tiền boa quá lớn</string>
+  <string name="error_title_tipTooSmall">Tiền boa quá nhỏ</string>
   <string name="error_title_tooManyAccounts">Quá nhiều tài khoản được tạo</string>
   <string name="faq_a__1">Code là một ứng dụng thanh toán giúp gửi tiền cho bất kỳ ai, ở bất kỳ đâu trên thế giới một cách đơn giản.</string>
   <string name="faq_a__10">Chúng tôi dự định duy trì bản thân thông qua một mô hình gói đăng ký sắp được ra mắt, tương tự như những gì Signal và Twitter đã làm.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Bất kỳ Kin nào không được thu thập trong vòng 24 giờ sẽ tự động được trả lại vào số dư của bạn.</string>
   <string name="prompt_description_exitAccountCreation">Bạn sẽ cần phải bắt đầu lại quá trình tạo tài khoản và xác minh lại số điện thoại của mình.</string>
   <string name="prompt_description_logout">Bạn có thể truy cập lại tài khoản này bằng Khóa truy cập của mình</string>
+  <string name="prompt_description_mute">Bạn sẽ không nhận được thông báo về bất kỳ tin nhắn mới nào từ %1$s. Bạn có thể bật thông báo bất cứ lúc nào.</string>
   <string name="prompt_description_notCodeAccount">Hiện chỉ hỗ trợ các tài khoản được tạo thông qua Mã.</string>
   <string name="prompt_description_unlinkPhoneNumber">Bạn bè của bạn sẽ không thể tìm thấy bạn bằng số điện thoại này nữa.</string>
+  <string name="prompt_description_unmute">Bạn sẽ nhận được thông báo về tất cả tin nhắn mới từ %1$s. Bạn có thể tắt thông báo bất cứ lúc nào.</string>
+  <string name="prompt_description_unsubscribe">Bạn sẽ không nhận được bất kỳ tin nhắn nào từ %1$s cho đến khi bạn thanh toán cho họ lần nưa.</string>
   <string name="prompt_description_viewAccessKey">Khóa Truy cập của bạn sẽ cấp quyền truy cập vào tài khoản Mã của bạn. Hãy giữ bí mật và an toàn cho Khóa Truy cập.</string>
   <string name="prompt_description_wroteThemDown">12 từ này là cách duy nhất để khôi phục tài khoản Mã của bạn. Hãy chắc chắn rằng bạn đã viết ra, đồng thời giữ bí mật và an toàn cho các từ này.</string>
   <string name="prompt_title_confirmWithdrawal">Bạn có chắc không?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Bạn đã gửi liên kết?</string>
   <string name="prompt_title_exitAccountCreation">Bạn có chắc chắn muốn thoát không?</string>
   <string name="prompt_title_logout">Bạn có chắc chắn muốn đăng xuất không?</string>
+  <string name="prompt_title_mute">Tắt thông báo từ %1$s?</string>
   <string name="prompt_title_notCodeAccount">Không phải là Tài khoản Mã</string>
   <string name="prompt_title_unlinkPhoneNumber">Bạn có chắc không?</string>
+  <string name="prompt_title_unmute">Bật thông báo từ %1$s?</string>
+  <string name="prompt_title_unsubscribe">Hủy đăng ký khỏi %1$s?</string>
   <string name="prompt_title_viewAccessKey">Xem Khóa Truy cập của Bạn?</string>
   <string name="prompt_title_wroteThemDown">Bạn có Chắc Không?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin đã được nạp vào tài khoản của bạn.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Mua Kin (Sắp Ra mắt)</string>
   <string name="subtitle_buySellDescription">Việc mua bán Kin hiện là một quá trình phức tạp. Các quá trình này sẽ dần trở nên đơn giản hơn. Nếu muốn tìm hiểu cách mua bán Kin ngay hôm nay, bạn có thể xem các video hướng dẫn ở bên dưới.</string>
   <string name="subtitle_canOnlyGiveUpTo">Bạn chỉ có thể tặng tối đa %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Bạn chỉ có thể boa tối đa %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Kin của bạn hiện có sẵn để sử dụng trong ứng dụng Code của bạn</string>
   <string name="subtitle_chat_referralBonus">Bạn đã gửi cho người khác Kin đầu tiên của họ! Đây là tiền thưởng giới thiệu của bạn:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC của bạn đang được chuyển đổi thành Kin. Quá trình này sẽ mất khoảng một phút để hoàn tất</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code là một ứng dụng ví tiền mã hóa mới, hiện chỉ có thể được tiếp cận qua lời mời. Để tải Code, vui lòng truy cập %1$s</string>
   <string name="subtitle_learnMore">Tìm hiểu thêm</string>
   <string name="subtitle_linkedPhoneNumberDescription">Số điện thoại của bạn được liên kết với tài khoản Mã này. Bạn bè có thể tìm thấy bạn bằng số điện thoại này.</string>
+  <string name="subtitle_linkingTwitter">Tôi đang kết nối tài khoản X của mình với @getcode để có thể nhận được tiền boa từ mọi người trên khắp thế giới.</string>
   <string name="subtitle_loadingBalance">Đang tải số dư và lịch sử giao dịch của bạn</string>
   <string name="subtitle_loginDescription">Kiểm tra ảnh của bạn để xem Khóa Truy cập mà bạn đã lưu khi tạo tài khoản lần đầu.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Bạn hiện đã đăng nhập vào một tài khoản. Xin vui lòng đảm bảo rằng bạn đã lưu Khóa Truy cập của mình trước khi tiếp tục. Bạn có muốn đăng xuất rồi đăng nhập bằng tài khoản mới không?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Số điện thoại này không có trong Danh bạ của bạn. Bạn vẫn có thể mời họ tham gia Code.</string>
   <string name="subtitle_phoneVerificationDescription">Nhập số điện thoại của bạn bao gồm cả mã quốc gia. Đảm bảo rằng bạn sử dụng cùng một số điện thoại đã nhận được lời mời.</string>
   <string name="subtitle_poweredBy">Được cung cấp bởi</string>
+  <string name="subtitle_push_twitterAccountConnected">Giờ đây, bạn có thể yêu cầu tiền boa</string>
   <string name="subtitle_referralBonusReceived">Đã nhận được tiền thưởng giới thiệu</string>
   <string name="subtitle_remoteSendShareSheetTitle">Gửi %1$s</string>
   <string name="subtitle_remoteSendSubject">Đây là %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Tìm kiếm liên hệ</string>
   <string name="subtitle_smsWasSent">Đã gửi tin nhắn SMS đến số điện thoại của bạn với mã xác minh. Vui lòng nhập mã xác minh vào phía trên.</string>
   <string name="subtitle_someoneSendYouCash">Có người đã gửi tiền cho bạn</string>
+  <string name="subtitle_someoneTippedYou">Ai đó đã boa cho bạn</string>
+  <string name="subtitle_tipCardForX">Thẻ Tiền boa của bạn giúp bạn có thể nhận tiền boa từ người dùng Code trên toàn thế giới. Để truy cập Thẻ Tiền boa, hãy kết nối danh tính X của bạn.</string>
   <string name="subtitle_typeDelete">Gõ \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Chúng tôi đã thực hiện một số thay đổi để cải thiện trải nghiệm. Bạn sẽ cần cập nhật ứng dụng để tiếp tục sử dụng Mã.</string>
   <string name="subtitle_validOwnerAccount">Tài khoản chủ sở hữu hợp lệ</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Bạn đã nhận</string>
   <string name="subtitle_youSent">Bạn đã gửi đi</string>
   <string name="subtitle_youSpent">Bạn đã chi tiêu</string>
+  <string name="subtitle_youTipped">Bạn đã boa cho ai đó</string>
   <string name="subtitle_youWithdrew">Bạn đã rút tiền</string>
   <string name="success_description_withdrawalComplete">Bạn đã rút tiền của mình thành công.</string>
+  <string name="success_description_xConnected">Tài khoản X của bạn đã được kết nối thành công với tài khoản Code của bạn. Giờ đây, bạn có thể yêu cầu Tiền boa.</string>
   <string name="success_title_withdrawalComplete">Rút tiền Thành công</string>
+  <string name="success_title_xConnected">Đã kết nối tài khoản X thành công</string>
   <string name="title_accessExpired">Quyền truy cập đã Hết hạn</string>
   <string name="title_accessKey">Khóa Truy cập</string>
   <string name="title_balance">Số dư</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Mua &amp; Bán Kin</string>
   <string name="title_chat_cashTransactions">Thanh toán tiền mặt</string>
   <string name="title_chat_codeTeam">Đội ngũ Code</string>
+  <string name="title_chat_kinPurchases">Giao dịch mua Kin</string>
   <string name="title_chat_payments">Thanh toán trên web</string>
+  <string name="title_chat_tips">Tiền boa</string>
   <string name="title_debugOptions">Tùy chọn Gỡ lỗi</string>
   <string name="title_depositKin">Nạp Kin</string>
   <string name="title_deposited">Đã nạp</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Số Điện thoại</string>
   <string name="title_privacyPolicy">Chính sách Quyền riêng tư</string>
   <string name="title_purchased">Đã mua</string>
+  <string name="title_push_twitterAccountConnected">Tài khoản X được kết nối thành công</string>
   <string name="title_received">Đã nhận</string>
   <string name="title_recentCurrencies">Đơn vị tiền tệ Gần đây</string>
   <string name="title_referFriend">Giới thiệu một người bạn - Nhận 5$</string>
   <string name="title_referralBonus">Tiền thưởng Giới thiệu</string>
+  <string name="title_requestKin">Yêu cầu Kin</string>
+  <string name="title_requestTip">Yêu cầu Tiền boa</string>
   <string name="title_results">Kết quả</string>
   <string name="title_returned">Đã trả lại</string>
   <string name="title_selectAccount">Chọn Tài khoản</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Đã chi tiêu</string>
   <string name="title_switchAccounts">Chuyển đổi Tài khoản</string>
   <string name="title_termsOfService">Điều khoản Dịch vụ</string>
+  <string name="title_tipKin">Boa Kin</string>
   <string name="title_unknown">Không xác định</string>
   <string name="title_updateRequired">Cần Cập nhật</string>
   <string name="title_verifyPhoneNumber">Xác minh Số Điện thoại</string>

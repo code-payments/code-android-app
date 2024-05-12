@@ -4,11 +4,13 @@
   <string name="action_allowContacts">อนุญาตให้เข้าถึงรายชื่อติดต่อ</string>
   <string name="action_allowPushNotifications">อนุญาตให้แจ้งเตือนแบบพุช</string>
   <string name="action_balance">ยอดคงเหลือ</string>
+  <string name="action_buyKin">ซื้อ Kin</string>
   <string name="action_buyMoreKin">ซื้อ Kin เพิ่มเติม</string>
   <string name="action_cancel">ยกเลิก</string>
   <string name="action_cancelSend">ยกเลิกการส่ง</string>
   <string name="action_collectCash">รับเงินสดนี้</string>
   <string name="action_confirm">ยืนยัน</string>
+  <string name="action_connectToX">เชื่อมต่อกับ X\n</string>
   <string name="action_continue">ดำเนินการต่อ</string>
   <string name="action_copied">คัดลอกแล้ว</string>
   <string name="action_copy">คัดลอก</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">สร้างบัญชี</string>
   <string name="action_createNewCodeAccount">สร้างบัญชี Code ใหม่</string>
   <string name="action_deleteAccount">ลบบัญชี</string>
+  <string name="action_done">เสร็จแล้ว</string>
   <string name="action_downloadNow">ดาวน์โหลดตอนนี้เลย</string>
   <string name="action_enableFaceID">เปิดใช้งาน Face ID</string>
   <string name="action_enableTouchID">เปิดใช้งาน Touch ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">เชิญ</string>
   <string name="action_invites">เชิญ</string>
   <string name="action_joinWaitlist">เข้าร่วมบัญชีรอเรียก</string>
+  <string name="action_later">ภายหลัง</string>
   <string name="action_learnBuyKin">เรียนรู้วิธีซื้อ Kin</string>
   <string name="action_learnSellKin">เรียนรู้วิธีขาย Kin</string>
   <string name="action_linkPhoneNumber">เชื่อมโยงหมายเลขโทรศัพท์</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">เตือน</string>
   <string name="action_removePhoneNumber">ลบหมายเลขโทรศัพท์</string>
   <string name="action_removeYourPhoneNumber">ลบหมายเลขโทรศัพท์ของคุณ</string>
+  <string name="action_requestTip">ขอรับทิป</string>
   <string name="action_saveAccessKey">บันทึกคีย์การเข้าถึงที่รูปภาพของฉัน</string>
   <string name="action_saveToPhotos">บันทึกไปยังรูปภาพ</string>
   <string name="action_send">ส่ง</string>
   <string name="action_sendVerificationCode">ส่งรหัสยืนยัน</string>
+  <string name="action_share">แชร์</string>
   <string name="action_shareDownloadLink">แชร์ลิงก์ดาวน์โหลด</string>
   <string name="action_shareVideo">แชร์วิดีโอนี้</string>
+  <string name="action_showMyTipCard">แสดงบัตรทิปของฉัน</string>
+  <string name="action_subscribe">สมัครสมาชิก</string>
   <string name="action_swipeToLogin">ปัดเพื่อเข้าสู่ระบบ</string>
   <string name="action_swipeToPay">ปัดเพื่อชำระเงิน</string>
+  <string name="action_swipeToTip">ปัดเพื่อให้ทิป</string>
   <string name="action_tryDifferentCodeAccount">ลองใช้บัญชี Code อื่น</string>
   <string name="action_unmute">เปิดเสียง</string>
   <string name="action_unsubscribe">ยกเลิกการสมัครสมาชิก</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">หากต้องการเรียนรู้วิธีรับ Kin เพิ่มเติมให้ไปที่คำถามที่พบบ่อยในการตั้งค่า</string>
   <string name="error_description_invalidInviteCode">โปรดป้อนรหัสเชิญอื่นแล้วลองอีกครั้ง</string>
   <string name="error_description_invalidInvitePhone">โปรดป้อนหมายเลขโทรศัพท์ที่ถูกต้องแล้วลองอีกครั้ง</string>
+  <string name="error_description_invalidTipCard">นี่คือบัตรทิปที่ไม่ถูกต้อง</string>
   <string name="error_description_invalidVerificationCode">โปรดป้อนรหัสที่ถูกต้องแล้วลองอีกครั้ง</string>
   <string name="error_description_invitationFailed">ขออภัย เราประสบปัญหาเกี่ยวกับเครือข่าย โปรดลองเชิญเพื่อนของคุณอีกครั้ง</string>
   <string name="error_description_linkExpired">Kin นี้ได้ถูกส่งคืนให้กับผู้ส่งโดยอัตโนมัติเพราะมันไม่ถูกเก็บภายใน 24 ชั่วโมง โปรดขอให้พวกเขาส่ง Kin อีกครั้ง</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">คุณสามารถซื้อได้สูงสุดที่ %1$s โปรดกรอกจำนวนที่น้อยลง</string>
   <string name="error_description_purchaseTooSmall">คุณสามารถซื้อได้ขั้นต่ำที่ %1$s โปรดกรอกจำนวนที่มากขึ้น</string>
   <string name="error_description_timelockUnlocked">คีย์การเข้าถึงของคุณได้เริ่มต้นการปลดล็อกแล้ว ด้วยเหตุนี้ คุณจะไม่สามารถใช้คีย์การเข้าถึงนี้ใน Code ได้อีกต่อไป</string>
+  <string name="error_description_tipTooLarge">จำนวนเงินสูงสุดที่คุณสามารถให้ทิปได้คือ %1$s กรุณาใส่จำนวนเงินที่น้อยลง</string>
+  <string name="error_description_tipTooSmall">จำนวนเงินขั้นต่ำที่คุณสามารถให้ทิปได้คือ %1$s กรุณาใส่จำนวนเงินที่มากขึ้น</string>
   <string name="error_description_tooManyAccounts">คุณไม่สามารถสร้างบัญชีใหม่ได้มากมายในแต่ละวัน</string>
   <string name="error_title_alreadyCollected">Kin ถูกเก็บไปแล้ว</string>
   <string name="error_title_alreadyCollectedBySomeone">เก็บ Kin ไปแล้ว</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Kin ไม่เพียงพอ</string>
   <string name="error_title_invalidInviteCode">รหัสเชิญไม่ถูกต้องหรือหมดอายุ</string>
   <string name="error_title_invalidInvitePhone">หมายเลขโทรศัพท์ไม่ถูกต้อง</string>
+  <string name="error_title_invalidTipCard">บัตรทิปไม่ถูกต้อง</string>
   <string name="error_title_invalidVerificationCode">รหัสไม่ถูกต้อง</string>
   <string name="error_title_invitationFailed">การเชิญล้มเหลว</string>
   <string name="error_title_linkExpired">ลิงก์หมดอายุแล้ว</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">ซื้อมากเกินไป</string>
   <string name="error_title_purchaseTooSmall">ซื้อน้อยเกินไป</string>
   <string name="error_title_timelockUnlocked">คีย์การเข้าถึงใช้ไม่ได้อีกต่อไปใน Code</string>
+  <string name="error_title_tipTooLarge">ทิปมากเกินไป</string>
+  <string name="error_title_tipTooSmall">ทิปน้อยเกินไป</string>
   <string name="error_title_tooManyAccounts">มีการสร้างบัญชีมากเกินไป</string>
   <string name="faq_a__1">Code เป็นแอปการชำระเงินที่ทำให้การส่งเงินไปยังทุกที่ทั่วโลกเป็นเรื่องง่าย</string>
   <string name="faq_a__10">เราวางแผนจะรักษาความยั่งยืนผ่านรูปแบบการสมัครสมาชิกที่กำลังจะมาถึง คล้ายกับที่ Signal และ Twitter ทำ</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Kin ใดๆ ที่ไม่ถูกเก็บภายใน 24 ชั่วโมงจะถูกส่งคืนเข้าในยอดบัญชีของคุณโดยอัตโนมัติ</string>
   <string name="prompt_description_exitAccountCreation">คุณจะต้องเริ่มสร้างบัญชีใหม่และยืนยันหมายเลขโทรศัพท์ของคุณอีกครั้ง</string>
   <string name="prompt_description_logout">คุณสามารถกลับเข้าสู่บัญชีนี้ได้โดยใช้คีย์การเข้าถึงของคุณ</string>
+  <string name="prompt_description_mute">คุณจะไม่ได้รับการแจ้งเตือนข้อความใหม่ใดๆ จาก %1$s คุณสามารถเปิดเสียงได้ตลอดเวลา</string>
   <string name="prompt_description_notCodeAccount">ขณะนี้รองรับเฉพาะบัญชีที่สร้างผ่าน Code เท่านั้น</string>
   <string name="prompt_description_unlinkPhoneNumber">เพื่อนของคุณจะไม่สามารถหาคุณด้วยหมายเลขโทรศัพท์นี้ได้อีกต่อไป</string>
+  <string name="prompt_description_unmute">คุณจะได้รับการแจ้งเตือนข้อความใหม่ทั้งหมดจาก %1$s คุณสามารถปิดเสียงได้ตลอดเวลา</string>
+  <string name="prompt_description_unsubscribe">คุณจะไม่ได้รับข้อความใดๆ จาก %1$s จนกว่าคุณจะชำระเงินอีกครั้ง</string>
   <string name="prompt_description_viewAccessKey">คีย์การเข้าถึงจะให้สิทธิ์การเข้าถึงบัญชี Code ของคุณ โปรดรักษาให้เป็นส่วนตัวและปลอดภัย</string>
   <string name="prompt_description_wroteThemDown">12 คำนี้เป็นวิธีเดียวที่จะกู้คืนบัญชี Code ของคุณ ตรวจสอบให้แน่ใจว่าคุณได้จดไว้แล้ว และรักษาให้เป็นส่วนตัวและปลอดภัย</string>
   <string name="prompt_title_confirmWithdrawal">แน่ใจหรือ</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">คุณส่งลิงก์แล้วหรือยัง?</string>
   <string name="prompt_title_exitAccountCreation">แน่ใจหรือว่าต้องการออก</string>
   <string name="prompt_title_logout">แน่ใจหรือว่าต้องการออกจากระบบ</string>
+  <string name="prompt_title_mute">ปิดเสียง %1$s หรือไม่</string>
   <string name="prompt_title_notCodeAccount">ไม่ใช่บัญชี Code</string>
   <string name="prompt_title_unlinkPhoneNumber">แน่ใจหรือ</string>
+  <string name="prompt_title_unmute">เปิดเสียง %1$s หรือไม่</string>
+  <string name="prompt_title_unsubscribe">ยกเลิกการเป็นสมาชิกของ %1$s หรือไม่</string>
   <string name="prompt_title_viewAccessKey">ดูคีย์การเข้าถึงของคุณหรือไม่</string>
   <string name="prompt_title_wroteThemDown">แน่ใจหรือ</string>
   <string name="push_subtitle_depositReceived">%1$s Kin ถูกฝากเข้าบัญชีของคุณแล้ว</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">ซื้อ Kin (เร็วๆ นี้)</string>
   <string name="subtitle_buySellDescription">ขณะนี้การซื้อและการขาย Kin เป็นกระบวนการที่ซับซ้อน กระบวนการเหล่านี้จะง่ายขึ้นเมื่อเวลาผ่านไป หากคุณต้องการเรียนรู้วิธีซื้อและขาย Kin ในวันนี้ คุณสามารถชมวิดีโอแนะนำด้านล่าง</string>
   <string name="subtitle_canOnlyGiveUpTo">คุณสามารถให้ได้ไม่เกิน %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">คุณสามารถให้ทิปได้สูงสุด %1$s เท่านั้น</string>
   <string name="subtitle_chat_kinAvailableForUse">Kin ของคุณพร้อมใช้งานแล้วใน Code App</string>
   <string name="subtitle_chat_referralBonus">คุณได้ส่ง Kin แรกให้กับใครบางคน! นี่คือโบนัสแนะนำของคุณ:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC กำลังแปลงเป็น Kin ขั้นตอนนี้ใช้เวลาประมาณหนึ่งนาทีจึงแล้วเสร็จ</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code เป็นแอปกระเป๋าเงินคริปโตแอปใหม่ที่ขณะนี้ใช้ระบบเชิญเท่านั้น หากต้องการดาวน์โหลด Code ให้ไปที่ %1$s</string>
   <string name="subtitle_learnMore">เรียนรู้เพิ่มเติม</string>
   <string name="subtitle_linkedPhoneNumberDescription">หมายเลขโทรศัพท์ของคุณเชื่อมโยงกับบัญชี Code นี้ เพื่อน ๆ สามารถหาคุณได้โดยใช้หมายเลขโทรศัพท์นี้</string>
+  <string name="subtitle_linkingTwitter">ฉันกำลังเชื่อมต่อบัญชี X ของฉันกับ @getcode เพื่อให้ฉันได้รับทิปจากผู้คนทั่วโลก</string>
   <string name="subtitle_loadingBalance">กำลังโหลดยอดคงเหลือและประวัติธุรกรรมของคุณ</string>
   <string name="subtitle_loginDescription">ตรวจสอบรูปภาพของคุณเพื่อหาคีย์การเข้าถึงที่คุณบันทึกไว้ตอนที่สร้างบัญชีครั้งแรก</string>
   <string name="subtitle_logoutAndLoginConfirmation">ขณะนี้คุณเข้าสู่ระบบบัญชีแล้ว โปรดตรวจสอบให้แน่ใจว่าคุณได้บันทึก Access Key ของคุณแล้วก่อนดำเนินการต่อ คุณต้องการออกจากระบบและเข้าสู่ระบบด้วยบัญชีใหม่หรือไม่?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">หมายเลขโทรศัพท์นี้ไม่อยู่ในรายชื่อผู้ติดต่อของคุณ คุณยังสามารถเชิญพวกเขามาที่ Code ได้</string>
   <string name="subtitle_phoneVerificationDescription">ป้อนหมายเลขโทรศัพท์ของคุณรวมถึงรหัสประเทศ ตรวจสอบให้แน่ใจว่าคุณใช้หมายเลขโทรศัพท์เดียวกันกับที่ได้รับคำเชิญ</string>
   <string name="subtitle_poweredBy">สนับสนุนโดย</string>
+  <string name="subtitle_push_twitterAccountConnected">ตอนนี้คุณสามารถขอรับทิปได้แล้ว</string>
   <string name="subtitle_referralBonusReceived">โบนัสการแนะนำที่ได้รับ</string>
   <string name="subtitle_remoteSendShareSheetTitle">ส่ง %1$s</string>
   <string name="subtitle_remoteSendSubject">นี่คือ %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">ค้นหารายชื่อติดต่อ</string>
   <string name="subtitle_smsWasSent">ข้อความ SMS ถูกส่งไปยังหมายเลขโทรศัพท์ของคุณพร้อมรหัสยืนยัน โปรดป้อนรหัสยืนยันด้านบน</string>
   <string name="subtitle_someoneSendYouCash">มีคนส่งเงินสดให้คุณ</string>
+  <string name="subtitle_someoneTippedYou">มีคนให้ทิปคุณ</string>
+  <string name="subtitle_tipCardForX">บัตรทิปของคุณช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้เชื่อมต่อข้อมูลประจำตัว X ของคุณ</string>
   <string name="subtitle_typeDelete">พิมพ์  \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">เราได้ทำการเปลี่ยนแปลงบางอย่างเพื่อปรับปรุงประสบการณ์ หากต้องการใช้ Code ต่อไปคุณจะต้องอัปเดตแอป</string>
   <string name="subtitle_validOwnerAccount">บัญชีเจ้าของที่ถูกต้อง</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">คุณได้รับแล้ว</string>
   <string name="subtitle_youSent">คุณได้ส่ง</string>
   <string name="subtitle_youSpent">คุณได้ใช้ไป</string>
+  <string name="subtitle_youTipped">คุณให้ทิปบางคน</string>
   <string name="subtitle_youWithdrew">คุณได้ถอน</string>
   <string name="success_description_withdrawalComplete">ถอนเงินของคุณเรียบร้อยแล้ว</string>
+  <string name="success_description_xConnected">บัญชี X ของคุณเชื่อมต่อกับบัญชี Code ของคุณเรียบร้อยแล้ว ตอนนี้คุณสามารถขอรับทิปได้แล้ว</string>
   <string name="success_title_withdrawalComplete">ถอนสำเร็จ</string>
+  <string name="success_title_xConnected">เชื่อมต่อบัญชี X สำเร็จ</string>
   <string name="title_accessExpired">หมดอายุการเข้าถึงแล้ว</string>
   <string name="title_accessKey">คีย์การเข้าถึง</string>
   <string name="title_balance">ยอดคงเหลือ</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">ซื้อและขาย Kin</string>
   <string name="title_chat_cashTransactions">การชำระเงินด้วยเงินสด</string>
   <string name="title_chat_codeTeam">ทีม Code</string>
+  <string name="title_chat_kinPurchases">การซื้อ Kin</string>
   <string name="title_chat_payments">การชำระเงินผ่านเว็บ</string>
+  <string name="title_chat_tips">ทิป</string>
   <string name="title_debugOptions">ตัวเลือกการแก้จุดบกพร่อง</string>
   <string name="title_depositKin">ฝาก Kin</string>
   <string name="title_deposited">ฝากแล้ว</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">หมายเลขโทรศัพท์</string>
   <string name="title_privacyPolicy">นโยบายความเป็นส่วนตัว</string>
   <string name="title_purchased">ซื้อแล้ว</string>
+  <string name="title_push_twitterAccountConnected">เชื่อมต่อบัญชี X สำเร็จ</string>
   <string name="title_received">ได้รับแล้ว</string>
   <string name="title_recentCurrencies">สกุลเงินล่าสุด</string>
   <string name="title_referFriend">แนะนำเพื่อน รับ $5</string>
   <string name="title_referralBonus">โบนัสการแนะนำ</string>
+  <string name="title_requestKin">ขอรับ Kin</string>
+  <string name="title_requestTip">ขอรับทิป</string>
   <string name="title_results">ผลลัพธ์</string>
   <string name="title_returned">กลับมาแล้ว</string>
   <string name="title_selectAccount">เลือกบัญชี</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">ใช้จ่าย</string>
   <string name="title_switchAccounts">สลับบัญชี</string>
   <string name="title_termsOfService">เงื่อนไขการให้บริการ</string>
+  <string name="title_tipKin">ให้ทิปเป็น Kin</string>
   <string name="title_unknown">ไม่ทราบ</string>
   <string name="title_updateRequired">จำเป็นต้องอัปเดต</string>
   <string name="title_verifyPhoneNumber">ยืนยันหมายเลขโทรศัพท์</string>

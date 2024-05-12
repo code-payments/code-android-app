@@ -380,7 +380,7 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
     override val name: String
         @Composable get() =
             if (isInChat) stringResource(R.string.title_sendKin)
-            else stringResource(id = R.string.action_tipKin)
+            else stringResource(id = R.string.title_tipKin)
 
     @Composable
     override fun Content() {

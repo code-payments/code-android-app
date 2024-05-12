@@ -4,11 +4,13 @@
   <string name="action_allowContacts">संपर्कों को एक्सेस करने दें</string>
   <string name="action_allowPushNotifications">पुश नोटिफिकेशन की अनुमति दें</string>
   <string name="action_balance">शेष राशि</string>
+  <string name="action_buyKin">Kin खरीदें </string>
   <string name="action_buyMoreKin">ज्यादा Kin खरीदें</string>
   <string name="action_cancel">कैंसिल करें</string>
   <string name="action_cancelSend">सेंड करना कैंसिल करें</string>
   <string name="action_collectCash">यह नकदी इकट्ठा कर लें</string>
   <string name="action_confirm">कन्फर्म करें</string>
+  <string name="action_connectToX">X से कनेक्ट करें </string>
   <string name="action_continue">जारी रखें</string>
   <string name="action_copied">कॉपी किया गया</string>
   <string name="action_copy">कॉपी</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">एक अकाउंट बनाएँ</string>
   <string name="action_createNewCodeAccount">एक नया कोड अकाउंट बनाएं</string>
   <string name="action_deleteAccount">अकाउंट को डिलीट करें</string>
+  <string name="action_done">हो गया </string>
   <string name="action_downloadNow">इसे अभी डाउनलोड करें</string>
   <string name="action_enableFaceID">Face ID चालू करें</string>
   <string name="action_enableTouchID">Touch ID चालू करें</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">आमंत्रित करें</string>
   <string name="action_invites">आमंत्रण</string>
   <string name="action_joinWaitlist">प्रतीक्षा सूची में शामिल हों</string>
+  <string name="action_later">बाद में </string>
   <string name="action_learnBuyKin">Kin खरीदना सीखें </string>
   <string name="action_learnSellKin">Kin बेचना सीखें </string>
   <string name="action_linkPhoneNumber">एक फोन को नंबर लिंक करें</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">याद दिलाएं</string>
   <string name="action_removePhoneNumber">फ़ोन नंबर हटाएं</string>
   <string name="action_removeYourPhoneNumber">अपना फ़ोन नंबर हटाएं</string>
+  <string name="action_requestTip">एक टिप का अनुरोध करें </string>
   <string name="action_saveAccessKey">मेरी फ़ोटो में एक्सेस की को सेव करें </string>
   <string name="action_saveToPhotos">फ़ोटो में सेव करें </string>
   <string name="action_send">सेंड</string>
   <string name="action_sendVerificationCode">वेरिफिकेशन कोड भेजें</string>
+  <string name="action_share">शेयर करें </string>
   <string name="action_shareDownloadLink">डाउनलोड लिंक शेयर करें</string>
   <string name="action_shareVideo">इस वीडियो को शेयर करें </string>
+  <string name="action_showMyTipCard">मेरा टिप कार्ड दिखाएँ</string>
+  <string name="action_subscribe">सदस्यता लें</string>
   <string name="action_swipeToLogin">लॉगिन करने के लिए स्वाइप करें</string>
   <string name="action_swipeToPay">भुगतान करने के लिए स्वाइप करें</string>
+  <string name="action_swipeToTip">टिप देने के लिए स्वाइप करें </string>
   <string name="action_tryDifferentCodeAccount">एक अलग कोड अकाउंट को आज़माएं</string>
   <string name="action_unmute">म्यूट से हटाएँ</string>
   <string name="action_unsubscribe">अनसब्सक्राइब करें</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">अधिक Kin कैसे प्राप्त करें, यह जानने के लिए सेटिंग में अक्सर पूछे जाने वाले प्रश्न पर जाएं.</string>
   <string name="error_description_invalidInviteCode">कृपया दूसरा आमंत्रण कोड डालें और दोबारा प्रयास करें.</string>
   <string name="error_description_invalidInvitePhone">कृपया मान्य फ़ोन नंबर डालकर फिर से प्रयास करें.</string>
+  <string name="error_description_invalidTipCard">यह एक अमान्य टिप कार्ड है.</string>
   <string name="error_description_invalidVerificationCode">कृपया एक वैलिड कोड एंटर करें और पुनः प्रयास करें.</string>
   <string name="error_description_invitationFailed">क्षमा करें, हमें एक नेटवर्क समस्या का सामना करना पड़ा. कृपया अपने मित्र को फिर से आमंत्रित करने का प्रयास करें.</string>
   <string name="error_description_linkExpired">यह Kin आपने आप हीं सेन्डर को वापिस चला गया क्योंकि इसे 24 घंटे के भीतर कलेक्ट नहीं किया गया था. कृपया उन्हें Kin को फिर से भेजने के लिए बोलें.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">आप अधिकतम %1$s खरीद सकते हैं। कृपया छोटी रकम दर्ज करें।</string>
   <string name="error_description_purchaseTooSmall">आप न्यूनतम %1$s खरीद सकते हैं। कृपया बड़ी रकम दर्ज करें।</string>
   <string name="error_description_timelockUnlocked">आपकी ऐक्सेस कुंजी से अनलॉक करने की प्रक्रिया शुरू की गई है. इसलिए अब आप इस ऐक्सेस कुंजी का उपयोग Code में नहीं कर पाएंगे.</string>
+  <string name="error_description_tipTooLarge">आप अधिकतम टिप %1$s दे सकते हैं. कृपया छोटा अमाउंट डालें.</string>
+  <string name="error_description_tipTooSmall">आप न्यूनतम टिप %1$s दे सकते हैं. कृपया बड़ा अमाउंट डालें.</string>
   <string name="error_description_tooManyAccounts">आप प्रतिदिन केवल इतने ही नए अकाउंट बना सकते हैं.</string>
   <string name="error_title_alreadyCollected">Kin को पहले ही कलेक्ट कर लिया था.</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin पहले ही कलेक्ट किया जा चुका है</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">अपर्याप्त kin</string>
   <string name="error_title_invalidInviteCode">आमंत्रण कोड अमान्य है या इसकी समयसीमा समाप्त हो गई है</string>
   <string name="error_title_invalidInvitePhone">फ़ोन नंबर अमान्य है</string>
+  <string name="error_title_invalidTipCard">अमान्य टिप कार्ड है.</string>
   <string name="error_title_invalidVerificationCode">इनवैलिड कोड </string>
   <string name="error_title_invitationFailed">आमंत्रण विफल रहा </string>
   <string name="error_title_linkExpired">लिंक एक्सपायर हो गया गया है </string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">खरीदारी बहुत बड़ी है</string>
   <string name="error_title_purchaseTooSmall">खरीदारी बहुत छोटी है</string>
   <string name="error_title_timelockUnlocked">Code में ऐक्सेस कुंजी का उपयोग अब नहीं किया जा सकता</string>
+  <string name="error_title_tipTooLarge">टिप बहुत ज्यादा है</string>
+  <string name="error_title_tipTooSmall">	\nटिप बहुत कम है</string>
   <string name="error_title_tooManyAccounts">बहुत सारे अकाउंट बन गए हैं </string>
   <string name="faq_a__1">Code एक पेमेंट ऐप है जो दुनिया में कहीं भी, किसी को भी पैसे भेजना आसान बनाता है.</string>
   <string name="faq_a__10">हम Signal और Twitter के समान आने वाले सब्सक्रिप्शन मॉडल के ज़रिए ख़ुद को बनाए रखने का प्लैन कर रहे हैं.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">कोई भी परिजन जो 24 घंटों के भीतर कलेक्ट नहीं किया जाता है, वह अपने आप हीं आपके बैलेंस में वापस आ जाएगा.</string>
   <string name="prompt_description_exitAccountCreation">आपको अकाउंट निर्माण फिर से शुरू करना होगा और अपना फ़ोन नंबर फिर से सत्यापित करना होगा.</string>
   <string name="prompt_description_logout">आप अपनी एक्सेस कुंजी का उपयोग करके इस अकाउंट में वापस आ सकते हैं</string>
+  <string name="prompt_description_mute">आपको %1$s द्वारा भेजे गए किसी भी नए मैसेज के बारे में सूचित नहीं किया जाएगा. आप किसी भी समय अनम्यूट कर सकते हैं.</string>
   <string name="prompt_description_notCodeAccount">केवल कोड के माध्यम से बनाए गए अकाउंट ही वर्तमान में समर्थित हैं.</string>
   <string name="prompt_description_unlinkPhoneNumber">आपके मित्र अब आपको इस फ़ोन नंबर से नहीं ढूंढ पाएंगे.</string>
+  <string name="prompt_description_unmute">आपको %1$s द्वारा भेजे गए सभी नए मैसेज की सूचना दी जाएगी. आप किसी भी समय म्यूट कर सकते हैं.</string>
+  <string name="prompt_description_unsubscribe">जब तक आप उन्हें दोबारा भुगतान नहीं करेंगे तब तक आपको %1$s से कोई मैसेज प्राप्त नहीं होगा.</string>
   <string name="prompt_description_viewAccessKey">आपकी एक्सेस कुंजी आपके कोड अकाउंट तक आपको एक्सेस प्रदान करेगी. इसे निजी और सुरक्षित रखें.</string>
   <string name="prompt_description_wroteThemDown">ये 12 शब्द आपके कोड अकाउंट को पुनर्प्राप्त करने का एकमात्र तरीका हैं. सुनिश्चित करें कि आपने उन्हें लिखा है, और उन्हें निजी और सुरक्षित रखा है.</string>
   <string name="prompt_title_confirmWithdrawal">क्या आपको यकीन है?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">क्या आपने लिंक को भेजा?</string>
   <string name="prompt_title_exitAccountCreation">क्या आप वाकई बाहर निकलना चाहते हैं?</string>
   <string name="prompt_title_logout">क्या आप वाकई लॉग आउट करना चाहते हैं?</string>
+  <string name="prompt_title_mute">%1$s को म्यूट करें?</string>
   <string name="prompt_title_notCodeAccount">कोई कोड अकाउंट नहीं</string>
   <string name="prompt_title_unlinkPhoneNumber">क्या आपको यकीन है?</string>
+  <string name="prompt_title_unmute">%1$s को अनम्यूट करें?</string>
+  <string name="prompt_title_unsubscribe">%1$s से सदस्यता समाप्त करें?</string>
   <string name="prompt_title_viewAccessKey">अपनी एक्सेस कुंजी देखें?</string>
   <string name="prompt_title_wroteThemDown">क्या आपको यकीन है?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin आपके खाते में जमा कर दिया जा चुका है.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kin खरीदें (जल्द ही आ रहा है)</string>
   <string name="subtitle_buySellDescription">Kin को खरीदना और बेचना वर्तमान में एक जटिल प्रक्रिया है. समय के साथ ये प्रक्रियाएँ सरल होती जाएँगी. अगर आप सीखना चाहते हैं कि आज Kin को कैसे खरीदें और बेचें तो आप नीचे दिए गए वीडियो देख सकते हैं.</string>
   <string name="subtitle_canOnlyGiveUpTo">आप अधिकतम %1$s दे सकते हैं</string>
+  <string name="subtitle_canOnlyTipUpTo">आप केवल %1$s तक टिप दे सकते हैं</string>
   <string name="subtitle_chat_kinAvailableForUse">अब आपका Kin आपके Code App में इस्तेमाल के लिए उपलब्ध है</string>
   <string name="subtitle_chat_referralBonus">आपने किसी को उनका पहला Kin भेजा! यह रहा आपका रेफ़रल बोनस है:</string>
   <string name="subtitle_chat_usdcBeingConverted">आपका USDC Kin में परिवर्तित किया जा रहा है। इसे पूरा होने में लगभग एक मिनट का समय लगेगा</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">कोड एक नया क्रिप्टो वॉलेट ऐप है जो सिर्फ़ फिलहाल इन्वाइट है। कोड डाउनलोड करने के लिए %1$s पर जाएं</string>
   <string name="subtitle_learnMore">और अधिक जानें</string>
   <string name="subtitle_linkedPhoneNumberDescription">आपका फ़ोन नंबर इस कोडअकाउंट से लिंक है. मित्र आपको इस फ़ोन नंबर का उपयोग करके ढूंढ सकते हैं.</string>
+  <string name="subtitle_linkingTwitter">मैं अपने X अकाउंट को @getcode से जोड़ रहा हूँ ताकि मैं दुनिया भर के लोगों से टिप्स लें सकूँ.</string>
   <string name="subtitle_loadingBalance">आपका बैलेंस और लेन-देन इतिहास लोड हो रहा है</string>
   <string name="subtitle_loginDescription">एक्सेस की के लिए अपने उस फोटो को चेक करें जिसे आपने पहली बार अपना अकाउंट बनाते समय सेव किया था. </string>
   <string name="subtitle_logoutAndLoginConfirmation">आप अभी एक अकाउंट में लॉग इन हैं. आगे बढ़ने से पहले कृपया सुनिश्चित करें कि आपने अपनी एक्सेस की सेव कर ली है. क्या आप लॉगआउट करके नए अकाउंट से लॉगिन करना चाहेंगे?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">यह फ़ोन नंबर आपके संपर्क में मौजूद नहीं है. इसके बावजूद आप उन्हें Code पर आमंत्रित कर सकते हैं.</string>
   <string name="subtitle_phoneVerificationDescription">देश कोड के साथ अपना फोन नंबर दर्ज करें. सुनिश्चित करें कि आप उसी फ़ोन नंबर का उपयोग करते हैं जिसे आमंत्रण प्राप्त हुआ था.</string>
   <string name="subtitle_poweredBy">द्वारा संचालित</string>
+  <string name="subtitle_push_twitterAccountConnected">अब आप टिप्स का अनुरोध कर सकते हैं</string>
   <string name="subtitle_referralBonusReceived">रेफरल बोनस प्राप्त हुआ</string>
   <string name="subtitle_remoteSendShareSheetTitle">भेजें %1$s</string>
   <string name="subtitle_remoteSendSubject">ये रहा %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">कॉन्टेक्ट्स के लिए सर्च करें </string>
   <string name="subtitle_smsWasSent">आपके फ़ोन नंबर पर एक वेरिफ़िकेशन कोड वाला एक मैसेज भेजा गया है. कृपया वह कोड ऊपर डालें.</string>
   <string name="subtitle_someoneSendYouCash">किसी ने आपको नकद भेजा है</string>
+  <string name="subtitle_someoneTippedYou">किसी ने आपको टिप दी</string>
+  <string name="subtitle_tipCardForX">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से टिप्स प्राप्त करने की सुविधा देता है. अपने टिप कार्ड को एक्सेस करने के लिए अपनी X की पहचान को कनेक्ट करें.</string>
   <string name="subtitle_typeDelete">टाइप करें \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">अनुभव को बेहतर बनाने के लिए हमने कुछ बदलाव किए हैं. कोड का उपयोग जारी रखने के लिए आपको ऐप को अपडेट करना होगा.</string>
   <string name="subtitle_validOwnerAccount">वैलिड मालिक अकाउंट</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">आपने प्राप्त किया</string>
   <string name="subtitle_youSent">आपने भेजा</string>
   <string name="subtitle_youSpent">आपने ख़र्च किया</string>
+  <string name="subtitle_youTipped">आपने किसी को टिप दिया </string>
   <string name="subtitle_youWithdrew">आपने विथड्रॉ किया</string>
   <string name="success_description_withdrawalComplete">आपकी धनराशि सफलतापूर्वक निकाल ली गई है.</string>
+  <string name="success_description_xConnected">आपका X अकाउंट आपके Code अकाउंट से सफलतापूर्वक कनेक्ट हो गया है. अब आप टिप्स का अनुरोध कर सकते हैं.</string>
   <string name="success_title_withdrawalComplete">धन निकालने में सफल रहे </string>
+  <string name="success_title_xConnected">X अकाउंट सफलतापूर्वक कनेक्ट हो गया</string>
   <string name="title_accessExpired">एक्सेस की समय सीमा समाप्त हो गयी है </string>
   <string name="title_accessKey">एक्सेस की</string>
   <string name="title_balance">शेष राशि</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kin खरीदें और बेचें </string>
   <string name="title_chat_cashTransactions">काश पेमेंट्स</string>
   <string name="title_chat_codeTeam">कोड टीम</string>
+  <string name="title_chat_kinPurchases">Kin की खरीदारी</string>
   <string name="title_chat_payments">वेब पेमेंट्स</string>
+  <string name="title_chat_tips">टिप्स</string>
   <string name="title_debugOptions">डीबग विकल्प</string>
   <string name="title_depositKin">डिपाजिट Kin</string>
   <string name="title_deposited">जमा किया गया</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">फ़ोन नंबर</string>
   <string name="title_privacyPolicy">गोपनीयता नीति</string>
   <string name="title_purchased">खरीदा</string>
+  <string name="title_push_twitterAccountConnected">X अकाउंट सफलतापूर्वक कनेक्ट हो गया</string>
   <string name="title_received">रिसीव हुआ</string>
   <string name="title_recentCurrencies">हाल की मुद्राएं </string>
   <string name="title_referFriend">किसी दोस्त को रेफ़र करें, $5 प्राप्त करें</string>
   <string name="title_referralBonus">रैफरल बोनस</string>
+  <string name="title_requestKin">Kin के लिए अनुरोध करें </string>
+  <string name="title_requestTip">एक टिप का अनुरोध करें </string>
   <string name="title_results">परिणाम</string>
   <string name="title_returned">वापिस कर दिया</string>
   <string name="title_selectAccount">कोई खाता चुनें</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">खर्च किया</string>
   <string name="title_switchAccounts">अकाउंट स्विच करें</string>
   <string name="title_termsOfService">सेवा की शर्तें</string>
+  <string name="title_tipKin">Kin को टिप दें </string>
   <string name="title_unknown">अज्ञात</string>
   <string name="title_updateRequired">अपडेट की आवश्यकता है</string>
   <string name="title_verifyPhoneNumber">फोन नंबर की पुष्टि करें</string>

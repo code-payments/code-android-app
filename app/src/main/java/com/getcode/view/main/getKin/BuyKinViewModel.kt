@@ -231,7 +231,7 @@ class BuyKinViewModel @Inject constructor(
 
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_purchaseTooSmall),
-                resources.getString(R.string.error_description_buy_kin_too_small, formatted)
+                resources.getString(R.string.error_description_purchaseTooSmall, formatted)
             )
         }
         !isUnderMinimum
@@ -244,7 +244,7 @@ class BuyKinViewModel @Inject constructor(
             val formatted = FormatUtils.formatCurrency(threshold.max, rate.currency)
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_purchaseTooLarge),
-                resources.getString(R.string.error_description_buy_kin_too_large, formatted)
+                resources.getString(R.string.error_description_purchaseTooLarge, formatted)
             )
         }
 

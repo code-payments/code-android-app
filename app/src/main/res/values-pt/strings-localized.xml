@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Permitir Acesso aos Contactos</string>
   <string name="action_allowPushNotifications">Permitir Notificações Push</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Adquirir Kin</string>
   <string name="action_buyMoreKin">Comprar mais Kin</string>
   <string name="action_cancel">Cancelar</string>
   <string name="action_cancelSend">Cancelar envio</string>
   <string name="action_collectCash">Recebe este dinheiro</string>
   <string name="action_confirm">Confirmar</string>
+  <string name="action_connectToX">Conectar ao X</string>
   <string name="action_continue">Continuar</string>
   <string name="action_copied">Copiado</string>
   <string name="action_copy">Copiar</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Criar uma Conta</string>
   <string name="action_createNewCodeAccount">Criar uma Nova Conta Code</string>
   <string name="action_deleteAccount">Eliminar Conta</string>
+  <string name="action_done">Concluído</string>
   <string name="action_downloadNow">Descarrega agora</string>
   <string name="action_enableFaceID">Ativar a identificação facial</string>
   <string name="action_enableTouchID">Ativar a identificação por toque</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Convidar</string>
   <string name="action_invites">Convites</string>
   <string name="action_joinWaitlist">Aderir à Lista de Espera</string>
+  <string name="action_later">Mais tarde</string>
   <string name="action_learnBuyKin">Saiba como comprar Kin</string>
   <string name="action_learnSellKin">Saiba como vender Kin</string>
   <string name="action_linkPhoneNumber">Associar um Número de Telefone</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Relembrar</string>
   <string name="action_removePhoneNumber">Remover Número de Telefone</string>
   <string name="action_removeYourPhoneNumber">Remover o Seu Número de Telefone</string>
+  <string name="action_requestTip">Solicitar uma recompensa</string>
   <string name="action_saveAccessKey">Guardar Chave de Acesso nas Minhas Fotos</string>
   <string name="action_saveToPhotos">Guardar em Fotos</string>
   <string name="action_send">Enviar</string>
   <string name="action_sendVerificationCode">Enviar Código de Verificação</string>
+  <string name="action_share">Partilhar</string>
   <string name="action_shareDownloadLink">Partilhar Ligação de Download</string>
   <string name="action_shareVideo">Partilhar este vídeo</string>
+  <string name="action_showMyTipCard">Exibir o meu Cartão de Recompensas</string>
+  <string name="action_subscribe">Subscrever</string>
   <string name="action_swipeToLogin">Deslize para autenticar</string>
   <string name="action_swipeToPay">Deslize para pagar</string>
+  <string name="action_swipeToTip">Deslize para dar recompensa</string>
   <string name="action_tryDifferentCodeAccount">Tente uma Conta Code Diferente</string>
   <string name="action_unmute">Ligar o som</string>
   <string name="action_unsubscribe">Anular subscrição</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Para saber como obter mais Kin consulte o Guia FAQ nas Definições.</string>
   <string name="error_description_invalidInviteCode">Introduza um Código de Convite diferente e tente novamente.</string>
   <string name="error_description_invalidInvitePhone">Introduza um número de telefone válido e tente novamente.</string>
+  <string name="error_description_invalidTipCard">Este Cartão de Recompensas não é válido.</string>
   <string name="error_description_invalidVerificationCode">Introduza um código válido e tente novamente.</string>
   <string name="error_description_invitationFailed">Desculpe, surgiu um erro de rede. Tente convidar o seu amigo novamente.</string>
   <string name="error_description_linkExpired">Este Kin foi automaticamente devolvido ao remetente por não ter sido recebido no prazo de 24 horas. Peça ao remetente que envie o Kin de novo.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">O máximo que pode comprar é %1$s. Insira um montante menor.</string>
   <string name="error_description_purchaseTooSmall">O mínimo que pode comprar é %1$s. Insira um montante maior.</string>
   <string name="error_description_timelockUnlocked">A sua Chave de Acesso iniciou um desbloqueio. Por esse motivo não poderá continuar a utilizar esta Chave de Acesso na Code.</string>
+  <string name="error_description_tipTooLarge">O valor máximo de recompensa é %1$s. Por favor, insira um montante inferior.</string>
+  <string name="error_description_tipTooSmall">O valor mínimo de recompensa é %1$s. Por favor, insira um montante superior.</string>
   <string name="error_description_tooManyAccounts">Só pode criar algumas contas por dia.</string>
   <string name="error_title_alreadyCollected">Kin já recebido</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin já recolhido</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Kin Insuficiente</string>
   <string name="error_title_invalidInviteCode">Código de Convite Inválido ou Expirado</string>
   <string name="error_title_invalidInvitePhone">Número de telefone inválido</string>
+  <string name="error_title_invalidTipCard">Cartão de Recompensas inválido</string>
   <string name="error_title_invalidVerificationCode">Código Inválido</string>
   <string name="error_title_invitationFailed">O Convite Falhou</string>
   <string name="error_title_linkExpired">Hiperligação expirada</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Compra demasiado grande</string>
   <string name="error_title_purchaseTooSmall">Compra demasiado pequena</string>
   <string name="error_title_timelockUnlocked">Chave de Acesso Deixou de Ser Utilizável na Code</string>
+  <string name="error_title_tipTooLarge">O valor da recompensa é demasiado alto</string>
+  <string name="error_title_tipTooSmall">O valor da recompensa é demasiado baixo</string>
   <string name="error_title_tooManyAccounts">Demasiadas contas criadas</string>
   <string name="faq_a__1">O Code é uma aplicação de pagamentos que torna simples enviar dinheiro para qualquer pessoa, em qualquer lugar do mundo.</string>
   <string name="faq_a__10">Planeamos sustentar-nos através de um modelo de subscrição futura, semelhante ao que o Signal e o Twitter fazem.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">O Kin que não tiver sido recebido no prazo de 24 horas será automaticamente devolvido ao seu saldo.</string>
   <string name="prompt_description_exitAccountCreation">Terá que reiniciar a criação de conta e verificar novamente o seu número de telemóvel.</string>
   <string name="prompt_description_logout">Pode voltar a entrar nesta conta utilizando a sua Chave de Acesso</string>
+  <string name="prompt_description_mute">Não irá receber notificações de quaisquer mensagens novas de %1$s. Pode reativar as notificações a qualquer momento.</string>
   <string name="prompt_description_notCodeAccount">Neste momento são apenas suportadas contas criadas através da Code.</string>
   <string name="prompt_description_unlinkPhoneNumber">Os seus amigos já não poderão encontrá-lo através deste número de telemóvel.</string>
+  <string name="prompt_description_unmute">Irá receber notificações de todas as novas mensagens de %1$s. Pode desativar as notificações a qualquer momento.</string>
+  <string name="prompt_description_unsubscribe">Não irá receber quaisquer mensagens de %1$s até lhe pagar novamente.</string>
   <string name="prompt_description_viewAccessKey">A sua Chave de Acesso irá dar-lhe acesso à sua conta Code. Mantenha-a privada e segura.</string>
   <string name="prompt_description_wroteThemDown">Estas 12 palavras são a única forma de recuperar a sua conta Code. Certifique-se que as anota e mantenha-as privadas e seguras.</string>
   <string name="prompt_title_confirmWithdrawal">Tem a certeza?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Enviou a hiperligação?</string>
   <string name="prompt_title_exitAccountCreation">Tem a certeza que quer sair?</string>
   <string name="prompt_title_logout">Tem a certeza que quer terminar sessão?</string>
+  <string name="prompt_title_mute">Silenciar %1$s?</string>
   <string name="prompt_title_notCodeAccount">Não é uma Conta Code</string>
   <string name="prompt_title_unlinkPhoneNumber">Tem a certeza?</string>
+  <string name="prompt_title_unmute">Reativar notificações de %1$s?</string>
+  <string name="prompt_title_unsubscribe">Anular subscrição de %1$s?</string>
   <string name="prompt_title_viewAccessKey">Ver a Sua Chave de Acesso?</string>
   <string name="prompt_title_wroteThemDown">Tem a Certeza?</string>
   <string name="push_subtitle_depositReceived">Foi depositado %1$s Kin na sua conta.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Comprar Kin (brevemente)</string>
   <string name="subtitle_buySellDescription">Comprar e vender Kin é neste momento um processo complexo. Este irá tornar-se mais simples ao longo do tempo. Se quiser aprender a comprar e vender Kin hoje, pode assistir ao guia nos vídeos abaixo.</string>
   <string name="subtitle_canOnlyGiveUpTo">Apenas pode dar até %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">O valor de recompensa permitido é de, no máximo, %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Os seus Kin estão agora disponíveis para usar na sua aplicação Code</string>
   <string name="subtitle_chat_referralBonus">Enviou a alguém o seu primeiro Kin! Aqui está o seu bónus de referência:</string>
   <string name="subtitle_chat_usdcBeingConverted">Os seus USDC estão a ser convertidos em Kin. Esta operação deve demorar cerca de um minuto</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">A Code é uma nova aplicação de carteira de criptomoedas com acesso exclusivo para pessoas com convite, neste momento. Para descarregar a Code vá a %1$s</string>
   <string name="subtitle_learnMore">Saber mais</string>
   <string name="subtitle_linkedPhoneNumberDescription">O seu número de telemóvel está associado a esta conta Code. Os seus amigos podem encontrá-lo utilizando este número.</string>
+  <string name="subtitle_linkingTwitter">Estou a conectar a minha conta X com a @getcode para poder receber recompensas de pessoas de todo o mundo.</string>
   <string name="subtitle_loadingBalance">A carregar o seu saldo e histórico de transações</string>
   <string name="subtitle_loginDescription">Procure nas suas fotos a Chave de Acesso que guardou quando criou a sua conta.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Tem sessão iniciada com uma conta. Certifique-se de que guardou a sua chave de acesso antes de continuar. Pretende terminar a sessão e iniciar sessão com uma nova conta?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Este número de telefone não está nos seu seus contactos. Pode mesmo assim convidá-lo para a Code.</string>
   <string name="subtitle_phoneVerificationDescription">Introduza o seu número de telemóvel, incluindo o código do país. Certifique-se de que utiliza o número de telemóvel no qual recebeu o convite.</string>
   <string name="subtitle_poweredBy">Desenvolvido por</string>
+  <string name="subtitle_push_twitterAccountConnected">Agora pode solicitar recompensas</string>
   <string name="subtitle_referralBonusReceived">Bónus de referência recebido</string>
   <string name="subtitle_remoteSendShareSheetTitle">Enviar %1$s</string>
   <string name="subtitle_remoteSendSubject">Aqui está %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Procurar por contactos</string>
   <string name="subtitle_smsWasSent">Foi enviada uma mensagem SMS para o seu número de telefone com um código de verificação. Introduza acima o código de verificação.</string>
   <string name="subtitle_someoneSendYouCash">Alguém enviou-te dinheiro</string>
+  <string name="subtitle_someoneTippedYou">Recebeu uma recompensa</string>
+  <string name="subtitle_tipCardForX">O seu Cartão de Recompensas permite-lhe receber recompensas de utilizadores da Code de todo o mundo. Para ter acesso ao seu Cartão de Recompensas, conecte a sua identidade X.</string>
   <string name="subtitle_typeDelete">Digite \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Fizemos algumas alterações para melhorar a experiência. Terá que atualizar a aplicação para continuar a usar a Code.</string>
   <string name="subtitle_validOwnerAccount">Conta de proprietário válida</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Recebeu</string>
   <string name="subtitle_youSent">Enviou</string>
   <string name="subtitle_youSpent">Gastou</string>
+  <string name="subtitle_youTipped">Deu uma recompensa</string>
   <string name="subtitle_youWithdrew">Levantou</string>
   <string name="success_description_withdrawalComplete">Os seus fundos foram levantados com sucesso.</string>
+  <string name="success_description_xConnected">A sua conta X foi conectada com êxito à sua conta Code. Já pode solicitar Recompensas.</string>
   <string name="success_title_withdrawalComplete">Levantamento Com Sucesso</string>
+  <string name="success_title_xConnected">Conta X conectada com êxito</string>
   <string name="title_accessExpired">Acesso Expirado</string>
   <string name="title_accessKey">Chave de Acesso</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Comprar e Vender Kin</string>
   <string name="title_chat_cashTransactions">Pagamentos em dinheiro</string>
   <string name="title_chat_codeTeam">Equipa Code</string>
+  <string name="title_chat_kinPurchases">Aquisições de Kin</string>
   <string name="title_chat_payments">Pagamentos Web</string>
+  <string name="title_chat_tips">Recompensas</string>
   <string name="title_debugOptions">Opções de Depuração</string>
   <string name="title_depositKin">Depositar Kin</string>
   <string name="title_deposited">Depositado</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Número de Telefone</string>
   <string name="title_privacyPolicy">Política de Privacidade</string>
   <string name="title_purchased">Adquirido</string>
+  <string name="title_push_twitterAccountConnected">Conta X conectada com êxito</string>
   <string name="title_received">Recebeu</string>
   <string name="title_recentCurrencies">Moedas Recentes</string>
   <string name="title_referFriend">Refira a uma amigo, ganhe 5€</string>
   <string name="title_referralBonus">Bónus de Referência</string>
+  <string name="title_requestKin">Solicitar Kin</string>
+  <string name="title_requestTip">Solicitar uma recompensa</string>
   <string name="title_results">Resultados</string>
   <string name="title_returned">Devolvido</string>
   <string name="title_selectAccount">Selecione uma conta</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Gastou</string>
   <string name="title_switchAccounts">Mudar de Conta</string>
   <string name="title_termsOfService">Termos de Serviço</string>
+  <string name="title_tipKin">Dar recompensa em Kin</string>
   <string name="title_unknown">Desconhecido</string>
   <string name="title_updateRequired">Atualização Necessária</string>
   <string name="title_verifyPhoneNumber">Verificar Número de Telefone</string>

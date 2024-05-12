@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Zugriff auf Kontakte zulassen</string>
   <string name="action_allowPushNotifications">Push-Benachrichtigungen zulassen</string>
   <string name="action_balance">Saldo</string>
+  <string name="action_buyKin">Kin kaufen</string>
   <string name="action_buyMoreKin">Mehr Kin kaufen</string>
   <string name="action_cancel">Abbrechen</string>
   <string name="action_cancelSend">Senden abbrechen</string>
   <string name="action_collectCash">Erhalten Sie Ihr Guthaben</string>
   <string name="action_confirm">Bestätigen</string>
+  <string name="action_connectToX">Mit X verbinden</string>
   <string name="action_continue">Fortfahren</string>
   <string name="action_copied">Kopiert</string>
   <string name="action_copy">Kopieren</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Ein Konto erstellen</string>
   <string name="action_createNewCodeAccount">Ein neues Code-Konto erstellen</string>
   <string name="action_deleteAccount">Konto löschen</string>
+  <string name="action_done">Fertig</string>
   <string name="action_downloadNow">Jetzt herunterladen</string>
   <string name="action_enableFaceID">Face ID aktivieren</string>
   <string name="action_enableTouchID">Touch ID aktivieren</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Einladen</string>
   <string name="action_invites">Einladen</string>
   <string name="action_joinWaitlist">In Warteliste eintragen</string>
+  <string name="action_later">Später</string>
   <string name="action_learnBuyKin">Erfahren Sie, wie man Kin kauft.\n</string>
   <string name="action_learnSellKin">Erfahren Sie, wie man Kin verkauft.\n</string>
   <string name="action_linkPhoneNumber">Eine Telefonnummer verknüpfen</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Erinnern</string>
   <string name="action_removePhoneNumber">Telefonnummer entfernen</string>
   <string name="action_removeYourPhoneNumber">Ihre Telefonnummer entfernen</string>
+  <string name="action_requestTip">Trinkgeld anfordern</string>
   <string name="action_saveAccessKey">Zugriffsschlüssel in Meine Fotos speichern</string>
   <string name="action_saveToPhotos">In Fotos speichern</string>
   <string name="action_send">Senden</string>
   <string name="action_sendVerificationCode">Verifizierungscode senden</string>
+  <string name="action_share">Teilen</string>
   <string name="action_shareDownloadLink">Download-Link teilen</string>
   <string name="action_shareVideo">Dieses Video teilen\n</string>
+  <string name="action_showMyTipCard">Meine Trinkgeldkarte anzeigen</string>
+  <string name="action_subscribe">Abonnieren</string>
   <string name="action_swipeToLogin">Zum Anmelden wischen</string>
   <string name="action_swipeToPay">Zum Bezahlen wischen\n</string>
+  <string name="action_swipeToTip">Wischen, um Trinkgeld zu geben</string>
   <string name="action_tryDifferentCodeAccount">Versuchen Sie es mit einem anderen Code-Konto</string>
   <string name="action_unmute">Stummschaltung aufheben</string>
   <string name="action_unsubscribe">Abbestellen</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Wie Sie mehr Kin erhalten können, erfahren Sie in den FAQ unter Einstellungen.</string>
   <string name="error_description_invalidInviteCode">Bitte geben Sie einen anderen Einladungscode ein und versuchen Sie es erneut.</string>
   <string name="error_description_invalidInvitePhone">Bitte geben Sie eine gültige Telefonnummer ein und versuchen Sie es erneut.</string>
+  <string name="error_description_invalidTipCard">Diese Trinkgeldkarte ist ungültig.</string>
   <string name="error_description_invalidVerificationCode">Bitte geben Sie einen gültigen Code ein und versuchen Sie es erneut.</string>
   <string name="error_description_invitationFailed">Leider ist ein Netzwerkproblem aufgetreten. Bitte versuchen Sie erneut, Ihre Freunde einzuladen.</string>
   <string name="error_description_linkExpired">Dieses Kin wurde automatisch an den Absender zurückgeschickt, weil es nicht innerhalb von 24 Stunden abgeholt wurde. Bitte bitten Sie den Absender, das Kin erneut zu senden.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Der Höchstbetrag, den Sie kaufen können, beträgt %1$s. Bitte geben Sie einen kleineren Betrag ein.</string>
   <string name="error_description_purchaseTooSmall">Der Mindestbetrag, den Sie kaufen können, beträgt %1$s. Bitte geben Sie einen höheren Betrag ein.</string>
   <string name="error_description_timelockUnlocked">Ihr Zugangsschlüssel hat eine Freischaltung ausgelöst. Infolgedessen können Sie diesen Zugangsschlüssel nicht mehr in Code verwenden.</string>
+  <string name="error_description_tipTooLarge">Sie können maximal %1$s Trinkgeld geben. Bitte geben Sie einen niedrigeren Betrag ein.</string>
+  <string name="error_description_tipTooSmall">Der Mindestbetrag für Trinkgeld ist %1$s. Bitte geben Sie einen höheren Betrag ein.</string>
   <string name="error_description_tooManyAccounts">Sie können nur eine bestimmte Anzahl an neuen Konten pro Tag erstellen.</string>
   <string name="error_title_alreadyCollected">Kin bereits abgeholt</string>
   <string name="error_title_alreadyCollectedBySomeone">Bereits abgerufene Kin</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Nicht genug Kin</string>
   <string name="error_title_invalidInviteCode">Der Einladungscode ist ungültig oder abgelaufen</string>
   <string name="error_title_invalidInvitePhone">Ungültige Telefonnummer</string>
+  <string name="error_title_invalidTipCard">Ungültige Trinkgeldkarte</string>
   <string name="error_title_invalidVerificationCode">Ungültiger Code</string>
   <string name="error_title_invitationFailed">Einladung fehlgeschlagen</string>
   <string name="error_title_linkExpired">Link Abgelaufen</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Kaufbetrag zu groß</string>
   <string name="error_title_purchaseTooSmall">Kaufbetrag zu klein</string>
   <string name="error_title_timelockUnlocked">Zugangsschlüssel nicht mehr in Code verwendbar</string>
+  <string name="error_title_tipTooLarge">Trinkgeldbetrag zu hoch</string>
+  <string name="error_title_tipTooSmall">Trinkgeldbetrag zu niedrig</string>
   <string name="error_title_tooManyAccounts">Zu viele Konten erstellt</string>
   <string name="faq_a__1">Mit der Zahlungs-App Code können Sie Geld einfach und unkompliziert an jede beliebige Person überall auf der Welt zu senden.</string>
   <string name="faq_a__10">Es ist geplant, zukünftig ein Abonnementmodell einzuführen, ähnlich wie Signal und Twitter.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Jedes Kin, das nicht innerhalb von 24 Stunden abgeholt wird, wird automatisch auf Ihr Guthaben zurückgebucht.</string>
   <string name="prompt_description_exitAccountCreation">Sie müssen die Kontoerstellung neu starten und Ihre Telefonnummer erneut verifizieren.</string>
   <string name="prompt_description_logout">Sie können sich mit Ihrem Zugangsschlüssel wieder bei diesem Konto anmelden.</string>
+  <string name="prompt_description_mute">Sie werden nicht über neue Nachrichten von %1$s benachrichtigt. Sie können die Stummschaltung jederzeit zurücknehmen.</string>
   <string name="prompt_description_notCodeAccount">Derzeit werden nur über Code erstellte Konten unterstützt.</string>
   <string name="prompt_description_unlinkPhoneNumber">Ihre Freunde werden Sie nicht mehr unter dieser Telefonnummer finden können.</string>
+  <string name="prompt_description_unmute">Sie werden über alle neuen Nachrichten von %1$s benachrichtigt. Sie können den Chat jederzeit stummschalten.</string>
+  <string name="prompt_description_unsubscribe">Sie werden keine Nachrichten von %1$s erhalten, bis Sie erneut eine Zahlung an diesen Empfänger senden.</string>
   <string name="prompt_description_viewAccessKey">Ihr Zugangsschlüssel gewährt Ihnen Zugang zu Ihrem Code-Konto. Halten Sie Ihn deshalb geheim und wahren Sie ihn sicher auf.</string>
   <string name="prompt_description_wroteThemDown">Diese 12 Wörter sind die einzige Möglichkeit, wie Sie Ihr Code-Konto wiederherstellen können. Schreiben Sie sie deshalb auf und bewahren Sie sie sicher auf.</string>
   <string name="prompt_title_confirmWithdrawal">Sind Sie sich sicher?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Haben Sie den Link geschickt?</string>
   <string name="prompt_title_exitAccountCreation">Sind Sie sicher, dass Sie beenden wollen?</string>
   <string name="prompt_title_logout">Sind Sie sicher, dass Sie sich abmelden möchten?</string>
+  <string name="prompt_title_mute">%1$s stummschalten?</string>
   <string name="prompt_title_notCodeAccount">Kein Code-Konto</string>
   <string name="prompt_title_unlinkPhoneNumber">Sind Sie sicher?</string>
+  <string name="prompt_title_unmute">%1$s nicht mehr stummschalten?</string>
+  <string name="prompt_title_unsubscribe">%1$s nicht mehr abonnieren?</string>
   <string name="prompt_title_viewAccessKey">Ihren Zugangsschlüssel anzeigen?</string>
   <string name="prompt_title_wroteThemDown">Sind Sie sicher?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin wurden auf Ihr Konto eingezahlt.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kin kaufen (demnächst verfügbar)</string>
   <string name="subtitle_buySellDescription">Der Kauf und Verkauf von Kin ist derzeit ein komplexer Vorgang. Diese Vorgänge werden im Laufe der Zeit einfacher werden. Wenn Sie lernen möchten, wie man Kin kauft und verkauft, können Sie sich die folgenden Video-Leitführer ansehen.\n</string>
   <string name="subtitle_canOnlyGiveUpTo">Sie können nur bis zu %1$s geben</string>
+  <string name="subtitle_canOnlyTipUpTo">Sie können maximal %1$s Trinkgeld geben</string>
   <string name="subtitle_chat_kinAvailableForUse">Ihre Kin sind jetzt für die Verwendung in Ihrer Code-App verfügbar</string>
   <string name="subtitle_chat_referralBonus">Sie haben jemandem seinen ersten Kin geschickt! Hier ist Ihr Empfehlungsbonus:</string>
   <string name="subtitle_chat_usdcBeingConverted">USDC wird in Kin umgewandelt. Dieser Vorgang dauert etwa eine Minute</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Code ist eine neue Krypto-Wallet-App, die derzeit nur für eingeladene Benutzer verfügbar ist. Um Code herunterzuladen, gehen Sie zu %1$s</string>
   <string name="subtitle_learnMore">Mehr erfahren</string>
   <string name="subtitle_linkedPhoneNumberDescription">Ihre Telefonnummer ist mit diesem Code-Konto verknüpft. Freunde können Sie über diese Telefonnummer finden.</string>
+  <string name="subtitle_linkingTwitter">Ich verbinde mein X-Konto mit @getcode, damit ich von Menschen auf der ganzen Welt Trinkgeld erhalten kann.</string>
   <string name="subtitle_loadingBalance">Laden des Saldos und Transaktionsverlaufs</string>
   <string name="subtitle_loginDescription">Durchsuchen Sie Ihre Fotos nach dem Zugangsschlüssel, den Sie bei der erstmaligen Erstellung Ihres Kontos gespeichert haben.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Sie sind derzeit bei einem Konto angemeldet. Bitte stellen Sie sicher, dass Sie Ihren Zugangsschlüssel gespeichert haben, bevor Sie fortfahren. Möchten Sie sich abmelden und mit einem neuen Konto anmelden?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Diese Telefonnummer ist nicht in Ihren Kontakten enthalten. Sie können diese Person trotzdem zu Code einladen.</string>
   <string name="subtitle_phoneVerificationDescription">Geben Sie Ihre Telefonnummer einschließlich der Landesvorwahl ein. Vergewissern Sie sich, dass Sie dieselbe Telefonnummer verwenden, unter der Sie die Einladung erhalten haben.</string>
   <string name="subtitle_poweredBy">Unterstützt durch</string>
+  <string name="subtitle_push_twitterAccountConnected">Sie können nun Trinkgeld anfordern</string>
   <string name="subtitle_referralBonusReceived">Empfehlungsbonus erhalten</string>
   <string name="subtitle_remoteSendShareSheetTitle">%1$s senden</string>
   <string name="subtitle_remoteSendSubject">Hier ist %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Kontaktsuche</string>
   <string name="subtitle_smsWasSent">Eine SMS-Nachricht mit einem Verifizierungscode wurde an Ihre Telefonnummer gesendet. Bitte geben Sie den Verifizierungscode oben ein.</string>
   <string name="subtitle_someoneSendYouCash">Jemand hat Ihnen Guthaben geschickt</string>
+  <string name="subtitle_someoneTippedYou">Jemand hat Ihnen Trinkgeld gegeben</string>
+  <string name="subtitle_tipCardForX">Mit Ihrer Trinkgeldkarte können Sie von Code-Nutzerinnen und -Nutzern auf der ganzen Welt Trinkgeld erhalten. Verbinden Sie Ihr X-Konto, um auf Ihre Trinkgeldkarte zuzugreifen.</string>
   <string name="subtitle_typeDelete">Geben Sie „%1$s\" ein</string>
   <string name="subtitle_updateRequiredDescription">Wir haben einige Änderungen vorgenommen, um das Nutzererlebnis zu verbessern. Die App muss aktualisiert werden, um Code weiterhin nutzen zu können.</string>
   <string name="subtitle_validOwnerAccount">Gültiges Inhaberkonto</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Sie erhielten</string>
   <string name="subtitle_youSent">Sie haben gesendet</string>
   <string name="subtitle_youSpent">Sie haben ausgegeben</string>
+  <string name="subtitle_youTipped">Sie haben jemandem Trinkgeld gegeben</string>
   <string name="subtitle_youWithdrew">Sie haben abgehoben</string>
   <string name="success_description_withdrawalComplete">Die Abhebung Ihres Guthabens war erfolgreich.</string>
+  <string name="success_description_xConnected">Ihr X-Konto wurde erfolgreich mit Ihrem Code-Konto verbunden. Sie können nun Trinkgeld anfordern.</string>
   <string name="success_title_withdrawalComplete">Abhebung erfolgreich</string>
+  <string name="success_title_xConnected">X-Konto erfolgreich verbunden</string>
   <string name="title_accessExpired">Zugang abgelaufen</string>
   <string name="title_accessKey">Zugriffsschlüssel</string>
   <string name="title_balance">Saldo</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kin kaufen &amp; verkaufen\n</string>
   <string name="title_chat_cashTransactions">Barzahlungen</string>
   <string name="title_chat_codeTeam">Code-Team</string>
+  <string name="title_chat_kinPurchases">Kin-Käufe</string>
   <string name="title_chat_payments">Online-Zahlungen</string>
+  <string name="title_chat_tips">Trinkgeld</string>
   <string name="title_debugOptions">Debug-Optionen</string>
   <string name="title_depositKin">Kin einzahlen</string>
   <string name="title_deposited">Eingezahlt</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Telefonnummer</string>
   <string name="title_privacyPolicy">Datenschutzrichtlinien</string>
   <string name="title_purchased">Gekauft</string>
+  <string name="title_push_twitterAccountConnected">X-Konto erfolgreich verbunden</string>
   <string name="title_received">Empfangen</string>
   <string name="title_recentCurrencies">Letzte Währungen</string>
   <string name="title_referFriend">Empfehle Sie uns an einen Freund oder eine Freundin weiter und erhalten Sie 5 $ dafür</string>
   <string name="title_referralBonus">Empfehlungsbonus</string>
+  <string name="title_requestKin">Kin anfordern</string>
+  <string name="title_requestTip">Trinkgeld anfordern</string>
   <string name="title_results">Ergebnisse</string>
   <string name="title_returned">Zurückgeschickt</string>
   <string name="title_selectAccount">Wählen Sie ein Konto</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Ausgegeben</string>
   <string name="title_switchAccounts">Konten wechseln</string>
   <string name="title_termsOfService">Servicebedingungen</string>
+  <string name="title_tipKin">Kin-Trinkgeld geben</string>
   <string name="title_unknown">Unbekannt</string>
   <string name="title_updateRequired">Aktualisierung erforderlich</string>
   <string name="title_verifyPhoneNumber">Telefonnummer verifizieren</string>

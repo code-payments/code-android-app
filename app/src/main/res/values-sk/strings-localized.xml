@@ -4,11 +4,13 @@
   <string name="action_allowContacts">Povoliť prístup ku kontaktom</string>
   <string name="action_allowPushNotifications">Povoliť upozornenia push</string>
   <string name="action_balance">Zostatok</string>
+  <string name="action_buyKin">Kúpiť kin</string>
   <string name="action_buyMoreKin">Kúpiť viac meny Kin</string>
   <string name="action_cancel">Zrušiť</string>
   <string name="action_cancelSend">Zrušiť odoslanie</string>
   <string name="action_collectCash">Získajte tieto peniaze</string>
   <string name="action_confirm">Potvrdiť</string>
+  <string name="action_connectToX">Pripojiť sa k sieti X</string>
   <string name="action_continue">Pokračovať</string>
   <string name="action_copied">Skopírovaný</string>
   <string name="action_copy">Kopírovať</string>
@@ -16,6 +18,7 @@
   <string name="action_createAccount">Vytvoriť účet</string>
   <string name="action_createNewCodeAccount">Vytvorte si nový kódový účet</string>
   <string name="action_deleteAccount">Vymazať účet</string>
+  <string name="action_done">Hotovo</string>
   <string name="action_downloadNow">Stiahnite si ju už teraz</string>
   <string name="action_enableFaceID">Povoliť Face ID</string>
   <string name="action_enableTouchID">Povoliť Touch ID</string>
@@ -24,6 +27,7 @@
   <string name="action_invite">Pozvať</string>
   <string name="action_invites">Pozýva</string>
   <string name="action_joinWaitlist">Pridajte sa do zoznamu čakateľov</string>
+  <string name="action_later">Neskôr</string>
   <string name="action_learnBuyKin">Naučte sa nakupovať Kiny</string>
   <string name="action_learnSellKin">Naučte sa predávať Kiny</string>
   <string name="action_linkPhoneNumber">Prepojiť telefónne číslo</string>
@@ -42,14 +46,19 @@
   <string name="action_remind">Pripomenúť</string>
   <string name="action_removePhoneNumber">Odstrániť telefónne číslo</string>
   <string name="action_removeYourPhoneNumber">Odstráňte svoje telefónne číslo</string>
+  <string name="action_requestTip">Požiadať o tip</string>
   <string name="action_saveAccessKey">Uložiť prístupový kľúč do mojich fotografií</string>
   <string name="action_saveToPhotos">Uložiť medzi fotky</string>
   <string name="action_send">Odoslať</string>
   <string name="action_sendVerificationCode">Poslať overovací kód</string>
+  <string name="action_share">Zdieľať</string>
   <string name="action_shareDownloadLink">Zdieľať odkaz na stiahnutie</string>
   <string name="action_shareVideo">Zdieľajte toto video</string>
+  <string name="action_showMyTipCard">Zobraziť moju tipovaciu kartu</string>
+  <string name="action_subscribe">Prihlásiť sa na odber</string>
   <string name="action_swipeToLogin">Prihlásiť sa potiahnutím</string>
   <string name="action_swipeToPay">Pre platbu potiahnite</string>
+  <string name="action_swipeToTip">Prejsť na možnosť Tip</string>
   <string name="action_tryDifferentCodeAccount">Vyskúšajte iný kódový účet</string>
   <string name="action_unmute">Zrušiť stlmenie</string>
   <string name="action_unsubscribe">Zrušiť odber</string>
@@ -85,6 +94,7 @@
   <string name="error_description_insuffiecientKin">Ak sa chcete dozvedieť, ako získať viac Kinov, prejdite na Často kladené otázky v Nastaveniach.</string>
   <string name="error_description_invalidInviteCode">Zadajte iný pozývací kód a skúste to znova.</string>
   <string name="error_description_invalidInvitePhone">Zadajte platné telefónne číslo a skúste to znova.</string>
+  <string name="error_description_invalidTipCard">Táto tipovacia karta je neplatná.</string>
   <string name="error_description_invalidVerificationCode">Zadajte platný kód a skúste to znova.</string>
   <string name="error_description_invitationFailed">Ľutujeme, vyskytol sa problém so sieťou. Skúste znova pozvať svojho priateľa.</string>
   <string name="error_description_linkExpired">Tento Kin bol automaticky vrátený odosielateľovi, pretože nebol vyzdvihnutý do 24 hodín. Požiadajte ho, aby znovu poslali Kin.</string>
@@ -95,6 +105,8 @@
   <string name="error_description_purchaseTooLarge">Maximálna hodnota nákupu je %1$s. Zadajte nižšiu sumu.</string>
   <string name="error_description_purchaseTooSmall">Minimálna hodnota nákupu je %1$s. Zadajte vyššiu sumu.</string>
   <string name="error_description_timelockUnlocked">Váš prístupový kľúč spustil odomknutie.  V dôsledku toho už nebudete môcť používať tento prístupový kľúč v kóde.</string>
+  <string name="error_description_tipTooLarge">Maximálny tip je %1$s. Zadajte nižšiu sumu.</string>
+  <string name="error_description_tipTooSmall">Minimálny tip je %1$s. Zadajte vyššiu sumu.</string>
   <string name="error_description_tooManyAccounts">Každý deň môžete vytvoriť len toľko nových účtov.</string>
   <string name="error_title_alreadyCollected">Kin bol už vyzdvihnutý</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin už bol zhromaždený</string>
@@ -112,6 +124,7 @@
   <string name="error_title_insuffiecientKin">Nedostatočný kin</string>
   <string name="error_title_invalidInviteCode">Pozývací kód je neplatný alebo vypršala jeho platnosť</string>
   <string name="error_title_invalidInvitePhone">Neplatné telefónne číslo</string>
+  <string name="error_title_invalidTipCard">Neplatná tipovacia karta</string>
   <string name="error_title_invalidVerificationCode">Neplatný kód</string>
   <string name="error_title_invitationFailed">Pozvanie zlyhalo</string>
   <string name="error_title_linkExpired">Platnosť odkazu vypršala</string>
@@ -122,6 +135,8 @@
   <string name="error_title_purchaseTooLarge">Nákup je príliš veľký</string>
   <string name="error_title_purchaseTooSmall">Nákup je príliš malý</string>
   <string name="error_title_timelockUnlocked">Prístupový kľúč sa už v kóde nedá použiť</string>
+  <string name="error_title_tipTooLarge">Príliš vysoký tip</string>
+  <string name="error_title_tipTooSmall">Príliš nízky tip</string>
   <string name="error_title_tooManyAccounts">Bolo vytvorených príliš veľa účtov</string>
   <string name="faq_a__1">Code je platobná aplikácia, ktorá uľahčuje posielanie peňazí komukoľvek a kdekoľvek na svete.</string>
   <string name="faq_a__10">Plánujeme sa udržať prostredníctvom pripravovaného modelu predplatného, podobne ako pri Signal a Twitter.</string>
@@ -154,8 +169,11 @@
   <string name="prompt_description_didYouSendLink">Akýkoľvek Kin, ktorý do 24 hodín nebude vyzdvihnutý, bude automaticky vrátený na vaše konto.</string>
   <string name="prompt_description_exitAccountCreation">Budete musieť reštartovať vytváranie účtu a znova overiť svoje telefónne číslo.</string>
   <string name="prompt_description_logout">Do tohto účtu sa môžete vrátiť pomocou prístupového kľúča</string>
+  <string name="prompt_description_mute">Nebudete dostávať upozornenia na nové správy od %1$s. Stlmenie zvuku môžete kedykoľvek vypnúť.</string>
   <string name="prompt_description_notCodeAccount">V súčasnosti sú podporované iba účty vytvorené prostredníctvom kódu.</string>
   <string name="prompt_description_unlinkPhoneNumber">Vaši priatelia vás už nebudú môcť nájsť pomocou tohto telefónneho čísla.</string>
+  <string name="prompt_description_unmute">Budete dostávať upozornenia na všetky nové správy od %1$s. Stlmenie zvuku môžete kedykoľvek zapnúť.</string>
+  <string name="prompt_description_unsubscribe">Nebudete dostávať žiadne správy od %1$s, kým za ne znova nezaplatíte.</string>
   <string name="prompt_description_viewAccessKey">Váš prístupový kľúč umožní prístup k vášmu účtu s kódom. Udržujte to v súkromí a bezpečí.</string>
   <string name="prompt_description_wroteThemDown">Týchto 12 slov je jediný spôsob, ako obnoviť váš kódový účet. Uistite sa, že ste si ich zapísali a uchovávajte ich v súkromí a bezpečí.</string>
   <string name="prompt_title_confirmWithdrawal">Ste si istý?</string>
@@ -163,8 +181,11 @@
   <string name="prompt_title_didYouSendLink">Poslali ste odkaz?</string>
   <string name="prompt_title_exitAccountCreation">Naozaj chcete odísť?</string>
   <string name="prompt_title_logout">Naozaj sa chcete odhlásiť?</string>
+  <string name="prompt_title_mute">Stlmiť zvuk %1$s?</string>
   <string name="prompt_title_notCodeAccount">Nie je to kódový účet</string>
   <string name="prompt_title_unlinkPhoneNumber">Ste si istý?</string>
+  <string name="prompt_title_unmute">Vypnúť stlmenie zvuku %1$s?</string>
+  <string name="prompt_title_unsubscribe">Zrušiť odber z %1$s?</string>
   <string name="prompt_title_viewAccessKey">Zobraziť váš prístupový kľúč?</string>
   <string name="prompt_title_wroteThemDown">Ste si istý?</string>
   <string name="push_subtitle_depositReceived">%1$s Kin bol vložený na váš účet.</string>
@@ -186,6 +207,7 @@
   <string name="subtitle_buyKinComingSoon">Kúpiť Kin (Čoskoro)</string>
   <string name="subtitle_buySellDescription">Nákup a predaj Kinov je v súčasnosti zložitý proces. Tieto procesy sa časom zjednodušia. Ak sa chcete naučiť, ako nakupovať a predávať Kin dnes, môžete si pozrieť návod prostredníctvom videí nižšie.</string>
   <string name="subtitle_canOnlyGiveUpTo">Môžete dať maximálne %1$s</string>
+  <string name="subtitle_canOnlyTipUpTo">Tipovať môžete len do %1$s</string>
   <string name="subtitle_chat_kinAvailableForUse">Svoje mince Kin teraz môžete používať v aplikácii Code</string>
   <string name="subtitle_chat_referralBonus">Poslali ste niekomu ich prvý Kin! Tu je váš bonus za odporúčanie:</string>
   <string name="subtitle_chat_usdcBeingConverted">Prebieha konverzia USDC na Kin. Jej dokončenie by malo trvať približne minútu.</string>
@@ -216,6 +238,7 @@
   <string name="subtitle_inviteText">Kód je nová aplikácia pre krypto peňaženku, ktorá je momentálne len na pozvanie. Ak si chcete stiahnuť kód, prejdite na %1$s</string>
   <string name="subtitle_learnMore">Dozvedieť sa viac</string>
   <string name="subtitle_linkedPhoneNumberDescription">Vaše telefónne číslo je prepojené s týmto kódovým účtom. Priatelia vás môžu nájsť pomocou tohto telefónneho čísla.</string>
+  <string name="subtitle_linkingTwitter">Prepájam svoj účet X s @getcode, aby som mohol dostávať tipy od ľudí z celého sveta.</string>
   <string name="subtitle_loadingBalance">Načítava sa váš zostatok a história transakcií</string>
   <string name="subtitle_loginDescription">Skontrolujte svoje fotografie, či nemáte prístupový kľúč, ktorý ste si uložili pri prvom vytvorení účtu.</string>
   <string name="subtitle_logoutAndLoginConfirmation">Momentálne ste prihlásený/-á do účtu. Pred pokračovaním sa uistite, že ste si uložili prístupový kľúč. Chcete sa odhlásiť a prihlásiť pomocou nového účtu?</string>
@@ -228,6 +251,7 @@
   <string name="subtitle_phoneNotInContacts">Toto telefónne číslo nie je vo vašich kontaktoch. Stále ich môžete pozvať do aplikácie Code.</string>
   <string name="subtitle_phoneVerificationDescription">Zadajte svoje telefónne číslo vrátane kódu krajiny. Uistite sa, že používate rovnaké telefónne číslo, na ktoré ste dostali pozvánku.</string>
   <string name="subtitle_poweredBy">Používa technológiu</string>
+  <string name="subtitle_push_twitterAccountConnected">Teraz môžete požiadať o tipy.</string>
   <string name="subtitle_referralBonusReceived">Získaný bonus za odporúčanie</string>
   <string name="subtitle_remoteSendShareSheetTitle">Odoslať %1$s </string>
   <string name="subtitle_remoteSendSubject">Tu je %1$s</string>
@@ -237,6 +261,8 @@
   <string name="subtitle_searchForContacts">Vyhľadať kontakty</string>
   <string name="subtitle_smsWasSent">Na vaše telefónne číslo bola odoslaná SMS správa s overovacím kódom. Zadajte overovací kód vyššie.</string>
   <string name="subtitle_someoneSendYouCash">Niekto vám poslal peniaze</string>
+  <string name="subtitle_someoneTippedYou">Niekto ti dal tip</string>
+  <string name="subtitle_tipCardForX">Vaša tipovacia karta vám umožňuje dostávať tipy od používateľov peňaženky Code z celého sveta. Ak chcete získať prístup k svojej tipovacej karte, pripojte sa účtom X.</string>
   <string name="subtitle_typeDelete">Napíšte „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Urobili sme niekoľko zmien na zlepšenie prostredia. Ak chcete naďalej používať kód, musíte si aplikáciu aktualizovať.</string>
   <string name="subtitle_validOwnerAccount">Platný účet vlastníka</string>
@@ -254,9 +280,12 @@
   <string name="subtitle_youReceived">Obdržali ste</string>
   <string name="subtitle_youSent">Odoslali ste</string>
   <string name="subtitle_youSpent">Minuli ste</string>
+  <string name="subtitle_youTipped">Niekomu ste dali tip</string>
   <string name="subtitle_youWithdrew">Vybrali ste</string>
   <string name="success_description_withdrawalComplete">Vaše prostriedky boli úspešne vybraté.</string>
+  <string name="success_description_xConnected">Váš účet X bol úspešne prepojený s vaším účtom Code. Teraz môžete požiadať o tipy.</string>
   <string name="success_title_withdrawalComplete">Výber bol úspešný</string>
+  <string name="success_title_xConnected">Účet X bol úspešne pripojený</string>
   <string name="title_accessExpired">Platnosť prístupu vypršala</string>
   <string name="title_accessKey">Prístupový kľúč</string>
   <string name="title_balance">Zostatok</string>
@@ -265,7 +294,9 @@
   <string name="title_buySellKin">Kupiť a predať Kin</string>
   <string name="title_chat_cashTransactions">Platby v hotovosti</string>
   <string name="title_chat_codeTeam">Tím aplikácie Code</string>
+  <string name="title_chat_kinPurchases">Nákupy kinov</string>
   <string name="title_chat_payments">Internetové platby</string>
+  <string name="title_chat_tips">Tipy</string>
   <string name="title_debugOptions">Možnosti ladenia</string>
   <string name="title_depositKin">Vložiť Kin</string>
   <string name="title_deposited">Uložené</string>
@@ -291,10 +322,13 @@
   <string name="title_phoneNumber">Telefónne číslo</string>
   <string name="title_privacyPolicy">Zásady ochrany osobných údajov</string>
   <string name="title_purchased">Zakúpené</string>
+  <string name="title_push_twitterAccountConnected">Účet X bol úspešne pripojený</string>
   <string name="title_received">Prijaté</string>
   <string name="title_recentCurrencies">Najnovšie meny</string>
   <string name="title_referFriend">Odporučte priateľa a získajte 5 dolárov</string>
   <string name="title_referralBonus">Bonus za odporúčanie</string>
+  <string name="title_requestKin">Požiadať o kin</string>
+  <string name="title_requestTip">Požiadať o tip</string>
   <string name="title_results">Výsledky</string>
   <string name="title_returned">Vrátené</string>
   <string name="title_selectAccount">Vybrať konto</string>
@@ -304,6 +338,7 @@
   <string name="title_spentKin">Použité</string>
   <string name="title_switchAccounts">Prepnúť účty</string>
   <string name="title_termsOfService">Podmienky služby</string>
+  <string name="title_tipKin">Tipovať kin</string>
   <string name="title_unknown">Neznámy</string>
   <string name="title_updateRequired">Vyžaduje sa aktualizácia</string>
   <string name="title_verifyPhoneNumber">Overiť telefónne číslo</string>
