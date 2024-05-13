@@ -76,7 +76,6 @@ data object BalanceModal : ChatGraph, ModalRoot {
         ModalContainer(
             navigator = navigator,
             onLogoClicked = {},
-            titleString = { null },
             backButton = { isViewingBuckets },
             onBackClicked = isViewingBuckets.takeIf { it }?.let {
                 {
