@@ -26,6 +26,7 @@ import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.installationId
+import com.getcode.utils.startupLog
 import com.getcode.utils.token
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
@@ -57,11 +58,12 @@ class AuthManager @Inject constructor(
     private val historyController: HistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
-): CoroutineScope by CoroutineScope(Dispatchers.IO) {
+    private val mnemonicManager: MnemonicManager,
+) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
     @SuppressLint("CheckResult")
-    fun init(context: Context, onInitialized: () -> Unit = { }) {
+    fun init(onInitialized: () -> Unit = { }) {
         launch {
             LibsodiumInitializer.initialize()
             val token = AccountUtils.getToken(context)
@@ -76,8 +78,12 @@ class AuthManager @Inject constructor(
         return login(entropyB64, isSoftLogin = true)
     }
 
-    fun login(entropyB64: String, isSoftLogin: Boolean = false, rollbackOnError: Boolean = false): Completable {
-        Timber.i("Login: entropyB64: $entropyB64, isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
+    fun login(
+        entropyB64: String,
+        isSoftLogin: Boolean = false,
+        rollbackOnError: Boolean = false
+    ): Completable {
+        startupLog("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
             sessionManager.clear()
@@ -98,19 +104,18 @@ class AuthManager @Inject constructor(
                 loginAnalytics(entropyB64)
             }
             it.onSuccess(originalSessionState)
-        }
-            .flatMapCompletable {
-                val fetchData = fetchAdditionalAccountData(context, entropyB64, isSoftLogin, rollbackOnError, it)
-                if (isSoftLogin) {
-                    fetchData.onErrorComplete {
-                        ErrorUtils.handleError(it)
-                        true
-                    }
-                } else {
-                    fetchData
+        }.flatMapCompletable {
+            val fetchData =
+                fetchAdditionalAccountData(context, entropyB64, isSoftLogin, rollbackOnError, it)
+            if (isSoftLogin) {
+                fetchData.onErrorComplete {
+                    ErrorUtils.handleError(it)
+                    true
                 }
+            } else {
+                fetchData
             }
-            .doOnError { softLoginDisabled = false }
+        }.doOnError { softLoginDisabled = false }
     }
 
     private fun fetchAdditionalAccountData(
@@ -137,10 +142,15 @@ class AuthManager @Inject constructor(
                 }
             }
             .doOnError {
-                val isTimelockUnlockedException = it is AuthManagerException.TimelockUnlockedException
+                val isTimelockUnlockedException =
+                    it is AuthManagerException.TimelockUnlockedException
                 if (!isSoftLogin) {
                     if (rollbackOnError) {
-                        login(originalSessionState?.entropyB64.orEmpty(), isSoftLogin, rollbackOnError = false)
+                        login(
+                            originalSessionState?.entropyB64.orEmpty(),
+                            isSoftLogin,
+                            rollbackOnError = false
+                        )
                     } else {
                         clearToken()
                     }
@@ -184,6 +194,8 @@ class AuthManager @Inject constructor(
     private fun fetchData(context: Context, entropyB64: String):
             Single<Pair<PhoneRepository.GetAssociatedPhoneNumberResponse, IdentityRepository.GetUserResponse>> {
 
+        startupLog("fetching account data")
+
         var owner = SessionManager.authState.value.keyPair
         if (owner == null || SessionManager.authState.value.entropyB64 != entropyB64) {
             owner = MnemonicPhrase.fromEntropyB64(context, entropyB64).getSolanaKeyPair(context)
@@ -214,16 +226,21 @@ class AuthManager @Inject constructor(
                     .toSingleDefault(Pair(phone!!, user!!))
             }
             .doOnSuccess {
+                startupLog("account data fetched successfully")
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
-                if (!BuildConfig.DEBUG) Bugsnag.setUser(null, phone?.phoneNumber, null)
+                if (!BuildConfig.DEBUG) {
+                    if (Bugsnag.isStarted()) {
+                        Bugsnag.setUser(null, phone?.phoneNumber, null)
+                    }
+                }
             }
     }
 
     private fun loginAnalytics(entropyB64: String) {
-        val owner = MnemonicPhrase.fromEntropyB64(context, entropyB64)
-            .getSolanaKeyPair(context)
+        val owner = mnemonicManager.getKeyPair(entropyB64)
+        startupLog("analytics login event")
         analytics.login(
             ownerPublicKey = owner.getPublicKeyBase58(),
             autoCompleteCount = 0,
@@ -241,6 +258,7 @@ class AuthManager @Inject constructor(
         Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
+
     private suspend fun savePrefs(
         phone: PhoneRepository.GetAssociatedPhoneNumberResponse,
         user: IdentityRepository.GetUserResponse
@@ -285,8 +303,8 @@ class AuthManager @Inject constructor(
             }
     }
 
-    sealed class AuthManagerException: Exception() {
-        class PhoneInvalidException: AuthManagerException()
-        class TimelockUnlockedException: AuthManagerException()
+    sealed class AuthManagerException : Exception() {
+        class PhoneInvalidException : AuthManagerException()
+        class TimelockUnlockedException : AuthManagerException()
     }
 }

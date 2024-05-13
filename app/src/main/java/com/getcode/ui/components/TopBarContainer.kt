@@ -33,7 +33,7 @@ import kotlin.concurrent.timerTask
 
 @Composable
 fun TopBarContainer(appState: CodeAppState) {
-    val topBarMessage by appState.topBarMessage.observeAsState()
+    val topBarMessage by appState.topBarMessage.collectAsState()
     val topBarVisibleState = remember { MutableTransitionState(false) }
     var topBarMessageDismissId by remember { mutableLongStateOf(0L) }
 
@@ -155,7 +155,8 @@ private fun TopBarView(
                     .height(CodeTheme.dimens.border)
                     .background(Black10)
             )
-            Row(modifier = Modifier.height(IntrinsicSize.Min)
+            Row(modifier = Modifier
+                .height(IntrinsicSize.Min)
                 .drawBehind {
                     val strokeWidth = Dp.Hairline.toPx()
                     drawLine(

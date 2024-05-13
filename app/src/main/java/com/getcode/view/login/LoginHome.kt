@@ -42,11 +42,13 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.ImageWithBackground
 
 
-@Preview
+
 @Composable
-fun LoginHome() {
+fun LoginHome(
+    createAccount: () -> Unit,
+    login: () -> Unit,
+) {
     val context = LocalContext.current
-    val navigator = LocalCodeNavigator.current
 
     Box {
         ConstraintLayout(
@@ -92,9 +94,7 @@ fun LoginHome() {
                         bottom.linkTo(buttonLogin.top)
                     }
                     .padding(horizontal = CodeTheme.dimens.inset),
-                onClick = {
-                    navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
-                },
+                onClick = createAccount,
                 text = stringResource(R.string.action_createAccount),
                 buttonState = ButtonState.Filled,
             )
@@ -105,9 +105,7 @@ fun LoginHome() {
                         top.linkTo(buttonCreate.bottom)
                     }
                     .padding(horizontal = CodeTheme.dimens.inset),
-                onClick = {
-                    navigator.push(AccessKeyLoginScreen())
-                },
+                onClick = login,
                 text = stringResource(R.string.action_logIn),
                 buttonState = ButtonState.Subtle,
             )
@@ -167,5 +165,16 @@ fun LoginHome() {
         focusManager.clearFocus()
         analytics.onAppStarted()
 
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_Login() {
+    CodeTheme {
+        LoginHome(
+            createAccount = {  },
+            login = {}
+        )
     }
 }

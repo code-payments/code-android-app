@@ -1,24 +1,36 @@
 package com.getcode
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -29,19 +41,19 @@ import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
-import com.getcode.navigation.screens.MainRoot
 import com.getcode.navigation.transitions.SheetSlideTransition
-import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
-import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.getActivityScopedViewModel
-import com.getcode.ui.utils.measured
 import com.getcode.ui.components.AuthCheck
 import com.getcode.ui.components.BottomBarContainer
+import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.TitleBar
 import com.getcode.ui.components.TopBarContainer
+import com.getcode.ui.utils.getActivity
+import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.ui.utils.measured
+import kotlinx.coroutines.delay
 
 @Composable
 fun CodeApp() {
@@ -108,22 +120,22 @@ fun CodeApp() {
                             }
                         }
                     }
+                }
 
-                    //Listen for authentication changes here
-                    AuthCheck(
-                        navigator = codeNavigator,
-                        onNavigate = { screens ->
-                            codeNavigator.replaceAll(screens, inSheet = false)
-                        },
-                        onSwitchAccounts = { seed ->
-                            activity?.let {
-                                tlvm.logout(it) {
-                                    appState.navigator.replaceAll(LoginScreen(seed))
-                                }
+                //Listen for authentication changes here
+                AuthCheck(
+                    navigator = codeNavigator,
+                    onNavigate = { screens ->
+                        codeNavigator.replaceAll(screens, inSheet = false)
+                    },
+                    onSwitchAccounts = { seed ->
+                        activity?.let {
+                            tlvm.logout(it) {
+                                appState.navigator.replaceAll(LoginScreen(seed))
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
 
@@ -175,4 +187,20 @@ private fun CrossfadeTransition(
         content = content,
         transition = { fadeIn() togetherWith fadeOut() }
     )
+}
+
+internal data object MainRoot : Screen {
+
+    override val key: ScreenKey = uniqueScreenKey
+
+    private fun readResolve(): Any = this
+
+    @Composable
+    override fun Content() {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(CodeTheme.colors.background)
+        )
+    }
 }

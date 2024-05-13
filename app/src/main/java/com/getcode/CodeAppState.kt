@@ -3,6 +3,7 @@ package com.getcode
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -16,6 +17,7 @@ import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.NamedScreen
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -82,8 +84,8 @@ class CodeAppState(
             )
         }
 
-    val topBarMessage = MutableLiveData<TopBarManager.TopBarMessage?>()
-    val bottomBarMessage = MutableLiveData<BottomBarManager.BottomBarMessage?>()
+    val topBarMessage = MutableStateFlow<TopBarManager.TopBarMessage?>(null)
+    val bottomBarMessage = MutableStateFlow<BottomBarManager.BottomBarMessage?>(null)
 
 
     fun upPress() {

@@ -3,6 +3,7 @@ package com.getcode.ui.components.chat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -79,7 +80,10 @@ internal fun DateWithStatus(
 @Composable
 private fun Preview_DateWithStatus() {
     CodeTheme {
-        Column {
+        @Composable
+        fun Bubble(
+            status: MessageStatus
+        ) {
             Box(
                 modifier = Modifier
                     .wrapContentWidth()
@@ -89,30 +93,16 @@ private fun Preview_DateWithStatus() {
                     )
                     .padding(CodeTheme.dimens.grid.x2)
             ) {
-                DateWithStatus(date = Clock.System.now(), status = MessageStatus.Sent)
+                DateWithStatus(date = Clock.System.now(), status = status)
             }
-            Box(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .background(
-                        color = ChatOutgoing,
-                        shape = MessageNodeDefaults.DefaultShape
-                    )
-                    .padding(CodeTheme.dimens.grid.x2)
-            ) {
-                DateWithStatus(date = Clock.System.now(), status = MessageStatus.Delivered)
-            }
-            Box(
-                modifier = Modifier
-                    .wrapContentWidth()
-                    .background(
-                        color = ChatOutgoing,
-                        shape = MessageNodeDefaults.DefaultShape
-                    )
-                    .padding(CodeTheme.dimens.grid.x2)
-            ) {
-                DateWithStatus(date = Clock.System.now(), status = MessageStatus.Read)
-            }
+        }
+
+        Column(
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
+        ) {
+            Bubble(status = MessageStatus.Sent)
+            Bubble(status = MessageStatus.Delivered)
+            Bubble(status = MessageStatus.Read)
         }
     }
 }

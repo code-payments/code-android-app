@@ -78,6 +78,7 @@ dependencies {
 
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
+    implementation(Libs.androidx_lifecycle_runtime)
     implementation(Libs.androidx_room_runtime)
     implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)

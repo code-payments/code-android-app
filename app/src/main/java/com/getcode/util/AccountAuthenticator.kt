@@ -3,9 +3,14 @@ package com.getcode.util
 import android.accounts.*
 import android.content.Context
 import android.os.Bundle
+import com.getcode.model.PrefsString
+import com.getcode.network.repository.PrefRepository
+import com.getcode.utils.startupLog
 
 
-class AccountAuthenticator(private val mContext: Context) : AbstractAccountAuthenticator(mContext) {
+class AccountAuthenticator(
+    private val context: Context,
+) : AbstractAccountAuthenticator(context) {
     @Throws(NetworkErrorException::class)
     override fun addAccount(
         response: AccountAuthenticatorResponse,
@@ -31,9 +36,9 @@ class AccountAuthenticator(private val mContext: Context) : AbstractAccountAuthe
         options: Bundle
     ): Bundle {
         // Extract the username and password from the Account Manager, then, generate token
-        val am = AccountManager.get(mContext)
+        val am = AccountManager.get(context)
         var authToken = am.peekAuthToken(account, authTokenType)
-
+        startupLog("authenticator: authToken ${authToken != null}, $authTokenType")
         // Lets give another try to authenticate the user
         if (null != authToken) {
             if (authToken.isEmpty()) {
@@ -55,6 +60,10 @@ class AccountAuthenticator(private val mContext: Context) : AbstractAccountAuthe
             }
         }
 
+        startupLog(
+            "authenticator failure",
+            Throwable("Failed to retrieve authToken from AccountManager")
+        )
         // If we get here, then we couldn't access the user's password
         return Bundle()
     }

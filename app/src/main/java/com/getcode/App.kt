@@ -6,6 +6,7 @@ import com.bugsnag.android.Bugsnag
 import com.getcode.manager.AuthManager
 import com.getcode.network.integrity.DeviceCheck
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.startupLog
 import com.getcode.view.main.bill.CashBillAssets
 import com.google.firebase.Firebase
 import com.google.firebase.initialize
@@ -22,12 +23,12 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
+        println("app-startup onCreate start")
         CashBillAssets.load(this)
 
         Firebase.initialize(this)
         DeviceCheck.register(this)
-        authManager.init(this)
+        authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 
@@ -61,5 +62,6 @@ class App : Application() {
         } else {
             Bugsnag.start(this)
         }
+        startupLog("app onCreate end")
     }
 }

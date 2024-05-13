@@ -23,6 +23,7 @@ import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.DeeplinkResult
 import com.getcode.ui.utils.getActivity
+import com.getcode.utils.startupLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -37,7 +38,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-private const val APP_STARTUP_TAG = "app-startup"
 private typealias DeeplinkFlowState = Pair<DeeplinkResult, SessionManager.SessionState>
 
 @Composable
@@ -140,13 +140,6 @@ fun AuthCheck(
                 }
             )
             .launchIn(this)
-    }
-}
-
-fun startupLog(message: String) {
-    Timber.tag(APP_STARTUP_TAG).d(message)
-    if (Bugsnag.isStarted()) {
-        Bugsnag.leaveBreadcrumb("$APP_STARTUP_TAG | $message")
     }
 }
 

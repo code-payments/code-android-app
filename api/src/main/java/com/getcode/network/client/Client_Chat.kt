@@ -31,15 +31,15 @@ suspend fun Client.setSubscriptionState(owner: KeyPair, chatId: ID, subscribed: 
 
 suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? = null, limit: Int? = null) : Result<List<ChatMessage>> {
     return chatService.fetchMessagesFor(owner, chat.id, cursor, limit)
-        .map {
+        .mapCatching {
             val domain = if (chat.title is Title.Domain) {
                 Domain.from(chat.title.value)
             } else {
                 null
-            } ?: return@map it
+            } ?: return@mapCatching it
 
-            val organizer = SessionManager.getOrganizer() ?: return@map it
-            val relationship = organizer.relationshipFor(domain) ?: return@map it
+            val organizer = SessionManager.getOrganizer() ?: return@mapCatching it
+            val relationship = organizer.relationshipFor(domain) ?: return@mapCatching it
 
             val hasEncryptedContent = it.firstOrNull { it.hasEncryptedContent } != null
             if (hasEncryptedContent) {

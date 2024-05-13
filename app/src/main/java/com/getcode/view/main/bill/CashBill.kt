@@ -91,7 +91,6 @@ object CashBillAssets {
 
     fun load(context: Context) {
         CoroutineScope(Dispatchers.IO).launch {
-
             globe = getBitmapFromImage(
                 context = context,
                 drawable = R.drawable.ic_bill_globe,

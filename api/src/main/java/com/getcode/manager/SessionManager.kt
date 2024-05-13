@@ -27,7 +27,6 @@ import javax.inject.Singleton
 @Singleton
 class SessionManager @Inject constructor(
     private val client: Client,
-    private val tipController: TipController
 ) {
     data class SessionState(
         val entropyB64: String? = null,

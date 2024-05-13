@@ -2,7 +2,6 @@ package com.getcode.util
 
 import android.accounts.Account
 import android.accounts.AccountManager
-import android.accounts.AccountManagerCallback
 import android.accounts.AuthenticatorException
 import android.app.Activity
 import android.content.Context
@@ -10,15 +9,13 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
-import com.getcode.App
 import com.getcode.BuildConfig
-import com.getcode.ui.components.startupLog
+import com.getcode.utils.startupLog
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Clock
@@ -84,11 +81,21 @@ object AccountUtils {
         }
     }
 
+    private val handler: Handler by lazy { Handler(handlerThread.looper) }
+
+    private val handlerThread: HandlerThread by lazy {
+        HandlerThread("RenetikBackgroundThread").apply {
+            setUncaughtExceptionHandler { _, e -> run { throw RuntimeException(e) } }
+            start()
+        }
+    }
+
     private suspend fun getAccountNoActivity(context: Context) : Pair<String?, Account?>? = suspendCancellableCoroutine {cont ->
         startupLog("getAuthToken")
         val am: AccountManager = AccountManager.get(context)
         val accountthing = am.accounts.getOrNull(0)
         if (accountthing == null) {
+            startupLog("no associated account found")
             cont.resume(null to null)
             return@suspendCancellableCoroutine
         }
@@ -96,26 +103,25 @@ object AccountUtils {
         am.getAuthToken(
             accountthing, acctType, null, false,
             { future ->
-                CoroutineScope(Dispatchers.Default).launch {
-                    try {
-                        val bundle = future?.result
-                        val authToken = bundle?.getString(AccountManager.KEY_AUTHTOKEN)
-                        val accountName = bundle?.getString(AccountManager.KEY_ACCOUNT_NAME)
-                        val account: Account? = getAccount(context, accountName)
+                try {
+                    val bundle = future?.result
+                    val authToken = bundle?.getString(AccountManager.KEY_AUTHTOKEN)
+                    val accountName = bundle?.getString(AccountManager.KEY_ACCOUNT_NAME)
+                    val account: Account? = getAccount(context, accountName)
 
-                        val end = Clock.System.now()
-                        startupLog("auth token fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
+                    val end = Clock.System.now()
+                    startupLog("auth token fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
 
-                        cont.resume(authToken.orEmpty() to  account)
+                    cont.resume(authToken.orEmpty() to  account)
 
-                        if (null == account && authToken != null) {
-                            addAccount(context, accountName.orEmpty(), "", authToken.orEmpty())
-                        }
-                    } catch (e: AuthenticatorException) {
-                        cont.resume(null to null)
+                    if (null == account && authToken != null) {
+                        addAccount(context, accountName.orEmpty(), "", authToken)
                     }
+                } catch (e: AuthenticatorException) {
+                    startupLog("failed to read account", e)
+                    cont.resume(null to null)
                 }
-            }, null
+            }, handler
         )
     }
 
