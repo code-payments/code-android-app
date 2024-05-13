@@ -2,13 +2,16 @@ package com.getcode.view.main.getKin
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Snackbar
 import androidx.compose.material.SnackbarHost
@@ -33,7 +36,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -45,9 +47,9 @@ import com.getcode.navigation.screens.RequestTip
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.Success
 import com.getcode.theme.White
 import com.getcode.theme.White05
-import com.getcode.theme.Success
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.showSnackbar
@@ -152,129 +154,16 @@ fun GetKinSheet(
             }
         }
     ) { padding ->
-        ConstraintLayout(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
+                .fillMaxSize()
                 .padding(horizontal = CodeTheme.dimens.inset)
                 .then(Modifier.padding(padding)),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            val (topSection, bottomSection) = createRefs()
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .constrainAs(topSection) {
-                        top.linkTo(parent.top)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                    },
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_graphic_wallet),
-                    contentDescription = "",
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
-                )
-                Text(
-                    text = stringResource(R.string.title_getKin),
-                    style = CodeTheme.typography.h1,
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
-                )
-                Text(
-                    text = stringResource(R.string.subtitle_getKin),
-                    style = CodeTheme.typography.body1,
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
-                )
-            }
-
-            val x10 = CodeTheme.dimens.grid.x15
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = x10)
-                    .constrainAs(bottomSection) {
-                        top.linkTo(topSection.bottom)
-                        start.linkTo(parent.start)
-                        end.linkTo(parent.end)
-                    },
-            ) {
-                Column {
-                    for (item in items) {
-                        if (!item.isVisible) {
-                            continue
-                        }
-
-                        Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(1.dp)
-                                .background(White05),
-                        )
-
-                        Row(
-                            modifier = Modifier
-                                .addIf(
-                                    item.isStrikeThrough.not(),
-                                ) {
-                                    Modifier.rememberedClickable { item.onClick() }
-                                }
-                                .padding(
-                                    vertical = CodeTheme.dimens.grid.x4,
-                                    horizontal = CodeTheme.dimens.grid.x2
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Image(
-                                modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
-                                painter = if (item.isActive) painterResource(id = item.imageResId) else painterResource(
-                                    id = item.inactiveImageResId
-                                ),
-                                contentDescription = "",
-                            )
-                            Column(
-                                modifier = Modifier
-                                    .padding(start = CodeTheme.dimens.grid.x3)
-                                    .weight(1f),
-                            ) {
-                                Text(
-                                    text = item.titleText,
-                                    color = if (item.isActive) Color.White else BrandLight,
-                                    style = CodeTheme.typography.body2.copy(
-                                        textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
-                                    ),
-                                )
-                                item.subtitleText?.let {
-                                    Text(
-                                        modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
-                                        text = it,
-                                        style = CodeTheme.typography.caption,
-                                        color = BrandLight
-                                    )
-                                }
-                            }
-
-                            if (item.isLoading) {
-                                CodeCircularProgressIndicator(
-                                    strokeWidth = CodeTheme.dimens.thickBorder,
-                                    color = White,
-                                    modifier = Modifier
-                                        .size(CodeTheme.dimens.grid.x3)
-                                        .align(Alignment.CenterVertically),
-                                )
-                            } else {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
-
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(White05),
-                )
-            }
+            Header()
+            Items(items)
+            Spacer(modifier = Modifier.requiredHeight(CodeTheme.dimens.grid.x12))
         }
     }
 
@@ -287,6 +176,111 @@ fun GetKinSheet(
                 navigator.hideWithResult(HomeResult.ShowTipCard)
             }
             viewModel.dispatchEvent(GetKinSheetViewModel.Event.ClearSnackbar)
+        }
+    }
+}
+
+@Composable
+private fun Header() {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Image(
+            painter = painterResource(R.drawable.ic_graphic_wallet),
+            contentDescription = "",
+            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+        )
+        Text(
+            text = stringResource(R.string.title_getKin),
+            style = CodeTheme.typography.h1,
+            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
+        )
+        Text(
+            text = stringResource(R.string.subtitle_getKin),
+            style = CodeTheme.typography.body1,
+            modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+        )
+    }
+}
+
+@Composable
+private fun Items(items: List<GetKinItem>) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            items
+                .filter { it.isVisible }
+                .onEach { item ->
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(White05),
+                    )
+                    GetKinItemRow(item = item)
+                }
+        }
+
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(White05),
+        )
+    }
+}
+
+@Composable
+private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
+    Row(
+        modifier = modifier
+            .addIf(
+                item.isStrikeThrough.not(),
+            ) {
+                Modifier.rememberedClickable { item.onClick() }
+            }
+            .padding(
+                vertical = CodeTheme.dimens.grid.x4,
+                horizontal = CodeTheme.dimens.grid.x2
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            modifier = Modifier.size(CodeTheme.dimens.staticGrid.x5),
+            painter = if (item.isActive) painterResource(id = item.imageResId) else painterResource(
+                id = item.inactiveImageResId
+            ),
+            contentDescription = "",
+        )
+        Column(
+            modifier = Modifier
+                .padding(start = CodeTheme.dimens.grid.x3)
+                .weight(1f),
+        ) {
+            Text(
+                text = item.titleText,
+                color = if (item.isActive) Color.White else BrandLight,
+                style = CodeTheme.typography.body2.copy(
+                    textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
+                ),
+            )
+            item.subtitleText?.let {
+                Text(
+                    modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
+                    text = it,
+                    style = CodeTheme.typography.caption,
+                    color = BrandLight
+                )
+            }
+        }
+
+        if (item.isLoading) {
+            CodeCircularProgressIndicator(
+                strokeWidth = CodeTheme.dimens.thickBorder,
+                color = White,
+                modifier = Modifier
+                    .size(CodeTheme.dimens.grid.x3)
+                    .align(Alignment.CenterVertically),
+            )
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
