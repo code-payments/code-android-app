@@ -98,7 +98,7 @@ class AuthManager @Inject constructor(
             }
 
             val originalSessionState = SessionManager.authState.value
-            sessionManager.set(context, entropyB64)
+            sessionManager.set(entropyB64)
 
             if (!isSoftLogin) {
                 loginAnalytics(entropyB64)
@@ -220,7 +220,7 @@ class AuthManager @Inject constructor(
             .flatMap {
                 user = it
                 if (SessionManager.authState.value.entropyB64 != entropyB64) {
-                    sessionManager.set(context, entropyB64)
+                    sessionManager.set(entropyB64)
                 }
                 balanceController.fetchBalance()
                     .toSingleDefault(Pair(phone!!, user!!))

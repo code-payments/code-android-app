@@ -1,20 +1,14 @@
 package com.getcode.manager
 
-import android.content.Context
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519
-import com.getcode.model.Domain
-import com.getcode.network.TipController
+import com.getcode.generator.OrganizerGenerator
 import com.getcode.network.client.Client
-import com.getcode.network.client.awaitEstablishRelationship
-import com.getcode.network.client.establishRelationshipSingle
 import com.getcode.network.client.registerInstallation
 import com.getcode.network.client.updatePreferences
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.installationId
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
-import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +21,8 @@ import javax.inject.Singleton
 @Singleton
 class SessionManager @Inject constructor(
     private val client: Client,
+    private val mnemonicManager: MnemonicManager,
+    private val organizerGenerator: OrganizerGenerator,
 ) {
     data class SessionState(
         val entropyB64: String? = null,
@@ -37,15 +33,13 @@ class SessionManager @Inject constructor(
         val userPrefsUpdated: Boolean = false,
     )
 
-    fun set(context: Context, entropyB64: String) {
-        val mnemonic = MnemonicPhrase.fromEntropyB64(context, entropyB64)
+    fun set(entropyB64: String) {
+        val mnemonic = mnemonicManager.fromEntropyBase64(entropyB64)
         if (getOrganizer()?.mnemonic?.words == mnemonic.words
             && getOrganizer()?.ownerKeyPair == authState.value.keyPair
         ) return
-        val organizer = Organizer.newInstance(
-            context = context,
-            mnemonic = mnemonic
-        )
+
+        val organizer = organizerGenerator.generate(mnemonic)
 
         update {
             SessionState(
