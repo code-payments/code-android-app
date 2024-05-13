@@ -37,15 +37,37 @@ fun BoxScope.SheetTitleText(modifier: Modifier = Modifier, text: String) {
     )
 }
 
+object SheetTitleDefaults {
+    @Composable
+    fun BackButton() {
+        Icon(
+            imageVector = Icons.Outlined.ArrowBack,
+            contentDescription = "",
+            tint = Color.White,
+        )
+    }
+
+    @Composable
+    fun CloseButton() {
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "",
+            tint = Color.White,
+        )
+    }
+}
+
 @Composable
 fun SheetTitle(
     modifier: Modifier = Modifier,
     title: @Composable BoxScope.() -> Unit = { },
     displayLogo: Boolean = false,
     onLogoClicked: () -> Unit = { },
-    backButton: Boolean = false,
+    backButton: @Composable () -> Unit = { SheetTitleDefaults.BackButton() },
+    backButtonEnabled: Boolean = false,
     onBackIconClicked: () -> Unit = {},
-    closeButton: Boolean = !backButton,
+    closeButton: @Composable () -> Unit = { SheetTitleDefaults.CloseButton() },
+    closeButtonEnabled: Boolean = !backButtonEnabled,
     onCloseIconClicked: () -> Unit = {},
 ) {
     Surface(
@@ -60,32 +82,30 @@ fun SheetTitle(
                 .fillMaxWidth()
                 .height(topBarHeight),
         ) {
-            if (closeButton) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "",
-                    tint = Color.White,
+            if (closeButtonEnabled) {
+                Box(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = CodeTheme.dimens.inset)
                         .wrapContentWidth()
                         .size(CodeTheme.dimens.staticGrid.x6)
                         .unboundedClickable { onCloseIconClicked() }
-                )
+                ) {
+                    closeButton()
+                }
             }
 
-            if (backButton) {
-                Icon(
-                    imageVector = Icons.Outlined.ArrowBack,
-                    contentDescription = "",
-                    tint = Color.White,
+            if (backButtonEnabled) {
+                Box(
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .padding(start = CodeTheme.dimens.inset)
                         .wrapContentWidth()
                         .size(CodeTheme.dimens.staticGrid.x6)
                         .unboundedClickable { onBackIconClicked() }
-                )
+                ) {
+                    backButton()
+                }
             }
 
             if (displayLogo) {

@@ -1,46 +1,35 @@
 package com.getcode.navigation.screens
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollConfiguration
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import com.getcode.LocalBetaFlags
 import com.getcode.MainRoot
-import com.getcode.R
 import com.getcode.TopLevelViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.SheetTitle
+import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.keyboardAsState
 import com.getcode.ui.utils.getActivityScopedViewModel
@@ -56,9 +45,9 @@ internal fun NamedScreen.ModalContainer(
     ModalContainer(
         navigator = LocalCodeNavigator.current,
         displayLogo = false,
-        backButton = { false },
+        backButtonEnabled = { false },
         onLogoClicked = {},
-        closeButton = closeButton,
+        closeButtonEnabled = closeButton,
         screenContent = screenContent,
     )
 }
@@ -73,9 +62,9 @@ internal fun NamedScreen.ModalContainer(
     ModalContainer(
         navigator = LocalCodeNavigator.current,
         displayLogo = displayLogo,
-        backButton = { false },
+        backButtonEnabled = { false },
         onLogoClicked = onLogoClicked,
-        closeButton = closeButton,
+        closeButtonEnabled = closeButton,
         screenContent = screenContent,
     )
 }
@@ -87,9 +76,11 @@ internal fun NamedScreen.ModalContainer(
     displayLogo: Boolean = false,
     titleString: @Composable (NamedScreen?) -> String? = { name },
     title: @Composable BoxScope.() -> Unit = { },
-    backButton: (Screen?) -> Boolean = { false },
+    backButton: @Composable () -> Unit = { SheetTitleDefaults.BackButton() },
+    backButtonEnabled: (Screen?) -> Boolean = { false },
     onBackClicked: (() -> Unit)? = null,
-    closeButton: (Screen?) -> Boolean = { false },
+    closeButton: @Composable () -> Unit = { SheetTitleDefaults.CloseButton() },
+    closeButtonEnabled: (Screen?) -> Boolean = { false },
     onCloseClicked: (() -> Unit)? = null,
     onLogoClicked: () -> Unit = { },
     screenContent: @Composable () -> Unit
@@ -103,12 +94,12 @@ internal fun NamedScreen.ModalContainer(
             derivedStateOf { navigator.lastModalItem }
         }
 
-        val isBackEnabled by remember(backButton, lastItem) {
-            derivedStateOf { backButton(lastItem) }
+        val isBackEnabled by remember(backButtonEnabled, lastItem) {
+            derivedStateOf { backButtonEnabled(lastItem) }
         }
 
-        val isCloseEnabled by remember(closeButton, lastItem) {
-            derivedStateOf { closeButton(lastItem) }
+        val isCloseEnabled by remember(closeButtonEnabled, lastItem) {
+            derivedStateOf { closeButtonEnabled(lastItem) }
         }
 
         val keyboardVisible by keyboardAsState()
@@ -134,8 +125,10 @@ internal fun NamedScreen.ModalContainer(
             displayLogo = displayLogo,
             onLogoClicked = onLogoClicked,
             // hide while transitioning to/from other destinations
-            backButton = isBackEnabled,
-            closeButton = isCloseEnabled,
+            backButton = backButton,
+            closeButton = closeButton,
+            backButtonEnabled = isBackEnabled,
+            closeButtonEnabled = isCloseEnabled,
             onBackIconClicked = onBackClicked?.let { { it() } }
                 ?: { hideSheet { navigator.pop() } },
             onCloseIconClicked = onCloseClicked?.let { { it() } }
