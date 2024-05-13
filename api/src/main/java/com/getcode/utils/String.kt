@@ -29,3 +29,6 @@ fun String.base64EncodedData(): ByteArray {
     }
     return data
 }
+
+typealias Base64String = String
+typealias Base58String = String
