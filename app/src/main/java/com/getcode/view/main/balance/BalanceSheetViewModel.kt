@@ -1,8 +1,10 @@
 package com.getcode.view.main.balance
 
 import androidx.lifecycle.viewModelScope
+import com.getcode.model.BalanceCurrencyFeature
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.Chat
+import com.getcode.model.Currency
 import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
@@ -11,16 +13,19 @@ import com.getcode.network.HistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
+import com.getcode.util.Kin
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.main.getKin.GetKinSheetViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -40,18 +45,21 @@ class BalanceSheetViewModel @Inject constructor(
         val amountText: String = "",
         val marketValue: Double = 0.0,
         val selectedRate: Rate? = null,
+        val isKinSelected: Boolean = false,
         val currencyFlag: Int? = null,
         val chatsLoading: Boolean = false,
         val chats: List<Chat> = emptyList(),
         val isBucketDebuggerEnabled: Boolean = false,
         val isBucketDebuggerVisible: Boolean = false,
         val buyModule: Feature = BuyModuleFeature(),
+        val currencySelection: Feature = BalanceCurrencyFeature()
     )
 
     sealed interface Event {
         data class OnDebugBucketsEnabled(val enabled: Boolean) : Event
         data class OnDebugBucketsVisible(val show: Boolean) : Event
         data class OnBuyModuleStateChanged(val module: Feature) : Event
+        data class OnCurrencySelectionStateChanged(val module: Feature): Event
         data class OnLatestRateChanged(
             val rate: Rate,
             ) : Event
@@ -60,6 +68,7 @@ class BalanceSheetViewModel @Inject constructor(
             val flagResId: Int?,
             val marketValue: Double,
             val display: String,
+            val isKin: Boolean,
         ) : Event
 
         data class OnChatsLoading(val loading: Boolean) : Event
@@ -71,6 +80,10 @@ class BalanceSheetViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnBuyModuleStateChanged(it)) }
             .launchIn(viewModelScope)
 
+        features.balanceCurrencySelection
+            .onEach { dispatchEvent(Event.OnCurrencySelectionStateChanged(it)) }
+            .launchIn(viewModelScope)
+
         prefsRepository.observeOrDefault(PrefsBool.BUCKET_DEBUGGER_ENABLED, false)
             .distinctUntilChanged()
             .onEach { enabled ->
@@ -78,15 +91,15 @@ class BalanceSheetViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         balanceController.formattedBalance
-            .onEach { Timber.d("b=$it") }
             .filterNotNull()
             .onEach {
                 dispatchEvent(
                     Dispatchers.Main,
                     Event.OnBalanceChanged(
-                        flagResId = it.flag,
+                        flagResId = it.currency?.resId,
                         marketValue = it.marketValue,
-                        display = it.formattedValue
+                        display = it.formattedValue,
+                        isKin = it.currency == Currency.Kin
                     )
                 )
             }.launchIn(viewModelScope)
@@ -130,6 +143,12 @@ class BalanceSheetViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnCurrencySelectionStateChanged -> { state ->
+                    state.copy(
+                        currencySelection = event.module
+                    )
+                }
+
                 is Event.OnLatestRateChanged -> { state ->
                     state.copy(selectedRate = event.rate)
                 }
@@ -139,6 +158,7 @@ class BalanceSheetViewModel @Inject constructor(
                         currencyFlag = event.flagResId,
                         marketValue = event.marketValue,
                         amountText = event.display,
+                        isKinSelected = event.isKin
                     )
                 }
                 is Event.OnChatsLoading -> { state ->

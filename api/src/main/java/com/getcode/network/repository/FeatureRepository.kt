@@ -1,5 +1,6 @@
 package com.getcode.network.repository
 
+import com.getcode.model.BalanceCurrencyFeature
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
@@ -28,4 +29,6 @@ class FeatureRepository @Inject constructor(
     val tipChatCash = betaFlags.observe().map { TipChatCashFeature(it.tipsChatCashEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
+
+    val balanceCurrencySelection = betaFlags.observe().map { BalanceCurrencyFeature(it.balanceCurrencySelectionEnabled) }
 }

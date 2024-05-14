@@ -6,6 +6,7 @@ import com.getcode.R
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.MnemonicManager
 import com.getcode.model.Currency
+import com.getcode.model.CurrencyCode
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
@@ -117,6 +118,7 @@ object ApiModule {
         locale: LocaleHelper,
         resources: ResourceHelper,
         currencyUtils: CurrencyUtils,
+        prefRepository: PrefRepository,
     ): BalanceController {
         return BalanceController(
             exchange = exchange,
@@ -127,19 +129,30 @@ object ApiModule {
             privacyMigration = privacyMigration,
             transactionReceiver = transactionReceiver,
             networkObserver = networkObserver,
-            getCurrency = { rates ->
+            prefs = prefRepository,
+            getDefaultCurrency = {
+                val code = locale.getDefaultCurrency()?.code ?: return@BalanceController null
+                CurrencyCode.tryValueOf(code)
+            },
+            getCurrency = { rates, preferred ->
                 withContext(Dispatchers.Default) {
-                    val defaultCurrencyCode = locale.getDefaultCurrency()?.code
+                    val defaultCurrencyCode = preferred ?: locale.getDefaultCurrency()?.code
                     return@withContext currencyUtils.getCurrenciesWithRates(rates)
                         .firstOrNull { p ->
                             p.code == defaultCurrencyCode
                         } ?: Currency.Kin
                 }
             },
-            getDefaultCountry = {
-                locale.getDefaultCountry()
+            getCurrencyFromCode = {
+                it?.name?.let(currencyUtils::getCurrency)
             },
-            suffix = { resources.getString(R.string.core_ofKin) }
+            suffix = { currency ->
+                if (currency?.code == CurrencyCode.KIN.name) {
+                    ""
+                } else {
+                    resources.getString(R.string.core_ofKin)
+                }
+            }
         )
     }
 

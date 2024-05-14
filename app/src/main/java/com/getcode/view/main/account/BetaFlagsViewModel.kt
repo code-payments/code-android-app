@@ -25,7 +25,7 @@ class BetaFlagsViewModel @Inject constructor(
         val showNetworkDropOff: Boolean = false,
         val canViewBuckets: Boolean = false,
         val isVibrateOnScan: Boolean = false,
-        val debugScanTimesEnabled: Boolean = false,
+        val currencySelectionBalanceEnabled: Boolean = false,
         val displayErrors: Boolean = false,
         val giveRequestsEnabled: Boolean = false,
         val buyKinEnabled: Boolean = false,
@@ -40,8 +40,8 @@ class BetaFlagsViewModel @Inject constructor(
         data class UpdateSettings(val settings: BetaOptions) : Event
 
         data class ShowErrors(val display: Boolean) : Event
+        data class EnableCurrencySelectionInBalance(val enabled: Boolean): Event
         data class ShowNetworkDropOff(val show: Boolean) : Event
-        data class SetLogScanTimes(val log: Boolean) : Event
         data class SetVibrateOnScan(val vibrate: Boolean) : Event
         data class UseDebugBuckets(val enabled: Boolean) : Event
         data class EnableGiveRequests(val enabled: Boolean) : Event
@@ -99,9 +99,9 @@ class BetaFlagsViewModel @Inject constructor(
                         event.enabled
                     )
 
-                    is Event.SetLogScanTimes -> prefRepository.set(
-                        PrefsBool.LOG_SCAN_TIMES,
-                        event.log
+                    is Event.EnableCurrencySelectionInBalance -> prefRepository.set(
+                        PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED,
+                        event.enabled
                     )
 
                     is Event.SetVibrateOnScan -> prefRepository.set(
@@ -138,7 +138,7 @@ class BetaFlagsViewModel @Inject constructor(
                             showNetworkDropOff = showNetworkDropOff,
                             canViewBuckets = canViewBuckets,
                             isVibrateOnScan = tickOnScan,
-                            debugScanTimesEnabled = debugScanTimesEnabled,
+                            currencySelectionBalanceEnabled = balanceCurrencySelectionEnabled,
                             displayErrors = displayErrors,
                             giveRequestsEnabled = giveRequestsEnabled,
                             buyKinEnabled = buyModuleEnabled,
@@ -156,7 +156,7 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.EnableGiveRequests,
                 is Event.ShowNetworkDropOff,
                 is Event.UseDebugBuckets,
-                is Event.SetLogScanTimes,
+                is Event.EnableCurrencySelectionInBalance,
                 is Event.SetVibrateOnScan,
                 is Event.EnableCodeRelationshipEstablish,
                 is Event.EnableChatUnsubscribe,

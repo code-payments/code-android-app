@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -9,6 +10,7 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
+import com.getcode.model.PrefsString
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel
@@ -24,6 +26,7 @@ import com.getcode.view.main.account.BetaFlagsScreen
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
 import com.getcode.view.main.currency.CurrencySelectionSheet
+import com.getcode.view.main.currency.CurrencyViewModel
 import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
@@ -277,7 +280,7 @@ data object ReferFriendScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data object CurrencySelectionModal : MainGraph, ModalContent {
+data class CurrencySelectionModal(val forBalance: Boolean = false) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -288,6 +291,7 @@ data object CurrencySelectionModal : MainGraph, ModalContent {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val viewModel = getActivityScopedViewModel<CurrencyViewModel>()
         ModalContainer(
             backButtonEnabled = {
                 if (navigator.isVisible) {
@@ -297,7 +301,16 @@ data object CurrencySelectionModal : MainGraph, ModalContent {
                 }
             }
         ) {
-            CurrencySelectionSheet(viewModel = getActivityScopedViewModel())
+            CurrencySelectionSheet(viewModel = viewModel)
+        }
+
+        LaunchedEffect(viewModel, forBalance) {
+            val key = if (forBalance) {
+                PrefsString.KEY_BALANCE_CURRENCY_SELECTED
+            } else {
+                PrefsString.KEY_CURRENCY_SELECTED
+            }
+            viewModel.dispatchEvent(CurrencyViewModel.Event.OnSelectedKeyChanged(key))
         }
     }
 }

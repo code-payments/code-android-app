@@ -56,6 +56,12 @@ fun BetaFlagsScreen(
             state.canViewBuckets
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.UseDebugBuckets(it)) },
         BetaFeature(
+            PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED,
+            R.string.beta_balance_currency,
+            stringResource(R.string.beta_balance_currency_description),
+            state.currencySelectionBalanceEnabled
+        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableCurrencySelectionInBalance(it)) },
+        BetaFeature(
             PrefsBool.GIVE_REQUESTS_ENABLED,
             R.string.beta_give_requests_mode,
             stringResource(id = R.string.beta_give_requests_description),
@@ -97,12 +103,6 @@ fun BetaFlagsScreen(
             stringResource(id = R.string.beta_tipchats_cash_description),
             state.tipsChatCashEnabled,
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipsChatCash(it)) },
-        BetaFeature(
-            PrefsBool.LOG_SCAN_TIMES,
-            R.string.beta_scan_times,
-            stringResource(R.string.beta_scan_times_description),
-            state.debugScanTimesEnabled
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.SetLogScanTimes(it)) },
         BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
             R.string.beta_display_errors,
