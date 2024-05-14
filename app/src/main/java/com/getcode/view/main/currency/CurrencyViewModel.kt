@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.model.Currency
+import com.getcode.model.PrefString
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.exchange.Exchange
@@ -20,6 +21,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -28,7 +31,6 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class CurrencyViewModel @Inject constructor(
     localeHelper: LocaleHelper,
@@ -42,6 +44,7 @@ class CurrencyViewModel @Inject constructor(
 ) {
     @Stable
     data class State(
+        val selectedCurrencyKey: PrefsString? = null,
         val loading: Boolean = false,
         val currenciesFiltered: List<Currency> = listOf(),
         val currenciesRecent: List<Currency>? = null,
@@ -53,6 +56,7 @@ class CurrencyViewModel @Inject constructor(
     )
 
     sealed interface Event {
+        data class OnSelectedKeyChanged(val key: PrefsString): Event
         data class OnLoadingChanged(val loading: Boolean) : Event
         data class OnCurrenciesLoaded(val currencies: List<CurrencyListItem>) : Event
         data class OnRecentCurrenciesUpdated(val currencies: List<Currency>) : Event
@@ -75,10 +79,12 @@ class CurrencyViewModel @Inject constructor(
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnFilteredCurrenciesUpdated(it)) }
             .launchIn(viewModelScope)
 
-        prefsRepository
-            .observeOrDefault(
-                PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
-            )
+        stateFlow
+            .map { it.selectedCurrencyKey }
+            .filterNotNull()
+            .flatMapLatest {
+                prefsRepository.observeOrDefault(it, localeHelper.getDefaultCurrencyName())
+            }
             .flowOn(Dispatchers.IO)
             .distinctUntilChanged()
             .mapNotNull { currencyUtils.getCurrency(it) }
@@ -152,7 +158,10 @@ class CurrencyViewModel @Inject constructor(
             .map { it.currency }
             .distinctUntilChanged()
             .onEach { selected ->
-                prefsRepository.set(PrefsString.KEY_CURRENCY_SELECTED, selected.code)
+                val key = stateFlow.value.selectedCurrencyKey
+                if (key != null) {
+                    prefsRepository.set(key, selected.code)
+                }
                 addToRecents(selected)
             }.launchIn(viewModelScope)
 
@@ -251,6 +260,9 @@ class CurrencyViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
+                is Event.OnSelectedKeyChanged -> { state ->
+                    state.copy(selectedCurrencyKey = event.key)
+                }
                 is Event.OnLoadingChanged -> { state -> state.copy(loading = event.loading) }
                 is Event.OnCurrenciesLoaded -> { state ->
                     state.copy(listItems = event.currencies)

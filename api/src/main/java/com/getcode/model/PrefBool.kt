@@ -38,4 +38,5 @@ sealed class PrefsBool(val value: String) {
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
     data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag
     data object TIPS_CHAT_CASH_ENABLED: PrefsBool("tips_chat_cash_enabled"), BetaFlag
+    data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
 }

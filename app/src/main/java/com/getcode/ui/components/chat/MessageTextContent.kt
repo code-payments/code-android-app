@@ -108,9 +108,6 @@ private fun rememberAlignmentRule(
                     val lineContentWidth =
                         textMeasurer.measure(lineContent, contentTextStyle).size.width
 
-                    println("lcw=$lineContentWidth")
-                    println("bw=$bufferSize")
-                    println("result=${lineContentWidth + bufferSize}, max=$maxWidth")
                     value = when {
                         lineContentWidth + bufferSize > maxWidth -> AlignmentRule.Column
                         textLayoutResult.lineCount == 1 -> AlignmentRule.SingleLineEnd
