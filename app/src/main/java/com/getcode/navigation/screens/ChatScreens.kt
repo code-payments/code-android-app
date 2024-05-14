@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BubbleChart
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -35,9 +39,10 @@ import com.getcode.model.ID
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
-import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.components.chat.localized
+import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
 import com.getcode.view.main.balance.BalanceScreeen
 import com.getcode.view.main.balance.BalanceSheetViewModel
@@ -45,7 +50,6 @@ import com.getcode.view.main.chat.ChatScreen
 import com.getcode.view.main.chat.ChatViewModel
 import com.getcode.view.main.chat.conversation.ChatConversationScreen
 import com.getcode.view.main.chat.conversation.ConversationViewModel
-import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.home.HomeViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -73,18 +77,43 @@ data object BalanceModal : ChatGraph, ModalRoot {
             derivedStateOf { state.isBucketDebuggerVisible }
         }
 
+        val backButton = @Composable {
+            when {
+                isViewingBuckets -> SheetTitleDefaults.BackButton()
+                !isViewingBuckets && state.isBucketDebuggerEnabled -> {
+                    Icon(
+                        imageVector = Icons.Rounded.BubbleChart,
+                        contentDescription = "",
+                        tint = Color.White,
+                    )
+                }
+                else -> Unit
+            }
+        }
+
         ModalContainer(
             navigator = navigator,
             onLogoClicked = {},
-            backButton = { isViewingBuckets },
-            onBackClicked = isViewingBuckets.takeIf { it }?.let {
-                {
-                    viewModel.dispatchEvent(
-                        BalanceSheetViewModel.Event.OnDebugBucketsVisible(false)
-                    )
+            backButton = backButton,
+            backButtonEnabled = { isViewingBuckets || state.isBucketDebuggerEnabled },
+            onBackClicked = when {
+                isViewingBuckets -> {
+                    {
+                        viewModel.dispatchEvent(
+                            BalanceSheetViewModel.Event.OnDebugBucketsVisible(false)
+                        )
+                    }
                 }
+                state.isBucketDebuggerEnabled -> {
+                    {
+                        viewModel.dispatchEvent(
+                            BalanceSheetViewModel.Event.OnDebugBucketsVisible(true)
+                        )
+                    }
+                }
+                else -> null
             },
-            closeButton = close@{
+            closeButtonEnabled = close@{
                 if (viewModel.stateFlow.value.isBucketDebuggerVisible) return@close false
                 if (navigator.isVisible) {
                     it is BalanceModal
@@ -127,7 +156,7 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
 
         ModalContainer(
             titleString = { state.title.localized },
-            backButton = { it is ChatScreen },
+            backButtonEnabled = { it is ChatScreen },
         ) {
             val messages = vm.chatMessages.collectAsLazyPagingItems()
             ChatScreen(state = state, messages = messages, dispatch = vm::dispatchEvent)
@@ -197,7 +226,7 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                     }
                 }
             },
-            backButton = { it is ChatMessageConversationScreen },
+            backButtonEnabled = { it is ChatMessageConversationScreen },
         ) {
             val messages = vm.messages.collectAsLazyPagingItems()
             ChatConversationScreen(state, messages, vm::dispatchEvent)

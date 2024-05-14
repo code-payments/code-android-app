@@ -1,7 +1,6 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -32,15 +31,8 @@ import com.getcode.view.main.getKin.GetKinSheetViewModel
 import com.getcode.view.main.getKin.ReferFriend
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.RequestTipScreen
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.delayFlow
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import timber.log.Timber
 
 
 @Parcelize
@@ -53,7 +45,7 @@ data object DepositKinScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is DepositKinScreen }) {
+        ModalContainer(backButtonEnabled = { it is DepositKinScreen }) {
             AccountDeposit()
         }
 
@@ -74,7 +66,7 @@ data object FaqScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is FaqScreen }) {
+        ModalContainer(backButtonEnabled = { it is FaqScreen }) {
             AccountFaq(getViewModel())
         }
 
@@ -95,7 +87,7 @@ data object AccountDebugOptionsScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is AccountDebugOptionsScreen }) {
+        ModalContainer(backButtonEnabled = { it is AccountDebugOptionsScreen }) {
             BetaFlagsScreen(getViewModel())
         }
 
@@ -116,7 +108,7 @@ data object AccountDetailsScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is AccountDetailsScreen }) {
+        ModalContainer(backButtonEnabled = { it is AccountDetailsScreen }) {
             AccountDetails(getActivityScopedViewModel())
         }
     }
@@ -132,7 +124,7 @@ data object BackupScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is BackupScreen }) {
+        ModalContainer(backButtonEnabled = { it is BackupScreen }) {
             BackupKey(getViewModel())
         }
 
@@ -154,7 +146,7 @@ data object PhoneNumberScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is PhoneNumberScreen }) {
+        ModalContainer(backButtonEnabled = { it is PhoneNumberScreen }) {
             AccountPhone(getViewModel())
         }
     }
@@ -181,7 +173,7 @@ data class PhoneVerificationScreen(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val viewModel = getStackScopedViewModel<PhoneVerifyViewModel>(key)
-        ModalContainer(backButton = { it is PhoneVerificationScreen }) {
+        ModalContainer(backButtonEnabled = { it is PhoneVerificationScreen }) {
             PhoneVerify(viewModel, arguments) {
                 navigator.show(PhoneAreaSelectionModal(key))
             }
@@ -202,7 +194,7 @@ data class PhoneAreaSelectionModal(val providedKey: String) : MainGraph, ModalCo
         val navigator = LocalCodeNavigator.current
         val vm = getStackScopedViewModel<PhoneVerifyViewModel>(providedKey)
 
-        ModalContainer(closeButton = { it is PhoneAreaSelectionModal }) {
+        ModalContainer(closeButtonEnabled = { it is PhoneAreaSelectionModal }) {
             PhoneCountrySelection(viewModel = vm) {
                 navigator.hide()
             }
@@ -229,7 +221,7 @@ data class PhoneConfirmationScreen(
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is PhoneConfirmationScreen }) {
+        ModalContainer(backButtonEnabled = { it is PhoneConfirmationScreen }) {
             PhoneConfirm(
                 getViewModel(),
                 arguments = arguments,
@@ -249,7 +241,7 @@ data object DeleteCodeScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is DeleteCodeScreen }) {
+        ModalContainer(backButtonEnabled = { it is DeleteCodeScreen }) {
             DeleteCodeAccount()
         }
     }
@@ -265,7 +257,7 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is DeleteConfirmationScreen }) {
+        ModalContainer(backButtonEnabled = { it is DeleteConfirmationScreen }) {
             ConfirmDeleteAccount(getViewModel())
         }
     }
@@ -278,7 +270,7 @@ data object ReferFriendScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is DeleteConfirmationScreen }) {
+        ModalContainer(backButtonEnabled = { it is DeleteConfirmationScreen }) {
             ReferFriend()
         }
     }
@@ -297,7 +289,7 @@ data object CurrencySelectionModal : MainGraph, ModalContent {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         ModalContainer(
-            backButton = {
+            backButtonEnabled = {
                 if (navigator.isVisible) {
                     it is CurrencySelectionModal
                 } else {
@@ -339,7 +331,7 @@ data class BuyMoreKinModal(
 
         if (showClose) {
             ModalContainer(
-                closeButton = {
+                closeButtonEnabled = {
                     if (navigator.isVisible) {
                         it is BuyMoreKinModal
                     } else {
@@ -351,7 +343,7 @@ data class BuyMoreKinModal(
             }
         } else {
             ModalContainer(
-                backButton = {
+                backButtonEnabled = {
                     if (navigator.isVisible) {
                         it is BuyMoreKinModal
                     } else {
@@ -387,7 +379,7 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
         val navigator = LocalCodeNavigator.current
         if (isInChat) {
             ModalContainer(
-                backButton = {
+                backButtonEnabled = {
                     if (navigator.isVisible) {
                         it is EnterTipModal
                     } else {
@@ -401,7 +393,7 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
             }
         } else {
             ModalContainer(
-                closeButton = {
+                closeButtonEnabled = {
                     if (navigator.isVisible) {
                         it is EnterTipModal
                     } else {
@@ -427,7 +419,7 @@ data object RequestTip : MainGraph, ModalContent {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         ModalContainer(
-            backButton = {
+            backButtonEnabled = {
                 if (navigator.isVisible) {
                     it is RequestTip
                 } else {
@@ -451,7 +443,7 @@ data object GetKinModal : MainGraph, ModalRoot {
 
         val viewModel = getViewModel<GetKinSheetViewModel>()
         ModalContainer(
-            closeButton = {
+            closeButtonEnabled = {
                 if (navigator.isVisible) {
                     it is GetKinModal
                 } else {
@@ -476,7 +468,7 @@ data object BuySellScreen : MainGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is BuySellScreen }) {
+        ModalContainer(backButtonEnabled = { it is BuySellScreen }) {
             BuyAndSellKin(getViewModel())
         }
 

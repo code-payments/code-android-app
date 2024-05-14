@@ -86,7 +86,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         ModalContainer(
-            closeButton = {
+            closeButtonEnabled = {
                 if (navigator.isVisible) {
                     it is GiveKinModal
                 } else {
@@ -125,7 +125,7 @@ data class RequestKinModal(
 
         if (showClose) {
             ModalContainer(
-                closeButton = {
+                closeButtonEnabled = {
                     if (navigator.isVisible) {
                         it is RequestKinModal
                     } else {
@@ -137,7 +137,7 @@ data class RequestKinModal(
             }
         } else {
             ModalContainer(
-                backButton = {
+                backButtonEnabled = {
                     if (navigator.isVisible) {
                         it is RequestKinModal
                     } else {
@@ -168,7 +168,7 @@ data object AccountModal : MainGraph, ModalRoot {
         ModalContainer(
             displayLogo = true,
             onLogoClicked = { viewModel.dispatchEvent(AccountSheetViewModel.Event.LogoClicked) },
-            closeButton = {
+            closeButtonEnabled = {
                 if (navigator.isVisible) {
                     it is AccountModal
                 } else {

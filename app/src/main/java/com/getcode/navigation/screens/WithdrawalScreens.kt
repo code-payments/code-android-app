@@ -29,7 +29,7 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph, ModalContent {
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is WithdrawalAmountScreen }) {
+        ModalContainer(backButtonEnabled = { it is WithdrawalAmountScreen }) {
             AccountWithdrawAmount(viewModel = getViewModel())
         }
 
@@ -73,7 +73,7 @@ data class WithdrawalAddressScreen(override val arguments: WithdrawalArgs = With
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is WithdrawalAddressScreen }) {
+        ModalContainer(backButtonEnabled = { it is WithdrawalAddressScreen }) {
             AccountWithdrawAddress(getViewModel(), arguments)
         }
     }
@@ -111,7 +111,7 @@ data class WithdrawalSummaryScreen(override val arguments: WithdrawalArgs = With
 
     @Composable
     override fun Content() {
-        ModalContainer(backButton = { it is WithdrawalSummaryScreen }) {
+        ModalContainer(backButtonEnabled = { it is WithdrawalSummaryScreen }) {
             AccountWithdrawSummary(getViewModel(), arguments)
         }
     }
