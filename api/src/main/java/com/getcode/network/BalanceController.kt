@@ -1,19 +1,25 @@
 package com.getcode.network
 
 import android.content.Context
+import android.icu.text.NumberFormat
+import android.icu.text.NumberFormat.INTEGERSTYLE
 import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
+import com.getcode.model.KinAmount
+import com.getcode.model.PrefsString
 import com.getcode.model.Rate
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.startupLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
@@ -22,29 +28,35 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class BalanceDisplay(
-    val flag: Int? = null,
     val marketValue: Double = 0.0,
     val formattedValue: String = "",
+    val currency: Currency? = null,
 
 )
-class BalanceController @Inject constructor(
+open class BalanceController @Inject constructor(
     exchange: Exchange,
     networkObserver: NetworkConnectivityListener,
-    getCurrency: suspend (rates: Map<CurrencyCode, Rate>) -> Currency,
+    getCurrency: suspend (rates: Map<CurrencyCode, Rate>, selected: String?) -> Currency,
     @ApplicationContext
     private val context: Context,
     private val balanceRepository: BalanceRepository,
@@ -52,29 +64,49 @@ class BalanceController @Inject constructor(
     private val accountRepository: AccountRepository,
     private val privacyMigration: PrivacyMigration,
     private val transactionReceiver: TransactionReceiver,
-    val getDefaultCountry: () -> String,
-    val suffix: () -> String,
-): CoroutineScope by CoroutineScope(Dispatchers.IO) {
-
+    prefs: PrefRepository,
+    getDefaultCurrency: () -> CurrencyCode?,
+    getCurrencyFromCode: (CurrencyCode?) -> Currency?,
+    val suffix: (Currency?) -> String,
+) {
+    private val scope = CoroutineScope(Dispatchers.IO)
     fun observeRawBalance(): Flow<Double> = balanceRepository.balanceFlow
 
     val rawBalance: Double
         get() = balanceRepository.balanceFlow.value
 
+    private val preferredCurrency: StateFlow<Currency?> =
+        prefs.observeOrDefault(
+            PrefsString.KEY_BALANCE_CURRENCY_SELECTED,
+            getDefaultCurrency()?.name.orEmpty()
+        )
+        .mapNotNull { CurrencyCode.tryValueOf(it) }
+        .map { getCurrencyFromCode(it) }
+        .stateIn(scope, SharingStarted.Eagerly, getCurrencyFromCode(getDefaultCurrency()))
+
     private val _balanceDisplay = MutableStateFlow<BalanceDisplay?>(null)
-    val formattedBalance: SharedFlow<BalanceDisplay?>
+
+    val formattedBalance: StateFlow<BalanceDisplay?>
         get() = _balanceDisplay
-            .stateIn(this, SharingStarted.Eagerly, BalanceDisplay())
+            .stateIn(scope, SharingStarted.Eagerly, BalanceDisplay())
 
     init {
         combine(
             exchange.observeRates()
                 .distinctUntilChanged()
                 .flowOn(Dispatchers.IO)
-                .map { getCurrency(it) }
+                .flatMapLatest {
+                    combine(
+                        flowOf(it),
+                        preferredCurrency
+                    ) { a, b -> a to b }
+                }
+                .map { (rates, preferred) ->
+                    getCurrency(rates, preferred?.code)
+                }
                 .onEach {
                     val display = _balanceDisplay.value ?: BalanceDisplay()
-                    _balanceDisplay.value = display.copy(flag = it.resId)
+                    _balanceDisplay.value = display.copy(currency = it)
                 }
                 .mapNotNull { currency -> CurrencyCode.tryValueOf(currency.code) }
                 .mapNotNull {
@@ -90,7 +122,7 @@ class BalanceController @Inject constructor(
         }.distinctUntilChanged().onEach { (marketValue, amountText) ->
             val display = _balanceDisplay.value ?: BalanceDisplay()
             _balanceDisplay.value = display.copy(marketValue = marketValue, formattedValue = amountText)
-        }.launchIn(this)
+        }.launchIn(scope)
     }
 
     fun setTray(organizer: Organizer, tray: Tray) {
@@ -99,6 +131,7 @@ class BalanceController @Inject constructor(
     }
 
     fun fetchBalance(): Completable {
+        startupLog("fetchBalance")
         if (SessionManager.isAuthenticated() != true) {
             Timber.d("FetchBalance - Not authenticated")
             return Completable.complete()
@@ -111,7 +144,7 @@ class BalanceController @Inject constructor(
                     val organizer = SessionManager.getOrganizer() ?:
                     return@flatMapCompletable Completable.error(IllegalStateException("Missing Organizer"))
 
-                    organizer.setAccountInfo(infos)
+                    scope.launch { organizer.setAccountInfo(infos) }
                     balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
                     transactionReceiver.receiveFromIncomingCompletable(organizer)
                 }
@@ -154,7 +187,6 @@ class BalanceController @Inject constructor(
 
 
     suspend fun fetchBalanceSuspend() {
-        Timber.d("fetchBalance")
         if (SessionManager.isAuthenticated() != true) {
             Timber.d("FetchBalance - Not authenticated")
             return
@@ -165,7 +197,6 @@ class BalanceController @Inject constructor(
             val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
             val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
-            Timber.d("updating balance and organizer")
             organizer.setAccountInfo(accountInfo)
             balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
             transactionReceiver.receiveFromIncoming(organizer)
@@ -193,18 +224,35 @@ class BalanceController @Inject constructor(
     }
 
     private fun refreshBalance(balance: Double, rate: Double): Pair<Double, String> {
+        val preferredCurrency = preferredCurrency.value
         val fiatValue = FormatUtils.getFiatValue(balance, rate)
-        val locale = Locale(
-            Locale.getDefault().language,
-            getDefaultCountry()
-        )
-        val fiatValueFormatted = FormatUtils.formatCurrency(fiatValue, locale)
+
+        val prefix = formatPrefix(preferredCurrency).takeIf { it != preferredCurrency?.code }.orEmpty()
         val amountText = StringBuilder().apply {
-            append(fiatValueFormatted)
-            append(" ")
-            append(suffix())
+            append(prefix)
+            append(formatAmount(fiatValue, preferredCurrency))
+            val suffix = suffix(preferredCurrency)
+            if (suffix.isNotEmpty()) {
+                append(" ")
+                append(suffix)
+            }
         }.toString()
 
         return fiatValue to amountText
+    }
+
+    private fun formatPrefix(selectedCurrency: Currency?): String {
+        if (selectedCurrency == null) return ""
+        return if (!isKin(selectedCurrency)) selectedCurrency.symbol else ""
+    }
+
+    private fun isKin(selectedCurrency: Currency): Boolean = selectedCurrency.code == CurrencyCode.KIN.name
+
+    private fun formatAmount(amount: Double, currency: Currency?): String {
+        return if (amount % 1 == 0.0 || currency?.code == CurrencyCode.KIN.name) {
+            String.format("%,.0f", amount)
+        } else {
+            String.format("%,.2f", amount)
+        }
     }
 }

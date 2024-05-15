@@ -4,18 +4,22 @@ import android.content.Context
 import com.getcode.crypt.MnemonicCode
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.generator.MnemonicGenerator
+import com.getcode.utils.Base58String
+import com.getcode.utils.Base64String
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 class MnemonicManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val generator: MnemonicGenerator,
 ) {
-    fun fromCashLink(cashLink: String): MnemonicPhrase {
-        return MnemonicPhrase.fromEntropyB58(context, cashLink)
+    fun fromEntropyBase58(cashLink: Base58String): MnemonicPhrase {
+        return generator.generateFromBase58(cashLink)
     }
 
-    fun fromEntropyBase64(entropy: String): MnemonicPhrase {
-        return MnemonicPhrase.fromEntropyB64(context, entropy)
+    fun fromEntropyBase64(entropy: Base64String): MnemonicPhrase {
+        return generator.generate(entropy)
     }
 
     fun getKeyPair(entropy: String): KeyPair {

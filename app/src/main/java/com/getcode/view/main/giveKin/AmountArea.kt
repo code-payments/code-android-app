@@ -54,7 +54,6 @@ fun AmountArea(
 ) {
     Column(
         modifier
-            .fillMaxWidth()
             .let { if (isClickable) it.rememberedClickable { onClick() } else it },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -66,6 +65,7 @@ fun AmountArea(
                     AmountText(
                         currencyResId = currencyResId,
                         amountText = "${amountPrefix.orEmpty()}$amountText${amountSuffix.orEmpty()}",
+                        isClickable = isClickable,
                         textStyle = textStyle,
                     )
                 } else {

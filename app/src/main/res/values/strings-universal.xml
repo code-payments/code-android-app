@@ -18,12 +18,12 @@
     <string translatable="false" name="beta_tipcard">Tip Card</string>
     <string translatable="false" name="beta_tipchats">Tip Chats</string>
     <string translatable="false" name="beta_tipchats_cash">Tip Chats Cash</string>
-    <string translatable="false" name="beta_scan_times">Log Scan Processing Times</string>
+    <string translatable="false" name="beta_balance_currency">Currency Selection in Balance</string>
     <string translatable="false" name="beta_display_errors">Show Errors</string>
     <string name="beta_bucket_debugger_description" translatable="false">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description" translatable="false">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
     <string name="beta_vibrate_on_scan_description" translatable="false">If enabled, the device will vibrate once to indicate that the camera has registered the code on the bill.</string>
-    <string name="beta_scan_times_description" translatable="false">If enabled, the device will log additional processing information while grabbing bills.</string>
+    <string name="beta_balance_currency_description" translatable="false">If enabled, the ability to change the currency displayed in the Balance screen will be available.</string>
     <string name="beta_give_requests_description" translatable="false">If enabled, Request Kin screen will replace Get Kin.</string>
     <string name="beta_buy_kin_description" translatable="false">If enabled, a Buy More Kin will appear in the balance screen.</string>
     <string name="beta_code_relationship_description" translatable="false">If enabled, a relationship account will be established with getcode.com if it doesn\'t yet exist.</string>

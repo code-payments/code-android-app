@@ -9,6 +9,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*
 import com.getcode.network.api.AccountApi
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.startupLog
 import com.google.firebase.messaging.Constants.ScionAnalytics.MessageType
 import com.google.protobuf.GeneratedMessageLite
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -83,6 +84,7 @@ class AccountRepository @Inject constructor(
             .flatMap { response ->
                 when (response.result) {
                     AccountService.GetTokenAccountInfosResponse.Result.OK -> {
+                        Timber.d("token account infos fetched")
                         val container = mutableMapOf<PublicKey, AccountInfo>()
 
                         for ((base58, info) in response.tokenAccountInfosMap) {
@@ -100,6 +102,7 @@ class AccountRepository @Inject constructor(
 
                             container[account] = accountInfo
                         }
+                        Timber.d("token account infos handled")
                         Single.just(container)
                     }
                     AccountService.GetTokenAccountInfosResponse.Result.NOT_FOUND -> {

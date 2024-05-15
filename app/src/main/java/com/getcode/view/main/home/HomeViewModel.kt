@@ -276,7 +276,6 @@ class HomeViewModel @Inject constructor(
             }
             .map { it }
             .distinctUntilChanged()
-            .onEach { Timber.d("airdrop eligible=$it") }
             .filter { it }
             .mapNotNull { SessionManager.getKeyPair() }
             .catchSafely(
@@ -1489,24 +1488,24 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun openCashLink(deepLink: String?) {
-        Timber.d("openCashLink: deep link=$deepLink")
-        val cashLink = deepLink?.trim()?.replace("\n", "") ?: return
-        if (cashLink.isEmpty()) {
+    fun openCashLink(cashLink: String?) {
+        Timber.d("openCashLink:$cashLink")
+        val base58Entropy = cashLink?.trim()?.replace("\n", "") ?: return
+        if (base58Entropy.isEmpty()) {
             Timber.d("cash link empty")
             return
         }
-        if (openedLinks.contains(cashLink)) {
+        if (openedLinks.contains(base58Entropy)) {
             Timber.d("cash link already opened in session")
             return
         }
 
         analytics.cashLinkGrabStart()
 
-        openedLinks.add(cashLink)
+        openedLinks.add(base58Entropy)
 
         try {
-            val mnemonic = mnemonicManager.fromCashLink(cashLink)
+            val mnemonic = mnemonicManager.fromEntropyBase58(base58Entropy)
             val giftCardAccount = giftCardManager.createGiftCard(mnemonic)
 
             viewModelScope.launch {
@@ -1536,7 +1535,7 @@ class HomeViewModel @Inject constructor(
                                     ),
                                     vibrate = true
                                 )
-                                removeLinkWithDelay(cashLink)
+                                removeLinkWithDelay(base58Entropy)
                             }
                         } catch (ex: Exception) {
                             ex.printStackTrace()
@@ -1544,7 +1543,7 @@ class HomeViewModel @Inject constructor(
                             when (ex) {
                                 is RemoteSendException -> {
                                     onRemoteSendError(ex)
-                                    removeLinkWithDelay(cashLink)
+                                    removeLinkWithDelay(base58Entropy)
                                 }
 
                                 else -> {

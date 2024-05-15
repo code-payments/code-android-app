@@ -72,7 +72,7 @@ fun RequestKinScreen(
                 modifier = Modifier
                     .align(Alignment.Center)
             ) {
-                navigator.push(CurrencySelectionModal)
+                navigator.push(CurrencySelectionModal())
             }
         }
 

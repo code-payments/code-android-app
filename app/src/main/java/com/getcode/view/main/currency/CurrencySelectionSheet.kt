@@ -70,7 +70,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun CurrencySelectionSheet(
     viewModel: CurrencyViewModel,

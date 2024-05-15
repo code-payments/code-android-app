@@ -1,10 +1,22 @@
 package com.getcode.view.main.giveKin
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -14,6 +26,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
+import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 
@@ -33,32 +46,46 @@ fun AmountText(
     modifier: Modifier = Modifier,
     currencyResId: Int?,
     amountText: String,
+    isClickable: Boolean = false,
     textStyle: TextStyle = CodeTheme.typography.h1,
 ) {
     val centeredText = textStyle.copy(textAlign = TextAlign.Center)
-    var scaledTextStyle by remember { mutableStateOf(centeredText) }
-    var isReadyToDraw by remember { mutableStateOf(false) }
-
+    var scaledTextStyle by remember(amountText) { mutableStateOf(centeredText) }
+    var isReadyToDraw by remember(amountText) { mutableStateOf(false) }
 
     Row(
-        modifier = Modifier.fillMaxWidth().then(modifier),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(modifier),
         horizontalArrangement = Arrangement.Center
     ) {
         if (currencyResId != null && currencyResId > 0) {
             Image(
                 modifier = Modifier
                     .align(CenterVertically)
-                    .size(CodeTheme.dimens.staticGrid.x5)
-                    .clip(RoundedCornerShape(CodeTheme.dimens.staticGrid.x3)),
+                    .requiredSize(CodeTheme.dimens.staticGrid.x7)
+                    .clip(CircleShape),
                 painter = painterResource(currencyResId),
                 contentDescription = ""
             )
         }
+        if (isClickable) {
+            Image(
+                modifier = Modifier
+                    .padding(end = CodeTheme.dimens.grid.x2)
+                    .requiredSize(CodeTheme.dimens.grid.x5)
+                    .align(CenterVertically),
+                painter = painterResource(R.drawable.ic_dropdown),
+                contentDescription = ""
+            )
+        } else {
+            Spacer(modifier = Modifier.requiredWidth(CodeTheme.dimens.grid.x3))
+        }
+
         Text(
             modifier = Modifier
                 .wrapContentWidth()
                 .wrapContentHeight()
-                .padding(start = CodeTheme.dimens.grid.x3)
                 .padding(vertical = CodeTheme.dimens.grid.x3)
                 .drawWithCache {
                     onDrawWithContent {

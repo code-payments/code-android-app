@@ -1,7 +1,6 @@
 package com.getcode.network.repository
 
 import com.getcode.model.PrefsBool
-import com.getcode.utils.combine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -19,6 +18,7 @@ data class BetaOptions(
     val tipsEnabled: Boolean,
     val tipsChatEnabled: Boolean,
     val tipsChatCashEnabled: Boolean,
+    val balanceCurrencySelectionEnabled: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -34,7 +34,8 @@ data class BetaOptions(
             chatUnsubEnabled = false,
             tipsEnabled = false,
             tipsChatEnabled = false,
-            tipsChatCashEnabled = false
+            tipsChatCashEnabled = false,
+            balanceCurrencySelectionEnabled = false
         )
     }
 }
@@ -66,21 +67,23 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.TIPS_ENABLED, default = defaults.tipsEnabled),
             observeBetaFlag(PrefsBool.TIPS_CHAT_ENABLED, default = defaults.tipsChatEnabled),
             observeBetaFlag(PrefsBool.TIPS_CHAT_CASH_ENABLED, default = defaults.tipsChatCashEnabled),
+            observeBetaFlag(PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED, defaults.balanceCurrencySelectionEnabled),
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
-        ) { network, buckets, vibez, times, giveRequests, buyKin, relationship, chatUnsub, tips, tipsChat, tipsChatCash, errors ->
+        ) {
             BetaOptions(
-                showNetworkDropOff = network,
-                canViewBuckets = buckets,
-                tickOnScan = vibez,
-                debugScanTimesEnabled = times,
-                giveRequestsEnabled = giveRequests,
-                buyModuleEnabled = buyKin,
-                establishCodeRelationship = relationship,
-                chatUnsubEnabled = chatUnsub,
-                tipsEnabled = tips,
-                tipsChatEnabled = tipsChat,
-                tipsChatCashEnabled = tipsChatCash,
-                displayErrors = errors
+                showNetworkDropOff = it[0],
+                canViewBuckets = it[1],
+                tickOnScan = it[2],
+                debugScanTimesEnabled = it[3],
+                giveRequestsEnabled = it[4],
+                buyModuleEnabled = it[5],
+                establishCodeRelationship = it[6],
+                chatUnsubEnabled = it[7],
+                tipsEnabled = it[8],
+                tipsChatEnabled = it[9],
+                tipsChatCashEnabled = it[10],
+                balanceCurrencySelectionEnabled = it[11],
+                displayErrors = it[12],
             )
         }
     }

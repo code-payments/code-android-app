@@ -64,7 +64,7 @@ fun AccountWithdrawAmount(
                 isAnimated = true,
                 textStyle = CodeTheme.typography.displayLarge,
                 ) {
-                navigator.push(CurrencySelectionModal)
+                navigator.push(CurrencySelectionModal())
             }
         }
 

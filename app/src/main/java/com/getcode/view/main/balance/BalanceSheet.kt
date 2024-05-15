@@ -2,6 +2,7 @@ package com.getcode.view.main.balance
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -42,21 +43,26 @@ import com.getcode.model.Rate
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.ChatScreen
+import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.theme.displayLarge
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.chat.ChatNode
 import com.getcode.util.Kin
+import com.getcode.util.NumberInputHelper
+import com.getcode.utils.network.NetworkState
 import com.getcode.view.main.account.BucketDebugger
+import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountArea
 
 
 @Composable
-fun BalanceScreeen(
+fun BalanceScreen(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
 ) {
@@ -97,13 +103,14 @@ fun BalanceContent(
     buyMoreKin: () -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
+    val navigator = LocalCodeNavigator.current
 
     val chatsEmpty by remember(state.chats) {
         derivedStateOf { state.chats.isEmpty() }
     }
 
-    val canClickBalance by remember(state.isBucketDebuggerEnabled) {
-        derivedStateOf { state.isBucketDebuggerEnabled }
+    val canClickBalance by remember(state.currencySelection.enabled) {
+        derivedStateOf { state.currencySelection.enabled }
     }
 
     val context = LocalContext.current
@@ -116,28 +123,42 @@ fun BalanceContent(
         item {
             Column(
                 modifier = Modifier
-                    .padding(
-                        horizontal = CodeTheme.dimens.inset,
-                        vertical = CodeTheme.dimens.grid.x7
-                    )
-                    .padding(bottom = CodeTheme.dimens.grid.x4)
-                    .fillParentMaxWidth(),
+                    .fillParentMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset,)
+                    .padding(top = CodeTheme.dimens.grid.x7)
             ) {
                 BalanceTop(
                     state,
                     canClickBalance,
                 ) {
-                    dispatch(BalanceSheetViewModel.Event.OnDebugBucketsVisible(true))
+                    navigator.push(CurrencySelectionModal(true))
                 }
+            }
+        }
+
+        item {
+            Column(
+                modifier = Modifier
+                    .fillParentMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+            ) {
                 if (!chatsEmpty && !state.chatsLoading) {
                     KinValueHint(faqOpen)
                 }
+            }
+        }
 
+        item {
+            Column(
+                modifier = Modifier
+                    .fillParentMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(bottom = CodeTheme.dimens.grid.x11),
+            ) {
                 if (!chatsEmpty && !state.chatsLoading && state.buyModule.enabled) {
                     CodeButton(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = CodeTheme.dimens.inset)
                             .padding(top = CodeTheme.dimens.grid.x5),
                         buttonState = ButtonState.Filled,
                         onClick = {
@@ -213,6 +234,7 @@ fun BalanceTop(
         currencyResId = state.currencyFlag,
         isClickable = isClickable,
         onClick = onClick,
+        textStyle = CodeTheme.typography.displayLarge,
     )
 }
 
@@ -342,18 +364,21 @@ private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
 @Preview
 @Composable
 private fun TopPreview() {
-    val model = BalanceSheetViewModel.State(
-        amountText = "$12.34 of Kin",
-        marketValue = 1.0,
-        selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
-        chatsLoading = false,
-        chats = emptyList(),
-        isBucketDebuggerEnabled = false,
-        isBucketDebuggerVisible = false,
-    )
+    CodeTheme {
+        val model = BalanceSheetViewModel.State(
+            amountText = "$12.34 of Kin",
+            marketValue = 2_225_100.0,
+            selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
+            chatsLoading = false,
+            currencyFlag = R.drawable.ic_currency_kin,
+            chats = emptyList(),
+            isBucketDebuggerEnabled = false,
+            isBucketDebuggerVisible = false,
+        )
 
-    BalanceTop(
-        state = model,
-        isClickable = false
-    )
+        BalanceTop(
+            state = model,
+            isClickable = true
+        )
+    }
 }
