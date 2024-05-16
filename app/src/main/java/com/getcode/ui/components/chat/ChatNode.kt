@@ -133,7 +133,7 @@ val Title?.localized: String
 
 private val Chat.messagePreview: String
     @Composable get() {
-        val contents = messages.lastOrNull()?.contents ?: return "No content"
+        val contents = newestMessage?.contents ?: return "No content"
 
         var filtered: List<MessageContent> = contents.filterIsInstance<MessageContent.Localized>()
         if (filtered.isEmpty()) {
