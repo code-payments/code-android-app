@@ -20,12 +20,14 @@ import com.getcode.view.main.getKin.GetKinSheetViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.cache
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.stateIn
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -60,9 +62,7 @@ class BalanceSheetViewModel @Inject constructor(
         data class OnDebugBucketsVisible(val show: Boolean) : Event
         data class OnBuyModuleStateChanged(val module: Feature) : Event
         data class OnCurrencySelectionStateChanged(val module: Feature): Event
-        data class OnLatestRateChanged(
-            val rate: Rate,
-            ) : Event
+        data class OnLatestRateChanged(val rate: Rate) : Event
 
         data class OnBalanceChanged(
             val flagResId: Int?,
@@ -92,6 +92,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         balanceController.formattedBalance
             .filterNotNull()
+            .distinctUntilChanged()
             .onEach {
                 dispatchEvent(
                     Dispatchers.Main,
@@ -102,7 +103,8 @@ class BalanceSheetViewModel @Inject constructor(
                         isKin = it.currency == Currency.Kin
                     )
                 )
-            }.launchIn(viewModelScope)
+            }
+            .launchIn(viewModelScope)
 
         historyController.chats
             .onEach {

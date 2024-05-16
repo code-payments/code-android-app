@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -226,8 +227,9 @@ fun BalanceTop(
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
+    val text = rememberSaveable(state.amountText) { state.amountText }
     AmountArea(
-        amountText = state.amountText,
+        amountText = text,
         isAltCaption = false,
         isAltCaptionKinIcon = false,
         isLoading = state.chatsLoading,

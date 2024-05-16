@@ -6,7 +6,6 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
 import com.getcode.model.Cursor
-import com.getcode.model.ID
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchMessagesFor
 
