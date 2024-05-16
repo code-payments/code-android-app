@@ -1,12 +1,9 @@
 package com.getcode.network
 
 import android.content.Context
-import android.icu.text.NumberFormat
-import android.icu.text.NumberFormat.INTEGERSTYLE
 import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
-import com.getcode.model.KinAmount
 import com.getcode.model.PrefsString
 import com.getcode.model.Rate
 import com.getcode.network.client.TransactionReceiver
@@ -26,12 +23,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
@@ -42,10 +37,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.math.roundToInt
 
 data class BalanceDisplay(
     val marketValue: Double = 0.0,
@@ -53,6 +46,7 @@ data class BalanceDisplay(
     val currency: Currency? = null,
 
 )
+
 open class BalanceController @Inject constructor(
     exchange: Exchange,
     networkObserver: NetworkConnectivityListener,
