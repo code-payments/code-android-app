@@ -51,10 +51,6 @@ fun AuthCheck(
     val isAuthenticated = dataState.isAuthenticated
     val currentRoute = navigator.lastItem
 
-    var checkingDeeplink by remember {
-        mutableStateOf(false)
-    }
-
     var deeplinkRouted by remember {
         mutableStateOf(false)
     }
@@ -65,10 +61,6 @@ fun AuthCheck(
     LaunchedEffect(deeplinkHandler) {
         val scope = this
         deeplinkHandler.intent
-            .onEach {
-                checkingDeeplink = it != null
-                trace("checking deeplink")
-            }
             .flatMapLatest {
                 combine(
                     flowOf(deeplinkHandler.handle(it)),
@@ -129,7 +121,6 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
-        if (navigator.lastItem !is MainRoot) return@LaunchedEffect
         trace("isauth=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
             // Allow the seed input screen to complete and avoid
@@ -142,12 +133,12 @@ fun AuthCheck(
                 trace("No navigation within account creation and onboarding")
             } else {
                 if (authenticated) {
-                    if (!deeplinkRouted && !checkingDeeplink) {
+                    if (!deeplinkRouted) {
                         trace("Navigating to home")
                         onNavigate(listOf(HomeScreen()))
                     }
                 } else {
-                    if (!deeplinkRouted && !checkingDeeplink) {
+                    if (!deeplinkRouted) {
                         trace("Navigating to login")
                         onNavigate(listOf(LoginScreen()))
                     }
