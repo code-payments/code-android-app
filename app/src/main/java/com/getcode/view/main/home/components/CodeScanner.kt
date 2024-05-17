@@ -27,7 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.asFlow
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
@@ -89,7 +89,7 @@ fun CodeScanner(
 
     LaunchedEffect(streamState) {
         if (streamState == PreviewView.StreamState.STREAMING) {
-            startupLog("camera ready")
+            trace("camera ready")
         }
     }
 

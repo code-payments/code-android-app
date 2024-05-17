@@ -26,7 +26,7 @@ import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.installationId
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import com.getcode.utils.token
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
@@ -83,7 +83,7 @@ class AuthManager @Inject constructor(
         isSoftLogin: Boolean = false,
         rollbackOnError: Boolean = false
     ): Completable {
-        startupLog("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
+        trace("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
             sessionManager.clear()
@@ -194,7 +194,7 @@ class AuthManager @Inject constructor(
     private fun fetchData(context: Context, entropyB64: String):
             Single<Pair<PhoneRepository.GetAssociatedPhoneNumberResponse, IdentityRepository.GetUserResponse>> {
 
-        startupLog("fetching account data")
+        trace("fetching account data")
 
         var owner = SessionManager.authState.value.keyPair
         if (owner == null || SessionManager.authState.value.entropyB64 != entropyB64) {
@@ -226,7 +226,7 @@ class AuthManager @Inject constructor(
                     .toSingleDefault(Pair(phone!!, user!!))
             }
             .doOnSuccess {
-                startupLog("account data fetched successfully")
+                trace("account data fetched successfully")
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
@@ -240,7 +240,7 @@ class AuthManager @Inject constructor(
 
     private fun loginAnalytics(entropyB64: String) {
         val owner = mnemonicManager.getKeyPair(entropyB64)
-        startupLog("analytics login event")
+        trace("analytics login event")
         analytics.login(
             ownerPublicKey = owner.getPublicKeyBase58(),
             autoCompleteCount = 0,

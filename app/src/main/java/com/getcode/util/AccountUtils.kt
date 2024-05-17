@@ -8,9 +8,8 @@ import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
-import android.os.Looper
 import com.getcode.BuildConfig
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.SingleSubject
@@ -43,7 +42,7 @@ object AccountUtils {
     }
 
     private suspend fun getAccount(context: Activity): @NonNull Single<Pair<String?, Account?>> {
-        startupLog("getAccount")
+        trace("getAccount")
         fun getAuthTokenByFeatures(cb: (k: String?, a: Account?) -> Unit) {
             val am: AccountManager = AccountManager.get(context)
             val start = Clock.System.now()
@@ -57,8 +56,8 @@ object AccountUtils {
                         val account: Account? = getAccount(context, accountName)
 
                         val end = Clock.System.now()
-                        startupLog("auth token feature fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
-                        startupLog("token=$authToken, $accountName, ${account?.name}")
+                        trace("auth token feature fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
+                        trace("token=$authToken, $accountName, ${account?.name}")
 
                         cb(authToken.orEmpty(), account)
 
@@ -91,11 +90,11 @@ object AccountUtils {
     }
 
     private suspend fun getAccountNoActivity(context: Context) : Pair<String?, Account?>? = suspendCancellableCoroutine {cont ->
-        startupLog("getAuthToken")
+        trace("getAuthToken")
         val am: AccountManager = AccountManager.get(context)
         val accountthing = am.accounts.getOrNull(0)
         if (accountthing == null) {
-            startupLog("no associated account found")
+            trace("no associated account found")
             cont.resume(null to null)
             return@suspendCancellableCoroutine
         }
@@ -110,7 +109,7 @@ object AccountUtils {
                     val account: Account? = getAccount(context, accountName)
 
                     val end = Clock.System.now()
-                    startupLog("auth token fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
+                    trace("auth token fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
 
                     cont.resume(authToken.orEmpty() to  account)
 
@@ -118,7 +117,7 @@ object AccountUtils {
                         addAccount(context, accountName.orEmpty(), "", authToken)
                     }
                 } catch (e: AuthenticatorException) {
-                    startupLog("failed to read account", e)
+                    trace(message = "failed to read account", error = e)
                     cont.resume(null to null)
                 }
             }, handler
