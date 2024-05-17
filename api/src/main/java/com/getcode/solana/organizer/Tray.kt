@@ -9,6 +9,7 @@ import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.RelationshipBox
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.timedTrace
 import kotlin.math.min
 
 class Tray(
@@ -151,34 +152,34 @@ class Tray(
         }
     }
 
-    fun createRelationships(context: Context, accountInfos: Map<PublicKey, AccountInfo>) {
+    fun createRelationships(accountInfos: Map<PublicKey, AccountInfo>) {
         val domains= accountInfos
             .mapNotNull { it.value.relationship?.domain }
 
-        domains.onEach { createRelationship(context, it) }
+        domains.onEach { createRelationship(it) }
     }
 
-    fun createRelationship(context: Context, domain: Domain): Relationship {
-        val relationship = Relationship.newInstance(context, domain, mnemonic)
+    fun createRelationship(domain: Domain): Relationship {
+        val relationship = Relationship.newInstance(domain, mnemonic)
         relationships.insert(relationship)
         return relationship
     }
 
-    fun incrementIncoming(context: Context) {
-        setIndex(context, incoming.getCluster().index + 1, AccountType.Incoming)
+    fun incrementIncoming() {
+        setIndex(incoming.getCluster().index + 1, AccountType.Incoming)
     }
 
-    fun incrementOutgoing(context: Context) {
-        setIndex(context, outgoing.getCluster().index + 1, AccountType.Outgoing)
+    fun incrementOutgoing() {
+        setIndex(outgoing.getCluster().index + 1, AccountType.Outgoing)
     }
 
-    fun setIndex(context: Context, index: Int, accountType: AccountType) {
+    fun setIndex(index: Int, accountType: AccountType) {
         when (accountType) {
             AccountType.Incoming -> {
-                incoming = PartialAccount(cluster = incoming(context, index, mnemonic))
+                incoming = PartialAccount(cluster = incoming(index, mnemonic))
             }
             AccountType.Outgoing -> {
-                outgoing = PartialAccount(cluster = outgoing(context, index, mnemonic))
+                outgoing = PartialAccount(cluster = outgoing(index, mnemonic))
             }
 
             is AccountType.Bucket,
@@ -201,7 +202,10 @@ class Tray(
     }
 
     fun publicKey(accountType: AccountType): PublicKey {
-        return cluster(accountType).vaultPublicKey
+        return timedTrace("getting cluster for $accountType") {
+            cluster(accountType).vaultPublicKey
+        }
+
     }
 
     fun cluster(accountType: AccountType): AccountCluster {
@@ -234,70 +238,61 @@ class Tray(
 
     companion object {
         fun newInstance(
-            context: Context,
             mnemonic: MnemonicPhrase
         ): Tray {
             return Tray(
                 mnemonic = mnemonic,
                 slots = listOf(
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket1,
                         mnemonic = mnemonic
                     ),
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket10,
                         mnemonic = mnemonic
                     ),
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket100,
                         mnemonic = mnemonic
                     ),
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket1k,
                         mnemonic = mnemonic
                     ),
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket10k,
                         mnemonic = mnemonic
                     ),
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket100k,
                         mnemonic = mnemonic
                     ),
                     Slot.newInstance(
-                        context = context,
                         type = SlotType.Bucket1m,
                         mnemonic = mnemonic
                     ),
                 ),
-                incoming = PartialAccount(incoming(context, 0, mnemonic)),
-                outgoing = PartialAccount(outgoing(context, 0, mnemonic)),
+                incoming = PartialAccount(incoming(0, mnemonic)),
+                outgoing = PartialAccount(outgoing( 0, mnemonic)),
                 owner = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
-                        authority = DerivedKey.derive(context, DerivePath.primary, mnemonic),
+                        authority = DerivedKey.derive(DerivePath.primary, mnemonic),
                         kind = AccountCluster.Kind.Timelock,
                     )
                 ),
                 swap = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
-                        authority = DerivedKey.derive(context, DerivePath.swap, mnemonic),
+                        authority = DerivedKey.derive(DerivePath.swap, mnemonic),
                         kind = AccountCluster.Kind.Usdc,
                     )
                 )
             )
         }
 
-        fun incoming(context: Context, index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
+        fun incoming(index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
             return lazy {
                 AccountCluster.newInstance(
                     authority = DerivedKey.derive(
-                        context,
                         DerivePath.getBucketIncoming(index),
                         mnemonic
                     ),
@@ -307,11 +302,10 @@ class Tray(
             }
         }
 
-        fun outgoing(context: Context, index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
+        fun outgoing(index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
             return lazy {
                 AccountCluster.newInstance(
                     authority = DerivedKey.derive(
-                        context,
                         DerivePath.getBucketOutgoing(index),
                         mnemonic
                     ),

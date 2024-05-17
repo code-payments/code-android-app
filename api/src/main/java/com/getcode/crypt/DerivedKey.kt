@@ -6,10 +6,10 @@ import com.getcode.ed25519.Ed25519
 data class DerivedKey(val path: DerivePath, val keyPair: Ed25519.KeyPair) {
 
     companion object {
-        fun derive(context: Context, path: DerivePath, mnemonic: MnemonicPhrase): DerivedKey {
+        fun derive(path: DerivePath, mnemonic: MnemonicPhrase): DerivedKey {
             return DerivedKey(
                 path,
-                mnemonic.getSolanaKeyPair(context, path)
+                mnemonic.getSolanaKeyPair(path)
             )
         }
     }

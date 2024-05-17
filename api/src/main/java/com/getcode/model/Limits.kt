@@ -49,6 +49,9 @@ data class Limits(
             val sends = sendLimits
                 .mapNotNull { (k, v) ->
                     val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
+                    if (code == CurrencyCode.USD) {
+                        println("limit=${v.maxPerDay.toDouble()}")
+                    }
                     val limit = SendLimit(
                         nextTransaction = v.nextTransaction.toDouble(),
                         maxPerDay = v.maxPerDay.toDouble(),

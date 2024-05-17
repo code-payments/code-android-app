@@ -5,6 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivePath.Companion.primary
 import com.getcode.crypt.DerivedKey
+import com.getcode.crypt.MnemonicCache
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Kin
@@ -28,9 +29,10 @@ class OrganizerTest {
     @Before
     fun setup() {
         context = InstrumentationRegistry.getInstrumentation().context
+        MnemonicCache.init(context)
         owner = DerivedKey(
             path = primary,
-            keyPair = mnemonic.getSolanaKeyPair(context)
+            keyPair = mnemonic.getSolanaKeyPair()
         )
     }
 
@@ -38,14 +40,12 @@ class OrganizerTest {
     fun testInit() {
         fun derive(path: DerivePath): DerivedKey {
             return DerivedKey.derive(
-                context,
                 path,
                 mnemonic
             )
         }
 
         val organizer = Organizer.newInstance(
-            context = context,
             mnemonic = mnemonic
         )
 
@@ -86,7 +86,6 @@ class OrganizerTest {
     @Test
     fun testAllAccounts() {
         val organizer = Organizer.newInstance(
-            context = context,
             mnemonic = mnemonic
         )
 
@@ -119,7 +118,6 @@ class OrganizerTest {
     @Test
     fun testUnlockedState() {
         val organizer = Organizer.newInstance(
-            context = context,
             mnemonic = mnemonic
         )
 

@@ -11,6 +11,7 @@ import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
@@ -121,7 +122,7 @@ class TransactionReceiver @Inject constructor(
     }
 
     fun receiveFromIncoming(amount: Kin, organizer: Organizer): Completable {
-        trace("receiveFromIncoming $amount")
+        trace("receiveFromIncoming $amount", type = TraceType.Silent)
         return transactionRepository.receiveFromIncoming(
             context, amount, organizer
         ).map {

@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.LocalDeeplinks
+import com.getcode.MainRoot
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
@@ -50,35 +51,12 @@ fun AuthCheck(
     val isAuthenticated = dataState.isAuthenticated
     val currentRoute = navigator.lastItem
 
-    var deeplinkRouted by remember {
+    var checkingDeeplink by remember {
         mutableStateOf(false)
     }
 
-    LaunchedEffect(isAuthenticated) {
-        trace("isauth=$isAuthenticated")
-        isAuthenticated?.let { authenticated ->
-            if (!deeplinkRouted) {
-                // Allow the seed input screen to complete and avoid
-                // premature navigation
-                if (currentRoute is AccessKeyLoginScreen) {
-                    trace("No navigation within seed input")
-                    return@LaunchedEffect
-                }
-                if (currentRoute is LoginGraph) {
-                    trace("No navigation within account creation and onboarding")
-                } else {
-                    if (authenticated) {
-                        trace("Navigating to home")
-                        onNavigate(listOf(HomeScreen()))
-                    } else {
-                        trace("Navigating to login")
-                        onNavigate(listOf(LoginScreen()))
-                    }
-                }
-            } else {
-                deeplinkRouted = false
-            }
-        }
+    var deeplinkRouted by remember {
+        mutableStateOf(false)
     }
 
     val context = LocalContext.current
@@ -87,12 +65,21 @@ fun AuthCheck(
     LaunchedEffect(deeplinkHandler) {
         val scope = this
         deeplinkHandler.intent
-            .flatMapLatest { combine(flowOf(deeplinkHandler.handle(it)), SessionManager.authState) { a, b -> a to b } }
+            .onEach {
+                checkingDeeplink = it != null
+                trace("checking deeplink")
+            }
+            .flatMapLatest {
+                combine(
+                    flowOf(deeplinkHandler.handle(it)),
+                    SessionManager.authState
+                ) { a, b -> a to b }
+            }
             .filter { (result, authState) ->
                 if (result == null) return@filter false
                 // wait for authentication
                 trace("checking auth state=${authState.isAuthenticated}")
-                if( authState.isAuthenticated == null) {
+                if (authState.isAuthenticated == null) {
                     trace("awaiting auth state confirmation")
                     return@filter false
                 }
@@ -115,6 +102,7 @@ fun AuthCheck(
                         }
                         hasAuth
                     }
+
                     is DeeplinkHandler.Type.Unknown -> false
                 }
             }
@@ -138,6 +126,34 @@ fun AuthCheck(
                 }
             )
             .launchIn(this)
+    }
+
+    LaunchedEffect(isAuthenticated) {
+        if (navigator.lastItem !is MainRoot) return@LaunchedEffect
+        trace("isauth=$isAuthenticated")
+        isAuthenticated?.let { authenticated ->
+            // Allow the seed input screen to complete and avoid
+            // premature navigation
+            if (currentRoute is AccessKeyLoginScreen) {
+                trace("No navigation within seed input")
+                return@LaunchedEffect
+            }
+            if (currentRoute is LoginGraph) {
+                trace("No navigation within account creation and onboarding")
+            } else {
+                if (authenticated) {
+                    if (!deeplinkRouted && !checkingDeeplink) {
+                        trace("Navigating to home")
+                        onNavigate(listOf(HomeScreen()))
+                    }
+                } else {
+                    if (!deeplinkRouted && !checkingDeeplink) {
+                        trace("Navigating to login")
+                        onNavigate(listOf(LoginScreen()))
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -125,7 +125,7 @@ class AuthManager @Inject constructor(
         rollbackOnError: Boolean = false,
         originalSessionState: SessionManager.SessionState?
     ): Completable {
-        return fetchData(context, entropyB64)
+        return fetchData(entropyB64)
             .doOnSuccess {
                 if (!isSoftLogin) {
                     if (SessionManager.getOrganizer()?.primaryVault == null) {
@@ -191,14 +191,14 @@ class AuthManager @Inject constructor(
     }
 
 
-    private fun fetchData(context: Context, entropyB64: String):
+    private fun fetchData(entropyB64: String):
             Single<Pair<PhoneRepository.GetAssociatedPhoneNumberResponse, IdentityRepository.GetUserResponse>> {
 
         trace("fetching account data")
 
         var owner = SessionManager.authState.value.keyPair
         if (owner == null || SessionManager.authState.value.entropyB64 != entropyB64) {
-            owner = MnemonicPhrase.fromEntropyB64(context, entropyB64).getSolanaKeyPair(context)
+            owner = MnemonicPhrase.fromEntropyB64(entropyB64).getSolanaKeyPair()
         }
 
         var phone: PhoneRepository.GetAssociatedPhoneNumberResponse? = null

@@ -172,7 +172,7 @@ class IntentPrivateTransfer(
 
             // 4. Rotate the outgoing account
 
-            currentTray.incrementOutgoing(context)
+            currentTray.incrementOutgoing()
             val newOutgoing = currentTray.outgoing
 
             val rotation = listOf(

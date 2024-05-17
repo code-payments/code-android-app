@@ -10,13 +10,14 @@ import com.getcode.model.Kin
 import com.getcode.model.unusable
 import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.solana.keys.*
+import com.getcode.utils.timedTrace
+import com.getcode.utils.trace
 import timber.log.Timber
 
 class Organizer(
     val tray: Tray,
     val mnemonic: MnemonicPhrase,
     private var accountInfos: Map<PublicKey, AccountInfo> = mapOf(),
-    val context: Context
 ) {
     val slotsBalance get() = tray.slotsBalance
     val availableBalance get() = tray.availableBalance
@@ -57,7 +58,7 @@ class Organizer(
 
     fun setAccountInfo(infos: Map<PublicKey, AccountInfo>) {
         this.accountInfos = infos
-        tray.createRelationships(context, infos)
+        tray.createRelationships(infos)
         propagateBalances()
     }
 
@@ -68,34 +69,36 @@ class Organizer(
 
     fun propagateBalances() {
         val balances = mutableMapOf<AccountType, Kin>()
+        timedTrace("propagate balances") {
+            for ((vaultPublicKey, info) in accountInfos) {
+                if (tray.publicKey(info.accountType) == vaultPublicKey) {
+                    balances[info.accountType] = info.balance
+                } else {
+                    // The public key above doesn't match any accounts
+                    // that the Tray is aware of. If we're dealing with
+                    // temp I/O accounts then we likely just need to
+                    // update the index and try again
+                    when (info.accountType) {
+                        AccountType.Incoming, AccountType.Outgoing -> {
+                            // Update the index
+                            tray.setIndex(info.index, accountType = info.accountType)
+                            Timber.i("Updating ${info.accountType} index to: ${info.index}")
 
-        for ((vaultPublicKey, info) in accountInfos) {
-            if (tray.publicKey(info.accountType) == vaultPublicKey) {
-                balances[info.accountType] = info.balance
-            } else {
-                // The public key above doesn't match any accounts
-                // that the Tray is aware of. If we're dealing with
-                // temp I/O accounts then we likely just need to
-                // update the index and try again
-                when (info.accountType) {
-                    AccountType.Incoming, AccountType.Outgoing -> {
-                        // Update the index
-                        tray.setIndex(context, info.index, accountType = info.accountType)
-                        Timber.i("Updating ${info.accountType} index to: ${info.index}")
-
-                        // Ensure that the account matches
-                        if (tray.publicKey(info.accountType) != vaultPublicKey) {
-                            Timber.i("Indexed account mismatch. This isn't suppose to happen.")
-                            continue
+                            // Ensure that the account matches
+                            if (tray.publicKey(info.accountType) != vaultPublicKey) {
+                                Timber.i("Indexed account mismatch. This isn't suppose to happen.")
+                                continue
+                            }
+                            balances[info.accountType] = info.balance
                         }
-                        balances[info.accountType] = info.balance
-                    }
-                    AccountType.Primary,
-                    is AccountType.Bucket,
-                    AccountType.RemoteSend,
-                    is AccountType.Relationship,
-                    AccountType.Swap -> {
-                        Timber.i("Non-indexed account mismatch. Account doesn't match server-provided account. Something is definitely wrong")
+
+                        AccountType.Primary,
+                        is AccountType.Bucket,
+                        AccountType.RemoteSend,
+                        is AccountType.Relationship,
+                        AccountType.Swap -> {
+                            Timber.i("Non-indexed account mismatch. Account doesn't match server-provided account. Something is definitely wrong")
+                        }
                     }
                 }
             }
@@ -116,14 +119,12 @@ class Organizer(
 
     companion object {
         fun newInstance(
-            context: Context,
             mnemonic: MnemonicPhrase
         ): Organizer {
-            val tray = Tray.newInstance(context, mnemonic)
+            val tray = Tray.newInstance(mnemonic)
             return Organizer(
                 mnemonic = mnemonic,
                 tray = tray,
-                context = context
             )
         }
     }
