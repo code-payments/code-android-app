@@ -115,20 +115,20 @@ object CashBillAssets {
 
         // create bitmap from drawable
         var bit: Bitmap? = runCatching {
-            BitmapFactory.decodeResource(
-                context.resources,
-                drawable,
-                BitmapFactory.Options().apply {
-                    inJustDecodeBounds = false
-                    inPreferredConfig = Bitmap.Config.RGB_565
-                }
+            Bitmap.createBitmap(
+                db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.ARGB_8888
             )
         }.getOrNull()
 
         if (bit == null) {
             bit = runCatching {
-                Bitmap.createBitmap(
-                    db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.RGB_565
+                BitmapFactory.decodeResource(
+                    context.resources,
+                    drawable,
+                    BitmapFactory.Options().apply {
+                        inJustDecodeBounds = false
+                        inPreferredConfig = Bitmap.Config.RGB_565
+                    }
                 )
             }.getOrNull()
         }
