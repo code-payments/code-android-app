@@ -18,14 +18,12 @@ class Relationship(
 
     companion object {
         fun newInstance(
-            context: Context,
             domain: Domain,
             mnemonic: MnemonicPhrase,
             partialKinBalance: Kin = Kin.fromKin(0),
         ): Relationship {
             val cluster = AccountCluster.newInstanceLazy(
                 DerivedKey.derive(
-                    context = context,
                     path = DerivePath.relationship(domain),
                     mnemonic = mnemonic
                 ),

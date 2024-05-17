@@ -3,6 +3,7 @@ package com.getcode
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import com.bugsnag.android.Bugsnag
+import com.getcode.crypt.MnemonicCache
 import com.getcode.manager.AuthManager
 import com.getcode.network.integrity.DeviceCheck
 import com.getcode.utils.ErrorUtils
@@ -28,6 +29,7 @@ class App : Application() {
 
         Firebase.initialize(this)
         DeviceCheck.register(this)
+        MnemonicCache.init(this)
         authManager.init()
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)

@@ -33,11 +33,11 @@ class IntentEstablishRelationship(
     }
 
     companion object {
-        fun newInstance(context: Context, organizer: Organizer, domain: Domain): IntentEstablishRelationship {
+        fun newInstance(organizer: Organizer, domain: Domain): IntentEstablishRelationship {
             val id = PublicKey.generate()
             val currentTray = organizer.tray.copy()
 
-            val relationship = currentTray.createRelationship(context, domain)
+            val relationship = currentTray.createRelationship(domain)
 
             val ownerKey = currentTray.owner.getCluster().authority.keyPair.publicKeyBytes.toPublicKey()
             val actionOpenAccount = ActionOpenAccount.newInstance(

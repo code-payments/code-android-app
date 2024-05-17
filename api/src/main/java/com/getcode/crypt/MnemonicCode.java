@@ -138,7 +138,7 @@ public class MnemonicCode {
         final Stopwatch watch = Stopwatch.createStarted();
         byte[] seed = PBKDF2SHA512.derive(pass, salt, PBKDF2_ROUNDS, 64);
         watch.stop();
-        Timber.i("PBKDF2 took {} "  + watch);
+        Timber.i("PBKDF2 took {} %s", watch);
         return seed;
     }
 
@@ -149,7 +149,7 @@ public class MnemonicCode {
         if (words.size() % 3 > 0)
             throw new MnemonicException.MnemonicLengthException("Word list size must be multiple of three words.");
 
-        if (words.size() == 0)
+        if (words.isEmpty())
             throw new MnemonicException.MnemonicLengthException("Word list is empty.");
 
         // Look up all the words in the list and construct the
@@ -178,7 +178,7 @@ public class MnemonicCode {
         for (int ii = 0; ii < entropy.length; ++ii)
             for (int jj = 0; jj < 8; ++jj)
                 if (concatBits[(ii * 8) + jj])
-                    entropy[ii] |= 1 << (7 - jj);
+                    entropy[ii] |= (byte) (1 << (7 - jj));
 
         // Take the digest of the entropy.
         byte[] hash = Sha256Hash.hash(entropy);

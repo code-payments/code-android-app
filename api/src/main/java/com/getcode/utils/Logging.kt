@@ -4,13 +4,14 @@ import android.annotation.SuppressLint
 import com.bugsnag.android.BreadcrumbType
 import com.bugsnag.android.Bugsnag
 import timber.log.Timber
+import kotlin.time.measureTime
 
 sealed interface TraceType {
     /**
-     * An error was sent to Bugsnag (internal use only)
+     * This is not forwarded to logging services
      */
 
-    data object Error : TraceType
+    data object Silent : TraceType
 
     /**
      * A log message
@@ -43,9 +44,9 @@ sealed interface TraceType {
     data object User : TraceType
 }
 
-private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType {
+private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
     return when (this) {
-        TraceType.Error -> BreadcrumbType.ERROR
+        TraceType.Silent -> null
         TraceType.Log -> BreadcrumbType.LOG
         TraceType.Navigation -> BreadcrumbType.NAVIGATION
         TraceType.Network -> BreadcrumbType.REQUEST
@@ -74,12 +75,33 @@ fun trace(
             traceMessage
         }
 
-        Bugsnag.leaveBreadcrumb(
-            breadcrumb,
-            emptyMap(),
-            type.toBugsnagBreadcrumbType()
-        )
+        val breadcrumbType = type.toBugsnagBreadcrumbType()
+        if (breadcrumbType != null) {
+            Bugsnag.leaveBreadcrumb(
+                breadcrumb,
+                emptyMap(),
+                breadcrumbType
+            )
+        }
     }
 
     error?.let(ErrorUtils::handleError)
+}
+
+fun <T> timedTrace(
+    message: String,
+    tag: String? = null,
+    type: TraceType = TraceType.Log,
+    error: Throwable? = null,
+    block: () -> T
+): T {
+    var result: T
+    val time = measureTime {
+        result = block()
+    }
+
+    val newMessage = "$message took ${time.inWholeMilliseconds}ms"
+    trace(newMessage, tag, type, error)
+
+    return result
 }

@@ -157,7 +157,6 @@ open class BalanceController @Inject constructor(
                     is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
                         val amountToMigrate = it.accountInfo.balance
                         privacyMigration.migrateToPrivacy(
-                            context = context,
                             amountToMigrate = amountToMigrate,
                             organizer = organizer
                         )
@@ -203,7 +202,6 @@ open class BalanceController @Inject constructor(
                 is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
                     val amountToMigrate = ex.accountInfo.balance
                     privacyMigration.migrateToPrivacy(
-                        context = context,
                         amountToMigrate = amountToMigrate,
                         organizer = organizer
                     )

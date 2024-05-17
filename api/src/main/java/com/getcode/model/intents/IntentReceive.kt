@@ -73,7 +73,7 @@ class IntentReceive(
             // 3. Rotate incoming account
 
             val oldIncoming = currentTray.incoming
-            currentTray.incrementIncoming(context)
+            currentTray.incrementIncoming()
             val newIncoming = currentTray.incoming
 
             val rotation = mutableListOf(

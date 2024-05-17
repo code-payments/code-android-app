@@ -79,6 +79,8 @@ class MainActivity : FragmentActivity() {
         handleUncaughtException()
         setFullscreen()
 
+        deeplinkHandler.debounceIntent = intent
+
         setContent {
             trace("set content")
             CompositionLocalProvider(
@@ -93,8 +95,6 @@ class MainActivity : FragmentActivity() {
                 CodeApp()
             }
         }
-
-        deeplinkHandler.debounceIntent = intent
     }
 
     private fun setFullscreen() {

@@ -42,6 +42,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.bytes
+import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.grpc.stub.StreamObserver
@@ -101,6 +102,7 @@ class TransactionRepository @Inject constructor(
     }
 
     private fun setLimits(limits: Limits) {
+        trace("updating limits")
         this.limits = limits
     }
 
@@ -240,16 +242,14 @@ class TransactionRepository @Inject constructor(
     }
 
     fun upgradePrivacy(
-        context: Context,
         mnemonic: MnemonicPhrase,
         upgradeableIntent: UpgradeableIntent
     ): Single<IntentType> {
         val intent = IntentUpgradePrivacy.newInstance(
-            context = context,
             mnemonic = mnemonic,
             upgradeableIntent = upgradeableIntent
         )
-        return submit(intent, owner = mnemonic.getSolanaKeyPair(context))
+        return submit(intent, owner = mnemonic.getSolanaKeyPair())
     }
 
     fun sendRemotely(
@@ -286,14 +286,12 @@ class TransactionRepository @Inject constructor(
     }
 
     fun migrateToPrivacy(
-        context: Context,
         amount: Kin,
         organizer: Organizer
     ): Single<IntentType> {
         val intent = IntentMigratePrivacy.newInstance(
             organizer = organizer,
             amount = amount,
-            context = context
         )
 
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
@@ -414,7 +412,7 @@ class TransactionRepository @Inject constructor(
         organizer: Organizer,
         domain: Domain,
     ) : Single<IntentEstablishRelationship> {
-        val intent = IntentEstablishRelationship.newInstance(context, organizer, domain)
+        val intent = IntentEstablishRelationship.newInstance(organizer, domain)
 
         return submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)
             .map { intent }
@@ -427,7 +425,7 @@ class TransactionRepository @Inject constructor(
         organizer: Organizer,
         domain: Domain
     ): Result<IntentEstablishRelationship> {
-        val intent = IntentEstablishRelationship.newInstance(context, organizer, domain)
+        val intent = IntentEstablishRelationship.newInstance(organizer, domain)
 
         return runCatching {
             submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)

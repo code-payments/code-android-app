@@ -18,7 +18,6 @@ class PrivacyMigration @Inject constructor(
 ) {
 
     fun migrateToPrivacy(
-        context: Context,
         amountToMigrate: Kin,
         organizer: Organizer
     ): Single<IntentType> {
@@ -29,7 +28,6 @@ class PrivacyMigration @Inject constructor(
                 transactionRepository.migrateToPrivacy(
                     amount = amountToMigrate,
                     organizer = organizer,
-                    context = context
                 )
             }
             .flatMap {

@@ -68,11 +68,10 @@ class AccountCluster(
             )
         }
 
-        fun using(context: Context, type: AccountType, index: Int, mnemonic: MnemonicPhrase): AccountCluster {
+        fun using(type: AccountType, index: Int, mnemonic: MnemonicPhrase): AccountCluster {
             return newInstance(
                 index = index,
                 authority = DerivedKey.derive(
-                    context = context,
                     path = type.getDerivationPath(index),
                     mnemonic = mnemonic
                 ),

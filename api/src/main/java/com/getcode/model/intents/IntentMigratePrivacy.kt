@@ -32,12 +32,11 @@ class IntentMigratePrivacy(
     }
 
     companion object {
-        fun newInstance(context: Context, organizer: Organizer, amount: Kin): IntentMigratePrivacy {
+        fun newInstance(organizer: Organizer, amount: Kin): IntentMigratePrivacy {
             val intentId = PublicKey.generate()
 
             val legacyCluster = AccountCluster.newInstance(
                 authority = DerivedKey.derive(
-                    context = context,
                     path = DerivePath.primary,
                     mnemonic = organizer.mnemonic
                 ),

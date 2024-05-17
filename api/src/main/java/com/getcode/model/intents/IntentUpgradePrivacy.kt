@@ -26,7 +26,6 @@ class IntentUpgradePrivacy(
 
     companion object {
         fun newInstance(
-            context: Context,
             mnemonic: MnemonicPhrase,
             upgradeableIntent: UpgradeableIntent
         ): IntentUpgradePrivacy {
@@ -39,7 +38,6 @@ class IntentUpgradePrivacy(
                 val originalRecentBlockhash = upgradeableAction.originalRecentBlockhash
 
                 val sourceCluster = AccountCluster.using(
-                    context = context,
                     type = upgradeableAction.sourceAccountType,
                     index = upgradeableAction.sourceDerivationIndex.toInt(),
                     mnemonic = mnemonic

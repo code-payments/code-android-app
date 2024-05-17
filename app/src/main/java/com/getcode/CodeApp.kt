@@ -120,22 +120,22 @@ fun CodeApp() {
                             }
                         }
                     }
-                }
 
-                //Listen for authentication changes here
-                AuthCheck(
-                    navigator = codeNavigator,
-                    onNavigate = { screens ->
-                        codeNavigator.replaceAll(screens, inSheet = false)
-                    },
-                    onSwitchAccounts = { seed ->
-                        activity?.let {
-                            tlvm.logout(it) {
-                                appState.navigator.replaceAll(LoginScreen(seed))
+                    //Listen for authentication changes here
+                    AuthCheck(
+                        navigator = codeNavigator,
+                        onNavigate = { screens ->
+                            codeNavigator.replaceAll(screens, inSheet = false)
+                        },
+                        onSwitchAccounts = { seed ->
+                            activity?.let {
+                                tlvm.logout(it) {
+                                    appState.navigator.replaceAll(LoginScreen(seed))
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 
