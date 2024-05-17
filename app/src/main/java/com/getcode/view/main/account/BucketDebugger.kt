@@ -19,6 +19,7 @@ import com.getcode.solana.organizer.AccountType
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.MiddleEllipsisText
+import com.getcode.ui.utils.rememberedClickable
 
 
 @Composable
@@ -41,7 +42,7 @@ fun BucketDebugger() {
         items(buckets) { info ->
             Column(
                 modifier = Modifier
-                    .clickable {
+                    .rememberedClickable {
                         clipboard.setText(AnnotatedString(info.address.base58()))
                     }
                     .padding(horizontal = CodeTheme.dimens.grid.x3)

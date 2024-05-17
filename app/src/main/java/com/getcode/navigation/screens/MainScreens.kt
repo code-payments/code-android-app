@@ -14,7 +14,7 @@ import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen
@@ -48,7 +48,7 @@ data class HomeScreen(
     override fun Content() {
         val vm = getViewModel<HomeViewModel>()
 
-        startupLog("home rendered")
+        trace("home rendered")
         HomeScreen(vm, cashLink, requestPayload)
 
         OnScreenResult<HomeResult> { result ->

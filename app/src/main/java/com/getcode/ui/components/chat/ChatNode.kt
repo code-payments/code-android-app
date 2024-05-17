@@ -27,6 +27,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.debugBounds
+import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils
 import com.getcode.util.formatTimeRelatively
 import com.getcode.util.toInstantFromMillis
@@ -44,7 +45,7 @@ fun ChatNode(
 ) {
     Column(
         modifier = modifier
-            .clickable { onClick() }
+            .rememberedClickable { onClick() }
             .padding(
                 vertical = CodeTheme.dimens.grid.x3,
                 horizontal = CodeTheme.dimens.inset
@@ -132,7 +133,7 @@ val Title?.localized: String
 
 private val Chat.messagePreview: String
     @Composable get() {
-        val contents = messages.lastOrNull()?.contents ?: return "No content"
+        val contents = newestMessage?.contents ?: return "No content"
 
         var filtered: List<MessageContent> = contents.filterIsInstance<MessageContent.Localized>()
         if (filtered.isEmpty()) {

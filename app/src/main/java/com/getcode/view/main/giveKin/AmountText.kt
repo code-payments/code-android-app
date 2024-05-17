@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -50,8 +52,20 @@ fun AmountText(
     textStyle: TextStyle = CodeTheme.typography.h1,
 ) {
     val centeredText = textStyle.copy(textAlign = TextAlign.Center)
-    var scaledTextStyle by remember(amountText) { mutableStateOf(centeredText) }
-    var isReadyToDraw by remember(amountText) { mutableStateOf(false) }
+
+    val cachedSize: TextUnit? by remember(amountText) {
+        derivedStateOf { AmountSizeStore.lookup(amountText) }
+    }
+
+    var scaledTextStyle by remember(amountText, cachedSize) {
+        mutableStateOf(
+            cachedSize?.let { centeredText.copy(fontSize = it) } ?: centeredText
+        )
+    }
+
+    var isReadyToDraw by remember(amountText) {
+        mutableStateOf(AmountSizeStore.hasCachedSize(amountText))
+    }
 
     Row(
         modifier = Modifier

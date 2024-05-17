@@ -22,7 +22,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.utils.rememberedClickable
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 
 @Composable
 fun BottomBarView(
@@ -33,7 +33,7 @@ fun BottomBarView(
     bottomBarMessage ?: return
 
     LaunchedEffect(bottomBarMessage) {
-        startupLog("bottom bar message shown=${bottomBarMessage.title}")
+        trace("bottom bar message shown=${bottomBarMessage.title}")
     }
     BackHandler {
         onBackPressed()

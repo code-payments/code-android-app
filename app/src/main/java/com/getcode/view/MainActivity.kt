@@ -23,7 +23,7 @@ import com.getcode.util.PhoneUtils
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import dagger.hilt.android.AndroidEntryPoint
 import timber.log.Timber
 import javax.inject.Inject
@@ -80,7 +80,7 @@ class MainActivity : FragmentActivity() {
         setFullscreen()
 
         setContent {
-            startupLog("set content")
+            trace("set content")
             CompositionLocalProvider(
                 LocalAnalytics provides analyticsManager,
                 LocalDeeplinks provides deeplinkHandler,

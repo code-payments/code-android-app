@@ -38,6 +38,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.TextInput
+import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.withTopBorder
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -64,7 +65,7 @@ fun ChatInput(
                     .align(Alignment.Bottom)
                     .border(width = 1.dp, color = Color.White, shape = CircleShape)
                     .clip(CircleShape)
-                    .clickable { onSendCash() }
+                    .rememberedClickable { onSendCash() }
                     .size(ChatInput_Size)
                     .padding(8.dp),
                 contentAlignment = Alignment.Center,
@@ -110,7 +111,7 @@ fun ChatInput(
                         .align(Alignment.Bottom)
                         .background(ChatOutgoing, shape = CircleShape)
                         .clip(CircleShape)
-                        .clickable { onSendMessage() }
+                        .rememberedClickable { onSendMessage() }
                         .size(ChatInput_Size)
                         .padding(8.dp),
                     contentAlignment = Alignment.Center,

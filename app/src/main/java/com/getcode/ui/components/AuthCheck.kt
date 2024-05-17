@@ -10,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
-import com.bugsnag.android.Bugsnag
 import com.getcode.LocalDeeplinks
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
@@ -23,7 +22,7 @@ import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.DeeplinkResult
 import com.getcode.ui.utils.getActivity
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +35,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 private typealias DeeplinkFlowState = Pair<DeeplinkResult, SessionManager.SessionState>
 
@@ -57,23 +55,23 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
-        startupLog("isauth=$isAuthenticated")
+        trace("isauth=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
             if (!deeplinkRouted) {
                 // Allow the seed input screen to complete and avoid
                 // premature navigation
                 if (currentRoute is AccessKeyLoginScreen) {
-                    startupLog("No navigation within seed input")
+                    trace("No navigation within seed input")
                     return@LaunchedEffect
                 }
                 if (currentRoute is LoginGraph) {
-                    startupLog("No navigation within account creation and onboarding")
+                    trace("No navigation within account creation and onboarding")
                 } else {
                     if (authenticated) {
-                        startupLog("Navigating to home")
+                        trace("Navigating to home")
                         onNavigate(listOf(HomeScreen()))
                     } else {
-                        startupLog("Navigating to login")
+                        trace("Navigating to login")
                         onNavigate(listOf(LoginScreen()))
                     }
                 }
@@ -93,9 +91,9 @@ fun AuthCheck(
             .filter { (result, authState) ->
                 if (result == null) return@filter false
                 // wait for authentication
-                startupLog("checking auth state=${authState.isAuthenticated}")
+                trace("checking auth state=${authState.isAuthenticated}")
                 if( authState.isAuthenticated == null) {
-                    startupLog("awaiting auth state confirmation")
+                    trace("awaiting auth state confirmation")
                     return@filter false
                 }
                 return@filter true
@@ -123,7 +121,7 @@ fun AuthCheck(
             .map { it.first }
             .onEach { (_, screens) ->
                 deeplinkRouted = true
-                startupLog("navigating from deep link")
+                trace("navigating from deep link")
                 onNavigate(screens)
                 deeplinkHandler.debounceIntent = null
                 context.getActivity()?.intent = null
@@ -145,10 +143,10 @@ fun AuthCheck(
 
 private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
     map { (data, auth) ->
-        startupLog("checking type")
+        trace("checking type")
         val (type, screens) = data
         if (type is DeeplinkHandler.Type.Login && auth.isAuthenticated == true) {
-            startupLog("mapping entropy to home screen")
+            trace("mapping entropy to home screen")
             // send the user to home screen
             val entropy = (screens.first() as? LoginScreen)?.seed
             val updatedData = data.copy(stack = listOf(HomeScreen(seed = entropy)))
@@ -168,7 +166,7 @@ private fun Flow<DeeplinkResult>.showLogoutConfirmationIfNeeded(
     if (type is DeeplinkHandler.Type.Login) {
         val entropy = (screens.first() as? HomeScreen)?.seed
         if (entropy != null) {
-            startupLog("showing logout confirm")
+            trace("showing logout confirm")
             showLogoutMessage(
                 context = context,
                 entropyB64 = entropy,
