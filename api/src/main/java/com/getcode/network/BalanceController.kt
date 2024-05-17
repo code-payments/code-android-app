@@ -16,7 +16,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
@@ -125,7 +125,7 @@ open class BalanceController @Inject constructor(
     }
 
     fun fetchBalance(): Completable {
-        startupLog("fetchBalance")
+        trace("fetchBalance")
         if (SessionManager.isAuthenticated() != true) {
             Timber.d("FetchBalance - Not authenticated")
             return Completable.complete()

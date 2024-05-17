@@ -8,11 +8,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import com.getcode.model.*
 import com.getcode.network.repository.decodeBase64
-import com.getcode.utils.startupLog
+import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
@@ -73,7 +71,7 @@ object Database {
     fun requireInstance() = instance!!
 
     fun init(context: Context, entropyB64: String) {
-        startupLog("database init start")
+        trace("database init start")
         instance?.close()
         val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 3))
         dbName = "$dbNamePrefix-$dbUniqueName$dbNameSuffix"
@@ -89,7 +87,7 @@ object Database {
         instance?.conversationMessageRemoteKeyDao()?.clearRemoteKeys()
 
         isInitSubject.onNext(true)
-        startupLog("database init end")
+        trace("database init end")
     }
 
     fun close() {
