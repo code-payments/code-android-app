@@ -129,7 +129,6 @@ fun AuthCheck(
     }
 
     LaunchedEffect(isAuthenticated) {
-        if (navigator.lastItem !is MainRoot) return@LaunchedEffect
         trace("isauth=$isAuthenticated")
         isAuthenticated?.let { authenticated ->
             // Allow the seed input screen to complete and avoid
