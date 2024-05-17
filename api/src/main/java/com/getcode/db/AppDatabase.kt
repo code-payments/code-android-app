@@ -10,6 +10,7 @@ import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import com.getcode.model.*
 import com.getcode.network.repository.decodeBase64
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import io.reactivex.rxjava3.core.BackpressureStrategy
@@ -71,7 +72,7 @@ object Database {
     fun requireInstance() = instance!!
 
     fun init(context: Context, entropyB64: String) {
-        trace("database init start")
+        trace("database init start", type = TraceType.Process)
         instance?.close()
         val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 3))
         dbName = "$dbNamePrefix-$dbUniqueName$dbNameSuffix"
@@ -87,7 +88,7 @@ object Database {
         instance?.conversationMessageRemoteKeyDao()?.clearRemoteKeys()
 
         isInitSubject.onNext(true)
-        trace("database init end")
+        trace("database init end", type = TraceType.Process)
     }
 
     fun close() {

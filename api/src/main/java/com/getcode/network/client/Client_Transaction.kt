@@ -531,7 +531,6 @@ fun Client.fetchPrivacyUpgrades(): Completable {
             intents.forEachIndexed { index, intent ->
                 val completable =
                     transactionRepository.upgradePrivacy(
-                        organizer.context,
                         organizer.mnemonic,
                         intent
                     )

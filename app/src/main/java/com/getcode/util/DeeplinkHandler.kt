@@ -6,6 +6,8 @@ import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.network.repository.urlDecode
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
 import javax.inject.Inject
@@ -32,9 +34,9 @@ data class DeeplinkResult(
 class DeeplinkHandler @Inject constructor() {
     var debounceIntent: Intent? = null
         set(value) {
-            field = value
-            Timber.d("data=${value?.data}")
             intent.value = value
+            field = value
+            trace("debounced intent data=${value?.data}", type = TraceType.Silent)
         }
 
     val intent = MutableStateFlow(debounceIntent)

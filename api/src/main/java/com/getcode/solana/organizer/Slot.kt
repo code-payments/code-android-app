@@ -22,7 +22,6 @@ data class Slot(
 
     companion object {
         fun newInstance(
-            context: Context,
             partialBalance: Kin = Kin.fromQuarks(0),
             type: SlotType,
             mnemonic: MnemonicPhrase
@@ -33,7 +32,6 @@ data class Slot(
                 cluster = lazy {
                     AccountCluster.newInstance(
                         DerivedKey.derive(
-                            context,
                             type.getDerivationPath(),
                             mnemonic
                         ),

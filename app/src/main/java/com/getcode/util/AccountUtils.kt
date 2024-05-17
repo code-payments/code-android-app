@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import com.getcode.BuildConfig
+import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Single
@@ -57,7 +58,7 @@ object AccountUtils {
 
                         val end = Clock.System.now()
                         trace("auth token feature fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
-                        trace("token=$authToken, $accountName, ${account?.name}")
+                        trace("token=$authToken, $accountName, ${account?.name}", type = TraceType.Silent)
 
                         cb(authToken.orEmpty(), account)
 
