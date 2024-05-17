@@ -241,7 +241,12 @@ abstract class BaseAmountCurrencyViewModel(
         val buyLimitKin = FormatUtils.getKinValue(buyLimit, selectedCurrency.rate)
             .inflating()
 
-        val amountAvailable = min(sendLimit, fiatValue)
+        // allow full balance withdrawal
+        val amountAvailable = if (flowType is FlowType.Withdrawal) {
+            fiatValue
+        } else {
+            min(sendLimit, fiatValue)
+        }
 
         val isInsufficient = when (flowType.direction) {
             FundsDirection.Incoming -> {
