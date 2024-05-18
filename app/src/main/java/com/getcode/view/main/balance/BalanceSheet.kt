@@ -57,6 +57,7 @@ import com.getcode.ui.components.chat.ChatNode
 import com.getcode.util.Kin
 import com.getcode.util.NumberInputHelper
 import com.getcode.utils.network.NetworkState
+import com.getcode.utils.trace
 import com.getcode.view.main.account.BucketDebugger
 import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountArea
@@ -227,9 +228,8 @@ fun BalanceTop(
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
-    val text = rememberSaveable(state.amountText) { state.amountText }
     AmountArea(
-        amountText = text,
+        amountText = state.amountText,
         isAltCaption = false,
         isAltCaptionKinIcon = false,
         isLoading = state.chatsLoading,
