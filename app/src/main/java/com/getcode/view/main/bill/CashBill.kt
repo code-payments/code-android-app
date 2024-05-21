@@ -81,95 +81,7 @@ private object CashBillDefaults {
     val DecorColor: Color = Color(0xFFA9A9B1)
 }
 
-object CashBillAssets {
-
-    var globe: ImageBitmap? = null
-        private set
-
-    var grid: ImageBitmap? = null
-        private set
-
-    fun load(context: Context) {
-        CoroutineScope(Dispatchers.IO).launch {
-            globe = getBitmapFromImage(
-                context = context,
-                drawable = R.drawable.ic_bill_globe,
-                ratio = 0.18f,
-            )?.asImageBitmap()
-
-            grid = getBitmapFromImage(
-                context = context,
-                ratio = 0.3f,
-                drawable = R.drawable.ic_bill_grid,
-            )?.asImageBitmap()
-        }
-    }
-
-    private fun getBitmapFromImage(
-        context: Context,
-        drawable: Int,
-        ratio: Float = 1f,
-        alpha: Float = 1f
-    ): Bitmap? {
-        val db = ContextCompat.getDrawable(context, drawable)
-
-        // create bitmap from drawable
-        var bit: Bitmap? = runCatching {
-            Bitmap.createBitmap(
-                db!!.intrinsicWidth, db.intrinsicHeight, Bitmap.Config.ARGB_8888
-            )
-        }.getOrNull()
-
-        if (bit == null) {
-            bit = runCatching {
-                BitmapFactory.decodeResource(
-                    context.resources,
-                    drawable,
-                    BitmapFactory.Options().apply {
-                        inJustDecodeBounds = false
-                        inPreferredConfig = Bitmap.Config.RGB_565
-                    }
-                )
-            }.getOrNull()
-        }
-
-        if (bit == null) return null
-
-        // determine best sizing based on width and height of bitmap
-        var width = bit.width
-        var height = bit.height
-        val bitmapRatio = width.toFloat() / height.toFloat()
-
-        if (bitmapRatio > 1) {
-            width = bit.width
-            height = (width / bitmapRatio).toInt()
-        } else {
-            height = bit.height
-            width = (height * bitmapRatio).toInt()
-        }
-
-        // create a scaled/compressed bitmap
-        val compressed: Bitmap = Bitmap.createScaledBitmap(
-            bit, (width * ratio).roundToInt(), (height * ratio).roundToInt(), false
-        )
-
-        // setup canvas from compressed bitmap
-        val canvas = android.graphics.Canvas(compressed)
-
-        // update bounds of drawable from compressed bitmap
-        db!!.setBounds(0, 0, canvas.width, canvas.height)
-        // set alpha to desired level
-        db.alpha = (255 * alpha).roundToInt()
-
-        // draw drawable to canvas
-        db.draw(canvas)
-
-        // return our bitmap.
-        return compressed
-    }
-}
-
-private class CashBillGeometry(width: Dp, height: Dp): Geometry(width, height) {
+private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) {
 
     val brandWidth: Dp
         get() = ceil(size.width.value * 0.18f).dp
@@ -178,7 +90,7 @@ private class CashBillGeometry(width: Dp, height: Dp): Geometry(width, height) {
         get() = size.width * 0.6f
 
     val globeWidth: Dp
-        get() = size.width * 1.45f
+        get() = size.width * 1.5f
     val globePosition: Offset
         get() = Offset(
             x = -(size.width.value * 0.75f),
@@ -187,6 +99,9 @@ private class CashBillGeometry(width: Dp, height: Dp): Geometry(width, height) {
 
     val gridWidth: Dp
         get() = size.width * 1.75f
+
+    val gridHeight: Dp
+        get() = size.height * 0.5f
 
     val gridPosition: Offset
         get() = Offset(
@@ -261,37 +176,32 @@ internal fun CashBill(
             )
 
             // Grid pattern
-            CashBillAssets.grid?.let {
-                Image(
-                    modifier = Modifier
-                        .requiredWidth(geometry.gridWidth)
-                        .offset {
-                            IntOffset(
-                                x = geometry.gridPosition.x.toInt(),
-                                y = geometry.gridPosition.y.toInt()
-                            )
-                        },
-                    alpha = 0.5f,
-                    bitmap = it,
-                    contentDescription = null
-                )
-            }
+            BillDecorImage(
+                modifier = Modifier
+                    .fillMaxSize(),
+                image = ImageBitmap.imageResource(id = R.drawable.ic_bill_grid),
+                size = DpSize(width = geometry.gridWidth, height = geometry.gridHeight),
+                topLeft = Offset(
+                    x = geometry.gridPosition.x,
+                    y = geometry.gridPosition.y,
+                ),
+                alpha = 0.5f,
+            )
 
             // Globe
-            CashBillAssets.globe?.let {
-                Image(
-                    modifier = Modifier
-                        .requiredWidth(geometry.globeWidth)
-                        .offset {
-                            IntOffset(
-                                x = geometry.globePosition.x.toInt(),
-                                y = geometry.globePosition.y.toInt()
-                            )
-                        },
-                    bitmap = it,
-                    contentDescription = null
-                )
-            }
+            Image(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .requiredWidth(geometry.globeWidth)
+                    .offset {
+                        IntOffset(
+                            x = geometry.globePosition.x.toInt(),
+                            y = geometry.globePosition.y.toInt()
+                        )
+                    },
+                bitmap = ImageBitmap.imageResource(id = R.drawable.ic_bill_globe),
+                contentDescription = null
+            )
 
             // Waves
             Image(

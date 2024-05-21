@@ -3,6 +3,7 @@ package com.getcode.crypt
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
+import com.getcode.utils.TraceType
 import com.getcode.utils.timedTrace
 import org.kin.sdk.base.tools.Base58
 
@@ -23,7 +24,7 @@ class MnemonicPhrase(val kind: Kind, val words: List<String>) {
 
         mnemonicCode.check(words)
 
-        return timedTrace("derivation") { Derive.path(mnemonicSeed, path) }
+        return Derive.path(mnemonicSeed, path)
     }
 
     fun getBase64EncodedEntropy(): String {

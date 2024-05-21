@@ -339,7 +339,7 @@ private fun BillContainer(
 
         LaunchedEffect(dismissed) {
             if (dismissed) {
-                delay(300)
+                delay(500)
                 dismissed = false
             }
         }

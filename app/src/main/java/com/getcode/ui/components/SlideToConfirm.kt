@@ -66,9 +66,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
+import androidx.compose.ui.util.lerp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White
 import com.getcode.theme.White50
 import com.getcode.ui.utils.addIf
 import kotlinx.coroutines.CoroutineScope
@@ -175,6 +175,7 @@ fun SlideToConfirm(
     var loading by remember(isLoading) {
         mutableStateOf(isLoading)
     }
+
     val hapticFeedback = LocalHapticFeedback.current
     val swipeState = rememberSwipeableState(
         initialValue = if (loading) Anchor.End else Anchor.Start,
@@ -216,26 +217,23 @@ fun SlideToConfirm(
             hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2), label)
         }
 
-        when {
-            isSuccess -> {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_check),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(CodeTheme.dimens.grid.x4)
-                        .align(Alignment.Center),
-                )
-            }
 
-            loading -> {
-                CodeCircularProgressIndicator(
-                    strokeWidth = CodeTheme.dimens.thickBorder,
-                    color = White,
-                    modifier = Modifier
-                        .size(CodeTheme.dimens.grid.x4)
-                        .align(Alignment.Center),
-                )
-            }
+        if (isSuccess) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_check),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(CodeTheme.dimens.grid.x4)
+                    .align(Alignment.Center),
+            )
+        } else {
+            CodeCircularProgressIndicator(
+                strokeWidth = CodeTheme.dimens.thickBorder,
+                color = calculateLoadingColor(swipeFraction),
+                modifier = Modifier
+                    .size(CodeTheme.dimens.grid.x4)
+                    .align(Alignment.Center),
+            )
         }
 
         val thumbAlpha by animateFloatAsState(
@@ -362,6 +360,11 @@ private fun calculateHintTextColor(swipeFraction: Float): Color {
     val endOfFadeFraction = 0.35f
     val fraction = (swipeFraction / endOfFadeFraction).coerceIn(0f..1f)
     return lerp(Color.White, Color.White.copy(alpha = 0f), fraction)
+}
+
+private fun calculateLoadingColor(swipeFraction: Float): Color {
+    if (swipeFraction < 0.1f) return Color.White.copy(0f)
+    return Color.White
 }
 
 @Preview
