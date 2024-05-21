@@ -33,4 +33,11 @@
     <string name="title_chat_announcement_thanksReceived">🙏 %1$s thanked you for your tip</string>
 
     <string name="title_sendKin">Send Kin</string>
+    <string name="action_tweetThem">Tweet Them</string>
+    <string name="subtitle_linkingTwitterPrompt">
+        Hey @%1$s you should set up your @getcode Tip Card so I can tip you some cash.
+
+        getcode.com/download
+    </string>
+
 </resources>

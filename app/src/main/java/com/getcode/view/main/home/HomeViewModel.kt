@@ -73,6 +73,7 @@ import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.util.CurrencyUtils
+import com.getcode.util.IntentUtils
 import com.getcode.util.Kin
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
@@ -727,8 +728,22 @@ class HomeViewModel @Inject constructor(
                 scannedRendezvous.add(payload.rendezvous.publicKey)
                 cancelTip()
                 TopBarManager.showMessage(
-                    resources.getString(R.string.error_title_invalidTipCard),
-                    resources.getString(R.string.error_description_invalidTipCard),
+                    TopBarManager.TopBarMessage(
+                        title = resources.getString(R.string.error_title_invalidTipCard),
+                        message = resources.getString(R.string.error_description_invalidTipCard),
+                        primaryText = resources.getString(R.string.action_tweetThem),
+                        primaryAction = {
+                            val intent = IntentUtils.tweet(
+                                resources.getString(
+                                    R.string.subtitle_linkingTwitterPrompt, username
+                                )
+                            )
+                            viewModelScope.launch {
+                                _eventFlow.emit(HomeEvent.SendIntent(intent))
+                            }
+                        },
+                        secondaryText = resources.getString(R.string.action_notNow)
+                    )
                 )
             }.onSuccess {
                 delay(300.milliseconds)
