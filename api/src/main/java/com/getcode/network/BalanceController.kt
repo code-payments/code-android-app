@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -45,7 +46,7 @@ data class BalanceDisplay(
     val formattedValue: String = "",
     val currency: Currency? = null,
 
-)
+    )
 
 open class BalanceController @Inject constructor(
     exchange: Exchange,
@@ -73,10 +74,11 @@ open class BalanceController @Inject constructor(
         prefs.observeOrDefault(
             PrefsString.KEY_BALANCE_CURRENCY_SELECTED,
             getDefaultCurrency()?.name.orEmpty()
-        )
-        .mapNotNull { CurrencyCode.tryValueOf(it) }
-        .map { getCurrencyFromCode(it) }
-        .stateIn(scope, SharingStarted.Eagerly, getCurrencyFromCode(getDefaultCurrency()))
+        ).mapNotNull { CurrencyCode.tryValueOf(it) }
+            .map { getCurrencyFromCode(it) }
+            .distinctUntilChanged()
+            .onEach { Timber.d("currency for balance is now ${it?.code}") }
+            .stateIn(scope, SharingStarted.Eagerly, getCurrencyFromCode(getDefaultCurrency()))
 
     private val _balanceDisplay = MutableStateFlow<BalanceDisplay?>(null)
 
@@ -115,7 +117,8 @@ open class BalanceController @Inject constructor(
             refreshBalance(balance, rate.fx)
         }.distinctUntilChanged().onEach { (marketValue, amountText) ->
             val display = _balanceDisplay.value ?: BalanceDisplay()
-            _balanceDisplay.value = display.copy(marketValue = marketValue, formattedValue = amountText)
+            _balanceDisplay.value =
+                display.copy(marketValue = marketValue, formattedValue = amountText)
         }.launchIn(scope)
     }
 
@@ -130,13 +133,14 @@ open class BalanceController @Inject constructor(
             Timber.d("FetchBalance - Not authenticated")
             return Completable.complete()
         }
-        val owner = SessionManager.getKeyPair() ?: return Completable.error(IllegalStateException("Missing Owner"))
+        val owner = SessionManager.getKeyPair()
+            ?: return Completable.error(IllegalStateException("Missing Owner"))
 
         fun getTokenAccountInfos(): Completable {
             return accountRepository.getTokenAccountInfos(owner)
                 .flatMapCompletable { infos ->
-                    val organizer = SessionManager.getOrganizer() ?:
-                    return@flatMapCompletable Completable.error(IllegalStateException("Missing Organizer"))
+                    val organizer = SessionManager.getOrganizer()
+                        ?: return@flatMapCompletable Completable.error(IllegalStateException("Missing Organizer"))
 
                     scope.launch { organizer.setAccountInfo(infos) }
                     balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
@@ -151,7 +155,10 @@ open class BalanceController @Inject constructor(
             }
             .onErrorResumeNext {
                 Timber.i("Error: ${it.javaClass.simpleName} ${it.cause}")
-                val organizer = SessionManager.getOrganizer() ?: return@onErrorResumeNext Completable.error(IllegalStateException("Missing Organizer"))
+                val organizer =
+                    SessionManager.getOrganizer() ?: return@onErrorResumeNext Completable.error(
+                        IllegalStateException("Missing Organizer")
+                    )
 
                 when (it) {
                     is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
@@ -163,6 +170,7 @@ open class BalanceController @Inject constructor(
                             .ignoreElement()
                             .concatWith(getTokenAccountInfos())
                     }
+
                     is AccountRepository.FetchAccountInfosException.NotFoundException -> {
                         transactionRepository.createAccounts(
                             organizer = organizer
@@ -170,13 +178,13 @@ open class BalanceController @Inject constructor(
                             .ignoreElement()
                             .concatWith(getTokenAccountInfos())
                     }
+
                     else -> {
                         Completable.error(it)
                     }
                 }
             }
     }
-
 
 
     suspend fun fetchBalanceSuspend() {
@@ -188,7 +196,8 @@ open class BalanceController @Inject constructor(
 
         try {
             val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
-            val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
+            val organizer =
+                SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
             organizer.setAccountInfo(accountInfo)
             balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
@@ -196,7 +205,8 @@ open class BalanceController @Inject constructor(
             transactionRepository.swapIfNeeded(organizer)
         } catch (ex: Exception) {
             Timber.i("Error: ${ex.javaClass.simpleName} ${ex.cause}")
-            val organizer = SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
+            val organizer =
+                SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
             when (ex) {
                 is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
@@ -206,6 +216,7 @@ open class BalanceController @Inject constructor(
                         organizer = organizer
                     )
                 }
+
                 is AccountRepository.FetchAccountInfosException.NotFoundException -> {
                     transactionRepository.createAccounts(
                         organizer = organizer
@@ -219,7 +230,9 @@ open class BalanceController @Inject constructor(
         val preferredCurrency = preferredCurrency.value
         val fiatValue = FormatUtils.getFiatValue(balance, rate)
 
-        val prefix = formatPrefix(preferredCurrency).takeIf { it != preferredCurrency?.code }.orEmpty()
+        val prefix =
+            formatPrefix(preferredCurrency).takeIf { it != preferredCurrency?.code }.orEmpty()
+
         val amountText = StringBuilder().apply {
             append(prefix)
             append(formatAmount(fiatValue, preferredCurrency))
@@ -230,6 +243,8 @@ open class BalanceController @Inject constructor(
             }
         }.toString()
 
+        Timber.d("formatted balance is now $prefix $amountText in ${preferredCurrency?.code}")
+
         return fiatValue to amountText
     }
 
@@ -238,13 +253,14 @@ open class BalanceController @Inject constructor(
         return if (!isKin(selectedCurrency)) selectedCurrency.symbol else ""
     }
 
-    private fun isKin(selectedCurrency: Currency): Boolean = selectedCurrency.code == CurrencyCode.KIN.name
+    private fun isKin(selectedCurrency: Currency): Boolean =
+        selectedCurrency.code == CurrencyCode.KIN.name
 
     private fun formatAmount(amount: Double, currency: Currency?): String {
         return if (amount % 1 == 0.0 || currency?.code == CurrencyCode.KIN.name) {
-            String.format("%,.0f", amount)
+            String.format(Locale.getDefault(), "%,.0f", amount)
         } else {
-            String.format("%,.2f", amount)
+            String.format(Locale.getDefault(), "%,.2f", amount)
         }
     }
 }
