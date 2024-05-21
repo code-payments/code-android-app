@@ -35,6 +35,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.extraSmall
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Row
@@ -111,7 +112,7 @@ private fun TweetPreview(
 ) {
     Row(
         modifier = Modifier
-            .background(BrandSubtle)
+            .background(BrandSubtle, shape = CodeTheme.shapes.extraSmall)
             .padding(CodeTheme.dimens.inset)
             .then(modifier),
     ) {
