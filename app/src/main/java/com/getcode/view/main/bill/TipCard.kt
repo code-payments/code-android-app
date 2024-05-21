@@ -24,10 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.inset
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
@@ -95,21 +98,21 @@ private fun HazedBackground(
                 )
                 // mimic an inner shadow from Figma
                 .drawBehind {
-                    drawRect(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                Color.White.copy(0.45f),
-                                background.copy(alpha = 0.24f)
+                    inset(
+                        horizontal = 2.dp.toPx(),
+                        vertical = 2.dp.toPx()
+                    ) {
+                        drawRect(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(0.45f),
+                                    background.copy(alpha = 0.24f)
+                                ),
+                                center = Offset.Zero,
+                                radius = size.maxDimension
                             ),
-                            center = Offset.Zero,
-                            radius = size.maxDimension
-                        ),
-                        size = size.copy(width = size.width * 0.9f, height = size.height * 0.93f),
-                        topLeft = Offset(
-                            geometry.size.width.value * 0.1f,
-                            geometry.size.height.value * 0.07f
                         )
-                    )
+                    }
                 }
         )
     }
