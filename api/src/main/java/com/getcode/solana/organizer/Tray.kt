@@ -9,6 +9,7 @@ import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.RelationshipBox
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.TraceType
 import com.getcode.utils.timedTrace
 import kotlin.math.min
 
@@ -202,10 +203,7 @@ class Tray(
     }
 
     fun publicKey(accountType: AccountType): PublicKey {
-        return timedTrace("getting cluster for $accountType") {
-            cluster(accountType).vaultPublicKey
-        }
-
+        return cluster(accountType).vaultPublicKey
     }
 
     fun cluster(accountType: AccountType): AccountCluster {
