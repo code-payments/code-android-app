@@ -8,7 +8,6 @@ import com.getcode.manager.AuthManager
 import com.getcode.network.integrity.DeviceCheck
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
-import com.getcode.view.main.bill.CashBillAssets
 import com.google.firebase.Firebase
 import com.google.firebase.initialize
 import dagger.hilt.android.HiltAndroidApp
@@ -24,8 +23,6 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        println("app-startup onCreate start")
-        CashBillAssets.load(this)
 
         Firebase.initialize(this)
         DeviceCheck.register(this)
