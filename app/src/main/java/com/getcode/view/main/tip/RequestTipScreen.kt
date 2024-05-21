@@ -111,7 +111,7 @@ private fun TweetPreview(
 ) {
     Row(
         modifier = Modifier
-            .background(BrandSubtle)
+            .background(BrandSubtle, shape = CodeTheme.shapes.small)
             .padding(CodeTheme.dimens.inset)
             .then(modifier),
     ) {
