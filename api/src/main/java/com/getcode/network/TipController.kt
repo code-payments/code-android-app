@@ -13,7 +13,10 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
+import com.getcode.network.repository.base58
+import com.getcode.utils.bytes
 import com.getcode.utils.getOrPutIfNonNull
+import com.getcode.vendor.Base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +34,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.Timer
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.fixedRateTimer
@@ -140,6 +144,27 @@ class TipController @Inject constructor(
 
     fun clearTwitterSplat() {
         prefRepository.set(PrefsBool.SEEN_TIP_CARD, true)
+    }
+
+    fun generateTipVerification(): String? {
+        val authority = SessionManager.getOrganizer()?.tray?.owner?.getCluster()?.authority
+        val tipAddress = SessionManager.getOrganizer()?.primaryVault
+            ?.let { Base58.encode(it.byteArray) }
+
+        if (tipAddress != null && authority != null) {
+            val nonce = UUID.randomUUID()
+            val signature = authority.keyPair.sign(nonce.bytes.toByteArray())
+            val verificationMessage = listOf(
+                "CodeAccount",
+                tipAddress,
+                Base58.encode(nonce.bytes.toByteArray()),
+                signature.base58
+            ).joinToString(":")
+
+            return verificationMessage
+        }
+
+        return null
     }
 
     private fun stopTimer() {

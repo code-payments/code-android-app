@@ -262,7 +262,7 @@
   <string name="subtitle_smsWasSent">An SMS message was sent to your phone number with a verification code. Please enter the verification code above.</string>
   <string name="subtitle_someoneSendYouCash">Someone sent you cash</string>
   <string name="subtitle_someoneTippedYou">Someone tipped you</string>
-  <string name="subtitle_tipCardForX">Your Tip Card lets you receive tips from Code users all over the world. To access your Tip Card connect your X identity.</string>
+  <string name="subtitle_tipCardForX">Your Tip Card lets you receive tips from Code users all over the world. To access your Tip Card post to X.</string>
   <string name="subtitle_typeDelete">Type \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">We\'ve made some changes to improve the experience. You\'ll need to update the app to keep using Code.</string>
   <string name="subtitle_validOwnerAccount">Valid owner account</string>
