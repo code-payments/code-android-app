@@ -86,17 +86,18 @@ class TipPaymentViewModel @Inject constructor(
         }
     }
 
-    private val minUsdLimit: Kin
-        get() {
-            return KinAmount.fromFiatAmount(minUsdFiatLimit, exchange.rateForUsd()!!).kin
+    private val minLimit: (rate: Rate) -> Kin = { rate ->
+        KinAmount.fromFiatAmount(minFiatLimit(rate), rate).kin
     }
 
     private val maxFiatLimit: (rate: Rate) -> Double = { rate ->
         (transactionRepository.sendLimitFor(rate.currency) ?: SendLimit.Zero).nextTransaction
     }
 
-    private val minUsdFiatLimit: Double
-        get() = (transactionRepository.sendLimitFor(CurrencyCode.USD) ?: SendLimit.Zero).maxPerTransaction / 250.0
+    private val minFiatLimit: (rate: Rate) -> Double = { rate ->
+        (transactionRepository.sendLimitFor(rate.currency)
+            ?: SendLimit.Zero).maxPerTransaction / 250.0
+    }
 
 
     private val hasAvailableTransactionLimit: (amount: KinAmount, rate: Rate) -> Boolean = { amount, _ ->
@@ -111,7 +112,7 @@ class TipPaymentViewModel @Inject constructor(
         get() = transactionRepository.hasAvailableDailyLimit()
 
     private val isTipLargeEnough: (amount: KinAmount) -> Boolean = { amount ->
-        amount.kin >= minUsdLimit
+        amount.kin >= minLimit(amount.rate)
     }
 
     suspend fun onSubmit(): KinAmount? {
@@ -160,7 +161,7 @@ class TipPaymentViewModel @Inject constructor(
 
         if (!isTipLargeEnough(amount)) {
             // min amount is based on send limit for USD
-            val kin = KinAmount.fromFiatAmount(minUsdFiatLimit, exchange.rateForUsd()!!).kin
+            val kin = KinAmount.fromFiatAmount(minFiatLimit(amount.rate), amount.rate).kin
             // convert min amount in USD to selected currency
             val normalizedAmount = KinAmount.newInstance(kin, rate)
             // format for display
