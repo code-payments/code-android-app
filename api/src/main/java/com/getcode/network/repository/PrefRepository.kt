@@ -56,9 +56,8 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
             .asFlow()
             .map { Database.getInstance() }
             .flatMapLatest {
-                it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe bool ; DB not available") }
-                it.prefBoolDao().observe(key.value)
-                    .map { it?.value ?: default }
+                it ?: return@flatMapLatest flowOf(default)
+                it.prefBoolDao().observe(key.value).map { it?.value ?: default }
             }
             .flowOn(Dispatchers.IO)
 
