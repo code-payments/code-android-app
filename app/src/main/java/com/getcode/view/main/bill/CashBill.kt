@@ -101,12 +101,12 @@ private class CashBillGeometry(width: Dp, height: Dp) : Geometry(width, height) 
         get() = size.width * 1.75f
 
     val gridHeight: Dp
-        get() = size.height * 0.5f
+        get() = size.height * 0.7f
 
     val gridPosition: Offset
         get() = Offset(
             x = 0f,
-            y = securityStripPosition.y.value
+            y = securityStripPosition.y.value + securityStripSize.height.value
         )
 
     val linesHeight: Dp
