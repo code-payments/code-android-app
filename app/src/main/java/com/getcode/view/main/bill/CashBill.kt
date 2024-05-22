@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -170,7 +171,7 @@ internal fun CashBill(
             BillDecorImage(
                 modifier = Modifier
                     .fillMaxSize(),
-                image = ImageBitmap.imageResource(R.drawable.ic_bill_hexagons),
+                image = loadBillAsset(R.drawable.ic_bill_hexagons),
                 blendMode = BlendMode.Multiply,
                 alpha = 0.6f,
             )
@@ -179,7 +180,7 @@ internal fun CashBill(
             BillDecorImage(
                 modifier = Modifier
                     .fillMaxSize(),
-                image = ImageBitmap.imageResource(id = R.drawable.ic_bill_grid),
+                image = loadBillAsset(R.drawable.ic_bill_grid),
                 size = DpSize(width = geometry.gridWidth, height = geometry.gridHeight),
                 topLeft = Offset(
                     x = geometry.gridPosition.x,
@@ -199,7 +200,7 @@ internal fun CashBill(
                             y = geometry.globePosition.y.toInt()
                         )
                     },
-                bitmap = ImageBitmap.imageResource(id = R.drawable.ic_bill_globe),
+                painter = painterResource(R.drawable.ic_bill_globe),
                 contentDescription = null
             )
 
@@ -216,7 +217,7 @@ internal fun CashBill(
                     ),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
-                bitmap = ImageBitmap.imageResource(R.drawable.ic_bill_waves),
+                painter = painterResource(R.drawable.ic_bill_waves),
             )
 
             // Security strip
@@ -390,4 +391,15 @@ private fun BillCode(modifier: Modifier = Modifier, geometry: CashBillGeometry, 
             )
         }
     }
+}
+
+@Composable
+private fun loadBillAsset(drawableRes: Int): ImageBitmap {
+    val option = BitmapFactory.Options()
+    option.inPreferredConfig = Bitmap.Config.ARGB_8888
+   return BitmapFactory.decodeResource(
+        LocalContext.current.resources,
+        drawableRes,
+        option
+    ).asImageBitmap()
 }
