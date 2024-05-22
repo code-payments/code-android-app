@@ -723,10 +723,6 @@ class HomeViewModel @Inject constructor(
 
         runCatching { tipController.fetch(username, payload) }
             .onFailure {
-                // User not found
-                // Prevent scanning invalid tip cards repeatedly
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-                cancelTip()
                 TopBarManager.showMessage(
                     TopBarManager.TopBarMessage(
                         title = resources.getString(R.string.error_title_invalidTipCard),
@@ -741,8 +737,10 @@ class HomeViewModel @Inject constructor(
                             viewModelScope.launch {
                                 _eventFlow.emit(HomeEvent.SendIntent(intent))
                             }
+                            cancelTip()
                         },
-                        secondaryText = resources.getString(R.string.action_notNow)
+                        secondaryText = resources.getString(R.string.action_notNow),
+                        secondaryAction = ::cancelTip
                     )
                 )
             }.onSuccess {
