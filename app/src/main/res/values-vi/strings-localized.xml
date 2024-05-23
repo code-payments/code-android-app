@@ -41,6 +41,7 @@
   <string name="action_openSettings">Mở Cài đặt</string>
   <string name="action_paste">Dán</string>
   <string name="action_pasteFromClipboard">Dán Từ Khay nhớ tạm</string>
+  <string name="action_postToConnect">Hãy đăng bài để kết nối tài khoản</string>
   <string name="action_putInWallet">Đặt trong Ví</string>
   <string name="action_recoverExistingAccount">Khôi phục Tài khoản Hiện có</string>
   <string name="action_remind">Nhắc nhở</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Vuốt để Thanh toán</string>
   <string name="action_swipeToTip">Vuốt để Boa</string>
   <string name="action_tryDifferentCodeAccount">Thử Tài khoản Mã Khác</string>
+  <string name="action_tweetThem">Gửi tweet tới họ</string>
   <string name="action_unmute">Bật tiếng</string>
   <string name="action_unsubscribe">Hủy đăng ký</string>
   <string name="action_update">Cập nhật</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Số tiền tối đa bạn có thể mua là %1$s. Vui lòng nhập số tiền nhỏ hơn.</string>
   <string name="error_description_purchaseTooSmall">Số tiền tối thiểu bạn có thể mua là %1$s. Vui lòng nhập số tiền lớn hơn.</string>
   <string name="error_description_timelockUnlocked">Khóa Truy cập của bạn đã kích hoạt mở khóa. Do đó, bạn sẽ không còn có thể sử dụng Khóa Truy cập này trong Mã.</string>
+  <string name="error_description_tipCardNotActivated">Hãy gửi một tin nhắn tweet tới người này để kích hoạt Thẻ Tip của họ.</string>
   <string name="error_description_tipTooLarge">Số tiền tối đa bạn có thể boa là %1$s. Vui lòng nhập số tiền nhỏ hơn.</string>
   <string name="error_description_tipTooSmall">Số tiền tối thiểu bạn có thể boa là %1$s. Vui lòng nhập số tiền lớn hơn.</string>
   <string name="error_description_tooManyAccounts">Bạn chỉ có thể tạo rất nhiều tài khoản mới mỗi ngày.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Giao dịch mua quá lớn</string>
   <string name="error_title_purchaseTooSmall">Giao dịch mua quá nhỏ</string>
   <string name="error_title_timelockUnlocked">Bạn Không Còn Có thể Sử dụng Khóa Truy cập trong Mã</string>
+  <string name="error_title_tipCardNotActivated">Chưa kích hoạt Thẻ Tip</string>
   <string name="error_title_tipTooLarge">Tiền boa quá lớn</string>
   <string name="error_title_tipTooSmall">Tiền boa quá nhỏ</string>
   <string name="error_title_tooManyAccounts">Quá nhiều tài khoản được tạo</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Mời một người bạn bắt đầu dùng Code để nhận được 5$</string>
   <string name="push_subtitle_newSendCash">Gửi tiền mặt qua bất kỳ ứng dụng nhắn tin nào</string>
   <string name="push_subtitle_referralBonus">Bạn đã nhận được %1$s Kin vì đã gửi cho người khác Kin đầu tiên của họ.</string>
+  <string name="push_subtitle_twitterAccountConnected">Giờ bạn sẽ có thể yêu cầu tiền tip.</string>
   <string name="push_title_depositReceived">Đã nhận được tiền nạp</string>
   <string name="push_title_kinReturned">Đã hoàn trả Kin</string>
   <string name="push_title_newOnCode">Người dùng mới trên Code</string>
   <string name="push_title_referralBonus">Đã nhận được tiền thưởng giới thiệu</string>
+  <string name="push_title_twitterAccountConnected">Đã kết nối tài khoản X</string>
   <string name="subtitle_accessExpiredDescription">Lời mời truy cập Mã của bạn đã hết hạn. Bạn có thể đăng xuất và sử dụng một tài khoản khác với trạng thái lời mời hợp lệ.</string>
   <string name="subtitle_accessKeyDescription">Khóa Truy cập là cách duy nhất để bạn truy cập tiền của mình. Xin vui lòng giữ bí mật và an toàn cho Khóa Truy cập.</string>
   <string name="subtitle_accessKeyFaceID">Xác minh danh tính để xem Khóa Truy cập của bạn.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Có người đã gửi tiền cho bạn</string>
   <string name="subtitle_someoneTippedYou">Ai đó đã boa cho bạn</string>
   <string name="subtitle_tipCardForX">Thẻ Tiền boa của bạn giúp bạn có thể nhận tiền boa từ người dùng Code trên toàn thế giới. Để truy cập Thẻ Tiền boa, hãy kết nối danh tính X của bạn.</string>
+  <string name="subtitle_tipCardTwitterDescription">Thẻ Tip cho phép bạn nhận tiền tip từ người dùng Code trên toàn thế giới. Để sử dụng Thẻ Tip của mình, hãy đăng bài trên X.</string>
   <string name="subtitle_typeDelete">Gõ \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Chúng tôi đã thực hiện một số thay đổi để cải thiện trải nghiệm. Bạn sẽ cần cập nhật ứng dụng để tiếp tục sử dụng Mã.</string>
   <string name="subtitle_validOwnerAccount">Tài khoản chủ sở hữu hợp lệ</string>

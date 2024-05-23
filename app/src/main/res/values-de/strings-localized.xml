@@ -41,6 +41,7 @@
   <string name="action_openSettings">Einstellungen öffnen</string>
   <string name="action_paste">Einfügen</string>
   <string name="action_pasteFromClipboard">Aus Zwischenablage einfügen</string>
+  <string name="action_postToConnect">Posten, um das Konto zu verbinden</string>
   <string name="action_putInWallet">In Wallet legen</string>
   <string name="action_recoverExistingAccount">Bestehendes Konto wiederherstellen</string>
   <string name="action_remind">Erinnern</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Zum Bezahlen wischen\n</string>
   <string name="action_swipeToTip">Wischen, um Trinkgeld zu geben</string>
   <string name="action_tryDifferentCodeAccount">Versuchen Sie es mit einem anderen Code-Konto</string>
+  <string name="action_tweetThem">Twittern Sie sie</string>
   <string name="action_unmute">Stummschaltung aufheben</string>
   <string name="action_unsubscribe">Abbestellen</string>
   <string name="action_update">Aktualisieren</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Der Höchstbetrag, den Sie kaufen können, beträgt %1$s. Bitte geben Sie einen kleineren Betrag ein.</string>
   <string name="error_description_purchaseTooSmall">Der Mindestbetrag, den Sie kaufen können, beträgt %1$s. Bitte geben Sie einen höheren Betrag ein.</string>
   <string name="error_description_timelockUnlocked">Ihr Zugangsschlüssel hat eine Freischaltung ausgelöst. Infolgedessen können Sie diesen Zugangsschlüssel nicht mehr in Code verwenden.</string>
+  <string name="error_description_tipCardNotActivated">Senden Sie einen Tweet an diese Person, um ihre Tipp-Karte zu aktivieren.</string>
   <string name="error_description_tipTooLarge">Sie können maximal %1$s Trinkgeld geben. Bitte geben Sie einen niedrigeren Betrag ein.</string>
   <string name="error_description_tipTooSmall">Der Mindestbetrag für Trinkgeld ist %1$s. Bitte geben Sie einen höheren Betrag ein.</string>
   <string name="error_description_tooManyAccounts">Sie können nur eine bestimmte Anzahl an neuen Konten pro Tag erstellen.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Kaufbetrag zu groß</string>
   <string name="error_title_purchaseTooSmall">Kaufbetrag zu klein</string>
   <string name="error_title_timelockUnlocked">Zugangsschlüssel nicht mehr in Code verwendbar</string>
+  <string name="error_title_tipCardNotActivated">Tipp-Karte noch nicht aktiviert</string>
   <string name="error_title_tipTooLarge">Trinkgeldbetrag zu hoch</string>
   <string name="error_title_tipTooSmall">Trinkgeldbetrag zu niedrig</string>
   <string name="error_title_tooManyAccounts">Zu viele Konten erstellt</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Bringen Sie einen Freund zu Code und erhalten Sie 5 $ dafür</string>
   <string name="push_subtitle_newSendCash">Senden Sie Guthaben über jede beliebige Messenger-App</string>
   <string name="push_subtitle_referralBonus">Sie haben %1$s an Kin erhalten, weil Sie jemandem die ersten Kin geschickt haben.</string>
+  <string name="push_subtitle_twitterAccountConnected">Sie können jetzt Tipps anfordern.</string>
   <string name="push_title_depositReceived">Einzahlung erhalten</string>
   <string name="push_title_kinReturned">Kin zurückgesendet</string>
   <string name="push_title_newOnCode">Neu bei Code</string>
   <string name="push_title_referralBonus">Empfehlungsbonus erhalten</string>
+  <string name="push_title_twitterAccountConnected">X-Konto verbunden</string>
   <string name="subtitle_accessExpiredDescription">Ihre Einladung für den Zugang zu Code ist abgelaufen. Sie können sich abmelden und ein anderes Konto mit einem gültigen Einladungsstatus verwenden.</string>
   <string name="subtitle_accessKeyDescription">Ihr Zugangsschlüssel ist die einzige Möglichkeit, wie Sie auf Ihr Geld zugreifen können. Bitte bewahren Sie ihn geschützt und sicher auf.</string>
   <string name="subtitle_accessKeyFaceID">Verifizieren Sie Ihre Identität, um Ihren Zugangsschlüssel anzuzeigen.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Jemand hat Ihnen Guthaben geschickt</string>
   <string name="subtitle_someoneTippedYou">Jemand hat Ihnen Trinkgeld gegeben</string>
   <string name="subtitle_tipCardForX">Mit Ihrer Trinkgeldkarte können Sie von Code-Nutzerinnen und -Nutzern auf der ganzen Welt Trinkgeld erhalten. Verbinden Sie Ihr X-Konto, um auf Ihre Trinkgeldkarte zuzugreifen.</string>
+  <string name="subtitle_tipCardTwitterDescription">Mit Ihrer Tipp-Karte können Sie Tipps von Code-Benutzern aus der ganzen Welt erhalten. Um auf Ihre Tipp-Karte zuzugreifen, posten Sie an X.</string>
   <string name="subtitle_typeDelete">Geben Sie „%1$s\" ein</string>
   <string name="subtitle_updateRequiredDescription">Wir haben einige Änderungen vorgenommen, um das Nutzererlebnis zu verbessern. Die App muss aktualisiert werden, um Code weiterhin nutzen zu können.</string>
   <string name="subtitle_validOwnerAccount">Gültiges Inhaberkonto</string>

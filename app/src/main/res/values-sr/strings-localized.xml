@@ -41,6 +41,7 @@
   <string name="action_openSettings">Otvori postavke</string>
   <string name="action_paste">Nalepi</string>
   <string name="action_pasteFromClipboard">Nalepi iz ostave</string>
+  <string name="action_postToConnect">Поставите објаву да повежете налог</string>
   <string name="action_putInWallet">Stavi u novčanik</string>
   <string name="action_recoverExistingAccount">Oporavi postojeći nalog</string>
   <string name="action_remind">Podseti</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Брзо превуците да бисте платили</string>
   <string name="action_swipeToTip">Превуци да даш напојницу</string>
   <string name="action_tryDifferentCodeAccount">Isprobaj drugi Code nalog</string>
+  <string name="action_tweetThem">Пошаљите твит</string>
   <string name="action_unmute">Укључи звук</string>
   <string name="action_unsubscribe">Откажи претплату</string>
   <string name="action_update">Ažuriraj</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Najviše možete da kupite %1$s. Unesite manji iznos.</string>
   <string name="error_description_purchaseTooSmall">Najmanje možete da kupite %1$s. Unesite veći iznos.</string>
   <string name="error_description_timelockUnlocked">Ваш приступни кључ је покренуо откључавање. Као резултат тога, више нећете моћи да користите овај приступни кључ у Kоду.</string>
+  <string name="error_description_tipCardNotActivated">Пошаљите твит овој особи да активирате њену/његову картицу за напојнице.</string>
   <string name="error_description_tipTooLarge">Максимални износ који можете дати као напојницу је %1$s. Унесите мањи износ.</string>
   <string name="error_description_tipTooSmall">Минимални износ који можете дати као напојницу је %1$s. Унесите већи износ.</string>
   <string name="error_description_tooManyAccounts">Svakog dana možete kreirati samo ovoliko novih naloga.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Kupovina je prevelika</string>
   <string name="error_title_purchaseTooSmall">Kupovina je premala</string>
   <string name="error_title_timelockUnlocked">Приступни кључ се више не може користити у Kоду</string>
+  <string name="error_title_tipCardNotActivated">Картица за напојнице још увек није активирана</string>
   <string name="error_title_tipTooLarge">Напојница је превелика</string>
   <string name="error_title_tipTooSmall">Напојница је премала</string>
   <string name="error_title_tooManyAccounts">Napravljeno je previše naloga</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Нека Вам пријатељ започне са Кодом и добићете 5$</string>
   <string name="push_subtitle_newSendCash">Шаљите готовину преко било које апликације за слање порука</string>
   <string name="push_subtitle_referralBonus">Примили сте %1$s Кина јер сте некоме послали први Кин.</string>
+  <string name="push_subtitle_twitterAccountConnected">Сада можете да затражите напојнице.</string>
   <string name="push_title_depositReceived">Депозит је примљен</string>
   <string name="push_title_kinReturned">Кин је враћен</string>
   <string name="push_title_newOnCode">Ново у Коду</string>
   <string name="push_title_referralBonus">Примљен је бонус за препоруку</string>
+  <string name="push_title_twitterAccountConnected">X налог повезан</string>
   <string name="subtitle_accessExpiredDescription">Vaša pozivnica za pristup aplikaciji Code je istekla. Možete da se odjavite i koristite drugi nalog sa važećim statusom pozivnice.</string>
   <string name="subtitle_accessKeyDescription">Vaš ključ za pristup je jedini način da pristupite svojim sredstvima. Čuvajte ga u privatnosti i na sigurnom.</string>
   <string name="subtitle_accessKeyFaceID">Potvrdite svoj identitet da biste videli svoj ključ za pristup.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Неко вам је послао новац</string>
   <string name="subtitle_someoneTippedYou">Неко вам ја дао напојницу</string>
   <string name="subtitle_tipCardForX">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице повежите се са својим X идентитетом.</string>
+  <string name="subtitle_tipCardTwitterDescription">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице поставите објаву на X платформи.</string>
   <string name="subtitle_typeDelete">Откуцајте \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Napravili smo neke izmene da bismo poboljšali iskustvo. Moraćete da ažurirate aplikaciju da biste nastavili da koristite Code.</string>
   <string name="subtitle_validOwnerAccount">Важећи налог власника</string>

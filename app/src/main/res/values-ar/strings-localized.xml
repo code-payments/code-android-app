@@ -41,6 +41,7 @@
   <string name="action_openSettings">فتح الإعدادات</string>
   <string name="action_paste">لصق</string>
   <string name="action_pasteFromClipboard">اللصق من الحافظة</string>
+  <string name="action_postToConnect">انشر لربط حساب </string>
   <string name="action_putInWallet">الوضع في المحفظة</string>
   <string name="action_recoverExistingAccount">استعادة الحساب الموجود بالفعل</string>
   <string name="action_remind">التذكير</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">مرر للدفع</string>
   <string name="action_swipeToTip">تخطي إلى الإكرامية</string>
   <string name="action_tryDifferentCodeAccount">تجربة حساب Code مختلف</string>
+  <string name="action_tweetThem">غرّد لهم</string>
   <string name="action_unmute">إلغاء كتم الصوت</string>
   <string name="action_unsubscribe">إلغاء الاشتراك</string>
   <string name="action_update">تحديث</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">أكبر مبلغ يمكنك الشراء به هو %1$s. يرجى إدخال مبلغ أصغر.</string>
   <string name="error_description_purchaseTooSmall">أصغر مبلغ يمكنك الشراء به هو %1$s. يرجى إدخال مبلغ أكبر.</string>
   <string name="error_description_timelockUnlocked">بدأ مفتاح الوصول الخاص بك في إلغاء القفل. نتيجة لذلك, لن تتمكن بعد الآن من استخدام مفتاح الوصول هذا في Code.</string>
+  <string name="error_description_tipCardNotActivated">أرسل تغريدة إلى هذا الشخص لتفعيل بطاقته للنصائح.</string>
   <string name="error_description_tipTooLarge">الحد الأقصى الذي يمكنك منح إكرامية به هو %1$s. يُرجى إدخال مبلغ أصغر.</string>
   <string name="error_description_tipTooSmall">الحد الأدنى الذي يمكنك منح إكرامية به هو %1$s. يُرجى إدخال مبلغ أكبر.</string>
   <string name="error_description_tooManyAccounts">لا يُمكنك إلا إنشاء عدد محدد من الحسابات الجديدة في اليوم.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">مبلغ الشراء كبير جدًا</string>
   <string name="error_title_purchaseTooSmall">مبلغ الشراء صغير جدًا</string>
   <string name="error_title_timelockUnlocked">إن مفتاح الوصول لم يعد صالحًا للاستخدام في Code</string>
+  <string name="error_title_tipCardNotActivated">بطاقة النصائح لم تُفعّل بعد</string>
   <string name="error_title_tipTooLarge">الإكرامية أكثر من الحد المسموح به</string>
   <string name="error_title_tipTooSmall">الإكرامية أقل من الحد المسموح به</string>
   <string name="error_title_tooManyAccounts">تم إنشاء حسابات أكثر من المسموح به</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">احصل على صديق بدأ على Code واحصل على 5 دولارات</string>
   <string name="push_subtitle_newSendCash">أرسل النقود من خلال أي تطبيق messenger</string>
   <string name="push_subtitle_referralBonus">لقد تلقيت %1$s وحدات Kin لإرسال وحدات Kin الأولى لشخص ما.</string>
+  <string name="push_subtitle_twitterAccountConnected">يمكنك الآن طلب النصائح.\n</string>
   <string name="push_title_depositReceived">تم استلام الإيداع</string>
   <string name="push_title_kinReturned">وحدات Kin المرتجعة</string>
   <string name="push_title_newOnCode">جديد في Code</string>
   <string name="push_title_referralBonus">تم استلام مكافأة الإحالة</string>
+  <string name="push_title_twitterAccountConnected">حساب X متصل\n</string>
   <string name="subtitle_accessExpiredDescription">انتهت صلاحية دعوتك للوصول إلى الرمز. يُمكنك تسجيل الخروج واستخدام حساب مختلف بدعوة حالتها صالحة.</string>
   <string name="subtitle_accessKeyDescription">مفتاح الوصول الخاص بك هو الطريقة الوحيدة للوصول إلى أموالك. يُرجى أن تحافظ على خصوصيته وأمنه.</string>
   <string name="subtitle_accessKeyFaceID">التحقق من هويتك لعرض مفتاح الوصول الخاص بك.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">أرسل إليك شخص ما النقود</string>
   <string name="subtitle_someoneTippedYou">منحك شخص ما إكرامية</string>
   <string name="subtitle_tipCardForX">تتيح لك بطاقة الإكرامية الخاصة بك تلقي الإكراميات من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة الإكرامية الخاصة بك, قم بتوصيل هوية X الخاصة بك.</string>
+  <string name="subtitle_tipCardTwitterDescription">تتيح لك بطاقة النصائح تلقي نصائح من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة النصائح انشر على X.</string>
   <string name="subtitle_typeDelete">اكتب \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">لقد أجرينا بعض التغييرات لتحسين التجربة. ستحتاج إلى تحديث التطبيق للاستمرار في استخدام Code.</string>
   <string name="subtitle_validOwnerAccount">حساب المالك صحيح</string>

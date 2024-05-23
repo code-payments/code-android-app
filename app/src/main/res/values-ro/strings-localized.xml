@@ -41,6 +41,7 @@
   <string name="action_openSettings">Deschide setările</string>
   <string name="action_paste">Lipește</string>
   <string name="action_pasteFromClipboard">Lipește din clipboard</string>
+  <string name="action_postToConnect">Postează pentru a conecta contul</string>
   <string name="action_putInWallet">Pune în portofel</string>
   <string name="action_recoverExistingAccount">Recuperează un cont existent</string>
   <string name="action_remind">Reamintește</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Glisează pentru a plăti</string>
   <string name="action_swipeToTip">Glisează pentru a da bacșiș</string>
   <string name="action_tryDifferentCodeAccount">Încearcă un alt cont Code</string>
+  <string name="action_tweetThem">Trimite-i un Tweet</string>
   <string name="action_unmute">Scoate din surdină</string>
   <string name="action_unsubscribe">Dezabonare</string>
   <string name="action_update">Actualizare</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Cantitatea maximă pe care o poți achiziționa este %1$s. Te rugăm să introduci o sumă mai mică.</string>
   <string name="error_description_purchaseTooSmall">Cantitatea minimă pe care o poți achiziționa este %1$s. Te rugăm să introduci o sumă mai mare.</string>
   <string name="error_description_timelockUnlocked">Cheia ta de acces a inițiat o deblocare. Ca urmare, nu vei mai putea utiliza această cheie de acces în Code.</string>
+  <string name="error_description_tipCardNotActivated">Trimite un tweet acestei persoane pentru a-i activa Cardul de bacșișuri.</string>
   <string name="error_description_tipTooLarge">Cantitatea maximă pe care o poți da ca bacșiș este %1$s. Te rugăm să introduci o sumă mai mică.</string>
   <string name="error_description_tipTooSmall">Cantitatea minimă pe care o poți da ca bacșiș este %1$s. Te rugăm să introduci o sumă mai mare.</string>
   <string name="error_description_tooManyAccounts">Poți crea un număr limitat de conturi în fiecare zi.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Achiziție prea mare</string>
   <string name="error_title_purchaseTooSmall">Achiziție prea mică</string>
   <string name="error_title_timelockUnlocked">Cheia de acces nu mai poate fi utilizată în Code</string>
+  <string name="error_title_tipCardNotActivated">Cardul de bacșișuri nu este activat încă</string>
   <string name="error_title_tipTooLarge">Bacșiș prea mare</string>
   <string name="error_title_tipTooSmall">Bacșiș prea mic</string>
   <string name="error_title_tooManyAccounts">Au fost create prea multe conturi</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Ajutați un prieten să înceapă cu Code și primiți 5 dolari</string>
   <string name="push_subtitle_newSendCash">Trimiteți bani prin orice aplicație de mesagerie</string>
   <string name="push_subtitle_referralBonus">Ați primit %1$s în Kin pentru că ați trimis cuiva primul Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Acum poți cere bacșișuri.</string>
   <string name="push_title_depositReceived">Depozit primit</string>
   <string name="push_title_kinReturned">Kin returnat</string>
   <string name="push_title_newOnCode">Nou pe Code</string>
   <string name="push_title_referralBonus">Bonus de recomandare primit</string>
+  <string name="push_title_twitterAccountConnected">Cont X conectat</string>
   <string name="subtitle_accessExpiredDescription">Codul tău de invitație pentru a accesa Code a expirat. Te poți deconecta pentru a folosi un alt cont care are o invitație validă.</string>
   <string name="subtitle_accessKeyDescription">Cheia ta de acces reprezintă singura modalitate prin care îți poți accesa fondurile. Asigură-te că o păstrezi în confidențialitate și siguranță.</string>
   <string name="subtitle_accessKeyFaceID">Verifică-ți identitatea pentru a-ți vizualiza cheia de acces.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Cineva v-a trimis bani</string>
   <string name="subtitle_someoneTippedYou">Cineva ți-a dat un bacșiș</string>
   <string name="subtitle_tipCardForX">Cardul tău de bacșiș îți permite să primești bacșișuri de la utilizatorii Code din întreaga lume. Pentru a accesa Cardul tău de bacșiș, conectează-te cu contul tău X.</string>
+  <string name="subtitle_tipCardTwitterDescription">Cardul tău de bacșișuri îți permite să primești bacșișuri de la utilizatorii Code din întreaga lume. Pentru a-ți accesa Cardul de bacșișuri, postează pe X.</string>
   <string name="subtitle_typeDelete">Scrie „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Am făcut unele modificări pentru a îmbunătăți experiența de utilizare. Va fi nevoie să actualizezi aplicația pentru a putea folosi mai departe Code.</string>
   <string name="subtitle_validOwnerAccount">Cont de proprietar valid</string>

@@ -41,6 +41,7 @@
   <string name="action_openSettings">Otvoriť nastavenia</string>
   <string name="action_paste">Prilepiť</string>
   <string name="action_pasteFromClipboard">Prilepiť zo schránky</string>
+  <string name="action_postToConnect">Uverejniť pre prepojenie účtu</string>
   <string name="action_putInWallet">Vložiť do peňaženky</string>
   <string name="action_recoverExistingAccount">Obnoviť existujúci účet</string>
   <string name="action_remind">Pripomenúť</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Pre platbu potiahnite</string>
   <string name="action_swipeToTip">Prejsť na možnosť Tip</string>
   <string name="action_tryDifferentCodeAccount">Vyskúšajte iný kódový účet</string>
+  <string name="action_tweetThem">Tweetujte ich</string>
   <string name="action_unmute">Zrušiť stlmenie</string>
   <string name="action_unsubscribe">Zrušiť odber</string>
   <string name="action_update">Aktualizovať</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Maximálna hodnota nákupu je %1$s. Zadajte nižšiu sumu.</string>
   <string name="error_description_purchaseTooSmall">Minimálna hodnota nákupu je %1$s. Zadajte vyššiu sumu.</string>
   <string name="error_description_timelockUnlocked">Váš prístupový kľúč spustil odomknutie.  V dôsledku toho už nebudete môcť používať tento prístupový kľúč v kóde.</string>
+  <string name="error_description_tipCardNotActivated">Pošlite tweet tejto osobe, aby ste aktivovali jej Tipovú kartu.</string>
   <string name="error_description_tipTooLarge">Maximálny tip je %1$s. Zadajte nižšiu sumu.</string>
   <string name="error_description_tipTooSmall">Minimálny tip je %1$s. Zadajte vyššiu sumu.</string>
   <string name="error_description_tooManyAccounts">Každý deň môžete vytvoriť len toľko nových účtov.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Nákup je príliš veľký</string>
   <string name="error_title_purchaseTooSmall">Nákup je príliš malý</string>
   <string name="error_title_timelockUnlocked">Prístupový kľúč sa už v kóde nedá použiť</string>
+  <string name="error_title_tipCardNotActivated">Tipová karta ešte nie je aktivovaná</string>
   <string name="error_title_tipTooLarge">Príliš vysoký tip</string>
   <string name="error_title_tipTooSmall">Príliš nízky tip</string>
   <string name="error_title_tooManyAccounts">Bolo vytvorených príliš veľa účtov</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Začnite s kódom priateľa a získajte 5 $</string>
   <string name="push_subtitle_newSendCash">Posielať hotovosť prostredníctvom akejkoľvek aplikácie na odosielanie správ</string>
   <string name="push_subtitle_referralBonus">Dostali ste %1$s Kinov za to, že ste niekomu poslali ich prvý Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Teraz môžete požiadať o tipy.</string>
   <string name="push_title_depositReceived">Vklad bol prijatý</string>
   <string name="push_title_kinReturned">Kin bol vrátený</string>
   <string name="push_title_newOnCode">Novinka v kóde</string>
   <string name="push_title_referralBonus">Prijatý bonus za odporúčanie</string>
+  <string name="push_title_twitterAccountConnected">Účet X je pripojený</string>
   <string name="subtitle_accessExpiredDescription">Platnosť vašej pozvánky na prístupový kód vypršala. Môžete sa odhlásiť a použiť iný účet s platným stavom pozvánky.</string>
   <string name="subtitle_accessKeyDescription">Váš prístupový kľúč je jediný spôsob, ako získať prístup k vašim finančným prostriedkom. Uchovávajte ho v súkromí a bezpečí.</string>
   <string name="subtitle_accessKeyFaceID">Ak chcete zobraziť prístupový kľúč, overte svoju totožnosť.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Niekto vám poslal peniaze</string>
   <string name="subtitle_someoneTippedYou">Niekto ti dal tip</string>
   <string name="subtitle_tipCardForX">Vaša tipovacia karta vám umožňuje dostávať tipy od používateľov peňaženky Code z celého sveta. Ak chcete získať prístup k svojej tipovacej karte, pripojte sa účtom X.</string>
+  <string name="subtitle_tipCardTwitterDescription">Vaša Tipová karta vám umožňuje dostávať tipy od používateľov Kódu z celého sveta. Ak chcete získať prístup k príspevku Tipová karta na X.</string>
   <string name="subtitle_typeDelete">Napíšte „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Urobili sme niekoľko zmien na zlepšenie prostredia. Ak chcete naďalej používať kód, musíte si aplikáciu aktualizovať.</string>
   <string name="subtitle_validOwnerAccount">Platný účet vlastníka</string>

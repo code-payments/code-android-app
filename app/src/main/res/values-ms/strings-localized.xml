@@ -41,6 +41,7 @@
   <string name="action_openSettings">Buka Tetapan</string>
   <string name="action_paste">Tampal</string>
   <string name="action_pasteFromClipboard">Tampal Dari Papan Keratan</string>
+  <string name="action_postToConnect">Siar untuk Menghubungkan Akaun</string>
   <string name="action_putInWallet">Masukkan dalam Dompet</string>
   <string name="action_recoverExistingAccount">Pulihkan Akaun Sedia Ada</string>
   <string name="action_remind">Ingatkan</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Leret untuk Membayar</string>
   <string name="action_swipeToTip">Leret untuk beri Tip</string>
   <string name="action_tryDifferentCodeAccount">Cuba Akaun Code Lain</string>
+  <string name="action_tweetThem">Tweetkan</string>
   <string name="action_unmute">Nyahsenyap</string>
   <string name="action_unsubscribe">Buang langganan</string>
   <string name="action_update">Kemas kini</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Amaun maksimum yang boleh anda beli ialah %1$s. Sila masukkan amaun yang lebih kecil.</string>
   <string name="error_description_purchaseTooSmall">Amaun minimum yang boleh anda beli ialah %1$s. Sila masukkan amaun yang lebih besar.</string>
   <string name="error_description_timelockUnlocked">Kunci akses anda telah memulakan menyahkunci. Oleh itu, anda tidak akan dapat menggunakan Kunci Akses ini dalam Kod lagi.</string>
+  <string name="error_description_tipCardNotActivated">Hantar tweet kepada orang ini untuk mengaktifkan Kad Tip mereka.</string>
   <string name="error_description_tipTooLarge">Maksimum anda boleh memberi tip adalah %1$s. Sila masukkan jumlah yang lebih kecil.</string>
   <string name="error_description_tipTooSmall">Minimum yang anda boleh tip adalah %1$s. Sila masukkan jumlah yang lebih besar.</string>
   <string name="error_description_tooManyAccounts">Anda tidak boleh mencipta akaun baharu setiap hari.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Amaun pembelian terlalu besar</string>
   <string name="error_title_purchaseTooSmall">Amaun pembelian terlalu kecil</string>
   <string name="error_title_timelockUnlocked">Kunci Akses Tidak Boleh Digunakan dalam Kod lagi</string>
+  <string name="error_title_tipCardNotActivated">Kad Tip Belum Diaktifkan Lagi</string>
   <string name="error_title_tipTooLarge">Tip Terlalu Besar</string>
   <string name="error_title_tipTooSmall">Tip Terlalu Kecil</string>
   <string name="error_title_tooManyAccounts">Terlalu banyak akaun dicipta</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Dapatkan rakan untuk bermula menggunakan Code dan dapatkan $5</string>
   <string name="push_subtitle_newSendCash">Hantar wang tunai melalui mana-mana aplikasi pemesej</string>
   <string name="push_subtitle_referralBonus">Anda menerima %1$s Kin kerana mengirimkan kepada seseorang Kin mereka yang pertama.</string>
+  <string name="push_subtitle_twitterAccountConnected">Anda kini boleh meminta tip.</string>
   <string name="push_title_depositReceived">Deposit Diterima</string>
   <string name="push_title_kinReturned">Kin Dikembalikan</string>
   <string name="push_title_newOnCode">Baharu tentang Code</string>
   <string name="push_title_referralBonus">Bonus Rujukan Diterima</string>
+  <string name="push_title_twitterAccountConnected">Akaun X Dihubungkan</string>
   <string name="subtitle_accessExpiredDescription">Ajakan anda untuk mengakses Code telah tamat. Anda boleh log keluar dan menggunakan akaun lain dengan status ajakan yang sah.</string>
   <string name="subtitle_accessKeyDescription">Kunci Akses anda adalah satu-satunya cara untuk mengakses dana anda. Sila pastikan ia peribadi dan selamat.</string>
   <string name="subtitle_accessKeyFaceID">Sahkan identiti anda untuk melihat Kunci Akses anda.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Seseorang telah menghantar wang tunai kepada anda</string>
   <string name="subtitle_someoneTippedYou">Seseorang memberi tip kepada anda</string>
   <string name="subtitle_tipCardForX">Kad Tip anda membolehkan anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kad Tip anda sila hubungkan identiti X anda.</string>
+  <string name="subtitle_tipCardTwitterDescription">Kad Tip anda membolehkan anda menerima tip dari pengguna Kod di serata dunia. Untuk mengakses ke Kad Tip anda sila siarkan ke X.</string>
   <string name="subtitle_typeDelete">Jenis \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Kami telah melakukan beberapa perubahan untuk meningkatkan pengalaman. Anda perlu mengemas kini aplikasi untuk terus menggunakan Code.</string>
   <string name="subtitle_validOwnerAccount">Akaun pemilik sah</string>
