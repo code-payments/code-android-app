@@ -41,6 +41,7 @@
   <string name="action_openSettings">Abrir Definições</string>
   <string name="action_paste">Colar</string>
   <string name="action_pasteFromClipboard">Colar a Partir da Área de Transferência</string>
+  <string name="action_postToConnect">Faça uma publicação para associar conta</string>
   <string name="action_putInWallet">Por na Carteira</string>
   <string name="action_recoverExistingAccount">Recuperar Conta Existente</string>
   <string name="action_remind">Relembrar</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Deslize para pagar</string>
   <string name="action_swipeToTip">Deslize para dar recompensa</string>
   <string name="action_tryDifferentCodeAccount">Tente uma Conta Code Diferente</string>
+  <string name="action_tweetThem">Enviar tweet</string>
   <string name="action_unmute">Ligar o som</string>
   <string name="action_unsubscribe">Anular subscrição</string>
   <string name="action_update">Atualizar</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">O máximo que pode comprar é %1$s. Insira um montante menor.</string>
   <string name="error_description_purchaseTooSmall">O mínimo que pode comprar é %1$s. Insira um montante maior.</string>
   <string name="error_description_timelockUnlocked">A sua Chave de Acesso iniciou um desbloqueio. Por esse motivo não poderá continuar a utilizar esta Chave de Acesso na Code.</string>
+  <string name="error_description_tipCardNotActivated">Envie um tweet a esta pessoa para ativar o seu Cartão de gorjetas.</string>
   <string name="error_description_tipTooLarge">O valor máximo de recompensa é %1$s. Por favor, insira um montante inferior.</string>
   <string name="error_description_tipTooSmall">O valor mínimo de recompensa é %1$s. Por favor, insira um montante superior.</string>
   <string name="error_description_tooManyAccounts">Só pode criar algumas contas por dia.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Compra demasiado grande</string>
   <string name="error_title_purchaseTooSmall">Compra demasiado pequena</string>
   <string name="error_title_timelockUnlocked">Chave de Acesso Deixou de Ser Utilizável na Code</string>
+  <string name="error_title_tipCardNotActivated">Cartão de gorjetas por ativar</string>
   <string name="error_title_tipTooLarge">O valor da recompensa é demasiado alto</string>
   <string name="error_title_tipTooSmall">O valor da recompensa é demasiado baixo</string>
   <string name="error_title_tooManyAccounts">Demasiadas contas criadas</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Inicie um amigo na Code e ganhe 5€</string>
   <string name="push_subtitle_newSendCash">Envie dinheiro através de qualquer aplicação de mensagens</string>
   <string name="push_subtitle_referralBonus">Recebeu %1$s em Kin por ter enviado o primeiro Kin a alguém.</string>
+  <string name="push_subtitle_twitterAccountConnected">Agora já pode pedir gorjetas.</string>
   <string name="push_title_depositReceived">Depósito recebido</string>
   <string name="push_title_kinReturned">Kin devolvido</string>
   <string name="push_title_newOnCode">Novidades na Code</string>
   <string name="push_title_referralBonus">Bónus de referência recebido</string>
+  <string name="push_title_twitterAccountConnected">Conta X associada</string>
   <string name="subtitle_accessExpiredDescription">O seu convite para ter acesso à Code expirou. Pode terminar sessão ou utilizar uma conta diferente com um estado de convite válido.</string>
   <string name="subtitle_accessKeyDescription">A Sua Chave de Acesso é a única forma de aceder aos seus fundos. Mantenha-o privado e seguro.</string>
   <string name="subtitle_accessKeyFaceID">Verifique a sua identidade para ver a sua Chave de Acesso.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Alguém enviou-te dinheiro</string>
   <string name="subtitle_someoneTippedYou">Recebeu uma recompensa</string>
   <string name="subtitle_tipCardForX">O seu Cartão de Recompensas permite-lhe receber recompensas de utilizadores da Code de todo o mundo. Para ter acesso ao seu Cartão de Recompensas, conecte a sua identidade X.</string>
+  <string name="subtitle_tipCardTwitterDescription">O seu Cartão de gorjetas permite-lhe receber gorjetas de utilizadores do Code em todo o mundo. Para aceder ao seu Cartão de gorjetas, faça uma publicação no X.</string>
   <string name="subtitle_typeDelete">Digite \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Fizemos algumas alterações para melhorar a experiência. Terá que atualizar a aplicação para continuar a usar a Code.</string>
   <string name="subtitle_validOwnerAccount">Conta de proprietário válida</string>

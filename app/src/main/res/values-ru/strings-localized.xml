@@ -41,6 +41,7 @@
   <string name="action_openSettings">Открыть настройки</string>
   <string name="action_paste">Вставить</string>
   <string name="action_pasteFromClipboard">Вставить из буфера обмена</string>
+  <string name="action_postToConnect">Опубликуйте пост, чтобы подключить аккаунт</string>
   <string name="action_putInWallet">Положить в кошелек</string>
   <string name="action_recoverExistingAccount">Восстановить существующую учетную запись</string>
   <string name="action_remind">Напомнить</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Проведите, чтобы оплатить</string>
   <string name="action_swipeToTip">Прведите, чтобы дать чаевые </string>
   <string name="action_tryDifferentCodeAccount">Попробовать другую учетную запись Code</string>
+  <string name="action_tweetThem">Отправьте им твит</string>
   <string name="action_unmute">Включить звук</string>
   <string name="action_unsubscribe">Отписаться</string>
   <string name="action_update">Обновить</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Максимальное количество, которое вы можете приобрести, — %1$s. Введите меньшее количество.</string>
   <string name="error_description_purchaseTooSmall">Минимальное количество, которое вы можете приобрести, — %1$s. Введите большее количество.</string>
   <string name="error_description_timelockUnlocked">Ваш ключ доступа инициировал снятие блокировки. В результате вы больше не сможете использовать этот ключ доступа в Code.</string>
+  <string name="error_description_tipCardNotActivated">Отправьте твит этому человеку, чтобы активировать его карточку чаевых.</string>
   <string name="error_description_tipTooLarge">Максимальный размер чаевых — %1$s. Введите меньшую сумму.</string>
   <string name="error_description_tipTooSmall">Минимальный размер чаевых — %1$s. Введите большую сумму.</string>
   <string name="error_description_tooManyAccounts">Вы можете создать лишь столько новых учетных записей в день.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Слишком большая сумма покупки</string>
   <string name="error_title_purchaseTooSmall">Слишком маленькая сумма покупки</string>
   <string name="error_title_timelockUnlocked">Ключ доступа больше нельзя использовать в Code</string>
+  <string name="error_title_tipCardNotActivated">Карточка чаевых еще не активирована</string>
   <string name="error_title_tipTooLarge">Чаевые слишком большие</string>
   <string name="error_title_tipTooSmall">Чаевые слишком маленькие</string>
   <string name="error_title_tooManyAccounts">Создано слишком много учетных записей</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Пригласите друга начать пользоваться Code и получите 5 долларов США</string>
   <string name="push_subtitle_newSendCash">Отправляйте наличные через любой мессенджер</string>
   <string name="push_subtitle_referralBonus">Вы получили %1$s Kin за отправку кому-то его/ее первого Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Теперь вы можете запросить чаевые.</string>
   <string name="push_title_depositReceived">Депозит получен</string>
   <string name="push_title_kinReturned">Kin вернулся</string>
   <string name="push_title_newOnCode">Новое в Code</string>
   <string name="push_title_referralBonus">Получен реферальный бонус</string>
+  <string name="push_title_twitterAccountConnected">Подключен аккаунт X</string>
   <string name="subtitle_accessExpiredDescription">Срок действия вашего приглашения в Code истек. Вы можете выйти и воспользоваться другой учетной записью с действующим статусом приглашения.</string>
   <string name="subtitle_accessKeyDescription">Ваш ключ доступа — единственный способ получить доступ к вашим средствам. Храните его в безопасном месте и не разглашайте.</string>
   <string name="subtitle_accessKeyFaceID">Подтвердите свою личность, чтобы посмотреть свой ключ доступа.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Кто-то отправил вам деньги</string>
   <string name="subtitle_someoneTippedYou">Кто-то дал вам чаевые</string>
   <string name="subtitle_tipCardForX">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к своей карте чаевых, подключите свою личность X.</string>
+  <string name="subtitle_tipCardTwitterDescription">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к карточке чаевых, опублиуйте пост в X.</string>
   <string name="subtitle_typeDelete">Введите «%1$s‎»</string>
   <string name="subtitle_updateRequiredDescription">Мы кое-что изменили, чтобы улучшить ваш опыт пользования. Вам придется обновить приложение, чтобы продолжить пользоваться Code.</string>
   <string name="subtitle_validOwnerAccount">Действительный счет владельца</string>

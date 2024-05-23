@@ -41,6 +41,7 @@
   <string name="action_openSettings">［設定］を開く</string>
   <string name="action_paste">貼り付ける</string>
   <string name="action_pasteFromClipboard">クリップボードから貼り付ける</string>
+  <string name="action_postToConnect">投稿してアカウントを接続</string>
   <string name="action_putInWallet">ウォレットに入れる</string>
   <string name="action_recoverExistingAccount">既存のアカウントを復元する</string>
   <string name="action_remind">リマインド</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">スワイプして支払う</string>
   <string name="action_swipeToTip">スワイプしてチップを支払う</string>
   <string name="action_tryDifferentCodeAccount">別のCodeアカウントを試す</string>
+  <string name="action_tweetThem">ツイートする</string>
   <string name="action_unmute">ミュート解除</string>
   <string name="action_unsubscribe">登録解除</string>
   <string name="action_update">更新</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">購入最大金額は%1$sです。もっと少ない金額を入力してください。</string>
   <string name="error_description_purchaseTooSmall">購入最小金額は%1$sです。もっと大きい金額を入力してください。</string>
   <string name="error_description_timelockUnlocked">アクセスキーがロック解除を開始しました。 その結果,このアクセスキーをCodeで使用できなくなります。</string>
+  <string name="error_description_tipCardNotActivated">この人のチップカードを有効化するにはこの人にツイートを送信してください。</string>
   <string name="error_description_tipTooLarge">チップの最大額は%1$sです。もっと小さな額を入力してください。</string>
   <string name="error_description_tipTooSmall">チップの最小額は%1$sです。もっと大きな額を入力してください。</string>
   <string name="error_description_tooManyAccounts">1日に作成できる新規アカウントの数は限られています。</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">購入が大きすぎます</string>
   <string name="error_title_purchaseTooSmall">購入が少なすぎます</string>
   <string name="error_title_timelockUnlocked">Codeで使用できなくなったアクセス キー</string>
+  <string name="error_title_tipCardNotActivated">チップカードが有効化されていません</string>
   <string name="error_title_tipTooLarge">チップ額が多すぎます</string>
   <string name="error_title_tipTooSmall">チップ額が少なすぎます</string>
   <string name="error_title_tooManyAccounts">作成されたアカウントが多すぎます</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">友だちにCodeを始めさせて5ドルもらおう</string>
   <string name="push_subtitle_newSendCash">何らかのメッセージアプリで現金を送金</string>
   <string name="push_subtitle_referralBonus">誰かに最初のKinを送ったことで%1$s分のKinを受け取りました。</string>
+  <string name="push_subtitle_twitterAccountConnected">チップをリクエストできるようになりました。</string>
   <string name="push_title_depositReceived">受取済みの入金</string>
   <string name="push_title_kinReturned">返金されたKin</string>
   <string name="push_title_newOnCode">Code最新情報</string>
   <string name="push_title_referralBonus">受取済みの紹介ボーナス</string>
+  <string name="push_title_twitterAccountConnected">Xアカウントが接続されました</string>
   <string name="subtitle_accessExpiredDescription">Codeにアクセスするための招待の有効期限が切れています。ログアウトして,有効な招待ステータスを持つ別のアカウントを使用できます。</string>
   <string name="subtitle_accessKeyDescription">アクセスキーは,お客様の資金にアクセスする唯一の方法です。公表せずに安全に保管してください。</string>
   <string name="subtitle_accessKeyFaceID">お客様のアクセスキーを表示するために本人確認を行ってください。</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">誰かがあなたに送金しました</string>
   <string name="subtitle_someoneTippedYou">誰かがあなたにチップを支払いました</string>
   <string name="subtitle_tipCardForX">チップカードを使用すると,世界中のCodeユーザーからチップを受け取ることができます。チップカードにアクセスするには,XのIDを接続してください。</string>
+  <string name="subtitle_tipCardTwitterDescription">チップカードを使用すると世界中のCodeユーザーからチップを受け取れます。チップカードにアクセスするにはXに投稿してください。</string>
   <string name="subtitle_typeDelete">\"%1$s\"と入力</string>
   <string name="subtitle_updateRequiredDescription">エクスペリエンスを向上させるために,いくつかの変更を行いました。Codeを使い続けるには,アプリを更新する必要があります。</string>
   <string name="subtitle_validOwnerAccount">有効なオーナーアカウント</string>

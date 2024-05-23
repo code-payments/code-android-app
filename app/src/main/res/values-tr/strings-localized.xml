@@ -41,6 +41,7 @@
   <string name="action_openSettings">Ayarlar\'ı Aç</string>
   <string name="action_paste">Yapıştır</string>
   <string name="action_pasteFromClipboard">Panodan Yapıştır</string>
+  <string name="action_postToConnect">Hesabı Bağlamak için Gönder</string>
   <string name="action_putInWallet">Cüzdana Yerleştir</string>
   <string name="action_recoverExistingAccount">Mevcut Hesabı Kurtar</string>
   <string name="action_remind">Hatırlat</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Ödemek için Kaydır</string>
   <string name="action_swipeToTip">Bahşiş Vermek İçin Kaydır</string>
   <string name="action_tryDifferentCodeAccount">Farklı Code Hesabı Dene</string>
+  <string name="action_tweetThem">Onları Tweet\'le</string>
   <string name="action_unmute">Sesi aç</string>
   <string name="action_unsubscribe">Abonelikten çık</string>
   <string name="action_update">Güncelle</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">En fazla %1$s satın alabilirsiniz. Lütfen daha düşük bir miktar girin.</string>
   <string name="error_description_purchaseTooSmall">En az %1$s satın alabilirsiniz. Lütfen daha yüksek bir miktar girin.</string>
   <string name="error_description_timelockUnlocked">Erişim Anahtarınız bir kilit açma işlemi başlattı. Sonuç olarak artık bu Erişim Anahtarını Code\'da kullanamayacaksınız.</string>
+  <string name="error_description_tipCardNotActivated">Bahşiş Kartını etkinleştirmek için bu kişiye bir tweet gönderin.</string>
   <string name="error_description_tipTooLarge">Bahşiş verebileceğin maksimum tutar %1$s. Lütfen daha küçük bir tutar gir.</string>
   <string name="error_description_tipTooSmall">Bahşiş verebileceğin minimum tutar %1$s. Lütfen daha büyük bir tutar gir.</string>
   <string name="error_description_tooManyAccounts">Her gün yalnızca belirli sayıda yeni hesap oluşturabilirsin.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Alım miktarı çok yüksek</string>
   <string name="error_title_purchaseTooSmall">Alım miktarı çok düşük</string>
   <string name="error_title_timelockUnlocked">Artık Erişim Anahtarı Kodda Kullanılamaz</string>
+  <string name="error_title_tipCardNotActivated">Bahşiş Kartı Henüz Etkinleştirilmedi</string>
   <string name="error_title_tipTooLarge">Bahşiş Çok Fazla</string>
   <string name="error_title_tipTooSmall">Bahşiş Çok Az</string>
   <string name="error_title_tooManyAccounts">Çok fazla hesap oluşturuldu</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Bir arkadaşınızı Code\'a başlatın ve $5 kapın</string>
   <string name="push_subtitle_newSendCash">Herhangi bir mesajlaşma uygulaması vasıtasıyla nakit gönderin</string>
   <string name="push_subtitle_referralBonus">Birisine ilk Kin\'lerini gönderdiğiniz için %1$s Kin kazandınız.</string>
+  <string name="push_subtitle_twitterAccountConnected">Artık bahşişleri talep edebilirsiniz.</string>
   <string name="push_title_depositReceived">Para Yatırma Alındı</string>
   <string name="push_title_kinReturned">Kin İade Edildi</string>
   <string name="push_title_newOnCode">Code\'da Yeni</string>
   <string name="push_title_referralBonus">Yönlendirme Bonusu Alındı</string>
+  <string name="push_title_twitterAccountConnected">X Hesabı Bağlandı</string>
   <string name="subtitle_accessExpiredDescription">Code erişim davetinin süresi doldu. Oturumu kapatabilir ve geçerli bir davet durumuna sahip farklı bir hesap kullanabilirsin.</string>
   <string name="subtitle_accessKeyDescription">Erişim Anahtarın, paralarına erişmenin tek yoludur. Lütfen kişisel ve güvenli olarak sakla.</string>
   <string name="subtitle_accessKeyFaceID">Erişim Anahtarını görüntülemek için kimliğini doğrula.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Birisi sana para gönderdi</string>
   <string name="subtitle_someoneTippedYou">Birisi sana bahşiş verdi</string>
   <string name="subtitle_tipCardForX">Bahşiş Kartın, dünyanın dört bir yanındaki Code kullanıcılarından bahşişler almana olanak tanır. Tip Kartına erişmek için X kimliğini bağla.</string>
+  <string name="subtitle_tipCardTwitterDescription">Bahşiş Kartınız, dünyanın her yerindeki Code kullanıcılarından ipuçları almanızı sağlar. Bahşiş Kartınıza erişmek için X\'e gönderin.</string>
   <string name="subtitle_typeDelete">\"%1$s\" yaz</string>
   <string name="subtitle_updateRequiredDescription">Deneyimi iyileştirmek için bazı değişiklikler yaptık. Code\'u kullanmaya devam etmek için uygulamayı güncellemen gerekiyor.</string>
   <string name="subtitle_validOwnerAccount">Geçerli sahip hesabı</string>

@@ -240,7 +240,7 @@ data object DeleteCodeScreen : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_deleteAccount)
+        @Composable get() = stringResource(id = R.string.action_deleteAccount)
 
     @Composable
     override fun Content() {
@@ -256,7 +256,7 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_deleteAccount)
+        @Composable get() = stringResource(id = R.string.action_deleteAccount)
 
     @Composable
     override fun Content() {

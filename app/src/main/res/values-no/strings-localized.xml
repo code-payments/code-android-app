@@ -41,6 +41,7 @@
   <string name="action_openSettings">Åpne innstillinger</string>
   <string name="action_paste">Lim inn</string>
   <string name="action_pasteFromClipboard">Lim inn fra utklippstavlen</string>
+  <string name="action_postToConnect">Skriv et innlegg for å koble til kontoen</string>
   <string name="action_putInWallet">Legg i lommeboken</string>
   <string name="action_recoverExistingAccount">Gjenopprett eksisterende konto</string>
   <string name="action_remind">Påminn</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Sveip for å betale</string>
   <string name="action_swipeToTip">Sveip for å tipse</string>
   <string name="action_tryDifferentCodeAccount">Prøv en annen kodekonto</string>
+  <string name="action_tweetThem">Send dem en tweet</string>
   <string name="action_unmute">Slå på lyden</string>
   <string name="action_unsubscribe">Avslutt abonnement</string>
   <string name="action_update">Oppdater</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Det maksimale antallet du kan kjøpe er %1$s. Angi en mindre mengde.</string>
   <string name="error_description_purchaseTooSmall">Det minimale antallet du kan kjøpe er %1$s. Angi en større mengde.</string>
   <string name="error_description_timelockUnlocked">Tilgangsnøkkelen din har åpnet for tilgang. Derfor kan du ikke lenger bruke denne tilgangsnøkkelen i Code.</string>
+  <string name="error_description_tipCardNotActivated">Send en tweet til denne personen for å aktiver personens tipskort.</string>
   <string name="error_description_tipTooLarge">Det meste du kan tipse er %1$s. Legg inn et mindre beløp.</string>
   <string name="error_description_tipTooSmall">Det minste du kan tipse er %1$s. Legg inn et større beløp.</string>
   <string name="error_description_tooManyAccounts">Du kan bare opprette et visst antall nye kontoer hver dag.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Kjøpet er for stort</string>
   <string name="error_title_purchaseTooSmall">Kjøpet er for lite</string>
   <string name="error_title_timelockUnlocked">Tilgangsnøkkel kan ikke lenger brukes i Code</string>
+  <string name="error_title_tipCardNotActivated">Tipskort enda ikke aktivert</string>
   <string name="error_title_tipTooLarge">For stort tips</string>
   <string name="error_title_tipTooSmall">For lite tips</string>
   <string name="error_title_tooManyAccounts">For mange kontoer er opprettet</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Få en venn i gang med Code og få USD 5</string>
   <string name="push_subtitle_newSendCash">Send kontanter gjennom enhver meldingsapp</string>
   <string name="push_subtitle_referralBonus">Du mottok Kin verdt %1$s for for å ha sendt noen deres første Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Nå kan du be om tips.</string>
   <string name="push_title_depositReceived">Innskudd mottatt</string>
   <string name="push_title_kinReturned">Kin returnert</string>
   <string name="push_title_newOnCode">Ny på Code</string>
   <string name="push_title_referralBonus">Henvisningsbonus mottatt</string>
+  <string name="push_title_twitterAccountConnected">X-konto tilkoblet</string>
   <string name="subtitle_accessExpiredDescription">Din invitasjon til å få tilgang til koden er utløpt. Du kan logge ut og bruke en annen konto med en gyldig invitasjonsstatus.</string>
   <string name="subtitle_accessKeyDescription">Tilgangsnøkkelen din er den eneste måten å få tilgang til pengene dine på. Bevar den privat og trygt.</string>
   <string name="subtitle_accessKeyFaceID">Bekreft identiteten din for å se tilgangsnøkkelen din.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Noen sendte deg penger</string>
   <string name="subtitle_someoneTippedYou">Noen tipset deg</string>
   <string name="subtitle_tipCardForX">Tipskortet ditt lar deg motta tips fra Code-brukere over hele verden. For tilgang til tipskortet ditt koble deg opp til X-identiteten din.</string>
+  <string name="subtitle_tipCardTwitterDescription">Tipskortet ditt lar deg motta tips fra Code-brukere over hele verden. Skriv et innlegg til X for å få tilgang til tipskortet ditt.</string>
   <string name="subtitle_typeDelete">Skriv \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Vi har gjort noen endringer for å forbedre opplevelsen. Du må oppdatere appen for å fortsette å bruke koden.</string>
   <string name="subtitle_validOwnerAccount">Gyldig eierkonto</string>
