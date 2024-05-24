@@ -59,14 +59,14 @@ class AccountWithdrawAmountViewModel @Inject constructor(
 ) {
     val uiFlow = MutableStateFlow(AccountWithdrawAmountUiModel())
 
+    override val flowType: FlowType = FlowType.Withdrawal
+
     init {
         init()
         viewModelScope.launch(Dispatchers.IO) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
-
-    override val flowType: FlowType = FlowType.Withdrawal
 
     override fun reset() {
         numberInputHelper.reset()
@@ -91,17 +91,16 @@ class AccountWithdrawAmountViewModel @Inject constructor(
             return
         }
 
-        val currencyCode = uiModel.currencyModel.selectedCurrencyCode ?: return
-        val currencyResId = uiModel.currencyModel.selectedCurrencyResId ?: return
+        val currency = uiModel.currencyModel.selectedCurrency ?: return
 
         navigator.push(
             WithdrawalAddressScreen(
                 uiModel.amountModel.amountDouble,
                 uiModel.amountModel.amountKin.quarks,
                 uiModel.amountModel.amountText,
-                currencyCode,
-                currencyResId,
-                uiModel.currencyModel.currencies.firstOrNull { it.code == currencyCode }?.rate
+                currency.code,
+                currency.resId,
+                currency.rate
             )
         )
     }

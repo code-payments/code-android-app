@@ -14,6 +14,11 @@ sealed interface TraceType {
     data object Silent : TraceType
 
     /**
+     * An error event
+     */
+    data object Error: TraceType
+
+    /**
      * A log message
      */
     data object Log : TraceType
@@ -47,6 +52,7 @@ sealed interface TraceType {
 private fun TraceType.toBugsnagBreadcrumbType(): BreadcrumbType? {
     return when (this) {
         TraceType.Silent -> null
+        TraceType.Error -> BreadcrumbType.ERROR
         TraceType.Log -> BreadcrumbType.LOG
         TraceType.Navigation -> BreadcrumbType.NAVIGATION
         TraceType.Network -> BreadcrumbType.REQUEST

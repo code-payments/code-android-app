@@ -65,14 +65,14 @@ class TipPaymentViewModel @Inject constructor(
 
     val state = MutableStateFlow(State())
 
+    override val flowType: FlowType = FlowType.Tip
+
     init {
         init()
         viewModelScope.launch(Dispatchers.IO) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
-
-    override val flowType: FlowType = FlowType.Tip
 
     override fun reset() {
         numberInputHelper.reset()
@@ -121,9 +121,8 @@ class TipPaymentViewModel @Inject constructor(
         val amountFiat = uiModel.amountModel.amountDouble
         val amountKin = uiModel.amountModel.amountKin
 
-        val currencyCode =
-            CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrencyCode.orEmpty())
-                ?: return null
+        val currencyCode = CurrencyCode
+            .tryValueOf(uiModel.currencyModel.selectedCurrency?.code) ?: return null
 
         exchange.fetchRatesIfNeeded()
         val rate = exchange.rateFor(currencyCode) ?: return null
@@ -184,7 +183,7 @@ class TipPaymentViewModel @Inject constructor(
         super.onAmountChanged(lastPressedBackspace)
         state.update {
             val minValue =
-                if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
+                if (it.currencyModel.selectedCurrency?.code == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
                 continueEnabled = numberInputHelper.amount >= minValue &&
                         !it.amountModel.isInsufficient

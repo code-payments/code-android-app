@@ -59,7 +59,7 @@ fun AccountWithdrawAmount(
                 captionText = dataState.amountModel.captionText,
                 isAltCaption = dataState.amountModel.isCaptionConversion,
                 altCaptionColor = color,
-                currencyResId = dataState.currencyModel.selectedCurrencyResId,
+                currencyResId = dataState.currencyModel.selectedCurrency?.resId,
                 uiModel = dataState.amountAnimatedModel,
                 isAnimated = true,
                 textStyle = CodeTheme.typography.displayLarge,

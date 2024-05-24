@@ -43,35 +43,6 @@ object AccountUtils {
     }
 
     private suspend fun getAccount(context: Activity): @NonNull Single<Pair<String?, Account?>> {
-        trace("getAccount")
-        fun getAuthTokenByFeatures(cb: (k: String?, a: Account?) -> Unit) {
-            val am: AccountManager = AccountManager.get(context)
-            val start = Clock.System.now()
-            am.getAuthTokenByFeatures(
-                acctType, acctType, null, context, null, null,
-                { future ->
-                    try {
-                        val bundle = future?.result
-                        val authToken = bundle?.getString(AccountManager.KEY_AUTHTOKEN)
-                        val accountName = bundle?.getString(AccountManager.KEY_ACCOUNT_NAME)
-                        val account: Account? = getAccount(context, accountName)
-
-                        val end = Clock.System.now()
-                        trace("auth token feature fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
-                        trace("token=$authToken, $accountName, ${account?.name}", type = TraceType.Silent)
-
-                        cb(authToken.orEmpty(), account)
-
-                        if (null == account && authToken != null) {
-                            addAccount(context, accountName.orEmpty(), "", authToken)
-                        }
-                    } catch (e: AuthenticatorException) {
-                        cb(null, null)
-                    }
-                }, null
-            )
-        }
-
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
@@ -91,11 +62,11 @@ object AccountUtils {
     }
 
     private suspend fun getAccountNoActivity(context: Context) : Pair<String?, Account?>? = suspendCancellableCoroutine {cont ->
-        trace("getAuthToken")
+        trace("getAuthToken", type = TraceType.Silent)
         val am: AccountManager = AccountManager.get(context)
         val accountthing = am.accounts.getOrNull(0)
         if (accountthing == null) {
-            trace("no associated account found")
+            trace("no associated account found", type = TraceType.Error)
             cont.resume(null to null)
             return@suspendCancellableCoroutine
         }
@@ -118,7 +89,7 @@ object AccountUtils {
                         addAccount(context, accountName.orEmpty(), "", authToken)
                     }
                 } catch (e: AuthenticatorException) {
-                    trace(message = "failed to read account", error = e)
+                    trace(message = "failed to read account", error = e, type = TraceType.Error)
                     cont.resume(null to null)
                 }
             }, handler
@@ -128,11 +99,6 @@ object AccountUtils {
 
     suspend fun getToken(context: Context): String? {
         return getAccountNoActivity(context)?.first
-    }
-
-    suspend fun getToken(context: Activity): @NonNull Single<String> {
-        return getAccount(context)
-            .map { it.first.orEmpty() }
     }
 
     private fun getAccount(context: Context?, accountName: String?): Account? {

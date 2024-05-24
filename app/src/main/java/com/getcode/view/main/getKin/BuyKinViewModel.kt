@@ -7,6 +7,7 @@ import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyLimit
+import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
@@ -34,7 +35,9 @@ import com.getcode.view.main.giveKin.CurrencyUiModel
 import com.getcode.view.main.giveKin.FlowType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -79,6 +82,36 @@ class BuyKinViewModel @Inject constructor(
         return false
     }
 
+    override val flowType: FlowType = FlowType.Buy
+
+    val supportedCurrencies = listOf(
+        CurrencyCode.USD, CurrencyCode.EUR, CurrencyCode.CAD, CurrencyCode.GBP, CurrencyCode.MXN,
+        CurrencyCode.COP, CurrencyCode.INR, CurrencyCode.CHF, CurrencyCode.AUD, CurrencyCode.ARS,
+        CurrencyCode.BRL, CurrencyCode.CLP, CurrencyCode.JPY, CurrencyCode.KRW, CurrencyCode.PEN,
+        CurrencyCode.PHP, CurrencyCode.SGD, CurrencyCode.TRY, CurrencyCode.UYU, CurrencyCode.TWD,
+        CurrencyCode.VND, CurrencyCode.CRC, CurrencyCode.SEK, CurrencyCode.PLN, CurrencyCode.DKK,
+        CurrencyCode.NOK, CurrencyCode.NZD
+    )
+
+    override fun observeRate(): Flow<Rate> {
+        return super.observeRate()
+            .map {
+                // if device is US-based, force currency to USD
+                val deviceCurrency = localeHelper.getDefaultCurrency()
+                if (deviceCurrency?.code == CurrencyCode.USD.name) {
+                    return@map exchange.rateForUsd()!!
+                }
+
+                // if selected currency is supported, allow it
+                if (supportedCurrencies.contains(it.currency)) {
+                    return@map it
+                }
+
+                // otherwise use USD
+                return@map exchange.rateForUsd()!!
+            }
+    }
+
     init {
         init()
 
@@ -87,33 +120,34 @@ class BuyKinViewModel @Inject constructor(
         }
     }
 
-    override val flowType: FlowType = FlowType.Buy
+    private fun checkLocalRate(rate: Rate): Currency {
+        val deviceCurrency = localeHelper.getDefaultCurrency()
+        if (deviceCurrency?.code == CurrencyCode.USD.name) {
+            return deviceCurrency
+        }
+
+
+
+        if (!supportedCurrencies.contains(rate.currency)) {
+            // default to USD
+            val currency = currencyUtils.getCurrency(CurrencyCode.USD.name)!!
+            return currency
+        }
+
+        val currency = currencyUtils.getCurrency(rate.currency.name)!!
+        return currency
+    }
+
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
-        // force currency to be local to device
-        with(exchange.entryRate) {
-            val currency = currencyUtils.getCurrency(this.currency.name)
-            state.update {
-                it.copy(
-                    currencyModel = currencyUiModel.copy(
-                        selectedCurrencyCode = currency?.code,
-                        selectedCurrencyResId = currency?.resId
-                    )
-                )
-            }
+        state.update {
+            it.copy(currencyModel = currencyUiModel)
         }
     }
 
     override fun setAmountUiModel(amountUiModel: AmountUiModel) {
-        with(localeHelper.getDefaultCurrency()) {
-            state.update { s ->
-                s.copy(
-                    amountModel = amountUiModel.copy(
-                        amountPrefix = formatPrefix(this)
-                            .takeIf { it != this?.code }.orEmpty()
-                    )
-                )
-            }
+        state.update {
+            it.copy(amountModel = amountUiModel)
         }
     }
 
@@ -125,22 +159,11 @@ class BuyKinViewModel @Inject constructor(
 
     override fun getCurrencyUiModel(): CurrencyUiModel {
         // force currency to be local to device
-        return with(localeHelper.getDefaultCurrency()) {
-            state.value.currencyModel.copy(
-                selectedCurrencyCode = this?.code,
-                selectedCurrencyResId = this?.resId,
-            )
-        }
+        return state.value.currencyModel.copy()
     }
 
     override fun getAmountUiModel(): AmountUiModel {
-        // force currency to be local to device
-        return with(localeHelper.getDefaultCurrency()) {
-            state.value.amountModel.copy(
-                amountPrefix = formatPrefix(this)
-                    .takeIf { it != this?.code }.orEmpty()
-            )
-        }
+        return state.value.amountModel.copy()
     }
 
     override fun getAmountAnimatedInputUiModel(): AmountAnimatedInputUiModel {
@@ -190,15 +213,6 @@ class BuyKinViewModel @Inject constructor(
             state.update { it.copy(relationshipEstablished = true) }
         }
     }
-
-    private val supportedCurrencies = listOf(
-        CurrencyCode.USD, CurrencyCode.EUR, CurrencyCode.CAD, CurrencyCode.GBP, CurrencyCode.MXN,
-        CurrencyCode.COP, CurrencyCode.INR, CurrencyCode.CHF, CurrencyCode.AUD, CurrencyCode.ARS,
-        CurrencyCode.BRL, CurrencyCode.CLP, CurrencyCode.JPY, CurrencyCode.KRW, CurrencyCode.PEN,
-        CurrencyCode.PHP, CurrencyCode.SGD, CurrencyCode.TRY, CurrencyCode.UYU, CurrencyCode.TWD,
-        CurrencyCode.VND, CurrencyCode.CRC, CurrencyCode.SEK, CurrencyCode.PLN, CurrencyCode.DKK,
-        CurrencyCode.NOK, CurrencyCode.NZD
-    )
 
     private fun buildKadoUrl(amount: KinAmount, rate: Rate, nonce: UUID): Uri? {
         val apiKey = BuildConfig.KADO_API_KEY
@@ -255,11 +269,8 @@ class BuyKinViewModel @Inject constructor(
     suspend fun initiatePurchase(): String? {
         val currencyModel = getCurrencyUiModel()
         val amountAnimatedModel = getAmountAnimatedInputUiModel()
-        val currencySymbol = currencyModel
-            .currencies.firstOrNull { currencyModel.selectedCurrencyCode == it.code }
-            ?.let { CurrencyCode.tryValueOf(it.code) }
-            ?.takeIf { supportedCurrencies.contains(it) }
-            ?: CurrencyCode.USD
+        val currencySymbol = CurrencyCode
+            .tryValueOf(currencyModel.selectedCurrency?.code) ?: CurrencyCode.USD
 
         val rate = exchange.rateFor(currencySymbol) ?: exchange.rateForUsd()!!
 

@@ -72,7 +72,7 @@ fun GiveKinScreen(
                 isAltCaption = dataState.amountModel.isCaptionConversion,
                 isAltCaptionKinIcon = !isInError,
                 altCaptionColor = color,
-                currencyResId = dataState.currencyModel.selectedCurrencyResId,
+                currencyResId = dataState.currencyModel.selectedCurrency?.resId,
                 uiModel = dataState.amountAnimatedModel,
                 isAnimated = true,
                 networkState = networkState,
