@@ -51,17 +51,12 @@ data class BalanceDisplay(
 open class BalanceController @Inject constructor(
     exchange: Exchange,
     networkObserver: NetworkConnectivityListener,
-    getCurrency: suspend (rates: Map<CurrencyCode, Rate>, selected: String?) -> Currency,
-    @ApplicationContext
-    private val context: Context,
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
     private val privacyMigration: PrivacyMigration,
     private val transactionReceiver: TransactionReceiver,
-    prefs: PrefRepository,
-    getDefaultCurrency: () -> CurrencyCode?,
-    getCurrencyFromCode: (CurrencyCode?) -> Currency?,
+    private val getCurrencyFromCode: (CurrencyCode?) -> Currency?,
     val suffix: (Currency?) -> String,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -69,16 +64,6 @@ open class BalanceController @Inject constructor(
 
     val rawBalance: Double
         get() = balanceRepository.balanceFlow.value
-
-    private val preferredCurrency: StateFlow<Currency?> =
-        prefs.observeOrDefault(
-            PrefsString.KEY_BALANCE_CURRENCY_SELECTED,
-            getDefaultCurrency()?.name.orEmpty()
-        ).mapNotNull { CurrencyCode.tryValueOf(it) }
-            .map { getCurrencyFromCode(it) }
-            .distinctUntilChanged()
-            .onEach { Timber.d("currency for balance is now ${it?.code}") }
-            .stateIn(scope, SharingStarted.Eagerly, getCurrencyFromCode(getDefaultCurrency()))
 
     private val _balanceDisplay = MutableStateFlow<BalanceDisplay?>(null)
 
@@ -88,33 +73,19 @@ open class BalanceController @Inject constructor(
 
     init {
         combine(
-            exchange.observeRates()
-                .distinctUntilChanged()
+            exchange.observeLocalRate()
                 .flowOn(Dispatchers.IO)
-                .flatMapLatest {
-                    combine(
-                        flowOf(it),
-                        preferredCurrency
-                    ) { a, b -> a to b }
-                }
-                .map { (rates, preferred) ->
-                    getCurrency(rates, preferred?.code)
-                }
                 .onEach {
                     val display = _balanceDisplay.value ?: BalanceDisplay()
-                    _balanceDisplay.value = display.copy(currency = it)
+                    _balanceDisplay.value = display.copy(currency = getCurrencyFromCode(it.currency))
                 }
-                .mapNotNull { currency -> CurrencyCode.tryValueOf(currency.code) }
-                .mapNotNull {
-                    exchange.fetchRatesIfNeeded()
-                    exchange.rateFor(it)
-                },
+                .onEach { exchange.fetchRatesIfNeeded() },
             balanceRepository.balanceFlow,
             networkObserver.state
         ) { rate, balance, _ ->
             rate to balance.coerceAtLeast(0.0)
         }.map { (rate, balance) ->
-            refreshBalance(balance, rate.fx)
+            refreshBalance(balance, rate)
         }.distinctUntilChanged().onEach { (marketValue, amountText) ->
             val display = _balanceDisplay.value ?: BalanceDisplay()
             _balanceDisplay.value =
@@ -226,9 +197,9 @@ open class BalanceController @Inject constructor(
         }
     }
 
-    private fun refreshBalance(balance: Double, rate: Double): Pair<Double, String> {
-        val preferredCurrency = preferredCurrency.value
-        val fiatValue = FormatUtils.getFiatValue(balance, rate)
+    private fun refreshBalance(balance: Double, rate: Rate): Pair<Double, String> {
+        val preferredCurrency = getCurrencyFromCode(rate.currency)
+        val fiatValue = FormatUtils.getFiatValue(balance, rate.fx)
 
         val prefix =
             formatPrefix(preferredCurrency).takeIf { it != preferredCurrency?.code }.orEmpty()

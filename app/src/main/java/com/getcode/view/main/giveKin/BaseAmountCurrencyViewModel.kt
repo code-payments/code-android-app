@@ -117,7 +117,7 @@ abstract class BaseAmountCurrencyViewModel(
                 .map { currencyUtils.getCurrenciesWithRates(it) },
             prefsRepository
                 .observeOrDefault(
-                    PrefsString.KEY_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
+                    PrefsString.KEY_GIVE_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
                 ).flowOn(Dispatchers.IO)
                 .distinctUntilChanged(),
             networkObserver.state,

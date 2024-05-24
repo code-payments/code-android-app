@@ -4,15 +4,28 @@ import android.annotation.SuppressLint
 import com.getcode.db.Database
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
+import com.getcode.model.PrefsString
 import com.getcode.model.Rate
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.core.NetworkOracle
+import com.getcode.network.repository.PrefRepository
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
@@ -28,6 +41,8 @@ interface Exchange {
     val localRate: Rate
     fun observeLocalRate(): Flow<Rate>
 
+    val entryRate: Rate
+
     fun rates(): Map<CurrencyCode, Rate>
     fun observeRates(): Flow<Map<CurrencyCode, Rate>>
 
@@ -40,6 +55,9 @@ interface Exchange {
 
 class ExchangeNull : Exchange {
     override val localRate: Rate
+        get() = Rate.oneToOne
+
+    override val entryRate: Rate
         get() = Rate.oneToOne
 
     override fun observeLocalRate(): Flow<Rate> {
@@ -69,12 +87,15 @@ class ExchangeNull : Exchange {
 class CodeExchange @Inject constructor(
     private val currencyApi: CurrencyApi,
     private val networkOracle: NetworkOracle,
-    private val defaultCurrency: () -> Currency?,
+    prefs: PrefRepository,
+    private val defaultCurrency: suspend () -> Currency?,
 ) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val db = Database.getInstance()
 
-    private var entryRate: Rate = Rate.oneToOne
+    private var _entryRate: Rate = Rate.oneToOne
+    override val entryRate: Rate
+        get() = _entryRate
 
     private val _localRate = MutableStateFlow(Rate.oneToOne)
     override val localRate
@@ -116,6 +137,19 @@ class CodeExchange @Inject constructor(
 
             fetchRatesIfNeeded()
         }
+
+        prefs.observeOrDefault(PrefsString.KEY_PREFERRED_APP_CURRENCY, "")
+            .map { it.takeIf { it.isNotEmpty() } }
+            .filterNotNull()
+            .mapNotNull { CurrencyCode.tryValueOf(it) }
+            .flatMapLatest {
+                combine(observeRates(), flowOf(it)) { rates, currencyCode -> rates[currencyCode] }
+            }.filterNotNull()
+            .distinctUntilChanged()
+            .onEach {
+                trace("Local rate updated=${it.currency}", type = TraceType.Log)
+                _localRate.value = it
+            }.launchIn(this)
     }
 
     override suspend fun fetchRatesIfNeeded() {
@@ -130,12 +164,12 @@ class CodeExchange @Inject constructor(
         }
     }
 
-    private fun set(currency: CurrencyCode) {
+    private suspend fun set(currency: CurrencyCode) {
         entryCurrency = currency
         updateRates()
     }
 
-    private fun set(ratesBox: RatesBox) {
+    private suspend fun set(ratesBox: RatesBox) {
         rates = ratesBox
         rateDate = ratesBox.dateMillis
 
@@ -143,54 +177,58 @@ class CodeExchange @Inject constructor(
         updateRates()
     }
 
-    private fun setLocalEntryCurrencyIfNeeded() {
-        if (entryCurrency == null) {
+    private suspend fun setLocalEntryCurrencyIfNeeded() {
+        if (entryCurrency != null) {
             return
         }
 
         val localRegionCurrency = defaultCurrency() ?: return
-
-        entryCurrency = CurrencyCode.tryValueOf(localRegionCurrency.code)
+        val currency = CurrencyCode.tryValueOf(localRegionCurrency.code)
+        entryCurrency = currency
     }
 
     override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
 
     override fun rateForUsd(): Rate? = rates.rateForUsd()
 
-    private fun updateRates() {
+    private suspend fun updateRates() {
         if (rates.isEmpty) {
             return
         }
 
-        val localCurrency = defaultCurrency()
+        val localCurrency = CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
         val rate = localCurrency?.let { rates.rateFor(it) }
         _localRate.value = if (rate != null) {
-            Timber.d(
-                "Updated the entry currency: $localCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${
-                    Date(
-                        rates.dateMillis
-                    )
-                }"
+            trace(
+                message = "Updated the local currency: $localCurrency, " +
+                        "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
+                        "Date: ${Date(rates.dateMillis)}",
+                type = TraceType.Silent
             )
             rate
         } else {
-            Timber.d("Rate for $localCurrency not found. Defaulting to USD.")
+            trace(
+                message = "local:: Rate for $localCurrency not found. Defaulting to USD.",
+                type = TraceType.Silent
+            )
             rates.rateForUsd()!!
         }
 
 
         val entryRate = entryCurrency?.let { rates.rateFor(it) }
-        this.entryRate = if (entryRate != null) {
-            Timber.d(
-                "Updated the entry currency: $entryCurrency, Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, Date: ${
-                    Date(
-                        rates.dateMillis
-                    )
-                }"
+        this._entryRate = if (entryRate != null) {
+            trace(
+                message = "Updated the entry currency: $entryCurrency, " +
+                        "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
+                        "Date: ${Date(rates.dateMillis)}",
+                type = TraceType.Silent
             )
             entryRate
         } else {
-            Timber.d("Rate for $entryCurrency not found. Defaulting to USD.")
+            trace(
+                message = "entry:: Rate for $entryCurrency not found. Defaulting to USD.",
+                type = TraceType.Silent
+            )
             rates.rateForUsd()!!
         }
 

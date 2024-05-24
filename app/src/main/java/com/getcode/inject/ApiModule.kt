@@ -5,8 +5,8 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.MnemonicManager
-import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
+import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
@@ -30,7 +30,6 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
 import com.getcode.network.service.DeviceService
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
 import com.getcode.util.resources.ResourceHelper
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
@@ -43,8 +42,6 @@ import io.grpc.android.AndroidChannelBuilder
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -122,27 +119,13 @@ object ApiModule {
     ): BalanceController {
         return BalanceController(
             exchange = exchange,
-            context = context,
             balanceRepository = balanceRepository,
             transactionRepository = transactionRepository,
             accountRepository = accountRepository,
             privacyMigration = privacyMigration,
             transactionReceiver = transactionReceiver,
             networkObserver = networkObserver,
-            prefs = prefRepository,
-            getDefaultCurrency = {
-                val code = locale.getDefaultCurrency()?.code ?: return@BalanceController null
-                CurrencyCode.tryValueOf(code)
-            },
-            getCurrency = { rates, preferred ->
-                withContext(Dispatchers.Default) {
-                    val defaultCurrencyCode = preferred ?: locale.getDefaultCurrency()?.code
-                    return@withContext currencyUtils.getCurrenciesWithRates(rates)
-                        .firstOrNull { p ->
-                            p.code == defaultCurrencyCode
-                        } ?: Currency.Kin
-                }
-            },
+
             getCurrencyFromCode = {
                 it?.name?.let(currencyUtils::getCurrency)
             },
@@ -161,9 +144,17 @@ object ApiModule {
     fun providesExchange(
         currencyApi: CurrencyApi,
         networkOracle: NetworkOracle,
-        locale: LocaleHelper
-    ): Exchange = CodeExchange(currencyApi, networkOracle) {
-        locale.getDefaultCurrency()
+        locale: LocaleHelper,
+        currencyUtils: CurrencyUtils,
+        prefRepository: PrefRepository,
+    ): Exchange = CodeExchange(currencyApi, networkOracle, prefRepository) {
+        val preferredCurrencyCode = prefRepository.get(
+            PrefsString.KEY_PREFERRED_APP_CURRENCY,
+            ""
+        ).takeIf { it.isNotEmpty() }
+
+        val preferredCurrency = preferredCurrencyCode?.let { currencyUtils.getCurrency(it) }
+        preferredCurrency ?: locale.getDefaultCurrency()
     }
 
     @Singleton
