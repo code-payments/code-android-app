@@ -115,7 +115,7 @@ abstract class BaseAmountCurrencyViewModel(
             networkObserver.state,
             balanceRepository.balanceFlow
         ) { rate, _, balance ->
-            val currency = currencyUtils.getCurrency(rate.currency.name)
+            val currency = currencyUtils.getCurrencyWithRate(rate.currency.name, rate.fx)
             if (canChangeCurrency()) {
                 if (currency?.code != getCurrencyUiModel().selectedCurrency?.code) {
                     reset()
