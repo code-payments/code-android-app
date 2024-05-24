@@ -316,9 +316,9 @@ enum class CurrencyCode {
     }
 
     companion object {
-        fun tryValueOf(value: String): CurrencyCode? {
+        fun tryValueOf(value: String?): CurrencyCode? {
             return try {
-                valueOf(value.uppercase())
+                valueOf(value?.uppercase().orEmpty())
             } catch (e: Exception) {
                 null
             }

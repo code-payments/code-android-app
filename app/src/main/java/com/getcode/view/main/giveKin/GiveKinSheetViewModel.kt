@@ -57,14 +57,14 @@ class GiveKinSheetViewModel @Inject constructor(
 
     val uiFlow = MutableStateFlow(GiveKinSheetUiModel())
 
+    override val flowType: FlowType = FlowType.Give
+
     init {
         init()
         viewModelScope.launch(Dispatchers.IO) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
-
-    override val flowType: FlowType = FlowType.Give
 
     override fun reset() {
         numberInputHelper.reset()
@@ -94,10 +94,8 @@ class GiveKinSheetViewModel @Inject constructor(
         val checkSendLimit: () -> Boolean = {
             val isOverLimit = uiModel.amountModel.amountDouble > uiModel.amountModel.sendLimit
             if (isOverLimit) {
-                val currencySymbol = uiModel.currencyModel
-                    .currencies.firstOrNull { uiModel.currencyModel.selectedCurrencyCode == it.code }
-                    ?.symbol
-                    .orEmpty()
+                val currencySymbol = CurrencyCode
+                    .tryValueOf(uiModel.currencyModel.selectedCurrency?.code) ?: CurrencyCode.USD
                 TopBarManager.showMessage(
                     resources.getString(R.string.error_title_giveLimitReached),
                     resources.getString(R.string.error_description_giveLimitReached)
@@ -114,9 +112,8 @@ class GiveKinSheetViewModel @Inject constructor(
         val amountFiat = uiModel.amountModel.amountDouble
         val amountKin = uiModel.amountModel.amountKin
 
-        val currencyCode =
-            CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrencyCode.orEmpty())
-                ?: return null
+        val currencyCode = CurrencyCode
+            .tryValueOf(uiModel.currencyModel.selectedCurrency?.code) ?: return null
 
         exchange.fetchRatesIfNeeded()
         val rate = exchange.rateFor(currencyCode) ?: return null
@@ -128,7 +125,7 @@ class GiveKinSheetViewModel @Inject constructor(
         super.onAmountChanged(lastPressedBackspace)
         uiFlow.update {
             val minValue =
-                if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
+                if (it.currencyModel.selectedCurrency?.code == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
                 continueEnabled = numberInputHelper.amount >= minValue && !it.amountModel.isInsufficient
             )

@@ -17,7 +17,6 @@ import com.getcode.view.main.giveKin.CurrencyListItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -29,7 +28,19 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
+
+enum class CurrencySelectKind {
+    Entry,
+    Local;
+
+    val key: PrefsString
+        get() = when (this) {
+            Entry -> PrefsString.KEY_ENTRY_CURRENCY
+            Local -> PrefsString.KEY_LOCAL_CURRENCY
+        }
+}
 
 @HiltViewModel
 class CurrencyViewModel @Inject constructor(
@@ -44,7 +55,7 @@ class CurrencyViewModel @Inject constructor(
 ) {
     @Stable
     data class State(
-        val selectedCurrencyKey: PrefsString? = null,
+        val kind: CurrencySelectKind? = null,
         val loading: Boolean = false,
         val currenciesFiltered: List<Currency> = listOf(),
         val currenciesRecent: List<Currency>? = null,
@@ -56,7 +67,7 @@ class CurrencyViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnSelectedKeyChanged(val key: PrefsString): Event
+        data class OnKindChanged(val kind: CurrencySelectKind): Event
         data class OnLoadingChanged(val loading: Boolean) : Event
         data class OnCurrenciesLoaded(val currencies: List<CurrencyListItem>) : Event
         data class OnRecentCurrenciesUpdated(val currencies: List<Currency>) : Event
@@ -80,7 +91,7 @@ class CurrencyViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         stateFlow
-            .map { it.selectedCurrencyKey }
+            .map { it.kind?.key }
             .filterNotNull()
             .flatMapLatest {
                 prefsRepository.observeOrDefault(it, localeHelper.getDefaultCurrencyName())
@@ -158,7 +169,7 @@ class CurrencyViewModel @Inject constructor(
             .map { it.currency }
             .distinctUntilChanged()
             .onEach { selected ->
-                val key = stateFlow.value.selectedCurrencyKey
+                val key = stateFlow.value.kind?.key
                 if (key != null) {
                     prefsRepository.set(key, selected.code)
                 }
@@ -260,8 +271,8 @@ class CurrencyViewModel @Inject constructor(
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
-                is Event.OnSelectedKeyChanged -> { state ->
-                    state.copy(selectedCurrencyKey = event.key)
+                is Event.OnKindChanged -> { state ->
+                    state.copy(kind = event.kind)
                 }
                 is Event.OnLoadingChanged -> { state -> state.copy(loading = event.loading) }
                 is Event.OnCurrenciesLoaded -> { state ->

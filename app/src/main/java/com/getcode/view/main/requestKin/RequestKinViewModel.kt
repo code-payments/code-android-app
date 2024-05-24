@@ -58,14 +58,14 @@ class RequestKinViewModel @Inject constructor(
 
     val state = MutableStateFlow(State())
 
+    override val flowType: FlowType = FlowType.Request
+
     init {
         init()
         viewModelScope.launch(Dispatchers.IO) {
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
     }
-
-    override val flowType: FlowType = FlowType.Request
 
     override fun reset() {
         numberInputHelper.reset()
@@ -86,7 +86,7 @@ class RequestKinViewModel @Inject constructor(
         val amountKin = uiModel.amountModel.amountKin
 
         val currencyCode =
-            CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrencyCode.orEmpty())
+            CurrencyCode.tryValueOf(uiModel.currencyModel.selectedCurrency?.code.orEmpty())
                 ?: return null
 
         exchange.fetchRatesIfNeeded()
@@ -99,7 +99,7 @@ class RequestKinViewModel @Inject constructor(
         super.onAmountChanged(lastPressedBackspace)
         state.update {
             val minValue =
-                if (it.currencyModel.selectedCurrencyCode == CurrencyCode.KIN.name) 1.0 else 0.01
+                if (it.currencyModel.selectedCurrency?.code == CurrencyCode.KIN.name) 1.0 else 0.01
             it.copy(
                 continueEnabled = numberInputHelper.amount >= minValue &&
                         !it.amountModel.isInsufficient &&

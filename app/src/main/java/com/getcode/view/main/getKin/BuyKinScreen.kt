@@ -70,7 +70,7 @@ fun BuyKinScreen(
                     amountPrefix = dataState.amountModel.amountPrefix,
                     amountSuffix = dataState.amountModel.amountSuffix,
                     amountText = dataState.amountModel.amountText,
-                    currencyResId = dataState.currencyModel.selectedCurrencyResId,
+                    currencyResId = dataState.currencyModel.selectedCurrency?.resId,
                     isAltCaptionKinIcon = false,
                     uiModel = dataState.amountAnimatedModel,
                     isAnimated = true,

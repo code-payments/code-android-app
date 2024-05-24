@@ -25,6 +25,7 @@ import com.getcode.view.main.account.BackupKey
 import com.getcode.view.main.account.BetaFlagsScreen
 import com.getcode.view.main.account.ConfirmDeleteAccount
 import com.getcode.view.main.account.DeleteCodeAccount
+import com.getcode.view.main.currency.CurrencySelectKind
 import com.getcode.view.main.currency.CurrencySelectionSheet
 import com.getcode.view.main.currency.CurrencyViewModel
 import com.getcode.view.main.getKin.BuyAndSellKin
@@ -280,7 +281,7 @@ data object ReferFriendScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data class CurrencySelectionModal(val forBalance: Boolean = false) : MainGraph, ModalContent {
+data class CurrencySelectionModal(val kind: CurrencySelectKind = CurrencySelectKind.Entry) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -304,13 +305,8 @@ data class CurrencySelectionModal(val forBalance: Boolean = false) : MainGraph, 
             CurrencySelectionSheet(viewModel = viewModel)
         }
 
-        LaunchedEffect(viewModel, forBalance) {
-            val key = if (forBalance) {
-                PrefsString.KEY_PREFERRED_APP_CURRENCY
-            } else {
-                PrefsString.KEY_GIVE_CURRENCY_SELECTED
-            }
-            viewModel.dispatchEvent(CurrencyViewModel.Event.OnSelectedKeyChanged(key))
+        LaunchedEffect(viewModel, kind) {
+            viewModel.dispatchEvent(CurrencyViewModel.Event.OnKindChanged(kind))
         }
     }
 }
