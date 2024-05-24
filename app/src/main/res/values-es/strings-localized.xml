@@ -41,6 +41,7 @@
   <string name="action_openSettings">Abrir ajustes</string>
   <string name="action_paste">Pegar</string>
   <string name="action_pasteFromClipboard">Pegar desde el portapapeles</string>
+  <string name="action_postToConnect">Publica para conectar la cuenta</string>
   <string name="action_putInWallet">Guardar en el monedero</string>
   <string name="action_recoverExistingAccount">Recuperar cuenta existente</string>
   <string name="action_remind">Recordar</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Deslizar para pagar</string>
   <string name="action_swipeToTip">Deslizar para dar propina</string>
   <string name="action_tryDifferentCodeAccount">Probar con una cuenta Code diferente</string>
+  <string name="action_tweetThem">Tuitéales</string>
   <string name="action_unmute">Anular silencio</string>
   <string name="action_unsubscribe">Cancelar suscripción</string>
   <string name="action_update">Actualizar</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">El máximo que puedes comprar es %1$s. Introduce una cantidad menor.</string>
   <string name="error_description_purchaseTooSmall">El mínimo que puedes comprar es %1$s. Introduce una cantidad mayor.</string>
   <string name="error_description_timelockUnlocked">Su Clave de Acceso ha iniciado un desbloqueo. Por consiguiente, ya no podrá utilizar esta clave de acceso en Code.</string>
+  <string name="error_description_tipCardNotActivated">Envía un tuit a esta persona para activar su tarjeta de propinas.</string>
   <string name="error_description_tipTooLarge">La propina máxima es %1$s. Debes introducir una cantidad menor.</string>
   <string name="error_description_tipTooSmall">La propina mínima es %1$s. Debes introducir una cantidad mayor.</string>
   <string name="error_description_tooManyAccounts">Solo puedes crear un número limitado de cuentas nuevas cada día.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">La compra es demasiado grande</string>
   <string name="error_title_purchaseTooSmall">La compra es demasiado pequeña</string>
   <string name="error_title_timelockUnlocked">Esta clave de acceso ya no se podrá utilizar en Code</string>
+  <string name="error_title_tipCardNotActivated">Tarjeta de propinas todavía no activada</string>
   <string name="error_title_tipTooLarge">Propina demasiado grande</string>
   <string name="error_title_tipTooSmall">Propina demasiado pequeña</string>
   <string name="error_title_tooManyAccounts">Has creado demasiadas cuentas</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Inicia a un amigo en Code y consigue 5 $</string>
   <string name="push_subtitle_newSendCash">Envía dinero a través de cualquier aplicación de mensajería</string>
   <string name="push_subtitle_referralBonus">Has recibido %1$sde Kin por enviar a alguien su primer Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Ahora puedes pedir propinas.</string>
   <string name="push_title_depositReceived">Depósito recibido</string>
   <string name="push_title_kinReturned">Kin devuelto</string>
   <string name="push_title_newOnCode">Nuevo en Code</string>
   <string name="push_title_referralBonus">Bono por recomendación recibido</string>
+  <string name="push_title_twitterAccountConnected">Cuenta de X conectada</string>
   <string name="subtitle_accessExpiredDescription">Tu invitación de acceso a Code ha caducado. Puedes cerrar la sesión y utilizar una cuenta diferente con una invitación válida.</string>
   <string name="subtitle_accessKeyDescription">Tu clave de acceso es la única forma de acceder a tus fondos. Asegúrate de guardarla de forma privada y segura.</string>
   <string name="subtitle_accessKeyFaceID">Verifica tu identidad para ver tu clave de acceso.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Alguien te ha enviado dinero</string>
   <string name="subtitle_someoneTippedYou">Alguien te ha dado una propina</string>
   <string name="subtitle_tipCardForX">Tu tarjeta de propinas te permite recibir propinas de usuarios de Code de todo el mundo. Para poder acceder a tu tarjeta de propinas, conecta con tu identidad de X.</string>
+  <string name="subtitle_tipCardTwitterDescription">Con tu tarjeta de propinas puedes recibir propinas de usuarios de Code de todo el mundo. Para acceder a tu tarjeta de propinas, publica en X. </string>
   <string name="subtitle_typeDelete">Escribe \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Hemos realizado algunos cambios para mejorar la experiencia. Tendrás que actualizar la aplicación para seguir utilizando Code.</string>
   <string name="subtitle_validOwnerAccount">Cuenta de titular válida</string>

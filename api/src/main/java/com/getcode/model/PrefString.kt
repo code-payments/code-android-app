@@ -12,8 +12,8 @@ data class PrefString(
 enum class PrefsString(val value: String) {
     KEY_USER_ID("user_id"),
     KEY_DATA_CONTAINER_ID("data_container_id"),
-    KEY_CURRENCY_SELECTED("currency_selected"),//keep
+    KEY_GIVE_CURRENCY_SELECTED("currency_selected"),//keep
     KEY_CURRENCIES_RECENT("currencies_recent"),//keep
     KEY_TIP_ACCOUNT("tip_account"),
-    KEY_BALANCE_CURRENCY_SELECTED("balance_currency_selected"),//keep
+    KEY_PREFERRED_APP_CURRENCY("balance_currency_selected")
 }

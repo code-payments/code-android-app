@@ -41,6 +41,7 @@
   <string name="action_openSettings">Otwórz ustawienia</string>
   <string name="action_paste">Wklej</string>
   <string name="action_pasteFromClipboard">Wklej ze schowka</string>
+  <string name="action_postToConnect">Wyślij post, aby podłączyć konto</string>
   <string name="action_putInWallet">Umieść w portfelu</string>
   <string name="action_recoverExistingAccount">Odzyskaj istniejące konto</string>
   <string name="action_remind">Przypomnij</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Przeciągnij, aby zapłacić</string>
   <string name="action_swipeToTip">Przesuń do napiwku</string>
   <string name="action_tryDifferentCodeAccount">Wypróbuj inne konto Code</string>
+  <string name="action_tweetThem">Zatweetuj do tej osoby</string>
   <string name="action_unmute">Wyłącz wyciszenie</string>
   <string name="action_unsubscribe">Zrezygnuj z subkrypcji</string>
   <string name="action_update">Zaktualizuj</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Maksymalny zakup to %1$s. Wprowadź mniejszą kwotę.</string>
   <string name="error_description_purchaseTooSmall">Minimalny zakup to %1$s. Wprowadź większą kwotę.</string>
   <string name="error_description_timelockUnlocked">Twój klucz dostępu inicjował odblokowanie. W rezultacie nie możesz już używać tego klucza dostępu w kodzie.</string>
+  <string name="error_description_tipCardNotActivated">Zatweetuj do tej osoby, aby aktywować jej kartę napiwkową.</string>
   <string name="error_description_tipTooLarge">Maksymalny napiwek, jaki możesz dać, to %1$s. Wprowadź mniejszą kwotę.</string>
   <string name="error_description_tipTooSmall">Minimalny napiwek, jaki możesz dać, to %1$s. Wprowadź wyższą kwotę.</string>
   <string name="error_description_tooManyAccounts">Liczba kont, które można utworzyć dziennie, jest ograniczona.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Zakup jest zbyt duży</string>
   <string name="error_title_purchaseTooSmall">Zakup za mały</string>
   <string name="error_title_timelockUnlocked">Nie da się już użytkować klucza dostępu w kodzie</string>
+  <string name="error_title_tipCardNotActivated">Karta napiwkowa nie została jeszcze aktywowana</string>
   <string name="error_title_tipTooLarge">Napiwek jest za duży</string>
   <string name="error_title_tipTooSmall">Napiwek jest za mały</string>
   <string name="error_title_tooManyAccounts">Utworzono za wiele kont</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Poleć aplikację Code znajomej osobie i otrzymaj 5 $</string>
   <string name="push_subtitle_newSendCash">Wyślij gotówkę przez dowolny komunikator</string>
   <string name="push_subtitle_referralBonus">Otrzymałeś(-aś) %1$s Kin za wysłanie komuś pierwszego Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Możesz teraz prosić o napiwki.</string>
   <string name="push_title_depositReceived">Otrzymany depozyt</string>
   <string name="push_title_kinReturned">Zwrócony Kin</string>
   <string name="push_title_newOnCode">Nowość w aplikacji Code</string>
   <string name="push_title_referralBonus">Otrzymano bonus za polecenie</string>
+  <string name="push_title_twitterAccountConnected">Konto X podłączone</string>
   <string name="subtitle_accessExpiredDescription">Twoje zaproszenie dostępu do Code wygasło. Możęsz się wylogować i użyć innego konta z prawidłowym statusem zarposzenia.</string>
   <string name="subtitle_accessKeyDescription">Twój klucz dostępu to jedyny sposób uzyskania dostępu do Twoich środków. Nie przekazuj go nikomu i trzymaj go w bezpiecznym miejscu.</string>
   <string name="subtitle_accessKeyFaceID">Zweryfikuj tożsamość, żeby zobaczyć Klucz dostępu.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Ktoś wysłał ci pieniądze</string>
   <string name="subtitle_someoneTippedYou">Ktoś dał Ci napiwek</string>
   <string name="subtitle_tipCardForX">Twoja karta napiwków umożliwia otrzymywanie napiwków od użytkowników Code na całym świecie. Aby uzyskać dostęp do karty napiwków, połącz swoją tożsamość X.</string>
+  <string name="subtitle_tipCardTwitterDescription">Twoja karta napiwkowa pozwala Ci otrzymywać napiwki od użytkowników Code na całym świecie.  Aby uzyskać dostęp do karty napiwkowej, wyślij post do X. </string>
   <string name="subtitle_typeDelete">Wpisz „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Dokonaliśmy paru zmian, żeby usprawnić korzystanie z usługi. Żeby nadal używać Code, musisz zaktualizować aplikację.</string>
   <string name="subtitle_validOwnerAccount">Prawidłowe konto właściciela</string>

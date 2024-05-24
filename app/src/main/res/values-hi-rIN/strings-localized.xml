@@ -41,6 +41,7 @@
   <string name="action_openSettings">सेटिंग्स को ओपन करें </string>
   <string name="action_paste">पेस्ट करें</string>
   <string name="action_pasteFromClipboard">क्लिपबोर्ड से पेस्ट करें</string>
+  <string name="action_postToConnect">अकाउंट कनेक्ट करने के लिए पोस्ट करें </string>
   <string name="action_putInWallet">वॉलेट में डालें</string>
   <string name="action_recoverExistingAccount">वर्तमान अकाउंट को पुनर्प्राप्त करें\n</string>
   <string name="action_remind">याद दिलाएं</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">भुगतान करने के लिए स्वाइप करें</string>
   <string name="action_swipeToTip">टिप देने के लिए स्वाइप करें </string>
   <string name="action_tryDifferentCodeAccount">एक अलग कोड अकाउंट को आज़माएं</string>
+  <string name="action_tweetThem">उन्हें ट्वीट करें </string>
   <string name="action_unmute">म्यूट से हटाएँ</string>
   <string name="action_unsubscribe">अनसब्सक्राइब करें</string>
   <string name="action_update">अपडेट करें</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">आप अधिकतम %1$s खरीद सकते हैं। कृपया छोटी रकम दर्ज करें।</string>
   <string name="error_description_purchaseTooSmall">आप न्यूनतम %1$s खरीद सकते हैं। कृपया बड़ी रकम दर्ज करें।</string>
   <string name="error_description_timelockUnlocked">आपकी ऐक्सेस कुंजी से अनलॉक करने की प्रक्रिया शुरू की गई है. इसलिए अब आप इस ऐक्सेस कुंजी का उपयोग Code में नहीं कर पाएंगे.</string>
+  <string name="error_description_tipCardNotActivated">इस व्यक्ति को अपना टिप कार्ड एक्टिवेट करने के लिए एक ट्वीट भेजें.</string>
   <string name="error_description_tipTooLarge">आप अधिकतम टिप %1$s दे सकते हैं. कृपया छोटा अमाउंट डालें.</string>
   <string name="error_description_tipTooSmall">आप न्यूनतम टिप %1$s दे सकते हैं. कृपया बड़ा अमाउंट डालें.</string>
   <string name="error_description_tooManyAccounts">आप प्रतिदिन केवल इतने ही नए अकाउंट बना सकते हैं.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">खरीदारी बहुत बड़ी है</string>
   <string name="error_title_purchaseTooSmall">खरीदारी बहुत छोटी है</string>
   <string name="error_title_timelockUnlocked">Code में ऐक्सेस कुंजी का उपयोग अब नहीं किया जा सकता</string>
+  <string name="error_title_tipCardNotActivated">टिप कार्ड अभी तक एक्टिवेट नहीं हुआ है</string>
   <string name="error_title_tipTooLarge">टिप बहुत ज्यादा है</string>
   <string name="error_title_tipTooSmall">	\nटिप बहुत कम है</string>
   <string name="error_title_tooManyAccounts">बहुत सारे अकाउंट बन गए हैं </string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">किसी दोस्त से Code इस्तेमाल करना शुरू करवाएं और 5$ पाएं</string>
   <string name="push_subtitle_newSendCash">किसी भी मैसेंजर ऐप से कैश भेजें</string>
   <string name="push_subtitle_referralBonus">किसी को अपना पहला Kin भेजने के लिए आपको %1$s Kin मिलें हैं.</string>
+  <string name="push_subtitle_twitterAccountConnected">अब आप सुझावों के लिए अनुरोध कर सकते हैं.</string>
   <string name="push_title_depositReceived">डिपॉजिट मिला</string>
   <string name="push_title_kinReturned">Kin लौटा दिया गया</string>
   <string name="push_title_newOnCode">Code पर नए हैं</string>
   <string name="push_title_referralBonus">रेफरल बोनस प्राप्त हुआ</string>
+  <string name="push_title_twitterAccountConnected">X अकाउंट जोड़ा गया </string>
   <string name="subtitle_accessExpiredDescription">कोड को एक्सेस करने के लिए आपके आमंत्रण की समय-सीमा समाप्त हो गई है. आप लॉग आउट कर सकते हैं और एक वैलिड आमंत्रण स्थिति के साथ किसी अलग अकाउंट का उपयोग कर सकते हैं.</string>
   <string name="subtitle_accessKeyDescription">आपकी एक्सेस की आपके फंड तक पहुंचने का एकमात्र तरीका है. कृपया इसे गोपनीय और सुरक्षित रखें.</string>
   <string name="subtitle_accessKeyFaceID">अपनी एक्सेस कुंजी देखने के लिए अपनी पहचान वेरीफाई करें</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">किसी ने आपको नकद भेजा है</string>
   <string name="subtitle_someoneTippedYou">किसी ने आपको टिप दी</string>
   <string name="subtitle_tipCardForX">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से टिप्स प्राप्त करने की सुविधा देता है. अपने टिप कार्ड को एक्सेस करने के लिए अपनी X की पहचान को कनेक्ट करें.</string>
+  <string name="subtitle_tipCardTwitterDescription">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से सुझाव प्राप्त करने देता है. अपने टिप कार्ड को एक्सेस करने के लिए X पर पोस्ट करें.</string>
   <string name="subtitle_typeDelete">टाइप करें \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">अनुभव को बेहतर बनाने के लिए हमने कुछ बदलाव किए हैं. कोड का उपयोग जारी रखने के लिए आपको ऐप को अपडेट करना होगा.</string>
   <string name="subtitle_validOwnerAccount">वैलिड मालिक अकाउंट</string>

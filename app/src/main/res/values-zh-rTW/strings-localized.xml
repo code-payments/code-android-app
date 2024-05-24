@@ -41,6 +41,7 @@
   <string name="action_openSettings">開啟設定</string>
   <string name="action_paste">貼上</string>
   <string name="action_pasteFromClipboard">從剪貼簿貼上</string>
+  <string name="action_postToConnect">發文以連結帳戶</string>
   <string name="action_putInWallet">放入錢包</string>
   <string name="action_recoverExistingAccount">恢復現有帳戶</string>
   <string name="action_remind">提醒</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">刷卡支付</string>
   <string name="action_swipeToTip">滑動來給小費</string>
   <string name="action_tryDifferentCodeAccount">嘗試不同的 Code 帳戶</string>
+  <string name="action_tweetThem">發推文給他們</string>
   <string name="action_unmute">取消靜音</string>
   <string name="action_unsubscribe">取消訂閱</string>
   <string name="action_update">更新</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">您可購買的上限為 %1$s。請輸入較小數量。</string>
   <string name="error_description_purchaseTooSmall">您可購買的下限為 %1$s。請輸入較大數量。</string>
   <string name="error_description_timelockUnlocked">您的存取鑰匙已經啓動解鎖。因此,您不能再在 Code 使用此存取鑰匙。</string>
+  <string name="error_description_tipCardNotActivated">向此人發送推文以啟動他們的小費卡。</string>
   <string name="error_description_tipTooLarge">您可以給予的小費最大值為 %1$s。請輸入較小的金額。</string>
   <string name="error_description_tipTooSmall">您可以給予的小費最小值為 %1$s。請輸入較大的金額。</string>
   <string name="error_description_tooManyAccounts">您每天只能建立如此數目的新帳戶。</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">購買量太大</string>
   <string name="error_title_purchaseTooSmall">購買量太小</string>
   <string name="error_title_timelockUnlocked">存取鑰匙在 Code 已經失效</string>
+  <string name="error_title_tipCardNotActivated">小費卡尚未啟用</string>
   <string name="error_title_tipTooLarge">小費金額過高</string>
   <string name="error_title_tipTooSmall">小費金額過低</string>
   <string name="error_title_tooManyAccounts">建立太多帳戶了</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">邀請朋友開始使用 Code 並獲得 5 美元</string>
   <string name="push_subtitle_newSendCash">透過任何通訊應用程式傳送現金</string>
   <string name="push_subtitle_referralBonus">您收到了 %1$s 的Kin,因為您傳送給某人他的第一枚 Kin 。</string>
+  <string name="push_subtitle_twitterAccountConnected">現在您可以請求獲得小費了。</string>
   <string name="push_title_depositReceived">已收到存款</string>
   <string name="push_title_kinReturned">Kin 已退回</string>
   <string name="push_title_newOnCode">Code 新手上路</string>
   <string name="push_title_referralBonus">已收到推薦獎勵</string>
+  <string name="push_title_twitterAccountConnected">已連結 X 帳戶</string>
   <string name="subtitle_accessExpiredDescription">您存取 Code 的邀請已過期。您可以登出並使用具有有效邀請狀態的其他帳戶。</string>
   <string name="subtitle_accessKeyDescription">您的存取金鑰是存取自身資金的唯一辦法。請隱密並妥善地保管您的存取金鑰。</string>
   <string name="subtitle_accessKeyFaceID">驗證您的身分以查看您的存取金鑰。</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">有人傳送了現金給您</string>
   <string name="subtitle_someoneTippedYou">有人給您小費</string>
   <string name="subtitle_tipCardForX">您的 Tip Card 可讓您從世界各地的 Code 使用者接收小費。想使用您的 Tip Card,請連結您的 X 身分。</string>
+  <string name="subtitle_tipCardTwitterDescription">您的小費卡可讓您接收來自世界各地的 Code 使用者的小費。要存取您的小費卡,請發文至 X。</string>
   <string name="subtitle_typeDelete">輸入「%1$s」</string>
   <string name="subtitle_updateRequiredDescription">我們進行了一些變更來改善體驗。您需要更新應用程式才能夠繼續使用 Code。</string>
   <string name="subtitle_validOwnerAccount">有效的所有人帳戶</string>

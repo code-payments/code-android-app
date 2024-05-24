@@ -50,7 +50,7 @@ class BuyKinViewModel @Inject constructor(
     balanceRepository: BalanceRepository,
     transactionRepository: TransactionRepository,
     localeHelper: LocaleHelper,
-    currencyUtils: CurrencyUtils,
+    private val currencyUtils: CurrencyUtils,
     private val networkObserver: NetworkConnectivityListener,
     resources: ResourceHelper,
     private val phoneRepository: PhoneRepository,
@@ -91,12 +91,13 @@ class BuyKinViewModel @Inject constructor(
 
     override fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel) {
         // force currency to be local to device
-        with(localeHelper.getDefaultCurrency()) {
+        with(exchange.entryRate) {
+            val currency = currencyUtils.getCurrency(this.currency.name)
             state.update {
                 it.copy(
                     currencyModel = currencyUiModel.copy(
-                        selectedCurrencyCode = this?.code,
-                        selectedCurrencyResId = this?.resId,
+                        selectedCurrencyCode = currency?.code,
+                        selectedCurrencyResId = currency?.resId
                     )
                 )
             }

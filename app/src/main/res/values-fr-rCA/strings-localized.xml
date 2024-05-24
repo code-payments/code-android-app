@@ -41,6 +41,7 @@
   <string name="action_openSettings">Ouvrir les paramètres</string>
   <string name="action_paste">Coller</string>
   <string name="action_pasteFromClipboard">Coller depuis le presse-papiers</string>
+  <string name="action_postToConnect">Envoyez un message à Connecter le compte</string>
   <string name="action_putInWallet">Mettre dans le portefeuille</string>
   <string name="action_recoverExistingAccount">Récupérer un compte existant</string>
   <string name="action_remind">Rappeler</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Balayez pour payer</string>
   <string name="action_swipeToTip">Glisser pour donner un pourboire</string>
   <string name="action_tryDifferentCodeAccount">Essayez un autre compte de code</string>
+  <string name="action_tweetThem">Les contacter via X</string>
   <string name="action_unmute">Désactiver le son</string>
   <string name="action_unsubscribe">Se désabonner</string>
   <string name="action_update">Mise à jour</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Votre plafond d\'achat est de %1$s. Veuillez entrer un montant inférieur.</string>
   <string name="error_description_purchaseTooSmall">Votre montant minimal d\'achat est de %1$s. Veuillez entrer un montant supérieur.</string>
   <string name="error_description_timelockUnlocked">Votre clé d\'accès a déclenché un déverrouillage. Par conséquent, vous ne pourrez plus utiliser cette clé d\'accès dans le code.</string>
+  <string name="error_description_tipCardNotActivated">Envoyez un message à cette personne pour activer la carte conseil.</string>
   <string name="error_description_tipTooLarge">Le pourboire maximum que vous pouvez donner est de %1$s. Veuillez saisir un montant inférieur.</string>
   <string name="error_description_tipTooSmall">Le pourboire minimum que vous pouvez donner est de %1$s. Veuillez saisir un montant plus élevé.</string>
   <string name="error_description_tooManyAccounts">Vous ne pouvez créer qu\'un certain nombre de nouveaux comptes chaque jour.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Montant d\'achat trop important</string>
   <string name="error_title_purchaseTooSmall">Montant d\'achat trop bas</string>
   <string name="error_title_timelockUnlocked">La clé d\'accès n\'est plus utilisable dans le code</string>
+  <string name="error_title_tipCardNotActivated">La carte à puce n\'a pas encore été activée</string>
   <string name="error_title_tipTooLarge">Pourboire trop élevé</string>
   <string name="error_title_tipTooSmall">Pourboire trop bas</string>
   <string name="error_title_tooManyAccounts">Trop de comptes créés</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Faites démarrer un ami sur Code et obtenez 5 $.</string>
   <string name="push_subtitle_newSendCash">Envoyer de l’argent par le biais de n’importe quelle application de messagerie</string>
   <string name="push_subtitle_referralBonus">Vous avez reçu %1$s de Kin pour avoir envoyé à quelqu’un son premier Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Vous pouvez à présent demander des conseils.</string>
   <string name="push_title_depositReceived">Dépôt reçu</string>
   <string name="push_title_kinReturned">Kin reversé</string>
   <string name="push_title_newOnCode">Nouveau sur le Code</string>
   <string name="push_title_referralBonus">Prime de parrainage reçue</string>
+  <string name="push_title_twitterAccountConnected">Compte X connecté</string>
   <string name="subtitle_accessExpiredDescription">Votre invitation à accéder à Code est expirée. Vous pouvez vous déconnecter et utiliser un autre compte avec un statut d\'invitation valide.</string>
   <string name="subtitle_accessKeyDescription">Votre clé d\'accès est le seul moyen d\'accéder à vos fonds. Veuillez le garder en privé et en sécurité.</string>
   <string name="subtitle_accessKeyFaceID">Vérifiez votre identité pour voir votre clé d\'accès.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Quelqu’un vous a envoyé de l’argent</string>
   <string name="subtitle_someoneTippedYou">Quelqu\'un vous a donné un pourboire</string>
   <string name="subtitle_tipCardForX">Votre carte de pourboire vous permet de recevoir des pourboires de la part des utilisateurs de Code dans le monde entier. Pour accéder à votre carte de pourboire, connectez votre identité X.</string>
+  <string name="subtitle_tipCardTwitterDescription">Votre carte de conseils vous permet de recevoir des conseils de la part d\'utilisateurs de Code dans le monde entier. Pour avoir accès à votre carte de conseils, envoyez un message par X.</string>
   <string name="subtitle_typeDelete">Tapez \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Nous avons apporté quelques modifications pour améliorer l\'expérience. Vous devrez mettre à jour l\'application pour continuer à utiliser Code.</string>
   <string name="subtitle_validOwnerAccount">Compte propriétaire valide</string>

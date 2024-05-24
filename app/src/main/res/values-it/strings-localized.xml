@@ -41,6 +41,7 @@
   <string name="action_openSettings">Apri le impostazioni</string>
   <string name="action_paste">Incolla</string>
   <string name="action_pasteFromClipboard">Incolla dagli appunti</string>
+  <string name="action_postToConnect">Pubblica per Connettere l\'Account</string>
   <string name="action_putInWallet">Metti nel portafoglio</string>
   <string name="action_recoverExistingAccount">Recupera un account esistente</string>
   <string name="action_remind">Ricorda</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Scorri per pagare</string>
   <string name="action_swipeToTip">Scorri per dare la mancia</string>
   <string name="action_tryDifferentCodeAccount">Prova con un account Code diverso</string>
+  <string name="action_tweetThem">Twitta loro</string>
   <string name="action_unmute">Riattiva audio</string>
   <string name="action_unsubscribe">Annulla l\'iscrizione</string>
   <string name="action_update">Aggiorna</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">La quantità massima acquistabile è %1$s. Inserisci un importo inferiore.</string>
   <string name="error_description_purchaseTooSmall">La quantità minima acquistabile è %1$s. Inserisci un importo superiore.</string>
   <string name="error_description_timelockUnlocked">La tua Chiave di Accesso ha avviato uno sblocco. Di conseguenza, non potrai più usare questa Chiave di Accesso in Code.</string>
+  <string name="error_description_tipCardNotActivated">Invia un tweet a questa persona per attivare la loro Tip Card.</string>
   <string name="error_description_tipTooLarge">La mancia massima che puoi lasciare è %1$s. Inserisci un importo inferiore.</string>
   <string name="error_description_tipTooSmall">La mancia minima che puoi lasciare è %1$s. Inserisci un importo maggiore.</string>
   <string name="error_description_tooManyAccounts">Puoi creare solo un certo numero di nuovi account al giorno.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Acquisto troppo grande</string>
   <string name="error_title_purchaseTooSmall">Acquisto troppo piccolo</string>
   <string name="error_title_timelockUnlocked">Chiave di Accesso Non Più Utilizzabile in Code</string>
+  <string name="error_title_tipCardNotActivated">Tip Card Non Ancora Attivata</string>
   <string name="error_title_tipTooLarge">Mancia troppo grande</string>
   <string name="error_title_tipTooSmall">Mancia troppo piccola</string>
   <string name="error_title_tooManyAccounts">Troppi account creati</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Fai iniziare un amico su Code e ricevi 5 $</string>
   <string name="push_subtitle_newSendCash">Invia denaro tramite qualsiasi app di messaggistica</string>
   <string name="push_subtitle_referralBonus">Hai ricevuto %1$s di Kin per aver inviato a qualcuno il suo primo Kin.</string>
+  <string name="push_subtitle_twitterAccountConnected">Ora puoi richiedere mance.</string>
   <string name="push_title_depositReceived">Deposito ricevuto</string>
   <string name="push_title_kinReturned">Kin restituito</string>
   <string name="push_title_newOnCode">Nuovo su Code</string>
   <string name="push_title_referralBonus">Bonus referral ricevuto</string>
+  <string name="push_title_twitterAccountConnected">Account X Connesso</string>
   <string name="subtitle_accessExpiredDescription">Il tuo invito per l\'accesso a Code è scaduto. Puoi disconnetterti e usare un account diverso con uno stato di invito valido.</string>
   <string name="subtitle_accessKeyDescription">La tua chiave d\'accesso è l\'unico modo tramite cui puoi accedere ai tuoi fondi. Tienila privata e al sicuro.</string>
   <string name="subtitle_accessKeyFaceID">Verifica la tua identità per poter visualizzare la tua chiave d\'accesso.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Qualcuno ti ha inviato denaro</string>
   <string name="subtitle_someoneTippedYou">Qualcuno ti ha dato una mancia</string>
   <string name="subtitle_tipCardForX">La tua Tip Card ti consente di ricevere mance dagli utenti di Code in tutto il mondo. Per accedere alla tua Tip Card collega la tua identità X.</string>
+  <string name="subtitle_tipCardTwitterDescription">La tua Tip Card ti consente di ricevere mance dagli utenti di Code in tutto il mondo. Per accedere alla tua Tip Card, pubblica su X.</string>
   <string name="subtitle_typeDelete">Digita \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Abbiamo apportato alcune modifiche per migliorare l\'esperienza. Dovrai aggiornare l\'app per poter continuare a utilizzare Code.</string>
   <string name="subtitle_validOwnerAccount">Account proprietario valido</string>

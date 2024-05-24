@@ -725,8 +725,8 @@ class HomeViewModel @Inject constructor(
             .onFailure {
                 TopBarManager.showMessage(
                     TopBarManager.TopBarMessage(
-                        title = resources.getString(R.string.error_title_invalidTipCard),
-                        message = resources.getString(R.string.error_description_invalidTipCard),
+                        title = resources.getString(R.string.error_title_tipCardNotActivated),
+                        message = resources.getString(R.string.error_description_tipCardNotActivated),
                         primaryText = resources.getString(R.string.action_tweetThem),
                         primaryAction = {
                             val intent = IntentUtils.tweet(

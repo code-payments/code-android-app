@@ -41,6 +41,7 @@
   <string name="action_openSettings">설정 열기 </string>
   <string name="action_paste">붙여넣기</string>
   <string name="action_pasteFromClipboard">클립보드에서 붙여넣기</string>
+  <string name="action_postToConnect">계정을 연결하려면 게시하기</string>
   <string name="action_putInWallet">지갑에 넣기</string>
   <string name="action_recoverExistingAccount">기존 계정 복구하기 </string>
   <string name="action_remind">알림</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">스와이프하여 결제</string>
   <string name="action_swipeToTip">팁으로 스와이프</string>
   <string name="action_tryDifferentCodeAccount">다른 Code 계정을 시도하세요</string>
+  <string name="action_tweetThem">트윗하기</string>
   <string name="action_unmute">음소거 해제</string>
   <string name="action_unsubscribe">구독 취소</string>
   <string name="action_update">업데이트</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">구매할 수 있는 최대 금액은 %1$s입니다. 더 적은 금액을 입력하세요.</string>
   <string name="error_description_purchaseTooSmall">구매할 수 있는 최소 금액은 %1$s입니다. 더 큰 금액을 입력하세요.</string>
   <string name="error_description_timelockUnlocked">액세스 키로 잠금 해제를 시작했습니다. 이제 Code에서 이 액세스 키를 더 이상 사용할 수 없습니다.</string>
+  <string name="error_description_tipCardNotActivated">해당 팁 카드를 활성화하려면 이 사람에게 트윗을 보내세요.</string>
   <string name="error_description_tipTooLarge">팁을 줄 수 있는 최대 금액은 %1$s입니다. 더 작은 금액을 입력하세요.</string>
   <string name="error_description_tipTooSmall">팁을 줄 수 있는 최소 금액은 %1$s입니다. 더 큰 금액을 입력하세요.</string>
   <string name="error_description_tooManyAccounts">하루에 생성할 수 있는 계정 수가 정해져 있습니다. </string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">구매 금액이 너무 큼</string>
   <string name="error_title_purchaseTooSmall">구매 금액이 너무 작음</string>
   <string name="error_title_timelockUnlocked">Code에서 더 이상 사용할 수 없는 액세스 키입니다</string>
+  <string name="error_title_tipCardNotActivated">팁 카드가 아직 활성화되지 않음</string>
   <string name="error_title_tipTooLarge">팁이 너무 큼</string>
   <string name="error_title_tipTooSmall">팁이 너무 작음</string>
   <string name="error_title_tooManyAccounts">너무 많은 계정이 생성됨</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">친구가 Code를 시작하게 만들고 $5 받으세요</string>
   <string name="push_subtitle_newSendCash">메신저 앱을 통해 현금을 보내세요</string>
   <string name="push_subtitle_referralBonus">누군가에게 첫 Kin을 보내주고 Kin %1$s을(를) 받았습니다.</string>
+  <string name="push_subtitle_twitterAccountConnected">이제 팁을 요청할 수 있습니다.</string>
   <string name="push_title_depositReceived">입금한 돈 수령</string>
   <string name="push_title_kinReturned">Kin 반환됨</string>
   <string name="push_title_newOnCode">Code에서 새로운 것</string>
   <string name="push_title_referralBonus">추천 보너스 받음</string>
+  <string name="push_title_twitterAccountConnected">X 계정이 연결됨</string>
   <string name="subtitle_accessExpiredDescription">Code를 이용할 수 있는 초대가 만료되었습니다. 로그아웃한 후 유효한 초대 상태가 있는 다른 계정을 이용할 수 있습니다. </string>
   <string name="subtitle_accessKeyDescription">액세스 키는 자금에 접근할 수 있는 유일한 방법입니다. 비공개로 안전하게 보관하십시오. </string>
   <string name="subtitle_accessKeyFaceID">액세스 키를 열람하려면 신원을 확인하십시오. </string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">누군가 현금을 보냈습니다</string>
   <string name="subtitle_someoneTippedYou">누군가 귀하에게 팁을 주었습니다.</string>
   <string name="subtitle_tipCardForX">팁 카드를 사용하면 전 세계 Code 사용자로부터 팁을 받을 수 있습니다. 팁 카드에 액세스하려면 X-Identity를 연결하세요.</string>
+  <string name="subtitle_tipCardTwitterDescription">팁 카드를 사용하면 전 세계 Code 사용자로부터 팁을 받을 수 있습니다. 팁 카드에 액세스하려면 X에 게시하세요.</string>
   <string name="subtitle_typeDelete">유형 \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">경험 개선을 위해 변경사항을 적용했습니다. Code를 계속 사용하려면 앱을 업데이트 하세요. </string>
   <string name="subtitle_validOwnerAccount">유효한 소유자 계좌</string>

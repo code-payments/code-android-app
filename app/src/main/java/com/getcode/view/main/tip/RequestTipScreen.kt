@@ -99,7 +99,7 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
             )
             Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
             Text(
-                text = stringResource(R.string.action_connectXAccount),
+                text = stringResource(R.string.action_postToConnect),
             )
         }
     )

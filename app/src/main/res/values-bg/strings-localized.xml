@@ -41,6 +41,7 @@
   <string name="action_openSettings">Отваряне на настройки </string>
   <string name="action_paste">Постави </string>
   <string name="action_pasteFromClipboard">Постави от клипборда</string>
+  <string name="action_postToConnect">Публикувайте за да свържете акаунт </string>
   <string name="action_putInWallet">Постави в портфейл </string>
   <string name="action_recoverExistingAccount">Възстанови съществуващ профил </string>
   <string name="action_remind">Напомняне </string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Плъзнете, за да платите</string>
   <string name="action_swipeToTip">Плъзни за даване на бакшиш</string>
   <string name="action_tryDifferentCodeAccount">Опитай различен кодов акаунт</string>
+  <string name="action_tweetThem">Изпратете им туит</string>
   <string name="action_unmute">Включване на звука</string>
   <string name="action_unsubscribe">Отписване</string>
   <string name="action_update">Обнови </string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Максималното количество, което можете да купите, е %1$s. Моля, въведете по-ниска сума.</string>
   <string name="error_description_purchaseTooSmall">Минималното количество, което можете да купите, е %1$s. Моля, въведете по-голяма сума.</string>
   <string name="error_description_timelockUnlocked">Вашият ключ за достъп вече е активирал отключване. В резултат на това вече няма да можете да използвате този ключ за достъп в Code.</string>
+  <string name="error_description_tipCardNotActivated">Изпратете туит до този човек, за да активирате неговата карта за бакшиши.</string>
   <string name="error_description_tipTooLarge">Максималната сума, която можете да изпращате като бакшиш, е %1$s. Моля, въведете по-малка стойност.</string>
   <string name="error_description_tipTooSmall">Минималната сума, която можете да изпратите като бакшиш, е %1$s. Моля, въведете по-голяма стойност.</string>
   <string name="error_description_tooManyAccounts">Може да създавате само определен брой нови профили на ден. </string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Покупката е твърде голяма</string>
   <string name="error_title_purchaseTooSmall">Покупката е твърде малка</string>
   <string name="error_title_timelockUnlocked">Ключът за достъп вече не е използваем в Code</string>
+  <string name="error_title_tipCardNotActivated">Картата за бакшиши все още не е активирана</string>
   <string name="error_title_tipTooLarge">Баккшишът е прекалено голям</string>
   <string name="error_title_tipTooSmall">Бакшишът е прекалено малък</string>
   <string name="error_title_tooManyAccounts">Твърде много създадени профили </string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Поканете приятел да се присъедини към Code и вземете $5</string>
   <string name="push_subtitle_newSendCash">Изпратете пари в брой през произволно приложение за съобщения</string>
   <string name="push_subtitle_referralBonus">Получихте %1$s от Kin за изпращане на първи Kin към някого.</string>
+  <string name="push_subtitle_twitterAccountConnected">Вече може да искате бакшиши.</string>
   <string name="push_title_depositReceived">Депозитът е получен</string>
   <string name="push_title_kinReturned">Върнат Kin</string>
   <string name="push_title_newOnCode">Ново в Code</string>
   <string name="push_title_referralBonus">Получен бонус за препоръка</string>
+  <string name="push_title_twitterAccountConnected">Акаунтът в социалната мрежа X е свързан</string>
   <string name="subtitle_accessExpiredDescription">Вашата покана за код за достъп е изтекла. Можете да излезете и да използвате друг профил с валидна покана. </string>
   <string name="subtitle_accessKeyDescription">Вашият ключ за достъп е единственият начин за достъп до вашите сметки. Моля, съхранявате ги поверително и в безопасност. </string>
   <string name="subtitle_accessKeyFaceID">Потвърдете вашата идентичност, за да видите вашия ключ за достъп. </string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Някой ви е изпратил пари</string>
   <string name="subtitle_someoneTippedYou">Някой ви изпрати бакшиш</string>
   <string name="subtitle_tipCardForX">Вашата карта за бакшиши ви позволява да получавате бакшиши от потребители на Code от целия свят. За достъп до вашата карта за бакшиши, свържете своята идентичност в Х. </string>
+  <string name="subtitle_tipCardTwitterDescription">С вашата карта за бакшиши може да получавате подаръци от потребители на Code по цял свят. За достъп до картата за бакшиши публикувайте в социалната мрежа X.</string>
   <string name="subtitle_typeDelete">Напишете \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Направихме някои промени, за да подобрим качеството. Трябва да подновите приложението, за да използвате кода. </string>
   <string name="subtitle_validOwnerAccount">Валидна сметка на собственика</string>

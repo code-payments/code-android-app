@@ -240,7 +240,7 @@ data object DeleteCodeScreen : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_deleteAccount)
+        @Composable get() = stringResource(id = R.string.action_deleteAccount)
 
     @Composable
     override fun Content() {
@@ -256,7 +256,7 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_deleteAccount)
+        @Composable get() = stringResource(id = R.string.action_deleteAccount)
 
     @Composable
     override fun Content() {
@@ -306,9 +306,9 @@ data class CurrencySelectionModal(val forBalance: Boolean = false) : MainGraph, 
 
         LaunchedEffect(viewModel, forBalance) {
             val key = if (forBalance) {
-                PrefsString.KEY_BALANCE_CURRENCY_SELECTED
+                PrefsString.KEY_PREFERRED_APP_CURRENCY
             } else {
-                PrefsString.KEY_CURRENCY_SELECTED
+                PrefsString.KEY_GIVE_CURRENCY_SELECTED
             }
             viewModel.dispatchEvent(CurrencyViewModel.Event.OnSelectedKeyChanged(key))
         }

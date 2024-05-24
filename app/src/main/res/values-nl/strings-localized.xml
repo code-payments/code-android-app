@@ -41,6 +41,7 @@
   <string name="action_openSettings">Instellingen openen</string>
   <string name="action_paste">Plakken</string>
   <string name="action_pasteFromClipboard">Plakken van klembord</string>
+  <string name="action_postToConnect">Post om het account te verbinden</string>
   <string name="action_putInWallet">In wallet plaatsen</string>
   <string name="action_recoverExistingAccount">Bestaand account herstellen</string>
   <string name="action_remind">Herinneren</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">Veeg om te betalen</string>
   <string name="action_swipeToTip">Veeg naar fooi geven</string>
   <string name="action_tryDifferentCodeAccount">Probeer een ander Code-account</string>
+  <string name="action_tweetThem">Tweet ze</string>
   <string name="action_unmute">Dempen opheffen</string>
   <string name="action_unsubscribe">Uitschrijven</string>
   <string name="action_update">Updaten</string>
@@ -105,6 +107,7 @@
   <string name="error_description_purchaseTooLarge">Het maximale bedrag dat je kunt kopen is %1$s. Voer een kleiner bedrag in.</string>
   <string name="error_description_purchaseTooSmall">Het minimale bedrag dat je kunt kopen is %1$s. Voer een groter bedrag in.</string>
   <string name="error_description_timelockUnlocked">Je toegangssleutel heeft een ontgrendeling geactiveerd. Hierdoor kun je deze Toegangscode in code niet meer gebruiken.</string>
+  <string name="error_description_tipCardNotActivated">Stuur een tweet naar deze persoon om zijn/haar fooikaart te activeren.</string>
   <string name="error_description_tipTooLarge">De maximale fooi is %1$s. Voer een kleiner bedrag in.</string>
   <string name="error_description_tipTooSmall">De minimale fooi is %1$s. Voer een groter bedrag in.</string>
   <string name="error_description_tooManyAccounts">Je kunt maar een beperkt aantal nieuwe accounts per dag aanmaken.</string>
@@ -135,6 +138,7 @@
   <string name="error_title_purchaseTooLarge">Aankoop te groot</string>
   <string name="error_title_purchaseTooSmall">Aankoop te klein</string>
   <string name="error_title_timelockUnlocked">Toegangssleutel niet langer bruikbaar in code</string>
+  <string name="error_title_tipCardNotActivated">De fooikaart is nog niet geactiveerd</string>
   <string name="error_title_tipTooLarge">De fooi is te groot</string>
   <string name="error_title_tipTooSmall">De fooi is te klein</string>
   <string name="error_title_tooManyAccounts">Te veel accounts aangemaakt</string>
@@ -193,10 +197,12 @@
   <string name="push_subtitle_newGetFriendStarted">Laat een vriend beginnen met Code en ontvang $5</string>
   <string name="push_subtitle_newSendCash">Stuur geld via een messenger-app van jouw keuze</string>
   <string name="push_subtitle_referralBonus">Je hebt %1$s van Kin ontvangen omdat je iemand zijn of haar eerste Kin hebt gestuurd.</string>
+  <string name="push_subtitle_twitterAccountConnected">Je kunt nu fooien vragen.</string>
   <string name="push_title_depositReceived">Storting ontvangen</string>
   <string name="push_title_kinReturned">Kin geretourneerd</string>
   <string name="push_title_newOnCode">Nieuw op Code</string>
   <string name="push_title_referralBonus">Verwijzingsbonus ontvangen</string>
+  <string name="push_title_twitterAccountConnected">X-account verbonden</string>
   <string name="subtitle_accessExpiredDescription">Je uitnodiging voor toegang tot Code is verlopen. Je kunt uitloggen en een ander account gebruiken met een geldige uitnodigingsstatus.</string>
   <string name="subtitle_accessKeyDescription">Je toegangscode is de enige manier om toegang te krijgen tot je geld. Gelieve ze privé te houden en veilig op te slaan.</string>
   <string name="subtitle_accessKeyFaceID">Je identiteit verifiëren om je toegangscode te zien.</string>
@@ -263,6 +269,7 @@
   <string name="subtitle_someoneSendYouCash">Iemand heeft je geld gestuurd</string>
   <string name="subtitle_someoneTippedYou">Iemand heeft je een fooi gegeven</string>
   <string name="subtitle_tipCardForX">Met je fooikaart kunt je fooien ontvangen van codegebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, verbind je X-identiteit.</string>
+  <string name="subtitle_tipCardTwitterDescription">Met je fooikaart kunt je fooien ontvangen van Code-gebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, post op X.</string>
   <string name="subtitle_typeDelete">Typ \'%1$s\'</string>
   <string name="subtitle_updateRequiredDescription">We hebben enkele wijzigingen doorgevoerd om de ervaring te verbeteren. Je dient de app te updaten om Code te blijven gebruiken.</string>
   <string name="subtitle_validOwnerAccount">Geldig eigenaarsaccount</string>
