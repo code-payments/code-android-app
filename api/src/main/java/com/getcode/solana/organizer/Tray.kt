@@ -11,6 +11,7 @@ import com.getcode.model.RelationshipBox
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.TraceType
 import com.getcode.utils.timedTrace
+import com.getcode.utils.trace
 import kotlin.math.min
 
 class Tray(
@@ -422,18 +423,18 @@ class Tray(
             val currentSlot = slots[slots.size - i] // Backwards
             val smallerSlot = slotDown(currentSlot.type)
 
-            print("$padding o Checking slot: ${currentSlot.type}")
+            trace("$padding o Checking slot: ${currentSlot.type}", type = TraceType.Silent)
 
             if (smallerSlot == null) {
                 // We're at the lowest denomination
                 // so we can't exchange anymore.
-                print("$padding x Last slot")
+                trace("$padding x Last slot", type = TraceType.Silent)
                 break
             }
 
             if (currentSlot.billCount() <= 0) {
                 // Nothing to exchange, the current slot is empty.
-                print("$padding x Empty")
+                trace("$padding x Empty", type = TraceType.Silent)
                 continue
             }
 
@@ -442,7 +443,7 @@ class Tray(
             if (smallerSlot.billCount() >= howManyFit - 1) {
                 // No reason to exchange yet, the smaller slot
                 // already has enough bills for most payments
-                print("$padding x Enough bills")
+                trace("$padding x Enough bills", type = TraceType.Silent)
                 continue
             }
 
@@ -452,7 +453,10 @@ class Tray(
             decrement(AccountType.Bucket(currentSlot.type), kin = amount)
             increment(AccountType.Bucket(smallerSlot.type), kin = amount)
 
-            print("$padding v Exchanging from ${currentSlot.type} to ${smallerSlot.type} $amount Kin")
+            trace(
+                message = "$padding v Exchanging from ${currentSlot.type} to ${smallerSlot.type} $amount Kin",
+                type = TraceType.Silent
+            )
 
             exchanges.add(
                 InternalExchange(
@@ -484,17 +488,17 @@ class Tray(
 
         val exchanges = mutableListOf<InternalExchange>()
 
-        for (i in 0 until slots.size) {
+        for (element in slots) {
 
-            val currentSlot = slots[i] // Forwards
+            val currentSlot = element // Forwards
             val largerSlot = slotUp(currentSlot.type)
 
-            print("$padding o Checking slot: ${currentSlot.type}")
+            trace("$padding o Checking slot: ${currentSlot.type}")
 
             if (largerSlot == null) {
                 // We're at the largest denomination
                 // so we can't exchange anymore.
-                print("$padding x Last slot")
+                trace("$padding x Last slot", type = TraceType.Silent)
                 break
             }
 
@@ -508,7 +512,7 @@ class Tray(
             if (howManyWeHave < ((howManyFit * 2) - 1)) {
                 // We don't have enough bills to exchange, so we can't do
                 // anything in this slot at the moment.
-                print("$padding x Not enough bills")
+                trace("$padding x Not enough bills", type = TraceType.Silent)
                 continue
             }
 
@@ -532,7 +536,10 @@ class Tray(
             increment(AccountType.Bucket(largerSlot.type), kin = amount)
 
             slotTransfers.forEach { transfer ->
-                print("$padding v Exchanging from ${transfer.from} to {transfer.to!} {transfer.kin} Kin")
+                trace(
+                    message = "$padding v Exchanging from ${transfer.from} to {transfer.to!} {transfer.kin} Kin",
+                    type = TraceType.Silent
+                )
             }
 
             exchanges.addAll(

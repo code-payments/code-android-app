@@ -306,9 +306,9 @@ data class CurrencySelectionModal(val forBalance: Boolean = false) : MainGraph, 
 
         LaunchedEffect(viewModel, forBalance) {
             val key = if (forBalance) {
-                PrefsString.KEY_BALANCE_CURRENCY_SELECTED
+                PrefsString.KEY_PREFERRED_APP_CURRENCY
             } else {
-                PrefsString.KEY_CURRENCY_SELECTED
+                PrefsString.KEY_GIVE_CURRENCY_SELECTED
             }
             viewModel.dispatchEvent(CurrencyViewModel.Event.OnSelectedKeyChanged(key))
         }

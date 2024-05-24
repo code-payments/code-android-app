@@ -42,9 +42,11 @@ class CurrencyUtils @Inject constructor(
             }
     }
 
-    fun getCurrency(code: String) = currenciesMap[code]
+    fun getCurrency(code: String): Currency? {
+        return currenciesMap[code.uppercase()]
+    }
 
-    fun getCurrencyWithRate(code: String, rate: Double) = currenciesMap[code]?.copy(rate = rate)
+    fun getCurrencyWithRate(code: String, rate: Double) = currenciesMap[code.uppercase()]?.copy(rate = rate)
 
     fun getFlagByCurrency(currencyCode: String?): Int? {
         currencyCode ?: return null
