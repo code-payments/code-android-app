@@ -59,6 +59,7 @@ import com.getcode.util.NumberInputHelper
 import com.getcode.utils.network.NetworkState
 import com.getcode.utils.trace
 import com.getcode.view.main.account.BucketDebugger
+import com.getcode.view.main.currency.CurrencySelectKind
 import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountArea
 
@@ -133,7 +134,7 @@ fun BalanceContent(
                     state,
                     canClickBalance,
                 ) {
-                    navigator.push(CurrencySelectionModal(true))
+                    navigator.push(CurrencySelectionModal(CurrencySelectKind.Local))
                 }
             }
         }

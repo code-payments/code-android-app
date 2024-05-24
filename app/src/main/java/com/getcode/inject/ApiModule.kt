@@ -147,15 +147,21 @@ object ApiModule {
         locale: LocaleHelper,
         currencyUtils: CurrencyUtils,
         prefRepository: PrefRepository,
-    ): Exchange = CodeExchange(currencyApi, networkOracle, prefRepository) {
-        val preferredCurrencyCode = prefRepository.get(
-            PrefsString.KEY_PREFERRED_APP_CURRENCY,
-            ""
-        ).takeIf { it.isNotEmpty() }
+    ): Exchange = CodeExchange(
+        currencyApi = currencyApi,
+        networkOracle = networkOracle,
+        prefs = prefRepository,
+        preferredCurrency = {
+            val preferredCurrencyCode = prefRepository.get(
+                PrefsString.KEY_LOCAL_CURRENCY,
+                ""
+            ).takeIf { it.isNotEmpty() }
 
-        val preferredCurrency = preferredCurrencyCode?.let { currencyUtils.getCurrency(it) }
-        preferredCurrency ?: locale.getDefaultCurrency()
-    }
+            val preferredCurrency = preferredCurrencyCode?.let { currencyUtils.getCurrency(it) }
+            preferredCurrency ?: locale.getDefaultCurrency()
+        },
+        defaultCurrency = { locale.getDefaultCurrency() }
+    )
 
     @Singleton
     @Provides

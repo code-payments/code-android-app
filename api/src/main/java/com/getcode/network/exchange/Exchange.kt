@@ -16,12 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -42,6 +37,7 @@ interface Exchange {
     fun observeLocalRate(): Flow<Rate>
 
     val entryRate: Rate
+    fun observeEntryRate(): Flow<Rate>
 
     fun rates(): Map<CurrencyCode, Rate>
     fun observeRates(): Flow<Map<CurrencyCode, Rate>>
@@ -60,7 +56,12 @@ class ExchangeNull : Exchange {
     override val entryRate: Rate
         get() = Rate.oneToOne
 
+
     override fun observeLocalRate(): Flow<Rate> {
+        return emptyFlow()
+    }
+
+    override fun observeEntryRate(): Flow<Rate> {
         return emptyFlow()
     }
 
@@ -88,14 +89,17 @@ class CodeExchange @Inject constructor(
     private val currencyApi: CurrencyApi,
     private val networkOracle: NetworkOracle,
     prefs: PrefRepository,
+    private val preferredCurrency: suspend () -> Currency?,
     private val defaultCurrency: suspend () -> Currency?,
 ) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val db = Database.getInstance()
 
-    private var _entryRate: Rate = Rate.oneToOne
+    private var _entryRate = MutableStateFlow(Rate.oneToOne)
     override val entryRate: Rate
-        get() = _entryRate
+        get() = _entryRate.value
+
+    override fun observeEntryRate(): Flow<Rate> = _entryRate
 
     private val _localRate = MutableStateFlow(Rate.oneToOne)
     override val localRate
@@ -105,6 +109,7 @@ class CodeExchange @Inject constructor(
 
     private var rateDate: Long = System.currentTimeMillis()
 
+    private var localCurrency: CurrencyCode? = null
     private var entryCurrency: CurrencyCode? = null
 
     private val _rates = MutableStateFlow(emptyMap<CurrencyCode, Rate>())
@@ -129,6 +134,19 @@ class CodeExchange @Inject constructor(
 
     init {
         launch {
+            localCurrency = CurrencyCode.tryValueOf(preferredCurrency()?.code.orEmpty())
+            entryCurrency = CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
+
+            prefs.observeOrDefault(PrefsString.KEY_ENTRY_CURRENCY, "")
+                .map { it.takeIf { it.isNotEmpty() } }
+                .map { CurrencyCode.tryValueOf(it.orEmpty()) }
+                .mapNotNull { preferred ->
+                    preferred ?: CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
+                }.onEach { setEntryCurrency(it) }
+                .launchIn(this)
+        }
+
+        launch {
             db?.exchangeDao()?.query()?.let { exchangeData ->
                 val rates = exchangeData.map { Rate(it.fx, it.currency) }
                 val dateMillis = exchangeData.minOf { it.synced }
@@ -138,18 +156,13 @@ class CodeExchange @Inject constructor(
             fetchRatesIfNeeded()
         }
 
-        prefs.observeOrDefault(PrefsString.KEY_PREFERRED_APP_CURRENCY, "")
+        prefs.observeOrDefault(PrefsString.KEY_LOCAL_CURRENCY, "")
             .map { it.takeIf { it.isNotEmpty() } }
-            .filterNotNull()
-            .mapNotNull { CurrencyCode.tryValueOf(it) }
-            .flatMapLatest {
-                combine(observeRates(), flowOf(it)) { rates, currencyCode -> rates[currencyCode] }
-            }.filterNotNull()
-            .distinctUntilChanged()
-            .onEach {
-                trace("Local rate updated=${it.currency}", type = TraceType.Log)
-                _localRate.value = it
-            }.launchIn(this)
+            .map { CurrencyCode.tryValueOf(it.orEmpty()) }
+            .mapNotNull { preferred ->
+                preferred ?: CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
+            }.onEach { setLocalCurrency(it) }
+            .launchIn(this)
     }
 
     override suspend fun fetchRatesIfNeeded() {
@@ -164,8 +177,13 @@ class CodeExchange @Inject constructor(
         }
     }
 
-    private suspend fun set(currency: CurrencyCode) {
+    private suspend fun setEntryCurrency(currency: CurrencyCode) {
         entryCurrency = currency
+        updateRates()
+    }
+
+    private suspend fun setLocalCurrency(currency: CurrencyCode) {
+        localCurrency = currency
         updateRates()
     }
 
@@ -196,16 +214,15 @@ class CodeExchange @Inject constructor(
             return
         }
 
-        val localCurrency = CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
-        val rate = localCurrency?.let { rates.rateFor(it) }
-        _localRate.value = if (rate != null) {
+        val localRate = localCurrency?.let { rates.rateFor(it) }
+        _localRate.value = if (localRate != null) {
             trace(
                 message = "Updated the local currency: $localCurrency, " +
                         "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
                         "Date: ${Date(rates.dateMillis)}",
                 type = TraceType.Silent
             )
-            rate
+            localRate
         } else {
             trace(
                 message = "local:: Rate for $localCurrency not found. Defaulting to USD.",
@@ -216,7 +233,7 @@ class CodeExchange @Inject constructor(
 
 
         val entryRate = entryCurrency?.let { rates.rateFor(it) }
-        this._entryRate = if (entryRate != null) {
+        _entryRate.value = if (entryRate != null) {
             trace(
                 message = "Updated the entry currency: $entryCurrency, " +
                         "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +

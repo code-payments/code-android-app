@@ -5,7 +5,7 @@ import com.getcode.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
-import com.getcode.model.PrefsString
+import com.getcode.model.Rate
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
@@ -20,13 +20,10 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.min
 
@@ -65,10 +62,7 @@ sealed interface FlowType {
 }
 
 data class CurrencyUiModel(
-    val currencies: List<Currency> = listOf(),
-    val listItems: List<CurrencyListItem> = listOf(),
-    val selectedCurrencyCode: String? = null,
-    val selectedCurrencyResId: Int? = null,
+    val selectedCurrency: Currency? = null,
 )
 
 data class AmountUiModel(
@@ -109,32 +103,28 @@ abstract class BaseAmountCurrencyViewModel(
 
     open fun canChangeCurrency(): Boolean = true
 
+    open fun observeRate(): Flow<Rate> {
+        return exchange.observeEntryRate()
+    }
+
     open fun init() {
         numberInputHelper.reset()
 
         combine(
-            exchange.observeRates()
-                .map { currencyUtils.getCurrenciesWithRates(it) },
-            prefsRepository
-                .observeOrDefault(
-                    PrefsString.KEY_GIVE_CURRENCY_SELECTED, localeHelper.getDefaultCurrencyName()
-                ).flowOn(Dispatchers.IO)
-                .distinctUntilChanged(),
+            observeRate(),
             networkObserver.state,
             balanceRepository.balanceFlow
-        ) { currencies, selectedCode, _, balance ->
-            val currency = currencies.firstOrNull { it.code == selectedCode }
+        ) { rate, _, balance ->
+            val currency = currencyUtils.getCurrency(rate.currency.name)
             if (canChangeCurrency()) {
-                if (currency?.code != getCurrencyUiModel().selectedCurrencyCode) {
+                if (currency?.code != getCurrencyUiModel().selectedCurrency?.code) {
                     reset()
                 }
             }
             getModelsWithSelectedCurrency(
-                currencies,
                 getCurrencyUiModel(),
                 getAmountUiModel().copy(balanceKin = balance.coerceAtLeast(0.0)),
-                selectedCode,
-                currency?.resId,
+                currency,
                 numberInputHelper.amount,
                 numberInputHelper.getFormattedString()
             )
@@ -154,8 +144,7 @@ abstract class BaseAmountCurrencyViewModel(
         val currencyUiModel = getCurrencyUiModel()
         val amountAnimatedInputUiModel = getAmountAnimatedInputUiModel()
 
-        val selectedCurrency =
-            currencyUiModel.currencies.firstOrNull { it.code == currencyUiModel.selectedCurrencyCode } ?: return
+        val selectedCurrency = currencyUiModel.selectedCurrency ?: return
         val amount = numberInputHelper.amount
         val amountText = numberInputHelper.getFormattedString()
 
@@ -189,21 +178,15 @@ abstract class BaseAmountCurrencyViewModel(
     }
 
     private fun getModelsWithSelectedCurrency(
-        currencies: List<Currency>,
         currencyModel: CurrencyUiModel,
         amountUiModel: AmountUiModel,
-        selectedCurrencyCode: String,
-        resId: Int? = null,
+        selectedCurrency: Currency?,
         amount: Double,
         formattedString: String
     ): Pair<CurrencyUiModel, AmountUiModel>? {
-        val selectedCurrency = currencies.firstOrNull { it.code == selectedCurrencyCode }
-        if (selectedCurrencyCode.isEmpty() || selectedCurrency == null) return null
-
+        if (selectedCurrency == null) return null
         val currencyModelN = currencyModel.copy(
-            selectedCurrencyCode = selectedCurrency.code,
-            selectedCurrencyResId = resId,
-            currencies = currencies,
+            selectedCurrency = selectedCurrency,
         )
 
         numberInputHelper.isDecimalAllowed = selectedCurrency != Currency.Kin
