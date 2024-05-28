@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Para enviar invitaciones, permite el acceso a los contactos en \"Configuración\".</string>
   <string name="error_description_failedToCreateAccount">Eso no nos lo esperábamos. Algo ha ido mal. Intenta crear la cuenta de nuevo.</string>
   <string name="error_description_failedToSave">Permite que Code acceda a las fotos en Ajustes para guardar tu clave de acceso.</string>
-  <string name="error_description_failedToSendCode">Algo ha salido mal. Comprueba que estás usando un número de teléfono que haya recibido una invitación y que lo hayas introducido correctamente.</string>
   <string name="error_description_failedToVerifyPhone">Algo ha salido mal. Inténtalo de nuevo.</string>
   <string name="error_description_failedWithdrawal">No se han podido retirar los fondos debido a un fallo. Inténtalo de nuevo.</string>
   <string name="error_description_giveAmountTooLarge">Code está diseñado para pequeñas transacciones cotidianas de %1$s o menos.</string>

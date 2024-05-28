@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Voit lähettää kutsuja sallimalla asetuksissa yhteystietojen käyttöoikeuden.</string>
   <string name="error_description_failedToCreateAccount">Emme odottaneet näin käyvän. Jotakin meni vikaan. Kokeile tämän tilin luomista uudestaan.</string>
   <string name="error_description_failedToSave">Anna Codelle valokuvien käyttöoikeudet asetuksista käsin, jotta voit tallentaa käyttöoikeusavaimesi.</string>
-  <string name="error_description_failedToSendCode">Jotakin meni vikaan. Varmista, että käytät puhelinnumeroa, johon kutsu lähetettiin, ja että numero on syötetty oikein.</string>
   <string name="error_description_failedToVerifyPhone">Jotakin meni vikaan. Yritä uudestaan.</string>
   <string name="error_description_failedWithdrawal">Rahojesi nostaminen epäonnistui. Jotakin meni vikaan. Yritä nostoa uudestaan.</string>
   <string name="error_description_giveAmountTooLarge">Code on suunniteltu arjen pieniin siirtoihin, jotka ovat summaltaan %1$s tai alle.</string>

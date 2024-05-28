@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Precisa de dar acesso aos contactos nas definições para enviar convites.</string>
   <string name="error_description_failedToCreateAccount">Não estávamos a contar que isto acontecesse. Algo correu mal. Tente criar esta conta novamente.</string>
   <string name="error_description_failedToSave">Permita que o Code tenha acesso às suas Fotos nas Definições, de forma a poder guardar a sua Chave de Acesso.</string>
-  <string name="error_description_failedToSendCode">Algo correu mal. Certifique-se que está a utilizar o número de telemóvel onde recebeu o convite e que este está introduzido corretamente.</string>
   <string name="error_description_failedToVerifyPhone">Algo correu mal. Tente novamente.</string>
   <string name="error_description_failedWithdrawal">O levantamento de fundos falhou. Algo correu mal, tente fazer o seu levantamento novamente.</string>
   <string name="error_description_giveAmountTooLarge">A Code foi concebida para transações pequenas do dia-a-dia de %1$s ou menos.</string>

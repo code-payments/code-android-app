@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Щоб надіслати запрошення, надайте доступ до контактів у налаштуваннях.</string>
   <string name="error_description_failedToCreateAccount">Ми не очікували, що це станеться. Щось пішло не так. Будь ласка, спробуйте створити цей акаунт знову.</string>
   <string name="error_description_failedToSave">Щоб зберегти ключ доступу, будь ласка, надайте Code доступ до фотографій у налаштуваннях.</string>
-  <string name="error_description_failedToSendCode">Щось пішло не так. Будь ласка, переконайтеся, що ви використовуєте номер телефону, на який вам було надіслано запрошення, і що він введений правильно.</string>
   <string name="error_description_failedToVerifyPhone">Щось пішло не так. Будь ласка, спробуйте ще раз.</string>
   <string name="error_description_failedWithdrawal">Не вдалося зняти ваші кошти. Щось пішло не так, будь ласка, спробуйте зняти ще раз.</string>
   <string name="error_description_giveAmountTooLarge">Code розроблено для невеликих щоденних транзакцій на суму %1$s або менше.</string>

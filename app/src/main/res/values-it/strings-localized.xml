@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Sei pregato di consentire l\'accesso ai contatti nelle Impostazioni per mandare gli inviti.</string>
   <string name="error_description_failedToCreateAccount">Questo è un imprevisto. Qualcosa è andato storto. Prova a creare nuovamente questo account.</string>
   <string name="error_description_failedToSave">Consenti l\'accesso alle foto da parte di Code nelle Impostazioni per poter salvare la tua chiave d\'accesso.</string>
-  <string name="error_description_failedToSendCode">Qualcosa è andato storto. Assicurati di stare usando un numero di telefono invitato e che sia inserito correttamente.</string>
   <string name="error_description_failedToVerifyPhone">Qualcosa è andato storto. Si prega di riprovare.</string>
   <string name="error_description_failedWithdrawal">Non è stato possibile prelevare i tuoi fondi. Qualcosa è andato storto. Ritenta il prelievo.</string>
   <string name="error_description_giveAmountTooLarge">Code è disegnato per transazioni piccole e quotidiane che ammontano a %1$s o meno.</string>

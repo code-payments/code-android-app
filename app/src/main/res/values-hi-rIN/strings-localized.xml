@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">आमंत्रण भेजने के लिए सेटिंग में जाकर संपर्क सूची का एक्सेस दें.</string>
   <string name="error_description_failedToCreateAccount">हमें ऐसा होने की उम्मीद नहीं थी. कुछ गलत हो गया. कृपया इस अकाउंट को पुन: बनाने का प्रयास करें.</string>
   <string name="error_description_failedToSave">अपनी एक्सेस की को सेव करने के लिए कृपया सेटिंग में कोड को फ़ोटो तक एक्सेस की अनुमति दें.</string>
-  <string name="error_description_failedToSendCode">कुछ गलत हो गया. कृपया सुनिश्चित करें कि आप उस फ़ोन नंबर का उपयोग कर रहे हैं जिसे आमंत्रित किया गया था और इसे सही तरीके से एंटर किया गया है.</string>
   <string name="error_description_failedToVerifyPhone">कुछ गलत हो गया. कृपया पुन: प्रयास करें.</string>
   <string name="error_description_failedWithdrawal">आप धन को निकालने में विफल हो गए. कुछ गलत हो गया है, कृपया धन निकालने  का पुन: प्रयास करें.</string>
   <string name="error_description_giveAmountTooLarge">Code को छोटी और रोज़ाना किए जाने वाले लेन-देन के लिए बनाया गया है, जिसकी राशि %1$s या इससे कम हो सकती है.</string>

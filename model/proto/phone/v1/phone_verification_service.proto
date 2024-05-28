@@ -39,10 +39,12 @@ message SendVerificationCodeResponse {
         // The phone number is not real because it fails Twilio lookup.
         INVALID_PHONE_NUMBER = 3;
         // The phone number is valid, but it maps to an unsupported type of phone
-        // like a landline.
+        // like a landline or ESIM.
         UNSUPPORTED_PHONE_TYPE = 4;
+        // The country associated with the phone number is not supported (eg. it
+        // is on the sanctioned list).
+        UNSUPPORTED_COUNTRY = 5;
     }
-
 }
 
 message CheckVerificationCodeRequest {

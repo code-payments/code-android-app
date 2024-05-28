@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Bitte erlauben Sie in den Einstellungen den Zugriff auf die Kontakte, um Einladungen zu versenden.</string>
   <string name="error_description_failedToCreateAccount">Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie, dieses Konto erneut zu erstellen.</string>
   <string name="error_description_failedToSave">Bitte erlauben Sie Code in den Einstellungen Zugriff auf Fotos, um Ihren Zugangsschlüssel speichern zu können.</string>
-  <string name="error_description_failedToSendCode">Es ist ein Fehler aufgetreten. Bitte vergewissern Sie sich, dass Sie eine Telefonnummer verwenden, für die Sie eine Enladung erhalten haben, und dass diese korrekt eingegeben wurde.</string>
   <string name="error_description_failedToVerifyPhone">Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.</string>
   <string name="error_description_failedWithdrawal">Die Abhebung Ihres Guthabens ist fehlgeschlagen. Etwas ist schief gelaufen. Bitte versuchen Sie die Abhebung erneut vorzunehmen.</string>
   <string name="error_description_giveAmountTooLarge">Code ist für kleine, alltägliche Transaktionen gedacht, die sich auf %1$s oder weniger belaufen.</string>

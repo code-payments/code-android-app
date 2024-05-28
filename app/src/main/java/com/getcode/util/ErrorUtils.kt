@@ -19,3 +19,4 @@ fun ErrorUtils.showNetworkError(resources: ResourceHelper) = TopBarManager.TopBa
     message =resources.getString(R.string.error_description_noInternet),
     type = TopBarManager.TopBarMessageType.ERROR_NETWORK
 ).let { TopBarManager.showMessage(it) }
+
