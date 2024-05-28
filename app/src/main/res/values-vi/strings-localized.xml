@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Vui lòng cho phép truy cập vào danh bạ trong phần Cài đặt để gửi lời mời.</string>
   <string name="error_description_failedToCreateAccount">Chúng tôi không mong đợi điều đó xảy ra. Đã xảy ra lỗi. Xin vui lòng thử tạo lại tài khoản này.</string>
   <string name="error_description_failedToSave">Xin vui lòng cho phép Mã truy cập vào Ảnh trong mục Cài đặt để lưu Khóa Truy cập của bạn.</string>
-  <string name="error_description_failedToSendCode">Đã xảy ra lỗi. Hãy đảm bảo rằng bạn đang sử dụng số điện thoại đã được mời và đã nhập chính xác số điện thoại.</string>
   <string name="error_description_failedToVerifyPhone">Đã xảy ra lỗi. Xin vui lòng thử lại.</string>
   <string name="error_description_failedWithdrawal">Không thể rút tiền của bạn. Đã xảy ra sự cố, xin vui lòng thử rút tiền một lần nữa.</string>
   <string name="error_description_giveAmountTooLarge">Code được thiết kế cho các giao dịch nhỏ hàng ngày có giá trị từ %1$s trở xuống.</string>

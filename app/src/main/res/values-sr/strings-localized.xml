@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Дозволите приступ контактима у поставкама да бисте послали позиве.</string>
   <string name="error_description_failedToCreateAccount">Nismo očekivali da će se to dogoditi. Došlo je do greške. Pokušajte ponovo da napravite ovaj nalog.</string>
   <string name="error_description_failedToSave">Dozvolite pristup aplikaciji Code fotografijama u podešavanjima da biste sačuvali svoj ključ za pristup.</string>
-  <string name="error_description_failedToSendCode">Došlo je do greške. Uverite se da koristite telefonski broj koji je pozvan i koji je ispravno unet.</string>
   <string name="error_description_failedToVerifyPhone">Došlo je do greške. Pokušajte ponovo.</string>
   <string name="error_description_failedWithdrawal">Povlačenje sredstava nije uspelo. Nešto nije u redu, pokušajte ponovo da povučete.</string>
   <string name="error_description_giveAmountTooLarge">Code је дизајниран за мале, свакодневне трансакције које су за %1$s или мање.</string>

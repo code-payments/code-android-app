@@ -19,7 +19,6 @@
 
     <string name="title_success">Success</string>
 
-    <string name="subtitle_tips_linked_to_account">Tips linked to %1$s account: %2$s</string>
     <string name="action_thank">🙏 Thank</string>
     <string name="action_thanked">🙏 Thanked</string>
     <string name="action_message">Message</string>
@@ -31,6 +30,7 @@
     <string name="title_chat_announcement_thanksReceived">🙏 %1$s thanked you for your tip</string>
 
     <string name="title_sendKin">Send Kin</string>
+
     <string name="subtitle_linkingTwitterPrompt" translatable="false">
         Hey @%1$s you should set up your @getcode Tip Card so I can tip you some cash.
 

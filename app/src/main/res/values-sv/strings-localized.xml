@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Tillåt åtkomst till dina kontakter i Inställningar för att skicka inbjudningar.</string>
   <string name="error_description_failedToCreateAccount">Vi förväntade oss inte att det skulle hända. Något gick fel. Försök att skapa det här kontot igen.</string>
   <string name="error_description_failedToSave">Tillåt Kodåtkomst till foton i Inställningar för att spara din åtkomstnyckel.</string>
-  <string name="error_description_failedToSendCode">Något gick fel. Kontrollera att du använder ett telefonnummer som du har bjudits in till och att det har angetts korrekt.</string>
   <string name="error_description_failedToVerifyPhone">Något gick fel. Försök igen.</string>
   <string name="error_description_failedWithdrawal">Du lyckades inte ta ut dina pengar. Något gick fel, försök att göra ett nytt uttag.</string>
   <string name="error_description_giveAmountTooLarge">Code är avsedd för små vardagliga transaktioner på %1$s eller mindre.</string>

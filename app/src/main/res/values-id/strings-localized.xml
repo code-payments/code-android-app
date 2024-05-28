@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Harap berikan akses kontak pada Pengaturan untuk mengirim undangan.</string>
   <string name="error_description_failedToCreateAccount">Kami tidak memperkirakan hal itu terjadi. Terjadi masalah. Silakan coba membuat akun ini lagi.</string>
   <string name="error_description_failedToSave">Izinkan Code mengakses Foto di Pengaturan untuk menyimpan Kunci Akses Anda.</string>
-  <string name="error_description_failedToSendCode">Terjadi masalah. Pastikan bahwa Anda menggunakan nomor telepon yang diundang dan telah memasukkannya dengan tepat.</string>
   <string name="error_description_failedToVerifyPhone">Terjadi masalah. Harap mencoba lagi.</string>
   <string name="error_description_failedWithdrawal">Gagal menarik dana Anda. Ada yang tidak beres, silakan mencoba mengulangi penarikan.</string>
   <string name="error_description_giveAmountTooLarge">Code dirancang untuk transaksi kecil harian bernilai %1$s ke bawah.</string>

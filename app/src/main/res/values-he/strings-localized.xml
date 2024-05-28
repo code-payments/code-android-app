@@ -41,6 +41,7 @@
   <string name="action_openSettings">פתח הגדרות</string>
   <string name="action_paste">הדבק</string>
   <string name="action_pasteFromClipboard">הדבק מהלוח</string>
+  <string name="action_postToConnect">יש להעלות פוסט כדי לחבר את החשבון</string>
   <string name="action_putInWallet">שים בארנק</string>
   <string name="action_recoverExistingAccount">שחזר חשבון קיים</string>
   <string name="action_remind">הזכר</string>
@@ -60,6 +61,7 @@
   <string name="action_swipeToPay">החליקו כדי לשלם</string>
   <string name="action_swipeToTip">החליקו כדי לתת טיפ</string>
   <string name="action_tryDifferentCodeAccount">נסה חשבון קוד אחר</string>
+  <string name="action_tweetThem">שלחו ציוץ</string>
   <string name="action_unmute">בטל השתקה</string>
   <string name="action_unsubscribe">בטל מנוי</string>
   <string name="action_update">עדכן</string>
@@ -86,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">נא לאפשר גישה לאנשי הקשר בהגדרות על מנת לשלוח הזמנות.</string>
   <string name="error_description_failedToCreateAccount">לא ציפינו שזה יקרה. משהו השתבש. אנא נסה שנית ליצור את החשבון.</string>
   <string name="error_description_failedToSave">אנא אפשר לקוד גישה לתמונות בהגדרות כדי לשמור את מפתח הגישה שלך.</string>
-  <string name="error_description_failedToSendCode">משהו השתבש. אנא וודא שאתה משתמש במספר טלפון שקיבל הזמנה ושהוא הוכנס בצורה נכונה.</string>
   <string name="error_description_failedToVerifyPhone">משהו השתבש. אנא נסה שנית</string>
   <string name="error_description_failedWithdrawal">משיכת הכספים שלך נכשלה. משהו השתבש, אנא נסה למשוך שוב.</string>
   <string name="error_description_giveAmountTooLarge">Code מיועדת לעסקאות קטנות ויומיומיות של %1$s או פחות.</string>
@@ -105,6 +106,7 @@
   <string name="error_description_purchaseTooLarge">המקסימום שתוכל לרכוש הוא %1$s. נא להזין סכום קטן יותר.</string>
   <string name="error_description_purchaseTooSmall">המינימום שניתן לרכוש הוא %1$s. נא להזין סכום גדול יותר.</string>
   <string name="error_description_timelockUnlocked">מפתח הגישה שלך יזם ביטול נעילה. כתוצאה מכך, לא תוכל עוד להשתמש במפתח גישה זה ב-Code.</string>
+  <string name="error_description_tipCardNotActivated">שלחו ציוץ לאדם זה כדי להפעיל את ה\"טיפקארד\" שלו.</string>
   <string name="error_description_tipTooLarge">המקסימום שאתם יכולים לתת כטיפ הוא %1$s. נא להזין סכום קטן יותר.</string>
   <string name="error_description_tipTooSmall">המינימום שאתם יכולים לתת כטיפ הוא %1$s. נא להזין סכום גדול יותר.</string>
   <string name="error_description_tooManyAccounts">אתה יכול ליצור כמות מוגבלת של חשבונות חדשים בכל יום.</string>
@@ -135,6 +137,7 @@
   <string name="error_title_purchaseTooLarge">רכישה גדולה מדי</string>
   <string name="error_title_purchaseTooSmall">קנייה קטנה מדי</string>
   <string name="error_title_timelockUnlocked">מפתח הגישה אינו שמיש יותר ב-Code</string>
+  <string name="error_title_tipCardNotActivated">ה\"טיפקארד\" לא הופעל עדיין</string>
   <string name="error_title_tipTooLarge">הטיפ גדול מדי</string>
   <string name="error_title_tipTooSmall">הטיפ קטן מדי</string>
   <string name="error_title_tooManyAccounts">יותר מדי חשבונות נוצרו</string>
@@ -193,10 +196,12 @@
   <string name="push_subtitle_newGetFriendStarted">עודד חבר להתחיל להשתמש ב-Code וקבל 5$</string>
   <string name="push_subtitle_newSendCash">שלח מזומן דרך כל אפליקציית מסנג\'ר</string>
   <string name="push_subtitle_referralBonus">קיבלת %1$s של Kin על כך ששלחת למישהו את ה-Kin הראשון שלו.</string>
+  <string name="push_subtitle_twitterAccountConnected">כעת ניתן לבקש טיפים.</string>
   <string name="push_title_depositReceived">ההפקדה התקבלה</string>
   <string name="push_title_kinReturned">ה-Kin הוחזר</string>
   <string name="push_title_newOnCode">חדש ב-Code</string>
   <string name="push_title_referralBonus">בונוס ההפניה התקבל</string>
+  <string name="push_title_twitterAccountConnected">חשבון X מחובר</string>
   <string name="subtitle_accessExpiredDescription">פג תוקף ההזמנה שלך לקוד. אתה יכול לצאת מהחשבון ולהשתמש בחשבון אחר עם הזמנה בתוקף.</string>
   <string name="subtitle_accessKeyDescription">מפתח הגישה שלך הוא הדרך היחידה לגשת לכספים שלך. אנא שמור אותו בסוד ובמקום בטוח.</string>
   <string name="subtitle_accessKeyFaceID">אמת את הזהות שלך כדי לצפות במפתח הגישה שלך.</string>
@@ -263,6 +268,7 @@
   <string name="subtitle_someoneSendYouCash">מישהו שלח לך מזומן</string>
   <string name="subtitle_someoneTippedYou">מישהו נתן לכם טיפ</string>
   <string name="subtitle_tipCardForX">כרטיס הטיפים שלכם מאפשר לכם לקבל טיפים ממשתמשי Code מכל רחבי העולם. כדי לגשת לכרטיס הטיפים שלכם חברו את זהות X שלכם.</string>
+  <string name="subtitle_tipCardTwitterDescription">ה\"טיפקארד\" שלך מאפשר לך לקבל טיפים ממשתמשי קוד בכל רחבי העולם. כדי לגשת ל\"טיפקארד\" שלך, עליך להעלות פוסט ל-X.</string>
   <string name="subtitle_typeDelete">יש להקליד \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">עשינו כמה שינויים כדי לשפר את חווית המשתמש. תצטרך לעדכן את האפליקציה כדי להמשיך להשתמש בקוד.</string>
   <string name="subtitle_validOwnerAccount">חשבון בעלים תקף</string>

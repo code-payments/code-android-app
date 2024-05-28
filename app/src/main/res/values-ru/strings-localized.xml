@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Для отправки приглашений предоставьте доступ к контактам в настройках.</string>
   <string name="error_description_failedToCreateAccount">Мы не ожидали этого. Что-то пошло не так. Попробуйте создать эту учетную запись снова.</string>
   <string name="error_description_failedToSave">Разрешите Code доступ к фото в настройках, чтобы сохранить свой ключ доступа.</string>
-  <string name="error_description_failedToSendCode">Что-то пошло не так. Проверьте, используете ли вы номер телефона, который был приглашен, и правильно ли он введен.</string>
   <string name="error_description_failedToVerifyPhone">Что-то пошло не так. Попробуйте снова.</string>
   <string name="error_description_failedWithdrawal">Не удалось вывести ваши средства. Что-то пошло не так, попробуйте вывести снова.</string>
   <string name="error_description_giveAmountTooLarge">Code разработан для небольших ежедневных транзакций, не превышающих %1$s.</string>

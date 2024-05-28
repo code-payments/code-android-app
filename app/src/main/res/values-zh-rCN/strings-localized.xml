@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">请在\"设置\"中允许访问通讯录以发送邀请。</string>
   <string name="error_description_failedToCreateAccount">我们没想到会发生这种情况。出了点问题。请尝试重新创建此账户。</string>
   <string name="error_description_failedToSave">请在设置中允许 Code 访问相册以保存您的访问密钥。</string>
-  <string name="error_description_failedToSendCode">出了点问题。请确保您使用的是受邀请的手机号码并且输入正确。</string>
   <string name="error_description_failedToVerifyPhone">出了点问题。请再试一次。</string>
   <string name="error_description_failedWithdrawal">提取资金失败。出了点问题,请重新尝试提取。</string>
   <string name="error_description_giveAmountTooLarge">代码专为 %1$s 或以下的小额日常交易而设计。</string>

@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Meghívók küldéséhez engedélyezd a hozzáférést a kapcsolataidhoz.</string>
   <string name="error_description_failedToCreateAccount">Nem számítottunk rá, hogy ez megtörténik. Valami elromlott. Kérjük, próbálja meg újra létrehozni ezt a fiókot.</string>
   <string name="error_description_failedToSave">A hozzáférési kulcs mentéséhez engedélyezze a kódhoz való hozzáférést a Beállításokban a Fotókhoz.</string>
-  <string name="error_description_failedToSendCode">Valami elromlott. Kérjük, győződjön meg arról, hogy olyan telefonszámot használ, amelyre meghívást kapott, és helyesen adta meg.</string>
   <string name="error_description_failedToVerifyPhone">Valami elromlott. Kérem, próbálja újra.</string>
   <string name="error_description_failedWithdrawal">Nem sikerült kivenni az összeget. Hiba történt. Kérjük, próbálja meg újra a visszavonást.</string>
   <string name="error_description_giveAmountTooLarge">A Code kis, mindennapi tranzakciókra lett tervezve, ami %1$s vagy kevesebb.</string>

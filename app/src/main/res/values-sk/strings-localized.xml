@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Ak chcete posielať pozvánky, povoľte prístup ku kontaktom v Nastaveniach.</string>
   <string name="error_description_failedToCreateAccount">Nečakali sme, že sa to stane. Niečo sa pokazilo. Skúste vytvoriť tento účet znova.</string>
   <string name="error_description_failedToSave">Ak si chcete uložiť svoj prístupový kľúč, povoľte kódový prístup k fotkám v Nastaveniach.</string>
-  <string name="error_description_failedToSendCode">Niečo sa pokazilo. Uistite sa, že používate telefónne číslo, ktoré bolo pozvané, a že je zadané správne.</string>
   <string name="error_description_failedToVerifyPhone">Niečo sa pokazilo. Skúste to znova.</string>
   <string name="error_description_failedWithdrawal">Nepodarilo sa vybrať vaše prostriedky. Vyskytol sa problém, skúste výber zopakovať.</string>
   <string name="error_description_giveAmountTooLarge">Aplikácia Code je navrhnutá pre malé, každodenné transakcie, ktoré sú v hodnote %1$s alebo menej.</string>

@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">โปรดอนุญาตให้เข้าถึงรายชื่อผู้ติดต่อในการตั้งค่าเพื่อส่งคำเชิญ</string>
   <string name="error_description_failedToCreateAccount">เราไม่ได้คาดหวังให้เกิดสิ่งนี้ขึ้น เกิดข้อผิดพลาดขึ้น โปรดลองสร้างบัญชีนี้อีกครั้ง</string>
   <string name="error_description_failedToSave">โปรดอนุญาตให้ Code เข้าถึงรูปภาพในการตั้งค่าเพื่อบันทึกคีย์การเข้าถึงของคุณ</string>
-  <string name="error_description_failedToSendCode">เกิดข้อผิดพลาดขึ้น โปรดตรวจสอบให้แน่ใจว่าคุณใช้หมายเลขโทรศัพท์ที่ได้รับเชิญและป้อนหมายเลขดังกล่าวอย่างถูกต้อง</string>
   <string name="error_description_failedToVerifyPhone">เกิดข้อผิดพลาดขึ้น โปรดลองใหม่อีกครั้ง</string>
   <string name="error_description_failedWithdrawal">ถอนเงินของคุณไม่สำเร็จ มีบางอย่างผิดพลาด โปรดลองถอนเงินอีกครั้ง</string>
   <string name="error_description_giveAmountTooLarge">Code ออกแบบมาสำหรับการทำธุรกรรมขนาดเล็กในชีวิตประจำวันที่มีจำนวนไม่เกิน %1$s</string>

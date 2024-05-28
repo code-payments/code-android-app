@@ -176,6 +176,17 @@ class PhoneVerifyViewModel @Inject constructor(
                         navigator.push(InviteCodeScreen(phoneNumber.urlEncode()))
                         null
                     }
+
+                    PhoneVerificationService.SendVerificationCodeResponse.Result.INVALID_PHONE_NUMBER,
+                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_PHONE_TYPE -> {
+                        getUnsupportedPhoneError()
+                    }
+                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_COUNTRY -> {
+                        getUnsupportedCountryError()
+                    }
+                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNRECOGNIZED -> {
+                        getUnsupportedDeviceError()
+                    }
                     else -> getGenericError()
                 }?.let { message -> TopBarManager.showMessage(message) }
                 res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
@@ -223,12 +234,23 @@ class PhoneVerifyViewModel @Inject constructor(
             )
     }
 
-    private fun setValue(func: (PhoneVerifyUiModel) -> PhoneVerifyUiModel) {
-        uiFlow.value = func(uiFlow.value)
-    }
-
     private fun getGenericError() = TopBarManager.TopBarMessage(
         resources.getString(R.string.error_title_failedToSendCode),
         resources.getString(R.string.error_description_failedToSendCode)
+    )
+
+    private fun getUnsupportedPhoneError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_eSimNotSupported),
+        resources.getString(R.string.error_description_eSimNotSupported)
+    )
+
+    private fun getUnsupportedDeviceError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_deviceNotSupported),
+        resources.getString(R.string.error_description_deviceNotSupported)
+    )
+
+    private fun getUnsupportedCountryError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_countryNotSupported),
+        resources.getString(R.string.error_description_countryNotSupported)
     )
 }

@@ -8,6 +8,7 @@ import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.model.intents.SwapIntent
 import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.core.BidirectionalStreamReference
+import com.getcode.network.repository.TransactionRepository.ErrorSubmitIntent
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
 import com.getcode.solana.keys.Signature
@@ -92,6 +93,9 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
 
                                 expected?.diff(produced)
                             }
+                            TransactionService.ErrorDetails.TypeCase.INTENT_DENIED -> {
+                                errors.add("Denied: ${error.intentDenied.reason.name}")
+                            }
                             else -> Unit
                         }
 
@@ -103,8 +107,8 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                     reference.stream?.onCompleted()
                     cont.resume(
                         Result.failure(
-                            TransactionRepository.ErrorSubmitIntentException(
-                                TransactionRepository.ErrorSubmitIntent.fromValue(value.error.codeValue),
+                            ErrorSubmitSwapIntentException(
+                                ErrorSubmitSwapIntent.valueOf(value.error.codeValue),
                             )
                         )
                     )
@@ -122,9 +126,7 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
             }
             cont.resume(
                 Result.failure(
-                    TransactionRepository.ErrorSubmitIntentException(
-                        TransactionRepository.ErrorSubmitIntent.Unknown, t
-                    )
+                    ErrorSubmitSwapIntentException(ErrorSubmitSwapIntent.Unknown, t)
                 )
             )
         }
@@ -143,4 +145,28 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
         ).build()
 
     reference.stream?.onNext(initiateSwap)
+}
+
+class ErrorSubmitSwapIntentException(
+    val errorSubmitSwapIntent: ErrorSubmitSwapIntent,
+    cause: Throwable? = null,
+    val messageString: String = ""
+) : Exception(cause) {
+    override val message: String
+        get() = "${errorSubmitSwapIntent.name} $messageString"
+}
+
+enum class ErrorSubmitSwapIntent(val value: Int) {
+    Denied(0),
+    InvalidIntent(1),
+    SignatureError(2),
+    StaleState(3),
+    Unknown(-1),
+    DeviceTokenUnavailable(-2);
+
+    companion object {
+        fun valueOf(value: Int): ErrorSubmitSwapIntent {
+            return entries.firstOrNull { it.value == value } ?: Unknown
+        }
+    }
 }

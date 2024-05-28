@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">يُرجى السماح بالوصول إلى جهات الاتصال في الإعدادات لإرسال الدعوات.</string>
   <string name="error_description_failedToCreateAccount">لم نتوقع حدوث ذلك. حدث خطأ ما. يُرجى محاولة إنشاء هذا الحساب مرة أخرى.</string>
   <string name="error_description_failedToSave">يُرجى السماح لـ Code بالوصول إلى الصور في الإعدادات من أجل حفظ مفتاح الوصول الخاص بك.</string>
-  <string name="error_description_failedToSendCode">حدث خطأ ما. يُرجى التأكد من أنك تستخدم رقم هاتف تمت دعوته وأنه تم إدخاله بشكل صحيح.</string>
   <string name="error_description_failedToVerifyPhone">حدث خطأ ما. يُرجى المحاولة مرة أخرى.</string>
   <string name="error_description_failedWithdrawal">فشلت عملية سحب أموالك. حدث خطأ ما, يُرجى محاولة السحب مرة أخرى.</string>
   <string name="error_description_giveAmountTooLarge">تم تصميم Code للمعاملات الصغيرة اليومية في حدود %1$s أو أقل.</string>

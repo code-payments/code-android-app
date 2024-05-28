@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Sila membenarkan akses hubungan dalam Tetapan untuk menghantar jemputan.</string>
   <string name="error_description_failedToCreateAccount">Kami tidak menjangkakan perkara itu berlaku. Ada sesuatu tidak kena. Sila cuba mencipta akaun ini sekali lagi.</string>
   <string name="error_description_failedToSave">Sila benarkan akses Code kepada Gambar dalam Tetapan untuk menyimpan Kunci Akses anda.</string>
-  <string name="error_description_failedToSendCode">Ada sesuatu tidak kena. Sila pastikan anda menggunakan nombor telefon yang menerima ajakan dan ia dimasukkan dengan tepat.</string>
   <string name="error_description_failedToVerifyPhone">Ada sesuatu tidak kena. Sila cuba lagi.</string>
   <string name="error_description_failedWithdrawal">Gagal mengeluarkan dana anda. Ada sesuatu tidak kena, sila cuba keluarkan dana anda sekali lagi.</string>
   <string name="error_description_giveAmountTooLarge">Code direka bentuk untuk transaksi harian kecil sebanyak %1$s atau kurang.</string>

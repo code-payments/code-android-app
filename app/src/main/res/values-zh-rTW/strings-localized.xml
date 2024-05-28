@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">請在設置中允許存取聯絡人以發送邀請。</string>
   <string name="error_description_failedToCreateAccount">我們沒有預料到會發生這種情況。出了點問題。請嘗試重新建立此帳戶。</string>
   <string name="error_description_failedToSave">請在設定中允許 Code 存取相簿,以儲存您的存取金鑰。</string>
-  <string name="error_description_failedToSendCode">出了點問題。請確定您使用的是受到邀請的電話號碼且有正確輸入。</string>
   <string name="error_description_failedToVerifyPhone">出了點問題。請再試一次。</string>
   <string name="error_description_failedWithdrawal">無法提領您的資金。出了點問題,請重新嘗試提領。</string>
   <string name="error_description_giveAmountTooLarge">Code 旨在處理每日 %1$s 或以下的小額交易。</string>

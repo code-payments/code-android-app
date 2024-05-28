@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Tillad venligst adgang til kontakter i Indstillinger for at sende invitationer.</string>
   <string name="error_description_failedToCreateAccount">Vi forventede ikke, at det ville ske. Noget gik galt. Prøv at oprette kontoen igen.</string>
   <string name="error_description_failedToSave">Tillad Code adgang til billeder i Indstillinger for at gemme din adgangsnøgle.</string>
-  <string name="error_description_failedToSendCode">Noget gik galt. Sørg for, at du bruger det telefonnummer, der modtog invitationen, og at det er indtastet korrekt.</string>
   <string name="error_description_failedToVerifyPhone">Noget gik galt. Prøv igen.</string>
   <string name="error_description_failedWithdrawal">Det lykkedes ikke at hæve penge. Noget gik galt, prøv at hæve igen.</string>
   <string name="error_description_giveAmountTooLarge">Code er designet til små hverdagstransaktioner på %1$s eller mindre.</string>

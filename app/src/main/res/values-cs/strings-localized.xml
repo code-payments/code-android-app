@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Povolte přístup ke kontaktům v Nastavení pro odesílání pozvánek.</string>
   <string name="error_description_failedToCreateAccount">Toto jsme nečekali. Nastala chyba. Zkuste tento účet vytvořit znovu.</string>
   <string name="error_description_failedToSave">Povolte kódu přístup ke snímkům v nastavení a tím si uložte přístupový klíč.</string>
-  <string name="error_description_failedToSendCode">Nastala chyba. Ověřte si, že využíváte telefonní číslo, které bylo přizváno, a že jste je správně zadali.</string>
   <string name="error_description_failedToVerifyPhone">Nastala chyba. Zkuste to znovu.</string>
   <string name="error_description_failedWithdrawal">Vaše peníze se nepodařilo vybrat. Nastala chyba, zkuste provést výběr znovu.</string>
   <string name="error_description_giveAmountTooLarge">Code je určen pro malé každodenní transakce, které jsou za %1$s nebo méně.</string>

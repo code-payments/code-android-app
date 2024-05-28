@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Моля, разрешете достъпа до контактите чрез Настройки, за да изпращате покани.</string>
   <string name="error_description_failedToCreateAccount">Неочаквано развитие. Нещо се обърка. Моля, опитайте да създадете профила отново. </string>
   <string name="error_description_failedToSave">Моля, разрешете достъп на кода до снимки в настройките, за да може да съхраните вашия ключ за достъп. </string>
-  <string name="error_description_failedToSendCode">Нещо се обърка. Моля, уверете се, че използвате телефонен номер, който е получил поканата и че е въведен правилно. </string>
   <string name="error_description_failedToVerifyPhone">Нещо се обърка. Моля, опитайте отново по - късно. </string>
   <string name="error_description_failedWithdrawal">Неуспешно изтегляне на вашите средства. Нещо се обърка, моля, опитайте отново. </string>
   <string name="error_description_giveAmountTooLarge">Код е създаден за малки и ежедневни транзакции, които са за %1$s или по-малко.</string>

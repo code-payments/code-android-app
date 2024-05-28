@@ -6,6 +6,7 @@ import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.codeinc.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptResponse
 import com.codeinc.gen.transaction.v2.TransactionService.ExchangeDataWithoutRate
+import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
@@ -366,6 +367,9 @@ class TransactionRepository @Inject constructor(
 
                                     expected?.diff(produced)
                                 }
+                                TransactionService.ErrorDetails.TypeCase.INTENT_DENIED -> {
+                                    errors.add("Denied: ${error.intentDenied.reason.name}")
+                                }
                                 else -> Unit
                             }
 
@@ -699,18 +703,53 @@ class TransactionRepository @Inject constructor(
         val messageString: String = ""
     ) : Exception(cause) {
         override val message: String
-            get() = "${errorSubmitIntent.name} $messageString"
+            get() = "${errorSubmitIntent.javaClass.simpleName} $messageString"
     }
 
-    enum class ErrorSubmitIntent(val value: Int) {
-        Denied(0),
-        InvalidIntent(1),
-        SignatureError(2),
-        Unknown(-1);
+    enum class DeniedReason {
+        Unspecified,
+        TooManyFreeAccountsForPhoneNumber,
+        TooManyFreeAccountsForDevice,
+        UnsupportedCountry,
+        UnsupportedDevice;
 
         companion object {
+            fun fromValue(value: Int): DeniedReason {
+                return entries.firstOrNull { it.ordinal == value } ?: Unspecified
+            }
+        }
+    }
+
+    sealed class ErrorSubmitIntent(val value: Int) {
+        data class Denied(val reasons: List<DeniedReason> = emptyList()): ErrorSubmitIntent(0)
+        data object InvalidIntent: ErrorSubmitIntent(1)
+        data object SignatureError: ErrorSubmitIntent(2)
+        data object StaleState: ErrorSubmitIntent(3)
+        data object Unknown: ErrorSubmitIntent(-1)
+        data object DeviceTokenUnavailable: ErrorSubmitIntent(-2)
+
+        companion object {
+            operator fun invoke(proto: SubmitIntentResponse.Error): ErrorSubmitIntent? {
+                return when (proto.code) {
+                    SubmitIntentResponse.Error.Code.DENIED -> {
+                        val reasons = proto.errorDetailsList.mapNotNull {
+                            if (!it.hasIntentDenied()) return null
+                            DeniedReason.fromValue(it.intentDenied.reasonValue)
+                        }
+
+                        Denied(reasons)
+                    }
+                    SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent
+                    SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> SignatureError
+                    SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState
+                    SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unknown
+                    else -> return null
+                }
+            }
+
             fun fromValue(value: Int): ErrorSubmitIntent {
-                return values().firstOrNull { it.value == value } ?: Unknown
+                return listOf(Denied(), InvalidIntent, SignatureError, StaleState)
+                    .firstOrNull { it.value == value } ?: Unknown
             }
         }
     }
