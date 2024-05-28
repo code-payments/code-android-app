@@ -15,7 +15,7 @@ import com.getcode.media.MediaScanner
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.network.repository.ApiDeniedException
+import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.Brand
 import com.getcode.theme.Transparent
@@ -257,21 +257,55 @@ abstract class BaseAccessKeyViewModel(
         resources.getString(R.string.error_description_failedToSave),
     )
 
-    private fun getDeniedError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_tooManyAccounts),
-        resources.getString(R.string.error_description_tooManyAccounts)
+    private fun getSomethingWentWrongError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_failedToCreateAccount),
+        resources.getString(R.string.error_description_failedToCreateAccount),
     )
 
-    private fun getGenericError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_failedToVerifyPhone),
-        resources.getString(R.string.error_description_failedToVerifyPhone),
+    private fun getTooManyAccountsPerPhoneError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_tooManyAccountsPerPhone),
+        resources.getString(R.string.error_description_tooManyAccountsPerPhone)
+    )
+
+    private fun getTooManyAccountsPerDeviceError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_tooManyAccountsPerDevice),
+        resources.getString(R.string.error_description_tooManyAccountsPerDevice)
+    )
+
+    private fun getUnsupportedCountryError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_countryNotSupported),
+        resources.getString(R.string.error_description_countryNotSupported)
+    )
+
+    private fun getUnsupportedDeviceError() = TopBarManager.TopBarMessage(
+        resources.getString(R.string.error_title_deviceNotSupported),
+        resources.getString(R.string.error_description_deviceNotSupported)
     )
 
     internal fun onSubmitError(e: Throwable) {
         when (e) {
-            is ApiDeniedException -> getDeniedError()
+            is TransactionRepository.ErrorSubmitIntentException -> {
+                when (val intent = e.errorSubmitIntent) {
+                    is TransactionRepository.ErrorSubmitIntent.Denied -> {
+                        if (intent.reasons.isEmpty()) {
+                            getSomethingWentWrongError()
+                        } else {
+                            val reason = intent.reasons.first()
+                            when (reason) {
+                                TransactionRepository.DeniedReason.Unspecified -> getSomethingWentWrongError()
+                                TransactionRepository.DeniedReason.TooManyFreeAccountsForPhoneNumber -> getTooManyAccountsPerPhoneError()
+                                TransactionRepository.DeniedReason.TooManyFreeAccountsForDevice -> getTooManyAccountsPerDeviceError()
+                                TransactionRepository.DeniedReason.UnsupportedCountry -> getUnsupportedCountryError()
+                                TransactionRepository.DeniedReason.UnsupportedDevice -> getUnsupportedDeviceError()
+                            }
+                        }
+                        getSomethingWentWrongError()
+                    }
+                    else -> getSomethingWentWrongError()
+                }
+            }
             is IllegalStateException -> getAccessKeySaveError()
-            else -> getGenericError()
+            else -> getSomethingWentWrongError()
         }.let { m -> TopBarManager.showMessage(m) }
     }
 }

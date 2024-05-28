@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Παρακαλούμε επιτρέψτε πρόσβαση στις επαφές από τις Ρυθμίσεις για αποστολή προσκλήσεων.</string>
   <string name="error_description_failedToCreateAccount">Δεν περιμέναμε να συμβεί αυτό. Κάτι πήγε στραβά. Προσπαθήστε να δημιουργήσετε ξανά αυτόν τον λογαριασμό.</string>
   <string name="error_description_failedToSave">Επιτρέψτε στις Ρυθμίσεις την πρόσβαση του Code στις Φωτογραφίες για να αποθηκεύσετε το Κλειδί Πρόσβασης.</string>
-  <string name="error_description_failedToSendCode">Κάτι πήγε στραβά. Βεβαιωθείτε ότι χρησιμοποιείτε έναν αριθμό τηλεφώνου που έχει προσκληθεί και ότι έχει εισαχθεί σωστά.</string>
   <string name="error_description_failedToVerifyPhone">Κάτι πήγε στραβά. Δοκιμάστε πάλι.</string>
   <string name="error_description_failedWithdrawal">Αποτυχία ανάληψης των κεφαλαίων σας. Κάτι πήγε στραβά, δοκιμάστε ξανά την ανάληψη.</string>
   <string name="error_description_giveAmountTooLarge">Το Code είναι σχεδιασμένο για μικρές, καθημερινές συναλλαγές που είναι για %1$s ή λιγότερο.</string>

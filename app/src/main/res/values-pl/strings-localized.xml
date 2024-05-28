@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Zezwól na dostęp do kontaktów w ustawieniach, aby wysłać zaproszenia.</string>
   <string name="error_description_failedToCreateAccount">Nie spodziewaliśmy się tego. Coś poszło nie tak. Spróbuj jeszcze raz utworzyć to konto.</string>
   <string name="error_description_failedToSave">Żeby zapisać klucz dostępu, zezwól Code na dostęp do zdjęć w ustawieniach.</string>
-  <string name="error_description_failedToSendCode">Coś poszło nie tak. Sprawdź, czy używasz zaproszonego numeru telefonu oraz czy został on prawidłowo wpisany.</string>
   <string name="error_description_failedToVerifyPhone">Coś poszło nie tak. Spróbuj ponownie.</string>
   <string name="error_description_failedWithdrawal">Wypłacenie środków nie powiodło się. Coś poszło nie tak. Spróbuj jeszcze raz wypłacić środki.</string>
   <string name="error_description_giveAmountTooLarge">Aplikacja Code powstała z myślą o małych, codziennych transakcjach na kwotę %1$s lub mniejszą.</string>

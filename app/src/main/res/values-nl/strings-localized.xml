@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Geef toegang tot de contacten in Instellingen om uitnodigingen te verzenden.</string>
   <string name="error_description_failedToCreateAccount">We hadden niet verwacht dat dat zou gebeuren. Er is een fout opgetreden. Probeer dit account opnieuw aan te maken.</string>
   <string name="error_description_failedToSave">Geef Code toegang tot Foto\'s in Instellingen om je toegangscode op te slaan.</string>
-  <string name="error_description_failedToSendCode">Er is een fout opgetreden. Zorg ervoor dat je een telefoonnummer gebruikt dat is uitgenodigd en dat het correct is ingevoerd.</string>
   <string name="error_description_failedToVerifyPhone">Er is een fout opgetreden. Probeer het later opnieuw.</string>
   <string name="error_description_failedWithdrawal">Geldopname mislukt. Er is een fout opgetreden, probeer het later opnieuw.</string>
   <string name="error_description_giveAmountTooLarge">Code is ontworpen voor kleine, dagelijkse transacties van %1$s of minder.</string>

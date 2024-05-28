@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Please allow access to the contacts in Settings to send invites.</string>
   <string name="error_description_failedToCreateAccount">We weren\'t expecting that to happen. Something went wrong. Please try creating this account again.</string>
   <string name="error_description_failedToSave">Please allow Code access to Photos in Settings in order to save your Access Key.</string>
-  <string name="error_description_failedToSendCode">Something went wrong. Please ensure that you are using a phone number that was invited and that it is entered correctly.</string>
   <string name="error_description_failedToVerifyPhone">Something went wrong. Please try again.</string>
   <string name="error_description_failedWithdrawal">Failed to withdraw your funds. Something went wrong, please attempt your withdrawal again.</string>
   <string name="error_description_giveAmountTooLarge">Code is designed for small, everyday transactions that are for %1$s or less.</string>

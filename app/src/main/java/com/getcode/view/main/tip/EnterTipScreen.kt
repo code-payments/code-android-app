@@ -78,6 +78,7 @@ fun EnterTipScreen(
                 networkState = networkState,
                 textStyle = CodeTheme.typography.displayLarge,
                 modifier = Modifier
+                    .padding(horizontal = CodeTheme.dimens.inset)
                     .align(Alignment.Center)
             ) {
                 navigator.push(CurrencySelectionModal())

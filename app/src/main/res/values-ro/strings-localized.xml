@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Te rugăm să permiți accesul la contacte din Setări pentru a putea trimite invitații.</string>
   <string name="error_description_failedToCreateAccount">Nu ne așteptam să se întâmple așa. Ceva a mers rău. Te rugăm să încerci din nou să creezi acest cont.</string>
   <string name="error_description_failedToSave">Pentru a-ți salva cheia de acces este nevoie ca în Setări să permiți Code să acceseze Fotografiile.</string>
-  <string name="error_description_failedToSendCode">Ceva a mers rău. Asigură-te că folosești un număr de telefon care a primit o invitație și că l-ai introdus corect.</string>
   <string name="error_description_failedToVerifyPhone">Ceva a mers rău. Încearcă din nou.</string>
   <string name="error_description_failedWithdrawal">Retragerea fondurilor tale a eșuat. Ceva nu a mers cum trebuie, te rugăm să încerci din nou să efectuezi retragerea.</string>
   <string name="error_description_giveAmountTooLarge">Code este conceput pentru tranzacții mici, de toate zilele, în sumă de  %1$s sau mai puțin.</string>

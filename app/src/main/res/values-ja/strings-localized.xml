@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">招待を送信するには,「設定」で連絡先へのアクセスを許可してください。</string>
   <string name="error_description_failedToCreateAccount">そんなことが起こるとは思っていませんでした。不具合が発生しました。このアカウントをもう一度作成してみてください。</string>
   <string name="error_description_failedToSave">アクセスキーを保存するために,［設定］で写真へのCodeアクセスを許可してください。</string>
-  <string name="error_description_failedToSendCode">不具合が発生しました。招待された電話番号を使用しており,その電話番号が正しく入力されていることを確認してください。</string>
   <string name="error_description_failedToVerifyPhone">不具合が発生しました。再試行してください。</string>
   <string name="error_description_failedWithdrawal">資金の引き出しに失敗しました。不具合が発生しましたので,もう一度引き出しを試みてください。</string>
   <string name="error_description_giveAmountTooLarge">コードは,%1$s 以下の小規模な毎日のトランザクション用に設計されています。</string>

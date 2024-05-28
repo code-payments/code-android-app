@@ -88,7 +88,6 @@
   <string name="error_description_contactsAccessRequired">Davetler göndermek için lütfen Ayarlar\'da kişilere erişim izni ver.</string>
   <string name="error_description_failedToCreateAccount">Bunun olmasını beklemiyorduk. Bir şeyler ters gitti. Lütfen bu hesabı tekrar oluşturmayı dene.</string>
   <string name="error_description_failedToSave">Erişim Anahtarını kaydetmek için lütfen Ayarlar\'dan Code için Fotoğraflar\'a erişim izni ver.</string>
-  <string name="error_description_failedToSendCode">Bir şeyler ters gitti. Lütfen davet edilmiş bir telefon numarası kullandığından ve bunun doğru girildiğinden emin ol.</string>
   <string name="error_description_failedToVerifyPhone">Bir şeyler ters gitti. Lütfen tekrar dene.</string>
   <string name="error_description_failedWithdrawal">Paran çekilemedi. Bir şeyler ters gitti, lütfen para çekme işlemini tekrar dene.</string>
   <string name="error_description_giveAmountTooLarge">Code, %1$s veya daha düşük tutardaki, küçük ve gündelik işlemler için tasarlanmıştır.</string>
