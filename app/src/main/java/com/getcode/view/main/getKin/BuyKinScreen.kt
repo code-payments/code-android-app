@@ -67,6 +67,8 @@ fun BuyKinScreen(
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
             ) {
                 AmountArea(
+                    modifier = Modifier
+                        .padding(horizontal = CodeTheme.dimens.inset),
                     amountPrefix = dataState.amountModel.amountPrefix,
                     amountSuffix = dataState.amountModel.amountSuffix,
                     amountText = dataState.amountModel.amountText,
