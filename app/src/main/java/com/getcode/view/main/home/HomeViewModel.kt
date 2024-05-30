@@ -380,7 +380,6 @@ class HomeViewModel @Inject constructor(
         val owner = SessionManager.getKeyPair() ?: return
 
         if (!networkObserver.isConnected) {
-
             return ErrorUtils.showNetworkError(resources)
         }
 
@@ -1413,6 +1412,8 @@ class HomeViewModel @Inject constructor(
                 _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
             }
             delay(2500)
+
+            billDismissTimer?.cancel()
 
             BottomBarManager.showMessage(
                 BottomBarManager.BottomBarMessage(
