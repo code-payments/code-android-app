@@ -1,59 +1,79 @@
 package com.getcode.ui.components
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.getcode.CodeAppState
 import com.getcode.manager.BottomBarManager
 import com.getcode.ui.utils.rememberedClickable
-import java.util.*
-import kotlin.concurrent.timerTask
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun BottomBarContainer(appState: CodeAppState) {
+    val scope = rememberCoroutineScope()
     val bottomBarMessage by appState.bottomBarMessage.collectAsState()
-    val bottomBarVisibleState = remember { MutableTransitionState(false) }
+    val bottomBarVisibleState = remember(bottomBarMessage?.id) { MutableTransitionState(false) }
     var bottomBarMessageDismissId by remember { mutableLongStateOf(0L) }
-    val onClose: (bottomBarActionType: BottomBarManager.BottomBarActionType?) -> Unit = {
+    val onClose: suspend (bottomBarActionType: BottomBarManager.BottomBarActionType?) -> Unit = {
         bottomBarMessageDismissId = bottomBarMessage?.id ?: 0
         bottomBarVisibleState.targetState = false
-
         bottomBarMessage?.onClose?.invoke(it)
 
-        Timer().schedule(timerTask {
-            BottomBarManager.setMessageShown(bottomBarMessageDismissId)
-        }, 100)
-    }
-    val onBackPressed = {
-        if (bottomBarMessage?.isDismissible == true) onClose(null)
+        delay(100)
+        BottomBarManager.setMessageShown(bottomBarMessageDismissId)
     }
 
-    if (!bottomBarVisibleState.targetState && !bottomBarVisibleState.currentState) {
-        Timer().schedule(timerTask {
+    // handle changes in visible state
+    LaunchedEffect(bottomBarVisibleState) {
+        if (!bottomBarVisibleState.targetState && !bottomBarVisibleState.currentState) {
+            delay(50)
             bottomBarVisibleState.targetState = bottomBarMessage != null
-        }, 50)
 
-        if (bottomBarMessageDismissId == bottomBarMessage?.id) {
-            onClose(null)
-            bottomBarMessageDismissId = 0
+            if (bottomBarMessageDismissId == bottomBarMessage?.id) {
+                bottomBarMessageDismissId = 0
+            }
         }
     }
 
+    // handle provided timeout duration; triggering onClose with no action
+    LaunchedEffect(bottomBarMessage) {
+        bottomBarMessage?.timeoutSeconds?.let {
+            delay(it * 1000L)
+            onClose(null)
+        }
+    }
+
+    // add transparent touch handler if dismissible
     if (bottomBarVisibleState.targetState && bottomBarMessage != null) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .rememberedClickable(indication = null,
-                    interactionSource = remember { MutableInteractionSource() }) {
-                    if (bottomBarMessage?.isDismissible == true) onClose(null)
-                }
-        )
+        bottomBarMessage?.let {
+            if (it.isDismissible) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .rememberedClickable(indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            scope.launch { onClose(null) }
+                        }
+                )
+            }
+        }
+
     }
 
     AnimatedVisibility(
@@ -68,14 +88,9 @@ fun BottomBarContainer(appState: CodeAppState) {
             animationSpec = tween(300)
         ),
     ) {
-        BottomBarView(bottomBarMessage = bottomBarMessage, onClose, onBackPressed)
-    }
-
-    LaunchedEffect(bottomBarMessage) {
-        bottomBarMessage?.timeoutSeconds?.let { timeout ->
-            Timer().schedule(timerTask {
-                onClose(null)
-            }, timeout.toLong() * 1000)
+        val closeWith: (BottomBarManager.BottomBarActionType?) -> Unit = { type ->
+            scope.launch { onClose(type) }
         }
+        BottomBarView(bottomBarMessage = bottomBarMessage, closeWith, onBackPressed = { closeWith(null)})
     }
 }
