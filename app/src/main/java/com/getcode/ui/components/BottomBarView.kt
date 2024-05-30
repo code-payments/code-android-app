@@ -35,7 +35,7 @@ fun BottomBarView(
     LaunchedEffect(bottomBarMessage) {
         trace("bottom bar message shown=${bottomBarMessage.title}")
     }
-    BackHandler {
+    BackHandler(enabled = bottomBarMessage.isDismissible) {
         onBackPressed()
     }
 
