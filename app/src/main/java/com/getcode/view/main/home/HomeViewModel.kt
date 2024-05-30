@@ -380,6 +380,7 @@ class HomeViewModel @Inject constructor(
         val owner = SessionManager.getKeyPair() ?: return
 
         if (!networkObserver.isConnected) {
+
             return ErrorUtils.showNetworkError(resources)
         }
 
@@ -414,9 +415,9 @@ class HomeViewModel @Inject constructor(
 
         // this should not be in the view model
         sendTransactionDisposable?.dispose()
-        sendTransactionRepository.init(amount = amountFloor, owner = owner)
+        sendTransactionRepository.init(amountFloor, organizer, owner)
         sendTransactionDisposable =
-            sendTransactionRepository.startTransaction(organizer)
+            sendTransactionRepository.startTransaction()
                 .subscribe({
                     cancelSend(PresentationStyle.Pop)
                     vibrator.vibrate()
@@ -1428,6 +1429,12 @@ class HomeViewModel @Inject constructor(
                     onTertiary = {
                         cancelRemoteSend(giftCard, amount)
                         cancelSend(style = PresentationStyle.Slide)
+                    },
+                    onClose = {
+                        if (it == null) {
+                            cancelSend(style = PresentationStyle.Pop)
+                            vibrator.vibrate()
+                        }
                     },
                     type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
                     isDismissible = false,

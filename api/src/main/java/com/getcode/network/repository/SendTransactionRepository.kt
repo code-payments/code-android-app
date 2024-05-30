@@ -1,15 +1,18 @@
 package com.getcode.network.repository
 
-import android.content.Context
-import com.getcode.ed25519.Ed25519
 import com.getcode.analytics.AnalyticsService
+import com.getcode.ed25519.Ed25519
+import com.getcode.model.CodePayload
+import com.getcode.model.IntentMetadata
+import com.getcode.model.Kin
+import com.getcode.model.KinAmount
+import com.getcode.model.Kind
+import com.getcode.network.client.Client
+import com.getcode.network.client.pollIntentMetadata
+import com.getcode.network.client.transfer
 import com.getcode.solana.keys.PublicKey
-import com.getcode.model.*
-import com.getcode.network.client.*
 import com.getcode.solana.organizer.Organizer
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.nonce
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject
@@ -21,6 +24,7 @@ class SendTransactionRepository @Inject constructor(
     private val client: Client,
 ) {
     private lateinit var amount: KinAmount
+    private lateinit var organizer: Organizer
     private lateinit var owner: Ed25519.KeyPair
     private lateinit var payload: CodePayload
     lateinit var payloadData: List<Byte>
@@ -28,8 +32,9 @@ class SendTransactionRepository @Inject constructor(
     private lateinit var rendezvousKey: Ed25519.KeyPair
     private var receivingAccount: PublicKey? = null
 
-    fun init(amount: KinAmount, owner: Ed25519.KeyPair) {
+    fun init(amount: KinAmount, organizer: Organizer, owner: Ed25519.KeyPair) {
         this.amount = amount
+        this.organizer = organizer
         this.owner = owner
 
         this.payload = CodePayload(
@@ -43,7 +48,7 @@ class SendTransactionRepository @Inject constructor(
         this.receivingAccount = null
     }
 
-    fun startTransaction(organizer: Organizer): Flowable<IntentMetadata> {
+    fun startTransaction(): Flowable<IntentMetadata> {
         return messagingRepository.openMessageStream(rendezvousKey)
             .firstOrError()
             .flatMapPublisher { paymentRequest ->
