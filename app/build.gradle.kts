@@ -29,7 +29,7 @@ android {
 
     defaultConfig {
         applicationId = Android.namespace
-        versionCode = 388
+        versionCode = 389
         versionName = "1.1.$versionCode"
 
         minSdk = Android.minSdkVersion
