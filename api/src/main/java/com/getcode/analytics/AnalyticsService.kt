@@ -46,6 +46,7 @@ interface AnalyticsService {
     fun tipCardShown(username: String)
 
     fun backgroundSwapInitiated()
+    fun unintentionalLogout()
 }
 
 class AnalyticsServiceNull : AnalyticsService {
@@ -88,4 +89,5 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun onBillReceived() = Unit
     override fun tipCardShown(username: String) = Unit
     override fun backgroundSwapInitiated() = Unit
+    override fun unintentionalLogout() = Unit
 }
