@@ -9,6 +9,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
 import com.getcode.R
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.NotificationType
@@ -41,6 +42,9 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class CodePushMessagingService : FirebaseMessagingService(),
     CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    @Inject
+    lateinit var analyticsService: AnalyticsService
 
     @Inject
     lateinit var pushRepository: PushRepository
@@ -102,12 +106,16 @@ class CodePushMessagingService : FirebaseMessagingService(),
                         launch { historyController.fetchChats() }
                         launch { balanceController.fetchBalanceSuspend() }
                     }
+
                     NotificationType.ExecuteSwap -> {
-                       updateOrganizerAndSwap()
+                        analyticsService.backgroundSwapInitiated()
+                        updateOrganizerAndSwap()
                     }
+
                     NotificationType.Twitter -> {
                         launch { tipController.checkForConnection() }
                     }
+
                     NotificationType.Unknown -> Unit
                 }
             } else {
@@ -164,7 +172,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
             person
         )
 
-        val style =   notificationManager.getActiveNotification(title.hashCode())?.let {
+        val style = notificationManager.getActiveNotification(title.hashCode())?.let {
             NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it)
         } ?: NotificationCompat.MessagingStyle(person)
 
@@ -197,7 +205,6 @@ class CodePushMessagingService : FirebaseMessagingService(),
         transactionRepository.swapIfNeeded(organizer)
     }
 }
-
 
 
 private fun NotificationManager.getActiveNotification(notificationId: Int): Notification? {

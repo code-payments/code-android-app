@@ -238,6 +238,10 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun backgroundSwapInitiated() {
+        track(Name.BackgroundSwap)
+    }
+
     private fun track(event: Name, vararg properties: Pair<Property, String>) {
         if (BuildConfig.DEBUG) {
             Timber.d("debug track $event, ${properties.map { "${it.first.name}, ${it.second}" }}")
@@ -276,6 +280,7 @@ class AnalyticsManager @Inject constructor(
         UpgradePrivacy("Upgrade Privacy"),
         ClaimGetFreeKin("Claim Get Free Kin"),
         PrivacyMigration("Privacy Migration"),
+        BackgroundSwap("Background Swap Initiated"),
 
         // Errors
         ErrorRequest("Error Request"),
