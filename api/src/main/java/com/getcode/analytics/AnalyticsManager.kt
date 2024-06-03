@@ -63,6 +63,11 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun unintentionalLogout() {
+        track(Name.UnintentionalLogout)
+    }
+
+
     override fun billTimeoutReached(
         kin: Kin,
         currencyCode: CurrencyCode,
@@ -263,6 +268,7 @@ class AnalyticsManager @Inject constructor(
         Logout("Logout"),
         Login("Login"),
         CreateAccount("Create Account"),
+        UnintentionalLogout("Unintentional Logout"),
 
         //Bill
         Bill("Bill"),

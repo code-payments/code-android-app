@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import com.getcode.App
 import com.getcode.R
+import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AccountManager
 import com.getcode.manager.AuthManager
@@ -40,6 +41,7 @@ data class SeedInputUiModel(
 
 @HiltViewModel
 class SeedInputViewModel @Inject constructor(
+    private val analyticsService: AnalyticsService,
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
@@ -52,6 +54,7 @@ class SeedInputViewModel @Inject constructor(
         viewModelScope.launch {
             val token = accountManager.getToken()
             if (token != null) {
+                analyticsService.unintentionalLogout()
                 ErrorUtils.handleError(
                     Throwable("We shouldn't be here. Login screen visible with associated account in AccountManager.")
                 )
