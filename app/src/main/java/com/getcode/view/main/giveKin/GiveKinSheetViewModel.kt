@@ -110,15 +110,11 @@ class GiveKinSheetViewModel @Inject constructor(
         if (checkBalanceLimit() || checkSendLimit()) return null
 
         val amountFiat = uiModel.amountModel.amountDouble
-        val amountKin = uiModel.amountModel.amountKin
-
-        val currencyCode = CurrencyCode
-            .tryValueOf(uiModel.currencyModel.selectedCurrency?.code) ?: return null
 
         exchange.fetchRatesIfNeeded()
-        val rate = exchange.rateFor(currencyCode) ?: return null
+        val rate = exchange.entryRate
 
-        return KinAmount.fromFiatAmount(amountKin, amountFiat, rate.fx, currencyCode)
+        return KinAmount.fromFiatAmount(amountFiat, rate)
     }
 
     override fun onAmountChanged(lastPressedBackspace: Boolean) {
