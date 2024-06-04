@@ -33,7 +33,7 @@ object AccountUtils {
         am.setAuthToken(a, acctType, token)
     }
 
-    suspend fun removeAccounts(context: Activity): @NonNull Single<Boolean> {
+    suspend fun removeAccounts(context: Context): @NonNull Single<Boolean> {
         return getAccount(context)
             .map {
                 if (it.second == null) return@map false
@@ -42,7 +42,7 @@ object AccountUtils {
             }
     }
 
-    private suspend fun getAccount(context: Activity): @NonNull Single<Pair<String?, Account?>> {
+    private suspend fun getAccount(context: Context): @NonNull Single<Pair<String?, Account?>> {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
@@ -61,7 +61,9 @@ object AccountUtils {
         }
     }
 
-    private suspend fun getAccountNoActivity(context: Context) : Pair<String?, Account?>? = suspendCancellableCoroutine {cont ->
+    private suspend fun getAccountNoActivity(
+        context: Context
+    ) : Pair<String?, Account?>? = suspendCancellableCoroutine { cont ->
         trace("getAuthToken", type = TraceType.Silent)
         val am: AccountManager = AccountManager.get(context)
         val accountthing = am.accounts.getOrNull(0)
