@@ -7,6 +7,7 @@ import com.getcode.network.client.registerInstallation
 import com.getcode.network.client.updatePreferences
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.installationId
+import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,7 +53,7 @@ class SessionManager @Inject constructor(
     }
 
     fun clear() {
-        Timber.d("Clearing session state")
+        trace("Clearing session state")
         update {
             SessionState(entropyB64 = null, keyPair = null, isAuthenticated = false)
         }
