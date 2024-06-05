@@ -2,5 +2,6 @@ include ':model'
 include ':api'
 include ':app'
 include ':ed25519'
-include ':common'
+include ':common:resources'
+include ':common:theme'
 rootProject.name = "Code"

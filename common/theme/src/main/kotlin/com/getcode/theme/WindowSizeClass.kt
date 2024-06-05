@@ -4,7 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
-import com.getcode.BuildConfig
+import com.getcode.theme.BuildConfig
 import timber.log.Timber
 
 data class DeviceWindowSizeClass internal constructor(

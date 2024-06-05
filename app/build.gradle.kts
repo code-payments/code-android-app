@@ -1,10 +1,5 @@
-import com.android.SdkConstants.FN_LOCAL_PROPERTIES
-import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import org.jetbrains.kotlin.cli.common.toBooleanLenient
-import java.io.FileInputStream
-import java.io.InputStreamReader
-import java.util.Properties
 
 plugins {
     id(Plugins.android_application)
@@ -55,8 +50,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-        viewBinding = true
-        dataBinding = true
         compose = true
     }
 
@@ -121,7 +114,8 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":api"))
-    implementation(project(":common"))
+    implementation(project(":common:resources"))
+    implementation(project(":common:theme"))
 
     //standard libraries
     implementation(Libs.kotlinx_collections_immutable)
@@ -144,7 +138,7 @@ dependencies {
     testImplementation(Libs.hilt_android_test)
     kaptTest(Libs.hilt_android_compiler)
 
-    androidTestImplementation("io.mockk:mockk:1.13.5")
+    androidTestImplementation("io.mockk:mockk:1.13.11")
 
     //Jetpack compose
     implementation(platform(Libs.compose_bom))

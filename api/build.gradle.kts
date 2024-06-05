@@ -69,7 +69,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":common"))
+    implementation(project(":common:resources"))
 
     implementation(Libs.rxjava)
     implementation(Libs.kotlinx_coroutines_core)
