@@ -25,6 +25,7 @@ import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
 import com.getcode.utils.trace
 import com.getcode.utils.token
@@ -62,13 +63,20 @@ class AuthManager @Inject constructor(
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
+    companion object {
+        private const val TAG = "AuthManager"
+        internal fun taggedTrace(message: String, type: TraceType = TraceType.Log) {
+            trace(message = message, type = type, tag = TAG)
+        }
+    }
+
     @SuppressLint("CheckResult")
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            LibsodiumInitializer.initialize()
             val token = AccountUtils.getToken(context)
             softLogin(token.orEmpty())
                 .subscribeOn(Schedulers.computation())
+                .doOnComplete { LibsodiumInitializer.initializeWithCallback(onInitialized) }
                 .subscribe(onInitialized, ErrorUtils::handleError)
         }
     }
@@ -83,9 +91,10 @@ class AuthManager @Inject constructor(
         isSoftLogin: Boolean = false,
         rollbackOnError: Boolean = false
     ): Completable {
-        trace("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
+        taggedTrace("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
+            taggedTrace("provided entropy was empty", type = TraceType.Error)
             sessionManager.clear()
             return Completable.complete()
         }
@@ -163,14 +172,14 @@ class AuthManager @Inject constructor(
             .ignoreElement()
     }
 
-    fun deleteAndLogout(activity: Activity, onComplete: () -> Unit = {}) {
+    fun deleteAndLogout(context: Context, onComplete: () -> Unit = {}) {
         //todo: add account deletion
-        logout(activity, onComplete)
+        logout(context, onComplete)
     }
 
-    fun logout(activity: Activity, onComplete: () -> Unit = {}) {
+    fun logout(context: Context, onComplete: () -> Unit = {}) {
         launch {
-            AccountUtils.removeAccounts(activity)
+            AccountUtils.removeAccounts(context)
                 .doOnSuccess { res: Boolean ->
                     if (res) {
                         clearToken()
@@ -181,8 +190,8 @@ class AuthManager @Inject constructor(
         }
     }
 
-    suspend fun logout(activity: Activity): Result<Unit> {
-        return AccountUtils.removeAccounts(activity).toFlowable()
+    suspend fun logout(context: Context): Result<Unit> {
+        return AccountUtils.removeAccounts(context).toFlowable()
             .to {
                 runCatching { it.firstOrError().blockingGet() }
             }.onSuccess {
@@ -194,7 +203,7 @@ class AuthManager @Inject constructor(
     private fun fetchData(entropyB64: String):
             Single<Pair<PhoneRepository.GetAssociatedPhoneNumberResponse, IdentityRepository.GetUserResponse>> {
 
-        trace("fetching account data")
+        taggedTrace("fetching account data")
 
         var owner = SessionManager.authState.value.keyPair
         if (owner == null || SessionManager.authState.value.entropyB64 != entropyB64) {
@@ -226,7 +235,7 @@ class AuthManager @Inject constructor(
                     .toSingleDefault(Pair(phone!!, user!!))
             }
             .doOnSuccess {
-                trace("account data fetched successfully")
+                taggedTrace("account data fetched successfully")
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
@@ -240,7 +249,7 @@ class AuthManager @Inject constructor(
 
     private fun loginAnalytics(entropyB64: String) {
         val owner = mnemonicManager.getKeyPair(entropyB64)
-        trace("analytics login event")
+        taggedTrace("analytics login event")
         analytics.login(
             ownerPublicKey = owner.getPublicKeyBase58(),
             autoCompleteCount = 0,
