@@ -10,7 +10,6 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
-import com.getcode.model.PrefsString
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel

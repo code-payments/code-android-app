@@ -3,6 +3,7 @@ package com.getcode
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import com.getcode.analytics.AnalyticsService
 import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.network.exchange.Exchange
@@ -22,4 +23,5 @@ val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocal
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
 val LocalTopBarPadding: ProvidableCompositionLocal<PaddingValues> = staticCompositionLocalOf { PaddingValues() }
 val LocalBetaFlags: ProvidableCompositionLocal<BetaOptions> = staticCompositionLocalOf { BetaOptions.Defaults }
+val LocalDownloadQrCode: ProvidableCompositionLocal<BitmapPainter?> = staticCompositionLocalOf { null }
 

@@ -3,7 +3,6 @@ package com.getcode.view.main.account
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
@@ -14,7 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.getcode.R
+import com.getcode.theme.R as themeR
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.components.MarkdownText
@@ -43,7 +42,7 @@ fun AccountFaq(
                 )
                 MarkdownText(
                     markdown = faqResponse.answer,
-                    fontResource = R.font.avenir_next_demi,
+                    fontResource = themeR.font.avenir_next_demi,
                     style = CodeTheme.typography.body1.copy(
                         lineHeight = 20.sp,
                     ),

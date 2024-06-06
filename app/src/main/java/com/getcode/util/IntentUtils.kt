@@ -1,5 +1,6 @@
 package com.getcode.util
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -26,5 +27,17 @@ object IntentUtils {
         val url = "https://www.twitter.com/intent/tweet?text=${message.urlEncode()}"
         setData(Uri.parse(url))
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+
+    fun share(text: String): Intent {
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, text)
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, null)
+        shareIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
+        return shareIntent
     }
 }

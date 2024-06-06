@@ -4,27 +4,35 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
 import com.getcode.LocalCurrencyUtils
 import com.getcode.LocalDeeplinks
+import com.getcode.LocalDownloadQrCode
 import com.getcode.LocalExchange
 import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
+import com.getcode.R
 import com.getcode.analytics.AnalyticsService
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
+import com.getcode.ui.tips.DefinedTips
 import com.getcode.ui.utils.handleUncaughtException
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
+import com.getcode.util.rememberQrBitmapPainter
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
 import dagger.hilt.android.AndroidEntryPoint
+import dev.bmcreations.tipkit.engines.LocalTipsEngine
+import dev.bmcreations.tipkit.engines.TipsEngine
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -55,6 +63,12 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var exchange: Exchange
 
+    @Inject
+    lateinit var tipEngine: TipsEngine
+
+    @Inject
+    lateinit var tipDefinitions: DefinedTips
+
     /**
      * The compose navigation controller does not play nice with single task activities.
      * Invoking the navigation controller here will cause the intent to be fired
@@ -79,20 +93,32 @@ class MainActivity : FragmentActivity() {
         handleUncaughtException()
         setFullscreen()
 
+        tipEngine.configure(tipDefinitions)
+
         deeplinkHandler.debounceIntent = intent
 
         setContent {
-            trace("set content")
-            CompositionLocalProvider(
-                LocalAnalytics provides analyticsManager,
-                LocalDeeplinks provides deeplinkHandler,
-                LocalNetworkObserver provides networkObserver,
-                LocalPhoneFormatter provides phoneUtils,
-                LocalVibrator provides vibrator,
-                LocalCurrencyUtils provides currencyUtils,
-                LocalExchange provides exchange,
-            ) {
-                CodeApp()
+            BoxWithConstraints {
+                trace("set content")
+
+                val downloadQr = rememberQrBitmapPainter(
+                    content = stringResource(id = R.string.app_download_link),
+                    size = maxWidth * 0.60f
+                )
+
+                CompositionLocalProvider(
+                    LocalAnalytics provides analyticsManager,
+                    LocalDeeplinks provides deeplinkHandler,
+                    LocalNetworkObserver provides networkObserver,
+                    LocalPhoneFormatter provides phoneUtils,
+                    LocalVibrator provides vibrator,
+                    LocalCurrencyUtils provides currencyUtils,
+                    LocalExchange provides exchange,
+                    LocalDownloadQrCode provides downloadQr,
+                    LocalTipsEngine provides tipEngine
+                ) {
+                    CodeApp(tipEngine)
+                }
             }
         }
     }

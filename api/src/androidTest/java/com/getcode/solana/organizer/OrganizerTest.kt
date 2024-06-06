@@ -141,7 +141,8 @@ class OrganizerTest {
                             claimState = AccountInfo.ClaimState.Unknown,
                             mustRotate = false,
                             originalKinAmount = null,
-                            relationship = null
+                            relationship = null,
+                            createdAt = System.currentTimeMillis(),
                         )
                 )
             )

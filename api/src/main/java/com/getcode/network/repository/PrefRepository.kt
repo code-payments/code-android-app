@@ -34,6 +34,10 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
         return observeOrDefault(key, default).firstOrNull() ?: default
     }
 
+    suspend fun get(key: PrefsInt, default: Long): Long {
+        return observeOrDefault(key, default).firstOrNull() ?: default
+    }
+
 
     fun getFlowable(key: PrefsString): Flowable<String> {
         val db = Database.getInstance() ?: return Flowable.empty()
@@ -70,6 +74,18 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
             .flatMapLatest {
                 it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe string ; DB not available") }
                 it.prefStringDao().observe(key.value)
+                    .map { it?.value ?: default }
+            }
+            .flowOn(Dispatchers.IO)
+    }
+
+    fun observeOrDefault(key: PrefsInt, default: Long): Flow<Long> {
+        return Database.isInit
+            .asFlow()
+            .map { Database.getInstance() }
+            .flatMapLatest {
+                it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe long ; DB not available") }
+                it.prefIntDao().observe(key.value)
                     .map { it?.value ?: default }
             }
             .flowOn(Dispatchers.IO)

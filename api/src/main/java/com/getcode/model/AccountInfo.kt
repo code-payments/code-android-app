@@ -61,7 +61,12 @@ data class AccountInfo (
 
     /// The relationship with a third party that this account has established with.
     /// This only applies to relevant account types (eg. RELATIONSHIP).
-    var relationship: Relationship?
+    var relationship: Relationship?,
+
+    // Time the account was created, if available. For Code accounts, this is
+    // the time of intent submission. Otherwise, for external accounts, it is
+    // the time created on the blockchain.
+    var createdAt: Long?,
 
 ) {
     companion object {
@@ -105,9 +110,9 @@ data class AccountInfo (
                 claimState = claimState,
                 mustRotate = info.mustRotate,
                 originalKinAmount = originalKinAmount,
-                relationship = relationship
+                relationship = relationship,
+                createdAt = info.createdAt.seconds * 1000L
             )
-
         }
     }
 

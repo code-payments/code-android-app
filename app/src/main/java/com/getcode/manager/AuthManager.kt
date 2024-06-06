@@ -77,7 +77,7 @@ class AuthManager @Inject constructor(
             softLogin(token.orEmpty())
                 .subscribeOn(Schedulers.computation())
                 .doOnComplete { LibsodiumInitializer.initializeWithCallback(onInitialized) }
-                .subscribe(onInitialized, ErrorUtils::handleError)
+                .subscribe({ }, ErrorUtils::handleError)
         }
     }
 

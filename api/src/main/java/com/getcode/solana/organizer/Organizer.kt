@@ -1,8 +1,6 @@
 package com.getcode.solana.organizer
 
-import android.content.Context
 import com.getcode.crypt.DerivePath
-import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
@@ -11,7 +9,6 @@ import com.getcode.model.unusable
 import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.solana.keys.*
 import com.getcode.utils.timedTrace
-import com.getcode.utils.trace
 import timber.log.Timber
 
 class Organizer(
@@ -31,6 +28,8 @@ class Organizer(
     val incomingVault get() = tray.incoming.getCluster().vaultPublicKey
 
     val isUnuseable: Boolean get() = accountInfos.any { it.value.unusable }
+
+    val createdAtMillis: Long? get() = accountInfos.mapNotNull { it.value.createdAt }.minOrNull()
 
     val isUnlocked: Boolean
         get() = accountInfos.values.any { info ->
