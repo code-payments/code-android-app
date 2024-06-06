@@ -106,7 +106,10 @@ open class BalanceController @Inject constructor(
                     val organizer = SessionManager.getOrganizer()
                         ?: return@flatMapCompletable Completable.error(IllegalStateException("Missing Organizer"))
 
-                    scope.launch { organizer.setAccountInfo(infos) }
+                    scope.launch {
+                        organizer.setAccountInfo(infos)
+                        SessionManager.update { it.copy(organizer = organizer) }
+                    }
                     balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
                     transactionReceiver.receiveFromIncomingCompletable(organizer)
                 }
@@ -164,6 +167,7 @@ open class BalanceController @Inject constructor(
                 SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 
             organizer.setAccountInfo(accountInfo)
+            SessionManager.update { it.copy(organizer = organizer) }
             balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
             transactionReceiver.receiveFromIncoming(organizer)
             transactionRepository.swapIfNeeded(organizer)

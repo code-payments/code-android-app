@@ -116,6 +116,7 @@ dependencies {
     implementation(project(":api"))
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
+    implementation(project(":vendor:tipkit-m2"))
 
     //standard libraries
     implementation(Libs.kotlinx_collections_immutable)

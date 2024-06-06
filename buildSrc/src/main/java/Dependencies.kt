@@ -161,12 +161,14 @@ object Libs {
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
     const val kotlinx_collections_immutable = "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
     const val kotlinx_datetime = "org.jetbrains.kotlinx:kotlinx-datetime:${Versions.kotlinx_datetime}"
+    const val kotlinx_serialization_core = "org.jetbrains.kotlinx:kotlinx-serialization-core:${Versions.kotlinx_serialization}"
     const val kotlinx_serialization_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinx_serialization}"
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val okhttp_logging_interceptor =
         "com.squareup.okhttp3:logging-interceptor:${Versions.okhttp}"
 
+    const val androidx_datastore = "androidx.datastore:datastore-preferences:1.1.1"
     const val androidx_constraint_layout_compose =
         "androidx.constraintlayout:constraintlayout-compose:1.0.1"
     const val androidx_lifecycle_viewmodel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.androidx_lifecycle}"
@@ -174,7 +176,9 @@ object Libs {
     const val compose_bom = "androidx.compose:compose-bom:${Versions.compose}"
     const val compose_accompanist =
         "com.google.accompanist:accompanist-systemuicontroller:${Versions.compose_accompanist}"
+    const val compose_animation = "androidx.compose.animation:animation"
     const val compose_ui = "androidx.compose.ui:ui"
+    const val compose_ui_graphics = "androidx.compose.ui:ui-graphics"
     const val compose_ui_tools = "androidx.compose.ui:ui-tooling"
     const val compose_ui_tools_preview =
         "androidx.compose.ui:ui-tooling-preview"

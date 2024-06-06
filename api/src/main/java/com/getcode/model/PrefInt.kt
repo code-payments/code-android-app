@@ -8,3 +8,7 @@ data class PrefInt(
     @PrimaryKey val key: String,
     val value: Long
 )
+
+sealed class PrefsInt(val value: String) {
+    data object AccountCreated: PrefsInt("account_created")
+}

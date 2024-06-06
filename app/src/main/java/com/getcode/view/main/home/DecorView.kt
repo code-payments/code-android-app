@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,10 +25,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,15 +45,39 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.Pill
+import com.getcode.ui.tips.DefinedTips
+import com.getcode.ui.utils.addIf
 import com.getcode.view.main.home.components.HomeBottom
+import dev.bmcreations.tipkit.LocalTipProvider
+import dev.bmcreations.tipkit.engines.LocalTipsEngine
+import dev.bmcreations.tipkit.popoverTip
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun DecorView(
     dataState: HomeUiModel,
+    isCameraReady: Boolean,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
     showBottomSheet: (HomeBottomSheet) -> Unit,
 ) {
+    val tips = LocalTipsEngine.current!!.tips as DefinedTips
+    val tipProvider = LocalTipProvider.current
+
+    LaunchedEffect(isCameraReady) {
+        tips.downloadCodeTip.homeOpen.reset()
+        // record app open
+        if (isCameraReady) {
+            tips.downloadCodeTip.homeOpen.record()
+        }
+    }
+
+    val scope = rememberCoroutineScope()
+    val openDownloadModal = {
+        scope.launch { tipProvider.dismiss() }
+        showBottomSheet(HomeBottomSheet.SHARE_DOWNLOAD)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -61,7 +88,14 @@ internal fun DecorView(
                 .statusBarsPadding()
                 .padding(vertical = CodeTheme.dimens.grid.x3)
                 .padding(horizontal = CodeTheme.dimens.grid.x3)
-                .align(Alignment.TopStart),
+                .align(Alignment.TopStart)
+                .popoverTip(
+                    tip = tips.downloadCodeTip,
+                    alignment = Alignment.BottomStart
+                )
+                .clickable {
+                    openDownloadModal()
+                },
             painter = painterResource(
                 R.drawable.ic_code_logo_white
             ),
