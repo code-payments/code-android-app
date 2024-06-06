@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onPlaced
@@ -110,7 +111,7 @@ fun ShareDownloadScreen() {
                         .onPlaced { contentRect = it.boundsInWindow() }
                         .rememberedLongClickable {
                             onClick()
-                        },
+                        }.scale(selectionState.scale.value),
                     painter = qrCode,
                     contentDescription = "qr"
                 )
