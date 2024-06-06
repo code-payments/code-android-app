@@ -24,6 +24,7 @@ import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -54,7 +55,7 @@ class IdentityRepository @Inject constructor(
                 enableDebugOptions = false,
                 eligibleAirdrops = setOf(),
                 isPhoneNumberLinked = true,
-                buyModuleAvailable = false
+                buyModuleAvailable = false,
             )
         )
 

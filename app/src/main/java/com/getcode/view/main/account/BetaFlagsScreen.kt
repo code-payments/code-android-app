@@ -1,8 +1,10 @@
 package com.getcode.view.main.account
 
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,13 +15,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
 import com.getcode.model.PrefsBool
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeSwitch
+import com.getcode.util.shareDownloadLink
+import dev.bmcreations.tipkit.engines.LocalTipsEngine
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -35,6 +42,8 @@ fun BetaFlagsScreen(
     )
 
     val state by viewModel.stateFlow.collectAsState()
+
+    val tipsEngine = LocalTipsEngine.current
 
     val options = listOf(
         BetaFeature(
@@ -149,12 +158,28 @@ fun BetaFlagsScreen(
                 )
             }
         }
+
+        item {
+            val context = LocalContext.current
+            CodeButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.grid.x3),
+                buttonState = ButtonState.Filled,
+                text = stringResource(id = R.string.action_resetTooltips),
+                onClick = {
+                    tipsEngine?.invalidateAllTips()
+                    Toast.makeText(context, "Tooltips reset", Toast.LENGTH_LONG).show()
+                }
+            )
+        }
     }
 }
 
 private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         PrefsBool.BUY_MODULE_ENABLED -> false
+        PrefsBool.TIPS_ENABLED -> false
         PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
         else -> true
     }

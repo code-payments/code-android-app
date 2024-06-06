@@ -53,10 +53,12 @@ import com.getcode.ui.components.TopBarContainer
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.measured
+import dev.bmcreations.tipkit.TipScaffold
+import dev.bmcreations.tipkit.engines.TipsEngine
 import kotlinx.coroutines.delay
 
 @Composable
-fun CodeApp() {
+fun CodeApp(tipsEngine: TipsEngine) {
     val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
     val activity = LocalContext.current.getActivity()
 
@@ -65,76 +67,77 @@ fun CodeApp() {
         AppNavHost {
             val codeNavigator = LocalCodeNavigator.current
 
-            CodeScaffold(
-                scaffoldState = appState.scaffoldState
-            ) { innerPaddingModifier ->
+            TipScaffold(tipsEngine = tipsEngine) {
+                CodeScaffold(
+                    scaffoldState = appState.scaffoldState
+                ) { innerPaddingModifier ->
+                    Navigator(
+                        screen = MainRoot,
+                    ) { navigator ->
+                        appState.navigator = codeNavigator
 
-                Navigator(
-                    screen = MainRoot,
-                ) { navigator ->
-                    appState.navigator = codeNavigator
+                        LaunchedEffect(navigator.lastItem) {
+                            // update global navigator for platform access to support push/pop from a single
+                            // navigator current
+                            codeNavigator.screensNavigator = navigator
+                        }
 
-                    LaunchedEffect(navigator.lastItem) {
-                        // update global navigator for platform access to support push/pop from a single
-                        // navigator current
-                        codeNavigator.screensNavigator = navigator
-                    }
+                        var topBarHeight by remember {
+                            mutableStateOf(0.dp)
+                        }
 
-                    var topBarHeight by remember {
-                        mutableStateOf(0.dp)
-                    }
+                        val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
+                        if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
+                            TitleBar(
+                                modifier = Modifier.measured { topBarHeight = it.height },
+                                title = appState.currentTitle,
+                                backButton = isVisibleBackButton,
+                                onBackIconClicked = appState::upPress
+                            )
+                        } else {
+                            topBarHeight = 0.dp
+                        }
 
-                    val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
-                    if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
-                        TitleBar(
-                            modifier = Modifier.measured { topBarHeight = it.height },
-                            title = appState.currentTitle,
-                            backButton = isVisibleBackButton,
-                            onBackIconClicked = appState::upPress
-                        )
-                    } else {
-                        topBarHeight = 0.dp
-                    }
-
-                    CompositionLocalProvider(
-                        LocalTopBarPadding provides PaddingValues(top = topBarHeight),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(innerPaddingModifier)
+                        CompositionLocalProvider(
+                            LocalTopBarPadding provides PaddingValues(top = topBarHeight),
                         ) {
-                            when (navigator.lastEvent) {
-                                StackEvent.Push,
-                                StackEvent.Pop -> {
-                                    when (navigator.lastItem) {
-                                        is LoginScreen, is MainRoot -> CrossfadeTransition(
-                                            navigator = navigator
-                                        )
+                            Box(
+                                modifier = Modifier
+                                    .padding(innerPaddingModifier)
+                            ) {
+                                when (navigator.lastEvent) {
+                                    StackEvent.Push,
+                                    StackEvent.Pop -> {
+                                        when (navigator.lastItem) {
+                                            is LoginScreen, is MainRoot -> CrossfadeTransition(
+                                                navigator = navigator
+                                            )
 
-                                        else -> SlideTransition(navigator = navigator)
+                                            else -> SlideTransition(navigator = navigator)
+                                        }
+                                    }
+
+                                    StackEvent.Idle,
+                                    StackEvent.Replace -> CurrentScreen()
+                                }
+                            }
+                        }
+
+                        //Listen for authentication changes here
+                        AuthCheck(
+                            navigator = codeNavigator,
+                            onNavigate = { screens ->
+                                codeNavigator.replaceAll(screens, inSheet = false)
+                            },
+                            onSwitchAccounts = { seed ->
+                                activity?.let {
+                                    tlvm.logout(it) {
+                                        appState.navigator.replaceAll(LoginScreen(seed))
                                     }
                                 }
-
-                                StackEvent.Idle,
-                                StackEvent.Replace -> CurrentScreen()
                             }
-                        }
+                        )
                     }
-
-                    //Listen for authentication changes here
-                    AuthCheck(
-                        navigator = codeNavigator,
-                        onNavigate = { screens ->
-                            codeNavigator.replaceAll(screens, inSheet = false)
-                        },
-                        onSwitchAccounts = { seed ->
-                            activity?.let {
-                                tlvm.logout(it) {
-                                    appState.navigator.replaceAll(LoginScreen(seed))
-                                }
-                            }
-                        }
-                    )
                 }
             }
         }

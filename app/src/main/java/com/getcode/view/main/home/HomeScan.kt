@@ -2,7 +2,6 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -42,7 +41,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import com.getcode.R
 import com.getcode.manager.TopBarManager
@@ -56,6 +54,7 @@ import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
+import com.getcode.navigation.screens.ShareDownloadLinkModal
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
@@ -73,9 +72,7 @@ import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import com.getcode.view.main.home.components.TipConfirmation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -87,7 +84,8 @@ enum class HomeBottomSheet {
     ACCOUNT,
     GIVE_KIN,
     GET_KIN,
-    BALANCE
+    BALANCE,
+    SHARE_DOWNLOAD
 }
 
 @Composable
@@ -195,6 +193,7 @@ private fun HomeScan(
                 HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
                 HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
+                HomeBottomSheet.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
                 HomeBottomSheet.NONE -> Unit
             }
         }
@@ -203,6 +202,7 @@ private fun HomeScan(
     BillContainer(
         navigator = navigator,
         isPaused = isPaused,
+        isCameraReady = previewing,
         dataState = dataState,
         homeViewModel = homeViewModel,
         scannerView = {
@@ -272,6 +272,7 @@ private fun HomeScan(
 private fun BillContainer(
     modifier: Modifier = Modifier,
     navigator: CodeNavigator,
+    isCameraReady: Boolean,
     isPaused: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
@@ -351,7 +352,7 @@ private fun BillContainer(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(updatedState, isPaused) { showBottomSheet(it) }
+            DecorView(updatedState, isCameraReady, isPaused) { showBottomSheet(it) }
         }
 
         var managementHeight by remember {

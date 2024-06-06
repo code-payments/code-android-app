@@ -202,6 +202,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
         val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
         organizer.setAccountInfo(accountInfo)
+        SessionManager.update { it.copy(organizer = organizer) }
         transactionRepository.swapIfNeeded(organizer)
     }
 }

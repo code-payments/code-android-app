@@ -4,4 +4,6 @@ include ':app'
 include ':ed25519'
 include ':common:resources'
 include ':common:theme'
+include ':vendor:tipkit'
+include ':vendor:tipkit-m2'
 rootProject.name = "Code"

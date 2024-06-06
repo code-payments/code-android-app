@@ -8,6 +8,7 @@ val BrandLight = Color(0xFF7379A0)
 val BrandSubtle = Color(0xFF565C86)
 val BrandMuted = Color(0xFF45464E)
 val BrandDark = Color(0xFF1F1A34)
+val BrandOverlay = Color(0xFFFF2E2934)
 
 val Brand01 = Color(0xFF130F27)
 val White = Color(0xffffffff)

@@ -22,6 +22,7 @@ import com.getcode.theme.Brand
 import com.getcode.theme.Transparent
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
+import com.getcode.util.generateQrCode
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
@@ -225,10 +226,7 @@ abstract class BaseAccessKeyViewModel(
         val base58 = Base58.encode(entropyB64.decodeBase64())
         val url = "${resources.getString(R.string.root_url_app)}/login?data=$base58"
 
-        val qrgEncoder = QRGEncoder(url, null, QRGContents.Type.TEXT, qrCodeSize)
-        qrgEncoder.colorBlack = White.toAGColor()
-        qrgEncoder.colorWhite = Transparent.toAGColor()
-        return qrgEncoder.bitmap
+        return generateQrCode(url, qrCodeSize)
     }
 
     private fun drawText(
