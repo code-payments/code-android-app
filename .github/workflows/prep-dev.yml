@@ -1,0 +1,21 @@
+name: Prep next development cycle post release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]'
+
+jobs:
+  sync-branch:
+    name: Update development branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@master
+        with:
+          ref: main
+      - uses: connor-baer/action-sync-branch@main
+        with:
+          branch: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+          force: false
