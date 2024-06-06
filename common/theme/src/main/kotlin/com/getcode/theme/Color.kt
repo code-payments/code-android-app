@@ -35,9 +35,6 @@ val topNotification = Color(0xFF4f49ce)
 val topNeutral = Color(0xFF747474)
 val topSuccess = Brand
 
-
-
-
 val textSelectionColors = TextSelectionColors(
     handleColor = White,
     backgroundColor = BrandLight.copy(alpha = 0.4f)

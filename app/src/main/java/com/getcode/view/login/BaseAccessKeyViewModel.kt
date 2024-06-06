@@ -17,6 +17,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.decodeBase64
+import com.getcode.theme.R as themeR
 import com.getcode.theme.Brand
 import com.getcode.theme.Transparent
 import com.getcode.theme.White
@@ -242,7 +243,7 @@ abstract class BaseAccessKeyViewModel(
         textPaint.color = color
         textPaint.textSize = sizePx.toFloat()
         textPaint.typeface = Typeface.create(
-            resources.getFont(R.font.avenir_next_demi),
+            resources.getFont(themeR.font.avenir_next_demi),
             Typeface.BOLD
         )
 
