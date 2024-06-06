@@ -21,11 +21,12 @@ import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.Lifecycle
+import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.ui.utils.swallowClicks
 import com.getcode.util.vibration.LocalVibrator
 
-class AccessKeySelectionContainerState(val words: String = "") {
+class SelectionContainerState(val words: String = "") {
     var shown by mutableStateOf(false)
 
     val scale : State<Float>
@@ -36,17 +37,18 @@ class AccessKeySelectionContainerState(val words: String = "") {
 }
 
 @Composable
-fun rememberSelectionState(words: String) = remember(words) { AccessKeySelectionContainerState(words = words) }
+fun rememberSelectionState(content: String) = remember(content) { SelectionContainerState(words = content) }
 
 @Composable
-fun AccessKeySelectionContainer(
+fun SelectionContainer(
     modifier: Modifier = Modifier,
-    state: AccessKeySelectionContainerState,
-    content: @Composable BoxScope.() -> Unit,
+    state: SelectionContainerState,
+    contentRect: Rect? = null,
+    content: @Composable BoxScope.(() -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
-    var contentRect by remember {
-        mutableStateOf(Rect.Zero)
+    var _contentRect: Rect by remember(contentRect) {
+        mutableStateOf(contentRect ?: Rect.Zero)
     }
 
     val vibrator = LocalVibrator.current
@@ -58,20 +60,28 @@ fun AccessKeySelectionContainer(
         state.shown = false
     }
 
+    val onClick = {
+        vibrator.vibrate()
+        toolbar.showMenu(
+            rect = _contentRect,
+            onCopyRequested = { copyAndToast() }
+        )
+        state.shown = true
+    }
+
     Box(modifier = modifier) {
         Box(
             modifier = Modifier
-                .onPlaced { contentRect = it.boundsInParent() }
-                .rememberedLongClickable {
-                    vibrator.vibrate()
-                    toolbar.showMenu(
-                        rect = contentRect,
-                        onCopyRequested = { copyAndToast() }
-                    )
-                    state.shown = true
+                .addIf(contentRect == null) {
+                    Modifier
+                        .onPlaced { _contentRect = it.boundsInParent() }
+                        .rememberedLongClickable {
+                            onClick()
+                        }
                 },
         ) {
-            content()
+            content(onClick)
+
         }
 
         if (state.shown) {

@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.LocalContentColor
@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.getcode.theme.Brand
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandOverlay
 import com.getcode.theme.CodeTheme
@@ -58,10 +59,11 @@ import kotlinx.coroutines.launch
 
 object TipDefaults {
     private val SurfaceColor: Color
-        @Composable get() = BrandOverlay
+        @Composable get() = Brand.copy(alpha = 0.9f)
     private val ContentColor: Color
         @Composable get() = White
-    private val Shape: RoundedCornerShape = CircleShape
+    private val Shape: CornerBasedShape
+        @Composable get() = CodeTheme.shapes.medium
 
     @Composable
     private fun Arrow(padding: PaddingValues) {
@@ -156,7 +158,7 @@ object TipDefaults {
             Column(
                 modifier = Modifier
                     .padding(CodeTheme.dimens.grid.x2)
-                    .widthIn(max = screenWidth * 0.6f),
+                    .widthIn(max = screenWidth * 0.55f),
             ) {
                 TipContents(tip = tip)
             }

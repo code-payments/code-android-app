@@ -51,6 +51,7 @@ import com.getcode.view.main.home.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 import dev.bmcreations.tipkit.popoverTip
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -74,8 +75,11 @@ internal fun DecorView(
 
     val scope = rememberCoroutineScope()
     val openDownloadModal = {
-        scope.launch { tipProvider.dismiss() }
         showBottomSheet(HomeBottomSheet.SHARE_DOWNLOAD)
+        scope.launch {
+            delay(300)
+            tipProvider.dismiss()
+        }
     }
 
     Box(

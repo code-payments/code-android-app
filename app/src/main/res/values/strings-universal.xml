@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string translatable="false" name="app_name">Code</string>
-    <string translatable="false" name="app_download_link">https://www.getcode.com/download</string>
+    <string translatable="false" name="app_download_link">https://getcode.com/d</string>
+    <string translatable="false" name="app_download_link_with_ref">https://getcode.com/d?r=%1$s</string>
+    <string translatable="false" name="app_download_link_qr_ref">aqr</string>
+    <string translatable="false" name="app_download_link_share_ref">as</string>
     <string translatable="false" name="root_url_app">https://app.getcode.com</string>
     <string translatable="false" name="root_url_cash">https://cash.getcode.com</string>
     <string translatable="false" name="app_url_cash">codewallet://cash.getcode.com</string>
