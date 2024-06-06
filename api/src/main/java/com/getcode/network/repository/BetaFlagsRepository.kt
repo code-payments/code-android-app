@@ -32,7 +32,7 @@ data class BetaOptions(
             buyModuleEnabled = true,
             establishCodeRelationship = false,
             chatUnsubEnabled = false,
-            tipsEnabled = true,
+            tipsEnabled = false,
             tipsChatEnabled = false,
             tipsChatCashEnabled = false,
             balanceCurrencySelectionEnabled = true
