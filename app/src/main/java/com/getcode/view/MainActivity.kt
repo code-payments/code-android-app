@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
@@ -102,8 +103,12 @@ class MainActivity : FragmentActivity() {
                 trace("set content")
 
                 val downloadQr = rememberQrBitmapPainter(
-                    content = stringResource(id = R.string.app_download_link),
-                    size = maxWidth * 0.60f
+                    content = stringResource(
+                        R.string.app_download_link,
+                        stringResource(id = R.string.app_download_link_qr_ref)
+                    ),
+                    size = maxWidth * 0.60f,
+                    padding = 0.25.dp
                 )
 
                 CompositionLocalProvider(

@@ -35,16 +35,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import com.getcode.LocalTopBarPadding
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.measured
-import com.getcode.ui.components.AccessKeySelectionContainer
+import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.Cloudy
 import com.getcode.ui.components.CodeButton
@@ -52,7 +50,6 @@ import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.utils.addIf
-import com.getcode.ui.utils.debugBounds
 import com.getcode.util.launchAppSettings
 
 @Composable
@@ -116,10 +113,10 @@ fun BackupKey(
     }
 
     val selectionState = rememberSelectionState(
-        words = dataState.words.joinToString(" ")
+        content = dataState.words.joinToString(" ")
     )
 
-    AccessKeySelectionContainer(
+    SelectionContainer(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.navigationBars),

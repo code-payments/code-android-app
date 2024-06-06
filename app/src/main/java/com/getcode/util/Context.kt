@@ -15,7 +15,8 @@ fun Context.launchSmsIntent(phoneValue: String, message: String) {
 }
 
 fun Context.shareDownloadLink() {
-    val url = getString(R.string.app_download_link)
+    val shareRef = getString(R.string.app_download_link_share_ref)
+    val url = getString(R.string.app_download_link_with_ref, shareRef)
     val intent = IntentUtils.share(url)
     ContextCompat.startActivity(this, intent, null)
 }

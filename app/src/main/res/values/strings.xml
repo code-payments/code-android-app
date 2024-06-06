@@ -36,7 +36,7 @@
 
         getcode.com/download
     </string>
-    <string name="action_tapToShareDownloadLink">Tap the logo to share the app download link</string>
-    <string name="title_scanToDownloadCode">Scan to download the Code Wallet App</string>
+    <string name="action_tapToShareDownloadLink">Tap the Code logo to share the app download link</string>
+    <string name="title_scanToDownloadCode">Scan to download the Code Wallet app</string>
     <string name="action_resetTooltips">Reset Tooltips</string>
 </resources>
