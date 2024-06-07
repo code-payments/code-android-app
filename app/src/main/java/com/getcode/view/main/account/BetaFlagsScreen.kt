@@ -19,13 +19,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
 import com.getcode.model.PrefsBool
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.CodeSwitch
-import com.getcode.util.shareDownloadLink
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -166,7 +164,7 @@ fun BetaFlagsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.grid.x3),
                 buttonState = ButtonState.Filled,
-                text = stringResource(id = R.string.action_resetTooltips),
+                text = stringResource(id = R.string.beta_resetTooltips),
                 onClick = {
                     tipsEngine?.invalidateAllTips()
                     Toast.makeText(context, "Tooltips reset", Toast.LENGTH_LONG).show()

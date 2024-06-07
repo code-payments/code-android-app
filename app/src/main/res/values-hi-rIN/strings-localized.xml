@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">यह नकदी एक्सपायर हो गई है.</string>
   <string name="error_description_codeTimedOut">कृपया अपना फ़ोन नंबर पुनः  एंटर करें और पुनः प्रयास करें.</string>
   <string name="error_description_contactsAccessRequired">आमंत्रण भेजने के लिए सेटिंग में जाकर संपर्क सूची का एक्सेस दें.</string>
+  <string name="error_description_countryNotSupported">फ़िलहाल आपके देश में Code उपलब्ध नहीं है.</string>
+  <string name="error_description_deviceNotSupported">इस समय हम आपके डिवाइस के इस्तेमाल को सपोर्ट करने में असमर्थ हैं</string>
+  <string name="error_description_eSimNotSupported">मुमकिन है कि ई-सिम का इस्तेमाल Code के आने वाले वर्शन में आएगा.</string>
   <string name="error_description_failedToCreateAccount">हमें ऐसा होने की उम्मीद नहीं थी. कुछ गलत हो गया. कृपया इस अकाउंट को पुन: बनाने का प्रयास करें.</string>
   <string name="error_description_failedToSave">अपनी एक्सेस की को सेव करने के लिए कृपया सेटिंग में कोड को फ़ोटो तक एक्सेस की अनुमति दें.</string>
+  <string name="error_description_failedToSendCode">कुछ दिक़्क़त हुई है. कृपया सुनिश्चित करें कि आपका फ़ोन नंबर सही दर्ज किया गया है.</string>
   <string name="error_description_failedToVerifyPhone">कुछ गलत हो गया. कृपया पुन: प्रयास करें.</string>
   <string name="error_description_failedWithdrawal">आप धन को निकालने में विफल हो गए. कुछ गलत हो गया है, कृपया धन निकालने  का पुन: प्रयास करें.</string>
   <string name="error_description_giveAmountTooLarge">Code को छोटी और रोज़ाना किए जाने वाले लेन-देन के लिए बनाया गया है, जिसकी राशि %1$s या इससे कम हो सकती है.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">आप अधिकतम टिप %1$s दे सकते हैं. कृपया छोटा अमाउंट डालें.</string>
   <string name="error_description_tipTooSmall">आप न्यूनतम टिप %1$s दे सकते हैं. कृपया बड़ा अमाउंट डालें.</string>
   <string name="error_description_tooManyAccounts">आप प्रतिदिन केवल इतने ही नए अकाउंट बना सकते हैं.</string>
+  <string name="error_description_tooManyAccountsPerDevice"> वर्तमान में Code प्रति डिवाइस के लिए एक खाते तक सीमित है. आने वाले समय में आने वाले Code के वर्शन में मल्टीपल एकाउंट्स के इस्तेमाल की संभावना है.</string>
+  <string name="error_description_tooManyAccountsPerPhone">वर्तमान में Code प्रति फ़ोन नंबर एक खाते तक सीमित है. आने वाले समय में आने वाले Code के वर्शन में मल्टीपल एकाउंट्स के इस्तेमाल की संभावना है.</string>
   <string name="error_title_alreadyCollected">Kin को पहले ही कलेक्ट कर लिया था.</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin पहले ही कलेक्ट किया जा चुका है</string>
   <string name="error_title_cameraAccessRequired">कैमरा की एक्सेस आवश्यक है </string>
   <string name="error_title_cashExpired">नकद एक्सपायर हो गया</string>
   <string name="error_title_codeTimedOut">वेरिफिकेशन कोड की समय सीमा समाप्त हो गयी </string>
   <string name="error_title_contactsAccessRequired">संपर्क सूची का एक्सेस देना आवश्यक है</string>
+  <string name="error_title_countryNotSupported">इस देश में सेवाएँ उपलब्ध नहीं हैं</string>
+  <string name="error_title_deviceNotSupported">इस डिवाइस पर सेवाएँ उपलब्ध नहीं हैं</string>
+  <string name="error_title_eSimNotSupported">वर्तमान में ई-सिम का इस्तेमाल नहीं किया जा सकता है</string>
   <string name="error_title_failedToCreateAccount">अकाउंट बनाने में विफल रहा </string>
   <string name="error_title_failedToSave">सेव करने में विफल रहा </string>
   <string name="error_title_failedToSendCode">भेजने में विफल हुआ </string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">टिप बहुत ज्यादा है</string>
   <string name="error_title_tipTooSmall">	\nटिप बहुत कम है</string>
   <string name="error_title_tooManyAccounts">बहुत सारे अकाउंट बन गए हैं </string>
+  <string name="error_title_tooManyAccountsPerDevice">अकाउंट पहले से ही बनाया जा चुका है</string>
+  <string name="error_title_tooManyAccountsPerPhone">अकाउंट पहले से ही बनाया जा चुका है</string>
   <string name="faq_a__1">Code एक पेमेंट ऐप है जो दुनिया में कहीं भी, किसी को भी पैसे भेजना आसान बनाता है.</string>
   <string name="faq_a__10">हम Signal और Twitter के समान आने वाले सब्सक्रिप्शन मॉडल के ज़रिए ख़ुद को बनाए रखने का प्लैन कर रहे हैं.</string>
   <string name="faq_a__11">एक नॉन-प्रॉफ़िट ऑर्गनाइज़ेशन के तौर पर हम जो भी पैसा कमाएंगे उसे ग्लोबल फ़ाइनैंशियल को आगे बढ़ाने के हमारे मिशन में दोबारा इंवेस्ट किया जाएगा. आपका समर्थन सराहनीय है.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">ये रहा %1$s</string>
   <string name="subtitle_requestNewOneIn">%1$s में एक नए के लिए अनुरोध करें</string>
   <string name="subtitle_scanThisQRCode">कोड वॉलेट ऐप डाउनलोड करने के लिए इस QR कोड को अपने फोन के कैमरे से स्कैन करें</string>
+  <string name="subtitle_scanToDownload"> Code वॉलेट ऐप डाउनलोड करने के लिए स्कैन करें</string>
   <string name="subtitle_searchCurrencies">अकाउंट सर्च करें </string>
   <string name="subtitle_searchForContacts">कॉन्टेक्ट्स के लिए सर्च करें </string>
   <string name="subtitle_smsWasSent">आपके फ़ोन नंबर पर एक वेरिफ़िकेशन कोड वाला एक मैसेज भेजा गया है. कृपया वह कोड ऊपर डालें.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Kin को वापस लें</string>
   <string name="title_withdrewKin">वापस ले लिया</string>
   <string name="title_yourAccessKey">आपकी एक्सेस की </string>
+  <string name="tooltip_tapLogo">ऐप डाउनलोड लिंक शेयर करने के लिए लोगो पर टैप करें</string>
 </resources>

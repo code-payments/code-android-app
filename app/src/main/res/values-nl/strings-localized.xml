@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Het contant geld is verlopen.</string>
   <string name="error_description_codeTimedOut">Voer je telefoonnummer opnieuw in en probeer het opnieuw.</string>
   <string name="error_description_contactsAccessRequired">Geef toegang tot de contacten in Instellingen om uitnodigingen te verzenden.</string>
+  <string name="error_description_countryNotSupported">De code is momenteel niet beschikbaar in je land.</string>
+  <string name="error_description_deviceNotSupported">We kunnen je apparaat op dit moment niet ondersteunen</string>
+  <string name="error_description_eSimNotSupported">Ondersteuning voor eSims komt waarschijnlijk in een toekomstige versie van Code.</string>
   <string name="error_description_failedToCreateAccount">We hadden niet verwacht dat dat zou gebeuren. Er is een fout opgetreden. Probeer dit account opnieuw aan te maken.</string>
   <string name="error_description_failedToSave">Geef Code toegang tot Foto\'s in Instellingen om je toegangscode op te slaan.</string>
+  <string name="error_description_failedToSendCode">Er is iets misgegaan. Controleer of je telefoonnummer correct is ingevoerd.</string>
   <string name="error_description_failedToVerifyPhone">Er is een fout opgetreden. Probeer het later opnieuw.</string>
   <string name="error_description_failedWithdrawal">Geldopname mislukt. Er is een fout opgetreden, probeer het later opnieuw.</string>
   <string name="error_description_giveAmountTooLarge">Code is ontworpen voor kleine, dagelijkse transacties van %1$s of minder.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">De maximale fooi is %1$s. Voer een kleiner bedrag in.</string>
   <string name="error_description_tipTooSmall">De minimale fooi is %1$s. Voer een groter bedrag in.</string>
   <string name="error_description_tooManyAccounts">Je kunt maar een beperkt aantal nieuwe accounts per dag aanmaken.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code is momenteel beperkt tot één account per apparaat. Ondersteuning voor meerdere accounts komt waarschijnlijk in een toekomstige versie van Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code is momenteel beperkt tot één account per telefoonnummer. Ondersteuning voor meerdere accounts komt waarschijnlijk in een toekomstige versie van Code.</string>
   <string name="error_title_alreadyCollected">Kin is al verzameld</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin al opgehaald</string>
   <string name="error_title_cameraAccessRequired">Toegang tot camera vereist</string>
   <string name="error_title_cashExpired">Contant geld verlopen</string>
   <string name="error_title_codeTimedOut">Verificatiecode verlopen</string>
   <string name="error_title_contactsAccessRequired">Toegang tot Contacten vereist</string>
+  <string name="error_title_countryNotSupported">Land niet ondersteund</string>
+  <string name="error_title_deviceNotSupported">Apparaat niet ondersteund</string>
+  <string name="error_title_eSimNotSupported">eSims momenteel niet ondersteund</string>
   <string name="error_title_failedToCreateAccount">Account aanmaken mislukt</string>
   <string name="error_title_failedToSave">Opslaan mislukt</string>
   <string name="error_title_failedToSendCode">Sturen mislukt</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">De fooi is te groot</string>
   <string name="error_title_tipTooSmall">De fooi is te klein</string>
   <string name="error_title_tooManyAccounts">Te veel accounts aangemaakt</string>
+  <string name="error_title_tooManyAccountsPerDevice">Account reeds aangemaakt</string>
+  <string name="error_title_tooManyAccountsPerPhone">Account reeds aangemaakt</string>
   <string name="faq_a__1">Code is een betalingsapp die het eenvoudig maakt om geld te sturen naar iedereen, waar dan ook ter wereld.</string>
   <string name="faq_a__10">We zijn van plan onszelf in stand te houden door middel van een aankomend abonnementsmodel, vergelijkbaar met wat Signal en Twitter doen.</string>
   <string name="faq_a__11">Als non-profitorganisatie wordt al het geld dat we verdienen opnieuw geïnvesteerd in onze missie om wereldwijde financiële inclusie te stimuleren. We stellen je steun op prijs.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Hier is %1$s</string>
   <string name="subtitle_requestNewOneIn">Vraag een nieuwe code aan binnen %1$s</string>
   <string name="subtitle_scanThisQRCode">Scan deze QR-code met de camera van je telefoon om de app Code Wallet te downloaden</string>
+  <string name="subtitle_scanToDownload">Scan om de Code Portemonnee-\napp te downloaden</string>
   <string name="subtitle_searchCurrencies">Valuta zoeken</string>
   <string name="subtitle_searchForContacts">Zoeken naar contacten</string>
   <string name="subtitle_smsWasSent">Er is een sms-bericht naar je telefoonnummer verzonden met een verificatiecode. Voer de bovenstaande verificatiecode in.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">KIN opnemen</string>
   <string name="title_withdrewKin">Opgenomen</string>
   <string name="title_yourAccessKey">Je toegangscode</string>
+  <string name="tooltip_tapLogo">Tik op het logo om de downloadlink van de app te delen</string>
 </resources>

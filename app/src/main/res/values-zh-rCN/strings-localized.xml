@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">此现金已过期。</string>
   <string name="error_description_codeTimedOut">请重新输入您的手机号码,然后重试。</string>
   <string name="error_description_contactsAccessRequired">请在\"设置\"中允许访问通讯录以发送邀请。</string>
+  <string name="error_description_countryNotSupported">目前,Code 在您所在的国家/地区不可用。</string>
+  <string name="error_description_deviceNotSupported">我们目前无法支持您的设备</string>
+  <string name="error_description_eSimNotSupported">后续版本的 Code 可能会支持 eSims。</string>
   <string name="error_description_failedToCreateAccount">我们没想到会发生这种情况。出了点问题。请尝试重新创建此账户。</string>
   <string name="error_description_failedToSave">请在设置中允许 Code 访问相册以保存您的访问密钥。</string>
+  <string name="error_description_failedToSendCode">出错了,请确保您输入的电话号码正确无误。</string>
   <string name="error_description_failedToVerifyPhone">出了点问题。请再试一次。</string>
   <string name="error_description_failedWithdrawal">提取资金失败。出了点问题,请重新尝试提取。</string>
   <string name="error_description_giveAmountTooLarge">代码专为 %1$s 或以下的小额日常交易而设计。</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">您可以给的最高小费是 %1$s。请输入一个低一点的金额。</string>
   <string name="error_description_tipTooSmall">您可以给的最低小费是 %1$s。请输入一个高一点的金额。</string>
   <string name="error_description_tooManyAccounts">您每天只能创建这么多新账户。</string>
+  <string name="error_description_tooManyAccountsPerDevice">目前,每个设备仅限使用一个 Code 账户。后续版本的 Code 可能会支持多个账户。</string>
+  <string name="error_description_tooManyAccountsPerPhone">目前,每个电话号码仅限开设一个 Code 账户。后续版本的 Code 可能会支持多个账户。</string>
   <string name="error_title_alreadyCollected">该 Kin 币已被领取</string>
   <string name="error_title_alreadyCollectedBySomeone">已收集的 Kin</string>
   <string name="error_title_cameraAccessRequired">需要相机访问权限</string>
   <string name="error_title_cashExpired">现金已过期</string>
   <string name="error_title_codeTimedOut">验证码超时</string>
   <string name="error_title_contactsAccessRequired">需要通讯录访问权限</string>
+  <string name="error_title_countryNotSupported">不支持的国家/地区</string>
+  <string name="error_title_deviceNotSupported">不支持的设备</string>
+  <string name="error_title_eSimNotSupported">目前不支持 eSims</string>
   <string name="error_title_failedToCreateAccount">创建账户失败</string>
   <string name="error_title_failedToSave">保存失败</string>
   <string name="error_title_failedToSendCode">发送失败</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">小费太多</string>
   <string name="error_title_tipTooSmall">小费太少</string>
   <string name="error_title_tooManyAccounts">创建的账户过多</string>
+  <string name="error_title_tooManyAccountsPerDevice">账户已创建</string>
+  <string name="error_title_tooManyAccountsPerPhone">账户已创建</string>
   <string name="faq_a__1">Code 是一款支付应用,可以轻松向全世界任何地方的任何人发送资金。</string>
   <string name="faq_a__10">我们计划通过即将推出的订阅模式维持运营,类似于 Signal 和 Twitter 那样。</string>
   <string name="faq_a__11">作为非营利组织,我们所有盈利都将再投资于我们推动全球金融包容性的使命之中。感谢您的支持。</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">这里是%1$s</string>
   <string name="subtitle_requestNewOneIn">%1$s 后请求一个新的验证码</string>
   <string name="subtitle_scanThisQRCode">用您的手机相机扫描此二维码,下载 Code Wallet 应用</string>
+  <string name="subtitle_scanToDownload">扫描以下载\nCode 钱包应用</string>
   <string name="subtitle_searchCurrencies">搜索货币</string>
   <string name="subtitle_searchForContacts">搜索联系人</string>
   <string name="subtitle_smsWasSent">已向您的手机号码发送了一条带有验证码的短信。请在上面输入验证码。</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">提取 Kin</string>
   <string name="title_withdrewKin">已提取</string>
   <string name="title_yourAccessKey">您的访问密钥</string>
+  <string name="tooltip_tapLogo">点击徽标,分享应用下载链接</string>
 </resources>

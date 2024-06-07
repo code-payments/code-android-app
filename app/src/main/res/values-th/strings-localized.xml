@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">เงินสดจำนวนนี้หมดอายุแล้ว</string>
   <string name="error_description_codeTimedOut">โปรดป้อนหมายเลขโทรศัพท์ใหม่แล้วลองอีกครั้ง</string>
   <string name="error_description_contactsAccessRequired">โปรดอนุญาตให้เข้าถึงรายชื่อผู้ติดต่อในการตั้งค่าเพื่อส่งคำเชิญ</string>
+  <string name="error_description_countryNotSupported">ขณะนี้ Code ยังไม่พร้อมใช้งานในประเทศของคุณ</string>
+  <string name="error_description_deviceNotSupported">เราไม่สามารถรองรับอุปกรณ์ของคุณในขณะนี้</string>
+  <string name="error_description_eSimNotSupported">การรองรับ eSim มีแนวโน้มที่จะมาในเวอร์ชันต่อไปของ Code</string>
   <string name="error_description_failedToCreateAccount">เราไม่ได้คาดหวังให้เกิดสิ่งนี้ขึ้น เกิดข้อผิดพลาดขึ้น โปรดลองสร้างบัญชีนี้อีกครั้ง</string>
   <string name="error_description_failedToSave">โปรดอนุญาตให้ Code เข้าถึงรูปภาพในการตั้งค่าเพื่อบันทึกคีย์การเข้าถึงของคุณ</string>
+  <string name="error_description_failedToSendCode">เกิดข้อผิดพลาดขึ้น โปรดตรวจสอบให้แน่ใจว่าป้อนหมายเลขโทรศัพท์ของคุณถูกต้องแล้ว</string>
   <string name="error_description_failedToVerifyPhone">เกิดข้อผิดพลาดขึ้น โปรดลองใหม่อีกครั้ง</string>
   <string name="error_description_failedWithdrawal">ถอนเงินของคุณไม่สำเร็จ มีบางอย่างผิดพลาด โปรดลองถอนเงินอีกครั้ง</string>
   <string name="error_description_giveAmountTooLarge">Code ออกแบบมาสำหรับการทำธุรกรรมขนาดเล็กในชีวิตประจำวันที่มีจำนวนไม่เกิน %1$s</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">จำนวนเงินสูงสุดที่คุณสามารถให้ทิปได้คือ %1$s กรุณาใส่จำนวนเงินที่น้อยลง</string>
   <string name="error_description_tipTooSmall">จำนวนเงินขั้นต่ำที่คุณสามารถให้ทิปได้คือ %1$s กรุณาใส่จำนวนเงินที่มากขึ้น</string>
   <string name="error_description_tooManyAccounts">คุณไม่สามารถสร้างบัญชีใหม่ได้มากมายในแต่ละวัน</string>
+  <string name="error_description_tooManyAccountsPerDevice">ขณะนี้ Code มีการจำกัดอยู่ที่ 1 บัญชีต่ออุปกรณ์ การรองรับหลายบัญชีมีแนวโน้มที่จะมาในเวอร์ชันต่อไปของ Code</string>
+  <string name="error_description_tooManyAccountsPerPhone">ขณะนี้ Code มีการจำกัดอยู่ที่ 1 บัญชีต่อหมายเลขโทรศัพท์ การรองรับหลายบัญชีมีแนวโน้มที่จะมาในเวอร์ชันต่อไปของ Code</string>
   <string name="error_title_alreadyCollected">Kin ถูกเก็บไปแล้ว</string>
   <string name="error_title_alreadyCollectedBySomeone">เก็บ Kin ไปแล้ว</string>
   <string name="error_title_cameraAccessRequired">จำเป็นต้องเข้าถึงกล้อง</string>
   <string name="error_title_cashExpired">เงินสดหมดอายุ</string>
   <string name="error_title_codeTimedOut">รหัสยืนยันหมดเวลาแล้ว</string>
   <string name="error_title_contactsAccessRequired">จำเป็นต้องเข้าถึงรายชื่อผู้ติดต่อ</string>
+  <string name="error_title_countryNotSupported">ไม่รองรับประเทศ</string>
+  <string name="error_title_deviceNotSupported">อุปกรณ์ไม่รองรับ</string>
+  <string name="error_title_eSimNotSupported">ขณะนี้ยังไม่รองรับ eSim</string>
   <string name="error_title_failedToCreateAccount">การสร้างบัญชีล้มเหลว</string>
   <string name="error_title_failedToSave">ไม่สามารถบันทึก</string>
   <string name="error_title_failedToSendCode">ไม่สามารถส่ง</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">ทิปมากเกินไป</string>
   <string name="error_title_tipTooSmall">ทิปน้อยเกินไป</string>
   <string name="error_title_tooManyAccounts">มีการสร้างบัญชีมากเกินไป</string>
+  <string name="error_title_tooManyAccountsPerDevice">บัญชีได้รับการสร้างแล้ว</string>
+  <string name="error_title_tooManyAccountsPerPhone">บัญชีได้รับการสร้างแล้ว</string>
   <string name="faq_a__1">Code เป็นแอปการชำระเงินที่ทำให้การส่งเงินไปยังทุกที่ทั่วโลกเป็นเรื่องง่าย</string>
   <string name="faq_a__10">เราวางแผนจะรักษาความยั่งยืนผ่านรูปแบบการสมัครสมาชิกที่กำลังจะมาถึง คล้ายกับที่ Signal และ Twitter ทำ</string>
   <string name="faq_a__11">เนื่องจากเป็นองค์กรไม่แสวงหาผลกำไร เงินทั้งหมดที่เราได้รับจะถูกนำกลับไปลงทุนในภารกิจของเราในการผลักดันการมีส่วนร่วมทางการเงินทั่วโลก ขอขอบคุณที่ให้การสนับสนุน</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">นี่คือ %1$s</string>
   <string name="subtitle_requestNewOneIn">ขอใหม่ใน %1$s</string>
   <string name="subtitle_scanThisQRCode">สแกนรหัส QR นี้ด้วยกล้องโทรศัพท์ของคุณเพื่อดาวน์โหลดแอป Code Wallet</string>
+  <string name="subtitle_scanToDownload">สแกนเพื่อดาวน์โหลด\nแอปกระเป๋าสตางค์ของ Code</string>
   <string name="subtitle_searchCurrencies">ค้นหาสกุลเงิน</string>
   <string name="subtitle_searchForContacts">ค้นหารายชื่อติดต่อ</string>
   <string name="subtitle_smsWasSent">ข้อความ SMS ถูกส่งไปยังหมายเลขโทรศัพท์ของคุณพร้อมรหัสยืนยัน โปรดป้อนรหัสยืนยันด้านบน</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">ถอน Kin</string>
   <string name="title_withdrewKin">ถอนแล้ว</string>
   <string name="title_yourAccessKey">คีย์การเข้าถึงของคุณ</string>
+  <string name="tooltip_tapLogo">แตะโลโก้เพื่อแชร์ลิงก์ดาวน์โหลดแอป</string>
 </resources>

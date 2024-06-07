@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Wang tunai ini telah tamat tempoh. </string>
   <string name="error_description_codeTimedOut">Sila masukkan semula nombor telefon anda dan cuba lagi.</string>
   <string name="error_description_contactsAccessRequired">Sila membenarkan akses hubungan dalam Tetapan untuk menghantar jemputan.</string>
+  <string name="error_description_countryNotSupported">Code tidak tersedia di negara anda buat masa ini.</string>
+  <string name="error_description_deviceNotSupported">Kami tidak dapat menyokong peranti anda pada masa ini </string>
+  <string name="error_description_eSimNotSupported">Sokongan untuk eSims mungkin akan datang dalam versi Code akan datang.</string>
   <string name="error_description_failedToCreateAccount">Kami tidak menjangkakan perkara itu berlaku. Ada sesuatu tidak kena. Sila cuba mencipta akaun ini sekali lagi.</string>
   <string name="error_description_failedToSave">Sila benarkan akses Code kepada Gambar dalam Tetapan untuk menyimpan Kunci Akses anda.</string>
+  <string name="error_description_failedToSendCode">Ada sesuatu yang tidak kena berlaku. Sila pastikan nombor telefon anda dimasukkan dengan betul. </string>
   <string name="error_description_failedToVerifyPhone">Ada sesuatu tidak kena. Sila cuba lagi.</string>
   <string name="error_description_failedWithdrawal">Gagal mengeluarkan dana anda. Ada sesuatu tidak kena, sila cuba keluarkan dana anda sekali lagi.</string>
   <string name="error_description_giveAmountTooLarge">Code direka bentuk untuk transaksi harian kecil sebanyak %1$s atau kurang.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Maksimum anda boleh memberi tip adalah %1$s. Sila masukkan jumlah yang lebih kecil.</string>
   <string name="error_description_tipTooSmall">Minimum yang anda boleh tip adalah %1$s. Sila masukkan jumlah yang lebih besar.</string>
   <string name="error_description_tooManyAccounts">Anda tidak boleh mencipta akaun baharu setiap hari.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code kini terhad kepada satu akaun bagi setiap peranti. Sokongan untuk berbilang akaun mungkin akan datang dalam versi Code akan datang. </string>
+  <string name="error_description_tooManyAccountsPerPhone">Code kini terhad kepada satu akaun bagi setiap nombor telefon. Sokongan untuk berbilang akaun mungkin akan datang dalam versi Code akan datang.</string>
   <string name="error_title_alreadyCollected">Kin Sudah Diambil</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin Sudah Dikumpul</string>
   <string name="error_title_cameraAccessRequired">Akses Kamera Diperlukan</string>
   <string name="error_title_cashExpired">Wang Tunai Tamat Tempoh</string>
   <string name="error_title_codeTimedOut">Pengesahan Code Dibatalkan</string>
   <string name="error_title_contactsAccessRequired">Akses Hubungan Diperlukan</string>
+  <string name="error_title_countryNotSupported">Negara Tidak Disokong </string>
+  <string name="error_title_deviceNotSupported">Peranti Tidak Disokong </string>
+  <string name="error_title_eSimNotSupported">eSims Tidak Disokong Buat Masa Ini </string>
   <string name="error_title_failedToCreateAccount">Gagal Mencipta Akaun</string>
   <string name="error_title_failedToSave">Gagal Disimpan</string>
   <string name="error_title_failedToSendCode">Gagal Dihantar</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Tip Terlalu Besar</string>
   <string name="error_title_tipTooSmall">Tip Terlalu Kecil</string>
   <string name="error_title_tooManyAccounts">Terlalu banyak akaun dicipta</string>
+  <string name="error_title_tooManyAccountsPerDevice">Akaun Sudah Dicipta</string>
+  <string name="error_title_tooManyAccountsPerPhone">Akaun Sudah Dicipta</string>
   <string name="faq_a__1">Code ialah aplikasi pembayaran yang memudahkan anda menghantar wang kepada sesiapa, di mana-mana sahaja di dunia.</string>
   <string name="faq_a__10">Kami merancang untuk mengekalkan pertumbuhan kami melalui model langganan yang akan datang, sama seperti yang dilakukan oleh Signal dan Twitter.</string>
   <string name="faq_a__11">Sebagai organisasi bukan untung, semua wang yang kami hasilkan akan dilaburkan semula dalam misi kami untuk memajukan rangkuman kewangan di seluruh dunia. Sokongan anda amat dihargai.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Inilah %1$s</string>
   <string name="subtitle_requestNewOneIn">Minta kod baharu dalam %1$s</string>
   <string name="subtitle_scanThisQRCode">Imbas kod QR ini menggunakan kamera telefon anda untuk memuat turun aplikasi Code Wallet</string>
+  <string name="subtitle_scanToDownload">Imbas untuk memuat turun aplikasi Code Wallet </string>
   <string name="subtitle_searchCurrencies">Cari mata wang</string>
   <string name="subtitle_searchForContacts">Cari kenalan</string>
   <string name="subtitle_smsWasSent">Mesej teks dengan kod pengesahan telah dihantar ke nombor telefon anda. Sila masukkan kod pengesahan di atas.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Keluarkan Kin</string>
   <string name="title_withdrewKin">Keluarkan</string>
   <string name="title_yourAccessKey">Kunci Akses Anda</string>
+  <string name="tooltip_tapLogo">Ketik logo untuk kongsikan pautan muat turun aplikasi</string>
 </resources>

@@ -273,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Here\'s %1$s</string>
   <string name="subtitle_requestNewOneIn">Request a new one in %1$s</string>
   <string name="subtitle_scanThisQRCode">Scan this QR code with your phone\'s camera to download the Code Wallet app</string>
+  <string name="subtitle_scanToDownload">Scan to download the\nCode Wallet app</string>
   <string name="subtitle_searchCurrencies">Search currencies</string>
   <string name="subtitle_searchForContacts">Search contact or phone number</string>
   <string name="subtitle_smsWasSent">An SMS message was sent to your phone number with a verification code. Please enter the verification code above.</string>
@@ -363,4 +364,5 @@
   <string name="title_withdrawKin">Withdraw Kin</string>
   <string name="title_withdrewKin">Withdrew</string>
   <string name="title_yourAccessKey">Your Access Key</string>
+  <string name="tooltip_tapLogo">Tap the logo to share the app download link</string>
 </resources>

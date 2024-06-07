@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Срок действия этих денег истек.</string>
   <string name="error_description_codeTimedOut">Введите свой номер телефона повторно и попробуйте снова.</string>
   <string name="error_description_contactsAccessRequired">Для отправки приглашений предоставьте доступ к контактам в настройках.</string>
+  <string name="error_description_countryNotSupported">В настоящее время приложение Code недоступно в вашей стране.</string>
+  <string name="error_description_deviceNotSupported">В настоящее время мы не можем поддерживать ваше устройство</string>
+  <string name="error_description_eSimNotSupported">Поддержка eSim-карт появится, вероятно, в будущей версии Code.</string>
   <string name="error_description_failedToCreateAccount">Мы не ожидали этого. Что-то пошло не так. Попробуйте создать эту учетную запись снова.</string>
   <string name="error_description_failedToSave">Разрешите Code доступ к фото в настройках, чтобы сохранить свой ключ доступа.</string>
+  <string name="error_description_failedToSendCode">Что-то пошло не так. Убедитесь, что ваш номер вашего телефона введен правильно.</string>
   <string name="error_description_failedToVerifyPhone">Что-то пошло не так. Попробуйте снова.</string>
   <string name="error_description_failedWithdrawal">Не удалось вывести ваши средства. Что-то пошло не так, попробуйте вывести снова.</string>
   <string name="error_description_giveAmountTooLarge">Code разработан для небольших ежедневных транзакций, не превышающих %1$s.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Максимальный размер чаевых — %1$s. Введите меньшую сумму.</string>
   <string name="error_description_tipTooSmall">Минимальный размер чаевых — %1$s. Введите большую сумму.</string>
   <string name="error_description_tooManyAccounts">Вы можете создать лишь столько новых учетных записей в день.</string>
+  <string name="error_description_tooManyAccountsPerDevice">В настоящее время приложение Code ограничено одной учетной записью на устройство. Поддержка нескольких учетных записей, вероятно, появится в будущей версии Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">В настоящее время приложение Code ограничено одной учетной записью на номер телефона. Поддержка нескольких учетных записей, вероятно, появится в будущей версии Code.</string>
   <string name="error_title_alreadyCollected">Kin уже получен</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin уже получен</string>
   <string name="error_title_cameraAccessRequired">Требуется доступ к камере</string>
   <string name="error_title_cashExpired">Срок действия денег истек</string>
   <string name="error_title_codeTimedOut">Срок действия кода проверки истек</string>
   <string name="error_title_contactsAccessRequired">Необходим доступ к контактам</string>
+  <string name="error_title_countryNotSupported">Страна не поддерживается</string>
+  <string name="error_title_deviceNotSupported">Устройство не поддерживается</string>
+  <string name="error_title_eSimNotSupported">В настоящее время eSim-карты не поддерживаются</string>
   <string name="error_title_failedToCreateAccount">Не удалось создать учетную запись</string>
   <string name="error_title_failedToSave">Не удалось сохранить</string>
   <string name="error_title_failedToSendCode">Не удалось отправить</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Чаевые слишком большие</string>
   <string name="error_title_tipTooSmall">Чаевые слишком маленькие</string>
   <string name="error_title_tooManyAccounts">Создано слишком много учетных записей</string>
+  <string name="error_title_tooManyAccountsPerDevice">Учетная запись уже создана</string>
+  <string name="error_title_tooManyAccountsPerPhone">Учетная запись уже создана</string>
   <string name="faq_a__1">Code — это платежное приложение, которое упрощает отправку денег кому угодно и в любую точку мира.</string>
   <string name="faq_a__10">Мы планируем поддерживать себя с помощью будущей модели подписки, аналогичной тому, что делают Signal и Twitter.</string>
   <string name="faq_a__11">Как некоммерческая организация, все деньги, которые мы зарабатываем, будут реинвестированы в нашу миссию по обеспечению глобальной финансовой доступности. Будем благодарны за поддержку.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Вот %1$s</string>
   <string name="subtitle_requestNewOneIn">Запросить новый через %1$s</string>
   <string name="subtitle_scanThisQRCode">Отсканируйте этот QR-код с помощью камеры вашего телефона, чтобы загрузить приложение Code Wallet.</string>
+  <string name="subtitle_scanToDownload">Отсканируйте, чтобы загрузить\nприложение Code Wallet</string>
   <string name="subtitle_searchCurrencies">Искать валюты</string>
   <string name="subtitle_searchForContacts">Искать контакты</string>
   <string name="subtitle_smsWasSent">На ваш номер телефона было отправлено SMS-сообщение с кодом подтверждения. Введите код подтверждения выше.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Вывести Kin</string>
   <string name="title_withdrewKin">Вывел(-а)</string>
   <string name="title_yourAccessKey">Ваш ключ доступа</string>
+  <string name="tooltip_tapLogo">Коснитесь логотипа, чтобы поделиться ссылкой для загрузки приложения</string>
 </resources>

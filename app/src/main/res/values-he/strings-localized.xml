@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">מזומן זה אינו בתוקף.</string>
   <string name="error_description_codeTimedOut">אנא הכנס מחדש את מספר הטלפון שלך ונסה שנית.</string>
   <string name="error_description_contactsAccessRequired">נא לאפשר גישה לאנשי הקשר בהגדרות על מנת לשלוח הזמנות.</string>
+  <string name="error_description_countryNotSupported">Code כרגע אינו זמין במדינתך.</string>
+  <string name="error_description_deviceNotSupported">לא ניתן לתמוך במכשירך בשלב זה</string>
+  <string name="error_description_eSimNotSupported">ייתכן ובגרסה עתידית של Code תהיה תמיכה ב-eSims.</string>
   <string name="error_description_failedToCreateAccount">לא ציפינו שזה יקרה. משהו השתבש. אנא נסה שנית ליצור את החשבון.</string>
   <string name="error_description_failedToSave">אנא אפשר לקוד גישה לתמונות בהגדרות כדי לשמור את מפתח הגישה שלך.</string>
+  <string name="error_description_failedToSendCode">משהו השתבש. נא לוודא שמספר הטלפון הוזן נכון.</string>
   <string name="error_description_failedToVerifyPhone">משהו השתבש. אנא נסה שנית</string>
   <string name="error_description_failedWithdrawal">משיכת הכספים שלך נכשלה. משהו השתבש, אנא נסה למשוך שוב.</string>
   <string name="error_description_giveAmountTooLarge">Code מיועדת לעסקאות קטנות ויומיומיות של %1$s או פחות.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">המקסימום שאתם יכולים לתת כטיפ הוא %1$s. נא להזין סכום קטן יותר.</string>
   <string name="error_description_tipTooSmall">המינימום שאתם יכולים לתת כטיפ הוא %1$s. נא להזין סכום גדול יותר.</string>
   <string name="error_description_tooManyAccounts">אתה יכול ליצור כמות מוגבלת של חשבונות חדשים בכל יום.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code כרגע מוגבל לחשבון אחד למספר טלפון. ייתכן ובגרסה עתידית של Code ניתן יהיה לתמוך בכמה חשבונות.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code כרגע מוגבל לחשבון אחד למספר טלפון. ייתכן ובגרסה עתידית של Code ניתן יהיה לתמוך בכמה חשבונות.</string>
   <string name="error_title_alreadyCollected">ה-Kin כבר נאסף</string>
   <string name="error_title_alreadyCollectedBySomeone">ה-Kin כבר נאסף</string>
   <string name="error_title_cameraAccessRequired">נדרשת גישה למצלמה</string>
   <string name="error_title_cashExpired">מזומן אינו בתוקף</string>
   <string name="error_title_codeTimedOut">פג תוקף קוד אימות</string>
   <string name="error_title_contactsAccessRequired">נדרשת גישה לאנשי הקשר</string>
+  <string name="error_title_countryNotSupported">אין תמיכה במדינה</string>
+  <string name="error_title_deviceNotSupported">המכשיר אינו נתמך</string>
+  <string name="error_title_eSimNotSupported">eSims אינם נתמכים כרגע</string>
   <string name="error_title_failedToCreateAccount">יצירת החשבון נכשלה</string>
   <string name="error_title_failedToSave">השמירה נכשלה</string>
   <string name="error_title_failedToSendCode">השליחה נכשלה</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">הטיפ גדול מדי</string>
   <string name="error_title_tipTooSmall">הטיפ קטן מדי</string>
   <string name="error_title_tooManyAccounts">יותר מדי חשבונות נוצרו</string>
+  <string name="error_title_tooManyAccountsPerDevice">החשבון כבר נוצר</string>
+  <string name="error_title_tooManyAccountsPerPhone">החשבון כבר נוצר</string>
   <string name="faq_a__1">Code היא אפליקציית תשלומים שמפשטת שליחת כסף לכל אחד, בכל מקום בעולם.</string>
   <string name="faq_a__10">אנו מתכננים לתמוך בעצמנו בעתיד באמצעות מודל מינויים, בדומה למה שסיגנל וטוויטר עושות.</string>
   <string name="faq_a__11">כארגון ללא מטרות רווח, כל הכסף שנרוויח יושקע מחדש במשימה שלנו להניע שילוב פיננסי גלובלי. תמיכתך מוערכת.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">הנה %1$s</string>
   <string name="subtitle_requestNewOneIn">בקש קוד חדש תוך %1$s</string>
   <string name="subtitle_scanThisQRCode">סרוק קוד QR זה עם מצלמת הטלפון שלך כדי להוריד את אפליקציית Code Wallet</string>
+  <string name="subtitle_scanToDownload">סרקו להורדת אפליקציית ה-Code Wallet</string>
   <string name="subtitle_searchCurrencies">חפש סוגי מטבע</string>
   <string name="subtitle_searchForContacts">חפש אנשי קשר</string>
   <string name="subtitle_smsWasSent">הודעת SMS נשלחה למספר הטלפון שלך עם קוד אימות. נא להזין את קוד האימות למעלה.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">משוך קין</string>
   <string name="title_withdrewKin">משיכות שבוצעו</string>
   <string name="title_yourAccessKey">מפתח הגישה שלך</string>
+  <string name="tooltip_tapLogo">לחצו על הלוגו כדי לשתף את קישור הורדת האפליקציה</string>
 </resources>

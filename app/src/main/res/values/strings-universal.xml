@@ -36,6 +36,13 @@
     <string name="beta_tipchats_description" translatable="false">If enabled, you\'ll gain the ability to chat with tippers.</string>
     <string name="beta_tipchats_cash_description" translatable="false">If enabled, you\'ll gain the ability to send Kin in Tip Chats.</string>
     <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
+    <string name="beta_resetTooltips" translatable="false">Reset Tooltips</string>
+
+    <string name="subtitle_linkingTwitterPrompt" translatable="false">
+        Hey @%1$s you should set up your @getcode Tip Card so I can tip you some cash.
+
+        getcode.com/download
+    </string>
 
     <string translatable="false" name="empty" />
 </resources>

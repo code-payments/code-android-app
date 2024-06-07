@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Bu nakdin süresi doldu.</string>
   <string name="error_description_codeTimedOut">Lütfen telefon numaranı yeniden gir ve tekrar dene.</string>
   <string name="error_description_contactsAccessRequired">Davetler göndermek için lütfen Ayarlar\'da kişilere erişim izni ver.</string>
+  <string name="error_description_countryNotSupported">Code, şu anda ülkenizde kullanılamıyor.</string>
+  <string name="error_description_deviceNotSupported">Şu anda cihazınızı destekleyemiyoruz</string>
+  <string name="error_description_eSimNotSupported">eSim desteği, muhtemelen Code\'un gelecekteki bir sürümünde gelecektir.</string>
   <string name="error_description_failedToCreateAccount">Bunun olmasını beklemiyorduk. Bir şeyler ters gitti. Lütfen bu hesabı tekrar oluşturmayı dene.</string>
   <string name="error_description_failedToSave">Erişim Anahtarını kaydetmek için lütfen Ayarlar\'dan Code için Fotoğraflar\'a erişim izni ver.</string>
+  <string name="error_description_failedToSendCode">Bir şeyler ters gitti. Lütfen telefon numaranızı doğru girdiğinize emin olun.</string>
   <string name="error_description_failedToVerifyPhone">Bir şeyler ters gitti. Lütfen tekrar dene.</string>
   <string name="error_description_failedWithdrawal">Paran çekilemedi. Bir şeyler ters gitti, lütfen para çekme işlemini tekrar dene.</string>
   <string name="error_description_giveAmountTooLarge">Code, %1$s veya daha düşük tutardaki, küçük ve gündelik işlemler için tasarlanmıştır.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Bahşiş verebileceğin maksimum tutar %1$s. Lütfen daha küçük bir tutar gir.</string>
   <string name="error_description_tipTooSmall">Bahşiş verebileceğin minimum tutar %1$s. Lütfen daha büyük bir tutar gir.</string>
   <string name="error_description_tooManyAccounts">Her gün yalnızca belirli sayıda yeni hesap oluşturabilirsin.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code, şu anda cihaz başına bir hesapla sınırlıdır. Birden fazla hesap desteği, muhtemelen Code\'un gelecekteki bir sürümünde gelecektir.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code, şu anda telefon numarası başına bir hesapla sınırlıdır. Birden fazla hesap desteği, muhtemelen Code\'un gelecekteki bir sürümünde gelecektir.</string>
   <string name="error_title_alreadyCollected">Kin Zaten Toplandı</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin Zaten Toplandı</string>
   <string name="error_title_cameraAccessRequired">Kamera Erişimi Gerekli</string>
   <string name="error_title_cashExpired">Nakit Süresi Doldu</string>
   <string name="error_title_codeTimedOut">Doğrulama Kodu Zaman Aşımı</string>
   <string name="error_title_contactsAccessRequired">Kişilere Erişim Gerekiyor</string>
+  <string name="error_title_countryNotSupported">Desteklenmeyen Ülke</string>
+  <string name="error_title_deviceNotSupported">Cihaz Desteklenmiyor</string>
+  <string name="error_title_eSimNotSupported">eSim\'ler Şu anda Desteklenmiyor</string>
   <string name="error_title_failedToCreateAccount">Hesap Oluşturulamadı</string>
   <string name="error_title_failedToSave">Kaydedilemedi</string>
   <string name="error_title_failedToSendCode">Gönderilemedi</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Bahşiş Çok Fazla</string>
   <string name="error_title_tipTooSmall">Bahşiş Çok Az</string>
   <string name="error_title_tooManyAccounts">Çok fazla hesap oluşturuldu</string>
+  <string name="error_title_tooManyAccountsPerDevice">Hesap Zaten Oluşturuldu</string>
+  <string name="error_title_tooManyAccountsPerPhone">Hesap Zaten Oluşturuldu</string>
   <string name="faq_a__1">Code, dünyanın her yerinden dilediğiniz birine para göndermeyi kolaylaştıran bir ödeme uygulamasıdır.</string>
   <string name="faq_a__10">Signal ve Twitter\'ın yaptığına benzer bir abonelik modeliyle kendimizi ayakta tutmayı planlıyoruz.</string>
   <string name="faq_a__11">Kâr amacı gütmeyen bir kuruluş olarak kazandığımız tüm para, küresel finansal tabana yayılma misyonumuza yeniden yatırılacak. Desteğiniz takdir edilmektedir.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">İşte %1$s</string>
   <string name="subtitle_requestNewOneIn">%1$s içinde yenisini iste</string>
   <string name="subtitle_scanThisQRCode">Code Wallet uygulamasını indirmek için bu QR kodunu telefonunun kamerasıyla tara</string>
+  <string name="subtitle_scanToDownload">Code Wallet app\'i\nindirmek için tara</string>
   <string name="subtitle_searchCurrencies">Para birimi ara</string>
   <string name="subtitle_searchForContacts">Kişileri ara</string>
   <string name="subtitle_smsWasSent">Telefon numaranıza doğrulama kodu içeren bir SMS mesajı gönderildi. Lütfen yukarıdaki doğrulama kodunu girin.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Kin Çek</string>
   <string name="title_withdrewKin">Çekti</string>
   <string name="title_yourAccessKey">Erişim Anahtarın</string>
+  <string name="tooltip_tapLogo">Uygulama indirme bağlantısını paylaşmak için logoya dokun</string>
 </resources>

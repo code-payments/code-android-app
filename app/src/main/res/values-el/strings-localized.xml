@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Αυτά τα μετρητά έχουν λήξει.</string>
   <string name="error_description_codeTimedOut">Εισαγάγετε ξανά τον αριθμό τηλεφώνου σας και δοκιμάστε πάλι.</string>
   <string name="error_description_contactsAccessRequired">Παρακαλούμε επιτρέψτε πρόσβαση στις επαφές από τις Ρυθμίσεις για αποστολή προσκλήσεων.</string>
+  <string name="error_description_countryNotSupported">Προς το παρόν το Code δεν διατίθεται στη χώρα σας.</string>
+  <string name="error_description_deviceNotSupported">Δεν είμαστε σε θέση να υποστηρίξουμε τη συσκευή σας τη δεδομένη στιγμή</string>
+  <string name="error_description_eSimNotSupported">Η υποστήριξη eSims αναμένεται πιθανότατα σε μελλοντική έκδοση του Code.</string>
   <string name="error_description_failedToCreateAccount">Δεν περιμέναμε να συμβεί αυτό. Κάτι πήγε στραβά. Προσπαθήστε να δημιουργήσετε ξανά αυτόν τον λογαριασμό.</string>
   <string name="error_description_failedToSave">Επιτρέψτε στις Ρυθμίσεις την πρόσβαση του Code στις Φωτογραφίες για να αποθηκεύσετε το Κλειδί Πρόσβασης.</string>
+  <string name="error_description_failedToSendCode">παρουσιάστηκε σφάλμα. Βεβαιωθείτε ότι ο αριθμός τηλεφώνου που εισαγάγατε είναι σωστός.</string>
   <string name="error_description_failedToVerifyPhone">Κάτι πήγε στραβά. Δοκιμάστε πάλι.</string>
   <string name="error_description_failedWithdrawal">Αποτυχία ανάληψης των κεφαλαίων σας. Κάτι πήγε στραβά, δοκιμάστε ξανά την ανάληψη.</string>
   <string name="error_description_giveAmountTooLarge">Το Code είναι σχεδιασμένο για μικρές, καθημερινές συναλλαγές που είναι για %1$s ή λιγότερο.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Το μέγιστο φιλοδώρημα που μπορείτε να δώσετε  είναι %1$s. Εισαγάγετε ένα μικρότερο ποσό.</string>
   <string name="error_description_tipTooSmall">Το ελάχιστο φιλοδώρημα που μπορείτε να δώσετε είναι %1$s. Εισαγάγετε ένα μεγαλύτερο ποσό.</string>
   <string name="error_description_tooManyAccounts">Μπορείτε να δημιουργήσετε μόνο τόσους νέους λογαριασμούς κάθε μέρα.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Προς το παρόν το Code έχει περιορισμό έναν λογαριασμό ανά συσκευή. Η υποστήριξη για πολλαπλούς λογαριασμούς θα έρθει πιθανότατα σε μια μελλοντική έκδοση του Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Προς το παρόν το Code έχει περιορισμό έναν λογαριασμό ανά συσκευή. Η υποστήριξη για πολλαπλούς λογαριασμούς θα έρθει πιθανότατα σε μια μελλοντική έκδοση του Code.</string>
   <string name="error_title_alreadyCollected">Kin ήδη παραλήφθηκε</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin που Συλλέχθηκαν Ήδη</string>
   <string name="error_title_cameraAccessRequired">Απαιτείται Πρόσβαση Κάμερας</string>
   <string name="error_title_cashExpired">Τα Μετρητά Έληξαν</string>
   <string name="error_title_codeTimedOut">Ο Κωδικός Επαλήθευσης Έληξε</string>
   <string name="error_title_contactsAccessRequired">Απαιτείται Πρόσβαση στις Επαφές</string>
+  <string name="error_title_countryNotSupported">Η χώρα δεν υποστηρίζεται</string>
+  <string name="error_title_deviceNotSupported">Η συσκευή δεν υποστηρίζεται</string>
+  <string name="error_title_eSimNotSupported">Προς το παρόν δεν υποστηρίζονται eSims</string>
   <string name="error_title_failedToCreateAccount">Αποτυχία Δημιουργίας Λογαριασμού</string>
   <string name="error_title_failedToSave">Αποτυχία Αποθήκευσης</string>
   <string name="error_title_failedToSendCode">Αποτυχία Αποστολής</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Φιλοδώρημα Πολύ Μεγάλο</string>
   <string name="error_title_tipTooSmall">Φιλοδώρημα Πολύ Μικρό</string>
   <string name="error_title_tooManyAccounts">Δημιουργήθηκαν πάρα πολλοί λογαριασμοί</string>
+  <string name="error_title_tooManyAccountsPerDevice">Ο λογαριασμός έχει ήδη δημιουργηθεί</string>
+  <string name="error_title_tooManyAccountsPerPhone">Ο λογαριασμός έχει ήδη δημιουργηθεί</string>
   <string name="faq_a__1">Το Code είναι μια εφαρμογή πληρωμών που απλοποιεί την αποστολή χρημάτων σε οποιονδήποτε, οπουδήποτε στον κόσμο.</string>
   <string name="faq_a__10">Σκοπεύουμε να συντηρηθούμε μέσω ενός επερχόμενου μοντέλου συνδρομής, παρόμοιο με αυτό που κάνουν το Signal και το Twitter.</string>
   <string name="faq_a__11">Ως ένας μη κερδοσκοπικός οργανισμός, όλα τα χρήματα που κερδίζουμε θα επανεπενδυθούν στην αποστολή μας να προωθήσουμε την παγκόσμια οικονομική ένταξη. Η υποστήριξή σου εκτιμάται.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Ορίστε %1$s</string>
   <string name="subtitle_requestNewOneIn">Ζητήστε έναν νέο στο %1$s</string>
   <string name="subtitle_scanThisQRCode">Σάρωσε αυτόν τον κωδικό QR (Γρήγορης Απόκρισης) με την κάμερα του τηλεφώνου σου για να κατεβάσεις την εφαρμογή Code Wallet</string>
+  <string name="subtitle_scanToDownload">Σαρώστε για λήψη\nτου Code Wallet</string>
   <string name="subtitle_searchCurrencies">Αναζήτηση νομισμάτων</string>
   <string name="subtitle_searchForContacts">Αναζήτηση επαφών</string>
   <string name="subtitle_smsWasSent">Ένα μήνυμα SMS εστάλη στον αριθμό τηλεφώνου σας με έναν κωδικό επαλήθευσης. Παρακαλούμε εισαγάγετε τον κωδικό επαλήθευσης παραπάνω.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Ανάληψη Kin</string>
   <string name="title_withdrewKin">Ανάληψη</string>
   <string name="title_yourAccessKey">Κλειδί Πρόσβασής Σας</string>
+  <string name="tooltip_tapLogo">Πατήστε στο λογότυπο για να μοιραστείτε τον σύνδεσμο λήψης της εφαρμογής</string>
 </resources>

@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Těmto prostředkům vypršela platnost.</string>
   <string name="error_description_codeTimedOut">Zadejte znovu telefonní číslo a zkuste to znovu.</string>
   <string name="error_description_contactsAccessRequired">Povolte přístup ke kontaktům v Nastavení pro odesílání pozvánek.</string>
+  <string name="error_description_countryNotSupported">Aplikace Code momentálně není dostupná ve vaší zemi.</string>
+  <string name="error_description_deviceNotSupported">V tuto chvíli nemůžeme podporovat vaše zařízení</string>
+  <string name="error_description_eSimNotSupported">Podpora pro eSim se pravděpodobně objeví v některé z budoucích verzí Code.</string>
   <string name="error_description_failedToCreateAccount">Toto jsme nečekali. Nastala chyba. Zkuste tento účet vytvořit znovu.</string>
   <string name="error_description_failedToSave">Povolte kódu přístup ke snímkům v nastavení a tím si uložte přístupový klíč.</string>
+  <string name="error_description_failedToSendCode">Došlo k chybě. Zkontrolujte, zda je telefonní číslo zadáno správně.</string>
   <string name="error_description_failedToVerifyPhone">Nastala chyba. Zkuste to znovu.</string>
   <string name="error_description_failedWithdrawal">Vaše peníze se nepodařilo vybrat. Nastala chyba, zkuste provést výběr znovu.</string>
   <string name="error_description_giveAmountTooLarge">Code je určen pro malé každodenní transakce, které jsou za %1$s nebo méně.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Maximální výše spropitného je %1$s. Zadejte prosím menší částku.</string>
   <string name="error_description_tipTooSmall">Minimální výše spropitného je %1$s. Zadejte prosím vyšší částku.</string>
   <string name="error_description_tooManyAccounts">Každý den můžete vytvořit pouze tolik účtů.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Aplikace Code je momentálně omezena na jeden účet na zařízení. Podpora více účtů se pravděpodobně objeví v některé z budoucích verzí aplikace Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Aplikace Code je momentálně omezena na jeden účet na telefonní číslo. Podpora více účtů se pravděpodobně objeví v některé z budoucích verzí aplikace Code.</string>
   <string name="error_title_alreadyCollected">Kin byl již získán</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin byl již vybrán</string>
   <string name="error_title_cameraAccessRequired">Je nutný přístup k fotoaparátu</string>
   <string name="error_title_cashExpired">Vypršelé prostředky</string>
   <string name="error_title_codeTimedOut">Ověřovací kód vypršel</string>
   <string name="error_title_contactsAccessRequired">Je vyžadován přístup ke kontaktům</string>
+  <string name="error_title_countryNotSupported">Země není podporována</string>
+  <string name="error_title_deviceNotSupported">Zařízení není podporováno</string>
+  <string name="error_title_eSimNotSupported">eSim nejsou momentálně podporovány</string>
   <string name="error_title_failedToCreateAccount">Nepodařilo se vytvořit účet</string>
   <string name="error_title_failedToSave">Ukládání se nezdařilo</string>
   <string name="error_title_failedToSendCode">Odeslání se nezdařilo</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Příliš velké spropitné</string>
   <string name="error_title_tipTooSmall">Příliš malé spropitné</string>
   <string name="error_title_tooManyAccounts">Vytvořeno příliš mnoho účtů</string>
+  <string name="error_title_tooManyAccountsPerDevice">Účet již byl vytvořen</string>
+  <string name="error_title_tooManyAccountsPerPhone">Účet již byl vytvořen</string>
   <string name="faq_a__1">Code je platební aplikace, která umožňuje jednoduše posílat peníze komukoli a kamkoli na světě.</string>
   <string name="faq_a__10">Plánujeme se udržet prostřednictvím připravovaného modelu předplatného, podobně jako to dělají Signal a Twitter.</string>
   <string name="faq_a__11">Jako nezisková organizace všechny peníze, které vyděláme, znovu investujeme do našeho poslání podporovat globální finanční začlenění. Vaší podpory si vážíme.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Zde je %1$s</string>
   <string name="subtitle_requestNewOneIn">Požádat o nový za %1$s</string>
   <string name="subtitle_scanThisQRCode">Naskenujte tento QR kód pomocí fotoaparátu telefonu a stáhněte si aplikaci Code Wallet.</string>
+  <string name="subtitle_scanToDownload">Aplikaci Code Wallet\nsi stáhnete naskenováním kódu</string>
   <string name="subtitle_searchCurrencies">Vyhledávat měny</string>
   <string name="subtitle_searchForContacts">Hledání kontaktů</string>
   <string name="subtitle_smsWasSent">Na vaše telefonní číslo byla odeslána zpráva SMS s ověřovacím kódem. Zadejte prosím výše uvedený ověřovací kód.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Vybrat kin</string>
   <string name="title_withdrewKin">Staženo</string>
   <string name="title_yourAccessKey">Váš přístupový klíč</string>
+  <string name="tooltip_tapLogo">Klepnutím na logo můžete sdílet odkaz ke stažení aplikace</string>
 </resources>

@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Овај кеш је истекао.</string>
   <string name="error_description_codeTimedOut">Ponovo unesite broj telefona i pokušajte ponovo.</string>
   <string name="error_description_contactsAccessRequired">Дозволите приступ контактима у поставкама да бисте послали позиве.</string>
+  <string name="error_description_countryNotSupported">Апликација Code је тренутно недоступна у вашој земљи.</string>
+  <string name="error_description_deviceNotSupported">Тренутно не можемо да подржимо ваш уређај </string>
+  <string name="error_description_eSimNotSupported">Подршка за eSims ће највероватније стићи у наредној верзији апликације Code.</string>
   <string name="error_description_failedToCreateAccount">Nismo očekivali da će se to dogoditi. Došlo je do greške. Pokušajte ponovo da napravite ovaj nalog.</string>
   <string name="error_description_failedToSave">Dozvolite pristup aplikaciji Code fotografijama u podešavanjima da biste sačuvali svoj ključ za pristup.</string>
+  <string name="error_description_failedToSendCode">Дошло је до грешке. Проверите да ли сте исправно унели број телефона.</string>
   <string name="error_description_failedToVerifyPhone">Došlo je do greške. Pokušajte ponovo.</string>
   <string name="error_description_failedWithdrawal">Povlačenje sredstava nije uspelo. Nešto nije u redu, pokušajte ponovo da povučete.</string>
   <string name="error_description_giveAmountTooLarge">Code је дизајниран за мале, свакодневне трансакције које су за %1$s или мање.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Максимални износ који можете дати као напојницу је %1$s. Унесите мањи износ.</string>
   <string name="error_description_tipTooSmall">Минимални износ који можете дати као напојницу је %1$s. Унесите већи износ.</string>
   <string name="error_description_tooManyAccounts">Svakog dana možete kreirati samo ovoliko novih naloga.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Апликација Code је тренутно ограничена на један налог по уређају. Подршка за већи број налога ће вероватно стићи у наредној верзији апликације Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Апликација Code је тренутно ограничена на један налог по броју телефона. Подршка за већи број налога ће вероватно стићи у наредној верзији апликације Code.</string>
   <string name="error_title_alreadyCollected">Кин је већ прикупљен</string>
   <string name="error_title_alreadyCollectedBySomeone">Кин је већ прикупљен</string>
   <string name="error_title_cameraAccessRequired">Potreban je pristup kameri</string>
   <string name="error_title_cashExpired">Кеш је истекао</string>
   <string name="error_title_codeTimedOut">Isteklo je vreme za verifikacioni kod</string>
   <string name="error_title_contactsAccessRequired">Потребан је приступ контактима </string>
+  <string name="error_title_countryNotSupported">Земља није подржана</string>
+  <string name="error_title_deviceNotSupported">Уређај није подржан</string>
+  <string name="error_title_eSimNotSupported">eSims тренутно није подржан</string>
   <string name="error_title_failedToCreateAccount">Kreiranje naloga nije uspelo</string>
   <string name="error_title_failedToSave">Čuvanje nije uspelo</string>
   <string name="error_title_failedToSendCode">Slanje nije uspelo</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Напојница је превелика</string>
   <string name="error_title_tipTooSmall">Напојница је премала</string>
   <string name="error_title_tooManyAccounts">Napravljeno je previše naloga</string>
+  <string name="error_title_tooManyAccountsPerDevice">Налог је већ креиран</string>
+  <string name="error_title_tooManyAccountsPerPhone">Налог је већ креиран</string>
   <string name="faq_a__1">Код је апликација за плаћање која олакшава слање новца било коме, било где у свету.</string>
   <string name="faq_a__10">Планирамо да се одржимо кроз предстојећи модел претплате, сличан ономе што раде Сигнал и Твитер.</string>
   <string name="faq_a__11">Као непрофитна организација, сав новац који зарадимо биће реинвестиран у нашу мисију покретања глобалне финансијске инклузије. Ценимо вашу подршку.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Ево %1$s</string>
   <string name="subtitle_requestNewOneIn">Zatražite novi u %1$s</string>
   <string name="subtitle_scanThisQRCode">Скенирајте овај QR код камером свог мобилног телефона како бисте преузели Code Wallet апликацију</string>
+  <string name="subtitle_scanToDownload">Скенирајте да бисте преузели\nCode Wallet апликацију</string>
   <string name="subtitle_searchCurrencies">Pretražite valute</string>
   <string name="subtitle_searchForContacts">Potražite kontakte</string>
   <string name="subtitle_smsWasSent">На Ваш број телефона је послата СМС порука са верификационим кодом. Унесите верификациони код изнад.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Povuci Kin</string>
   <string name="title_withdrewKin">Povučeno</string>
   <string name="title_yourAccessKey">Tvoj ključ za pristup</string>
+  <string name="tooltip_tapLogo">Додирните логотип да бисте поделили везу за преузимање апликације</string>
 </resources>
