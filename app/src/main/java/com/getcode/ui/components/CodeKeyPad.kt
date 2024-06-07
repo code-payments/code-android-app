@@ -172,11 +172,7 @@ private fun KeyBoardButton(
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             text = text,
-                            style = CodeTheme.typography.button.copy(
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Normal,
-                                textAlign = TextAlign.Center
-                            ),
+                            style = CodeTheme.typography.keyboard,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = CodeTheme.dimens.staticGrid.x1)

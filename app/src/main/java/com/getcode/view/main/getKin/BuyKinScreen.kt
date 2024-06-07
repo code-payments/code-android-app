@@ -24,7 +24,6 @@ import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.displayLarge
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
@@ -33,9 +32,6 @@ import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 @Composable
@@ -90,8 +86,8 @@ fun BuyKinScreen(
                 ) {
                     Text(
                         text = stringResource(R.string.subtitle_poweredBy),
-                        style = CodeTheme.typography.body1,
-                        color = BrandLight,
+                        style = CodeTheme.typography.textMedium,
+                        color = CodeTheme.colors.textSecondary,
                     )
                     Image(
                         painter = painterResource(id = R.drawable.ic_kado),

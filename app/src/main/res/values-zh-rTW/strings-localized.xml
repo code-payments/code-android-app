@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">該轉帳已過期。</string>
   <string name="error_description_codeTimedOut">請重新輸入您的電話號碼,然後再試一次。</string>
   <string name="error_description_contactsAccessRequired">請在設置中允許存取聯絡人以發送邀請。</string>
+  <string name="error_description_countryNotSupported">Code 目前無法在你的國家使用。</string>
+  <string name="error_description_deviceNotSupported">我們目前無法支援你的裝置</string>
+  <string name="error_description_eSimNotSupported">未來版本的 Code 很可能會支援 eSIM。</string>
   <string name="error_description_failedToCreateAccount">我們沒有預料到會發生這種情況。出了點問題。請嘗試重新建立此帳戶。</string>
   <string name="error_description_failedToSave">請在設定中允許 Code 存取相簿,以儲存您的存取金鑰。</string>
+  <string name="error_description_failedToSendCode">出了點問題。請確保輸入了正確的電話號碼。</string>
   <string name="error_description_failedToVerifyPhone">出了點問題。請再試一次。</string>
   <string name="error_description_failedWithdrawal">無法提領您的資金。出了點問題,請重新嘗試提領。</string>
   <string name="error_description_giveAmountTooLarge">Code 旨在處理每日 %1$s 或以下的小額交易。</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">您可以給予的小費最大值為 %1$s。請輸入較小的金額。</string>
   <string name="error_description_tipTooSmall">您可以給予的小費最小值為 %1$s。請輸入較大的金額。</string>
   <string name="error_description_tooManyAccounts">您每天只能建立如此數目的新帳戶。</string>
+  <string name="error_description_tooManyAccountsPerDevice">目前每個裝置只能註冊一個 Code 帳戶。未來版本的 Code 可能會支援多個帳戶。</string>
+  <string name="error_description_tooManyAccountsPerPhone">目前每個電話號碼只能註冊一個 Code 帳戶。未來版本的 Code 可能會支援多個帳戶。</string>
   <string name="error_title_alreadyCollected">已領取 Kin</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin 已收取</string>
   <string name="error_title_cameraAccessRequired">需要相機存取權</string>
   <string name="error_title_cashExpired">轉帳過期</string>
   <string name="error_title_codeTimedOut">驗證碼已逾時</string>
   <string name="error_title_contactsAccessRequired">需要聯絡人存取權限</string>
+  <string name="error_title_countryNotSupported">不支援的國家</string>
+  <string name="error_title_deviceNotSupported">不支援的裝置</string>
+  <string name="error_title_eSimNotSupported">目前不支援 eSim</string>
   <string name="error_title_failedToCreateAccount">建立帳戶失敗</string>
   <string name="error_title_failedToSave">儲存失敗</string>
   <string name="error_title_failedToSendCode">傳送失敗</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">小費金額過高</string>
   <string name="error_title_tipTooSmall">小費金額過低</string>
   <string name="error_title_tooManyAccounts">建立太多帳戶了</string>
+  <string name="error_title_tooManyAccountsPerDevice">帳戶已建立</string>
+  <string name="error_title_tooManyAccountsPerPhone">帳戶已建立</string>
   <string name="faq_a__1">Code 是一個支付應用程式,讓你可以輕鬆付款給在世界任何一個地方的任何一個人。</string>
   <string name="faq_a__10">我們計畫未來會推出訂閱模式,類似 Signal 和 Twitter 的做法,以維持我們的營運。</string>
   <string name="faq_a__11">我們是一個非營利組織,所有獲利都會再次投入我們的任務宗旨,促進全球普惠金融。非常感謝你的支持。</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">這是%1$s</string>
   <string name="subtitle_requestNewOneIn">在 %1$s 中請求一組新的驗證碼</string>
   <string name="subtitle_scanThisQRCode">使用您手機的相機掃描此 QR Code 即可下載 Code 錢包應用程式</string>
+  <string name="subtitle_scanToDownload">掃描以下載\nCode Wallet 應用程式</string>
   <string name="subtitle_searchCurrencies">搜尋貨幣</string>
   <string name="subtitle_searchForContacts">搜尋聯絡人</string>
   <string name="subtitle_smsWasSent">一條帶有驗證碼的短訊已發送到您的電話號碼。請輸入上面的驗證碼。</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">提領 Kin</string>
   <string name="title_withdrewKin">已提領</string>
   <string name="title_yourAccessKey">您的存取金鑰</string>
+  <string name="tooltip_tapLogo">輕觸標誌來分享應用程式下載連結</string>
 </resources>

@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Тези парични средства са с изтекъл срок.</string>
   <string name="error_description_codeTimedOut">Моля, въведете телефонния номер отново и опитайте отново. </string>
   <string name="error_description_contactsAccessRequired">Моля, разрешете достъпа до контактите чрез Настройки, за да изпращате покани.</string>
+  <string name="error_description_countryNotSupported">В момента Code не е наличен във вашата страна.</string>
+  <string name="error_description_deviceNotSupported">В момента не можем да поддържаме вашето устройство</string>
+  <string name="error_description_eSimNotSupported">Поддръжката за eSim вероятно ще дойде в бъдеща версия на Code.</string>
   <string name="error_description_failedToCreateAccount">Неочаквано развитие. Нещо се обърка. Моля, опитайте да създадете профила отново. </string>
   <string name="error_description_failedToSave">Моля, разрешете достъп на кода до снимки в настройките, за да може да съхраните вашия ключ за достъп. </string>
+  <string name="error_description_failedToSendCode">Нещо се обърка. Моля, уверете се, че вашият телефонен номер е въведен правилно.</string>
   <string name="error_description_failedToVerifyPhone">Нещо се обърка. Моля, опитайте отново по - късно. </string>
   <string name="error_description_failedWithdrawal">Неуспешно изтегляне на вашите средства. Нещо се обърка, моля, опитайте отново. </string>
   <string name="error_description_giveAmountTooLarge">Код е създаден за малки и ежедневни транзакции, които са за %1$s или по-малко.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Максималната сума, която можете да изпращате като бакшиш, е %1$s. Моля, въведете по-малка стойност.</string>
   <string name="error_description_tipTooSmall">Минималната сума, която можете да изпратите като бакшиш, е %1$s. Моля, въведете по-голяма стойност.</string>
   <string name="error_description_tooManyAccounts">Може да създавате само определен брой нови профили на ден. </string>
+  <string name="error_description_tooManyAccountsPerDevice">В момента Code има ограничение до един акаунт на устройство. Вероятно бъдеща версия на Code ще включва поддръжката на няколко акаунта.</string>
+  <string name="error_description_tooManyAccountsPerPhone">В момента Code има ограничение до един акаунт на телефонен номер. Вероятно бъдеща версия на Code ще включва поддръжката на няколко акаунта.</string>
   <string name="error_title_alreadyCollected">Средствата вече са събрани</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin вече е събран</string>
   <string name="error_title_cameraAccessRequired">Необходим е достъп до камерата </string>
   <string name="error_title_cashExpired">Паричните средства са с изтекъл срок </string>
   <string name="error_title_codeTimedOut">Изтекъл код код потвърждение </string>
   <string name="error_title_contactsAccessRequired">Изисква се достъп до Контакти</string>
+  <string name="error_title_countryNotSupported">Държавата не се поддържа</string>
+  <string name="error_title_deviceNotSupported">Устройството не се поддържа</string>
+  <string name="error_title_eSimNotSupported">eSims не се поддържат в момента</string>
   <string name="error_title_failedToCreateAccount">Неуспешно създаване на профил </string>
   <string name="error_title_failedToSave">Неуспешно запазване </string>
   <string name="error_title_failedToSendCode">Неуспешно изпращане</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Баккшишът е прекалено голям</string>
   <string name="error_title_tipTooSmall">Бакшишът е прекалено малък</string>
   <string name="error_title_tooManyAccounts">Твърде много създадени профили </string>
+  <string name="error_title_tooManyAccountsPerDevice">Този акаунт вече е създаден</string>
+  <string name="error_title_tooManyAccountsPerPhone">Този акаунт вече е създаден</string>
   <string name="faq_a__1">Code е приложение за плащания, което улеснява изпращането на пари до всеки, навсякъде по света.</string>
   <string name="faq_a__10">Планираме да се поддържаме чрез предстоящ модел на абонамент, подобен на този, който Signal и Twitter използват.</string>
   <string name="faq_a__11">Като организация с нестопанска цел, всички пари, които печелим, ще бъдат инвестирани отново в нашата мисия за стимулиране на разширяването на глобалната финансова система. Вашата подкрепа е ценна за нас.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Вижте %1$s</string>
   <string name="subtitle_requestNewOneIn">Заявете нов код в %1$s</string>
   <string name="subtitle_scanThisQRCode">Сканирайте QR кода с камерата на телефона си, за да изтеглите приложението Code Wallet</string>
+  <string name="subtitle_scanToDownload">Сканирайте, за да изтеглите\nПриложението Code Wallet</string>
   <string name="subtitle_searchCurrencies">Търсене на валути </string>
   <string name="subtitle_searchForContacts">Търсене в контакти </string>
   <string name="subtitle_smsWasSent">До вашия телефонен номер беше изпратен SMS с код за потвърждение. Моля, въведете кода за потвърждение по-горе.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Премахни член на семейството </string>
   <string name="title_withdrewKin">Оттегли </string>
   <string name="title_yourAccessKey">Вашия ключ за достъп </string>
+  <string name="tooltip_tapLogo">Докоснете логото, за да споделите връзката за изтегляне на приложението</string>
 </resources>

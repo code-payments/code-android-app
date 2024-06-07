@@ -121,7 +121,7 @@ private fun rememberAlignmentRule(
 
 @Composable
 private fun MessageContent(maxWidth: Int, message: String, date: Instant, status: MessageStatus) {
-    val contentStyle = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+    val contentStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = contentStyle,
         maxWidth = maxWidth,

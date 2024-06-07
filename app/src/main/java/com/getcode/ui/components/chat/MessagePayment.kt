@@ -69,18 +69,18 @@ internal fun MessagePayment(
                         Text(
                             text = price,
                             color = Color.White,
-                            style = CodeTheme.typography.h3
+                            style = CodeTheme.typography.displaySmall
                         )
                     }
                 )
                 Text(
                     text = contents.verb.localizedText,
-                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+                    style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
                 )
             } else {
                 Text(
                     text = contents.verb.localizedText,
-                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+                    style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
                 )
                 PriceWithFlag(
                     currencyCode = amount.rate.currency,
@@ -89,7 +89,7 @@ internal fun MessagePayment(
                         Text(
                             text = price,
                             color = Color.White,
-                            style = CodeTheme.typography.h3
+                            style = CodeTheme.typography.displaySmall
                         )
                     }
                 )

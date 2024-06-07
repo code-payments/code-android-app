@@ -64,7 +64,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
                     end.linkTo(parent.end)
                 },
             text = stringResource(R.string.permissions_description_push),
-            style = CodeTheme.typography.body1
+            style = CodeTheme.typography.textMedium
                 .copy(textAlign = TextAlign.Center),
         )
 

@@ -83,7 +83,7 @@ fun InviteCode(
                 )
                 .background(White05),
             value = dataState.inviteCode,
-            textStyle = CodeTheme.typography.subtitle1,
+            textStyle = CodeTheme.typography.textLarge,
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text),
             colors = TextFieldDefaults.textFieldColors(
                 backgroundColor = Color.Transparent,
@@ -116,10 +116,10 @@ fun InviteCode(
             modifier = Modifier.constrainAs(captionText) {
                 linkTo(inviteCodeRow.bottom, captionText.top, topMargin = x4)
             },
-            style = CodeTheme.typography.body2.copy(
+            style = CodeTheme.typography.textSmall.copy(
                 textAlign = TextAlign.Center
             ),
-            color = BrandLight,
+            color = CodeTheme.colors.textSecondary,
             text = stringResource(id = R.string.subtitle_inviteCodeDescription)
         )
 

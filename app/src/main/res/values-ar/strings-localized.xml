@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">لقد انتهت صلاحية هذه النقود.</string>
   <string name="error_description_codeTimedOut">يُرجى إعادة إدخال رقم هاتفك والمحاولة مرة أخرى.</string>
   <string name="error_description_contactsAccessRequired">يُرجى السماح بالوصول إلى جهات الاتصال في الإعدادات لإرسال الدعوات.</string>
+  <string name="error_description_countryNotSupported">Code غير متوفر حالياً في بلدك.</string>
+  <string name="error_description_deviceNotSupported">لا نستطيع دعم جهازك في الوقت الحالي\n</string>
+  <string name="error_description_eSimNotSupported">من المحتمل أن يأتي دعم eSims في إصدار مستقبلي من Code.</string>
   <string name="error_description_failedToCreateAccount">لم نتوقع حدوث ذلك. حدث خطأ ما. يُرجى محاولة إنشاء هذا الحساب مرة أخرى.</string>
   <string name="error_description_failedToSave">يُرجى السماح لـ Code بالوصول إلى الصور في الإعدادات من أجل حفظ مفتاح الوصول الخاص بك.</string>
+  <string name="error_description_failedToSendCode">يوجد خطأ ما. يُرجى التأكد من إدخال رقم هاتفك بشكل صحيح.\n</string>
   <string name="error_description_failedToVerifyPhone">حدث خطأ ما. يُرجى المحاولة مرة أخرى.</string>
   <string name="error_description_failedWithdrawal">فشلت عملية سحب أموالك. حدث خطأ ما, يُرجى محاولة السحب مرة أخرى.</string>
   <string name="error_description_giveAmountTooLarge">تم تصميم Code للمعاملات الصغيرة اليومية في حدود %1$s أو أقل.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">الحد الأقصى الذي يمكنك منح إكرامية به هو %1$s. يُرجى إدخال مبلغ أصغر.</string>
   <string name="error_description_tipTooSmall">الحد الأدنى الذي يمكنك منح إكرامية به هو %1$s. يُرجى إدخال مبلغ أكبر.</string>
   <string name="error_description_tooManyAccounts">لا يُمكنك إلا إنشاء عدد محدد من الحسابات الجديدة في اليوم.</string>
+  <string name="error_description_tooManyAccountsPerDevice">يقتصر Code حالياً على حساب واحد لكل جهاز. من المحتمل أن تتوفر خدمة دعم حسابات متعددة في إصدار مستقبلي من Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">يقتصر Code حالياً على حساب واحد لكل رقم هاتف. من المحتمل أن تتوفر خدمة دعم حسابات متعددة في إصدار مستقبلي من Code.</string>
   <string name="error_title_alreadyCollected">تم جمع Kin بالفعل</string>
   <string name="error_title_alreadyCollectedBySomeone">تم جمع وحدات Kin بالفعل</string>
   <string name="error_title_cameraAccessRequired">مطلوب إتاحة الوصول إلى الكاميرا</string>
   <string name="error_title_cashExpired">انتهت صلاحية النقود</string>
   <string name="error_title_codeTimedOut">انتهت مهلة رمز التحقق</string>
   <string name="error_title_contactsAccessRequired">مطلوب الوصول إلى جهات الاتصال</string>
+  <string name="error_title_countryNotSupported">البلد غير مدعوم\n</string>
+  <string name="error_title_deviceNotSupported">الجهاز غير مدعوم\n</string>
+  <string name="error_title_eSimNotSupported">eSims غير مدعومة حالياً\n</string>
   <string name="error_title_failedToCreateAccount">فشلت عملية إنشاء الحساب</string>
   <string name="error_title_failedToSave">فشلت عملية الحفظ</string>
   <string name="error_title_failedToSendCode">فشل الإرسال</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">الإكرامية أكثر من الحد المسموح به</string>
   <string name="error_title_tipTooSmall">الإكرامية أقل من الحد المسموح به</string>
   <string name="error_title_tooManyAccounts">تم إنشاء حسابات أكثر من المسموح به</string>
+  <string name="error_title_tooManyAccountsPerDevice">تم إنشاء الحساب بالفعل</string>
+  <string name="error_title_tooManyAccountsPerPhone">تم إنشاء الحساب بالفعل</string>
   <string name="faq_a__1">Code هو تطبيق للمدفوعات يجعل من السهل إرسال الأموال إلى أي شخص في أي مكان في العالم.</string>
   <string name="faq_a__10">نخطط للحفاظ على تطبيقنا من خلال نموذج اشتراك قادم, على غرار ما يفعله Signal وTwitter.</string>
   <string name="faq_a__11">كمنظمة غير هادفة للربح, سيتم إعادة استثمار جميع الأموال التي نجنيها في مهمتنا المتمثلة في تشجيع الشمول المالي العالمي. نحن نقدر دعمكم.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">إليك %1$s</string>
   <string name="subtitle_requestNewOneIn">طلب واحد جديد في خلال %1$s</string>
   <string name="subtitle_scanThisQRCode">امسح رمز الاستجابة السريعة هذا ضوئيًا باستخدام كاميرا هاتفك لتنزيل تطبيق المحفظة Code</string>
+  <string name="subtitle_scanToDownload">قم بالمسح الضوئي لتنزيل\nتطبيق المحفظة Code</string>
   <string name="subtitle_searchCurrencies">البحث عن العملات</string>
   <string name="subtitle_searchForContacts">البحث عن جهات الاتصال</string>
   <string name="subtitle_smsWasSent">تم إرسال رسالة نصية قصيرة بها رمز التحقق إلى رقم هاتفك. يُرجى إدخال رمز التحقق أعلاه.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">سحب الأموال</string>
   <string name="title_withdrewKin">المسحوبة</string>
   <string name="title_yourAccessKey">مفتاح الوصول الخاص بك</string>
+  <string name="tooltip_tapLogo">انقر فوق الشعار لمشاركة رابط تنزيل التطبيق</string>
 </resources>

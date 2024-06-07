@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Questo denaro è scaduto.</string>
   <string name="error_description_codeTimedOut">Inserisci nuovamente il tuo numero di telefono e riprova.</string>
   <string name="error_description_contactsAccessRequired">Sei pregato di consentire l\'accesso ai contatti nelle Impostazioni per mandare gli inviti.</string>
+  <string name="error_description_countryNotSupported">Attualmente Code non è disponibile nel tuo paese.</string>
+  <string name="error_description_deviceNotSupported">Attualmente non possiamo supportare il tuo dispositivo</string>
+  <string name="error_description_eSimNotSupported">Probabilmente il supporto per le eSim sarà aggiunto in una versione futura di Code.</string>
   <string name="error_description_failedToCreateAccount">Questo è un imprevisto. Qualcosa è andato storto. Prova a creare nuovamente questo account.</string>
   <string name="error_description_failedToSave">Consenti l\'accesso alle foto da parte di Code nelle Impostazioni per poter salvare la tua chiave d\'accesso.</string>
+  <string name="error_description_failedToSendCode">Qualcosa è andato storto. Assicurati che il tuo numero di telefono sia stato inserito correttamente.</string>
   <string name="error_description_failedToVerifyPhone">Qualcosa è andato storto. Si prega di riprovare.</string>
   <string name="error_description_failedWithdrawal">Non è stato possibile prelevare i tuoi fondi. Qualcosa è andato storto. Ritenta il prelievo.</string>
   <string name="error_description_giveAmountTooLarge">Code è disegnato per transazioni piccole e quotidiane che ammontano a %1$s o meno.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">La mancia massima che puoi lasciare è %1$s. Inserisci un importo inferiore.</string>
   <string name="error_description_tipTooSmall">La mancia minima che puoi lasciare è %1$s. Inserisci un importo maggiore.</string>
   <string name="error_description_tooManyAccounts">Puoi creare solo un certo numero di nuovi account al giorno.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Attualmente Code è limitato ad un account per dispositivo. Probabilmente il supporto per più account sarà aggiunto in una versione futura di Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Attualmente Code è limitato ad un account per numero di telefono. </string>
   <string name="error_title_alreadyCollected">Kin già riscosso</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin già acquisiti</string>
   <string name="error_title_cameraAccessRequired">Accesso alla fotocamera richiesto</string>
   <string name="error_title_cashExpired">Denaro scaduto</string>
   <string name="error_title_codeTimedOut">Codice di verifica scaduto</string>
   <string name="error_title_contactsAccessRequired">Richiesto l\'accesso ai contatti</string>
+  <string name="error_title_countryNotSupported">Paese non supportato</string>
+  <string name="error_title_deviceNotSupported">Dispositivo non supportato</string>
+  <string name="error_title_eSimNotSupported">eSim attualmente non supportate</string>
   <string name="error_title_failedToCreateAccount">Creazione dell\'account non riuscita</string>
   <string name="error_title_failedToSave">Salvataggio non riuscito</string>
   <string name="error_title_failedToSendCode">Invio non riuscito</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Mancia troppo grande</string>
   <string name="error_title_tipTooSmall">Mancia troppo piccola</string>
   <string name="error_title_tooManyAccounts">Troppi account creati</string>
+  <string name="error_title_tooManyAccountsPerDevice">Account già creato</string>
+  <string name="error_title_tooManyAccountsPerPhone">Account già creato</string>
   <string name="faq_a__1">Code è un\'app per i pagamenti che semplifica l\'invio di denaro a chiunque, in qualsiasi parte del mondo.</string>
   <string name="faq_a__10">Pensiamo di sostenerci tramite l\'offerta di un abbonamento che lanceremo presto, simile a quello di Signal e Twitter.</string>
   <string name="faq_a__11">In quanto organizzazione senza scopo di lucro, tutti nostri guadagni saranno reinvestiti nel promuovere la nostra missione che consiste nell\'espandere l\'inclusione finanziaria su scala mondiale. Il tuo supporto è apprezzato.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Ecco %1$s</string>
   <string name="subtitle_requestNewOneIn">Richiedine un altro tra %1$s</string>
   <string name="subtitle_scanThisQRCode">Scansiona questo codice QR con la fotocamera del tuo telefono per scaricare l\'applicazione Code Wallet</string>
+  <string name="subtitle_scanToDownload">Scansiona per scaricare la\napp Code Wallet</string>
   <string name="subtitle_searchCurrencies">Cerca valute</string>
   <string name="subtitle_searchForContacts">Cerca contatti</string>
   <string name="subtitle_smsWasSent">È stato inviato un SMS al tuo numero telefonico con un codice di verifica. Immetti per favore il codice di verifica qui sopra.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Preleva Kin</string>
   <string name="title_withdrewKin">Prelevati</string>
   <string name="title_yourAccessKey">La tua chiave d\'accesso</string>
+  <string name="tooltip_tapLogo">Tocca il logo per condividere il link di download dell\'app</string>
 </resources>

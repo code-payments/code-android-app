@@ -22,7 +22,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -32,7 +31,7 @@ import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DashEffect
 import com.getcode.theme.receipt
-import com.getcode.theme.withRobotoMono
+import com.getcode.theme.monospace
 import com.getcode.view.main.home.components.PriceWithFlag
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -83,8 +82,8 @@ internal fun Receipt(
                 ) {
                     DoubleDashedLine()
                     ProvideTextStyle(
-                        value = CodeTheme.typography.body1
-                            .withRobotoMono(weight = FontWeight.W500)
+                        value = CodeTheme.typography.textMedium
+                            .monospace(weight = FontWeight.W500)
                     ) {
                         PriceWithFlag(currencyCode = currencyCode, amount = amount)
                     }

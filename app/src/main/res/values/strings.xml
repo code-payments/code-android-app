@@ -31,12 +31,7 @@
 
     <string name="title_sendKin">Send Kin</string>
 
-    <string name="subtitle_linkingTwitterPrompt" translatable="false">
-        Hey @%1$s you should set up your @getcode Tip Card so I can tip you some cash.
+    <string name="error_title_failedToCollect">Failed to Collect</string>
+    <string name="error_description_failedToCollect">Something went wrong. This Kin could not be collected.</string>
 
-        getcode.com/download
-    </string>
-    <string name="action_tapToShareDownloadLink">Tap the Code logo to share the app download link</string>
-    <string name="title_scanToDownloadCode">Scan to download the Code Wallet app</string>
-    <string name="action_resetTooltips">Reset Tooltips</string>
 </resources>

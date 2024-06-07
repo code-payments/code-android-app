@@ -48,7 +48,7 @@ android {
 }
 
 dependencies {
-    api(project(":vendor:tipkit"))
+    api(project(":vendor:tipkit:tipkit"))
     implementation(project(":common:theme"))
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)

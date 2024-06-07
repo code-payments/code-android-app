@@ -5,7 +5,6 @@ import androidx.compose.material.Colors
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Shapes
 import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.Typography
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
@@ -29,7 +28,9 @@ private val DarkColorPalette = CodeColors(
     surface = Brand,
     onSurface = White,
     error = Error,
-    errorText = errorText
+    errorText = TextError,
+    textMain = TextMain,
+    textSecondary = TextSecondary
 )
 
 @Composable
@@ -47,15 +48,17 @@ fun CodeTheme(
     val dimensions = calculateDimensions()
 
     ProvideCodeColors(colors) {
-        ProvideDimens(dimensions = dimensions) {
-            MaterialTheme(
-                colors = debugColors(),
-                typography = typography,
-                shapes = shapes
-            ) {
-                // setup after MDC theme to override defaults in theme
-                CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
-                    content()
+        ProvideCodeTypography(typography = codeTypography) {
+            ProvideDimens(dimensions = dimensions) {
+                MaterialTheme(
+                    colors = debugColors(),
+                    shapes = shapes,
+                    typography = LocalCodeTypography.current.toMaterial()
+                ) {
+                    // setup after MDC theme to override defaults in theme
+                    CompositionLocalProvider(LocalTextSelectionColors provides textSelectionColors) {
+                        content()
+                    }
                 }
             }
         }
@@ -67,8 +70,8 @@ object CodeTheme {
         @Composable get() = LocalCodeColors.current
     val dimens: Dimensions
         @Composable get() = LocalDimens.current
-    val typography: Typography
-        @Composable get() = MaterialTheme.typography
+    val typography: CodeTypography
+        @Composable get() = LocalCodeTypography.current
     val shapes: Shapes
         @Composable get() = MaterialTheme.shapes
 }
@@ -84,7 +87,9 @@ class CodeColors(
     surface: Color,
     onSurface: Color,
     error: Color,
-    errorText: Color
+    errorText: Color,
+    textMain: Color,
+    textSecondary: Color,
 ) {
     var brand by mutableStateOf(brand)
         private set
@@ -106,6 +111,10 @@ class CodeColors(
         private set
     var errorText by mutableStateOf(errorText)
         private set
+    var textMain by mutableStateOf(textMain)
+        private set
+    var textSecondary by mutableStateOf(textSecondary)
+        private set
 
     fun update(other: CodeColors) {
         brand = other.brand
@@ -118,6 +127,8 @@ class CodeColors(
         onSurface = other.onSurface
         error = other.error
         errorText = other.errorText
+        textMain = other.textMain
+        textSecondary = other.textSecondary
     }
 
     fun copy(): CodeColors = CodeColors(
@@ -130,7 +141,9 @@ class CodeColors(
         surface = surface,
         onSurface = onSurface,
         error = error,
-        errorText = errorText
+        errorText = errorText,
+        textMain = textMain,
+        textSecondary = textSecondary,
     )
 }
 

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 
@@ -44,12 +45,12 @@ fun ReferFriend() {
         ) {
             Text(
                 text = stringResource(R.string.title_getFriendStartedOnCode),
-                style = CodeTheme.typography.h1,
+                style = CodeTheme.typography.displayMedium.bolded(),
                 modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3)
             )
             Text(
                 text = stringResource(R.string.subtitle_getFriendStartedOnCode),
-                style = CodeTheme.typography.body1,
+                style = CodeTheme.typography.textMedium,
                 modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2)
             )
         }

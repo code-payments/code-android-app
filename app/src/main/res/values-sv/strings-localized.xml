@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Dessa kontanter har förfallit</string>
   <string name="error_description_codeTimedOut">Ange ditt telefonnummer på nytt och försök igen.</string>
   <string name="error_description_contactsAccessRequired">Tillåt åtkomst till dina kontakter i Inställningar för att skicka inbjudningar.</string>
+  <string name="error_description_countryNotSupported">Code är för närvarande inte tillgängligt i ditt land.</string>
+  <string name="error_description_deviceNotSupported">Vi kan inte stödja din enhet just nu</string>
+  <string name="error_description_eSimNotSupported">Stöd för eSims kommer sannolikt i en framtida version av Code.</string>
   <string name="error_description_failedToCreateAccount">Vi förväntade oss inte att det skulle hända. Något gick fel. Försök att skapa det här kontot igen.</string>
   <string name="error_description_failedToSave">Tillåt Kodåtkomst till foton i Inställningar för att spara din åtkomstnyckel.</string>
+  <string name="error_description_failedToSendCode">Någonting gick fel. Försäkra dig om att ditt telefonnummer har skrivits in korrekt.</string>
   <string name="error_description_failedToVerifyPhone">Något gick fel. Försök igen.</string>
   <string name="error_description_failedWithdrawal">Du lyckades inte ta ut dina pengar. Något gick fel, försök att göra ett nytt uttag.</string>
   <string name="error_description_giveAmountTooLarge">Code är avsedd för små vardagliga transaktioner på %1$s eller mindre.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Det mesta du kan ge i dricks är %1$s. Ange ett mindre belopp, tack.</string>
   <string name="error_description_tipTooSmall">Det minsta du kan ge i dricks är %1$s. Ange ett större belopp, tack.</string>
   <string name="error_description_tooManyAccounts">Du kan bara skapa ett visst antal nya konton varje dag.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code är för närvarande begränsat till ett konto per telefonnummer. Stöd för flera konton kommer sannolikt i en framtida version av Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code är för närvarande begränsat till ett konto per telefonnummer. Stöd för flera konton kommer sannolikt i en framtida version av Code.</string>
   <string name="error_title_alreadyCollected">Kin har redan tagits emot</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin redan tagen</string>
   <string name="error_title_cameraAccessRequired">Tillgång till kameran krävs</string>
   <string name="error_title_cashExpired">Förfallna kontanter</string>
   <string name="error_title_codeTimedOut">Verifieringskoden har tagit ut sin tid</string>
   <string name="error_title_contactsAccessRequired">Tillgång till kontakter krävs</string>
+  <string name="error_title_countryNotSupported">Landet stöds inte</string>
+  <string name="error_title_deviceNotSupported">Enheten stöds inte</string>
+  <string name="error_title_eSimNotSupported">eSims stöds inte för närvarande</string>
   <string name="error_title_failedToCreateAccount">Det gick inte att skapa ett konto</string>
   <string name="error_title_failedToSave">Misslyckades med att spara</string>
   <string name="error_title_failedToSendCode">Misslyckades med att skicka</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Dricksbeloppet är för stort</string>
   <string name="error_title_tipTooSmall">Dricksbeloppet är för litet</string>
   <string name="error_title_tooManyAccounts">För många konton har skapats</string>
+  <string name="error_title_tooManyAccountsPerDevice">Konto redan skapat</string>
+  <string name="error_title_tooManyAccountsPerPhone">Konto redan skapat</string>
   <string name="faq_a__1">Code är en betalningsapp som gör det enkelt att skicka pengar till vem som helst, var som helst i världen.</string>
   <string name="faq_a__10">Vi planerar att finansiera oss själva genom en kommande prenumerationsmodell, liknande den som Signal och Twitter använder.</string>
   <string name="faq_a__11">Vi är en icke-vinstdrivande organisation och alla pengar vi tjänar kommer att återinvesteras i vårt syfte att driva global finansiell integration. Vi uppskattar ditt stöd.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Här är %1$s</string>
   <string name="subtitle_requestNewOneIn">Begär en ny i %1$s</string>
   <string name="subtitle_scanThisQRCode">Skanna denna QR-kod med din telefons kamera för att ladda ner appen Code Wallet</string>
+  <string name="subtitle_scanToDownload">Skanna för att ladda ned appen Code Wallet</string>
   <string name="subtitle_searchCurrencies">Sök valutor</string>
   <string name="subtitle_searchForContacts">Sök efter kontakter</string>
   <string name="subtitle_smsWasSent">Ett sms med en verifieringskod skickades till ditt telefonnummer. Ange koden ovan, tack.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Återkalla Kin</string>
   <string name="title_withdrewKin">Återkallad</string>
   <string name="title_yourAccessKey">Din åtkomstnyckel</string>
+  <string name="tooltip_tapLogo">Tryck på logotypen för att dela länken för att ladda ned appen</string>
 </resources>

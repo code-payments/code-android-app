@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Термін дії цієї готівки минув.</string>
   <string name="error_description_codeTimedOut">Будь ласка, введіть номер свого телефону повторно та спробуйте ще раз.</string>
   <string name="error_description_contactsAccessRequired">Щоб надіслати запрошення, надайте доступ до контактів у налаштуваннях.</string>
+  <string name="error_description_countryNotSupported">Code наразі недоступний у вашій країні.</string>
+  <string name="error_description_deviceNotSupported">Наразі ми не підтримуємо ваш пристрій</string>
+  <string name="error_description_eSimNotSupported">Підтримка eSims, ймовірно, з’явиться в наступній версії Code.</string>
   <string name="error_description_failedToCreateAccount">Ми не очікували, що це станеться. Щось пішло не так. Будь ласка, спробуйте створити цей акаунт знову.</string>
   <string name="error_description_failedToSave">Щоб зберегти ключ доступу, будь ласка, надайте Code доступ до фотографій у налаштуваннях.</string>
+  <string name="error_description_failedToSendCode">Щось пішло не так. Будь ласка, переконайтеся, що ваш номер телефону введений правильно.</string>
   <string name="error_description_failedToVerifyPhone">Щось пішло не так. Будь ласка, спробуйте ще раз.</string>
   <string name="error_description_failedWithdrawal">Не вдалося зняти ваші кошти. Щось пішло не так, будь ласка, спробуйте зняти ще раз.</string>
   <string name="error_description_giveAmountTooLarge">Code розроблено для невеликих щоденних транзакцій на суму %1$s або менше.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Максимальна сума чайових становить %1$s. Будь ласка, введіть меншу суму.</string>
   <string name="error_description_tipTooSmall">Мінімальна сума чайових становить %1$s. Будь ласка, введіть більшу суму.</string>
   <string name="error_description_tooManyAccounts">Ви можете створювати лише стільки нових акаунтів щодня.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code наразі обмежений одним обліковим записом на пристрій. Підтримка кількох облікових записів, ймовірно, з’явиться в наступній версії Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code наразі обмежений одним обліковим записом на номер телефону. Підтримка кількох облікових записів, ймовірно, з’явиться в наступній версії Code.</string>
   <string name="error_title_alreadyCollected">Kin вже забрали</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin вже забрано</string>
   <string name="error_title_cameraAccessRequired">Потрібний доступ до камери</string>
   <string name="error_title_cashExpired">Термін дії готівки минув</string>
   <string name="error_title_codeTimedOut">Термін дії коду підтвердження минув</string>
   <string name="error_title_contactsAccessRequired">Необхідний доступ до контактів</string>
+  <string name="error_title_countryNotSupported">Країна не підтримується</string>
+  <string name="error_title_deviceNotSupported">Пристрій не підтримується</string>
+  <string name="error_title_eSimNotSupported">eSims наразі не підтримуються</string>
   <string name="error_title_failedToCreateAccount">Не вдалося створити акаунт</string>
   <string name="error_title_failedToSave">Не вдалося зберегти</string>
   <string name="error_title_failedToSendCode">Не вдалося надіслати</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Чайові занадто великі</string>
   <string name="error_title_tipTooSmall">Чайові занадто малі</string>
   <string name="error_title_tooManyAccounts">Створено забагато акаунтів</string>
+  <string name="error_title_tooManyAccountsPerDevice">Обліковий запис вже створений</string>
+  <string name="error_title_tooManyAccountsPerPhone">Обліковий запис вже створений</string>
   <string name="faq_a__1">Code — це застосунок для платежів, який спрощує відправку грошей будь-кому, будь-де у світі.</string>
   <string name="faq_a__10">Ми плануємо підтримувати себе за допомогою майбутньої моделі підписки, подібно до того, що роблять Signal та Twitter.</string>
   <string name="faq_a__11">Оскільки ми є некомерційної організацією, всі гроші, які ми заробляємо, будуть реінвестовані в нашу місію сприяння глобальній фінансовій доступності. Ми цінуємо вашу підтримку.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Ось %1$s</string>
   <string name="subtitle_requestNewOneIn">Запросити новий через %1$s</string>
   <string name="subtitle_scanThisQRCode">Відскануйте цей QR-код камерою вашого телефона, щоб завантажити застосунок Гаманець Code</string>
+  <string name="subtitle_scanToDownload">Відскануйте, щоб завантажити\nдодаток Code Wallet</string>
   <string name="subtitle_searchCurrencies">Пошук валют</string>
   <string name="subtitle_searchForContacts">Пошук контактів</string>
   <string name="subtitle_smsWasSent">На ваш номер телефону відправлено SMS із перевірочним кодом. Будь ласка, введіть перевірочний код вище.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Вивести Kin</string>
   <string name="title_withdrewKin">Знято</string>
   <string name="title_yourAccessKey">Ваш ключ доступу</string>
+  <string name="tooltip_tapLogo">Натисніть на логотип, щоб поділитися посиланням для завантаження додатка</string>
 </resources>

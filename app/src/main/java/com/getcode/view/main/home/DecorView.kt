@@ -140,7 +140,7 @@ internal fun DecorView(
                 }
                 Pill(
                     text = toast?.formattedAmount.orEmpty(),
-                    textStyle = CodeTheme.typography.body2.copy(
+                    textStyle = CodeTheme.typography.textSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
                     shape = CodeTheme.shapes.xxl,

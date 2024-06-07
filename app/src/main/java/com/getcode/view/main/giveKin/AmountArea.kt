@@ -26,6 +26,7 @@ import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.utils.network.NetworkState
 import com.getcode.view.main.connectivity.ConnectionStatus
@@ -47,7 +48,7 @@ fun AmountArea(
     isClickable: Boolean = true,
     isLoading: Boolean = false,
     isAnimated: Boolean = false,
-    textStyle: TextStyle = CodeTheme.typography.h1,
+    textStyle: TextStyle = CodeTheme.typography.displayMedium.bolded(),
     uiModel: AmountAnimatedInputUiModel? = null,
     networkState: NetworkState = LocalNetworkObserver.current.state.value,
     onClick: () -> Unit = {}
@@ -112,7 +113,7 @@ fun AmountArea(
 //                Text(
 //                    text = captionText,
 //                    color = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
-//                    style = CodeTheme.typography.body1.copy(
+//                    style = CodeTheme.typography.textMedium.copy(
 //                        textAlign = TextAlign.Center
 //                    )
 //                )
@@ -126,9 +127,9 @@ fun AmountArea(
 fun KinValueHint(
     modifier: Modifier = Modifier,
     showIcon: Boolean = true,
-    iconColor: Color = BrandLight,
+    iconColor: Color = CodeTheme.colors.textSecondary,
     captionText: String?,
-    captionColor: Color = BrandLight,
+    captionColor: Color = CodeTheme.colors.textSecondary,
     networkState: NetworkState? = null
 ) {
     Row(
@@ -153,7 +154,7 @@ fun KinValueHint(
             Text(
                 text = captionText,
                 color = captionColor,
-                style = CodeTheme.typography.body1.copy(
+                style = CodeTheme.typography.textMedium.copy(
                     textAlign = TextAlign.Center
                 )
             )

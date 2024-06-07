@@ -76,13 +76,13 @@ fun HomeRestricted(
                     .padding(bottom = CodeTheme.dimens.grid.x5),
                 color = White,
                 text = titleText,
-                style = CodeTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
+                style = CodeTheme.typography.textLarge.copy(textAlign = TextAlign.Center)
             )
             Text(
                 modifier = Modifier.fillMaxWidth(),
-                color = BrandLight,
+                color = CodeTheme.colors.textSecondary,
                 text = subTitleText,
-                style = CodeTheme.typography.body1.copy(
+                style = CodeTheme.typography.textMedium.copy(
                     textAlign = TextAlign.Center,
                     lineHeight = 25.sp
                 )

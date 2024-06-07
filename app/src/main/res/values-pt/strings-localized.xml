@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Este dinheiro expirou.</string>
   <string name="error_description_codeTimedOut">Reintroduza o seu número de telemóvel e tente novamente.</string>
   <string name="error_description_contactsAccessRequired">Precisa de dar acesso aos contactos nas definições para enviar convites.</string>
+  <string name="error_description_countryNotSupported">A Code está atualmente indisponível no seu país.</string>
+  <string name="error_description_deviceNotSupported">Neste momento, não conseguimos suportar o seu dispositivo</string>
+  <string name="error_description_eSimNotSupported">A compatibilidade para eSims provavelmente aparecerá numa versão futura da Code.</string>
   <string name="error_description_failedToCreateAccount">Não estávamos a contar que isto acontecesse. Algo correu mal. Tente criar esta conta novamente.</string>
   <string name="error_description_failedToSave">Permita que o Code tenha acesso às suas Fotos nas Definições, de forma a poder guardar a sua Chave de Acesso.</string>
+  <string name="error_description_failedToSendCode">Algo correu mal. Garanta que o seu número de telefone está introduzido corretamente.</string>
   <string name="error_description_failedToVerifyPhone">Algo correu mal. Tente novamente.</string>
   <string name="error_description_failedWithdrawal">O levantamento de fundos falhou. Algo correu mal, tente fazer o seu levantamento novamente.</string>
   <string name="error_description_giveAmountTooLarge">A Code foi concebida para transações pequenas do dia-a-dia de %1$s ou menos.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">O valor máximo de recompensa é %1$s. Por favor, insira um montante inferior.</string>
   <string name="error_description_tipTooSmall">O valor mínimo de recompensa é %1$s. Por favor, insira um montante superior.</string>
   <string name="error_description_tooManyAccounts">Só pode criar algumas contas por dia.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Atualmente, a Code está limitada a uma conta por dispositivo. A compatibilidade com múltiplas contas provavelmente aparecerá numa versão futura da Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Atualmente, a Code está limitada a uma conta por número de telefone. A compatibilidade com múltiplas contas provavelmente aparecerá numa versão futura da Code.</string>
   <string name="error_title_alreadyCollected">Kin já recebido</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin já recolhido</string>
   <string name="error_title_cameraAccessRequired">É Necessário Acesso à Câmara</string>
   <string name="error_title_cashExpired">Dinheiro expirado</string>
   <string name="error_title_codeTimedOut">O Código de Verificação Expirou</string>
   <string name="error_title_contactsAccessRequired">Acesso aos contactos requerido</string>
+  <string name="error_title_countryNotSupported">País Não Compatível</string>
+  <string name="error_title_deviceNotSupported">Dispositivo Não Compatível</string>
+  <string name="error_title_eSimNotSupported">eSims Não São Atualmente Compatíveis</string>
   <string name="error_title_failedToCreateAccount">A Criação de Conta Falhou</string>
   <string name="error_title_failedToSave">Não foi possível Guardar</string>
   <string name="error_title_failedToSendCode">Enviou Falhou</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">O valor da recompensa é demasiado alto</string>
   <string name="error_title_tipTooSmall">O valor da recompensa é demasiado baixo</string>
   <string name="error_title_tooManyAccounts">Demasiadas contas criadas</string>
+  <string name="error_title_tooManyAccountsPerDevice">Conta Já Criada</string>
+  <string name="error_title_tooManyAccountsPerPhone">Conta Já Criada</string>
   <string name="faq_a__1">O Code é uma aplicação de pagamentos que torna simples enviar dinheiro para qualquer pessoa, em qualquer lugar do mundo.</string>
   <string name="faq_a__10">Planeamos sustentar-nos através de um modelo de subscrição futura, semelhante ao que o Signal e o Twitter fazem.</string>
   <string name="faq_a__11">Como uma organização sem fins lucrativos, todo o dinheiro que ganhamos será reinvestido na nossa missão de promover a inclusão financeira global. O teu apoio é apreciado.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Aqui está %1$s</string>
   <string name="subtitle_requestNewOneIn">Pedir um novo em %1$s</string>
   <string name="subtitle_scanThisQRCode">Digitaliza este código QR com a câmara do teu telemóvel para descarregar a aplicação Code Wallet</string>
+  <string name="subtitle_scanToDownload">Digitalize para transferir a\naplicação Code Wallet</string>
   <string name="subtitle_searchCurrencies">Procurar moedas</string>
   <string name="subtitle_searchForContacts">Procurar por contactos</string>
   <string name="subtitle_smsWasSent">Foi enviada uma mensagem SMS para o seu número de telefone com um código de verificação. Introduza acima o código de verificação.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Levantar Kin</string>
   <string name="title_withdrewKin">Levantou</string>
   <string name="title_yourAccessKey">A Sua Chave de Acesso</string>
+  <string name="tooltip_tapLogo">Toque no logotipo para partilhar a ligação de transferência da aplicação</string>
 </resources>

@@ -20,9 +20,12 @@ val Black10 = Color(0x19000000)
 val Black40 = Color(0x66000000)
 val Black50 = Color(0x80000000)
 val Transparent = Color(0x00FFFFFF)
-
 val Gray50 = Color(0x803C3C3C)
 val DashEffect = Color(0xFF303137)
+
+val TextMain = White
+val TextSecondary = BrandLight
+val TextError = Color(0xFFDD8484)
 
 val Alert = Color(0xFFFF8383)
 val Warning = Color(0xFFf1ab1f)
@@ -30,7 +33,6 @@ val Success = Color(0xFF87D300)
 val Error = Color(0xFFA42D2D)
 
 val ChatOutgoing = Color(0xFF443091)
-val errorText = Color(0xFFDD8484)
 
 val topNotification = Color(0xFF4f49ce)
 val topNeutral = Color(0xFF747474)

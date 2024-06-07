@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Ez a készpénz lejárt.</string>
   <string name="error_description_codeTimedOut">Kérjük, adja meg újra a telefonszámát, és próbálja újra.</string>
   <string name="error_description_contactsAccessRequired">Meghívók küldéséhez engedélyezd a hozzáférést a kapcsolataidhoz.</string>
+  <string name="error_description_countryNotSupported">A Code jelenleg nem érhető el az országodban.</string>
+  <string name="error_description_deviceNotSupported">Jelenleg nem áll módunkban támogatni a készülékedet.</string>
+  <string name="error_description_eSimNotSupported">A Code egy későbbi verziójában valószínűleg támogatni fogja az eSims-et.</string>
   <string name="error_description_failedToCreateAccount">Nem számítottunk rá, hogy ez megtörténik. Valami elromlott. Kérjük, próbálja meg újra létrehozni ezt a fiókot.</string>
   <string name="error_description_failedToSave">A hozzáférési kulcs mentéséhez engedélyezze a kódhoz való hozzáférést a Beállításokban a Fotókhoz.</string>
+  <string name="error_description_failedToSendCode">Valami hiba történt. Ellenőrizd, hogy helyesen adtad-e meg a telefonszámodat.</string>
   <string name="error_description_failedToVerifyPhone">Valami elromlott. Kérem, próbálja újra.</string>
   <string name="error_description_failedWithdrawal">Nem sikerült kivenni az összeget. Hiba történt. Kérjük, próbálja meg újra a visszavonást.</string>
   <string name="error_description_giveAmountTooLarge">A Code kis, mindennapi tranzakciókra lett tervezve, ami %1$s vagy kevesebb.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">A maximálisan adható borravaló %1$s. Adj meg egy kisebb összeget.</string>
   <string name="error_description_tipTooSmall">A minimálisan adható borravaló %1$s. Adj meg egy nagyobb összeget.</string>
   <string name="error_description_tooManyAccounts">Naponta csak annyi új fiókot hozhat létre.</string>
+  <string name="error_description_tooManyAccountsPerDevice">A Code jelenleg készülékenként egy fiókra van korlátozva. A Code egy későbbi verziójában valószínűleg támogatni fogja a több fiókot is.</string>
+  <string name="error_description_tooManyAccountsPerPhone">A Code jelenleg telefonszámonként egy fiókra van korlátozva. A Code egy későbbi verziójában valószínűleg támogatni fogja a több fiókot is.</string>
   <string name="error_title_alreadyCollected">A Kin-t már felvették</string>
   <string name="error_title_alreadyCollectedBySomeone">A Kin már összegyűjtve</string>
   <string name="error_title_cameraAccessRequired">Kamera hozzáférés szükséges</string>
   <string name="error_title_cashExpired">Készpénz lejárt</string>
   <string name="error_title_codeTimedOut">Ellenőrző kód időtúllépés</string>
   <string name="error_title_contactsAccessRequired">A kapcsolatok elérése kötelező</string>
+  <string name="error_title_countryNotSupported">Az ország nem támogatott</string>
+  <string name="error_title_deviceNotSupported">A készülék nem támogatott</string>
+  <string name="error_title_eSimNotSupported">Az eSims jelenleg nem támogatott</string>
   <string name="error_title_failedToCreateAccount">Nem sikerült létrehozni a fiókot</string>
   <string name="error_title_failedToSave">Nem sikerült a mentés</string>
   <string name="error_title_failedToSendCode">Nem sikerült elküldeni</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">A borravaló túl sok</string>
   <string name="error_title_tipTooSmall">A borravaló túl kevés</string>
   <string name="error_title_tooManyAccounts">Túl sok fiók jött létre</string>
+  <string name="error_title_tooManyAccountsPerDevice">A fiók már létre lett hozva</string>
+  <string name="error_title_tooManyAccountsPerPhone">A fiók már létre lett hozva</string>
   <string name="faq_a__1">A Code egy fizetési alkalmazás, amellyel egyszerűen küldhet pénzt bárkinek, bárhol a világon.</string>
   <string name="faq_a__10">Terveink szerint egy közelgő előfizetési modellen keresztül tartjuk fenn magunkat, hasonlóan ahhoz, amit a Signal és a Twitter csinál.</string>
   <string name="faq_a__11">Non-profit szervezetként minden pénzt, amit keresünk, a globális pénzügyi integráció előmozdítására irányuló küldetésünkbe fektetjük be. Nagyra értékeljük az ön támogatását.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Itt van %1$s</string>
   <string name="subtitle_requestNewOneIn">Kérjen újat itt: %1$s</string>
   <string name="subtitle_scanThisQRCode">A Code Wallet alkalmazás letöltéséhez olvasd be ezt a QR-kódot a telefonod kamerájával</string>
+  <string name="subtitle_scanToDownload">Olvasd be a Code Wallet \nalkalmazás letöltéséhez</string>
   <string name="subtitle_searchCurrencies">Pénznemek keresése</string>
   <string name="subtitle_searchForContacts">Névjegyek keresése</string>
   <string name="subtitle_smsWasSent">SMS-t küldtünk a telefonszámára egy ellenőrző kóddal. Kérjük, írja be a fenti ellenőrző kódot.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Kin felvétele</string>
   <string name="title_withdrewKin">Felvéve</string>
   <string name="title_yourAccessKey">Az Ön hozzáférési kulcsa</string>
+  <string name="tooltip_tapLogo">Érintsd meg a logót az alkalmazás letöltési linkjének megosztásához</string>
 </resources>

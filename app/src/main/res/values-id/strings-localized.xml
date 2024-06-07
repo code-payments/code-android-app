@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Dana ini sudah kedaluwarsa.</string>
   <string name="error_description_codeTimedOut">Silakan masukkan kembali nomor telepon Anda dan coba lagi.</string>
   <string name="error_description_contactsAccessRequired">Harap berikan akses kontak pada Pengaturan untuk mengirim undangan.</string>
+  <string name="error_description_countryNotSupported">Kode saat ini tidak tersedia di negara Anda.</string>
+  <string name="error_description_deviceNotSupported">Kami tidak dapat mendukung perangkat Anda saat ini</string>
+  <string name="error_description_eSimNotSupported">Dukungan untuk eSim kemungkinan akan hadir dalam versi Kode mendatang.</string>
   <string name="error_description_failedToCreateAccount">Kami tidak memperkirakan hal itu terjadi. Terjadi masalah. Silakan coba membuat akun ini lagi.</string>
   <string name="error_description_failedToSave">Izinkan Code mengakses Foto di Pengaturan untuk menyimpan Kunci Akses Anda.</string>
+  <string name="error_description_failedToSendCode">Terdapat kesalahan. Pastikan nomor telepon Anda dimasukkan dengan benar.</string>
   <string name="error_description_failedToVerifyPhone">Terjadi masalah. Harap mencoba lagi.</string>
   <string name="error_description_failedWithdrawal">Gagal menarik dana Anda. Ada yang tidak beres, silakan mencoba mengulangi penarikan.</string>
   <string name="error_description_giveAmountTooLarge">Code dirancang untuk transaksi kecil harian bernilai %1$s ke bawah.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Tip maksimum yang dapat Anda berikan adalah %1$s. Silakan masukkan jumlah yang lebih kecil.</string>
   <string name="error_description_tipTooSmall">Minimum yang dapat Anda beri tip adalah %1$s. Silakan masukkan jumlah yang lebih besar.</string>
   <string name="error_description_tooManyAccounts">Anda hanya dapat membuat sejumlah akun baru setiap hari.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Kode saat ini terbatas pada satu akun per perangkat. Dukungan untuk banyak akun kemungkinan akan hadir dalam versi Kode mendatang.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Kode saat ini terbatas pada satu akun per perangkat. Dukungan untuk banyak akun kemungkinan akan hadir dalam versi Kode mendatang.</string>
   <string name="error_title_alreadyCollected">Kin Sudah Diambil</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin Sudah Diambil</string>
   <string name="error_title_cameraAccessRequired">Memerlukan Akses Kamera</string>
   <string name="error_title_cashExpired">Dana kedaluwarsa</string>
   <string name="error_title_codeTimedOut">Batas Waktu Kode Verifikasi Habis</string>
   <string name="error_title_contactsAccessRequired">Akses Kontak Diperlukan</string>
+  <string name="error_title_countryNotSupported">Negara tidak mendukung</string>
+  <string name="error_title_deviceNotSupported">Perangkat tidak mendukung</string>
+  <string name="error_title_eSimNotSupported">eSim Saat Ini Tidak Mendukung</string>
   <string name="error_title_failedToCreateAccount">Gagal Membuat Akun</string>
   <string name="error_title_failedToSave">Gagal Menyimpan</string>
   <string name="error_title_failedToSendCode">Gagal Mengirim</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Tip Terlalu Besar</string>
   <string name="error_title_tipTooSmall">Tip Terlalu Kecil</string>
   <string name="error_title_tooManyAccounts">Terlalu banyak akun yang dibuat</string>
+  <string name="error_title_tooManyAccountsPerDevice">Akun Sudah Dibuat</string>
+  <string name="error_title_tooManyAccountsPerPhone">Akun sudah dibuat</string>
   <string name="faq_a__1">Code adalah aplikasi pembayaran yang memudahkan pengiriman uang kepada siapa pun, di mana pun di seluruh dunia.</string>
   <string name="faq_a__10">Kami berencana untuk memenuhi kebutuhan kami melalui model langganan yang akan kami luncurkan, mirip dengan yang dilakukan Signal dan Twitter.</string>
   <string name="faq_a__11">Sebagai organisasi nirlaba, semua uang yang kami peroleh akan diinvestasikan kembali ke dalam misi kami untuk mendorong inklusi keuangan global. Dukungan Anda sangat kami hargai.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Inilah %1$s</string>
   <string name="subtitle_requestNewOneIn">Meminta yang baru di %1$s</string>
   <string name="subtitle_scanThisQRCode">Pindai kode QR ini dengan kamera ponsel Anda untuk mengunduh aplikasi Code Wallet</string>
+  <string name="subtitle_scanToDownload">Pindai untuk mengunduh aplikasi Code Wallet</string>
   <string name="subtitle_searchCurrencies">Cari mata uang</string>
   <string name="subtitle_searchForContacts">Cari kontak</string>
   <string name="subtitle_smsWasSent">Pesan SMS berisi kode verifikasi telah dikirim ke nomor telepon Anda. Harap memasukkan kode verifikasi di atas.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Tarik Kin</string>
   <string name="title_withdrewKin">Menarik</string>
   <string name="title_yourAccessKey">Kunci Akses Anda</string>
+  <string name="tooltip_tapLogo">Klik logo untuk membagikan tautan unduhan aplikasi</string>
 </resources>

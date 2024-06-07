@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">이 현금은 만료되었습니다.</string>
   <string name="error_description_codeTimedOut">전화번호를 다시 입력한 후 다시 시도하십시오. </string>
   <string name="error_description_contactsAccessRequired">초대를 보내려면 설정에서 연락처 접근 권한을 허용해 주세요.</string>
+  <string name="error_description_countryNotSupported">현재 귀하의 국가에서는 Code를 이용할 수 없습니다.</string>
+  <string name="error_description_deviceNotSupported">현재 귀하의 기기를 지원하지 않습니다</string>
+  <string name="error_description_eSimNotSupported">eSim은 추후 Code 버전에서 지원될 예정입니다.</string>
   <string name="error_description_failedToCreateAccount">예기치 못한 일이 일어났습니다. 문제가 발생했습니다. 계정 생성을 다시 시도하십시오. </string>
   <string name="error_description_failedToSave">액세스 키를 저장하려면 설정에서 Code가 사진에 접근하는 것을 허용하십시오. </string>
+  <string name="error_description_failedToSendCode">문제가 발생했습니다. 휴대전화 번호를 올바르게 입력했는지 확인해 주세요.</string>
   <string name="error_description_failedToVerifyPhone">문제가 발생했습니다. 다시 시도해 주세요. </string>
   <string name="error_description_failedWithdrawal">자금 인출에 실패했습니다. 문제가 발생했습니다. 인출을 다시 시도하십시오. </string>
   <string name="error_description_giveAmountTooLarge">Code는 %1$s 이하의 소액 거래를 위해 만들어졌습니다.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">팁을 줄 수 있는 최대 금액은 %1$s입니다. 더 작은 금액을 입력하세요.</string>
   <string name="error_description_tipTooSmall">팁을 줄 수 있는 최소 금액은 %1$s입니다. 더 큰 금액을 입력하세요.</string>
   <string name="error_description_tooManyAccounts">하루에 생성할 수 있는 계정 수가 정해져 있습니다. </string>
+  <string name="error_description_tooManyAccountsPerDevice">현재 Code는 기기당 1개 계정으로 제한됩니다. 복수 계정은 추후 Code 버전에서 지원될 예정입니다.</string>
+  <string name="error_description_tooManyAccountsPerPhone">현재 Code는 휴대전화 번호당 1개 계정으로 제한됩니다. 복수 계정은 추후 Code 버전에서 지원될 예정입니다.</string>
   <string name="error_title_alreadyCollected">Kin이 이미 수령됨</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin 이미 수집됨</string>
   <string name="error_title_cameraAccessRequired">카메라 접근 필요 </string>
   <string name="error_title_cashExpired">현금 만료됨</string>
   <string name="error_title_codeTimedOut">인증 코드 만료됨</string>
   <string name="error_title_contactsAccessRequired">연락처 권한 필요</string>
+  <string name="error_title_countryNotSupported">지원하지 않는 국가</string>
+  <string name="error_title_deviceNotSupported">지원하지 않는 기기</string>
+  <string name="error_title_eSimNotSupported">현재 지원하지 않는 eSim</string>
   <string name="error_title_failedToCreateAccount">계정 생성 실패</string>
   <string name="error_title_failedToSave">저장 실패</string>
   <string name="error_title_failedToSendCode">전송 실패</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">팁이 너무 큼</string>
   <string name="error_title_tipTooSmall">팁이 너무 작음</string>
   <string name="error_title_tooManyAccounts">너무 많은 계정이 생성됨</string>
+  <string name="error_title_tooManyAccountsPerDevice">이미 생성된 계정</string>
+  <string name="error_title_tooManyAccountsPerPhone">이미 생성된 계정</string>
   <string name="faq_a__1">코드는 전 세계 어디서든 누구에게나 간편하게 송금할 수 있는 결제 앱입니다.</string>
   <string name="faq_a__10">저희는 시그널(Signal) 및 트위터(Twitter)가 하는 것과 유사한 향후 구독 모델을 통해 자립할 예정입니다.</string>
   <string name="faq_a__11">비영리 단체로서 저희가 얻는 모든 수익은 글로벌 금융 포용을 추진하는 저희 사명에 재투자될 것입니다. 여러분의 지원에 감사드립니다.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">%1$s입니다.</string>
   <string name="subtitle_requestNewOneIn">%1$s 내로 새로운 코드 요청</string>
   <string name="subtitle_scanThisQRCode">휴대 전화 카메라로 이 QR 코드를 스캔하여 코드 지갑 앱을 다운로드하세요.</string>
+  <string name="subtitle_scanToDownload">스캔하여 Code Wallet 앱을\n다운로드하세요</string>
   <string name="subtitle_searchCurrencies">통화 검색</string>
   <string name="subtitle_searchForContacts">연락처 검색</string>
   <string name="subtitle_smsWasSent">전화번호로 인증 코드가 포함된 SMS 메시지를 보내드렸습니다. 위에 인증 코드를 입력해 주세요.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Kin 인출</string>
   <string name="title_withdrewKin">인출 내역</string>
   <string name="title_yourAccessKey">나의 액세스 키</string>
+  <string name="tooltip_tapLogo">앱 다운로드 링크를 공유하려면 로고를 누르세요</string>
 </resources>

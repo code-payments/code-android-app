@@ -37,8 +37,8 @@ class DownloadCodeTip @Inject constructor(
     override fun message(): @Composable () -> Unit {
         return {
             Text(
-                text = stringResource(R.string.action_tapToShareDownloadLink),
-                style = CodeTheme.typography.body1
+                text = stringResource(R.string.tooltip_tapLogo),
+                style = CodeTheme.typography.textMedium
             )
         }
     }

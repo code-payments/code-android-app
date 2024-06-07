@@ -138,7 +138,7 @@ fun LoginHome(
                 text = bottomString,
                 style = CodeTheme.typography.caption.copy(
                     textAlign = TextAlign.Center,
-                    color = BrandLight
+                    color = CodeTheme.colors.textSecondary
                 ),
                 modifier = Modifier
                     .constrainAs(toc) {
