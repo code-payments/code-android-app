@@ -2,35 +2,25 @@ package com.getcode.view.main.account.withdraw
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
-import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.displayLarge
-import com.getcode.util.showNetworkError
-import com.getcode.utils.ErrorUtils
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
 import com.getcode.view.main.giveKin.AmountArea
-import kotlinx.coroutines.launch
 
 @Composable
 fun AccountWithdrawAmount(

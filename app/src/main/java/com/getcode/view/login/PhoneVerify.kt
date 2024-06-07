@@ -119,9 +119,9 @@ internal fun PhoneVerify(
 
                 Text(
                     modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x2),
-                    style = CodeTheme.typography.body2,
+                    style = CodeTheme.typography.textSmall,
                     textAlign = TextAlign.Center,
-                    color = BrandLight,
+                    color = CodeTheme.colors.textSecondary,
                     text = stringResource(R.string.subtitle_phoneVerificationDescription)
                 )
             }
@@ -240,7 +240,7 @@ private fun PhoneEntry(
             ) {
                 Text(
                     modifier = Modifier.padding(top = CodeTheme.dimens.border),
-                    style = CodeTheme.typography.subtitle1,
+                    style = CodeTheme.typography.textLarge,
                     text = "+${locale.phoneCode}"
                 )
             }
@@ -258,7 +258,7 @@ private fun PhoneEntry(
                 .focusRequester(focusRequester)
                 .padding(top = CodeTheme.dimens.thickBorder),
             value = value,
-            textStyle = CodeTheme.typography.subtitle1.copy(color = CodeTheme.colors.onBackground),
+            textStyle = CodeTheme.typography.textLarge.copy(color = CodeTheme.colors.onBackground),
             keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Phone),
             cursorBrush = SolidColor(Color.White),
             singleLine = true,

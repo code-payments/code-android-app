@@ -122,7 +122,7 @@ private fun BottomBarAction(
                 )
                 Text(
                     text = label,
-                    style = CodeTheme.typography.body2
+                    style = CodeTheme.typography.textSmall
                 )
             }
 

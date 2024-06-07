@@ -14,11 +14,11 @@ fun TextSection(title: String, description: String) {
     Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
         Text(
             text = title,
-            style = CodeTheme.typography.subtitle1
+            style = CodeTheme.typography.textLarge
         )
         Text(
             text = description,
-            style = CodeTheme.typography.body2
+            style = CodeTheme.typography.textSmall
         )
     }
 }

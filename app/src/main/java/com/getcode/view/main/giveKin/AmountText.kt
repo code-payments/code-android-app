@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.TextUnit
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
+import com.getcode.theme.bolded
 
 
 object AmountSizeStore {
@@ -49,7 +50,7 @@ fun AmountText(
     currencyResId: Int?,
     amountText: String,
     isClickable: Boolean = false,
-    textStyle: TextStyle = CodeTheme.typography.h1,
+    textStyle: TextStyle = CodeTheme.typography.displayMedium.bolded(),
 ) {
     val centeredText = textStyle.copy(textAlign = TextAlign.Center)
 

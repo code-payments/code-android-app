@@ -138,8 +138,8 @@ fun BackupKey(
                         .align(Alignment.TopCenter)
                         .padding(bottom = CodeTheme.dimens.grid.x2)
                         .measured { textHeight = it.height },
-                    style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
-                    color = BrandLight,
+                    style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center),
+                    color = CodeTheme.colors.textSecondary,
                     text = stringResource(R.string.subtitle_accessKeyDescription)
                         .replace(". ", ".\n")
                 )

@@ -60,8 +60,8 @@ fun AccountDeposit() {
                 .fillMaxWidth()
                 .wrapContentHeight(),
             text = stringResource(R.string.subtitle_howToDeposit),
-            color = BrandLight,
-            style = CodeTheme.typography.body2.copy(
+            color = CodeTheme.colors.textSecondary,
+            style = CodeTheme.typography.textSmall.copy(
                 textAlign = TextAlign.Center,
             ),
         )
@@ -87,7 +87,7 @@ fun AccountDeposit() {
                     .padding(top = CodeTheme.dimens.grid.x1),
                 text = address,
                 color = White,
-                style = CodeTheme.typography.body1.copy(
+                style = CodeTheme.typography.textMedium.copy(
                     textAlign = TextAlign.Center,
                 ),
             )

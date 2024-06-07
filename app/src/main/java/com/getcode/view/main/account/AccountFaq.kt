@@ -36,16 +36,13 @@ fun AccountFaq(
                 Text(
                     text = faqResponse.question,
                     color = White,
-                    style = CodeTheme.typography.h6.copy(
-                        fontWeight = FontWeight.Bold
-                    )
+                    style = CodeTheme.typography.textLarge
                 )
                 MarkdownText(
                     markdown = faqResponse.answer,
                     fontResource = themeR.font.avenir_next_demi,
-                    style = CodeTheme.typography.body1.copy(
-                        lineHeight = 20.sp,
-                    ),
+                    style = CodeTheme.typography.textMedium,
+                    color = CodeTheme.colors.textSecondary
                 )
             }
 

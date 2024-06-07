@@ -73,7 +73,7 @@ fun ShareDownloadScreen() {
                 Text(
                     modifier = Modifier.fillMaxWidth(0.6f),
                     text = stringResource(R.string.title_scanToDownloadCode),
-                    style = CodeTheme.typography.subtitle1,
+                    style = CodeTheme.typography.textLarge,
                     textAlign = TextAlign.Center
                 )
 

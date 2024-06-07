@@ -215,13 +215,13 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                     )
                     Column {
                         Text(text = user.username,
-                            style = CodeTheme.typography.subtitle2
+                            style = CodeTheme.typography.screenTitle
                         )
                         state.lastSeen?.let {
                             Text(
                                 text = "Last seen ${it.formatDateRelatively()}",
                                 style = CodeTheme.typography.caption,
-                                color = BrandLight,
+                                color = CodeTheme.colors.textSecondary,
                             )
                         }
                     }

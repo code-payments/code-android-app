@@ -15,6 +15,7 @@ import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.R
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
 
 @Preview
 @Composable
@@ -41,13 +42,13 @@ fun InvitesPermission(inviteCount: Int = 0, onButtonClick: () -> Unit = {}) {
             )
             Text(
                 text = stringResource(id = R.string.subtitle_inviteCount, inviteCount),
-                style = CodeTheme.typography.h1,
+                style = CodeTheme.typography.displayMedium.bolded(),
                 modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3)
             )
 
             Text(
                 text = stringResource(id = R.string.subtitle_youHaveInvitesLeft, inviteCount),
-                style = CodeTheme.typography.body1,
+                style = CodeTheme.typography.textMedium,
                 modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x3)
             )
         }

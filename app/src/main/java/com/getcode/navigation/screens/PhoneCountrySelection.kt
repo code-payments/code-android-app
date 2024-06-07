@@ -70,15 +70,15 @@ private fun PhoneCountrySelection(
                         .padding(start = CodeTheme.dimens.inset)
                         .align(Alignment.CenterVertically),
                     text = countryCode.name,
-                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+                    style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
                     modifier = Modifier
                         .padding(CodeTheme.dimens.inset)
                         .align(Alignment.CenterVertically),
-                    color = BrandLight,
+                    color = CodeTheme.colors.textSecondary,
                     text = "+${countryCode.phoneCode}",
-                    style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.Bold)
+                    style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
             Divider(

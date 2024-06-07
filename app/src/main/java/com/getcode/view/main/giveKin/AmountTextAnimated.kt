@@ -21,7 +21,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.displayLarge
 import com.getcode.util.NumberInputHelper
 import com.getcode.util.NumberInputHelper.Companion.DECIMAL_SEPARATOR
 import com.getcode.util.NumberInputHelper.Companion.GROUPING_SEPARATOR

@@ -38,7 +38,7 @@ class DownloadCodeTip @Inject constructor(
         return {
             Text(
                 text = stringResource(R.string.action_tapToShareDownloadLink),
-                style = CodeTheme.typography.body1
+                style = CodeTheme.typography.textMedium
             )
         }
     }

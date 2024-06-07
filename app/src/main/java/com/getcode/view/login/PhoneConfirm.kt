@@ -122,9 +122,9 @@ fun PhoneConfirm(
                 ) {
 
                     ProvideTextStyle(
-                        CodeTheme.typography.body2.copy(
+                        CodeTheme.typography.textSmall.copy(
                             textAlign = TextAlign.Center,
-                            color = BrandLight
+                            color = CodeTheme.colors.textSecondary
                         )
                     ) {
                         Text(

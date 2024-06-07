@@ -36,7 +36,7 @@ internal fun EncryptedContent(modifier: Modifier = Modifier, date: Instant) {
             modifier = Modifier.align(Alignment.End),
             text = date.formatTimeRelatively(),
             style = CodeTheme.typography.caption,
-            color = BrandLight,
+            color = CodeTheme.colors.textSecondary,
         )
     }
 }

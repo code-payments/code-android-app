@@ -54,7 +54,7 @@ fun BucketDebugger() {
                         modifier = Modifier
                             .weight(1f),
                         text = info.displayName,
-                        style = CodeTheme.typography.body1,
+                        style = CodeTheme.typography.textMedium,
                     )
                 }
 
@@ -67,8 +67,8 @@ fun BucketDebugger() {
                             .weight(1f)
                             .padding(end = 100.dp),
                         text = info.address.base58(),
-                        color = BrandLight,
-                        style = CodeTheme.typography.body2
+                        color = CodeTheme.colors.textSecondary,
+                        style = CodeTheme.typography.textSmall
                     )
 
                     val kinValue = info.balance.toKinValueDouble()
@@ -76,8 +76,8 @@ fun BucketDebugger() {
 
                     Text(
                         text = "K ${String.format(format, info.balance.toKinValueDouble())}",
-                        color = BrandLight,
-                        style = CodeTheme.typography.body2
+                        color = CodeTheme.colors.textSecondary,
+                        style = CodeTheme.typography.textSmall
                     )
                 }
 
@@ -87,13 +87,13 @@ fun BucketDebugger() {
                     Text(
                         modifier = Modifier.weight(1f),
                         text = "${info.managementState.name}  •  ${info.blockchainState.name}",
-                        color = BrandLight,
-                        style = CodeTheme.typography.body2
+                        color = CodeTheme.colors.textSecondary,
+                        style = CodeTheme.typography.textSmall
                     )
                     Text(
                         text = "",
-                        color = BrandLight,
-                        style = CodeTheme.typography.body2
+                        color = CodeTheme.colors.textSecondary,
+                        style = CodeTheme.typography.textSmall
                     )
                 }
 

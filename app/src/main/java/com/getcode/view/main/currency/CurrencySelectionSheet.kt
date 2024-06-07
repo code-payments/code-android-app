@@ -109,7 +109,7 @@ fun CurrencySelectionSheet(
             placeholder = {
                 Text(
                     stringResource(id = R.string.subtitle_searchCurrencies),
-                    style = CodeTheme.typography.subtitle1.copy(
+                    style = CodeTheme.typography.textLarge.copy(
                         fontSize = 16.sp,
                     )
                 )
@@ -131,7 +131,7 @@ fun CurrencySelectionSheet(
             },
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            textStyle = CodeTheme.typography.subtitle1.copy(
+            textStyle = CodeTheme.typography.textLarge.copy(
                 fontSize = 16.sp,
             ),
             singleLine = true,
@@ -323,8 +323,8 @@ private fun GroupHeader(modifier: Modifier = Modifier, text: String) {
         ) {
             Text(
                 modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
-                style = CodeTheme.typography.body2,
-                color = BrandLight,
+                style = CodeTheme.typography.textSmall,
+                color = CodeTheme.colors.textSecondary,
                 text = text
             )
         }
@@ -412,7 +412,7 @@ private fun ListRowItem(
                     ) {
                         Text(
                             text = item.currency.name,
-                            style = CodeTheme.typography.body1
+                            style = CodeTheme.typography.textMedium
                         )
                     }
                 }

@@ -57,11 +57,11 @@ fun BottomBarView(
             CompositionLocalProvider(LocalContentColor provides White) {
                 Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
                     Text(
-                        style = CodeTheme.typography.subtitle1,
+                        style = CodeTheme.typography.textLarge,
                         text = bottomBarMessage.title
                     )
                     Text(
-                        style = CodeTheme.typography.body2,
+                        style = CodeTheme.typography.textSmall,
                         text = bottomBarMessage.subtitle,
                         color = LocalContentColor.current.copy(alpha = 0.8f)
                     )
@@ -101,7 +101,7 @@ fun BottomBarView(
                                 onClose(BottomBarManager.BottomBarActionType.Tertiary)
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x2),
-                        style = CodeTheme.typography.button,
+                        style = CodeTheme.typography.textLarge,
                         color = White,
                         text = it
                     )

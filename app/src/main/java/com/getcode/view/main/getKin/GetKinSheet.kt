@@ -50,6 +50,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.Success
 import com.getcode.theme.White
 import com.getcode.theme.White05
+import com.getcode.theme.bolded
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.showSnackbar
@@ -190,12 +191,12 @@ private fun Header() {
         )
         Text(
             text = stringResource(R.string.title_getKin),
-            style = CodeTheme.typography.h1,
+            style = CodeTheme.typography.displayMedium.bolded(),
             modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
         )
         Text(
             text = stringResource(R.string.subtitle_getKin),
-            style = CodeTheme.typography.body1,
+            style = CodeTheme.typography.textMedium,
             modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
         )
     }
@@ -257,8 +258,8 @@ private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
             Text(
                 text = item.titleText,
                 color = if (item.isActive) Color.White else BrandLight,
-                style = CodeTheme.typography.body2.copy(
-                    textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else CodeTheme.typography.button.textDecoration,
+                style = CodeTheme.typography.textSmall.copy(
+                    textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else null,
                 ),
             )
             item.subtitleText?.let {
@@ -266,7 +267,7 @@ private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
                     modifier = Modifier.padding(top = CodeTheme.dimens.grid.x1),
                     text = it,
                     style = CodeTheme.typography.caption,
-                    color = BrandLight
+                    color = CodeTheme.colors.textSecondary
                 )
             }
         }
