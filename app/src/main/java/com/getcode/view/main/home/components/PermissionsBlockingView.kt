@@ -33,7 +33,7 @@ internal fun PermissionsBlockingView(
     ) {
         Text(
             modifier = Modifier.padding(bottom = 30.dp),
-            style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
+            style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
             text = stringResource(R.string.subtitle_allowCameraAccess)
         )
         CodeButton(

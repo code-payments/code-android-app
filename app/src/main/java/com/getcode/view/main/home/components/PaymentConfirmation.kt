@@ -36,6 +36,7 @@ import com.getcode.models.PaymentConfirmation
 import com.getcode.models.ConfirmationState
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Modal
@@ -268,7 +269,7 @@ private fun PaymentConfirmationContent(
         Text(
             text = it,
             color = Color.White,
-            style = CodeTheme.typography.h1
+            style = CodeTheme.typography.displayMedium.bolded()
         )
     }
     SlideToConfirm(
@@ -284,12 +285,12 @@ private fun InsufficientFundsModalContent(onClick: () -> Unit) {
     Text(
         text = stringResource(R.string.title_insufficientFunds),
         color = Color.White,
-        style = CodeTheme.typography.h3
+        style = CodeTheme.typography.displaySmall
     )
     Text(
         text = stringResource(R.string.subtitle_insufficientFundsDescription),
         color = Color.White,
-        style = CodeTheme.typography.body2
+        style = CodeTheme.typography.textSmall
     )
     CodeButton(
         modifier = Modifier.fillMaxWidth(),

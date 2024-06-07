@@ -49,7 +49,7 @@ fun OtpBox(
             text = character,
             modifier = Modifier
                 .align(Alignment.Center),
-            style = CodeTheme.typography.h6.copy(fontWeight = FontWeight.Normal),
+            style = CodeTheme.typography.displayExtraSmall,
             color = Color.White,
         )
     }

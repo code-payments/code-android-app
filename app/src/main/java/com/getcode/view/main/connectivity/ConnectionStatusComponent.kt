@@ -24,8 +24,8 @@ fun ConnectionStatus(state: NetworkState) {
                 Text(
                     modifier = Modifier.align(Alignment.CenterVertically),
                     text = "Loading",
-                    color = BrandLight,
-                    style = CodeTheme.typography.body1.copy(
+                    color = CodeTheme.colors.textSecondary,
+                    style = CodeTheme.typography.textMedium.copy(
                     textAlign = TextAlign.Center))
             }
 
@@ -33,7 +33,7 @@ fun ConnectionStatus(state: NetworkState) {
                 modifier = Modifier.align(Alignment.CenterVertically),
                 text = "No network connection",
                 color = CodeTheme.colors.errorText,
-                style = CodeTheme.typography.body1.copy(
+                style = CodeTheme.typography.textMedium.copy(
                 textAlign = TextAlign.Center))
         }
     }

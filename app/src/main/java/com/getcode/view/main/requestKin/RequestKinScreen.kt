@@ -17,21 +17,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
-import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.displayLarge
-import com.getcode.util.showNetworkError
-import com.getcode.utils.ErrorUtils
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
+import com.getcode.util.showNetworkError
+import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
-import com.getcode.view.main.giveKin.GiveKinSheetViewModel
 import kotlinx.coroutines.launch
 
 @Preview

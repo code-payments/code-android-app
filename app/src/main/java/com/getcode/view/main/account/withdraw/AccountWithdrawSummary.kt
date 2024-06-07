@@ -63,7 +63,7 @@ fun AccountWithdrawSummary(
                     captionText = String.format("%,.0f", dataState.amountKin?.toKin()?.toDouble()),
                     isAltCaption = true,
                     isAltCaptionKinIcon = true,
-                    altCaptionColor = BrandLight
+                    altCaptionColor = CodeTheme.colors.textSecondary
                 )
             }
 
@@ -83,7 +83,7 @@ fun AccountWithdrawSummary(
             ) {
                 Text(
                     text = dataState.resolvedDestination,
-                    style = CodeTheme.typography.subtitle1.copy(textAlign = TextAlign.Center)
+                    style = CodeTheme.typography.textLarge.copy(textAlign = TextAlign.Center)
                 )
             }
         }

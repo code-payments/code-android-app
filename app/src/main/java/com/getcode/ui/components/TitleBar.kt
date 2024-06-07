@@ -51,7 +51,7 @@ fun TitleBar(
             Text(
                 text = title,
                 color = Color.White,
-                style = CodeTheme.typography.subtitle2,
+                style = CodeTheme.typography.screenTitle,
                 modifier = Modifier.align(Alignment.Center)
             )
         }

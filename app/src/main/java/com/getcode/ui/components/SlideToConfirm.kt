@@ -94,7 +94,7 @@ object SlideToConfirmDefaults {
         Text(
             text = text,
             color = hintTextColor,
-            style = CodeTheme.typography.body1,
+            style = CodeTheme.typography.textMedium,
             modifier = modifier,
         )
     }

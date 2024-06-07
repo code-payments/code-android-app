@@ -27,6 +27,7 @@ import com.getcode.navigation.screens.PhoneVerificationScreen
 import com.getcode.network.repository.urlEncode
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 
@@ -62,7 +63,7 @@ fun AccountPhone(
                     centerVerticallyTo(parent, 0.4f)
                 },
             text = if (!dataState.isLinked) stringResource(R.string.subtitle_noLinkedPhoneNumber) else dataState.phoneNumberFormatted.orEmpty(),
-            style = CodeTheme.typography.h1
+            style = CodeTheme.typography.displayMedium.bolded()
         )
         Text(
             modifier = Modifier
@@ -71,7 +72,7 @@ fun AccountPhone(
                 },
             text = if (!dataState.isLinked) stringResource(R.string.subtitle_noLinkedPhoneNumberDescription)
             else stringResource(R.string.subtitle_linkedPhoneNumberDescription),
-            style = CodeTheme.typography.body1
+            style = CodeTheme.typography.textMedium
         )
 
         CodeButton(

@@ -133,8 +133,8 @@ fun AccountHome(
                         .fillMaxWidth()
                         .align(Alignment.Center),
                     text = "v${BuildConfig.VERSION_NAME}",
-                    color = BrandLight,
-                    style = CodeTheme.typography.body2.copy(
+                    color = CodeTheme.colors.textSecondary,
+                    style = CodeTheme.typography.textSmall.copy(
                         textAlign = TextAlign.Center
                     ),
                 )
@@ -164,7 +164,7 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
         Text(
             modifier = Modifier.align(CenterVertically),
             text = stringResource(item.name),
-            style = CodeTheme.typography.subtitle1.copy(
+            style = CodeTheme.typography.textLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
         )
@@ -188,8 +188,8 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
                         .padding(start = CodeTheme.dimens.grid.x1),
                     text = if (isPhoneLinked) stringResource(id = R.string.title_linked)
                     else stringResource(id = R.string.title_notLinked),
-                    color = BrandLight,
-                    style = CodeTheme.typography.body1.copy(
+                    color = CodeTheme.colors.textSecondary,
+                    style = CodeTheme.typography.textMedium.copy(
                         fontSize = 12.sp
                     ),
                 )

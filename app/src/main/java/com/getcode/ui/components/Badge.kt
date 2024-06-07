@@ -41,7 +41,7 @@ fun Badge(
         Text(
             text = text,
             color = contentColor,
-            style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W700),
+            style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700),
             modifier = Modifier
                 .drawBehind {
                     drawCircle(

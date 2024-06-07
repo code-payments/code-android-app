@@ -53,8 +53,8 @@ fun AccountWithdrawAddress(
             modifier = Modifier
                 .fillMaxWidth(),
             text = stringResource(R.string.subtitle_whereToWithdrawKin),
-            style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
-            color = BrandLight
+            style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
+            color = CodeTheme.colors.textSecondary
         )
 
         TextInput(

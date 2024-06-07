@@ -28,7 +28,7 @@ internal fun ReceivedKinConfirmation(
     Modal(backgroundColor = Brand) {
         Text(
             modifier = Modifier.padding(top = CodeTheme.dimens.grid.x3),
-            style = CodeTheme.typography.subtitle1.copy(
+            style = CodeTheme.typography.textLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
             color = White,

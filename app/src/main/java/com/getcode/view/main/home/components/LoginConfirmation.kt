@@ -49,7 +49,7 @@ internal fun LoginConfirmation(
             Text(
                 text = it,
                 color = Color.White,
-                style = CodeTheme.typography.h3
+                style = CodeTheme.typography.displaySmall
             )
             SlideToConfirm(
                 isLoading = isSending,

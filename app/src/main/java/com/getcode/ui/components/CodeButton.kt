@@ -58,10 +58,7 @@ fun CodeButton(
         shape = shape,
         contentColor = textColor,
     ) {
-        Text(
-            text = text,
-            style = CodeTheme.typography.button,
-        )
+        Text(text = text)
     }
 }
 
@@ -139,7 +136,9 @@ fun CodeButton(
                 }
 
                 else -> {
-                    content()
+                    ProvideTextStyle(value = CodeTheme.typography.textMedium) {
+                        content()
+                    }
                 }
             }
         }

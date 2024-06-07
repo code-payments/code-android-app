@@ -35,6 +35,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
@@ -78,11 +79,11 @@ fun RequestTipScreen(
 private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick: () -> Unit) {
     Text(
         text = stringResource(id = R.string.title_requestTip),
-        style = CodeTheme.typography.h1
+        style = CodeTheme.typography.displayMedium.bolded()
     )
     Text(
         text = stringResource(id = R.string.subtitle_tipCardForX),
-        style = CodeTheme.typography.body2
+        style = CodeTheme.typography.textSmall
     )
     Spacer(modifier = Modifier.weight(0.3f))
     TweetPreview(modifier = Modifier.fillMaxWidth(), xMessage = state.xMessage)
@@ -128,7 +129,7 @@ private fun TweetPreview(
             modifier = Modifier.weight(1f),
             text = xMessage,
             color = Color.White,
-            style = CodeTheme.typography.body2
+            style = CodeTheme.typography.textSmall
         )
     }
 }

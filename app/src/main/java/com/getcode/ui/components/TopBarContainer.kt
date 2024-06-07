@@ -127,7 +127,7 @@ private fun TopBarView(
                 )
                 Text(
                     text = topBarMessage.title,
-                    style = CodeTheme.typography.body1.copy(
+                    style = CodeTheme.typography.textMedium.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         lineHeight = 20.sp
@@ -141,7 +141,7 @@ private fun TopBarView(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset),
                 text = topBarMessage.message,
-                style = CodeTheme.typography.body1.copy(
+                style = CodeTheme.typography.textMedium.copy(
                     fontSize = 15.sp,
                     lineHeight = 18.sp
                 ),

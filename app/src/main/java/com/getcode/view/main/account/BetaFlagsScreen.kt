@@ -146,7 +146,7 @@ fun BetaFlagsScreen(
                                 .padding(vertical = CodeTheme.dimens.grid.x1),
                             text = option.subtitleText,
                             style = CodeTheme.typography.caption,
-                            color = BrandLight
+                            color = CodeTheme.colors.textSecondary
                         )
                     }
                 }

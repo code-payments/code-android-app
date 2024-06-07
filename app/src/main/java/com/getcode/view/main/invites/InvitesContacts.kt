@@ -42,7 +42,7 @@ fun InvitesContacts(
                     .align(CenterHorizontally)
                     .padding(top = 100.dp, bottom = CodeTheme.dimens.grid.x6),
                 text = stringResource(id = R.string.subtitle_organizingContacts),
-                style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
             )
 
             CodeCircularProgressIndicator(
@@ -71,8 +71,8 @@ fun InvitesContacts(
         ) {
             Text(
                 text = stringResource(R.string.subtitle_phoneNotInContacts),
-                color = BrandLight,
-                style = CodeTheme.typography.body2
+                color = CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textSmall
                     .copy(textAlign = TextAlign.Center),
                 modifier = Modifier.padding(
                     vertical = CodeTheme.dimens.grid.x3
@@ -118,7 +118,7 @@ fun InvitesContacts(
                                 modifier = Modifier
                                     .align(Alignment.Center),
                                 text = contact.initials,
-                                style = CodeTheme.typography.body1,
+                                style = CodeTheme.typography.textMedium,
                             )
                         }
                         Column(
@@ -129,13 +129,13 @@ fun InvitesContacts(
                                 modifier = Modifier
                                     .fillMaxWidth(.6f),
                                 text = contact.name,
-                                style = CodeTheme.typography.body1,
+                                style = CodeTheme.typography.textMedium,
 
                                 )
                             Text(
                                 text = contact.phoneNumberFormatted,
-                                style = CodeTheme.typography.body2.copy(
-                                    color = BrandLight
+                                style = CodeTheme.typography.textSmall.copy(
+                                    color = CodeTheme.colors.textSecondary
                                 ),
                             )
                         }
@@ -157,7 +157,7 @@ fun InvitesContacts(
                             )
                             Text(
                                 text = stringResource(R.string.subtitle_onCode),
-                                style = CodeTheme.typography.body1
+                                style = CodeTheme.typography.textMedium
                             )
                         }
                     } else {
@@ -186,7 +186,7 @@ fun InvitesContacts(
                                         R.string.action_remind
                                     }
                                 ),
-                                style = CodeTheme.typography.button,
+                                style = CodeTheme.typography.textSmall,
                                 modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x2)
                             )
                         }

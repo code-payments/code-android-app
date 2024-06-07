@@ -31,7 +31,7 @@ fun AnnouncementMessage(
         ) {
             Text(
                 text = text,
-                style = CodeTheme.typography.body1.copy(fontWeight = FontWeight.W500)
+                style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
             )
         }
     }

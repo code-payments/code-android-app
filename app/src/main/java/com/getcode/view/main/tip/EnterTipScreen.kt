@@ -24,7 +24,6 @@ import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.displayLarge
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
@@ -32,7 +31,6 @@ import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
 import kotlinx.coroutines.launch
-import timber.log.Timber
 
 @Composable
 fun EnterTipScreen(

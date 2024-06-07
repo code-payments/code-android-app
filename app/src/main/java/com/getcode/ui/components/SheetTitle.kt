@@ -29,10 +29,7 @@ fun BoxScope.SheetTitleText(modifier: Modifier = Modifier, text: String) {
     Text(
         text = text,
         color = Color.White,
-        style = CodeTheme.typography.h6.copy(
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
-        ),
+        style = CodeTheme.typography.screenTitle,
         modifier = modifier.align(Alignment.Center)
     )
 }

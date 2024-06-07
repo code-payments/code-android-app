@@ -237,7 +237,7 @@ fun AccessKey(
                         top = CodeTheme.dimens.grid.x3,
                         bottom = CodeTheme.dimens.grid.x6
                     ),
-                style = CodeTheme.typography.body2.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center),
                 color = White,
                 text = stringResource(R.string.subtitle_accessKeyDescription)
             )

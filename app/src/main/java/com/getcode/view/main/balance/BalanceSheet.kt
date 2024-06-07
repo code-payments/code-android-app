@@ -49,7 +49,6 @@ import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.theme.displayLarge
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeCircularProgressIndicator
@@ -263,7 +262,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
                 ), start = startIndex, end = endIndex
             )
             addStyle(
-                style = SpanStyle(color = BrandLight),
+                style = SpanStyle(color = CodeTheme.colors.textSecondary),
                 start = 0,
                 end = textString.length
             )
@@ -279,7 +278,7 @@ private fun ColumnScope.KinValueHint(onClick: () -> Unit) {
             modifier = Modifier
                 .padding(horizontal = CodeTheme.dimens.grid.x1),
             text = annotatedBalanceString,
-            style = CodeTheme.typography.body1,
+            style = CodeTheme.typography.textMedium,
             onClick = {
                 annotatedBalanceString
                     .getStringAnnotations(
@@ -309,8 +308,8 @@ private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
             Text(
                 modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1),
                 text = stringResource(R.string.subtitle_dontHaveKin),
-                color = BrandLight,
-                style = CodeTheme.typography.body1
+                color = CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textMedium
             )
         }
 
@@ -325,7 +324,7 @@ private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
             append(textString)
             addStyle(
                 style = SpanStyle(
-                    color = BrandLight,
+                    color = CodeTheme.colors.textSecondary,
                 ), start = 0, end = textString.length
             )
             addStyle(
@@ -348,7 +347,7 @@ private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
         ) {
             ClickableText(
                 text = annotatedLinkString,
-                style = CodeTheme.typography.body1.copy(textAlign = TextAlign.Center),
+                style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
                 onClick = {
                     annotatedLinkString
                         .getStringAnnotations(

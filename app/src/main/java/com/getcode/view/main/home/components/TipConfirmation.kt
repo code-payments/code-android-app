@@ -28,6 +28,7 @@ import com.getcode.models.TipConfirmation
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.theme.bolded
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Modal
@@ -71,8 +72,8 @@ internal fun TipConfirmation(
         if (confirmation?.followerCountFormatted != null) {
             Text(
                 text = "${confirmation.followerCountFormatted} Followers",
-                color = BrandLight,
-                style = CodeTheme.typography.body2
+                color = CodeTheme.colors.textSecondary,
+                style = CodeTheme.typography.textSmall
             )
         }
 
@@ -94,7 +95,7 @@ internal fun TipConfirmation(
                 Text(
                     text = text,
                     color = Color.White,
-                    style = CodeTheme.typography.h1
+                    style = CodeTheme.typography.displayMedium.bolded()
                 )
             }
         }

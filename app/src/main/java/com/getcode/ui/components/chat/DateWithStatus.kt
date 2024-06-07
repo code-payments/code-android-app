@@ -50,7 +50,7 @@ internal fun DateWithStatus(
             modifier = Modifier.weight(1f, fill = false),
             text = date.formatTimeRelatively(),
             style = DateWithStatusDefaults.DateTextStyle,
-            color = BrandLight,
+            color = CodeTheme.colors.textSecondary,
             maxLines = 1
         )
         if (status.isValid() && status != MessageStatus.Incoming) {

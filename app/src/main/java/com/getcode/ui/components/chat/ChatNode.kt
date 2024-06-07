@@ -60,7 +60,7 @@ fun ChatNode(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = chat.localizedTitle, maxLines = 1, style = CodeTheme.typography.body1)
+            Text(text = chat.localizedTitle, maxLines = 1, style = CodeTheme.typography.textMedium)
             chat.lastMessageMillis?.let {
                 val isToday = DateUtils.isToday(it)
                 Text(
@@ -69,7 +69,7 @@ fun ChatNode(
                     } else {
                         DateUtils.getDateRelatively(it)
                     },
-                    style = CodeTheme.typography.body2,
+                    style = CodeTheme.typography.textSmall,
                     color = if (hasUnreadMessages) ChatNodeDefaults.UnreadIndicator else CodeTheme.colors.brandLight,
                 )
             }
@@ -81,7 +81,7 @@ fun ChatNode(
             Text(
                 modifier = Modifier.weight(1f),
                 text = chat.messagePreview,
-                style = CodeTheme.typography.body1,
+                style = CodeTheme.typography.textMedium,
                 color = CodeTheme.colors.brandLight,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis

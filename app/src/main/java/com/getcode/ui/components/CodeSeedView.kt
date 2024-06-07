@@ -50,21 +50,21 @@ private fun SeedItem(
             text = "$number.",
             modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3)
                 .width(CodeTheme.dimens.grid.x6),
-            style = CodeTheme.typography.body1.copy(
+            style = CodeTheme.typography.textMedium.copy(
                 textAlign = TextAlign.End
             ),
-            color = BrandLight
+            color = CodeTheme.colors.textSecondary
         )
         Box {
             Text(
                 modifier = Modifier.alpha(if (isVisible) 1f else 0f),
                 text = text,
-                style = CodeTheme.typography.body1
+                style = CodeTheme.typography.textMedium
             )
             Text(
                 modifier = Modifier.alpha(if (!isVisible) 1f else 0f),
                 text = "-".repeat(text.length),
-                style = CodeTheme.typography.body1
+                style = CodeTheme.typography.textMedium
             )
         }
     }
