@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Ta gotówka wygasła.</string>
   <string name="error_description_codeTimedOut">Wpisz ponownie numer telefonu i spróbuj jeszcze raz.</string>
   <string name="error_description_contactsAccessRequired">Zezwól na dostęp do kontaktów w ustawieniach, aby wysłać zaproszenia.</string>
+  <string name="error_description_countryNotSupported">Aplikacja Code nie jest obecnie dostępna w Twoim kraju.</string>
+  <string name="error_description_deviceNotSupported">Tym razem nie jesteśmy w stanie obsłużyć Twojego urządzenia</string>
+  <string name="error_description_eSimNotSupported">Wsparcie dla kart eSim pojawi się najprawdopodobniej w przyszłej wersji aplikacji Code.</string>
   <string name="error_description_failedToCreateAccount">Nie spodziewaliśmy się tego. Coś poszło nie tak. Spróbuj jeszcze raz utworzyć to konto.</string>
   <string name="error_description_failedToSave">Żeby zapisać klucz dostępu, zezwól Code na dostęp do zdjęć w ustawieniach.</string>
+  <string name="error_description_failedToSendCode">Coś poszło nie tak. Upewnij się, że Twój numer telefonu został poprawnie wpisany.</string>
   <string name="error_description_failedToVerifyPhone">Coś poszło nie tak. Spróbuj ponownie.</string>
   <string name="error_description_failedWithdrawal">Wypłacenie środków nie powiodło się. Coś poszło nie tak. Spróbuj jeszcze raz wypłacić środki.</string>
   <string name="error_description_giveAmountTooLarge">Aplikacja Code powstała z myślą o małych, codziennych transakcjach na kwotę %1$s lub mniejszą.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Maksymalny napiwek, jaki możesz dać, to %1$s. Wprowadź mniejszą kwotę.</string>
   <string name="error_description_tipTooSmall">Minimalny napiwek, jaki możesz dać, to %1$s. Wprowadź wyższą kwotę.</string>
   <string name="error_description_tooManyAccounts">Liczba kont, które można utworzyć dziennie, jest ograniczona.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Aplikacja Code jest obecnie ograniczona do jednego konta na urządzenie. Wsparcie dla wielu kont pojawi się najprawdopodobniej w przyszłej wersji Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Aplikacja Code jest obecnie ograniczona do jednego konta na numer telefonu. Wsparcie dla wielu kont pojawi się najprawdopodobniej w przyszłej wersji Code.</string>
   <string name="error_title_alreadyCollected">Odebrano już kin</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin został już odebrany</string>
   <string name="error_title_cameraAccessRequired">Wymagany jest dostęp do kamery</string>
   <string name="error_title_cashExpired">Gotówka wygasła</string>
   <string name="error_title_codeTimedOut">Wygasł kod weryfikacyjny</string>
   <string name="error_title_contactsAccessRequired">Wymagany dostęp do kontaktów</string>
+  <string name="error_title_countryNotSupported">Nieobsługiwany kraj</string>
+  <string name="error_title_deviceNotSupported">Urządzenie nie jest obsługiwane</string>
+  <string name="error_title_eSimNotSupported">Karty eSim nie są obecnie obsługiwane</string>
   <string name="error_title_failedToCreateAccount">Utworzenie konta nie powiodło się</string>
   <string name="error_title_failedToSave">Zapisanie nie powiodło się</string>
   <string name="error_title_failedToSendCode">Wysłanie nie powiodło się</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Napiwek jest za duży</string>
   <string name="error_title_tipTooSmall">Napiwek jest za mały</string>
   <string name="error_title_tooManyAccounts">Utworzono za wiele kont</string>
+  <string name="error_title_tooManyAccountsPerDevice">Konto zostało już utworzone</string>
+  <string name="error_title_tooManyAccountsPerPhone">Konto zostało już utworzone</string>
   <string name="faq_a__1">Code to aplikacja do płatności, która ułatwia wysyłanie pieniędzy dowolnej osobie w dowolnym miejscu na świecie.</string>
   <string name="faq_a__10">Planujemy się utrzymywać dzięki przyszłemu modelowi subskrypcji, podobnie jak Signal i Twitter.</string>
   <string name="faq_a__11">Jako organizacja typu non-profit zainwestujemy wszystkie zarobione pieniądze z powrotem w realizację naszej misji zwiększania globalnej dostępności usług finansowych. Doceniamy Twoje wsparcie.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Oto %1$s</string>
   <string name="subtitle_requestNewOneIn">Poproś o nowy w %1$s</string>
   <string name="subtitle_scanThisQRCode">Zeskanuj ten kod QR aparatem telefonu, aby pobrać aplikację Code Wallet</string>
+  <string name="subtitle_scanToDownload">Zeskanuj, aby pobrać\naplikację portfela Code</string>
   <string name="subtitle_searchCurrencies">Wyszukaj waluty</string>
   <string name="subtitle_searchForContacts">Szukaj kontaktów</string>
   <string name="subtitle_smsWasSent">Na Twój numer telefonu przesłano wiadomość SMS z kodem weryfikacyjnym. Wpisz go powyżej.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Wypłać Kin</string>
   <string name="title_withdrewKin">Wycofał</string>
   <string name="title_yourAccessKey">Twój klucz dostępu</string>
+  <string name="tooltip_tapLogo">Dotknij logo, aby udostępnić link do pobrania aplikacji</string>
 </resources>

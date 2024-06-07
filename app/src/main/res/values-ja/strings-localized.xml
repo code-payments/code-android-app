@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">このキャッシュの有効期限は切れています。</string>
   <string name="error_description_codeTimedOut">電話番号を再入力して,再試行してください。</string>
   <string name="error_description_contactsAccessRequired">招待を送信するには,「設定」で連絡先へのアクセスを許可してください。</string>
+  <string name="error_description_countryNotSupported">現在,お住まいの国ではCodeをご利用いただけません。</string>
+  <string name="error_description_deviceNotSupported">現時点ではお使いのデバイスをサポートできません</string>
+  <string name="error_description_eSimNotSupported">eSimsには,Codeの将来のバージョンで対応の予定です。</string>
   <string name="error_description_failedToCreateAccount">そんなことが起こるとは思っていませんでした。不具合が発生しました。このアカウントをもう一度作成してみてください。</string>
   <string name="error_description_failedToSave">アクセスキーを保存するために,［設定］で写真へのCodeアクセスを許可してください。</string>
+  <string name="error_description_failedToSendCode">なにか問題が発生しました。電話番号が正しく入力されていることをご確認ください。</string>
   <string name="error_description_failedToVerifyPhone">不具合が発生しました。再試行してください。</string>
   <string name="error_description_failedWithdrawal">資金の引き出しに失敗しました。不具合が発生しましたので,もう一度引き出しを試みてください。</string>
   <string name="error_description_giveAmountTooLarge">コードは,%1$s 以下の小規模な毎日のトランザクション用に設計されています。</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">チップの最大額は%1$sです。もっと小さな額を入力してください。</string>
   <string name="error_description_tipTooSmall">チップの最小額は%1$sです。もっと大きな額を入力してください。</string>
   <string name="error_description_tooManyAccounts">1日に作成できる新規アカウントの数は限られています。</string>
+  <string name="error_description_tooManyAccountsPerDevice">Codeは現在,デバイスごとに1つのアカウントに制限されています。複数のアカウントには,Codeの将来のバージョンで対応の予定です。</string>
+  <string name="error_description_tooManyAccountsPerPhone">Codeは現在,電話番号ごとに1つのアカウントに制限されています。複数のアカウントには,Codeの将来のバージョンで対応の予定です。</string>
   <string name="error_title_alreadyCollected">Kinはすでに収集されています</string>
   <string name="error_title_alreadyCollectedBySomeone">すでに受取済みのKin</string>
   <string name="error_title_cameraAccessRequired">カメラへのアクセスが必要です</string>
   <string name="error_title_cashExpired">キャッシュ有効期限切れ</string>
   <string name="error_title_codeTimedOut">確認コードがタイムアウトしました</string>
   <string name="error_title_contactsAccessRequired">連絡先へのアクセスが必要</string>
+  <string name="error_title_countryNotSupported">サポートされていない国</string>
+  <string name="error_title_deviceNotSupported">サポートされていないデバイス</string>
+  <string name="error_title_eSimNotSupported">eSimsは現在サポートされていません</string>
   <string name="error_title_failedToCreateAccount">アカウントの作成に失敗しました</string>
   <string name="error_title_failedToSave">保存に失敗しました</string>
   <string name="error_title_failedToSendCode">送信に失敗しました</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">チップ額が多すぎます</string>
   <string name="error_title_tipTooSmall">チップ額が少なすぎます</string>
   <string name="error_title_tooManyAccounts">作成されたアカウントが多すぎます</string>
+  <string name="error_title_tooManyAccountsPerDevice">すでにアカウント作成済み</string>
+  <string name="error_title_tooManyAccountsPerPhone">すでにアカウント作成済み</string>
   <string name="faq_a__1">Codeは,世界中のあらゆる人に対して簡単に送金できるようにする,決済アプリです。</string>
   <string name="faq_a__10">私たちは今後,SignalやTwitterが行っているのと同様のサブスクリプションモデルを導入するによって,存続を図ることを計画しています。</string>
   <string name="faq_a__11">私たちは非営利団体として,すべての利益を,グローバルな金融包摂の推進という使命のために再投資します。皆さんのご支援に感謝いたします。</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">こちらが%1$sです</string>
   <string name="subtitle_requestNewOneIn">%1$s以内に新しいものをリクエストする</string>
   <string name="subtitle_scanThisQRCode">電話機のカメラでこのQRコードをスキャンし,Codeウォレットアプリをダウンロードしてください</string>
+  <string name="subtitle_scanToDownload">スキャンしてCode Wallet\nアプリをダウンロード</string>
   <string name="subtitle_searchCurrencies">通貨を検索する</string>
   <string name="subtitle_searchForContacts">連絡先を検索する</string>
   <string name="subtitle_smsWasSent">確認コードを含むSMSメッセージが電話番号に送信されました。 上記の確認コードを入力してください。</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Kinを引き出す</string>
   <string name="title_withdrewKin">引き出し済み</string>
   <string name="title_yourAccessKey">お客様のアクセスキー</string>
+  <string name="tooltip_tapLogo">ロゴをタップしてアプリのダウンロードリンクを共有</string>
 </resources>

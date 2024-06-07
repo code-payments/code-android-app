@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Dieses Bargeld ist verfallen.</string>
   <string name="error_description_codeTimedOut">Bitte geben Sie Ihre Telefonnummer erneut ein und versuchen Sie es noch einmal.</string>
   <string name="error_description_contactsAccessRequired">Bitte erlauben Sie in den Einstellungen den Zugriff auf die Kontakte, um Einladungen zu versenden.</string>
+  <string name="error_description_countryNotSupported">Code ist in Ihrem Land aktuell nicht verfügbar.</string>
+  <string name="error_description_deviceNotSupported">Wir können Ihr Gerät aktuell nicht unterstützen</string>
+  <string name="error_description_eSimNotSupported">Unterstützung von eSims wird es vermutlich in einer zukünftigen Version von Code geben.</string>
   <string name="error_description_failedToCreateAccount">Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie, dieses Konto erneut zu erstellen.</string>
   <string name="error_description_failedToSave">Bitte erlauben Sie Code in den Einstellungen Zugriff auf Fotos, um Ihren Zugangsschlüssel speichern zu können.</string>
+  <string name="error_description_failedToSendCode">Etwas ist schiefgegangen. Bitte stellen Sie sicher, dass Sie Ihre Telefonnummer richtig eingegeben haben.</string>
   <string name="error_description_failedToVerifyPhone">Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut.</string>
   <string name="error_description_failedWithdrawal">Die Abhebung Ihres Guthabens ist fehlgeschlagen. Etwas ist schief gelaufen. Bitte versuchen Sie die Abhebung erneut vorzunehmen.</string>
   <string name="error_description_giveAmountTooLarge">Code ist für kleine, alltägliche Transaktionen gedacht, die sich auf %1$s oder weniger belaufen.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Sie können maximal %1$s Trinkgeld geben. Bitte geben Sie einen niedrigeren Betrag ein.</string>
   <string name="error_description_tipTooSmall">Der Mindestbetrag für Trinkgeld ist %1$s. Bitte geben Sie einen höheren Betrag ein.</string>
   <string name="error_description_tooManyAccounts">Sie können nur eine bestimmte Anzahl an neuen Konten pro Tag erstellen.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code ist aktuell auf ein Konto pro Gerät beschränkt. Unterstützung mehrerer Konten wird es vermutlich in einer zukünftigen Version von Code geben.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code ist aktuell auf ein Konto pro Telefonnummer begrenzt. Unterstützung mehrerer Konten wird es vermutlich in einer zukünftigen Version von Code geben.</string>
   <string name="error_title_alreadyCollected">Kin bereits abgeholt</string>
   <string name="error_title_alreadyCollectedBySomeone">Bereits abgerufene Kin</string>
   <string name="error_title_cameraAccessRequired">Kamerazugriff erforderlich</string>
   <string name="error_title_cashExpired">Bargeld Verfallen\n</string>
   <string name="error_title_codeTimedOut">Verifizierungscode ist abgelaufen</string>
   <string name="error_title_contactsAccessRequired">Zugriff auf Kontakte erforderlich</string>
+  <string name="error_title_countryNotSupported">Das Land wird nicht unterstützt</string>
+  <string name="error_title_deviceNotSupported">Das Gerät wird nicht unterstützt</string>
+  <string name="error_title_eSimNotSupported">eSims wird aktuell nicht unterstützt</string>
   <string name="error_title_failedToCreateAccount">Konto konnte nicht erstellt werden</string>
   <string name="error_title_failedToSave">Speichern fehlgeschlagen</string>
   <string name="error_title_failedToSendCode">Senden fehlgeschlagen</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Trinkgeldbetrag zu hoch</string>
   <string name="error_title_tipTooSmall">Trinkgeldbetrag zu niedrig</string>
   <string name="error_title_tooManyAccounts">Zu viele Konten erstellt</string>
+  <string name="error_title_tooManyAccountsPerDevice">Das Konto wurde bereits erstellt</string>
+  <string name="error_title_tooManyAccountsPerPhone">Das Konto wurde bereits erstellt</string>
   <string name="faq_a__1">Mit der Zahlungs-App Code können Sie Geld einfach und unkompliziert an jede beliebige Person überall auf der Welt zu senden.</string>
   <string name="faq_a__10">Es ist geplant, zukünftig ein Abonnementmodell einzuführen, ähnlich wie Signal und Twitter.</string>
   <string name="faq_a__11">Als gemeinnützige Organisation reinvestieren wir alle Gewinne, um unsere Mission, die die Förderung der finanziellen Inklusion beinhaltet, zu unterstützen.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Hier ist %1$s</string>
   <string name="subtitle_requestNewOneIn">Fordern Sie einen neuen Code in %1$s an</string>
   <string name="subtitle_scanThisQRCode">Scannen Sie mit Ihrer Handy-Kamera diesen QR-Code, um die Code-Wallet-App herunterzuladen</string>
+  <string name="subtitle_scanToDownload">Zum Herunterladen der Code-Wallet-App scannen</string>
   <string name="subtitle_searchCurrencies">Währungen suchen</string>
   <string name="subtitle_searchForContacts">Kontaktsuche</string>
   <string name="subtitle_smsWasSent">Eine SMS-Nachricht mit einem Verifizierungscode wurde an Ihre Telefonnummer gesendet. Bitte geben Sie den Verifizierungscode oben ein.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Kin abheben</string>
   <string name="title_withdrewKin">Abgehoben</string>
   <string name="title_yourAccessKey">Ihr Zugangsschlüssel</string>
+  <string name="tooltip_tapLogo">Tippen Sie das Logo an, um den Download-Link der App zu teilen</string>
 </resources>

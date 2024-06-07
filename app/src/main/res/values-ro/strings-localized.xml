@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Acest numerar a expirat.</string>
   <string name="error_description_codeTimedOut">Reintrodu numărul de telefon și încearcă din nou.</string>
   <string name="error_description_contactsAccessRequired">Te rugăm să permiți accesul la contacte din Setări pentru a putea trimite invitații.</string>
+  <string name="error_description_countryNotSupported">Code nu este momentan disponibil în țara dumneavoastră.</string>
+  <string name="error_description_deviceNotSupported">Nu putem oferi suport pentru dispozitivul dumneavoastră în acest moment</string>
+  <string name="error_description_eSimNotSupported">Suportul pentru eSims va veni, probabil, într-o versiune viitoare a Code.</string>
   <string name="error_description_failedToCreateAccount">Nu ne așteptam să se întâmple așa. Ceva a mers rău. Te rugăm să încerci din nou să creezi acest cont.</string>
   <string name="error_description_failedToSave">Pentru a-ți salva cheia de acces este nevoie ca în Setări să permiți Code să acceseze Fotografiile.</string>
+  <string name="error_description_failedToSendCode">Ceva a mers prost. Vă rugăm să vă asigurați că numărul dumneavoastră de telefon este introdus în mod corect.</string>
   <string name="error_description_failedToVerifyPhone">Ceva a mers rău. Încearcă din nou.</string>
   <string name="error_description_failedWithdrawal">Retragerea fondurilor tale a eșuat. Ceva nu a mers cum trebuie, te rugăm să încerci din nou să efectuezi retragerea.</string>
   <string name="error_description_giveAmountTooLarge">Code este conceput pentru tranzacții mici, de toate zilele, în sumă de  %1$s sau mai puțin.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Cantitatea maximă pe care o poți da ca bacșiș este %1$s. Te rugăm să introduci o sumă mai mică.</string>
   <string name="error_description_tipTooSmall">Cantitatea minimă pe care o poți da ca bacșiș este %1$s. Te rugăm să introduci o sumă mai mare.</string>
   <string name="error_description_tooManyAccounts">Poți crea un număr limitat de conturi în fiecare zi.</string>
+  <string name="error_description_tooManyAccountsPerDevice">În momentul de față, Code este limitat la un singur cont pe dispozitiv. Suportul pentru mai multe conturi va apărea, probabil, într-o versiune viitoare a Code.</string>
+  <string name="error_description_tooManyAccountsPerPhone">În momentul de față, Code este limitat la un singur cont per număr de telefon. Suportul pentru mai multe conturi va apărea, probabil, într-o versiune viitoare a Code.</string>
   <string name="error_title_alreadyCollected">Kin-ul a fost colectat deja</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin deja colectat</string>
   <string name="error_title_cameraAccessRequired">Este necesar accesul la fotocameră</string>
   <string name="error_title_cashExpired">Numerar expirat</string>
   <string name="error_title_codeTimedOut">Codul de verificare a expirat</string>
   <string name="error_title_contactsAccessRequired">Este necesar accesul la contacte</string>
+  <string name="error_title_countryNotSupported">Țară neacceptată</string>
+  <string name="error_title_deviceNotSupported">Dispozitiv neacceptat</string>
+  <string name="error_title_eSimNotSupported">eSims nu este acceptat în prezent</string>
   <string name="error_title_failedToCreateAccount">Crearea contului a eșuat</string>
   <string name="error_title_failedToSave">Salvarea a eșuat</string>
   <string name="error_title_failedToSendCode">Trimiterea a eșuat</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Bacșiș prea mare</string>
   <string name="error_title_tipTooSmall">Bacșiș prea mic</string>
   <string name="error_title_tooManyAccounts">Au fost create prea multe conturi</string>
+  <string name="error_title_tooManyAccountsPerDevice">Cont deja creat</string>
+  <string name="error_title_tooManyAccountsPerPhone">Cont deja creat</string>
   <string name="faq_a__1">Code este o aplicație de plăți care simplifică trimiterea de bani către oricine, oriunde în lume.</string>
   <string name="faq_a__10">Ne propunem să ne menținem prin intermediul unui model de abonament viitor, similar cu Signal și Twitter.</string>
   <string name="faq_a__11">Fiind o organizație non-profit, toți banii pe care îi câștigăm vor fi reinvestiți în misiunea noastră de a promova incluziunea financiară globală. Sprijinul dumneavoastră este apreciat.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Iată %1$s</string>
   <string name="subtitle_requestNewOneIn">Cere unul nou în %1$s</string>
   <string name="subtitle_scanThisQRCode">Scanați acest cod QR cu camera telefonului dumneavoastră pentru a descărca aplicația Code Wallet</string>
+  <string name="subtitle_scanToDownload">Scanați pentru a descărca\naplicația Portofelul Code</string>
   <string name="subtitle_searchCurrencies">Caută valute</string>
   <string name="subtitle_searchForContacts">Caută în contacte</string>
   <string name="subtitle_smsWasSent">Un mesaj SMS cu un cod de verificare a fost trimis la numărul tău de telefon. Te rugăm să introduci mai sus codul de verificare.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Retrage Kin</string>
   <string name="title_withdrewKin">Retras</string>
   <string name="title_yourAccessKey">Cheia ta de acces</string>
+  <string name="tooltip_tapLogo">Atingeți logo-ul pentru a partaja link-ul de descărcare a aplicației</string>
 </resources>

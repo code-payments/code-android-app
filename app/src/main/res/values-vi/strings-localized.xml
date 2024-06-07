@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Tiền mặt này đã hết hạn.</string>
   <string name="error_description_codeTimedOut">Xin vui lòng nhập lại số điện thoại của bạn và thử lại.</string>
   <string name="error_description_contactsAccessRequired">Vui lòng cho phép truy cập vào danh bạ trong phần Cài đặt để gửi lời mời.</string>
+  <string name="error_description_countryNotSupported">Code hiện chưa hoạt động ở quốc gia của bạn.</string>
+  <string name="error_description_deviceNotSupported">Chúng tôi không thể hỗ trợ thiết bị của bạn tại thời điểm này</string>
+  <string name="error_description_eSimNotSupported">Phiên bản Code trong tương lai có thể sẽ hỗ trợ eSim.</string>
   <string name="error_description_failedToCreateAccount">Chúng tôi không mong đợi điều đó xảy ra. Đã xảy ra lỗi. Xin vui lòng thử tạo lại tài khoản này.</string>
   <string name="error_description_failedToSave">Xin vui lòng cho phép Mã truy cập vào Ảnh trong mục Cài đặt để lưu Khóa Truy cập của bạn.</string>
+  <string name="error_description_failedToSendCode">Đã xảy ra lỗi. Vui lòng đảm bảo rằng bạn đã nhập đúng số điện thoại.</string>
   <string name="error_description_failedToVerifyPhone">Đã xảy ra lỗi. Xin vui lòng thử lại.</string>
   <string name="error_description_failedWithdrawal">Không thể rút tiền của bạn. Đã xảy ra sự cố, xin vui lòng thử rút tiền một lần nữa.</string>
   <string name="error_description_giveAmountTooLarge">Code được thiết kế cho các giao dịch nhỏ hàng ngày có giá trị từ %1$s trở xuống.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Số tiền tối đa bạn có thể boa là %1$s. Vui lòng nhập số tiền nhỏ hơn.</string>
   <string name="error_description_tipTooSmall">Số tiền tối thiểu bạn có thể boa là %1$s. Vui lòng nhập số tiền lớn hơn.</string>
   <string name="error_description_tooManyAccounts">Bạn chỉ có thể tạo rất nhiều tài khoản mới mỗi ngày.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code hiện được giới hạn ở một tài khoản cho mỗi số điện thoại. Phiên bản Code trong tương lai có thể sẽ hỗ trợ nhiều tài khoản.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code hiện được giới hạn ở một tài khoản cho mỗi số điện thoại. Phiên bản Code trong tương lai có thể sẽ hỗ trợ nhiều tài khoản.</string>
   <string name="error_title_alreadyCollected">Kin Đã được Thu thập</string>
   <string name="error_title_alreadyCollectedBySomeone">Đã có người thu thập Kin</string>
   <string name="error_title_cameraAccessRequired">Cần Quyền truy cập Camera</string>
   <string name="error_title_cashExpired">Tiền mặt Đã hết hạn</string>
   <string name="error_title_codeTimedOut">Mã Xác minh đã Hết Thời gian chờ</string>
   <string name="error_title_contactsAccessRequired">Yêu cầu Quyền truy cập Danh bạ</string>
+  <string name="error_title_countryNotSupported">Quốc gia chưa được hỗ trợ</string>
+  <string name="error_title_deviceNotSupported">Thiết bị chưa được hỗ trợ</string>
+  <string name="error_title_eSimNotSupported">eSim hiện chưa được hỗ trợ</string>
   <string name="error_title_failedToCreateAccount">Không thể Tạo Tài khoản</string>
   <string name="error_title_failedToSave">Không thể Lưu</string>
   <string name="error_title_failedToSendCode">Không thể Gửi</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Tiền boa quá lớn</string>
   <string name="error_title_tipTooSmall">Tiền boa quá nhỏ</string>
   <string name="error_title_tooManyAccounts">Quá nhiều tài khoản được tạo</string>
+  <string name="error_title_tooManyAccountsPerDevice">Tài khoản đã được tạo</string>
+  <string name="error_title_tooManyAccountsPerPhone">Tài khoản đã được tạo</string>
   <string name="faq_a__1">Code là một ứng dụng thanh toán giúp gửi tiền cho bất kỳ ai, ở bất kỳ đâu trên thế giới một cách đơn giản.</string>
   <string name="faq_a__10">Chúng tôi dự định duy trì bản thân thông qua một mô hình gói đăng ký sắp được ra mắt, tương tự như những gì Signal và Twitter đã làm.</string>
   <string name="faq_a__11">Là một tổ chức phi lợi nhuận, tất cả số tiền chúng tôi kiếm được sẽ được tái đầu tư vào sứ mệnh thúc đẩy tài chính toàn diện trên toàn cầu. Chúng tôi đánh giá cao sự hỗ trợ của bạn.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Đây là %1$s</string>
   <string name="subtitle_requestNewOneIn">Yêu cầu mã xác minh mới sau %1$s</string>
   <string name="subtitle_scanThisQRCode">Quét mã QR này bằng máy ảnh trên điện thoại của bạn để tải xuống ứng dụng Ví Code</string>
+  <string name="subtitle_scanToDownload">Quét để tải xuống\nứng dụng Ví Code</string>
   <string name="subtitle_searchCurrencies">Tìm kiếm đơn vị tiền tệ</string>
   <string name="subtitle_searchForContacts">Tìm kiếm liên hệ</string>
   <string name="subtitle_smsWasSent">Đã gửi tin nhắn SMS đến số điện thoại của bạn với mã xác minh. Vui lòng nhập mã xác minh vào phía trên.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Rút Kin</string>
   <string name="title_withdrewKin">Đã rút</string>
   <string name="title_yourAccessKey">Khóa Truy cập của Bạn</string>
+  <string name="tooltip_tapLogo">Nhấn vào logo để chia sẻ liên kết tải xuống ứng dụng</string>
 </resources>

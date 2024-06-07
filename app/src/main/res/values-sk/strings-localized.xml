@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Tejto hotovosti vypršala platnosť.</string>
   <string name="error_description_codeTimedOut">Znova zadajte svoje telefónne číslo a skúste to znova.</string>
   <string name="error_description_contactsAccessRequired">Ak chcete posielať pozvánky, povoľte prístup ku kontaktom v Nastaveniach.</string>
+  <string name="error_description_countryNotSupported">Aplikácia Code je momentálne vo vašej krajine nedostupná.</string>
+  <string name="error_description_deviceNotSupported">Momentálne nemôžeme podporovať vaše zariadenie</string>
+  <string name="error_description_eSimNotSupported">Podpora pre eSims bude pravdepodobne k dispozícii v budúcej verzii aplikácie Code.</string>
   <string name="error_description_failedToCreateAccount">Nečakali sme, že sa to stane. Niečo sa pokazilo. Skúste vytvoriť tento účet znova.</string>
   <string name="error_description_failedToSave">Ak si chcete uložiť svoj prístupový kľúč, povoľte kódový prístup k fotkám v Nastaveniach.</string>
+  <string name="error_description_failedToSendCode">Niečo sa pokazilo. Uistite sa, že je vaše telefónne číslo zadané správne.</string>
   <string name="error_description_failedToVerifyPhone">Niečo sa pokazilo. Skúste to znova.</string>
   <string name="error_description_failedWithdrawal">Nepodarilo sa vybrať vaše prostriedky. Vyskytol sa problém, skúste výber zopakovať.</string>
   <string name="error_description_giveAmountTooLarge">Aplikácia Code je navrhnutá pre malé, každodenné transakcie, ktoré sú v hodnote %1$s alebo menej.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Maximálny tip je %1$s. Zadajte nižšiu sumu.</string>
   <string name="error_description_tipTooSmall">Minimálny tip je %1$s. Zadajte vyššiu sumu.</string>
   <string name="error_description_tooManyAccounts">Každý deň môžete vytvoriť len toľko nových účtov.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Aplikácia Code je momentálne obmedzený na jeden účet na zariadenie. Podpora viacerých účtov pravdepodobne príde v budúcej verzii aplikácie.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Aplikácia Code je momentálne obmedzená na jeden účet na telefónne číslo. Podpora viacerých účtov pravdepodobne príde v budúcej verzii aplikácie.</string>
   <string name="error_title_alreadyCollected">Kin bol už vyzdvihnutý</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin už bol zhromaždený</string>
   <string name="error_title_cameraAccessRequired">Vyžaduje sa prístup k fotoaparátu</string>
   <string name="error_title_cashExpired">Platnosť hotovosti vypršala</string>
   <string name="error_title_codeTimedOut">Časový limit overovacieho kódu vypršal</string>
   <string name="error_title_contactsAccessRequired">Vyžaduje sa prístup ku kontaktom</string>
+  <string name="error_title_countryNotSupported">Krajina nie je podporovaná</string>
+  <string name="error_title_deviceNotSupported">Zariadenie nie je podporované</string>
+  <string name="error_title_eSimNotSupported">eSims nie sú momentálne podporované</string>
   <string name="error_title_failedToCreateAccount">Vytvorenie účtu zlyhalo</string>
   <string name="error_title_failedToSave">Uloženie zlyhalo</string>
   <string name="error_title_failedToSendCode">Odoslanie zlyhalo</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Príliš vysoký tip</string>
   <string name="error_title_tipTooSmall">Príliš nízky tip</string>
   <string name="error_title_tooManyAccounts">Bolo vytvorených príliš veľa účtov</string>
+  <string name="error_title_tooManyAccountsPerDevice">Účet už bol vytvorený</string>
+  <string name="error_title_tooManyAccountsPerPhone">Účet už bol vytvorený</string>
   <string name="faq_a__1">Code je platobná aplikácia, ktorá uľahčuje posielanie peňazí komukoľvek a kdekoľvek na svete.</string>
   <string name="faq_a__10">Plánujeme sa udržať prostredníctvom pripravovaného modelu predplatného, podobne ako pri Signal a Twitter.</string>
   <string name="faq_a__11">Ako nezisková organizácia budeme všetky peniaze, ktoré zarobíme, reinvestovať do nášho poslania podporovať globálne finančné začlenenie. Vašu podporu si ceníme.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Tu je %1$s</string>
   <string name="subtitle_requestNewOneIn">Požiadajte o nový v %1$s</string>
   <string name="subtitle_scanThisQRCode">Naskenujte tento QR kód fotoaparátom svojho telefónu a stiahnite si aplikáciu Code Wallet</string>
+  <string name="subtitle_scanToDownload">Naskenovaním si stiahnete\npeňaženku aplikácie Code</string>
   <string name="subtitle_searchCurrencies">Vyhľadať meny</string>
   <string name="subtitle_searchForContacts">Vyhľadať kontakty</string>
   <string name="subtitle_smsWasSent">Na vaše telefónne číslo bola odoslaná SMS správa s overovacím kódom. Zadajte overovací kód vyššie.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Odvolať Kin</string>
   <string name="title_withdrewKin">Odvolané</string>
   <string name="title_yourAccessKey">Váš prístupový kľúč</string>
+  <string name="tooltip_tapLogo">Klepnutím na logo zdieľajte odkaz na stiahnutie aplikácie</string>
 </resources>

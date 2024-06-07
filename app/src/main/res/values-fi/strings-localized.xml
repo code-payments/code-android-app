@@ -86,8 +86,12 @@
   <string name="error_description_cashExpired">Tämä raha on vanhentunut.</string>
   <string name="error_description_codeTimedOut">Syötä puhelinnumerosi uudelleen ja yritä taas.</string>
   <string name="error_description_contactsAccessRequired">Voit lähettää kutsuja sallimalla asetuksissa yhteystietojen käyttöoikeuden.</string>
+  <string name="error_description_countryNotSupported">Code ei ole tällä hetkellä saatavilla maassasi.</string>
+  <string name="error_description_deviceNotSupported">Emme voi tukea laitettasi juuri nyt</string>
+  <string name="error_description_eSimNotSupported">eSIMien tuki tulee todennäköisesti saataville Coden tulevassa versiossa.</string>
   <string name="error_description_failedToCreateAccount">Emme odottaneet näin käyvän. Jotakin meni vikaan. Kokeile tämän tilin luomista uudestaan.</string>
   <string name="error_description_failedToSave">Anna Codelle valokuvien käyttöoikeudet asetuksista käsin, jotta voit tallentaa käyttöoikeusavaimesi.</string>
+  <string name="error_description_failedToSendCode">Jokin meni vikaan. Varmistathan, että puhelinnumerosi on syötetty oikein.</string>
   <string name="error_description_failedToVerifyPhone">Jotakin meni vikaan. Yritä uudestaan.</string>
   <string name="error_description_failedWithdrawal">Rahojesi nostaminen epäonnistui. Jotakin meni vikaan. Yritä nostoa uudestaan.</string>
   <string name="error_description_giveAmountTooLarge">Code on suunniteltu arjen pieniin siirtoihin, jotka ovat summaltaan %1$s tai alle.</string>
@@ -110,12 +114,17 @@
   <string name="error_description_tipTooLarge">Suurin mahdollinen tippi on %1$s. Syötä pienempi summa.</string>
   <string name="error_description_tipTooSmall">Pienin mahdollinen tippi on %1$s. Syötä suurempi summa.</string>
   <string name="error_description_tooManyAccounts">Voit luoda vain tietyn määrän uusia tilejä päivässä.</string>
+  <string name="error_description_tooManyAccountsPerDevice">Code on tällä hetkellä rajoitettu yhteen tiliin laitetta kohden. Useampien tilien tuki tulee saataville todennäköisesti Coden tulevassa versiossa.</string>
+  <string name="error_description_tooManyAccountsPerPhone">Code on tällä hetkellä rajoitettu yhteen tiliin puhelinnumeroa kohden. Useampien tilien tuki tulee saataville todennäköisesti Coden tulevassa versiossa.</string>
   <string name="error_title_alreadyCollected">Kin jo lunastettu</string>
   <string name="error_title_alreadyCollectedBySomeone">Kin jo lunastettu</string>
   <string name="error_title_cameraAccessRequired">Kameran käyttöoikeus vaaditaan</string>
   <string name="error_title_cashExpired">Raha vanhentui</string>
   <string name="error_title_codeTimedOut">Vahvistuskoodi aikakatkaistu</string>
   <string name="error_title_contactsAccessRequired">Yhteystietojen käyttöoikeus tarvitaan</string>
+  <string name="error_title_countryNotSupported">Maata ei tueta</string>
+  <string name="error_title_deviceNotSupported">Laitetta ei tueta</string>
+  <string name="error_title_eSimNotSupported">eSIMejä ei tueta juuri nyt</string>
   <string name="error_title_failedToCreateAccount">Tilin luominen epäonnistui</string>
   <string name="error_title_failedToSave">Tallentaminen epäonnistui</string>
   <string name="error_title_failedToSendCode">Lähettäminen epäonnistui</string>
@@ -141,6 +150,8 @@
   <string name="error_title_tipTooLarge">Tippi liian iso</string>
   <string name="error_title_tipTooSmall">Liian pieni tippi</string>
   <string name="error_title_tooManyAccounts">Luotu liian monta tiliä</string>
+  <string name="error_title_tooManyAccountsPerDevice">Tili on jo luotu</string>
+  <string name="error_title_tooManyAccountsPerPhone">Tili on jo luotu</string>
   <string name="faq_a__1">Code on maksusovellus, jonka avulla on helppoa lähettää rahaa kelle tahansa, missä päin maailmaa tahansa.</string>
   <string name="faq_a__10">Aiomme ylläpitää itseämme uuden tilausmallin avulla tulevaisuudessa, kuten Signal ja Twitter tekevät.</string>
   <string name="faq_a__11">Voittoa tavoittelemattomana organisaationa kaikki ansaitsemamme rahat sijoitetaan takaisin tehtäväämme edistää maailmanlaajuista taloudellista osallisuutta. Arvostamme tukeasi.</string>
@@ -262,6 +273,7 @@
   <string name="subtitle_remoteSendSubject">Tässä on %1$s</string>
   <string name="subtitle_requestNewOneIn">Pyydä uusi, kun aikaa on kulunut %1$s</string>
   <string name="subtitle_scanThisQRCode">Lataa Code-lompakkosovellus skannaamalla tämä QR-koodi puhelimesi kameralla</string>
+  <string name="subtitle_scanToDownload">Skannaa ladataksesi\nCode Wallet -sovelluksen</string>
   <string name="subtitle_searchCurrencies">Hae valuuttoja</string>
   <string name="subtitle_searchForContacts">Hae yhteystietoja</string>
   <string name="subtitle_smsWasSent">Vahvistuskoodi lähetettiin puhelinnumeroosi tekstiviestinä. Syötä vahvistuskoodi tämän yläpuolelle.</string>
@@ -352,4 +364,5 @@
   <string name="title_withdrawKin">Nosta kinejä</string>
   <string name="title_withdrewKin">Nosti</string>
   <string name="title_yourAccessKey">Oma käyttöoikeusavaimesi</string>
+  <string name="tooltip_tapLogo">Napauta logoa jakaaksesi sovelluksen latauslinkin</string>
 </resources>
