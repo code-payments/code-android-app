@@ -39,4 +39,8 @@
     <string name="action_tapToShareDownloadLink">Tap the Code logo to share the app download link</string>
     <string name="title_scanToDownloadCode">Scan to download the Code Wallet app</string>
     <string name="action_resetTooltips">Reset Tooltips</string>
+
+    <string name="error_title_failedToCollect">Failed to Collect</string>
+    <string name="error_description_failedToCollect">Something went wrong. This Kin could not be collected.</string>
+
 </resources>

@@ -1559,26 +1559,15 @@ class HomeViewModel @Inject constructor(
                                 removeLinkWithDelay(base58Entropy)
                             }
                         } catch (ex: Exception) {
-                            ex.printStackTrace()
-                            Timber.e(ex)
-                            when (ex) {
-                                is RemoteSendException -> {
-                                    onRemoteSendError(ex)
-                                    removeLinkWithDelay(base58Entropy)
-                                }
-
-                                else -> {
-                                    ErrorUtils.handleError(ex)
-                                }
-                            }
+                            onRemoteSendError(ex)
                         }
                     }
                 }
             }
         } catch (e: Base58.AddressFormatException.InvalidCharacter) {
-            ErrorUtils.handleError(e)
+            onRemoteSendError(e)
         } catch (e: Exception) {
-            ErrorUtils.handleError(e)
+            onRemoteSendError(e)
         }
     }
 
@@ -1598,7 +1587,15 @@ class HomeViewModel @Inject constructor(
                 )
 
             else -> {
-                ErrorUtils.handleError(throwable)
+                TopBarManager.showMessage(
+                    getString(R.string.error_title_failedToCollect),
+                    getString(R.string.error_description_failedToCollect)
+                )
+                val traceableError = Throwable(
+                    message = "Failed to receive remote send",
+                    cause = throwable
+                )
+                ErrorUtils.handleError(traceableError)
             }
         }
     }
