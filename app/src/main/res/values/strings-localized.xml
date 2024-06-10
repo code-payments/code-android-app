@@ -364,5 +364,5 @@
   <string name="title_withdrawKin">Withdraw Kin</string>
   <string name="title_withdrewKin">Withdrew</string>
   <string name="title_yourAccessKey">Your Access Key</string>
-  <string name="tooltip_tapLogo">Tap the logo to share the app download link</string>
+  <string name="tooltip_tapLogo">Tap the Code logo to share the app download link</string>
 </resources>
