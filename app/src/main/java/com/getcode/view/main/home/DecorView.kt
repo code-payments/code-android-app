@@ -46,7 +46,6 @@ import com.getcode.theme.xxl
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.Pill
 import com.getcode.ui.tips.DefinedTips
-import com.getcode.ui.utils.addIf
 import com.getcode.view.main.home.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider
 import dev.bmcreations.tipkit.engines.LocalTipsEngine

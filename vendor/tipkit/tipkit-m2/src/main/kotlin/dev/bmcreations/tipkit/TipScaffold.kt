@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -75,7 +76,7 @@ object TipDefaults {
                     shape = TriangleEdge()
                 )
                 .width(CodeTheme.dimens.grid.x3)
-                .height(CodeTheme.dimens.grid.x2)
+                .height(CodeTheme.dimens.grid.x1)
         )
     }
 
@@ -158,7 +159,7 @@ object TipDefaults {
             Column(
                 modifier = Modifier
                     .padding(CodeTheme.dimens.grid.x2)
-                    .widthIn(max = screenWidth * 0.55f),
+                    .widthIn(max = 240.dp),
             ) {
                 TipContents(tip = tip)
             }

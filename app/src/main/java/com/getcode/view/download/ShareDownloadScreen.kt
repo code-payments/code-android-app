@@ -3,11 +3,13 @@ package com.getcode.view.download
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -28,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.getcode.LocalDownloadQrCode
 import com.getcode.R
 import com.getcode.theme.CodeTheme
@@ -38,6 +41,8 @@ import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
+import com.getcode.ui.utils.debugBounds
+import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.shareDownloadLink
 
@@ -71,7 +76,9 @@ fun ShareDownloadScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    modifier = Modifier.fillMaxWidth(0.6f),
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .padding(top = CodeTheme.dimens.grid.x15),
                     text = stringResource(R.string.subtitle_scanToDownload),
                     style = CodeTheme.typography.textLarge,
                     textAlign = TextAlign.Center
