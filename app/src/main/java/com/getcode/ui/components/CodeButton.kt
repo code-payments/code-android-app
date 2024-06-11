@@ -44,6 +44,10 @@ fun CodeButton(
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
     enabled: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(
+        top = CodeTheme.dimens.grid.x3,
+        bottom = CodeTheme.dimens.grid.x3,
+    ),
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
@@ -55,6 +59,7 @@ fun CodeButton(
         isSuccess = isSuccess,
         enabled = enabled,
         buttonState = buttonState,
+        contentPadding = contentPadding,
         shape = shape,
         contentColor = textColor,
     ) {
@@ -72,6 +77,10 @@ fun CodeButton(
     enabled: Boolean = true,
     buttonState: ButtonState = ButtonState.Bordered,
     shape: Shape = CodeTheme.shapes.small,
+    contentPadding: PaddingValues = PaddingValues(
+        top = CodeTheme.dimens.grid.x3,
+        bottom = CodeTheme.dimens.grid.x3,
+    ),
     contentColor: Color = Color.Unspecified,
     content: @Composable RowScope.() -> Unit,
 ) {
@@ -111,10 +120,7 @@ fun CodeButton(
                 pressedElevation = 0.dp
             ),
             shape = shape,
-            contentPadding = ButtonDefaults.ContentPadding.plus(
-                top = CodeTheme.dimens.grid.x3,
-                bottom = CodeTheme.dimens.grid.x3,
-            )
+            contentPadding = ButtonDefaults.ContentPadding.plus(contentPadding)
         ) {
             when {
                 isLoading -> {

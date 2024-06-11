@@ -17,6 +17,7 @@ import com.getcode.manager.GiftCardManager
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.AppSetting
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
@@ -60,6 +61,8 @@ import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
+import com.getcode.network.repository.AppSettings
+import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PaymentRepository
@@ -138,6 +141,7 @@ data class HomeUiModel(
     val balance: KinAmount? = null,
     val logScanTimes: Boolean = false,
     val showNetworkOffline: Boolean = false,
+    val autoStartCamera: Boolean? = null,
     val isCameraScanEnabled: Boolean = true,
     val presentationStyle: PresentationStyle = PresentationStyle.Hidden,
     val billState: BillState = BillState.Default,
@@ -181,6 +185,7 @@ class HomeViewModel @Inject constructor(
     private val exchange: Exchange,
     private val giftCardManager: GiftCardManager,
     private val mnemonicManager: MnemonicManager,
+    appSettings: AppSettingsRepository,
     betaFlags: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
@@ -195,6 +200,13 @@ class HomeViewModel @Inject constructor(
 
     init {
         onDrawn()
+
+        viewModelScope.launch {
+            val cameraAutoStart = appSettings.get(PrefsBool.CAMERA_START_BY_DEFAULT)
+            uiFlow.update {
+                it.copy(autoStartCamera = cameraAutoStart)
+            }
+        }
 
         betaFlags.observe()
             .distinctUntilChanged()
@@ -365,6 +377,10 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun onStartCamera() {
+        uiFlow.update { it.copy(autoStartCamera = true) }
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {

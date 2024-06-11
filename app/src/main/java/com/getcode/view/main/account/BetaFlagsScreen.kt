@@ -2,18 +2,13 @@ package com.getcode.view.main.account
 
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -22,8 +17,7 @@ import com.getcode.model.PrefsBool
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
-import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.components.CodeSwitch
+import com.getcode.ui.components.SettingsRow
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -120,40 +114,13 @@ fun BetaFlagsScreen(
 
     LazyColumn {
         items(options) { option ->
-            Row(
-                modifier = Modifier
-                    .animateItemPlacement()
-                    .rememberedClickable { option.onChange(!option.dataState) }
-                    .padding(horizontal = CodeTheme.dimens.grid.x3)
-                    .padding(end = CodeTheme.dimens.grid.x3),
-                verticalAlignment = Alignment.CenterVertically
+            SettingsRow(
+                modifier = Modifier.animateItemPlacement(),
+                title = stringResource(id = option.titleResId),
+                subtitle = option.subtitleText,
+                checked = option.dataState
             ) {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(vertical = CodeTheme.dimens.grid.x3)
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .padding(vertical = CodeTheme.dimens.grid.x2),
-                        text = stringResource(id = option.titleResId)
-                    )
-                    if (option.subtitleText.isNotEmpty()) {
-                        Text(
-                            modifier = Modifier
-                                .padding(vertical = CodeTheme.dimens.grid.x1),
-                            text = option.subtitleText,
-                            style = CodeTheme.typography.caption,
-                            color = CodeTheme.colors.textSecondary
-                        )
-                    }
-                }
-
-                CodeSwitch(
-                    modifier = Modifier.wrapContentSize(),
-                    checked = option.dataState,
-                    onCheckedChange = null,
-                )
+                option.onChange(!option.dataState)
             }
         }
 
@@ -177,7 +144,7 @@ fun BetaFlagsScreen(
 private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         PrefsBool.BUY_MODULE_ENABLED -> false
-        PrefsBool.TIPS_ENABLED -> false
+        PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
         PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
         else -> true
     }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -92,9 +91,9 @@ private fun TopBarView(
                 when (topBarMessage.type) {
                     ERROR_NETWORK, ERROR -> CodeTheme.colors.error
                     WARNING -> Warning
-                    NOTIFICATION -> topNotification
-                    NEUTRAL -> topNeutral
-                    SUCCESS -> topSuccess
+                    NOTIFICATION -> TopNotification
+                    NEUTRAL -> TopNeutral
+                    SUCCESS -> TopSuccess
 
                 }
             )

@@ -27,6 +27,7 @@ import javax.inject.Inject
 data class AccountMainItem(
     val type: AccountPage,
     val name: Int,
+    val description: Int? = null,
     val icon: Int,
     val isPhoneLinked: Boolean? = null,
 )
@@ -40,6 +41,7 @@ enum class AccountPage {
     ACCESS_KEY,
     FAQ,
     ACCOUNT_DETAILS,
+    APP_SETTINGS,
     ACCOUNT_DEBUG_OPTIONS,
     LOGOUT
 }
@@ -134,6 +136,11 @@ class AccountSheetViewModel @Inject constructor(
                 type = AccountPage.ACCOUNT_DETAILS,
                 name = R.string.title_myAccount,
                 icon = R.drawable.ic_menu_account
+            ),
+            AccountMainItem(
+                type = AccountPage.APP_SETTINGS,
+                name = R.string.title_appSettings,
+                icon = R.drawable.ic_settings_outline,
             ),
             AccountMainItem(
                 type = AccountPage.ACCOUNT_DEBUG_OPTIONS,

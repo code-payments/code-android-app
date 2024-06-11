@@ -41,6 +41,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountDebugOptionsScreen
 import com.getcode.navigation.screens.AccountDetailsScreen
+import com.getcode.navigation.screens.AppSettingsScreen
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.DepositKinScreen
@@ -90,6 +91,7 @@ fun AccountHome(
                     AccountPage.FAQ -> navigator.push(FaqScreen)
                     AccountPage.ACCOUNT_DETAILS -> navigator.push(AccountDetailsScreen)
                     AccountPage.ACCOUNT_DEBUG_OPTIONS -> navigator.push(AccountDebugOptionsScreen)
+                    AccountPage.APP_SETTINGS -> navigator.push(AppSettingsScreen)
                     AccountPage.LOGOUT -> {
                         BottomBarManager.showMessage(
                             BottomBarManager.BottomBarMessage(

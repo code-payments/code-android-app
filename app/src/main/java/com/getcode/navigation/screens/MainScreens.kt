@@ -240,6 +240,11 @@ data object ShareDownloadLinkModal : MainGraph, ModalRoot {
         ) {
             ShareDownloadScreen()
         }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.Share
+        )
     }
 }
 
