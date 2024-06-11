@@ -236,14 +236,14 @@ class AuthManager @Inject constructor(
             }
             .doOnSuccess {
                 taggedTrace("account data fetched successfully")
-                launch { savePrefs(phone!!, user!!) }
-                launch { exchange.fetchRatesIfNeeded() }
-                launch { historyController.fetchChats() }
                 if (!BuildConfig.DEBUG) {
                     if (Bugsnag.isStarted()) {
                         Bugsnag.setUser(null, phone?.phoneNumber, null)
                     }
                 }
+                launch { savePrefs(phone!!, user!!) }
+                launch { exchange.fetchRatesIfNeeded() }
+                launch { historyController.fetchChats() }
             }
     }
 
