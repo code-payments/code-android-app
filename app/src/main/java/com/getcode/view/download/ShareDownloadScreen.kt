@@ -3,13 +3,11 @@ package com.getcode.view.download
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -41,7 +39,6 @@ import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.utils.debugBounds
 import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.shareDownloadLink
@@ -56,6 +53,7 @@ fun ShareDownloadScreen() {
     var contentRect: Rect by remember {
         mutableStateOf(Rect.Zero)
     }
+
     SelectionContainer(
         modifier = Modifier
             .fillMaxSize()
@@ -75,14 +73,6 @@ fun ShareDownloadScreen() {
                     .padding(bottom = CodeTheme.dimens.grid.x4),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth(0.6f)
-                        .padding(top = CodeTheme.dimens.grid.x15),
-                    text = stringResource(R.string.subtitle_scanToDownload),
-                    style = CodeTheme.typography.textLarge,
-                    textAlign = TextAlign.Center
-                )
 
                 Spacer(modifier = Modifier.weight(1f))
 
@@ -99,18 +89,29 @@ fun ShareDownloadScreen() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .align(Alignment.Center),
+                .align(Alignment.Center)
+                .padding(bottom = CodeTheme.dimens.grid.x11),
             verticalArrangement = Arrangement.spacedBy(
                 space = CodeTheme.dimens.grid.x7,
                 alignment = Alignment.CenterVertically
             ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val qrCode = LocalDownloadQrCode.current
-            val iconAlpha by animateFloatAsState(
+            val contentAlpha by animateFloatAsState(
                 targetValue = if (selectionState.shown) 0f else 1f,
                 label = "icon alpha"
             )
+            Text(
+                modifier = Modifier
+                    .padding(bottom = CodeTheme.dimens.grid.x4)
+                    .alpha(contentAlpha),
+                text = stringResource(R.string.subtitle_scanToDownload),
+                style = CodeTheme.typography.textLarge,
+                textAlign = TextAlign.Center
+            )
+
+            val qrCode = LocalDownloadQrCode.current
+
 
             if (qrCode != null) {
                 Image(
@@ -118,7 +119,8 @@ fun ShareDownloadScreen() {
                         .onPlaced { contentRect = it.boundsInWindow() }
                         .rememberedLongClickable {
                             onClick()
-                        }.scale(selectionState.scale.value),
+                        }
+                        .scale(selectionState.scale.value),
                     painter = qrCode,
                     contentDescription = "qr"
                 )
@@ -127,7 +129,7 @@ fun ShareDownloadScreen() {
             }
 
             Row(
-                modifier = Modifier.alpha(iconAlpha),
+                modifier = Modifier.alpha(contentAlpha),
                 horizontalArrangement = Arrangement.spacedBy(
                     space = CodeTheme.dimens.inset,
                     alignment = Alignment.CenterHorizontally

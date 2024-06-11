@@ -16,6 +16,7 @@ import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.repository.TransactionRepository.DeniedReason
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.R as themeR
 import com.getcode.theme.Brand
@@ -286,19 +287,18 @@ abstract class BaseAccessKeyViewModel(
             is TransactionRepository.ErrorSubmitIntentException -> {
                 when (val intent = e.errorSubmitIntent) {
                     is TransactionRepository.ErrorSubmitIntent.Denied -> {
-                        if (intent.reasons.isEmpty()) {
+                        if (intent.reasons.isEmpty() || intent.reasons.first() == DeniedReason.Unspecified) {
                             getSomethingWentWrongError()
                         } else {
                             val reason = intent.reasons.first()
                             when (reason) {
-                                TransactionRepository.DeniedReason.Unspecified -> getSomethingWentWrongError()
-                                TransactionRepository.DeniedReason.TooManyFreeAccountsForPhoneNumber -> getTooManyAccountsPerPhoneError()
-                                TransactionRepository.DeniedReason.TooManyFreeAccountsForDevice -> getTooManyAccountsPerDeviceError()
-                                TransactionRepository.DeniedReason.UnsupportedCountry -> getUnsupportedCountryError()
-                                TransactionRepository.DeniedReason.UnsupportedDevice -> getUnsupportedDeviceError()
+                                DeniedReason.Unspecified -> getSomethingWentWrongError()
+                                DeniedReason.TooManyFreeAccountsForPhoneNumber -> getTooManyAccountsPerPhoneError()
+                                DeniedReason.TooManyFreeAccountsForDevice -> getTooManyAccountsPerDeviceError()
+                                DeniedReason.UnsupportedCountry -> getUnsupportedCountryError()
+                                DeniedReason.UnsupportedDevice -> getUnsupportedDeviceError()
                             }
                         }
-                        getSomethingWentWrongError()
                     }
                     else -> getSomethingWentWrongError()
                 }

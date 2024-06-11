@@ -1,5 +1,6 @@
 package com.getcode.analytics
 
+import com.getcode.model.AppSetting
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -47,6 +48,8 @@ interface AnalyticsService {
 
     fun backgroundSwapInitiated()
     fun unintentionalLogout()
+
+    fun appSettingToggled(setting: AppSetting, value: Boolean)
 }
 
 class AnalyticsServiceNull : AnalyticsService {
@@ -90,4 +93,5 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun tipCardShown(username: String) = Unit
     override fun backgroundSwapInitiated() = Unit
     override fun unintentionalLogout() = Unit
+    override fun appSettingToggled(setting: AppSetting, value: Boolean) = Unit
 }
