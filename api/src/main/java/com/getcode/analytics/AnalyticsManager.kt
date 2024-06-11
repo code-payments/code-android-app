@@ -1,9 +1,11 @@
 package com.getcode.analytics
 
 import com.getcode.api.BuildConfig
+import com.getcode.model.AppSetting
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.PrefsBool
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.google.firebase.ktx.Firebase
@@ -92,7 +94,11 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
-    override fun billHidden(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
+    override fun billHidden(
+        kin: Kin,
+        currencyCode: CurrencyCode,
+        animation: BillPresentationStyle
+    ) {
         track(
             Name.Bill,
             Pair(Property.State, StringValue.Hidden.value),
@@ -247,6 +253,17 @@ class AnalyticsManager @Inject constructor(
         track(Name.BackgroundSwap)
     }
 
+    override fun appSettingToggled(setting: AppSetting, value: Boolean) {
+        val name = when (setting) {
+            PrefsBool.CAMERA_START_BY_DEFAULT -> Name.AutoStartCamera
+        }
+
+        track(
+            name,
+            Property.State to if (value) StringValue.Yes.value else StringValue.No.value,
+        )
+    }
+
     private fun track(event: Name, vararg properties: Pair<Property, String>) {
         if (BuildConfig.DEBUG) {
             Timber.d("debug track $event, ${properties.map { "${it.first.name}, ${it.second}" }}")
@@ -292,6 +309,9 @@ class AnalyticsManager @Inject constructor(
         ErrorRequest("Error Request"),
 
         Recompute("Recompute"),
+
+        // App Settings
+        AutoStartCamera("Auto Start Camera")
     }
 
     enum class Property(val value: String) {
