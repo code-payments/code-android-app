@@ -343,6 +343,8 @@ class AnalyticsManager @Inject constructor(
         Backup("Backup Screen"),
         Withdraw("Withdraw Screen"),
         Debug("Debug Screen"),
+        Share("Share Screen"),
+        AppSettings("App Settings"),
         ForceUpgrade("Force Upgrade"),
         BuyMoreKin("Buy More Kin Screen"),
         SendKin("Send Kin Screen"),

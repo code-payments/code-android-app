@@ -20,6 +20,7 @@ import com.getcode.view.main.account.AccountDeposit
 import com.getcode.view.main.account.AccountDetails
 import com.getcode.view.main.account.AccountFaq
 import com.getcode.view.main.account.AccountPhone
+import com.getcode.view.main.account.AppSettingsScreen
 import com.getcode.view.main.account.BackupKey
 import com.getcode.view.main.account.BetaFlagsScreen
 import com.getcode.view.main.account.ConfirmDeleteAccount
@@ -97,6 +98,27 @@ data object AccountDebugOptionsScreen : MainGraph, ModalContent {
         AnalyticsScreenWatcher(
             lifecycleOwner = LocalLifecycleOwner.current,
             event = AnalyticsManager.Screen.Debug
+        )
+    }
+}
+
+@Parcelize
+data object AppSettingsScreen : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_appSettings)
+
+    @Composable
+    override fun Content() {
+        ModalContainer(backButtonEnabled = { it is AppSettingsScreen }) {
+            AppSettingsScreen(getViewModel())
+        }
+
+        AnalyticsScreenWatcher(
+            lifecycleOwner = LocalLifecycleOwner.current,
+            event = AnalyticsManager.Screen.AppSettings
         )
     }
 }

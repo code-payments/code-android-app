@@ -1,7 +1,5 @@
 package com.getcode.view.main.home.components
 
-import android.Manifest
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,8 +7,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,15 +19,11 @@ import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.PermissionCheck
-import com.getcode.ui.components.PermissionsLauncher
 
 @Composable
-internal fun PermissionsBlockingView(
+internal fun CameraDisabledView(
     modifier: Modifier = Modifier,
-    context: Context,
-    onPermissionResult: (Boolean) -> Unit,
-    launcher: PermissionsLauncher,
+    onClick: () -> Unit
 ) {
     Box(
         modifier = modifier.background(Color.Black),
@@ -43,25 +35,16 @@ internal fun PermissionsBlockingView(
                     .fillMaxWidth()
                     .padding(bottom = 30.dp),
                 style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
-                text = stringResource(R.string.subtitle_allowCameraAccess)
+                text = stringResource(R.string.subtitle_cameraRequiredToScanCodes)
             )
             CodeButton(
-                onClick = {
-                    PermissionCheck.requestPermission(
-                        context = context,
-                        permission = Manifest.permission.CAMERA,
-                        shouldRequest = true,
-                        onPermissionResult = onPermissionResult,
-                        launcher = launcher
-                    )
-                },
+                onClick = onClick,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
+                text = stringResource(id = R.string.action_startCamera),
                 contentPadding = PaddingValues(),
-                text = stringResource(id = R.string.action_allowCameraAccess),
                 shape = CircleShape,
                 buttonState = ButtonState.Filled
             )
         }
     }
-
 }

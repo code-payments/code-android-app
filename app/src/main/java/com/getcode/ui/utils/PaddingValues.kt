@@ -55,3 +55,15 @@ fun PaddingValues.plus(
         bottom = calculateBottomPadding() + bottom,
     )
 }
+
+@Composable
+fun PaddingValues.plus(
+    other: PaddingValues,
+): PaddingValues {
+    return PaddingValues(
+        start = calculateStartPadding() + other.calculateStartPadding(),
+        top = calculateTopPadding() + other.calculateTopPadding(),
+        end = calculateEndPadding() + other.calculateEndPadding(),
+        bottom = calculateBottomPadding() + other.calculateBottomPadding(),
+    )
+}

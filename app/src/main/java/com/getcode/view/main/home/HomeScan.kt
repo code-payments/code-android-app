@@ -63,6 +63,7 @@ import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
 import com.getcode.view.main.home.components.BillManagementOptions
+import com.getcode.view.main.home.components.CameraDisabledView
 import com.getcode.view.main.home.components.CodeScanner
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.LoginConfirmation
@@ -122,6 +123,7 @@ fun HomeScreen(
                             HomeEvent.PresentTipEntry -> {
                                 navigator.show(EnterTipModal())
                             }
+
                             is HomeEvent.SendIntent -> {
                                 context.startActivity(it.intent)
                             }
@@ -300,20 +302,30 @@ private fun BillContainer(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .addIf(dataState.isCameraPermissionGranted != true) { Modifier.background(Color.Black) }
             .then(modifier)
     ) {
-        if (dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null) {
-            scannerView()
-        } else {
-            PermissionsBlockingView(
-                modifier = Modifier
-                    .align(Center)
-                    .fillMaxWidth(0.85f),
-                context = context,
-                onPermissionResult = onPermissionResult,
-                launcher = launcher
-            )
+        when {
+            dataState.isCameraPermissionGranted == true
+                    || dataState.isCameraPermissionGranted == null -> {
+                if (dataState.autoStartCamera == null) {
+                    // waiting for result
+                } else if (!dataState.autoStartCamera) {
+                    CameraDisabledView(modifier = Modifier.fillMaxSize()) {
+                        homeViewModel.onStartCamera()
+                    }
+                } else {
+                    scannerView()
+                }
+            }
+
+            else -> {
+                PermissionsBlockingView(
+                    modifier = Modifier.fillMaxSize(),
+                    context = context,
+                    onPermissionResult = onPermissionResult,
+                    launcher = launcher
+                )
+            }
         }
 
         val updatedState by rememberUpdatedState(newValue = dataState)
