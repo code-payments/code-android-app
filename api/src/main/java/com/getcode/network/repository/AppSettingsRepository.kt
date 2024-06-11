@@ -1,5 +1,6 @@
 package com.getcode.network.repository
 
+import com.getcode.analytics.AnalyticsService
 import com.getcode.model.AppSetting
 import com.getcode.model.PrefsBool
 import kotlinx.coroutines.flow.Flow
@@ -17,6 +18,7 @@ data class AppSettings(
 }
 class AppSettingsRepository @Inject constructor(
     private val prefRepository: PrefRepository,
+    private val analytics: AnalyticsService,
 ) {
 
     fun observe(): Flow<AppSettings> = AppSettings.Defaults.let { defaults ->
@@ -34,6 +36,7 @@ class AppSettingsRepository @Inject constructor(
     }
 
     fun update(setting: AppSetting, value: Boolean) {
+        analytics.appSettingToggled(setting, value)
         when (setting) {
             PrefsBool.CAMERA_START_BY_DEFAULT -> {
                 prefRepository.set(PrefsBool.CAMERA_START_BY_DEFAULT, value)
