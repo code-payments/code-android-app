@@ -25,8 +25,7 @@ fun SettingsRow(
     Row(
         modifier = modifier
             .rememberedClickable { onClick() }
-            .padding(horizontal = CodeTheme.dimens.grid.x3)
-            .padding(end = CodeTheme.dimens.grid.x3),
+            .padding(horizontal = CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
