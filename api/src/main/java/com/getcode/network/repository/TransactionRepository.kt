@@ -381,7 +381,7 @@ class TransactionRepository @Inject constructor(
                         serverMessageStream?.onCompleted()
                         subject.onError(
                             ErrorSubmitIntentException(
-                                ErrorSubmitIntent.fromValue(value.error.codeValue),
+                                ErrorSubmitIntent.invoke(value.error),
                             )
                         )
                     }
@@ -729,11 +729,11 @@ class TransactionRepository @Inject constructor(
         data object DeviceTokenUnavailable: ErrorSubmitIntent(-2)
 
         companion object {
-            operator fun invoke(proto: SubmitIntentResponse.Error): ErrorSubmitIntent? {
+            operator fun invoke(proto: SubmitIntentResponse.Error): ErrorSubmitIntent {
                 return when (proto.code) {
                     SubmitIntentResponse.Error.Code.DENIED -> {
                         val reasons = proto.errorDetailsList.mapNotNull {
-                            if (!it.hasIntentDenied()) return null
+                            if (!it.hasIntentDenied()) return@mapNotNull null
                             DeniedReason.fromValue(it.intentDenied.reasonValue)
                         }
 
@@ -743,13 +743,8 @@ class TransactionRepository @Inject constructor(
                     SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> SignatureError
                     SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState
                     SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unknown
-                    else -> return null
+                    else -> return Unknown
                 }
-            }
-
-            fun fromValue(value: Int): ErrorSubmitIntent {
-                return listOf(Denied(), InvalidIntent, SignatureError, StaleState)
-                    .firstOrNull { it.value == value } ?: Unknown
             }
         }
     }
