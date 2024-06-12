@@ -167,17 +167,18 @@ private fun HomeScan(
         mutableStateOf(requestPayload)
     }
 
-    LaunchedEffect(previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
+    val biometricsState = LocalBiometricsState.current
+    LaunchedEffect(biometricsState, previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
         if (previewing) {
             focusManager.clearFocus()
         }
 
-        if (!deepLinkSaved.isNullOrBlank()) {
+        if (biometricsState.passed && !deepLinkSaved.isNullOrBlank()) {
             homeViewModel.openCashLink(deepLink)
             deepLinkSaved = null
         }
 
-        if (!requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
+        if (biometricsState.passed && !requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
             delay(500.milliseconds)
             homeViewModel.handleRequest(requestPayload)
             requestPayloadSaved = null
