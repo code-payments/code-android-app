@@ -15,17 +15,21 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.asFlow
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
@@ -35,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.Executors
@@ -77,10 +82,21 @@ fun CodeScanner(
         KikCodeAnalyzer(scanner, onCodeScanned)
     }
 
+    val scope = rememberCoroutineScope()
     LaunchedEffect(scanner) {
         val cameraProvider = context.getCameraProvider()
         cameraProvider.unbindAll()
         cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+    }
+
+    OnLifecycleEvent { _, event ->
+        if (event == Lifecycle.Event.ON_STOP) {
+            scope.launch {
+                val cameraProvider = context.getCameraProvider()
+                cameraProvider.unbindAll()
+            }
+        }
+
     }
 
     var streamState by remember(previewView) {
