@@ -32,8 +32,9 @@ import com.getcode.R
 import com.getcode.theme.BrandOverlay
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.util.Biometrics
 import com.getcode.util.BiometricsError
-import com.getcode.util.biometricPrompt
+import com.getcode.util.BiometricsException
 import timber.log.Timber
 
 @Composable
@@ -114,19 +115,21 @@ internal fun rememberBiometricsState(
 
     LaunchedEffect(checkBiometrics, requireBiometrics) {
         if (checkBiometrics && requireBiometrics == true) {
-            context.biometricPrompt(
-                onSuccess = {
-                    biometricsPassed = true
-                    checkBiometrics = false
-                },
-                onError = {
-                    if (it.error == BiometricsError.NoBiometrics) {
-                        Timber.e("missing biometrics")
-                        onBiometricsNotEnrolled()
+            Biometrics.prompt(context)
+                .onFailure {
+                    val error = it as? BiometricsException
+                    error?.let { exception ->
+                        if (exception.error == BiometricsError.NoBiometrics) {
+                            Timber.e("missing biometrics")
+                            onBiometricsNotEnrolled()
+                        }
                     }
                     checkBiometrics = false
                 }
-            )
+                .onSuccess {
+                    biometricsPassed = true
+                    checkBiometrics = false
+                }
         }
     }
 
