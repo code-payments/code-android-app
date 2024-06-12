@@ -8,6 +8,7 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
+import androidx.biometric.BiometricManager
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.util.AndroidLocale
@@ -106,4 +107,10 @@ object AppModule {
         }
         else -> Api31Vibrator(context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager)
     }
+
+    @Provides
+    @Singleton
+    fun providesBiometricsManager(
+        @ApplicationContext context: Context
+    ): BiometricManager = BiometricManager.from(context)
 }
