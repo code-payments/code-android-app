@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.SwitchColors
 import androidx.compose.material.SwitchDefaults
 import androidx.compose.runtime.Composable
@@ -24,6 +25,10 @@ object CodeToggleSwitchDefaults {
 
     val colors: SwitchColors
         @Composable get() = SwitchDefaults.colors(
+            disabledCheckedThumbColor = White.copy(ContentAlpha.disabled),
+            disabledUncheckedThumbColor = White.copy(ContentAlpha.disabled),
+            disabledCheckedTrackColor = SystemGreen.copy(ContentAlpha.disabled),
+            disabledUncheckedTrackColor = Color(0xFF201D2F).copy(ContentAlpha.disabled),
             checkedThumbColor = White,
             uncheckedThumbColor = White,
             checkedTrackColor = SystemGreen,

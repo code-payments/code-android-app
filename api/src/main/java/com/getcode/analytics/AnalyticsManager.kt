@@ -256,6 +256,7 @@ class AnalyticsManager @Inject constructor(
     override fun appSettingToggled(setting: AppSetting, value: Boolean) {
         val name = when (setting) {
             PrefsBool.CAMERA_START_BY_DEFAULT -> Name.AutoStartCamera
+            PrefsBool.REQUIRE_BIOMETRICS -> Name.RequireBiometrics
         }
 
         track(
@@ -311,7 +312,8 @@ class AnalyticsManager @Inject constructor(
         Recompute("Recompute"),
 
         // App Settings
-        AutoStartCamera("Auto Start Camera")
+        AutoStartCamera("Auto Start Camera"),
+        RequireBiometrics("Require Biometrics")
     }
 
     enum class Property(val value: String) {

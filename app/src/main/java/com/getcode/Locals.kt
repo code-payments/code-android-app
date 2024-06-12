@@ -14,6 +14,7 @@ import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.NetworkObserverStub
+import com.getcode.view.main.home.components.BiometricsState
 
 val LocalAnalytics: ProvidableCompositionLocal<AnalyticsService> = staticCompositionLocalOf { AnalyticsServiceNull() }
 val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener> = staticCompositionLocalOf { NetworkObserverStub() }
@@ -24,4 +25,4 @@ val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticComposi
 val LocalTopBarPadding: ProvidableCompositionLocal<PaddingValues> = staticCompositionLocalOf { PaddingValues() }
 val LocalBetaFlags: ProvidableCompositionLocal<BetaOptions> = staticCompositionLocalOf { BetaOptions.Defaults }
 val LocalDownloadQrCode: ProvidableCompositionLocal<BitmapPainter?> = staticCompositionLocalOf { null }
-
+val LocalBiometricsState: ProvidableCompositionLocal<BiometricsState> = staticCompositionLocalOf { BiometricsState() }

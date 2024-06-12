@@ -19,6 +19,7 @@ object Versions {
     const val google_services = "4.3.15"
 
     const val androidx_annotation = "1.7.1"
+    const val androidx_biometrics = "1.2.0-alpha05"
     const val androidx_camerax = "1.3.2"
     const val androidx_core = "1.12.0"
     const val androidx_constraint_layout = "2.1.3"
@@ -111,20 +112,14 @@ object Plugins {
 }
 
 object Libs {
-    // CameraX core library
-    const val androidx_camerax_core = "androidx.camera:camera-core:${Versions.androidx_camerax}"
-
-    // CameraX Camera2 extensions
-    const val androidx_camerax_camera2 = "androidx.camera:camera-camera2:${Versions.androidx_camerax}"
-
-    // CameraX Lifecycle library
-    const val androidx_camerax_lifecycle = "androidx.camera:camera-lifecycle:${Versions.androidx_camerax}"
-
-    // CameraX View class
-    const val androidx_camerax_view=  "androidx.camera:camera-view:${Versions.androidx_camerax}"
 
 
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
+    const val androidx_biometrics = "androidx.biometric:biometric:${Versions.androidx_biometrics}"
+    const val androidx_camerax_core = "androidx.camera:camera-core:${Versions.androidx_camerax}"
+    const val androidx_camerax_camera2 = "androidx.camera:camera-camera2:${Versions.androidx_camerax}"
+    const val androidx_camerax_lifecycle = "androidx.camera:camera-lifecycle:${Versions.androidx_camerax}"
+    const val androidx_camerax_view =  "androidx.camera:camera-view:${Versions.androidx_camerax}"
     const val androidx_core = "androidx.core:core-ktx:${Versions.androidx_core}"
     const val androidx_constraint_layout =
         "androidx.constraintlayout:constraintlayout:${Versions.androidx_constraint_layout}"

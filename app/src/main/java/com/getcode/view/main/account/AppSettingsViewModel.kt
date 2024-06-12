@@ -2,9 +2,11 @@ package com.getcode.view.main.account
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
+import com.getcode.mapper.AppSettingsMapper
 import com.getcode.model.APP_SETTINGS
 import com.getcode.model.AppSetting
 import com.getcode.model.PrefsBool
+import com.getcode.models.SettingItem
 import com.getcode.network.repository.AppSettings
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.view.BaseViewModel2
@@ -16,17 +18,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
-data class SettingItem(
-    val type: AppSetting,
-    val name: Int,
-    val description: Int? = null,
-    val icon: Int,
-    val enabled: Boolean,
-)
-
 @HiltViewModel
 class AppSettingsViewModel  @Inject constructor(
     appSettings: AppSettingsRepository,
+    appSettingsMapper: AppSettingsMapper,
 ) : BaseViewModel2<AppSettingsViewModel.State, AppSettingsViewModel.Event>(
     initialState = State(emptyList()),
     updateStateForEvent = updateStateForEvent
@@ -43,21 +38,9 @@ class AppSettingsViewModel  @Inject constructor(
     init {
         appSettings.observe()
             .distinctUntilChanged()
-            .map { settings ->
-                APP_SETTINGS.map { setting ->
-                    when (setting) {
-                        PrefsBool.CAMERA_START_BY_DEFAULT -> SettingItem(
-                            type = setting,
-                            name = R.string.title_autoStartCamera,
-                            icon = R.drawable.ic_camera_outline,
-                            enabled = settings.cameraStartByDefault
-                        )
-                    }
-                }
-            }
-            .onEach { settings ->
-                dispatchEvent(Event.UpdateSettings(settings))
-            }.launchIn(viewModelScope)
+            .map { settings -> appSettingsMapper.map(settings) }
+            .onEach { settings -> dispatchEvent(Event.UpdateSettings(settings)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.SettingChanged>()

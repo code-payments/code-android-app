@@ -160,6 +160,8 @@ dependencies {
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
 
+    implementation(Libs.androidx_biometrics)
+
     // cameraX
     implementation(Libs.androidx_camerax_core)
     implementation(Libs.androidx_camerax_camera2)

@@ -29,6 +29,7 @@ sealed class PrefsBool(val value: String) {
 
     // app settings
     data object CAMERA_START_BY_DEFAULT: PrefsBool("camera_start_default"), AppSetting
+    data object REQUIRE_BIOMETRICS: PrefsBool("require_biometrics"), AppSetting
 
     // beta flags
     data object BUCKET_DEBUGGER_ENABLED: PrefsBool("debug_buckets"), BetaFlag
@@ -47,4 +48,4 @@ sealed class PrefsBool(val value: String) {
     data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
 }
 
-val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT)
+val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

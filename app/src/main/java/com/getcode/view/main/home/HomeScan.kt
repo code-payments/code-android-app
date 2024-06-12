@@ -10,12 +10,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.DismissState
@@ -35,13 +33,12 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment.Companion.BottomCenter
-import androidx.compose.ui.Alignment.Companion.Center
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import com.getcode.LocalBiometricsState
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
@@ -60,7 +57,6 @@ import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
-import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.CameraDisabledView
@@ -218,7 +214,7 @@ private fun HomeScan(
                 }
             )
         },
-        showBottomSheet = { showBottomSheet(it) }
+        showBottomSheet = { showBottomSheet(it) },
     )
 
     OnLifecycleEvent { _, event ->
@@ -305,8 +301,10 @@ private fun BillContainer(
             .then(modifier)
     ) {
         when {
-            dataState.isCameraPermissionGranted == true
-                    || dataState.isCameraPermissionGranted == null -> {
+            LocalBiometricsState.current.isAwaitingAuthentication -> {
+                // waiting for result
+            }
+            dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null -> {
                 if (dataState.autoStartCamera == null) {
                     // waiting for result
                 } else if (!dataState.autoStartCamera) {
@@ -317,7 +315,6 @@ private fun BillContainer(
                     scannerView()
                 }
             }
-
             else -> {
                 PermissionsBlockingView(
                     modifier = Modifier.fillMaxSize(),
