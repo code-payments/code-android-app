@@ -3,26 +3,36 @@ package com.getcode
 import android.app.Activity
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.AuthManager
+import com.getcode.manager.TopBarManager
 import com.getcode.model.PrefsBool
+import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions
+import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class TopLevelViewModel @Inject constructor(
     private val authManager: AuthManager,
+    private val appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
-    prefRepository: PrefRepository,
+    features: FeatureRepository,
     resources: ResourceHelper,
 ) : BaseViewModel(resources) {
 
@@ -31,25 +41,56 @@ class TopLevelViewModel @Inject constructor(
 
     private val betaFlags = betaFlagsRepository.observe()
 
+    private val requireBiometrics = MutableStateFlow<Boolean?>(null)
+
+    init {
+        viewModelScope.launch {
+            requireBiometrics.value = appSettings.get(PrefsBool.REQUIRE_BIOMETRICS)
+        }
+    }
+
     val state = combine(
         betaFlags,
-        prefRepository.observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
-    ) { beta, buykinAvailable ->
-        State(beta, buykinAvailable)
+        features.buyModule.map { it.available },
+        requireBiometrics,
+    ) { beta, buykinAvailable, requireBiometrics ->
+        State(beta, buykinAvailable, requireBiometrics)
     } .stateIn(viewModelScope, started = SharingStarted.Eagerly, State.Empty)
 
     data class State(
         val betaFlags: BetaOptions,
         val buyModuleAvailable: Boolean,
+        val requireBiometrics: Boolean?,
     ) {
         companion object {
-            val Empty = State(BetaOptions.Defaults, false)
+            val Empty = State(
+                betaFlags = BetaOptions.Defaults,
+                buyModuleAvailable = false,
+                requireBiometrics = null
+            )
         }
     }
 
     sealed interface Event {
         data object LogoutRequested: Event
         data object LogoutCompleted: Event
+    }
+
+    fun onResume() {
+        viewModelScope.launch {
+            requireBiometrics.value = appSettings.get(PrefsBool.REQUIRE_BIOMETRICS)
+        }
+    }
+
+    fun onMissingBiometrics() {
+        // biometrics required by user, but now not enrolled
+        // show a top bar error and let them in
+        TopBarManager.showMessage(
+            "Missing Biometrics",
+            "Biometrics that were previously established have since been removed. Please set them back up and enable app setting to remain secure."
+        )
+        appSettings.update(setting = PrefsBool.REQUIRE_BIOMETRICS, value = false, fromUser = false)
+        requireBiometrics.value = false
     }
 
     fun logout(activity: Activity, onComplete: () -> Unit = {}) {

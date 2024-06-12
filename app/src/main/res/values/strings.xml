@@ -39,4 +39,9 @@
     <string name="subtitle_cameraRequiredToScanCodes">You need to start your camera\nto scan Codes</string>
     <string name="action_startCamera">Start Camera</string>
 
+    <string name="title_requireBiometrics">Require Biometrics</string>
+    <string name="description_requireBiometricsNoneEnrolled">No biometrics currently enrolled</string>
+    <string name="title_biometricAuthentication">Biometric Authentication</string>
+    <string name="description_biometricAuthentication">Place your finger the sensor or look at the front camera to authenticate.</string>
+    <string name="action_biometricsClickToAuthenticate">Click to authenticate</string>
 </resources>

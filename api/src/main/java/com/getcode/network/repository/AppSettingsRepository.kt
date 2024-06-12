@@ -4,15 +4,17 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.model.AppSetting
 import com.getcode.model.PrefsBool
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 data class AppSettings(
-    val cameraStartByDefault: Boolean
+    val cameraStartByDefault: Boolean,
+    val requireBiometrics: Boolean,
 ) {
     companion object {
         val Defaults = AppSettings(
-            cameraStartByDefault = true
+            cameraStartByDefault = true,
+            requireBiometrics = false,
         )
     }
 }
@@ -22,8 +24,15 @@ class AppSettingsRepository @Inject constructor(
 ) {
 
     fun observe(): Flow<AppSettings> = AppSettings.Defaults.let { defaults ->
-        prefRepository.observeOrDefault(PrefsBool.CAMERA_START_BY_DEFAULT, defaults.cameraStartByDefault)
-            .map { AppSettings(it) }
+        combine(
+            prefRepository.observeOrDefault(PrefsBool.CAMERA_START_BY_DEFAULT, defaults.cameraStartByDefault),
+            prefRepository.observeOrDefault(PrefsBool.REQUIRE_BIOMETRICS, defaults.requireBiometrics)
+        ) { camera, biometrics ->
+            AppSettings(
+                cameraStartByDefault = camera,
+                requireBiometrics = biometrics
+            )
+        }
     }
 
     suspend fun get(setting: AppSetting): Boolean {
@@ -32,14 +41,25 @@ class AppSettingsRepository @Inject constructor(
                 PrefsBool.CAMERA_START_BY_DEFAULT,
                 AppSettings.Defaults.cameraStartByDefault
             )
+
+            PrefsBool.REQUIRE_BIOMETRICS -> prefRepository.get(
+                PrefsBool.REQUIRE_BIOMETRICS,
+                AppSettings.Defaults.requireBiometrics
+            )
         }
     }
 
-    fun update(setting: AppSetting, value: Boolean) {
-        analytics.appSettingToggled(setting, value)
+    fun update(setting: AppSetting, value: Boolean, fromUser: Boolean = true) {
+        if (fromUser) {
+            analytics.appSettingToggled(setting, value)
+        }
         when (setting) {
             PrefsBool.CAMERA_START_BY_DEFAULT -> {
                 prefRepository.set(PrefsBool.CAMERA_START_BY_DEFAULT, value)
+            }
+
+            PrefsBool.REQUIRE_BIOMETRICS -> {
+                prefRepository.set(PrefsBool.REQUIRE_BIOMETRICS, value)
             }
         }
     }
