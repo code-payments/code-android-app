@@ -354,7 +354,6 @@ class AnalyticsManager @Inject constructor(
 
     enum class Screen(val value: String) {
         GetKin("Get Kin Screen"),
-        Invite("Invite Screen"),
         GiveKin("Give Kin Screen"),
         RequestKin("Request Kin Screen"),
         Balance("Balance Screen"),
