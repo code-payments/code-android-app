@@ -86,8 +86,8 @@ class TopLevelViewModel @Inject constructor(
         // biometrics required by user, but now not enrolled
         // show a top bar error and let them in
         TopBarManager.showMessage(
-            "Missing Biometrics",
-            "Biometrics that were previously established have since been removed. Please set them back up and enable app setting to remain secure."
+            getString(R.string.error_title_missingBiometrics),
+            getString(R.string.error_description_missingBiometrics)
         )
         appSettings.update(setting = PrefsBool.REQUIRE_BIOMETRICS, value = false, fromUser = false)
         requireBiometrics.value = false
