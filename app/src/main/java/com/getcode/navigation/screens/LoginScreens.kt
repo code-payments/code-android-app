@@ -13,7 +13,6 @@ import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.login.AccessKey
 import com.getcode.view.login.AccessKeyViewModel
 import com.getcode.view.login.CameraPermission
-import com.getcode.view.login.InviteCode
 import com.getcode.view.login.LoginHome
 import com.getcode.view.login.NotificationPermission
 import com.getcode.view.login.PhoneConfirm
@@ -128,30 +127,6 @@ data class AccessKeyLoginScreen(
         val viewModel: SeedInputViewModel = getViewModel()
         SeedInput(viewModel, arguments)
     }
-}
-
-@Parcelize
-data class InviteCodeScreen(
-    val arguments: LoginArgs = LoginArgs()
-): LoginGraph {
-
-    constructor(
-        signInEntropy: String? = null,
-        isPhoneLinking: Boolean = false,
-        isNewAccount: Boolean = false,
-        phoneNumber: String? = null,
-    ) : this(LoginArgs(signInEntropy, isPhoneLinking, isNewAccount, phoneNumber))
-
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    override val name: String
-        @Composable get() = stringResource(R.string.subtitle_inviteCode)
-    @Composable
-    override fun Content() {
-        InviteCode(getViewModel(), arguments)
-    }
-
 }
 
 

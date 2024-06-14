@@ -8,11 +8,9 @@ import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.InviteCodeScreen
 import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.navigation.screens.PhoneConfirmationScreen
 import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.urlEncode
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.makeE164
@@ -172,10 +170,6 @@ class PhoneVerifyViewModel @Inject constructor(
             .map { res ->
                 when (res) {
                     PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.NOT_INVITED -> {
-                        navigator.push(InviteCodeScreen(phoneNumber.urlEncode()))
-                        null
-                    }
 
                     PhoneVerificationService.SendVerificationCodeResponse.Result.INVALID_PHONE_NUMBER,
                     PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_PHONE_TYPE -> {
