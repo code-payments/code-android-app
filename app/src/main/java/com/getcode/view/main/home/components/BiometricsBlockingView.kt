@@ -64,13 +64,14 @@ data class BiometricsState(
     val passed: Boolean = false,
     val request: () -> Unit = { },
 ) {
-    val isAwaitingAuthentication = checking || !passed
+    val isAwaitingAuthentication: Boolean
+        get() = checking || !passed
 }
 
 @Composable
 internal fun rememberBiometricsState(
     requireBiometrics: Boolean?,
-    onBiometricsNotEnrolled: () -> Unit,
+    onError: (BiometricsError) -> Unit = { },
 ): BiometricsState {
     val context = LocalContext.current
 
@@ -92,11 +93,9 @@ internal fun rememberBiometricsState(
                 .onFailure {
                     val error = it as? BiometricsException
                     error?.let { exception ->
-                        if (exception.error == BiometricsError.NoBiometrics) {
-                            Timber.e("missing biometrics")
-                            onBiometricsNotEnrolled()
-                        }
+                        onError(exception.error)
                     }
+                    biometricsPassed = false
                     checkBiometrics = false
                 }
                 .onSuccess {

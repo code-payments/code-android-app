@@ -46,6 +46,7 @@ import com.getcode.ui.components.TopBarContainer
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.measured
+import com.getcode.util.BiometricsError
 import com.getcode.view.main.home.components.BiometricsBlockingView
 import com.getcode.view.main.home.components.rememberBiometricsState
 import dev.bmcreations.tipkit.TipScaffold
@@ -58,7 +59,11 @@ fun CodeApp(tipsEngine: TipsEngine) {
     val activity = LocalContext.current.getActivity()
     val biometricsState = rememberBiometricsState(
         requireBiometrics = state.requireBiometrics,
-        onBiometricsNotEnrolled = { tlvm.onMissingBiometrics() }
+        onError = { error ->
+            if (error == BiometricsError.NoBiometrics) {
+                tlvm.onMissingBiometrics()
+            }
+        }
     )
 
     OnLifecycleEvent { _, event ->

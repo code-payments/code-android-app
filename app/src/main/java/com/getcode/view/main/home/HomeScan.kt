@@ -157,6 +157,10 @@ private fun HomeScan(
         mutableStateOf(false)
     }
 
+    var cameraStarted by remember {
+        mutableStateOf(dataState.autoStartCamera == true)
+    }
+
     val focusManager = LocalFocusManager.current
 
     var deepLinkSaved by remember(deepLink) {
@@ -202,8 +206,10 @@ private fun HomeScan(
         navigator = navigator,
         isPaused = isPaused,
         isCameraReady = previewing,
+        isCameraStarted = cameraStarted,
         dataState = dataState,
         homeViewModel = homeViewModel,
+        onStartCamera = { cameraStarted = true },
         scannerView = {
             CodeScanner(
                 scanningEnabled = previewing,
@@ -227,6 +233,9 @@ private fun HomeScan(
 
             Lifecycle.Event.ON_STOP -> {
                 Timber.d("onStop")
+                if (dataState.autoStartCamera == false) {
+                    cameraStarted = false
+                }
             }
 
             Lifecycle.Event.ON_PAUSE -> {
@@ -272,10 +281,12 @@ private fun BillContainer(
     modifier: Modifier = Modifier,
     navigator: CodeNavigator,
     isCameraReady: Boolean,
+    isCameraStarted: Boolean,
     isPaused: Boolean,
     dataState: HomeUiModel,
     homeViewModel: HomeViewModel,
     scannerView: @Composable () -> Unit,
+    onStartCamera: () -> Unit,
     showBottomSheet: (HomeBottomSheet) -> Unit,
 ) {
     val onPermissionResult =
@@ -308,9 +319,9 @@ private fun BillContainer(
             dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null -> {
                 if (dataState.autoStartCamera == null) {
                     // waiting for result
-                } else if (!dataState.autoStartCamera) {
+                } else if (!dataState.autoStartCamera && !isCameraStarted) {
                     CameraDisabledView(modifier = Modifier.fillMaxSize()) {
-                        homeViewModel.onStartCamera()
+                        onStartCamera()
                     }
                 } else {
                     scannerView()
