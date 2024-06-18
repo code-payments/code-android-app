@@ -6,6 +6,9 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.R
+import com.getcode.analytics.Action
+import com.getcode.analytics.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
@@ -49,6 +52,7 @@ data class PhoneVerifyUiModel(
 
 @HiltViewModel
 class PhoneVerifyViewModel @Inject constructor(
+    private val analytics: AnalyticsService,
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
@@ -165,7 +169,10 @@ class PhoneVerifyViewModel @Inject constructor(
         phoneRepository.sendVerificationCode(phoneNumber)
             .firstElement()
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe { setIsLoading(true) }
+            .doOnSubscribe {
+                analytics.action(Action.EnterPhone)
+                setIsLoading(true)
+            }
             .doOnComplete { setIsLoading(false) }
             .map { res ->
                 when (res) {

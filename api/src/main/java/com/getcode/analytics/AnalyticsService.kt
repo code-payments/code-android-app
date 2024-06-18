@@ -49,6 +49,8 @@ interface AnalyticsService {
     fun unintentionalLogout()
 
     fun appSettingToggled(setting: AppSetting, value: Boolean)
+
+    fun action(action: Action, source: ActionSource? = null)
 }
 
 class AnalyticsServiceNull : AnalyticsService {
@@ -92,4 +94,5 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun backgroundSwapInitiated() = Unit
     override fun unintentionalLogout() = Unit
     override fun appSettingToggled(setting: AppSetting, value: Boolean) = Unit
+    override fun action(action: Action, source: ActionSource?) = Unit
 }
