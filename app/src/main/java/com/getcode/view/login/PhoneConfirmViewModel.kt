@@ -7,6 +7,9 @@ import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
 import com.getcode.App
 import com.getcode.R
+import com.getcode.analytics.Action
+import com.getcode.analytics.AnalyticsManager
+import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
@@ -60,6 +63,7 @@ data class PhoneConfirmUiModel(
 
 @HiltViewModel
 class PhoneConfirmViewModel @Inject constructor(
+    private val analytics: AnalyticsService,
     private val identityRepository: IdentityRepository,
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
@@ -211,6 +215,7 @@ class PhoneConfirmViewModel @Inject constructor(
         return if (isOtpValid) {
             Single.just(true)
         } else {
+            analytics.action(Action.VerifyPhone)
             phoneRepository.checkVerificationCode(phoneNumber, otpInput)
                 .map { res ->
                     when (res) {

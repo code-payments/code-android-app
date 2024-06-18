@@ -10,7 +10,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.getcode.LocalAnalytics
 import com.getcode.R
+import com.getcode.analytics.Action
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -19,9 +21,13 @@ import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 
 @Composable
-fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
+fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current, fromOnboarding: Boolean = false) {
+    val analytics = LocalAnalytics.current
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {
+            if (fromOnboarding) {
+                analytics.action(Action.CompletedOnboarding)
+            }
             navigator.replaceAll(HomeScreen())
         }
     }

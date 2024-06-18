@@ -7,7 +7,10 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.LocalAnalytics
 import com.getcode.R
+import com.getcode.analytics.Action
+import com.getcode.analytics.AnalyticsManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getStackScopedViewModel
 import com.getcode.view.login.AccessKey
@@ -35,11 +38,14 @@ data class LoginScreen(val seed: String? = null) : LoginGraph {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val analytics = LocalAnalytics.current
+
         if (seed != null) {
             SeedDeepLink(getViewModel(), seed)
         } else {
             LoginHome(
                 createAccount = {
+                    analytics.action(Action.CreateAccount)
                     navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
                 },
                 login = {
@@ -165,7 +171,7 @@ sealed interface CodeLoginPermission: Parcelable {
 }
 
 @Parcelize
-data class PermissionRequestScreen(val permission: CodeLoginPermission) : LoginGraph {
+data class PermissionRequestScreen(val permission: CodeLoginPermission, val fromOnboarding: Boolean = false) : LoginGraph {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -174,11 +180,11 @@ data class PermissionRequestScreen(val permission: CodeLoginPermission) : LoginG
     override fun Content() {
         when (permission) {
             CodeLoginPermission.Camera -> {
-                CameraPermission()
+                CameraPermission(fromOnboarding = fromOnboarding)
             }
 
             CodeLoginPermission.Notifications -> {
-                NotificationPermission()
+                NotificationPermission(fromOnboarding = fromOnboarding)
             }
         }
 

@@ -3,6 +3,9 @@ package com.getcode.view.login
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Build
+import com.getcode.analytics.Action
+import com.getcode.analytics.ActionSource
+import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
 import com.getcode.media.MediaScanner
@@ -45,14 +48,18 @@ class AccessKeyViewModel @Inject constructor(
             .concatWith(
                 if (isSaveImage) {
                     Completable.create { c ->
+                        analytics.action(Action.ConfirmAccessKey, source = ActionSource.AccessKeySaved)
                         val result = saveBitmapToFile()
                         if (result) c.onComplete() else c.onError(IllegalStateException())
                     }.subscribeOn(Schedulers.computation())
                 } else {
+                    analytics.action(Action.ConfirmAccessKey, source = ActionSource.AccessKeyWroteDown)
                     Completable.complete()
                 }
             )
             .doOnComplete {
+                val owner = mnemonicManager.getKeyPair(entropyB64)
+                analytics.createAccount(true, owner.getPublicKeyBase58())
                 uiFlow.value = uiFlow.value.copy(isLoading = false, isSuccess = true)
             }
             .delay(2L, TimeUnit.SECONDS)
@@ -71,15 +78,13 @@ class AccessKeyViewModel @Inject constructor(
     }
 
     private fun onComplete(navigator: CodeNavigator, entropyB64: String) {
-        val owner = mnemonicManager.getKeyPair(entropyB64)
-        analytics.createAccount(true, owner.getPublicKeyBase58())
-
         val cameraPermissionDenied = permissions.isDenied(Manifest.permission.CAMERA)
 
         if (cameraPermissionDenied) {
-            navigator.push(PermissionRequestScreen(CodeLoginPermission.Camera))
+            navigator.push(PermissionRequestScreen(CodeLoginPermission.Camera, true))
         } else {
             if (Build.VERSION.SDK_INT < 33) {
+                analytics.action(Action.CompletedOnboarding)
                 navigator.replaceAll(HomeScreen())
             } else {
                 val notificationsPermissionDenied = permissions.isDenied(
@@ -87,8 +92,9 @@ class AccessKeyViewModel @Inject constructor(
                 )
 
                 if (notificationsPermissionDenied) {
-                    navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
+                    navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, true))
                 } else {
+                    analytics.action(Action.CompletedOnboarding)
                     navigator.replaceAll(HomeScreen())
                 }
             }
