@@ -3,6 +3,7 @@ package com.getcode.util
 import android.accounts.*
 import android.content.Context
 import android.os.Bundle
+import androidx.core.os.bundleOf
 import com.getcode.utils.trace
 
 
@@ -66,13 +67,21 @@ class AccountAuthenticator(
         return Bundle()
     }
 
-    override fun getAuthTokenLabel(arg0: String): String? = null
+    override fun getAuthTokenLabel(arg0: String): String? {
+        return "entropy"
+    }
 
     @Throws(NetworkErrorException::class)
     override fun hasFeatures(
         arg0: AccountAuthenticatorResponse, arg1: Account,
         arg2: Array<String>
-    ): Bundle? = null
+    ): Bundle {
+        // This call is used to query whether the Authenticator supports
+        // specific features. We don't expect to get called, so we always
+        // return false (no) for any queries.
+        val result = bundleOf(AccountManager.KEY_BOOLEAN_RESULT to false)
+        return result
+    }
 
     @Throws(NetworkErrorException::class)
     override fun updateCredentials(
