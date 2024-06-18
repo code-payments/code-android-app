@@ -3,11 +3,10 @@ package com.getcode.util
 import android.accounts.Account
 import android.accounts.AccountManager
 import android.accounts.AuthenticatorException
-import android.app.Activity
 import android.content.Context
-import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import androidx.core.os.bundleOf
 import com.getcode.BuildConfig
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -23,14 +22,20 @@ import kotlin.coroutines.resume
 
 
 object AccountUtils {
-    private const val acctType = BuildConfig.APPLICATION_ID
+    private const val ACCOUNT_TYPE = BuildConfig.APPLICATION_ID
 
-    fun addAccount(context: Context, name: String, password: String, token: String) {
-        val am: AccountManager = AccountManager.get(context)
-        val a = Account(name, acctType)
+    fun addAccount(
+        context: Context,
+        name: String,
+        password: String,
+        token: String
+    ) {
+        val accountManager: AccountManager = AccountManager.get(context)
+        val account = Account(name, ACCOUNT_TYPE)
 
-        am.addAccountExplicitly(a, password, Bundle())
-        am.setAuthToken(a, acctType, token)
+        val data = bundleOf(AccountManager.KEY_AUTH_TOKEN_LABEL to "entropy")
+        accountManager.addAccountExplicitly(account, password, data)
+        accountManager.setAuthToken(account, ACCOUNT_TYPE, token)
     }
 
     suspend fun removeAccounts(context: Context): @NonNull Single<Boolean> {
@@ -63,34 +68,29 @@ object AccountUtils {
 
     private suspend fun getAccountNoActivity(
         context: Context
-    ) : Pair<String?, Account?>? = suspendCancellableCoroutine { cont ->
+    ): Pair<String?, Account?>? = suspendCancellableCoroutine { cont ->
         trace("getAuthToken", type = TraceType.Silent)
         val am: AccountManager = AccountManager.get(context)
-        val accountthing = am.accounts.getOrNull(0)
-        if (accountthing == null) {
+        val account = am.accounts.getOrNull(0)
+        if (account == null) {
             trace("no associated account found", type = TraceType.Error)
             cont.resume(null to null)
             return@suspendCancellableCoroutine
         }
         val start = Clock.System.now()
         am.getAuthToken(
-            accountthing, acctType, null, false,
+            account, ACCOUNT_TYPE, null, false,
             { future ->
                 try {
                     val bundle = future?.result
                     val authToken = bundle?.getString(AccountManager.KEY_AUTHTOKEN)
-                    val accountName = bundle?.getString(AccountManager.KEY_ACCOUNT_NAME)
-                    val account: Account? = getAccount(context, accountName)
 
                     val end = Clock.System.now()
                     trace("auth token fetch took ${end.toEpochMilliseconds() - start.toEpochMilliseconds()} ms")
 
-                    cont.resume(authToken.orEmpty() to  account)
-
-                    if (null == account && authToken != null) {
-                        addAccount(context, accountName.orEmpty(), "", authToken)
-                    }
+                    cont.resume(authToken.orEmpty() to account)
                 } catch (e: AuthenticatorException) {
+                    e.printStackTrace()
                     trace(message = "failed to read account", error = e, type = TraceType.Error)
                     cont.resume(null to null)
                 }
@@ -98,19 +98,18 @@ object AccountUtils {
         )
     }
 
-
     suspend fun getToken(context: Context): String? {
-        return getAccountNoActivity(context)?.first
-    }
-
-    private fun getAccount(context: Context?, accountName: String?): Account? {
         val accountManager = AccountManager.get(context)
-        val accounts = accountManager.getAccountsByType(acctType)
-        for (account in accounts) {
-            if (account.name.equals(accountName, ignoreCase = true)) {
-                return account
+        val account = accountManager.accounts.firstOrNull()
+        if (account != null) {
+            val token = runCatching { accountManager.peekAuthToken(account, ACCOUNT_TYPE) }
+                .getOrNull()?.takeIf { it.isNotEmpty() }
+
+            if (token != null) {
+                return token
             }
         }
-        return null
+
+        return getAccountNoActivity(context)?.first
     }
 }
