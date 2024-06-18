@@ -381,10 +381,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun onStartCamera() {
-        uiFlow.update { it.copy(autoStartCamera = true) }
-    }
-
     fun onCameraPermissionChanged(isGranted: Boolean) {
         uiFlow.update { it.copy(isCameraPermissionGranted = isGranted) }
     }
