@@ -39,7 +39,7 @@ class AccessKeyViewModel @Inject constructor(
     fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return
 
-        authManager.login(entropyB64, rollbackOnError = isDeepLink)
+        authManager.createAccount(entropyB64, rollbackOnError = isDeepLink)
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {

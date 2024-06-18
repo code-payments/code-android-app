@@ -86,6 +86,36 @@ class AuthManager @Inject constructor(
         return login(entropyB64, isSoftLogin = true)
     }
 
+    fun createAccount(
+        entropyB64: String,
+        rollbackOnError: Boolean = false,
+    ): Completable {
+        if (entropyB64.isEmpty()) {
+            taggedTrace("provided entropy was empty", type = TraceType.Error)
+            sessionManager.clear()
+            return Completable.complete()
+        }
+
+        return Single.create {
+            softLoginDisabled = true
+
+            if (!Database.isOpen()) {
+                Database.init(context, entropyB64)
+            }
+
+            val originalSessionState = SessionManager.authState.value
+            sessionManager.set(entropyB64)
+
+            it.onSuccess(originalSessionState)
+        }.flatMapCompletable {
+            fetchAdditionalAccountData(context, entropyB64,
+                isSoftLogin = false,
+                rollbackOnError = rollbackOnError,
+                originalSessionState = it
+            )
+        }.doOnError { softLoginDisabled = false }
+    }
+
     fun login(
         entropyB64: String,
         isSoftLogin: Boolean = false,
