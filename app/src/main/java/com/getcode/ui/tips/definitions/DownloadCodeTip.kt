@@ -52,7 +52,6 @@ class DownloadCodeTip @Inject constructor(
             { homeOpenCount >= 1 },
             {
                 val accountCreatedAtMillis = SessionManager.getOrganizer()?.createdAtMillis
-                println("millis=$accountCreatedAtMillis")
                 val millis = accountCreatedAtMillis ?: return@listOf false
                 val createdAt = Instant.fromEpochMilliseconds(millis)
                 createdAt.plus(1.days) < now

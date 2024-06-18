@@ -78,7 +78,6 @@ abstract class Tip(
      * for display.
      */
     suspend fun show(): Boolean {
-        println("show tip?")
         return criteria().all { it() }
     }
 

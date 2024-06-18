@@ -28,9 +28,11 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.asFlow
+import com.getcode.LocalBiometricsState
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.util.Biometrics
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
@@ -86,12 +88,19 @@ fun CodeScanner(
         mutableStateOf(false)
     }
 
+    val biometricsState = LocalBiometricsState.current
+
     val scope = rememberCoroutineScope()
-    LaunchedEffect(scanner) {
+    LaunchedEffect(scanner, biometricsState.isAwaitingAuthentication, Biometrics.promptActive) {
+        val active = Biometrics.promptActive || biometricsState.isAwaitingAuthentication
         val cameraProvider = context.getCameraProvider()
-        cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
-        bound = true
+        if (!active) {
+            cameraProvider.unbindAll()
+            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+            bound = true
+        } else {
+            cameraProvider.unbindAll()
+        }
     }
 
     OnLifecycleEvent { _, event ->
@@ -104,15 +113,17 @@ fun CodeScanner(
         } else if (event == Lifecycle.Event.ON_RESUME) {
             scope.launch {
                 if (!bound) {
-                    val cameraProvider = context.getCameraProvider()
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        cameraSelector,
-                        preview,
-                        imageAnalysis
-                    )
-                    bound = true
+                    if (!biometricsState.isAwaitingAuthentication) {
+                        val cameraProvider = context.getCameraProvider()
+                        cameraProvider.unbindAll()
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            cameraSelector,
+                            preview,
+                            imageAnalysis
+                        )
+                        bound = true
+                    }
                 }
             }
         }

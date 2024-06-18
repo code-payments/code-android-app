@@ -37,7 +37,6 @@ class EventEngine(
     internal fun clearCompletions() {
         dataScope.launch {
             completions.edit { it.clear() }
-            println("clearCompletions")
         }
     }
 
@@ -55,7 +54,6 @@ class EventEngine(
     internal fun removeAllOccurrences() {
         dataScope.launch {
             occurrenceInstances.edit { it.clear() }
-            println("removeAllOccurrences")
         }
     }
 
@@ -229,10 +227,9 @@ class EventEngine(
     }
 
     suspend fun isComplete(name: String): Boolean {
-        println("checking $name")
-        return (completions.data.map { prefs ->
+        return completions.data.map { prefs ->
             prefs[longPreferencesKey("$name-completedAt")]
-        }.firstOrNull() != null).also { println("seen=$it") }
+        }.firstOrNull() != null
     }
 }
 
