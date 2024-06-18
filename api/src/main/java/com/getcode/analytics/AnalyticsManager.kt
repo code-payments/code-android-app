@@ -40,10 +40,6 @@ class AnalyticsManager @Inject constructor(
         Timber.i("App init time: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
     }
 
-    override fun open(screen: Screen) {
-        track(Name.Open, Pair(Property.Screen, screen.value))
-    }
-
     override fun logout() {
         track(Name.Logout)
     }
@@ -279,9 +275,6 @@ class AnalyticsManager @Inject constructor(
     }
 
     enum class Name(val value: String) {
-        //Open
-        Open("Open"),
-
         //Account
         Logout("Logout"),
         Login("Login"),
@@ -312,7 +305,7 @@ class AnalyticsManager @Inject constructor(
         Recompute("Recompute"),
 
         // App Settings
-        AutoStartCamera("Auto Start Camera"),
+        AutoStartCamera("Camera Auto Start"),
         RequireBiometrics("Require Biometrics")
     }
 
@@ -352,25 +345,6 @@ class AnalyticsManager @Inject constructor(
         PercentDelta("Percent Delta"),
     }
 
-    enum class Screen(val value: String) {
-        GetKin("Get Kin Screen"),
-        GiveKin("Give Kin Screen"),
-        RequestKin("Request Kin Screen"),
-        Balance("Balance Screen"),
-        Faq("FAQ Screen"),
-        Settings("Settings Screen"),
-        BuyAndSellKin("Buy and Sell Kin Screen"),
-        Deposit("Deposit Screen"),
-        Backup("Backup Screen"),
-        Withdraw("Withdraw Screen"),
-        Debug("Debug Screen"),
-        Share("Share Screen"),
-        AppSettings("App Settings"),
-        ForceUpgrade("Force Upgrade"),
-        BuyMoreKin("Buy More Kin Screen"),
-        SendKin("Send Kin Screen"),
-    }
-
     enum class BillPresentationStyle(val value: String) {
         Pop("Pop"),
         Slide("Slide"),
@@ -385,5 +359,4 @@ class AnalyticsManager @Inject constructor(
         Hidden("Hidden"),
         TimedOut("Timed Out"),
     }
-
 }
