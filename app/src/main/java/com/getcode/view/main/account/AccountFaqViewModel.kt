@@ -24,11 +24,6 @@ class AccountFaqViewModel @Inject constructor(
         R.string.faq_q__4,
         R.string.faq_q__5,
         R.string.faq_q__6,
-        R.string.faq_q__7,
-        R.string.faq_q__8,
-        R.string.faq_q__9,
-        R.string.faq_q__10,
-        R.string.faq_q__11,
     ).map { resources.getString(it) }
 
     private val answers = listOf(
@@ -38,11 +33,6 @@ class AccountFaqViewModel @Inject constructor(
         R.string.faq_a__4,
         R.string.faq_a__5,
         R.string.faq_a__6,
-        R.string.faq_a__7,
-        R.string.faq_a__8,
-        R.string.faq_a__9,
-        R.string.faq_a__10,
-        R.string.faq_a__11,
     ).map { resources.getString(it) }
 
     private val faqItems = questions.zip(answers).map { FaqItem(question = it.first, answer = it.second) }

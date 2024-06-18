@@ -31,13 +31,7 @@
 
     <string name="title_sendKin">Send Kin</string>
 
-    <string name="error_title_failedToCollect">Failed to Collect</string>
-    <string name="error_description_failedToCollect">Something went wrong. This Kin could not be collected.</string>
-
-    <string name="title_appSettings">App Settings</string>
-    <string name="title_autoStartCamera">Auto Start Camera</string>
-    <string name="subtitle_cameraRequiredToScanCodes">You need to start your camera\nto scan Codes</string>
-    <string name="action_startCamera">Start Camera</string>
+    <string name="subtitle_cameraRequiredToScanCodes">You need to turn on Camera\nin Settings to scan Codes</string>
 
     <string name="title_requireBiometrics">Require Biometrics</string>
     <string name="description_requireBiometricsNoneEnrolled">No biometrics currently enrolled</string>
