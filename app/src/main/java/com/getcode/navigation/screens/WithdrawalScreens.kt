@@ -7,7 +7,6 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.view.main.account.withdraw.AccountWithdrawAddress
 import com.getcode.view.main.account.withdraw.AccountWithdrawAmount
@@ -32,12 +31,6 @@ internal data object WithdrawalAmountScreen : WithdrawalGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is WithdrawalAmountScreen }) {
             AccountWithdrawAmount(viewModel = getViewModel())
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Withdraw
-        )
-
     }
 }
 
