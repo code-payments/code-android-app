@@ -201,12 +201,14 @@ class HomeViewModel @Inject constructor(
     init {
         onDrawn()
 
-        viewModelScope.launch {
-            val cameraAutoStart = appSettings.get(PrefsBool.CAMERA_START_BY_DEFAULT)
-            uiFlow.update {
-                it.copy(autoStartCamera = cameraAutoStart)
-            }
-        }
+        appSettings.observe()
+            .map { it.cameraStartByDefault }
+            .distinctUntilChanged()
+            .onEach {cameraAutoStart ->
+                uiFlow.update {
+                    it.copy(autoStartCamera = cameraAutoStart)
+                }
+            }.launchIn(viewModelScope)
 
         betaFlags.observe()
             .distinctUntilChanged()
