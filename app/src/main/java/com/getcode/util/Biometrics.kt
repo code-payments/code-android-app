@@ -71,7 +71,7 @@ object Biometrics {
             .setTitle(context.getString(R.string.title_biometricAuthentication))
             .setDescription(context.getString(R.string.description_biometricAuthentication))
             .setAllowedAuthenticators(
-                BiometricManager.Authenticators.BIOMETRIC_STRONG
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
                         or BiometricManager.Authenticators.DEVICE_CREDENTIAL
             )
             .build()

@@ -24,7 +24,7 @@ class AppSettingsMapper @Inject constructor(
 
                 PrefsBool.REQUIRE_BIOMETRICS -> {
                     val biometricsState = biometricManager.canAuthenticate(
-                            BiometricManager.Authenticators.BIOMETRIC_STRONG
+                            BiometricManager.Authenticators.BIOMETRIC_WEAK
                     )
 
                     val canUseBiometrics = !(biometricsState == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ||
