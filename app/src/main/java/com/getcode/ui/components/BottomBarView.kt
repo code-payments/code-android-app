@@ -17,6 +17,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import com.getcode.manager.BottomBarManager
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -101,7 +102,8 @@ fun BottomBarView(
                                 onClose(BottomBarManager.BottomBarActionType.Tertiary)
                             }
                             .padding(vertical = CodeTheme.dimens.grid.x2),
-                        style = CodeTheme.typography.textLarge,
+                        style = CodeTheme.typography.textMedium,
+                        textAlign = TextAlign.Center,
                         color = White,
                         text = it
                     )

@@ -82,11 +82,16 @@ fun CodeScanner(
         KikCodeAnalyzer(scanner, onCodeScanned)
     }
 
+    var bound by remember {
+        mutableStateOf(false)
+    }
+
     val scope = rememberCoroutineScope()
     LaunchedEffect(scanner) {
         val cameraProvider = context.getCameraProvider()
         cameraProvider.unbindAll()
         cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+        bound = true
     }
 
     OnLifecycleEvent { _, event ->
@@ -94,12 +99,21 @@ fun CodeScanner(
             scope.launch {
                 val cameraProvider = context.getCameraProvider()
                 cameraProvider.unbindAll()
+                bound = false
             }
         } else if (event == Lifecycle.Event.ON_RESUME) {
             scope.launch {
-                val cameraProvider = context.getCameraProvider()
-                cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+                if (!bound) {
+                    val cameraProvider = context.getCameraProvider()
+                    cameraProvider.unbindAll()
+                    cameraProvider.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraSelector,
+                        preview,
+                        imageAnalysis
+                    )
+                    bound = true
+                }
             }
         }
 

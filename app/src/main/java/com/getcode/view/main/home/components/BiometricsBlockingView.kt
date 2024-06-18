@@ -113,6 +113,10 @@ internal fun rememberBiometricsState(
         mutableStateOf(requireBiometrics == true)
     }
 
+    var stopped by remember {
+        mutableStateOf(false)
+    }
+
     LaunchedEffect(checkBiometrics, requireBiometrics) {
         if (checkBiometrics && requireBiometrics == true) {
             Biometrics.prompt(context)
@@ -139,10 +143,11 @@ internal fun rememberBiometricsState(
                 if (requireBiometrics == true) {
                     biometricsPassed = false
                 }
+                stopped = true
             }
 
             Lifecycle.Event.ON_RESUME -> {
-                if (requireBiometrics == true) {
+                if (requireBiometrics == true && stopped) {
                     checkBiometrics = true
                 }
             }
