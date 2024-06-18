@@ -95,6 +95,12 @@ fun CodeScanner(
                 val cameraProvider = context.getCameraProvider()
                 cameraProvider.unbindAll()
             }
+        } else if (event == Lifecycle.Event.ON_RESUME) {
+            scope.launch {
+                val cameraProvider = context.getCameraProvider()
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+            }
         }
 
     }
