@@ -35,7 +35,7 @@ internal fun CameraDisabledView(
                     .fillMaxWidth()
                     .padding(bottom = 30.dp),
                 style = CodeTheme.typography.textMedium.copy(textAlign = TextAlign.Center),
-                text = stringResource(R.string.subtitle_cameraRequiredToScanCodes)
+                text = stringResource(R.string.subtitle_startCameraToScan)
             )
             CodeButton(
                 onClick = onClick,
