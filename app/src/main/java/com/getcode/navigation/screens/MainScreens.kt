@@ -1,60 +1,18 @@
 package com.getcode.navigation.screens
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.layout.boundsInParent
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onPlaced
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.platform.LocalTextToolbar
-import androidx.compose.ui.platform.TextToolbar
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.LocalDownloadQrCode
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
-import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.Cloudy
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeCircularProgressIndicator
-import com.getcode.ui.components.Row
-import com.getcode.ui.components.SelectionContainer
-import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
-import com.getcode.ui.utils.rememberedLongClickable
-import com.getcode.ui.utils.swallowClicks
-import com.getcode.util.shareDownloadLink
-import com.getcode.util.vibration.LocalVibrator
 import com.getcode.utils.trace
 import com.getcode.view.download.ShareDownloadScreen
 import com.getcode.view.main.account.AccountHome
@@ -138,11 +96,6 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
         ) {
             GiveKinScreen(getViewModel())
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.GiveKin
-        )
     }
 }
 
@@ -190,11 +143,6 @@ data class RequestKinModal(
                 content()
             }
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.RequestKin
-        )
     }
 }
 
@@ -220,11 +168,6 @@ data object AccountModal : MainGraph, ModalRoot {
         ) {
             AccountHome(viewModel)
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Settings
-        )
     }
 }
 
@@ -240,11 +183,6 @@ data object ShareDownloadLinkModal : MainGraph, ModalRoot {
         ) {
             ShareDownloadScreen()
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Share
-        )
     }
 }
 

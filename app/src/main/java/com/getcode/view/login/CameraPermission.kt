@@ -10,7 +10,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.getcode.LocalAnalytics
 import com.getcode.R
+import com.getcode.analytics.Action
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
@@ -21,16 +23,20 @@ import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 
 @Composable
-fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current) {
+fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current, fromOnboarding: Boolean = false) {
     var isResultHandled by remember { mutableStateOf(false) }
+    val analytics = LocalAnalytics.current
     val onNotificationResult: (Boolean) -> Unit = { isGranted ->
         if (!isResultHandled) {
             isResultHandled = true
 
             if (isGranted) {
+                if (fromOnboarding) {
+                    analytics.action(Action.CompletedOnboarding)
+                }
                 navigator.replaceAll(HomeScreen())
             } else {
-                navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
+                navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, fromOnboarding))
             }
         }
     }

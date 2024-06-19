@@ -34,10 +34,8 @@ import coil3.request.ImageRequest
 import coil3.request.error
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
-import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.model.ID
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
@@ -125,11 +123,6 @@ data object BalanceModal : ChatGraph, ModalRoot {
         ) {
             BalanceScreen(state = state, dispatch = viewModel::dispatchEvent)
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Balance
-        )
 
         LifecycleEffect(
             onDisposed = {

@@ -9,7 +9,6 @@ import com.getcode.solana.keys.PublicKey
 interface AnalyticsService {
     fun onAppStart()
     fun onAppStarted()
-    fun open(screen: AnalyticsManager.Screen)
     fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int)
     fun logout()
     fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?)
@@ -50,12 +49,13 @@ interface AnalyticsService {
     fun unintentionalLogout()
 
     fun appSettingToggled(setting: AppSetting, value: Boolean)
+
+    fun action(action: Action, source: ActionSource? = null)
 }
 
 class AnalyticsServiceNull : AnalyticsService {
     override fun onAppStart() = Unit
     override fun onAppStarted() = Unit
-    override fun open(screen: AnalyticsManager.Screen) = Unit
     override fun login(ownerPublicKey: String, autoCompleteCount: Int, inputChangeCount: Int) = Unit
     override fun logout() = Unit
     override fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?) = Unit
@@ -94,4 +94,5 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun backgroundSwapInitiated() = Unit
     override fun unintentionalLogout() = Unit
     override fun appSettingToggled(setting: AppSetting, value: Boolean) = Unit
+    override fun action(action: Action, source: ActionSource?) = Unit
 }

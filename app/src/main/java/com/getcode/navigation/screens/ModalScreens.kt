@@ -9,7 +9,6 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
-import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel
@@ -52,11 +51,6 @@ data object DepositKinScreen : MainGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is DepositKinScreen }) {
             AccountDeposit()
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Deposit
-        )
     }
 }
 
@@ -73,11 +67,6 @@ data object FaqScreen : MainGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is FaqScreen }) {
             AccountFaq(getViewModel())
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Faq
-        )
     }
 }
 
@@ -94,11 +83,6 @@ data object AccountDebugOptionsScreen : MainGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is AccountDebugOptionsScreen }) {
             BetaFlagsScreen(getViewModel())
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Debug
-        )
     }
 }
 
@@ -115,11 +99,6 @@ data object AppSettingsScreen : MainGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is AppSettingsScreen }) {
             AppSettingsScreen(getViewModel())
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.AppSettings
-        )
     }
 }
 
@@ -152,12 +131,6 @@ data object BackupScreen : MainGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is BackupScreen }) {
             BackupKey(getViewModel())
         }
-
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.Backup
-        )
     }
 }
 
@@ -384,11 +357,6 @@ data class BuyMoreKinModal(
                 content()
             }
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.BuyMoreKin
-        )
     }
 }
 
@@ -483,11 +451,6 @@ data object GetKinModal : MainGraph, ModalRoot {
         ) {
             GetKinSheet(viewModel)
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.GetKin
-        )
     }
 }
 
@@ -501,10 +464,5 @@ data object BuySellScreen : MainGraph, ModalContent {
         ModalContainer(backButtonEnabled = { it is BuySellScreen }) {
             BuyAndSellKin(getViewModel())
         }
-
-        AnalyticsScreenWatcher(
-            lifecycleOwner = LocalLifecycleOwner.current,
-            event = AnalyticsManager.Screen.BuyAndSellKin
-        )
     }
 }

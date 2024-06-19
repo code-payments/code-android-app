@@ -17,6 +17,19 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+enum class Action(val value: String) {
+    CreateAccount("Action: Create Account"),
+    EnterPhone("Action: Enter Phone"),
+    VerifyPhone("Action: Verify Phone"),
+    ConfirmAccessKey("Action: Confirm Access Key"),
+    CompletedOnboarding("Action: Completed Onboarding"),
+}
+
+enum class ActionSource(val value: String) {
+    AccessKeySaved("Saved to Photos"),
+    AccessKeyWroteDown("Wrote it Down")
+}
+
 @Singleton
 class AnalyticsManager @Inject constructor(
     private val mixpanelAPI: MixpanelAPI
@@ -38,10 +51,6 @@ class AnalyticsManager @Inject constructor(
         traceAppInit?.stop()
         traceAppInit = null
         Timber.i("App init time: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
-    }
-
-    override fun open(screen: Screen) {
-        track(Name.Open, Pair(Property.Screen, screen.value))
     }
 
     override fun logout() {
@@ -265,9 +274,24 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun action(action: Action, source: ActionSource?) {
+        track(
+            action = action,
+            properties = source?.let { arrayOf(Property.Source to it.value) }.orEmpty()
+        )
+    }
+
     private fun track(event: Name, vararg properties: Pair<Property, String>) {
+        track(name = event.value, properties = properties)
+    }
+
+    private fun track(action: Action, vararg properties: Pair<Property, String>) {
+       track(name = action.value, properties = properties)
+    }
+
+    private fun track(name: String, vararg properties: Pair<Property, String>) {
         if (BuildConfig.DEBUG) {
-            Timber.d("debug track $event, ${properties.map { "${it.first.name}, ${it.second}" }}")
+            Timber.d("debug track $name, ${properties.map { "${it.first.name}, ${it.second}" }}")
             return
         } //no logging in debug
 
@@ -275,13 +299,10 @@ class AnalyticsManager @Inject constructor(
         properties.forEach { property ->
             jsonObject.put(property.first.value, property.second)
         }
-        mixpanelAPI.track(event.value, jsonObject)
+        mixpanelAPI.track(name, jsonObject)
     }
 
     enum class Name(val value: String) {
-        //Open
-        Open("Open"),
-
         //Account
         Logout("Logout"),
         Login("Login"),
@@ -312,7 +333,7 @@ class AnalyticsManager @Inject constructor(
         Recompute("Recompute"),
 
         // App Settings
-        AutoStartCamera("Auto Start Camera"),
+        AutoStartCamera("Camera Auto Start"),
         RequireBiometrics("Require Biometrics")
     }
 
@@ -350,25 +371,8 @@ class AnalyticsManager @Inject constructor(
         VoidingSend("Voiding Send"),
 
         PercentDelta("Percent Delta"),
-    }
 
-    enum class Screen(val value: String) {
-        GetKin("Get Kin Screen"),
-        GiveKin("Give Kin Screen"),
-        RequestKin("Request Kin Screen"),
-        Balance("Balance Screen"),
-        Faq("FAQ Screen"),
-        Settings("Settings Screen"),
-        BuyAndSellKin("Buy and Sell Kin Screen"),
-        Deposit("Deposit Screen"),
-        Backup("Backup Screen"),
-        Withdraw("Withdraw Screen"),
-        Debug("Debug Screen"),
-        Share("Share Screen"),
-        AppSettings("App Settings"),
-        ForceUpgrade("Force Upgrade"),
-        BuyMoreKin("Buy More Kin Screen"),
-        SendKin("Send Kin Screen"),
+        Source("Source"),
     }
 
     enum class BillPresentationStyle(val value: String) {
@@ -385,5 +389,4 @@ class AnalyticsManager @Inject constructor(
         Hidden("Hidden"),
         TimedOut("Timed Out"),
     }
-
 }
