@@ -7,9 +7,7 @@
 
 [Code](https://getcode.com) is a mobile wallet app leveraging self-custodial blockchain technology to deliver an instant, global, and private payments experience. 
 
-Code is currently live on [iOS](https://apps.apple.com/ca/app/code-wallet/id1562384846). 
-
-Android is still a work in progress. The foundation is in place but there are several known issues impacting stability and performance, and is not yet at feature parity with iOS.
+Download Code for Android [here](https://play.google.com/store/apps/details?id=com.getcode).
 
 ## Contributing
 
