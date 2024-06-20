@@ -722,14 +722,32 @@ class TransactionRepository @Inject constructor(
 
     sealed class ErrorSubmitIntent(val value: Int) {
         data class Denied(val reasons: List<DeniedReason> = emptyList()): ErrorSubmitIntent(0)
-        data object InvalidIntent: ErrorSubmitIntent(1)
+        data class InvalidIntent(val reasons: List<String>): ErrorSubmitIntent(1)
         data object SignatureError: ErrorSubmitIntent(2)
-        data object StaleState: ErrorSubmitIntent(3)
+        data class StaleState(val reasons: List<String>): ErrorSubmitIntent(3)
         data object Unknown: ErrorSubmitIntent(-1)
         data object DeviceTokenUnavailable: ErrorSubmitIntent(-2)
 
+        override fun toString(): String {
+            return when (this) {
+                is Denied -> "denied(${reasons.joinToString()})"
+                DeviceTokenUnavailable -> "deviceTokenUnavailable"
+                is InvalidIntent -> "invalidIntent(${reasons.joinToString()})"
+                SignatureError -> "signatureError"
+                is StaleState -> "staleState(${reasons.joinToString()})"
+                Unknown -> "unknown"
+            }
+        }
+
         companion object {
             operator fun invoke(proto: SubmitIntentResponse.Error): ErrorSubmitIntent {
+                val reasonStrings = proto.errorDetailsList.mapNotNull {
+                    when (it.typeCase) {
+                        TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                            it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+                        else -> null
+                    }
+                }
                 return when (proto.code) {
                     SubmitIntentResponse.Error.Code.DENIED -> {
                         val reasons = proto.errorDetailsList.mapNotNull {
@@ -739,9 +757,9 @@ class TransactionRepository @Inject constructor(
 
                         Denied(reasons)
                     }
-                    SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent
+                    SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent(reasonStrings)
                     SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> SignatureError
-                    SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState
+                    SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState(reasonStrings)
                     SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unknown
                     else -> return Unknown
                 }
