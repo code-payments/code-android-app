@@ -246,6 +246,17 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun withdrawal(amount: KinAmount, successful: Boolean) {
+        track(
+            Name.Withdrawal,
+            Property.State to if (successful) StringValue.Success.value else StringValue.Failure.value,
+            Property.Amount to amount.kin.toKin().toInt().toString(),
+            Property.Fiat to amount.fiat.toString(),
+            Property.Fx to amount.rate.fx.toString(),
+            Property.Currency to amount.rate.currency.name,
+        )
+    }
+
     override fun onBillReceived() {
         Timber.i("Bill scanned. From start: " + (System.currentTimeMillis() - (timeAppInit ?: 0)))
     }
@@ -326,6 +337,7 @@ class AnalyticsManager @Inject constructor(
         ClaimGetFreeKin("Claim Get Free Kin"),
         PrivacyMigration("Privacy Migration"),
         BackgroundSwap("Background Swap Initiated"),
+        Withdrawal("Withdrawal"),
 
         // Errors
         ErrorRequest("Error Request"),
