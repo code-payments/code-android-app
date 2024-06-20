@@ -42,6 +42,7 @@ interface AnalyticsService {
     fun migration(amount: Kin)
     fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int)
     fun onBillReceived()
+    fun withdrawal(amount: KinAmount, successful: Boolean)
 
     fun tipCardShown(username: String)
 
@@ -77,6 +78,7 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun transfer(amount: KinAmount, successful: Boolean) = Unit
     override fun transferForRequest(amount: KinAmount, successful: Boolean) = Unit
     override fun transferForTip(amount: KinAmount, successful: Boolean) = Unit
+    override fun withdrawal(amount: KinAmount, successful: Boolean) = Unit
 
     override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) = Unit
     override fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean) = Unit

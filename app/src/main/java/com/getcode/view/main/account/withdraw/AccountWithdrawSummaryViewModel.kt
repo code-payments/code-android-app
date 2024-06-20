@@ -3,6 +3,7 @@ package com.getcode.view.main.account.withdraw
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
+import com.getcode.analytics.AnalyticsService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
@@ -41,6 +42,7 @@ data class AccountWithdrawSummaryUiModel(
 
 @HiltViewModel
 class AccountWithdrawSummaryViewModel @Inject constructor(
+    private val analytics: AnalyticsService,
     private val client: Client,
     private val historyController: HistoryController,
     private val resources: ResourceHelper,
@@ -117,6 +119,8 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
                     )
                 )
 
+                analytics.withdrawal(amount = amount, successful = true)
+
                 navigator.replaceAll(HomeScreen())
 
                 uiFlow.value = uiFlow.value.copy(isSuccess = true)
@@ -127,6 +131,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
                         getString(R.string.error_description_failedWithdrawal)
                     )
                 )
+                analytics.withdrawal(amount = amount, successful = false)
                 ErrorUtils.handleError(it)
             })
     }
