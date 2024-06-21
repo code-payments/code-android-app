@@ -332,7 +332,7 @@ class AnalyticsManager @Inject constructor(
         RemoteSendOutgoing("Remote Send Outgoing"),
         RemoteSendIncoming("Remote Send Incoming"),
         Grab("Grab"),
-        CashLinkGrab("CashLinkGrab"),
+        CashLinkGrab("Cash Link Grab"),
         UpgradePrivacy("Upgrade Privacy"),
         ClaimGetFreeKin("Claim Get Free Kin"),
         PrivacyMigration("Privacy Migration"),
