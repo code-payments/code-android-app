@@ -8,7 +8,7 @@ import javax.inject.Inject
 import com.codeinc.gen.chat.v1.ChatService.ChatMessage as ApiChatMessage
 import com.getcode.model.ChatMessage as DomainChatMessage
 
-
+@Deprecated("Replaced with v2")
 class ChatMessageMapper @Inject constructor(
 ): Mapper<ApiChatMessage, DomainChatMessage> {
     override fun map(from: ChatService.ChatMessage): ChatMessage {

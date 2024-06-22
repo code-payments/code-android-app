@@ -11,22 +11,20 @@ import com.codeinc.gen.chat.v1.ChatService.SetMuteStateRequest
 import com.codeinc.gen.chat.v1.ChatService.SetMuteStateResponse
 import com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateRequest
 import com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateResponse
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toByteString
-import com.getcode.network.repository.toSignature
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.utils.sign
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
-import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
+@Deprecated("Being replaced with V2")
 class ChatApi @Inject constructor(
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {

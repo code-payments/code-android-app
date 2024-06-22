@@ -128,8 +128,8 @@ message ChatMessageId {
 message Pointer {
     Kind kind = 1;
     enum Kind {
-        UNKNOWN = 0;
-        READ = 1;
+        UNKNOWN   = 0;
+        READ      = 1;
     }
 
     ChatMessageId value = 2;
@@ -139,9 +139,9 @@ message ChatMetadata {
     ChatId chat_id = 1;
     // Recommended chat title inferred by the type of chat
     oneof title {
-        
+
         LocalizedContent localized = 2;
-        common.v1.Domain domain    = 3;
+        common.v1.Domain       domain    = 3;
     }
 
     // Pointer in the chat indicating the most recently read message by the user
@@ -156,7 +156,7 @@ message ChatMetadata {
     bool can_mute = 8;
     // Can the user unsubscribe from this chat?
     bool can_unsubscribe = 9;
-    // Cursor value for this chat for reference in subsequent GetChatsRequest 
+    // Cursor value for this chat for reference in subsequent GetChatsRequest
     Cursor cursor = 10;
     // Is this a verified chat?
     //
@@ -172,16 +172,16 @@ message ChatMessage {
     google.protobuf.Timestamp ts = 2;
     // Ordered message content. A message may have more than one piece of content.
     repeated Content content = 3;
-    // Cursor value for this message for reference in subsequent GetMessagesRequest 
+    // Cursor value for this message for reference in subsequent GetMessagesRequest
     Cursor cursor = 4;
 }
 
 message Content {
     oneof type {
-        
-        LocalizedContent        localized     = 1;
-        ExchangeDataContent     exchange_data = 2;
-        NaclBoxEncryptedContent nacl_box      = 3;
+
+        LocalizedContent  server_localized = 1;
+        ExchangeDataContent     exchange_data    = 2;
+        NaclBoxEncryptedContent nacl_box         = 3;
     }
 
 }
@@ -210,7 +210,7 @@ message ExchangeDataContent {
     }
 
     oneof exchange_data {
-        
+
         transaction.v2.ExchangeData            exact = 2;
         transaction.v2.ExchangeDataWithoutRate partial = 3;
     }

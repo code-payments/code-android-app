@@ -8,21 +8,20 @@ import com.getcode.model.Chat
 import com.getcode.model.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.description
 import com.getcode.network.api.ChatApi
 import com.getcode.network.core.NetworkOracle
-import com.getcode.network.repository.base58
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
-import kotlin.reflect.KClass
 
 /**
  * Abstraction layer to handle [ChatApi] request results and map to domain models
  */
+@Deprecated("Being replaced with V2")
 class ChatService @Inject constructor(
     private val api: ChatApi,
     private val chatMapper: ChatMetadataMapper,
@@ -30,7 +29,7 @@ class ChatService @Inject constructor(
     private val networkOracle: NetworkOracle,
 ) {
 
-    fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
+    private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
         return networkOracle.managedRequest(api.fetchChats(owner))
             .map { response ->
                 when (response.result) {
@@ -163,7 +162,8 @@ class ChatService @Inject constructor(
                         }
 
                         ChatService.GetMessagesResponse.Result.NOT_FOUND -> {
-                            val error = Throwable("Error: messages not found for chat ${chatId.base58}")
+                            val error =
+                                Throwable("Error: messages not found for chat ${chatId.description}")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -199,21 +199,25 @@ class ChatService @Inject constructor(
                         ChatService.AdvancePointerResponse.Result.OK -> {
                             Result.success(Unit)
                         }
+
                         ChatService.AdvancePointerResponse.Result.CHAT_NOT_FOUND -> {
                             val error = Throwable("Error: chat not found $chatId")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         ChatService.AdvancePointerResponse.Result.MESSAGE_NOT_FOUND -> {
                             val error = Throwable("Error: message not found $to")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         ChatService.AdvancePointerResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = Throwable("Error: Unknown")
                             Timber.e(t = error)
