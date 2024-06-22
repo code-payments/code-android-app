@@ -224,7 +224,7 @@ sealed interface MessageContent {
     companion object {
         operator fun invoke(proto: Content): MessageContent? {
             return when (proto.typeCase) {
-                Content.TypeCase.LOCALIZED -> Localized(proto.localized.keyOrText)
+                Content.TypeCase.SERVER_LOCALIZED -> Localized(proto.serverLocalized.keyOrText)
                 Content.TypeCase.EXCHANGE_DATA -> {
                     val verb = Verb(proto.exchangeData.verb)
                     val messageStatus = if (verb.increasesBalance) MessageStatus.Incoming else MessageStatus.Delivered
