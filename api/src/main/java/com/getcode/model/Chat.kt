@@ -2,11 +2,11 @@ package com.getcode.model
 
 import com.codeinc.gen.chat.v1.ChatService
 import com.codeinc.gen.chat.v1.ChatService.Content
+import com.codeinc.gen.chat.v2.ChatService as ChatServiceV2
+import com.codeinc.gen.chat.v2.ChatService.Content as MessageContentV2
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.repository.toPublicKey
-import com.getcode.solana.keys.SodiumError
 
-typealias ID = List<Byte>
 typealias Cursor = List<Byte>
 
 /**
@@ -136,6 +136,7 @@ sealed interface Verb {
     }
 
     companion object {
+        @Deprecated("Replaced with v2")
         operator fun invoke(proto: ChatService.ExchangeDataContent.Verb): Verb {
             return when (proto) {
                 ChatService.ExchangeDataContent.Verb.UNKNOWN -> Unknown
@@ -151,6 +152,24 @@ sealed interface Verb {
                 ChatService.ExchangeDataContent.Verb.UNRECOGNIZED -> Unknown
                 ChatService.ExchangeDataContent.Verb.RECEIVED_TIP -> ReceivedTip
                 ChatService.ExchangeDataContent.Verb.SENT_TIP -> SentTip
+            }
+        }
+
+        fun fromV2(proto: ChatServiceV2.ExchangeDataContent.Verb): Verb {
+            return when (proto) {
+                ChatServiceV2.ExchangeDataContent.Verb.UNKNOWN -> Unknown
+                ChatServiceV2.ExchangeDataContent.Verb.GAVE -> Gave
+                ChatServiceV2.ExchangeDataContent.Verb.RECEIVED -> Received
+                ChatServiceV2.ExchangeDataContent.Verb.WITHDREW -> Withdrew
+                ChatServiceV2.ExchangeDataContent.Verb.DEPOSITED -> Deposited
+                ChatServiceV2.ExchangeDataContent.Verb.SENT -> Sent
+                ChatServiceV2.ExchangeDataContent.Verb.RETURNED -> Returned
+                ChatServiceV2.ExchangeDataContent.Verb.SPENT -> Spent
+                ChatServiceV2.ExchangeDataContent.Verb.PAID -> Paid
+                ChatServiceV2.ExchangeDataContent.Verb.PURCHASED -> Purchased
+                ChatServiceV2.ExchangeDataContent.Verb.UNRECOGNIZED -> Unknown
+                ChatServiceV2.ExchangeDataContent.Verb.RECEIVED_TIP -> ReceivedTip
+                ChatServiceV2.ExchangeDataContent.Verb.SENT_TIP -> SentTip
             }
         }
     }
@@ -222,9 +241,10 @@ sealed interface MessageContent {
     ) : MessageContent
 
     companion object {
+        @Deprecated("Replaced with v2")
         operator fun invoke(proto: Content): MessageContent? {
             return when (proto.typeCase) {
-                Content.TypeCase.LOCALIZED -> Localized(proto.localized.keyOrText)
+                Content.TypeCase.SERVER_LOCALIZED -> Localized(proto.serverLocalized.keyOrText)
                 Content.TypeCase.EXCHANGE_DATA -> {
                     val verb = Verb(proto.exchangeData.verb)
                     val messageStatus = if (verb.increasesBalance) MessageStatus.Incoming else MessageStatus.Delivered
@@ -274,6 +294,62 @@ sealed interface MessageContent {
                 }
 
                 Content.TypeCase.TYPE_NOT_SET -> return null
+                else -> return null
+            }
+        }
+
+        fun fromV2(proto: MessageContentV2): MessageContent? {
+            return when (proto.typeCase) {
+                MessageContentV2.TypeCase.LOCALIZED -> Localized(proto.localized.keyOrText)
+                MessageContentV2.TypeCase.EXCHANGE_DATA -> {
+                    val verb = Verb.fromV2(proto.exchangeData.verb)
+                    val messageStatus = if (verb.increasesBalance) MessageStatus.Incoming else MessageStatus.Delivered
+                    when (proto.exchangeData.exchangeDataCase) {
+                        ChatServiceV2.ExchangeDataContent.ExchangeDataCase.EXACT -> {
+                            val exact = proto.exchangeData.exact
+                            val currency = CurrencyCode.tryValueOf(exact.currency) ?: return null
+                            val kinAmount = KinAmount.newInstance(
+                                kin = Kin.fromQuarks(exact.quarks),
+                                rate = Rate(
+                                    fx = exact.exchangeRate,
+                                    currency = currency
+                                )
+                            )
+
+                            Exchange(GenericAmount.Exact(kinAmount), verb, status = messageStatus)
+                        }
+
+                        ChatServiceV2.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
+                            val partial = proto.exchangeData.partial
+                            val currency = CurrencyCode.tryValueOf(partial.currency) ?: return null
+
+                            val fiat = Fiat(
+                                currency = currency,
+                                amount = partial.nativeAmount
+                            )
+
+                            Exchange(GenericAmount.Partial(fiat), verb, status = messageStatus)
+                        }
+
+                        ChatServiceV2.ExchangeDataContent.ExchangeDataCase.EXCHANGEDATA_NOT_SET -> return null
+                        else -> return null
+                    }
+                }
+
+                MessageContentV2.TypeCase.NACL_BOX -> {
+                    val encryptedContent = proto.naclBox
+                    val peerPublicKey =
+                        encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
+
+                    val data = EncryptedData(
+                        peerPublicKey = peerPublicKey,
+                        nonce = encryptedContent.nonce.toByteArray().toList(),
+                        encryptedData = encryptedContent.encryptedPayload.toByteArray().toList(),
+                    )
+                    SodiumBox(data = data)
+                }
+
+                MessageContentV2.TypeCase.TYPE_NOT_SET -> return null
                 else -> return null
             }
         }
