@@ -36,7 +36,7 @@ class ActionTest {
     @Before
     fun setup() {
         context = InstrumentationRegistry.getInstrumentation().context
-        organizer = Organizer.newInstance(context, mnemonic)
+        organizer = Organizer.newInstance(mnemonic)
     }
 
     @Test

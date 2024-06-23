@@ -37,7 +37,7 @@ class IntentPublicTransferTest {
 
     @Test
     fun testSendFiveDollars() {
-        val organizer = Organizer.newInstance(context, mnemonic)
+        val organizer = Organizer.newInstance(mnemonic)
 
         organizer.setBalances(
             mapOf(AccountType.Primary to Kin.fromKin(1_000_000))
