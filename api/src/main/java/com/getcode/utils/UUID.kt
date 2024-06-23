@@ -31,11 +31,3 @@ val UUID.blockchainMemo: String
 
         return Base58.encode(data.toByteArray())
     }
-
-val List<Byte>.toUuid: UUID
-    get() {
-        val byteBuffer = ByteBuffer.wrap(this.toByteArray())
-        val high = byteBuffer.getLong()
-        val low = byteBuffer.getLong()
-        return UUID(high, low)
-    }

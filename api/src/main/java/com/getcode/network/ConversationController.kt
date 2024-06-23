@@ -10,17 +10,23 @@ import androidx.paging.RemoteMediator
 import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.manager.SessionManager
+import com.getcode.model.ChatMessage
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationMessage
 import com.getcode.model.ConversationMessageContent
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
+import com.getcode.network.client.ChatMessageStreamReference
+import com.getcode.network.client.Client
+import com.getcode.network.client.openChatStream
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
+import com.getcode.network.repository.decodeBase64
 import com.getcode.network.source.ConversationMockProvider
 import com.getcode.vendor.Base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -29,23 +35,80 @@ import timber.log.Timber
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.jvm.Throws
 
 interface ConversationController {
     fun observeConversationForMessage(messageId: ID): Flow<Conversation?>
-    suspend fun getConversationForMessage(messageId: ID): Conversation?
-    suspend fun getConversation(conversationId: ID): Conversation?
-    suspend fun createConversation(messageId: ID)
+    fun openChatStream(scope: CoroutineScope, messageId: ID)
+    fun closeChatStream()
     suspend fun hasThanked(messageId: ID): Boolean
     suspend fun thankTipper(messageId: ID)
     suspend fun revealIdentity(messageId: ID)
     fun sendMessage(conversationId: ID, message: String)
-    fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessage>>
+    fun conversationPagingData(chatId: ID): Flow<PagingData<ConversationMessage>>
 }
 
+class ConversationStreamController @Inject constructor(
+    private val historyController: HistoryController,
+    private val exchange: Exchange,
+    private val client: Client
+): ConversationController {
+    private val pagingConfig = PagingConfig(pageSize = 20)
+
+    private val db: AppDatabase by lazy { Database.requireInstance() }
+
+    private var stream: ChatMessageStreamReference? = null
+
+    private fun conversationPagingSource(conversationId: ID) =
+        db.conversationMessageDao().observeConversationMessages(conversationId.base58)
+
+    override fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
+        return db.conversationDao().observeConversationForMessage(messageId)
+    }
+
+    @Throws(IllegalStateException::class)
+    override fun openChatStream(scope: CoroutineScope, messageId: ID) {
+        val chatId = "468f158662880905e966f7c27f36b39e368837887aa5cf889cb55d91537d1a76".decodeBase64().toList()
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
+        stream = client.openChatStream(scope, chatId, owner) { result ->
+            if (result.isSuccess) {
+                println("chat messages: ${result.getOrNull()}")
+            }
+        }
+    }
+
+    override fun closeChatStream() {
+        stream?.destroy()
+    }
+
+    override suspend fun hasThanked(messageId: ID): Boolean {
+        val conversation = db.conversationDao().findConversationForMessage(messageId) ?: return false
+        return db.conversationDao().hasThanked(conversation.messageId)
+    }
+
+    override suspend fun thankTipper(messageId: ID) {
+    }
+
+    override suspend fun revealIdentity(messageId: ID) {
+    }
+
+    override fun sendMessage(conversationId: ID, message: String) {
+
+    }
+
+    @OptIn(ExperimentalPagingApi::class)
+    override fun conversationPagingData(chatId: ID) =
+        Pager(
+            config = pagingConfig,
+            initialKey = null,
+            remoteMediator = ConversationMessagePageKeyedRemoteMediator(db)
+        ) { conversationPagingSource(chatId) }.flow
+
+}
 class ConversationMockController @Inject constructor(
     private val historyController: HistoryController,
     private val exchange: Exchange,
-) : ConversationController, CoroutineScope by CoroutineScope(Dispatchers.IO) {
+) : ConversationController {
 
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -57,51 +120,50 @@ class ConversationMockController @Inject constructor(
     override fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
         return db.conversationDao().observeConversationForMessage(messageId)
     }
-    override suspend fun getConversationForMessage(messageId: ID): Conversation? {
-        return db.conversationDao().findConversationForMessage(messageId)
+
+    override fun openChatStream(scope: CoroutineScope, messageId: ID) {
+        scope.launch {
+            Timber.d("creating conversation: ${messageId.base58}")
+            val message =
+                historyController.chats.value?.find {
+                    Timber.d("messages=${it.messages.joinToString { it.id.base58 }}")
+                    it.messages.firstOrNull { it.id == messageId } != null
+                }?.messages?.find { it.id == messageId }
+
+            if (message == null) {
+                Timber.e("No message for ${messageId.base58} found")
+                return@launch
+            }
+
+            val conversation = ConversationMockProvider.createConversation(exchange, message)
+            if (conversation == null) {
+                Timber.e("Failed to create conversation!")
+                return@launch
+            }
+
+            db.conversationDao().upsertConversations(conversation)
+
+            val tipMessage = ConversationMockProvider.createMessage(
+                conversation.messageId,
+                ConversationMessageContent.TipMessage
+            )
+
+            Timber.d("upserting tip message")
+            db.conversationMessageDao().upsertMessages(tipMessage)
+        }
     }
 
-    override suspend fun getConversation(conversationId: ID): Conversation? {
-        return db.conversationDao().findConversation(conversationId)
+    override fun closeChatStream() {
+
     }
 
     @OptIn(ExperimentalPagingApi::class)
-    override fun conversationPagingData(conversationId: ID) =
+    override fun conversationPagingData(chatId: ID) =
         Pager(
             config = pagingConfig,
             initialKey = null,
             remoteMediator = ConversationMessagePageKeyedRemoteMediator(db)
-        ) { conversationPagingSource(conversationId) }.flow
-
-    override suspend fun createConversation(messageId: ID) {
-        Timber.d("creating conversation: ${messageId.base58}")
-        val message =
-            historyController.chats.value?.find {
-                Timber.d("messages=${it.messages.joinToString { it.id.base58 }}")
-                it.messages.firstOrNull { it.id == messageId } != null
-            }?.messages?.find { it.id == messageId }
-
-        if (message == null) {
-            Timber.e("No message for ${messageId.base58} found")
-            return
-        }
-
-        val conversation = ConversationMockProvider.createConversation(exchange, message)
-        if (conversation == null) {
-            Timber.e("Failed to create conversation!")
-            return
-        }
-
-        db.conversationDao().upsertConversations(conversation)
-
-        val tipMessage = ConversationMockProvider.createMessage(
-            conversation.messageId,
-            ConversationMessageContent.TipMessage
-        )
-
-        Timber.d("upserting tip message")
-        db.conversationMessageDao().upsertMessages(tipMessage)
-    }
+        ) { conversationPagingSource(chatId) }.flow
 
     override suspend fun hasThanked(messageId: ID): Boolean {
         val conversation = db.conversationDao().findConversationForMessage(messageId) ?: return false
@@ -109,16 +171,6 @@ class ConversationMockController @Inject constructor(
     }
 
     override suspend fun thankTipper(messageId: ID) {
-        val conversation = db.conversationDao().findConversationForMessage(messageId)
-        if (conversation == null) {
-            Timber.d("conversation doesn't exist.. creating")
-            val message =
-                historyController.chats.value?.find { it.messages.firstOrNull { it.id == messageId } != null }
-                    ?.messages?.find { it.id == messageId } ?: return
-
-            createConversation(message.id)
-        }
-
         val message = ConversationMockProvider.thankTipper(messageId) ?: return
         db.conversationMessageDao().upsertMessages(message)
     }
@@ -129,7 +181,7 @@ class ConversationMockController @Inject constructor(
     }
 
     override fun sendMessage(conversationId: ID, message: String) {
-        launch {
+        GlobalScope.launch {
             val messageId = generateId()
 
             val tipAddress = SessionManager.getOrganizer()?.primaryVault

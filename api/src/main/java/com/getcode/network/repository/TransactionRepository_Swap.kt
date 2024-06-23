@@ -32,7 +32,7 @@ suspend fun TransactionRepository.initiateSwap(organizer: Organizer): Result<Swa
 }
 
 private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<SwapIntent> = suspendCancellableCoroutine { cont ->
-    val reference = BidirectionalSwapStream()
+    val reference = BidirectionalSwapStream(this)
 
     // Intentionally creates a retain-cycle using closures to ensure that we have
     // a strong reference to the stream at all times. Doing so ensures that the
