@@ -8,7 +8,6 @@ import com.getcode.manager.MnemonicManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
-import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.client.AccountService
@@ -24,13 +23,13 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.util.AccountAuthenticator
-import com.getcode.util.locale.LocaleHelper
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
 import com.getcode.network.service.DeviceService
+import com.getcode.util.AccountAuthenticator
 import com.getcode.util.CurrencyUtils
+import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -105,27 +104,23 @@ object ApiModule {
     @Provides
     fun provideBalanceController(
         exchange: Exchange,
-        @ApplicationContext context: Context,
+        analytics: AnalyticsService,
         balanceRepository: BalanceRepository,
         transactionRepository: TransactionRepository,
         accountRepository: AccountRepository,
-        privacyMigration: PrivacyMigration,
         transactionReceiver: TransactionReceiver,
         networkObserver: NetworkConnectivityListener,
-        locale: LocaleHelper,
         resources: ResourceHelper,
         currencyUtils: CurrencyUtils,
-        prefRepository: PrefRepository,
     ): BalanceController {
         return BalanceController(
             exchange = exchange,
             balanceRepository = balanceRepository,
             transactionRepository = transactionRepository,
             accountRepository = accountRepository,
-            privacyMigration = privacyMigration,
             transactionReceiver = transactionReceiver,
             networkObserver = networkObserver,
-
+            analytics = analytics,
             getCurrencyFromCode = {
                 it?.name?.let(currencyUtils::getCurrency)
             },
@@ -196,18 +191,6 @@ object ApiModule {
             chatService,
             deviceService,
             mnemonicManager
-        )
-    }
-
-    @Singleton
-    @Provides
-    fun providePrivacyMigration(
-        transactionRepository: TransactionRepository,
-        analytics: AnalyticsService,
-    ): PrivacyMigration {
-        return PrivacyMigration(
-            transactionRepository,
-            analytics
         )
     }
 

@@ -17,11 +17,10 @@ class TimelockProgram_Withdraw(
     val destination: PublicKey,
     val payer: PublicKey,
     val bump: Byte,
-    val legacy: Boolean = false,
 ) : InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
-            program = if (legacy) TimelockProgram.legacyAddress else TimelockProgram.address,
+            program = TimelockProgram.address,
             accounts = listOf(
                 AccountMeta.readonly(publicKey = timelock),
                 AccountMeta.writable(publicKey = vault),
