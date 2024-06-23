@@ -2,7 +2,9 @@ package com.getcode.inject
 
 import com.getcode.network.ConversationController
 import com.getcode.network.ConversationMockController
+import com.getcode.network.ConversationStreamController
 import com.getcode.network.HistoryController
+import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import dagger.Module
 import dagger.Provides
@@ -18,6 +20,7 @@ object DataModule {
     @Singleton
     fun providesConversationController(
         historyController: HistoryController,
+        client: Client,
         exchange: Exchange
-    ): ConversationController = ConversationMockController(historyController, exchange)
+    ): ConversationController = ConversationStreamController(historyController, exchange, client)
 }

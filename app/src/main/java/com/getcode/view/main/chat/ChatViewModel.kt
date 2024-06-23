@@ -141,12 +141,6 @@ class ChatViewModel @Inject constructor(
             .onEach { conversationController.thankTipper(it) }
             .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OpenMessageChat>()
-            .map { it.messageId }
-            .onEach { conversationController.createConversation(it) }
-            .launchIn(viewModelScope)
-
         betaFlags.observe()
             .map { it.chatUnsubEnabled }
             .distinctUntilChanged()

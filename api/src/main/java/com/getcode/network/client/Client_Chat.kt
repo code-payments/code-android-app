@@ -1,5 +1,6 @@
 package com.getcode.network.client
 
+import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.Chat
@@ -8,9 +9,13 @@ import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
 import com.getcode.model.Title
+import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
-import com.getcode.network.repository.encodeBase64
+import kotlinx.coroutines.CoroutineScope
 import timber.log.Timber
+
+typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.StreamChatEventsRequest, ChatService.StreamChatEventsResponse>
+
 
 suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
     return chatService.fetchChats(owner)
@@ -25,11 +30,20 @@ suspend fun Client.setMuted(owner: KeyPair, chat: ID, muted: Boolean): Result<Bo
     return chatService.setMuteState(owner, chat, muted)
 }
 
-suspend fun Client.setSubscriptionState(owner: KeyPair, chatId: ID, subscribed: Boolean): Result<Boolean> {
+suspend fun Client.setSubscriptionState(
+    owner: KeyPair,
+    chatId: ID,
+    subscribed: Boolean
+): Result<Boolean> {
     return chatService.setSubscriptionState(owner, chatId, subscribed)
 }
 
-suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? = null, limit: Int? = null) : Result<List<ChatMessage>> {
+suspend fun Client.fetchMessagesFor(
+    owner: KeyPair,
+    chat: Chat,
+    cursor: Cursor? = null,
+    limit: Int? = null
+): Result<List<ChatMessage>> {
     return chatService.fetchMessagesFor(owner, chat.id, cursor, limit)
         .mapCatching {
             val domain = if (chat.title is Title.Domain) {
@@ -64,4 +78,18 @@ suspend fun Client.advancePointer(
     to: ID,
 ): Result<Unit> {
     return chatService.advancePointer(owner, chatId, to)
+}
+
+fun Client.openChatStream(
+    scope: CoroutineScope,
+    chatId: ID,
+    owner: KeyPair,
+    completion: (Result<List<ChatMessage>>) -> Unit
+): ChatMessageStreamReference {
+    return chatServiceV2.openChatStream(
+        scope = scope,
+        chatId = chatId,
+        owner = owner,
+        completion = completion
+    )
 }

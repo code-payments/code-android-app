@@ -44,7 +44,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
-    conversationController: ConversationController,
+    private val conversationController: ConversationController,
     currencyUtils: CurrencyUtils,
     resources: ResourceHelper,
     features: FeatureRepository,
@@ -110,6 +110,8 @@ class ConversationViewModel @Inject constructor(
         stateFlow
             .map { it.messageId }
             .filterNotNull()
+            .distinctUntilChanged()
+            .onEach { conversationController.openChatStream(viewModelScope, it) }
             .flatMapLatest { conversationController.observeConversationForMessage(it) }
             .filterNotNull()
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnConversationChanged(it)) }
@@ -238,6 +240,10 @@ class ConversationViewModel @Inject constructor(
             }
         }
 
+    override fun onCleared() {
+        super.onCleared()
+        conversationController.closeChatStream()
+    }
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
