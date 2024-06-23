@@ -33,7 +33,7 @@ class IntentDepositTest {
 
     @Test
     fun testReceiveSevenDollars() {
-        val organizer = Organizer.newInstance(context, mnemonic)
+        val organizer = Organizer.newInstance(mnemonic)
         val amount = Kin.Companion.fromKin(1_000_000)
 
         organizer.setBalances(
