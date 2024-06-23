@@ -15,11 +15,10 @@ class TimelockProgram_CloseAccounts(
     val closeAuthority: PublicKey,
     val payer: PublicKey,
     val bump: Byte,
-    val legacy: Boolean = false,
 ) : InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
-            program = if (legacy) TimelockProgram.legacyAddress else TimelockProgram.address,
+            program = TimelockProgram.address,
             accounts = listOf(
                 AccountMeta.writable(publicKey = timelock),
                 AccountMeta.writable(publicKey = vault),

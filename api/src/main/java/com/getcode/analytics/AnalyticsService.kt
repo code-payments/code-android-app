@@ -39,7 +39,7 @@ interface AnalyticsService {
     fun requestHidden(amount: KinAmount)
     fun cashLinkGrabStart()
     fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode)
-    fun migration(amount: Kin)
+    fun migrationRequired()
     fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int)
     fun onBillReceived()
     fun withdrawal(amount: KinAmount, successful: Boolean)
@@ -89,7 +89,7 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun requestHidden(amount: KinAmount) = Unit
     override fun cashLinkGrabStart() = Unit
     override fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode) = Unit
-    override fun migration(amount: Kin) = Unit
+    override fun migrationRequired() = Unit
     override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) = Unit
     override fun onBillReceived() = Unit
     override fun tipCardShown(username: String) = Unit

@@ -19,8 +19,6 @@ class ActionCloseEmptyAccount(
 
     val type: AccountType,
     val cluster: AccountCluster,
-    val legacy: Boolean
-
 
 ) : ActionType() {
     override fun transactions(): List<SolanaTransaction> {
@@ -31,7 +29,6 @@ class ActionCloseEmptyAccount(
                 maxDustAmount = Kin.fromKin(1),
                 nonce = config.nonce,
                 recentBlockhash = config.blockhash,
-                legacy = legacy
             )
         } ?: listOf()
     }
@@ -42,9 +39,7 @@ class ActionCloseEmptyAccount(
                 this.id =
                     this@ActionCloseEmptyAccount.id
                 this.closeEmptyAccount = TransactionService.CloseEmptyAccountAction.newBuilder().apply {
-                    this.accountType =
-                        if (legacy) Model.AccountType.LEGACY_PRIMARY_2022
-                        else this@ActionCloseEmptyAccount.type.getAccountType()
+                    this.accountType = type.getAccountType()
                     this.authority =
                         this@ActionCloseEmptyAccount.cluster.authority.keyPair.publicKeyBytes.toSolanaAccount()
                     this.token =
@@ -58,14 +53,12 @@ class ActionCloseEmptyAccount(
         fun newInstance(
             type: AccountType,
             cluster: AccountCluster,
-            legacy: Boolean = false
         ): ActionCloseEmptyAccount {
             return ActionCloseEmptyAccount(
                 id = 0,
                 type = type,
                 cluster = cluster,
                 signer = cluster.authority.keyPair,
-                legacy = legacy
             )
         }
     }

@@ -41,11 +41,11 @@ class AccountCluster(
         get() = (derivation as? Derivation.Usdc)?.account
 
     companion object {
-        fun newInstanceLazy(authority: DerivedKey, index: Int = 0, kind: Kind, legacy: Boolean = false): Lazy<AccountCluster> {
-            return lazy { newInstance(authority, index, kind, legacy) }
+        fun newInstanceLazy(authority: DerivedKey, index: Int = 0, kind: Kind): Lazy<AccountCluster> {
+            return lazy { newInstance(authority, index, kind) }
         }
 
-        fun newInstance(authority: DerivedKey, index: Int = 0, kind: Kind, legacy: Boolean = false): AccountCluster {
+        fun newInstance(authority: DerivedKey, index: Int = 0, kind: Kind): AccountCluster {
             return AccountCluster(
                 index = index,
                 authority = authority,
@@ -53,7 +53,6 @@ class AccountCluster(
                     Kind.Timelock -> Derivation.Timelock(
                         TimelockDerivedAccounts.newInstance(
                             owner = PublicKey(authority.keyPair.publicKeyBytes.toList()),
-                            legacy = legacy
                         )
                     )
                     Kind.Usdc -> {

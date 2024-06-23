@@ -22,7 +22,6 @@ class ActionWithdraw(
 
     val cluster: AccountCluster,
     val destination: PublicKey,
-    val legacy: Boolean,
     val tipMetadata: TipMetadata? = null,
 ) : ActionType() {
 
@@ -36,7 +35,6 @@ class ActionWithdraw(
                 nonce =  config.nonce,
                 recentBlockhash = config.blockhash,
                 kreIndex =  kreIndex,
-                legacy = legacy,
                 tipMetadata = tipMetadata,
             )
         }.orEmpty()
@@ -86,7 +84,6 @@ class ActionWithdraw(
             kind: Kind,
             cluster: AccountCluster,
             destination: PublicKey,
-            legacy: Boolean = false,
             tipMetadata: TipMetadata? = null,
         ): ActionWithdraw {
             return ActionWithdraw(
@@ -96,7 +93,6 @@ class ActionWithdraw(
                 kind = kind,
                 cluster = cluster,
                 destination = destination,
-                legacy = legacy,
                 tipMetadata = tipMetadata
             )
         }

@@ -26,7 +26,6 @@ object TransactionBuilder {
         maxDustAmount: Kin,
         nonce: PublicKey,
         recentBlockhash: Hash,
-        legacy: Boolean = false
     ): SolanaTransaction {
         return SolanaTransaction.newInstance(
             payer = subsidizer,
@@ -45,7 +44,6 @@ object TransactionBuilder {
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
                     maxAmount = maxDustAmount,
-                    legacy = legacy
                 ).instruction(),
 
                 TimelockProgram_CloseAccounts(
@@ -54,7 +52,6 @@ object TransactionBuilder {
                     closeAuthority = subsidizer,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy
                 ).instruction(),
             )
         )
@@ -104,7 +101,6 @@ object TransactionBuilder {
         nonce: PublicKey,
         recentBlockhash: Hash,
         kreIndex: Int,
-        legacy: Boolean = false,
         tipMetadata: TipMetadata? = null,
     ): SolanaTransaction {
         val instructions = mutableListOf<Instruction>()
@@ -128,7 +124,6 @@ object TransactionBuilder {
                     closeAuthority = subsidizer,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy
                 ).instruction(),
 
                 TimelockProgram_DeactivateLock(
@@ -136,7 +131,6 @@ object TransactionBuilder {
                     vaultOwner = authority,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy
                 ).instruction(),
 
                 TimelockProgram_Withdraw(
@@ -146,7 +140,6 @@ object TransactionBuilder {
                     destination = destination,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy
                 ).instruction(),
 
                 TimelockProgram_CloseAccounts(
@@ -155,7 +148,6 @@ object TransactionBuilder {
                     closeAuthority = subsidizer,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy,
                 ).instruction()
             ),
         )

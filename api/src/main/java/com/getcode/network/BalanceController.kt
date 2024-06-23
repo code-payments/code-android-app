@@ -1,5 +1,6 @@
 package com.getcode.network
 
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
@@ -44,10 +45,10 @@ data class BalanceDisplay(
 open class BalanceController @Inject constructor(
     exchange: Exchange,
     networkObserver: NetworkConnectivityListener,
+    private val analytics: AnalyticsService,
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
-    private val privacyMigration: PrivacyMigration,
     private val transactionReceiver: TransactionReceiver,
     private val getCurrencyFromCode: (CurrencyCode?) -> Currency?,
     val suffix: (Currency?) -> String,
@@ -129,13 +130,8 @@ open class BalanceController @Inject constructor(
 
                 when (it) {
                     is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
-                        val amountToMigrate = it.accountInfo.balance
-                        privacyMigration.migrateToPrivacy(
-                            amountToMigrate = amountToMigrate,
-                            organizer = organizer
-                        )
-                            .ignoreElement()
-                            .concatWith(getTokenAccountInfos())
+                        analytics.migrationRequired()
+                        Completable.error(it)
                     }
 
                     is AccountRepository.FetchAccountInfosException.NotFoundException -> {
@@ -178,11 +174,7 @@ open class BalanceController @Inject constructor(
 
             when (ex) {
                 is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
-                    val amountToMigrate = ex.accountInfo.balance
-                    privacyMigration.migrateToPrivacy(
-                        amountToMigrate = amountToMigrate,
-                        organizer = organizer
-                    )
+                    analytics.migrationRequired()
                 }
 
                 is AccountRepository.FetchAccountInfosException.NotFoundException -> {
