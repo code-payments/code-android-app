@@ -72,6 +72,7 @@ fun MessageList(
                     MessageNode(
                         modifier = Modifier.fillMaxWidth(),
                         contents = item.message,
+                        status = item.status,
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
                         isNextSameMessage = next == item.chatMessageId,

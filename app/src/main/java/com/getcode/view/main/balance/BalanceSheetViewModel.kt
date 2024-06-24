@@ -3,32 +3,25 @@ package com.getcode.view.main.balance
 import androidx.lifecycle.viewModelScope
 import com.getcode.model.BalanceCurrencyFeature
 import com.getcode.model.BuyModuleFeature
-import com.getcode.model.Chat
+import com.getcode.model.chat.Chat
 import com.getcode.model.Currency
 import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
 import com.getcode.network.HistoryController
-import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.Kin
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
-import com.getcode.view.main.getKin.GetKinSheetViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.cache
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.stateIn
-import timber.log.Timber
 import javax.inject.Inject
 
 

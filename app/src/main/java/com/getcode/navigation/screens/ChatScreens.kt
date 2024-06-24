@@ -33,13 +33,11 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.error
 import com.getcode.R
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.model.ID
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
-import com.getcode.ui.components.chat.localized
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
 import com.getcode.view.main.balance.BalanceScreen
@@ -149,7 +147,7 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
         val navigator = LocalCodeNavigator.current
 
         ModalContainer(
-            titleString = { state.title.localized },
+            titleString = { state.title },
             backButtonEnabled = { it is ChatScreen },
         ) {
             val messages = vm.chatMessages.collectAsLazyPagingItems()

@@ -7,8 +7,8 @@ import androidx.paging.PagingSource
 import androidx.paging.cachedIn
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.model.Chat
-import com.getcode.model.ChatMessage
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.network.client.Client
@@ -19,6 +19,8 @@ import com.getcode.network.client.setMuted
 import com.getcode.network.client.setSubscriptionState
 import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -101,6 +103,7 @@ class HistoryController @Inject constructor(
         chatFlows.clear()
 
         val containers = fetchChatsWithoutMessages()
+        trace(message = "Fetched ${containers.count()} chats", type = TraceType.Silent)
         _chats.value = containers
 
         val updatedWithMessages = mutableListOf<Chat>()
@@ -149,7 +152,7 @@ class HistoryController @Inject constructor(
                     ?.let { index ->
                         val chat = this[index]
                         Timber.d("changing mute state for chat locally")
-                        this[index] = chat.copy(isMuted = muted)
+                        this[index] = chat.setMuteState(muted)
                     }
             }?.toList()
         }
@@ -167,7 +170,7 @@ class HistoryController @Inject constructor(
                     ?.let { index ->
                         val chat = this[index]
                         Timber.d("changing subscribed state for chat locally")
-                        this[index] = chat.copy(isSubscribed = subscribed)
+                        this[index] = chat.setSubscriptionState(subscribed)
                     }
             }?.toList()
         }

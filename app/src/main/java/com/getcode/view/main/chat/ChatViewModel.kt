@@ -1,15 +1,13 @@
 package com.getcode.view.main.chat
 
 import androidx.lifecycle.viewModelScope
-import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
-import com.getcode.model.Chat
+import com.getcode.model.chat.Chat
 import com.getcode.model.ID
-import com.getcode.model.MessageContent
-import com.getcode.model.Title
-import com.getcode.model.Verb
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
 import com.getcode.network.HistoryController
 import com.getcode.network.repository.BetaFlagsRepository
@@ -33,9 +31,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.Instant
 import timber.log.Timber
-import java.util.UUID
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -58,7 +54,7 @@ class ChatViewModel @Inject constructor(
 ) {
     data class State(
         val chatId: ID?,
-        val title: Title?,
+        val title: String?,
         val canMute: Boolean,
         val isMuted: Boolean,
         private val _canUnsubscribe: Boolean,
@@ -76,10 +72,10 @@ class ChatViewModel @Inject constructor(
         data object OnSubscribeToggled : Event
         data class SetMuted(val muted: Boolean) : Event
         data class SetSubscribed(val subscribed: Boolean) : Event
-        data class EnableUnsubscribe(val enabled: Boolean): Event
+        data class EnableUnsubscribe(val enabled: Boolean) : Event
 
-        data class ThankUser(val message: ID): Event
-        data class OpenMessageChat(val messageId: ID): Event
+        data class ThankUser(val message: ID) : Event
+        data class OpenMessageChat(val messageId: ID) : Event
     }
 
     init {
@@ -157,22 +153,36 @@ class ChatViewModel @Inject constructor(
             page.flatMap { message ->
                 message.contents
                     .sortedWith(compareBy { it is MessageContent.Localized })
-                    .map { ChatMessageIndice(it, message.id, message.dateMillis.toInstantFromMillis()) }
+                    .map {
+                        ChatMessageIndice(
+                            message.id,
+                            message.status,
+                            it,
+                            message.dateMillis.toInstantFromMillis()
+                        )
+                    }
             }
         }
         .mapLatest { page ->
-            page.map { (contents, id, date) ->
-                val message = if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
-                    val tipThanked = conversationController.hasThanked(id)
-                    MessageContent.Exchange(contents.amount, contents.verb, thanked = tipThanked)
-                } else {
-                    contents
-                }
+            page.map { (id, status, contents, date) ->
+                val message =
+                    if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
+                        val tipThanked = conversationController.hasThanked(id)
+                        MessageContent.Exchange(
+                            contents.amount,
+                            contents.verb,
+                            contents.reference,
+                            didThank = tipThanked
+                        )
+                    } else {
+                        contents
+                    }
 
                 ChatItem.Message(
                     chatMessageId = id,
                     message = message,
                     date = date,
+                    status = status
                 )
             }
         }
@@ -214,6 +224,7 @@ class ChatViewModel @Inject constructor(
                 is Event.SetMuted -> { state ->
                     state.copy(isMuted = event.muted)
                 }
+
                 is Event.SetSubscribed -> { state ->
                     state.copy(isSubscribed = event.subscribed)
                 }

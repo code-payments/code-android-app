@@ -12,8 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.getcode.LocalBetaFlags
 import com.getcode.R
-import com.getcode.model.MessageContent
-import com.getcode.model.Verb
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Verb
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.ButtonState
@@ -27,8 +27,8 @@ internal fun TipChatActions(
     openMessageChat: () -> Unit
 ) {
     val tipChatsEnabled = LocalBetaFlags.current.tipsChatEnabled
-    var thanked by remember(contents.thanked) {
-        mutableStateOf(contents.thanked)
+    var thanked by remember(contents.didThank) {
+        mutableStateOf(contents.didThank)
     }
 
     val sendThanks = {

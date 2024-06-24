@@ -10,7 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.paging.compose.LazyPagingItems
-import com.getcode.model.MessageContent
+import com.getcode.model.chat.MessageContent
 import com.getcode.ui.utils.isScrolledToTheBeginning
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -46,7 +46,7 @@ internal fun HandleMessageChanges(
                 val isTextMessage = newMessage.message is MessageContent.Localized
                 val isExchangeMessage = newMessage.message is MessageContent.Exchange
 
-                if (newMessage.message.status.isOutgoing() && newMessage.date.toEpochMilliseconds() > lastMessageSent) {
+                if (newMessage.status.isOutgoing() && newMessage.date.toEpochMilliseconds() > lastMessageSent) {
                     listState.handleAndReplayAfter(300) {
                         scrollToItem(0)
                         lastMessageSent = newMessage.date.toEpochMilliseconds()

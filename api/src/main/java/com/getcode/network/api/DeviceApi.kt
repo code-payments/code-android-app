@@ -1,6 +1,5 @@
 package com.getcode.network.api
 
-import com.codeinc.gen.chat.v1.ChatService
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.device.v1.DeviceGrpc
 import com.codeinc.gen.device.v1.DeviceService
