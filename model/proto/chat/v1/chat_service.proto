@@ -128,8 +128,8 @@ message ChatMessageId {
 message Pointer {
     Kind kind = 1;
     enum Kind {
-        UNKNOWN   = 0;
-        READ      = 1;
+        UNKNOWN = 0;
+        READ = 1;
     }
 
     ChatMessageId value = 2;
@@ -141,7 +141,7 @@ message ChatMetadata {
     oneof title {
 
         LocalizedContent localized = 2;
-        common.v1.Domain       domain    = 3;
+        common.v1.Domain domain    = 3;
     }
 
     // Pointer in the chat indicating the most recently read message by the user
@@ -179,9 +179,9 @@ message ChatMessage {
 message Content {
     oneof type {
 
-        LocalizedContent  server_localized = 1;
-        ExchangeDataContent     exchange_data    = 2;
-        NaclBoxEncryptedContent nacl_box         = 3;
+        LocalizedContent        localized     = 1;
+        ExchangeDataContent     exchange_data = 2;
+        NaclBoxEncryptedContent nacl_box      = 3;
     }
 
 }
@@ -228,4 +228,3 @@ message NaclBoxEncryptedContent {
 message Cursor {
     bytes value = 1;
 }
-

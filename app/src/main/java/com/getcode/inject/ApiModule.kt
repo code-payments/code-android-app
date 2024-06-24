@@ -4,6 +4,7 @@ import android.content.Context
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.annotations.DevManagedChannel
 import com.getcode.manager.MnemonicManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
@@ -82,7 +83,7 @@ object ApiModule {
 
     @Singleton
     @Provides
-    @Named("devManagedChannel")
+    @DevManagedChannel
     fun provideDevManagedChannel(@ApplicationContext context: Context): ManagedChannel {
         val TLS_PORT = 443
         val DEV_URL = "api.codeinfra.dev"

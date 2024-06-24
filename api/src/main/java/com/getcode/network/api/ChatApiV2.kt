@@ -6,14 +6,11 @@ import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import javax.inject.Inject
-import javax.inject.Named
 
 class ChatApiV2 @Inject constructor(
-    @Named("devManagedChannel")
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel)
-
 
     fun streamChatEvents(
         observer: StreamObserver<ChatService.StreamChatEventsResponse>
