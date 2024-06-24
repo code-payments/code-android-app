@@ -218,5 +218,5 @@ dependencies {
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
 
-    implementation("dev.chrisbanes.haze:haze:0.6.2")
+    implementation("dev.chrisbanes.haze:haze:0.7.2")
 }
