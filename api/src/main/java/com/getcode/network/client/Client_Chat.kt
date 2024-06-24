@@ -3,12 +3,11 @@ package com.getcode.network.client
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.model.Chat
-import com.getcode.model.ChatMessage
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
-import com.getcode.model.Title
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
 import kotlinx.coroutines.CoroutineScope
@@ -44,15 +43,10 @@ suspend fun Client.fetchMessagesFor(
     cursor: Cursor? = null,
     limit: Int? = null
 ): Result<List<ChatMessage>> {
-    return chatService.fetchMessagesFor(owner, chat.id, cursor, limit)
+    return chatService.fetchMessagesFor(owner, chat, cursor, limit)
         .mapCatching {
-            val domain = if (chat.title is Title.Domain) {
-                Domain.from(chat.title.value)
-            } else {
-                null
-            } ?: return@mapCatching it
-
             val organizer = SessionManager.getOrganizer() ?: return@mapCatching it
+            val domain = Domain.from(chat.title) ?: return@mapCatching it
             val relationship = organizer.relationshipFor(domain) ?: return@mapCatching it
 
             val hasEncryptedContent = it.firstOrNull { it.hasEncryptedContent } != null
@@ -82,13 +76,15 @@ suspend fun Client.advancePointer(
 
 fun Client.openChatStream(
     scope: CoroutineScope,
-    chatId: ID,
+    chat: Chat,
+    memberId: ID,
     owner: KeyPair,
     completion: (Result<List<ChatMessage>>) -> Unit
 ): ChatMessageStreamReference {
     return chatServiceV2.openChatStream(
         scope = scope,
-        chatId = chatId,
+        chat = chat,
+        memberId = memberId,
         owner = owner,
         completion = completion
     )

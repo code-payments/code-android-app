@@ -29,7 +29,6 @@ import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatService
-import com.getcode.network.service.ChatServiceV2
 import com.getcode.network.service.DeviceService
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
@@ -46,7 +45,6 @@ import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import java.util.concurrent.TimeUnit
-import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -194,7 +192,7 @@ object ApiModule {
         exchange: Exchange,
         networkObserver: NetworkConnectivityListener,
         chatService: ChatService,
-        chatServiceV2: ChatServiceV2,
+        chatServiceV2: ChatService,
         deviceService: DeviceService,
         mnemonicManager: MnemonicManager,
     ): Client {

@@ -2,13 +2,11 @@ package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel
@@ -31,7 +29,6 @@ import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.GetKinSheetViewModel
-import com.getcode.view.main.getKin.ReferFriend
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.RequestTipScreen
 import kotlinx.parcelize.IgnoredOnParcel
@@ -257,19 +254,6 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
     override fun Content() {
         ModalContainer(backButtonEnabled = { it is DeleteConfirmationScreen }) {
             ConfirmDeleteAccount(getViewModel())
-        }
-    }
-}
-
-@Parcelize
-data object ReferFriendScreen : MainGraph, ModalContent {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButtonEnabled = { it is DeleteConfirmationScreen }) {
-            ReferFriend()
         }
     }
 }

@@ -14,7 +14,7 @@ import com.getcode.model.ConversationMessageContent
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.MessageContent
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.MessageStatus
 import com.getcode.model.TipChatCashFeature
 import com.getcode.network.ConversationController
@@ -168,65 +168,54 @@ class ConversationViewModel @Inject constructor(
 
             page.map { message ->
                 val content = when (val contents = message.content) {
-                    ConversationMessageContent.IdentityRevealed -> {
+                    is ConversationMessageContent.IdentityRevealed -> {
                         MessageContent.Localized(
                             value = resources.getString(
                                 resourceId = R.string.title_chat_announcement_identityRevealed,
                                 username
                             ),
-                            status = MessageStatus.Unknown,
-                            isAnnouncement = true,
                         )
                     }
 
-                    ConversationMessageContent.IdentityRevealedToYou -> {
+                    is ConversationMessageContent.IdentityRevealedToYou -> {
                         MessageContent.Localized(
                             value = resources.getString(
                                 resourceId = R.string.title_chat_announcement_identityRevealedToYou,
                                 username
                             ),
-                            status = MessageStatus.Unknown,
-                            isAnnouncement = true,
                         )
                     }
 
                     is ConversationMessageContent.Text -> {
                         MessageContent.Localized(
                             value = contents.message,
-                            status = contents.status,
-                            isAnnouncement = false,
+                            isFromSelf = contents.isFromSelf
                         )
                     }
 
-                    ConversationMessageContent.ThanksReceived -> {
+                    is ConversationMessageContent.ThanksReceived -> {
                         MessageContent.Localized(
                             value = resources.getString(
                                 resourceId = R.string.title_chat_announcement_thanksReceived,
                                 username
                             ),
-                            status = MessageStatus.Unknown,
-                            isAnnouncement = true,
                         )
                     }
 
-                    ConversationMessageContent.ThanksSent -> {
+                    is ConversationMessageContent.ThanksSent -> {
                         MessageContent.Localized(
                             value = resources.getString(
                                 resourceId = R.string.title_chat_announcement_thanksSent,
                             ),
-                            status = MessageStatus.Unknown,
-                            isAnnouncement = true,
                         )
                     }
 
-                    ConversationMessageContent.TipMessage -> {
+                    is ConversationMessageContent.TipMessage -> {
                         MessageContent.Localized(
                             value = resources.getString(
                                 resourceId = R.string.title_chat_announcement_tipHeader,
                                 tipAmount
                             ),
-                            status = MessageStatus.Unknown,
-                            isAnnouncement = true,
                         )
                     }
                 }
@@ -236,6 +225,7 @@ class ConversationViewModel @Inject constructor(
                     chatMessageId = stateFlow.value.messageId!!,
                     message = content,
                     date = message.dateMillis.toInstantFromMillis(),
+                    status = message.status
                 )
             }
         }

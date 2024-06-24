@@ -1,7 +1,7 @@
 package com.getcode.model.notifications
 
-import com.codeinc.gen.chat.v1.ChatService
-import com.getcode.model.MessageContent
+import com.codeinc.gen.chat.v2.ChatService
+import com.getcode.model.chat.MessageContent
 import com.getcode.network.repository.decodeBase64
 import com.getcode.utils.ErrorUtils
 import com.google.firebase.messaging.RemoteMessage

@@ -8,6 +8,8 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.getcode.model.*
 import com.getcode.network.repository.decodeBase64
 import com.getcode.utils.TraceType
@@ -36,9 +38,10 @@ import java.io.File
     ],
     autoMigrations = [
         AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class),
-        AutoMigration(from = 8, to = 9, spec = AppDatabase.Migration8To9::class)
+        AutoMigration(from = 8, to = 9, spec = AppDatabase.Migration8To9::class),
+        AutoMigration(from = 10, to = 11, spec = AppDatabase.Migration10To11::class),
     ],
-    version = 10
+    version = 11
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -58,6 +61,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     @DeleteTable(tableName = "SendLimit")
     class Migration8To9 : AutoMigrationSpec
+
+    class Migration10To11: Migration(10, 11), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE messages")
+        }
+    }
 }
 
 object Database {

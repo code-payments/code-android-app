@@ -1,7 +1,6 @@
 package com.getcode.inject
 
 import com.getcode.network.ConversationController
-import com.getcode.network.ConversationMockController
 import com.getcode.network.ConversationStreamController
 import com.getcode.network.HistoryController
 import com.getcode.network.client.Client
