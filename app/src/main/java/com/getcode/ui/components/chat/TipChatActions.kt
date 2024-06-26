@@ -23,43 +23,28 @@ import com.getcode.ui.components.CodeButton
 internal fun TipChatActions(
     contents: MessageContent.Exchange,
     showTipActions: Boolean,
-    thankUser: () -> Unit,
     openMessageChat: () -> Unit
 ) {
     val tipChatsEnabled = LocalBetaFlags.current.tipsChatEnabled
-    var thanked by remember(contents.didThank) {
-        mutableStateOf(contents.didThank)
-    }
-
-    val sendThanks = {
-        thanked = true
-        thankUser()
-    }
 
     if (showTipActions) {
-    if (tipChatsEnabled && contents.verb is Verb.ReceivedTip) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
-        ) {
-            CodeButton(
-                modifier = Modifier.weight(1f),
-                enabled = !thanked,
-                buttonState = if (thanked) ButtonState.Bordered else ButtonState.Filled,
-                onClick = sendThanks,
-                shape = CodeTheme.shapes.extraSmall,
-                text = if (thanked) stringResource(R.string.action_thanked) else stringResource(
-                    R.string.action_thank
+        if (tipChatsEnabled && contents.verb is Verb.ReceivedTip) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
+            ) {
+                CodeButton(
+                    modifier = Modifier.weight(1f),
+                    buttonState = if (contents.hasInteracted) ButtonState.Bordered else ButtonState.Filled,
+                    onClick = openMessageChat,
+                    shape = CodeTheme.shapes.extraSmall,
+                    text = if (contents.hasInteracted) {
+                        stringResource(R.string.action_message)
+                    } else {
+                        stringResource(R.string.action_message)
+                    }
                 )
-            )
-            CodeButton(
-                modifier = Modifier.weight(1f),
-                buttonState = ButtonState.Filled,
-                onClick = openMessageChat,
-                shape = CodeTheme.shapes.extraSmall,
-                text = stringResource(R.string.action_message)
-            )
+            }
         }
     }
-        }
 }

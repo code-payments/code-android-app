@@ -1,5 +1,6 @@
 package com.getcode.inject
 
+import com.getcode.mapper.ConversationMapper
 import com.getcode.network.ConversationController
 import com.getcode.network.ConversationStreamController
 import com.getcode.network.HistoryController
@@ -20,6 +21,12 @@ object DataModule {
     fun providesConversationController(
         historyController: HistoryController,
         client: Client,
-        exchange: Exchange
-    ): ConversationController = ConversationStreamController(historyController, exchange, client)
+        exchange: Exchange,
+        conversationMapper: ConversationMapper,
+    ): ConversationController = ConversationStreamController(
+            historyController = historyController,
+            exchange = exchange,
+            client = client,
+            conversationMapper = conversationMapper
+        )
 }

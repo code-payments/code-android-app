@@ -42,8 +42,7 @@ fun ChatScreen(
             messages = messages,
             dispatch = {
                 when (it) {
-                    is MessageListEvent.OpenMessageChat -> dispatch(ChatViewModel.Event.OpenMessageChat(it.messageId))
-                    is MessageListEvent.ThankUser -> dispatch(ChatViewModel.Event.ThankUser(it.messageId))
+                    is MessageListEvent.OpenMessageChat -> dispatch(ChatViewModel.Event.OpenMessageChat(it.reference))
                 }
             }
         )

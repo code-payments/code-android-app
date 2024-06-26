@@ -2,6 +2,7 @@ package com.getcode.model.chat
 
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.ID
+import java.util.UUID
 
 /**
  * A user in a chat
@@ -21,7 +22,7 @@ import com.getcode.model.ID
  * Only valid when `isSelf = true`
  */
 data class ChatMember(
-    val id: ID,
+    val id: UUID,
     val isSelf: Boolean,
     val identity: Identity?,
     val pointers: List<Pointer>,

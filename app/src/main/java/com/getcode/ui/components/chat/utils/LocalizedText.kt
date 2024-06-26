@@ -282,7 +282,7 @@ val Verb.localizedText: String
         resId?.let { getString(it) } ?: this@localizedText.toString()
     }
 
-internal val Title?.localized: String
+val Title?.localized: String
     @Composable get() = when (val t = this) {
         is Title.Domain -> {
             t.value.capitalize(Locale.getDefault())
@@ -302,3 +302,22 @@ internal val Title?.localized: String
 
         else -> "Anonymous"
     }
+
+fun Title?.localized(resources: ResourceHelper): String {
+    return when (val t = this) {
+        is Title.Domain -> {
+            t.value.capitalize(Locale.getDefault())
+        }
+
+        is Title.Localized -> {
+            val resId = resources.getIdentifier(
+                t.value,
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+
+            resId?.let { resources.getString(it) } ?: t.value
+        }
+
+        else -> "Anonymous"
+    }
+}

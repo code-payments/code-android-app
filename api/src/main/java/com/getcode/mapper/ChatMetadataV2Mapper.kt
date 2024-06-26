@@ -16,7 +16,7 @@ class ChatMetadataV2Mapper @Inject constructor(
             cursor = from.cursor.value.toByteArray().toList(),
             canMute = from.canMute,
             canUnsubscribe = from.canUnsubscribe,
-            members = from.membersList.map { chatMemberMapper.map(it) },
+            members = from.membersList.mapNotNull { chatMemberMapper.map(it) },
             type = ChatType(from.type),
             messages = emptyList(),
         )

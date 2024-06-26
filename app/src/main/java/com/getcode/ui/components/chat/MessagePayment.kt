@@ -32,7 +32,6 @@ internal fun MessagePayment(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showTipActions: Boolean = true,
-    thankUser: () -> Unit,
     openMessageChat: () -> Unit,
 ) {
     Column(
@@ -99,7 +98,6 @@ internal fun MessagePayment(
         TipChatActions(
             contents = contents,
             showTipActions = showTipActions,
-            thankUser = thankUser,
             openMessageChat = openMessageChat
         )
 

@@ -13,6 +13,7 @@ import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
 import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatType
 import com.getcode.model.description
 import com.getcode.network.api.ChatApiV2
 import com.getcode.network.client.ChatMessageStreamReference
@@ -168,7 +169,13 @@ class ChatServiceV2 @Inject constructor(
         limit: Int? = null
     ): Result<List<ChatMessage>> {
         return try {
-            networkOracle.managedRequest(api.fetchChatMessages(owner, chat.id, cursor, limit))
+            val memberId = chat.members
+                .filter { it.isSelf }
+                .map { it.id }
+                .firstOrNull()
+                ?: throw IllegalStateException("Fetching messages for a chat you are not a member in")
+
+            networkOracle.managedRequest(api.fetchChatMessages(owner, chat.id, memberId, cursor, limit))
                 .map { response ->
                     when (response.result) {
                         ChatService.GetMessagesResponse.Result.OK -> {
@@ -247,20 +254,71 @@ class ChatServiceV2 @Inject constructor(
         }
     }
 
+    suspend fun startChat(
+        owner: KeyPair,
+        intentId: ID,
+        type: ChatType
+    ): Result<Chat> {
+        trace("Creating $type chat for ${intentId.description}")
+        return when (type) {
+            ChatType.Unknown -> throw IllegalArgumentException("Unknown chat type provided")
+            ChatType.Notification -> throw IllegalArgumentException("Unable to create notification chats from client")
+            ChatType.TwoWay -> {
+                try {
+                    networkOracle.managedRequest(api.createTipChat(owner, intentId))
+                        .map { response ->
+                            when (response.result) {
+                                ChatService.StartChatResponse.Result.OK -> {
+                                    trace("Chat created for ${intentId.description}")
+                                    Result.success(chatMapper.map(response.chat))
+                                }
+
+                                ChatService.StartChatResponse.Result.DENIED -> {
+                                    val error = Throwable("Error: Denied")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                                ChatService.StartChatResponse.Result.INVALID_PARAMETER -> {
+                                    val error = Throwable("Error: Invalid parameter")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                                ChatService.StartChatResponse.Result.UNRECOGNIZED -> {
+                                    val error = Throwable("Error: Unrecognized request.")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                                else -> {
+                                    val error = Throwable("Error: Unknown")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                            }
+                        }.first()
+                } catch (e: Exception) {
+                    ErrorUtils.handleError(e)
+                    Result.failure(e)
+                }
+            }
+        }
+    }
+
     fun openChatStream(
         scope: CoroutineScope,
         chat: Chat,
+        identifier: ID,
         memberId: ID,
         owner: KeyPair,
         completion: (Result<List<ChatMessage>>) -> Unit
     ): ChatMessageStreamReference {
-        trace("Chat ${chat.id.description} Opening stream.")
+        trace("Chat ${identifier.description} Opening stream.")
         val streamReference = ChatMessageStreamReference(scope)
         streamReference.retain()
         streamReference.timeoutHandler = {
-            trace("Chat ${chat.id.description} Stream timed out")
+            trace("Chat ${identifier.description} Stream timed out")
             openChatStream(
                 chat = chat,
+                identifier = identifier,
                 memberId = memberId,
                 owner = owner,
                 reference = streamReference,
@@ -268,13 +326,14 @@ class ChatServiceV2 @Inject constructor(
             )
         }
 
-        openChatStream(chat, memberId, owner, streamReference, completion)
+        openChatStream(chat, identifier, memberId, owner, streamReference, completion)
 
         return streamReference
     }
 
     private fun openChatStream(
         chat: Chat,
+        identifier: ID,
         memberId: ID,
         owner: KeyPair,
         reference: ChatMessageStreamReference,
@@ -288,7 +347,7 @@ class ChatServiceV2 @Inject constructor(
                         val result = value?.typeCase
                         if (result == null) {
                             trace(
-                                message = "Chat ${chat.id.description} Server sent empty message. This is unexpected.",
+                                message = "Chat ${identifier.description} Server sent empty message. This is unexpected.",
                                 type = TraceType.Error
                             )
                             return
@@ -300,7 +359,7 @@ class ChatServiceV2 @Inject constructor(
                                     .map { it.message }
                                     .map { messageMapper.map(chat to it) }
 
-                                trace("Chat ${chat.id.description} received ${messages.count()} messages.")
+                                trace("Chat ${identifier.description} received ${messages.count()} messages.")
                                 completion(Result.success(messages))
                             }
 
@@ -317,14 +376,14 @@ class ChatServiceV2 @Inject constructor(
 
                                 reference.receivedPing(updatedTimeout = value.ping.pingDelay.seconds * 1_000L)
                                 stream.onNext(request)
-                                trace("Pong Chat ${chat.id.description} Server timestamp: ${value.ping.timestamp}")
+                                trace("Pong Chat ${identifier.description} Server timestamp: ${value.ping.timestamp}")
                             }
 
                             StreamChatEventsResponse.TypeCase.TYPE_NOT_SET -> Unit
                             StreamChatEventsResponse.TypeCase.ERROR -> {
                                 trace(
                                     type = TraceType.Error,
-                                    message = "Chat ${chat.id.description} hit a snag. ${value.error.code}"
+                                    message = "Chat ${identifier.description} hit a snag. ${value.error.code}"
                                 )
                             }
                         }
@@ -333,8 +392,8 @@ class ChatServiceV2 @Inject constructor(
                     override fun onError(t: Throwable?) {
                         val statusException = t as? StatusRuntimeException
                         if (statusException?.status?.code == Status.Code.UNAVAILABLE) {
-                            trace("Chat ${chat.id.description} Reconnecting keepalive stream...")
-                            openChatStream(chat, memberId, owner, reference, completion)
+                            trace("Chat ${identifier.description} Reconnecting keepalive stream...")
+                            openChatStream(chat, identifier, memberId, owner, reference, completion)
                         } else {
                             t?.printStackTrace()
                         }
@@ -349,7 +408,7 @@ class ChatServiceV2 @Inject constructor(
                 .setOpenStream(OpenChatEventStream.newBuilder()
                     .setChatId(
                         ChatService.ChatId.newBuilder()
-                            .setValue(chat.id.toByteString())
+                            .setValue(identifier.toByteString())
                             .build()
                     )
                     .setMemberId(

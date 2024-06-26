@@ -10,13 +10,18 @@ import androidx.paging.RemoteMediator
 import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.manager.SessionManager
+import com.getcode.mapper.ConversationMapper
 import com.getcode.model.chat.ChatType
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationMessage
 import com.getcode.model.ID
+import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Reference
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.client.Client
 import com.getcode.network.client.openChatStream
+import com.getcode.network.client.startChat
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.utils.bytes
@@ -29,12 +34,12 @@ import kotlin.jvm.Throws
 
 interface ConversationController {
     fun observeConversationForMessage(messageId: ID): Flow<Conversation?>
-    suspend fun createConversation(identifier: ID, type: ChatType)
+    suspend fun createConversation(identifier: ID, type: ChatType): Conversation
     suspend fun getConversation(identifier: ID): Conversation?
-    fun openChatStream(scope: CoroutineScope, messageId: ID)
+    suspend fun getOrCreateConversation(identifier: ID, type: ChatType): Conversation?
+    fun openChatStream(scope: CoroutineScope, identifier: ID)
     fun closeChatStream()
-    suspend fun hasThanked(messageId: ID): Boolean
-    suspend fun thankTipper(messageId: ID)
+    suspend fun hasInteracted(messageId: ID): Boolean
     suspend fun revealIdentity(messageId: ID)
     fun sendMessage(conversationId: ID, message: String)
     fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessage>>
@@ -43,7 +48,8 @@ interface ConversationController {
 class ConversationStreamController @Inject constructor(
     private val historyController: HistoryController,
     private val exchange: Exchange,
-    private val client: Client
+    private val client: Client,
+    private val conversationMapper: ConversationMapper,
 ): ConversationController {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -60,24 +66,50 @@ class ConversationStreamController @Inject constructor(
         return db.conversationDao().observeConversationForMessage(messageId)
     }
 
-    override suspend fun createConversation(identifier: ID, type: ChatType) {
+    override suspend fun createConversation(identifier: ID, type: ChatType): Conversation {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
+        val lookup = { msg: ChatMessage ->
+            msg.id == identifier ||
+                msg.contents.filterIsInstance<MessageContent.Exchange>()
+                    .map { it.reference }
+                    .filterIsInstance<Reference.IntentId>()
+                    .any { it.id == identifier  }
+        }
 
+        val message = historyController.chats.value?.firstOrNull {
+            it.messages.find { msg -> lookup(msg) } != null
+        }?.messages?.firstOrNull { msg -> lookup(msg) } ?: throw IllegalArgumentException()
+
+        return client.startChat(owner, identifier, type)
+            .map { conversationMapper.map(it to message) }
+            .onSuccess {
+                db.conversationDao().upsertConversations(it)
+                // update chats
+                historyController.fetchChats()
+            }
+            .getOrThrow()
     }
 
     override suspend fun getConversation(identifier: ID): Conversation? {
-        return null
+        return db.conversationDao().findConversation(identifier)
+    }
+
+    override suspend fun getOrCreateConversation(identifier: ID, type: ChatType): Conversation? {
+        return getConversation(identifier) ?: createConversation(identifier, type)
     }
 
     @Throws(IllegalStateException::class)
-    override fun openChatStream(scope: CoroutineScope, messageId: ID) {
+    override fun openChatStream(scope: CoroutineScope, identifier: ID) {
         val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
         val chat = historyController.chats.value?.firstOrNull {
-            it.messages.find { msg -> msg.id == messageId } != null
+            it.messages.find { msg -> msg.id == identifier } != null
         } ?: throw IllegalArgumentException()
 
-        stream = client.openChatStream(scope, chat, memberId.bytes, owner) { result ->
+        stream = client.openChatStream(scope, chat, identifier, memberId.bytes, owner) { result ->
             if (result.isSuccess) {
                 println("chat messages: ${result.getOrNull()}")
+            } else {
+                println("Error: ${result.exceptionOrNull()?.message}")
             }
         }
     }
@@ -86,12 +118,9 @@ class ConversationStreamController @Inject constructor(
         stream?.destroy()
     }
 
-    override suspend fun hasThanked(messageId: ID): Boolean {
+    override suspend fun hasInteracted(messageId: ID): Boolean {
         val conversation = db.conversationDao().findConversationForMessage(messageId) ?: return false
-        return db.conversationDao().hasThanked(conversation.messageId)
-    }
-
-    override suspend fun thankTipper(messageId: ID) {
+        return db.conversationDao().hasInteracted(conversation.messageId)
     }
 
     override suspend fun revealIdentity(messageId: ID) {
