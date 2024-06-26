@@ -29,7 +29,7 @@ sealed interface MessageContent {
         val amount: GenericAmount,
         val verb: Verb,
         val reference: Reference,
-        val didThank: Boolean,
+        val hasInteracted: Boolean,
         override val isFromSelf: Boolean = false,
     ) : MessageContent
 
@@ -86,7 +86,7 @@ sealed interface MessageContent {
                                 amount = GenericAmount.Exact(kinAmount),
                                 verb = verb,
                                 reference = reference,
-                                didThank = false,
+                                hasInteracted = false,
                             )
                         }
 
@@ -106,7 +106,7 @@ sealed interface MessageContent {
                                 amount = GenericAmount.Partial(fiat),
                                 verb = verb,
                                 reference = reference,
-                                didThank = false
+                                hasInteracted = false
                             )
                         }
 
@@ -154,6 +154,7 @@ sealed interface MessageContent {
         }
 
         fun fromV1(
+            messageId: ID,
             proto: MessageContentV1,
         ): MessageContent? {
             return when (proto.typeCase) {
@@ -181,8 +182,8 @@ sealed interface MessageContent {
                                 isFromSelf = isFromSelf,
                                 amount = GenericAmount.Exact(kinAmount),
                                 verb = verb,
-                                reference = Reference.NoneSet,
-                                didThank = false,
+                                reference = Reference.IntentId(messageId),
+                                hasInteracted = false,
                             )
                         }
 
@@ -199,8 +200,8 @@ sealed interface MessageContent {
                                 isFromSelf = isFromSelf,
                                 amount = GenericAmount.Partial(fiat),
                                 verb = verb,
-                                reference = Reference.NoneSet,
-                                didThank = false
+                                reference = Reference.IntentId(messageId),
+                                hasInteracted = false
                             )
                         }
 

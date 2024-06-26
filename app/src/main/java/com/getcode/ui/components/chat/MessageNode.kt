@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Reference
 import com.getcode.theme.BrandDark
 import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
@@ -80,8 +81,7 @@ fun MessageNode(
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
     showTipActions: Boolean = true,
-    thankUser: () -> Unit = { },
-    openMessageChat: () -> Unit = { },
+    openMessageChat: (Reference) -> Unit = { },
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -108,10 +108,9 @@ fun MessageNode(
                             ),
                         contents = contents,
                         showTipActions = showTipActions,
-                        thankUser = thankUser,
                         status = status,
                         date = date,
-                        openMessageChat = openMessageChat
+                        openMessageChat = { openMessageChat(contents.reference) }
                     )
                 }
 

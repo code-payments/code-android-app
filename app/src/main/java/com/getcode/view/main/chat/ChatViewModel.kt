@@ -7,6 +7,7 @@ import androidx.paging.map
 import com.getcode.model.chat.Chat
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
@@ -76,9 +77,7 @@ class ChatViewModel @Inject constructor(
         data class SetMuted(val muted: Boolean) : Event
         data class SetSubscribed(val subscribed: Boolean) : Event
         data class EnableUnsubscribe(val enabled: Boolean) : Event
-
-        data class ThankUser(val message: ID) : Event
-        data class OpenMessageChat(val messageId: ID) : Event
+        data class OpenMessageChat(val reference: Reference) : Event
     }
 
     init {
@@ -134,12 +133,6 @@ class ChatViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.ThankUser>()
-            .map { it.message }
-            .onEach { conversationController.thankTipper(it) }
-            .launchIn(viewModelScope)
-
         betaFlags.observe()
             .map { it.chatUnsubEnabled }
             .distinctUntilChanged()
@@ -158,34 +151,32 @@ class ChatViewModel @Inject constructor(
                     .sortedWith(compareBy { it is MessageContent.Localized })
                     .map {
                         ChatMessageIndice(
-                            message.id,
-                            message.status,
+                            message,
                             it,
-                            message.dateMillis.toInstantFromMillis()
                         )
                     }
             }
         }
         .mapLatest { page ->
-            page.map { (id, status, contents, date) ->
-                val message =
+            page.map { (message, contents) ->
+                val content =
                     if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
-                        val tipThanked = conversationController.hasThanked(id)
+                        val tipThanked = conversationController.hasInteracted(message.id)
                         MessageContent.Exchange(
                             contents.amount,
                             contents.verb,
                             contents.reference,
-                            didThank = tipThanked
+                            hasInteracted = tipThanked
                         )
                     } else {
                         contents
                     }
 
                 ChatItem.Message(
-                    chatMessageId = id,
-                    message = message,
-                    date = date,
-                    status = status
+                    chatMessageId = message.id,
+                    message = content,
+                    date = message.dateMillis.toInstantFromMillis(),
+                    status = message.status
                 )
             }
         }
@@ -220,7 +211,6 @@ class ChatViewModel @Inject constructor(
                     )
                 }
 
-                is Event.ThankUser,
                 is Event.OpenMessageChat,
                 Event.OnMuteToggled,
                 Event.OnSubscribeToggled -> { state -> state }

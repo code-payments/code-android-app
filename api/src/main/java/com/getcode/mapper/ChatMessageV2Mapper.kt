@@ -6,6 +6,7 @@ import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Pointer
+import com.getcode.model.uuid
 import javax.inject.Inject
 import com.codeinc.gen.chat.v2.ChatService.ChatMessage as ApiChatMessage
 import com.getcode.model.chat.ChatMessage as DomainChatMessage
@@ -19,8 +20,8 @@ class ChatMessageV2Mapper @Inject constructor(
         val messageId = message.messageId.toByteArray().toList()
         val messageSenderId = message.senderId.toByteArray().toList()
         val selfMember = chat.members.firstOrNull { it.isSelf }
-        val isFromSelf = selfMember?.id == messageSenderId
-        val pointers = chat.members.firstOrNull { it.id == messageSenderId }?.pointers
+        val isFromSelf = selfMember?.id == messageSenderId.uuid
+        val pointers = chat.members.firstOrNull { it.id == messageSenderId.uuid }?.pointers
         val messagePointer = pointers?.find { it.id == messageId }
 
         return ChatMessage(

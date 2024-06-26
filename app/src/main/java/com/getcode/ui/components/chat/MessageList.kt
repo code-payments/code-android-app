@@ -15,13 +15,13 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.getcode.model.ID
+import com.getcode.model.chat.Reference
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.formatDateRelatively
 
 sealed interface MessageListEvent {
-    data class ThankUser(val messageId: ID): MessageListEvent
-    data class OpenMessageChat(val messageId: ID): MessageListEvent
+    data class OpenMessageChat(val reference: Reference): MessageListEvent
 }
 @Composable
 fun MessageList(
@@ -76,8 +76,7 @@ fun MessageList(
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
                         isNextSameMessage = next == item.chatMessageId,
-                        thankUser = { dispatch(MessageListEvent.ThankUser(item.chatMessageId)) },
-                        openMessageChat = { dispatch(MessageListEvent.OpenMessageChat(item.chatMessageId)) }
+                        openMessageChat = { dispatch(MessageListEvent.OpenMessageChat(it)) }
                     )
                 }
 

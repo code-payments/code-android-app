@@ -1,5 +1,6 @@
 package com.getcode.navigation.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -34,6 +35,7 @@ import coil3.request.ImageRequest
 import coil3.request.error
 import com.getcode.R
 import com.getcode.model.ID
+import com.getcode.model.chat.Reference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
@@ -84,6 +86,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                         tint = Color.White,
                     )
                 }
+
                 else -> Unit
             }
         }
@@ -101,6 +104,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                         )
                     }
                 }
+
                 state.isBucketDebuggerEnabled -> {
                     {
                         viewModel.dispatchEvent(
@@ -108,6 +112,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                         )
                     }
                 }
+
                 else -> null
             },
             closeButtonEnabled = close@{
@@ -158,7 +163,9 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<ChatViewModel.Event.OpenMessageChat>()
-                .map { it.messageId }
+                .map { it.reference }
+                .filterIsInstance<Reference.IntentId>()
+                .map { it.id }
                 .onEach { navigator.push(ChatMessageConversationScreen(it)) }
                 .launchIn(this)
         }
@@ -188,9 +195,10 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                     return@ModalContainer
                 }
                 val user = state.user!!
-                Row(modifier = Modifier
-                    .padding(start = CodeTheme.dimens.staticGrid.x6)
-                    .align(Alignment.CenterStart),
+                Row(
+                    modifier = Modifier
+                        .padding(start = CodeTheme.dimens.staticGrid.x6)
+                        .align(Alignment.CenterStart),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
@@ -206,7 +214,8 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                         contentDescription = null,
                     )
                     Column {
-                        Text(text = user.username,
+                        Text(
+                            text = user.username,
                             style = CodeTheme.typography.screenTitle
                         )
                         state.lastSeen?.let {
@@ -233,8 +242,22 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                 }.launchIn(this)
         }
 
+        val context = LocalContext.current
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ConversationViewModel.Event.Error>()
+                .onEach {
+                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                    if (it.fatal) {
+                        navigator.pop()
+                    }
+                }.launchIn(this)
+        }
+
         LaunchedEffect(messageId) {
-            vm.dispatchEvent(ConversationViewModel.Event.OnMessageIdChanged(messageId))
+            vm.dispatchEvent(
+                ConversationViewModel.Event.OnReferenceChanged(Reference.IntentId(messageId))
+            )
         }
     }
 }

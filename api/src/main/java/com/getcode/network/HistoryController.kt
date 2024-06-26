@@ -11,6 +11,7 @@ import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.chat.Title
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchChats
@@ -19,6 +20,8 @@ import com.getcode.network.client.setMuted
 import com.getcode.network.client.setSubscriptionState
 import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.ResourceType
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +36,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
+
 
 @Singleton
 class HistoryController @Inject constructor(
     private val client: Client,
+    private val resources: ResourceHelper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     val hasFetchedChats: Boolean
@@ -48,6 +54,7 @@ class HistoryController @Inject constructor(
     val chats: StateFlow<List<Chat>?>
         get() = _chats.asStateFlow()
 
+    var loadingMessages: Boolean = false
 
     private val pagerMap = mutableMapOf<ID, PagingSource<Cursor, ChatMessage>>()
     private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
@@ -67,18 +74,18 @@ class HistoryController @Inject constructor(
             chat = chat,
             onMessagesFetched = { messages ->
                 chat ?: return@ChatMessagePagingSource
+                println("${messages.count()} messages fetched for ${chat.title?.localized(resources)}")
                 val updatedMessages = (chat.messages + messages).distinctBy { it.id }
+                println("${updatedMessages.count()} chats now in memory")
                 val updatedChat = chat.copy(messages = updatedMessages)
-                _chats.update { chats ->
-                    val index = chats.orEmpty().indexOfFirst { it.id == chat.id }
-                    if (index >= 0) {
-                        chats.orEmpty().toMutableList().apply {
-                            this[index] = updatedChat
-                        }.toList()
+                val chats = _chats.value?.map {
+                    if (it.id == updatedChat.id) {
+                        updatedChat
                     } else {
-                        chats
+                        it
                     }
                 }
+                _chats.update { chats }
             }
         ).also {
             pagerMap[chatId] = it
@@ -106,6 +113,7 @@ class HistoryController @Inject constructor(
         trace(message = "Fetched ${containers.count()} chats", type = TraceType.Silent)
         _chats.value = containers
 
+        loadingMessages = true
         val updatedWithMessages = mutableListOf<Chat>()
         containers.onEach { chat ->
             val result = fetchLatestMessageForChat(chat)
@@ -118,6 +126,7 @@ class HistoryController @Inject constructor(
             }
         }
 
+        loadingMessages = false
         _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
     }
 
@@ -209,4 +218,23 @@ fun List<Chat>.mapInPlace(mutator: (Chat) -> (Chat)): List<Chat> {
         }
     }
     return updated.toImmutableList()
+}
+
+fun Title?.localized(resources: ResourceHelper): String {
+    return when (val t = this) {
+        is Title.Domain -> {
+            t.value.capitalize(Locale.getDefault())
+        }
+
+        is Title.Localized -> {
+            val resId = resources.getIdentifier(
+                t.value,
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+
+            resId?.let { resources.getString(it) } ?: t.value
+        }
+
+        else -> "Anonymous"
+    }
 }

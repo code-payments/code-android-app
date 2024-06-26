@@ -8,30 +8,48 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
+import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.isV2
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import timber.log.Timber
 
 typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.StreamChatEventsRequest, ChatService.StreamChatEventsResponse>
 
-suspend fun Client.fetchChats(owner: KeyPair, useV2: Boolean = false): Result<List<Chat>> {
-    return if (useV2) {
-        chatServiceV2.fetchChats(owner)
-            .onSuccess {
-                Timber.d("chats fetched=${it.count()}")
-            }.onFailure {
-                it.printStackTrace()
-            }
+data class ChatFetchExceptions(val errors: List<Throwable>): Throwable()
+
+suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
+    val v2Chats = chatServiceV2.fetchChats(owner)
+        .onSuccess {
+            Timber.d("v2 chats fetched=${it.count()}")
+        }.onFailure {
+            trace("Failed fetching chats from V2", error = it, type = TraceType.Error)
+        }
+
+    val v1Chats = chatServiceV1.fetchChats(owner)
+        .onSuccess {
+            Timber.d("v1 chats fetched=${it.count()}")
+        }.onFailure {
+            trace("Failed fetching chats from V1", error = it, type = TraceType.Error)
+        }
+
+    if (v2Chats.isSuccess || v1Chats.isSuccess) {
+        val chats = (v1Chats.getOrNull().orEmpty() + v2Chats.getOrNull().orEmpty())
+            .sortedByDescending { it.lastMessageMillis }
+            .distinctBy { it.id }
+
+        return Result.success(chats)
     } else {
-        chatServiceV1.fetchChats(owner)
-            .onSuccess {
-                Timber.d("chats fetched=${it.count()}")
-            }.onFailure {
-                it.printStackTrace()
-            }
+        val errors: List<Throwable> =
+            listOfNotNull(v1Chats.exceptionOrNull(), v2Chats.exceptionOrNull())
+        errors.onEach {
+            println("${it.message}")
+        }
+        return Result.failure(ChatFetchExceptions(errors))
     }
 }
 
@@ -103,9 +121,18 @@ suspend fun Client.advancePointer(
     }
 }
 
+suspend fun Client.startChat(
+    owner: KeyPair,
+    reference: ID,
+    type: ChatType,
+): Result<Chat> {
+    return chatServiceV2.startChat(owner, reference, type)
+}
+
 fun Client.openChatStream(
     scope: CoroutineScope,
     chat: Chat,
+    identifier: ID,
     memberId: ID,
     owner: KeyPair,
     completion: (Result<List<ChatMessage>>) -> Unit
@@ -114,6 +141,7 @@ fun Client.openChatStream(
     return chatServiceV2.openChatStream(
         scope = scope,
         chat = chat,
+        identifier = identifier,
         memberId = memberId,
         owner = owner,
         completion = completion

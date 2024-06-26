@@ -4,6 +4,20 @@ import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.chat.StartChatRequest
+import com.getcode.model.chat.StartChatResponse
+import com.getcode.network.core.GrpcApi
+import com.getcode.network.repository.toByteString
+import com.getcode.network.repository.toSolanaAccount
+import com.getcode.utils.bytes
+import com.getcode.utils.sign
+import io.grpc.ManagedChannel
+import io.grpc.stub.StreamObserver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
+import java.util.UUID
+import javax.inject.Inject
 import com.getcode.model.chat.AdvancePointerRequestV2 as AdvancePointerRequest
 import com.getcode.model.chat.AdvancePointerResponseV2 as AdvancePointerResponse
 import com.getcode.model.chat.ChatCursorV2 as ChatCursor
@@ -20,46 +34,27 @@ import com.getcode.model.chat.SetMuteStateRequestV2 as SetMuteStateRequest
 import com.getcode.model.chat.SetMuteStateResponseV2 as SetMuteStateResponse
 import com.getcode.model.chat.SetSubscriptionStateRequestV2 as SetSubscriptionStateRequest
 import com.getcode.model.chat.SetSubscriptionStateResponseV2 as SetSubscriptionStateResponse
-import com.getcode.model.chat.StartChatRequest
-import com.getcode.model.chat.StartChatResponse
-import com.getcode.network.core.GrpcApi
-import com.getcode.network.repository.toByteString
-import com.getcode.network.repository.toSolanaAccount
-import com.getcode.utils.sign
-import io.grpc.ManagedChannel
-import io.grpc.stub.StreamObserver
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOn
-import javax.inject.Inject
 
 class ChatApiV2 @Inject constructor(
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel)
 
-    suspend fun createTipChat(owner: KeyPair, intentId: ID): Result<StartChatResponse> {
+    fun createTipChat(owner: KeyPair, intentId: ID): Flow<StartChatResponse> {
         val request = StartChatRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setTipChat(
                 ChatService.StartTipChatParameters.newBuilder()
                     .setIntentId(IntentId.newBuilder()
                         .setValue(intentId.toByteString()))
+                    .build()
             )
             .apply { setSignature(sign(owner)) }
             .build()
 
-        return try {
-            val response = api::startChat
-                .callAsCancellableFlow(request)
-                .flowOn(Dispatchers.IO)
-                .first()
-
-            Result.success(response)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        return api::startChat
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
     }
 
     fun fetchChats(owner: KeyPair): Flow<GetChatsResponse> {
@@ -76,14 +71,17 @@ class ChatApiV2 @Inject constructor(
     fun fetchChatMessages(
         owner: KeyPair,
         chatId: ID,
+        memberId: UUID,
         cursor: Cursor? = null,
         limit: Int? = null
     ): Flow<GetMessagesResponse> {
         val builder = GetMessagesRequest.newBuilder()
             .setChatId(
                 ChatId.newBuilder()
-                    .setValue(chatId.toByteArray().toByteString())
+                    .setValue(chatId.toByteString())
                     .build()
+            ).setMemberId(ChatService.ChatMemberId.newBuilder()
+                .setValue(memberId.bytes.toByteString())
             )
 
         if (cursor != null) {

@@ -8,6 +8,7 @@ import androidx.compose.foundation.text2.input.clearText
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.map
+import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationMessageContent
@@ -15,8 +16,9 @@ import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.MessageStatus
 import com.getcode.model.TipChatCashFeature
+import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.Reference
 import com.getcode.network.ConversationController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.solana.keys.PublicKey
@@ -54,7 +56,7 @@ class ConversationViewModel @Inject constructor(
 ) {
 
     data class State(
-        val messageId: ID?,
+        val reference: Reference.IntentId?,
         val title: String,
         val tipAmount: KinAmount?,
         val tipAmountFormatted: String?,
@@ -72,7 +74,7 @@ class ConversationViewModel @Inject constructor(
 
         companion object {
             val Default = State(
-                messageId = null,
+                reference = null,
                 tipChatCash = TipChatCashFeature(),
                 title = "Anonymous Tipper",
                 tipAmount = null,
@@ -86,7 +88,7 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnMessageIdChanged(val id: ID?) : Event
+        data class OnReferenceChanged(val reference: Reference.IntentId?) : Event
         data class OnConversationChanged(val conversation: Conversation) : Event
         data class OnUserRevealed(
             val username: String,
@@ -104,14 +106,39 @@ class ConversationViewModel @Inject constructor(
         data object RevealIdentity : Event
 
         data object OnIdentityRevealed : Event
+
+        data class Error(val message: String, val fatal: Boolean) : Event
     }
 
     init {
         stateFlow
-            .map { it.messageId }
+            .map { it.reference }
             .filterNotNull()
+            .filterIsInstance<Reference.IntentId>()
+            .map { it.id }
             .distinctUntilChanged()
-            .onEach { conversationController.openChatStream(viewModelScope, it) }
+            .onEach { referenceId ->
+                runCatching {
+                    val conversation = runCatching {
+                        conversationController.getOrCreateConversation(referenceId, ChatType.TwoWay)
+                    }.onFailure {
+                        it.printStackTrace()
+                        dispatchEvent(
+                            Event.Error(
+                                message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
+                                fatal = true
+                            )
+                        )
+                    }.getOrNull()
+
+                    if (conversation != null) {
+                        conversationController.openChatStream(
+                            viewModelScope,
+                            conversation.messageId
+                        )
+                    }
+                }
+            }
             .flatMapLatest { conversationController.observeConversationForMessage(it) }
             .filterNotNull()
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnConversationChanged(it)) }
@@ -146,19 +173,19 @@ class ConversationViewModel @Inject constructor(
                 val text = textFieldState.text.toString()
                 Timber.d("sending message of $text")
                 textFieldState.clearText()
-                conversationController.sendMessage(it.messageId!!, text)
+                conversationController.sendMessage(it.reference?.id!!, text)
             }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.RevealIdentity>()
-            .mapNotNull { stateFlow.value.messageId }
+            .mapNotNull { stateFlow.value.reference?.id }
             .onEach { delay(300) }
             .onEach { conversationController.revealIdentity(it) }
             .launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
-        .map { it.messageId }
+        .map { it.reference?.id }
         .filterNotNull()
         .flatMapLatest { conversationController.conversationPagingData(it) }
         .map { page ->
@@ -222,7 +249,7 @@ class ConversationViewModel @Inject constructor(
 
                 ChatItem.Message(
                     id = message.idBase58,
-                    chatMessageId = stateFlow.value.messageId!!,
+                    chatMessageId = stateFlow.value.reference?.id!!,
                     message = content,
                     date = message.dateMillis.toInstantFromMillis(),
                     status = message.status
@@ -262,12 +289,13 @@ class ConversationViewModel @Inject constructor(
                     state.copy(tipAmountFormatted = event.amount)
                 }
 
+                is Event.Error,
                 Event.RevealIdentity,
                 Event.SendCash,
                 is Event.SendMessage -> { state -> state }
 
-                is Event.OnMessageIdChanged -> { state ->
-                    state.copy(messageId = event.id)
+                is Event.OnReferenceChanged -> { state ->
+                    state.copy(reference = event.reference)
                 }
 
                 is Event.OnIdentityRevealed -> { state ->

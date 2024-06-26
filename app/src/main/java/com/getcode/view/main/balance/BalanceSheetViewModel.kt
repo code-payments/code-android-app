@@ -109,7 +109,7 @@ class BalanceSheetViewModel @Inject constructor(
                 when {
                     chats == null -> null // await for confirmation it's empty
                     chats.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
-                    chats.any { it.messages.isEmpty() } -> null // remain loading while fetching messages
+                    historyController.loadingMessages -> null // remain loading while fetching messages
                     else -> chats
                 }
             }

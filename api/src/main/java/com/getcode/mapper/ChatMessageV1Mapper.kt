@@ -15,8 +15,8 @@ class ChatMessageV1Mapper @Inject constructor(
     override fun map(from: Pair<Chat, ApiChatMessage>): ChatMessage {
         val (chat, message) = from
 
-        val messageId = message.messageId.toByteArray().toList()
-        val contents = message.contentList.mapNotNull { MessageContent.fromV1(it) }
+        val messageId = message.messageId.value.toList()
+        val contents = message.contentList.mapNotNull { MessageContent.fromV1(messageId, it) }
         val isFromSelf = contents.firstOrNull { it.isFromSelf } != null
 
         return ChatMessage(

@@ -56,18 +56,11 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations")
     suspend fun queryConversations(): List<Conversation>
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%1|%')")
-    suspend fun hasTipMessage(messageId: String): Boolean
+    @Query("SELECT EXISTS (SELECT 1 FROM messages WHERE conversationIdBase58 = :messageId)")
+    suspend fun hasInteracted(messageId: String): Boolean
 
-    suspend fun hasTipMessage(messageId: ID): Boolean {
-        return hasTipMessage(messageId.base58)
-    }
-
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%2|%')")
-    suspend fun hasThanked(messageId: String): Boolean
-
-    suspend fun hasThanked(messageId: ID): Boolean {
-        return hasThanked(messageId.base58)
+    suspend fun hasInteracted(messageId: ID): Boolean {
+        return hasInteracted(messageId.base58)
     }
 
     @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")
