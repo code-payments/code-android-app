@@ -9,6 +9,7 @@ import com.codeinc.gen.common.v1.Model.ClientPong
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.mapper.ChatMessageV2Mapper
 import com.getcode.mapper.ChatMetadataV2Mapper
+import com.getcode.model.Conversation
 import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
@@ -23,6 +24,7 @@ import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.bytes
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import io.grpc.Status
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import java.util.UUID
 import javax.inject.Inject
 
 /**
@@ -305,38 +308,38 @@ class ChatServiceV2 @Inject constructor(
 
     fun openChatStream(
         scope: CoroutineScope,
-        chat: Chat,
-        identifier: ID,
-        memberId: ID,
+        conversation: Conversation,
+        memberId: UUID,
         owner: KeyPair,
+        chatLookup: (Conversation) -> Chat,
         completion: (Result<List<ChatMessage>>) -> Unit
     ): ChatMessageStreamReference {
-        trace("Chat ${identifier.description} Opening stream.")
+        trace("Chat ${conversation.id.description} Opening stream.")
         val streamReference = ChatMessageStreamReference(scope)
         streamReference.retain()
         streamReference.timeoutHandler = {
-            trace("Chat ${identifier.description} Stream timed out")
+            trace("Chat ${conversation.id.description} Stream timed out")
             openChatStream(
-                chat = chat,
-                identifier = identifier,
+                conversation = conversation,
                 memberId = memberId,
                 owner = owner,
                 reference = streamReference,
+                chatLookup = chatLookup,
                 completion = completion
             )
         }
 
-        openChatStream(chat, identifier, memberId, owner, streamReference, completion)
+        openChatStream(conversation, memberId, owner, streamReference, chatLookup, completion)
 
         return streamReference
     }
 
     private fun openChatStream(
-        chat: Chat,
-        identifier: ID,
-        memberId: ID,
+        conversation: Conversation,
+        memberId: UUID,
         owner: KeyPair,
         reference: ChatMessageStreamReference,
+        chatLookup: (Conversation) -> Chat,
         completion: (Result<List<ChatMessage>>) -> Unit
     ) {
         try {
@@ -347,7 +350,7 @@ class ChatServiceV2 @Inject constructor(
                         val result = value?.typeCase
                         if (result == null) {
                             trace(
-                                message = "Chat ${identifier.description} Server sent empty message. This is unexpected.",
+                                message = "Chat ${conversation.id.description} Server sent empty message. This is unexpected.",
                                 type = TraceType.Error
                             )
                             return
@@ -357,9 +360,9 @@ class ChatServiceV2 @Inject constructor(
                             StreamChatEventsResponse.TypeCase.EVENTS -> {
                                 val messages = value.events.eventsList
                                     .map { it.message }
-                                    .map { messageMapper.map(chat to it) }
+                                    .map { messageMapper.map(chatLookup(conversation) to it) }
 
-                                trace("Chat ${identifier.description} received ${messages.count()} messages.")
+                                trace("Chat ${conversation.id.description} received ${messages.count()} messages.")
                                 completion(Result.success(messages))
                             }
 
@@ -376,14 +379,14 @@ class ChatServiceV2 @Inject constructor(
 
                                 reference.receivedPing(updatedTimeout = value.ping.pingDelay.seconds * 1_000L)
                                 stream.onNext(request)
-                                trace("Pong Chat ${identifier.description} Server timestamp: ${value.ping.timestamp}")
+                                trace("Pong Chat ${conversation.id.description} Server timestamp: ${value.ping.timestamp}")
                             }
 
                             StreamChatEventsResponse.TypeCase.TYPE_NOT_SET -> Unit
                             StreamChatEventsResponse.TypeCase.ERROR -> {
                                 trace(
                                     type = TraceType.Error,
-                                    message = "Chat ${identifier.description} hit a snag. ${value.error.code}"
+                                    message = "Chat ${conversation.id.description} hit a snag. ${value.error.code}"
                                 )
                             }
                         }
@@ -392,8 +395,8 @@ class ChatServiceV2 @Inject constructor(
                     override fun onError(t: Throwable?) {
                         val statusException = t as? StatusRuntimeException
                         if (statusException?.status?.code == Status.Code.UNAVAILABLE) {
-                            trace("Chat ${identifier.description} Reconnecting keepalive stream...")
-                            openChatStream(chat, identifier, memberId, owner, reference, completion)
+                            trace("Chat ${conversation.id.description} Reconnecting keepalive stream...")
+                            openChatStream(conversation, memberId, owner, reference, chatLookup, completion)
                         } else {
                             t?.printStackTrace()
                         }
@@ -408,19 +411,19 @@ class ChatServiceV2 @Inject constructor(
                 .setOpenStream(OpenChatEventStream.newBuilder()
                     .setChatId(
                         ChatService.ChatId.newBuilder()
-                            .setValue(identifier.toByteString())
+                            .setValue(conversation.id.toByteString())
                             .build()
                     )
                     .setMemberId(
                         ChatMemberId.newBuilder()
-                            .setValue(memberId.toByteString())
+                            .setValue(memberId.bytes.toByteString())
                     )
                     .setOwner(owner.publicKeyBytes.toSolanaAccount())
                     .apply { setSignature(sign(owner)) }
                 ).build()
 
             reference.stream?.onNext(request)
-            trace("Chat ${chat.id.description} Initiating a connection...")
+            trace("Chat ${conversation.id.description} Initiating a connection...")
         } catch (e: Exception) {
             if (e is IllegalStateException && e.message == "call already half-closed") {
                 // ignore

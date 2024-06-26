@@ -3,7 +3,9 @@ package com.getcode.db
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteColumn
 import androidx.room.DeleteTable
+import androidx.room.RenameColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
@@ -35,13 +37,15 @@ import java.io.File
         Conversation::class,
         ConversationMessage::class,
         ConversationMessageRemoteKey::class,
+        ConversationIntentIdReference::class,
     ],
     autoMigrations = [
         AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class),
         AutoMigration(from = 8, to = 9, spec = AppDatabase.Migration8To9::class),
         AutoMigration(from = 10, to = 11, spec = AppDatabase.Migration10To11::class),
+        AutoMigration(from = 11, to = 12, spec = AppDatabase.Migration11To12::class),
     ],
-    version = 11
+    version = 12
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -55,6 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
     abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun conversationMessageRemoteKeyDao(): ConversationMessageRemoteKeyDao
+    abstract fun conversationIntentMappingDao(): ConversationIntentMappingDao
 
     @DeleteTable(tableName = "HistoricalTransaction")
     class Migration7To8 : AutoMigrationSpec
@@ -62,7 +67,34 @@ abstract class AppDatabase : RoomDatabase() {
     @DeleteTable(tableName = "SendLimit")
     class Migration8To9 : AutoMigrationSpec
 
-    class Migration10To11: Migration(10, 11), AutoMigrationSpec {
+    class Migration10To11 : Migration(10, 11), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE messages")
+        }
+    }
+
+    @RenameColumn.Entries(
+        RenameColumn(
+            tableName = "conversations",
+            fromColumnName = "messageIdBase58",
+            toColumnName = "idBase58"
+        )
+    )
+    @DeleteColumn.Entries(
+        DeleteColumn(
+            tableName = "conversations",
+            columnName = "cursorBase58"
+        ),
+        DeleteColumn(
+            tableName = "conversations",
+            columnName = "tipAmount"
+        ),
+        DeleteColumn(
+            tableName = "conversations",
+            columnName = "createdByUser"
+        )
+    )
+    class Migration11To12 : Migration(11, 12), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DROP TABLE messages")
         }
@@ -91,10 +123,6 @@ object Database {
                 .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                 .fallbackToDestructiveMigration()
                 .build()
-
-        instance?.conversationDao()?.clearConversations()
-        instance?.conversationMessageDao()?.clearMessages()
-        instance?.conversationMessageRemoteKeyDao()?.clearRemoteKeys()
 
         isInitSubject.onNext(true)
         trace("database init end", type = TraceType.Process)

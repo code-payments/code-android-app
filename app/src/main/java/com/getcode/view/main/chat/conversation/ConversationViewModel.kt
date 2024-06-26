@@ -15,6 +15,7 @@ import com.getcode.model.ConversationMessageContent
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.model.Rate
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.TipChatCashFeature
 import com.getcode.model.chat.ChatType
@@ -27,12 +28,14 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
+import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -58,8 +61,6 @@ class ConversationViewModel @Inject constructor(
     data class State(
         val reference: Reference.IntentId?,
         val title: String,
-        val tipAmount: KinAmount?,
-        val tipAmountFormatted: String?,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityRevealed: Boolean,
@@ -77,8 +78,6 @@ class ConversationViewModel @Inject constructor(
                 reference = null,
                 tipChatCash = TipChatCashFeature(),
                 title = "Anonymous Tipper",
-                tipAmount = null,
-                tipAmountFormatted = null,
                 textFieldState = TextFieldState(),
                 identityRevealed = false,
                 user = null,
@@ -88,6 +87,7 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data class OnChatIdChanged(val chatId: ID?): Event
         data class OnReferenceChanged(val reference: Reference.IntentId?) : Event
         data class OnConversationChanged(val conversation: Conversation) : Event
         data class OnUserRevealed(
@@ -100,7 +100,6 @@ class ConversationViewModel @Inject constructor(
 
         data class OnUserActivity(val activity: Instant) : Event
         data class OnTitleChanged(val title: String) : Event
-        data class OnTipAmountFormatted(val amount: String) : Event
         data object SendCash : Event
         data object SendMessage : Event
         data object RevealIdentity : Event
@@ -111,55 +110,51 @@ class ConversationViewModel @Inject constructor(
     }
 
     init {
-        stateFlow
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
+            .mapNotNull {
+                conversationController.getConversation(it)
+            }.onEach {
+                dispatchEvent(Event.OnConversationChanged(it))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnReferenceChanged>()
             .map { it.reference }
             .filterNotNull()
             .filterIsInstance<Reference.IntentId>()
             .map { it.id }
             .distinctUntilChanged()
-            .onEach { referenceId ->
+            .mapNotNull { referenceId ->
                 runCatching {
-                    val conversation = runCatching {
-                        conversationController.getOrCreateConversation(referenceId, ChatType.TwoWay)
-                    }.onFailure {
-                        it.printStackTrace()
-                        dispatchEvent(
-                            Event.Error(
-                                message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
-                                fatal = true
-                            )
+                    conversationController.getOrCreateConversation(referenceId, ChatType.TwoWay)
+                }.onFailure {
+                    it.printStackTrace()
+                    dispatchEvent(
+                        Event.Error(
+                            message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
+                            fatal = true
                         )
-                    }.getOrNull()
-
-                    if (conversation != null) {
-                        conversationController.openChatStream(
-                            viewModelScope,
-                            conversation.messageId
-                        )
-                    }
-                }
+                    )
+                }.getOrNull()
             }
-            .flatMapLatest { conversationController.observeConversationForMessage(it) }
-            .filterNotNull()
             .onEach { dispatchEvent(Dispatchers.Main, Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
-        stateFlow
-            .map { it.tipAmount }
-            .filterNotNull()
-            .distinctUntilChanged()
-            .mapNotNull {
-                val currency =
-                    currencyUtils.getCurrency(it.rate.currency.name) ?: return@mapNotNull null
-                val title =
-                    it.formatted(currency = currency, resources = resources, suffix = "Tipper")
-                val formatted = it.formatted(currency = currency, resources = resources)
-                title to formatted
-            }
-            .onEach { (title, formattedAmount) ->
-                dispatchEvent(Event.OnTitleChanged(title))
-                dispatchEvent(Event.OnTipAmountFormatted(formattedAmount))
-            }.launchIn(viewModelScope)
+            eventFlow
+                .filterIsInstance<Event.OnConversationChanged>()
+                .map { it.conversation }
+                .onEach { conversation ->
+                    runCatching {
+                        conversationController.openChatStream(viewModelScope, conversation)
+                    }.onFailure {
+                        it.printStackTrace()
+                        ErrorUtils.handleError(it)
+                    }
+                }.flatMapLatest { conversationController.observeConversation(it.id) }
+                .launchIn(viewModelScope)
 
         features.tipChatCash
             .onEach { dispatchEvent(Event.OnTipsChatCashChanged(it)) }
@@ -191,7 +186,6 @@ class ConversationViewModel @Inject constructor(
         .map { page ->
             val state = stateFlow.value
             val username = state.user?.username.orEmpty()
-            val tipAmount = state.tipAmountFormatted.orEmpty()
 
             page.map { message ->
                 val content = when (val contents = message.content) {
@@ -221,11 +215,9 @@ class ConversationViewModel @Inject constructor(
                     }
 
                     is ConversationMessageContent.ThanksReceived -> {
-                        MessageContent.Localized(
-                            value = resources.getString(
-                                resourceId = R.string.title_chat_announcement_thanksReceived,
-                                username
-                            ),
+                        MessageContent.ThankYou(
+                            tipIntentId = emptyList(), // TODO:
+                            isFromSelf = contents.isFromSelf
                         )
                     }
 
@@ -241,7 +233,7 @@ class ConversationViewModel @Inject constructor(
                         MessageContent.Localized(
                             value = resources.getString(
                                 resourceId = R.string.title_chat_announcement_tipHeader,
-                                tipAmount
+                                contents.kinAmount
                             ),
                         )
                     }
@@ -268,7 +260,7 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     state.copy(
-                        tipAmount = event.conversation.tipAmount,
+                        title = event.conversation.title,
                         identityRevealed = event.conversation.hasRevealedIdentity
                     )
                 }
@@ -285,10 +277,7 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnTipAmountFormatted -> { state ->
-                    state.copy(tipAmountFormatted = event.amount)
-                }
-
+                is Event.OnChatIdChanged,
                 is Event.Error,
                 Event.RevealIdentity,
                 Event.SendCash,
