@@ -1,21 +1,18 @@
 package com.getcode.network
 
-import androidx.paging.ExperimentalPagingApi
-import androidx.paging.LoadType
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import androidx.paging.PagingState
-import androidx.paging.RemoteMediator
 import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.manager.SessionManager
 import com.getcode.mapper.ConversationMapper
-import com.getcode.model.chat.ChatType
 import com.getcode.model.Conversation
+import com.getcode.model.ConversationIntentIdReference
 import com.getcode.model.ConversationMessage
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Reference
 import com.getcode.network.client.ChatMessageStreamReference
@@ -24,20 +21,16 @@ import com.getcode.network.client.openChatStream
 import com.getcode.network.client.startChat
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
-import com.getcode.utils.bytes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import java.io.IOException
-import java.util.UUID
 import javax.inject.Inject
-import kotlin.jvm.Throws
 
 interface ConversationController {
-    fun observeConversationForMessage(messageId: ID): Flow<Conversation?>
+    fun observeConversation(id: ID): Flow<Conversation?>
     suspend fun createConversation(identifier: ID, type: ChatType): Conversation
     suspend fun getConversation(identifier: ID): Conversation?
     suspend fun getOrCreateConversation(identifier: ID, type: ChatType): Conversation?
-    fun openChatStream(scope: CoroutineScope, identifier: ID)
+    fun openChatStream(scope: CoroutineScope, conversation: Conversation)
     fun closeChatStream()
     suspend fun hasInteracted(messageId: ID): Boolean
     suspend fun revealIdentity(messageId: ID)
@@ -50,39 +43,35 @@ class ConversationStreamController @Inject constructor(
     private val exchange: Exchange,
     private val client: Client,
     private val conversationMapper: ConversationMapper,
-): ConversationController {
+) : ConversationController {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
     private val db: AppDatabase by lazy { Database.requireInstance() }
 
     private var stream: ChatMessageStreamReference? = null
 
-    private val memberId = UUID.randomUUID()
-
     private fun conversationPagingSource(conversationId: ID) =
         db.conversationMessageDao().observeConversationMessages(conversationId.base58)
 
-    override fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
-        return db.conversationDao().observeConversationForMessage(messageId)
+    override fun observeConversation(id: ID): Flow<Conversation?> {
+        return db.conversationDao().observeConversation(id)
     }
 
     override suspend fun createConversation(identifier: ID, type: ChatType): Conversation {
         val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
-        val lookup = { msg: ChatMessage ->
-            msg.id == identifier ||
-                msg.contents.filterIsInstance<MessageContent.Exchange>()
-                    .map { it.reference }
-                    .filterIsInstance<Reference.IntentId>()
-                    .any { it.id == identifier  }
-        }
-
-        val message = historyController.chats.value?.firstOrNull {
-            it.messages.find { msg -> lookup(msg) } != null
-        }?.messages?.firstOrNull { msg -> lookup(msg) } ?: throw IllegalArgumentException()
 
         return client.startChat(owner, identifier, type)
-            .map { conversationMapper.map(it to message) }
+            .map { conversationMapper.map(it) }
             .onSuccess {
+                // TODO: remove
+                // stop gap until startChat rejects created chats for the same identifier
+                db.conversationIntentMappingDao()
+                    .insert(
+                        ConversationIntentIdReference(
+                            conversationIdBase58 = it.id.base58,
+                            intentIdBase58 = identifier.base58
+                        )
+                    )
                 db.conversationDao().upsertConversations(it)
                 // update chats
                 historyController.fetchChats()
@@ -95,17 +84,40 @@ class ConversationStreamController @Inject constructor(
     }
 
     override suspend fun getOrCreateConversation(identifier: ID, type: ChatType): Conversation? {
-        return getConversation(identifier) ?: createConversation(identifier, type)
+        var conversationByChatId = getConversation(identifier)
+        if (conversationByChatId != null) {
+            return conversationByChatId
+        }
+
+        // lookup chat ID by tip intent ID
+        val conversationId = db.conversationIntentMappingDao().conversationIdByReference(identifier)
+        if (conversationId != null) {
+            conversationByChatId = getConversation(identifier)
+        }
+
+        return conversationByChatId ?: createConversation(identifier, type)
     }
 
     @Throws(IllegalStateException::class)
-    override fun openChatStream(scope: CoroutineScope, identifier: ID) {
+    override fun openChatStream(scope: CoroutineScope, conversation: Conversation) {
         val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
-        val chat = historyController.chats.value?.firstOrNull {
-            it.messages.find { msg -> msg.id == identifier } != null
-        } ?: throw IllegalArgumentException()
 
-        stream = client.openChatStream(scope, chat, identifier, memberId.bytes, owner) { result ->
+        val chat = historyController.chats.value?.firstOrNull {
+            it.id == conversation.id
+        } ?: throw IllegalArgumentException("Unable to resolve chat for this conversation")
+
+        println(chat.type)
+        println("members in chat ${chat.members.joinToString()}")
+        val memberId = chat.members.filter { it.isSelf }
+            .map { it.id }.firstOrNull() ?: throw IllegalStateException("Not a member of this chat")
+
+        stream = client.openChatStream(
+            scope = scope,
+            conversation = conversation,
+            memberId = memberId,
+            owner = owner,
+            chatLookup = { chat }
+        ) { result ->
             if (result.isSuccess) {
                 println("chat messages: ${result.getOrNull()}")
             } else {
@@ -119,8 +131,20 @@ class ConversationStreamController @Inject constructor(
     }
 
     override suspend fun hasInteracted(messageId: ID): Boolean {
-        val conversation = db.conversationDao().findConversationForMessage(messageId) ?: return false
-        return db.conversationDao().hasInteracted(conversation.messageId)
+        val lookup = { msg: ChatMessage ->
+            msg.id == messageId ||
+                    msg.contents.filterIsInstance<MessageContent.Exchange>()
+                        .map { it.reference }
+                        .filterIsInstance<Reference.IntentId>()
+                        .any { it.id == messageId }
+        }
+
+        val chat = historyController.chats.value?.firstOrNull {
+            it.messages.find { msg -> lookup(msg) } != null
+        } ?: return false
+
+        val conversation = db.conversationDao().findConversation(chat.id) ?: return false
+        return db.conversationDao().hasInteracted(conversation.id)
     }
 
     override suspend fun revealIdentity(messageId: ID) {
@@ -130,57 +154,10 @@ class ConversationStreamController @Inject constructor(
 
     }
 
-    @OptIn(ExperimentalPagingApi::class)
     override fun conversationPagingData(conversationId: ID) =
         Pager(
             config = pagingConfig,
             initialKey = null,
-            remoteMediator = ConversationMessagePageKeyedRemoteMediator(db)
         ) { conversationPagingSource(conversationId) }.flow
 
-}
-
-/**
- * Make sure to have the same sort from DB as it is from the backend side, otherwise items get mixed up and prevKey
- * and nextKey are no longer valid (the scroll might get stuck or the load might loop one of the pages)
- */
-@OptIn(ExperimentalPagingApi::class)
-class ConversationMessagePageKeyedRemoteMediator(
-    private val db: AppDatabase,
-) : RemoteMediator<Int, ConversationMessage>() {
-    override suspend fun load(
-        loadType: LoadType,
-        state: PagingState<Int, ConversationMessage>
-    ): MediatorResult {
-        return try {
-            // The network load method takes an optional after=<user.id>
-            // parameter. For every page after the first, pass the last user
-            // ID to let it continue from where it left off. For REFRESH,
-            // pass null to load the first page.
-            val cursor = when (loadType) {
-                LoadType.REFRESH -> null
-                // In this example, you never need to prepend, since REFRESH
-                // will always load the first page in the list. Immediately
-                // return, reporting end of pagination.
-                LoadType.PREPEND ->
-                    return MediatorResult.Success(endOfPaginationReached = true)
-
-                LoadType.APPEND -> {
-                    val lastItem = state.lastItemOrNull()
-                        ?: return MediatorResult.Success(endOfPaginationReached = true)
-
-                    // You must explicitly check if the last item is null when
-                    // appending, since passing null to networkService is only
-                    // valid for initial load. If lastItem is null it means no
-                    // items were loaded after the initial REFRESH and there are
-                    // no more items to load.
-
-                    lastItem.cursor
-                }
-            }
-            MediatorResult.Success(endOfPaginationReached = true)
-        } catch (e: IOException) {
-            MediatorResult.Error(e)
-        }
-    }
 }

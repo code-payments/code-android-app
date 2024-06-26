@@ -11,11 +11,11 @@ import com.getcode.network.repository.base58
 @Dao
 interface ConversationMessageRemoteKeyDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertAll(remoteKey: List<ConversationMessageRemoteKey>)
+    suspend fun insertAll(remoteKey: List<ConversationMessageRemoteKey>)
     @Query("SELECT * FROM messages_remote_keys WHERE messageIdBase58 = :id")
-    fun remoteKeysByMessageId(id: String): ConversationMessageRemoteKey?
+    suspend fun remoteKeysByMessageId(id: String): ConversationMessageRemoteKey?
 
-    fun remoteKeysByMessageId(id: ID): ConversationMessageRemoteKey? {
+    suspend fun remoteKeysByMessageId(id: ID): ConversationMessageRemoteKey? {
         return remoteKeysByMessageId(id.base58)
     }
 

@@ -11,7 +11,7 @@ import javax.inject.Inject
 class ChatMemberMapper @Inject constructor(): Mapper<ChatService.ChatMember, ChatMember?> {
     override fun map(from: ChatService.ChatMember): ChatMember? {
         return ChatMember(
-            id = from.memberId.toByteArray().toList().uuid ?: return null,
+            id = from.memberId.value.toByteArray().toList().uuid ?: return null,
             identity = runCatching { Identity(from.identity) }.getOrNull(),
             isMuted = from.isMuted,
             isSelf = from.isSelf,

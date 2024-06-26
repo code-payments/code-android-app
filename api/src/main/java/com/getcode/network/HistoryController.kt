@@ -5,13 +5,18 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.cachedIn
+import com.getcode.db.AppDatabase
+import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
+import com.getcode.mapper.ConversationMapper
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Title
+import com.getcode.model.description
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchChats
@@ -45,16 +50,16 @@ import javax.inject.Singleton
 class HistoryController @Inject constructor(
     private val client: Client,
     private val resources: ResourceHelper,
+    private val conversationMapper: ConversationMapper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
-
-    val hasFetchedChats: Boolean
-        get() = _chats.value.orEmpty().isNotEmpty()
 
     private val _chats = MutableStateFlow<List<Chat>?>(null)
     val chats: StateFlow<List<Chat>?>
         get() = _chats.asStateFlow()
 
     var loadingMessages: Boolean = false
+
+    private val db: AppDatabase by lazy { Database.requireInstance() }
 
     private val pagerMap = mutableMapOf<ID, PagingSource<Cursor, ChatMessage>>()
     private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
@@ -67,16 +72,13 @@ class HistoryController @Inject constructor(
     }
 
     private fun chatMessagePager(chatId: ID) = Pager(pagingConfig) {
-        val chat = _chats.value?.find { it.id == chatId }
         pagerMap[chatId] ?: ChatMessagePagingSource(
             client = client,
             owner = owner()!!,
-            chat = chat,
+            chat = _chats.value?.find { it.id == chatId },
             onMessagesFetched = { messages ->
-                chat ?: return@ChatMessagePagingSource
-                println("${messages.count()} messages fetched for ${chat.title?.localized(resources)}")
+                val chat = _chats.value?.find { it.id == chatId } ?: return@ChatMessagePagingSource
                 val updatedMessages = (chat.messages + messages).distinctBy { it.id }
-                println("${updatedMessages.count()} chats now in memory")
                 val updatedChat = chat.copy(messages = updatedMessages)
                 val chats = _chats.value?.map {
                     if (it.id == updatedChat.id) {
@@ -200,24 +202,20 @@ class HistoryController @Inject constructor(
     private suspend fun fetchChatsWithoutMessages(): List<Chat> {
         val owner = owner() ?: return emptyList()
         val result = client.fetchChats(owner)
-        return if (result.isSuccess) {
-            result.getOrNull().orEmpty()
-        } else {
-            result.exceptionOrNull()?.printStackTrace()
-            emptyList()
-        }
+            .onSuccess { chats ->
+                chats.filter { it.type == ChatType.TwoWay }
+                    .onEach {
+                        if (db.conversationDao().findConversation(it.id) == null) {
+                            trace("adding conversation for chat ${it.id.description}")
+                            val conversation = conversationMapper.map(it)
+                            db.conversationDao().upsertConversations(conversation)
+                        } else {
+                            trace("conversation exists for chat ${it.id.description}")
+                        }
+                    }
+            }
+        return result.getOrNull().orEmpty()
     }
-}
-
-fun List<Chat>.mapInPlace(mutator: (Chat) -> (Chat)): List<Chat> {
-    val updated = toMutableList().apply {
-        this.forEachIndexed { i, value ->
-            val changedValue = mutator(value)
-
-            this[i] = changedValue
-        }
-    }
-    return updated.toImmutableList()
 }
 
 fun Title?.localized(resources: ResourceHelper): String {

@@ -166,7 +166,7 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
                 .map { it.reference }
                 .filterIsInstance<Reference.IntentId>()
                 .map { it.id }
-                .onEach { navigator.push(ChatMessageConversationScreen(it)) }
+                .onEach { navigator.push(ChatMessageConversationScreen(intentId = it)) }
                 .launchIn(this)
         }
 
@@ -177,7 +177,10 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
 }
 
 @Parcelize
-data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatGraph, ModalContent {
+data class ChatMessageConversationScreen(
+    val chatId: ID? = null,
+    val intentId: ID? = null
+) : AppScreen(), ChatGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -254,10 +257,20 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                 }.launchIn(this)
         }
 
-        LaunchedEffect(messageId) {
-            vm.dispatchEvent(
-                ConversationViewModel.Event.OnReferenceChanged(Reference.IntentId(messageId))
-            )
+        LaunchedEffect(chatId) {
+            if (chatId != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnChatIdChanged(chatId)
+                )
+            }
+        }
+
+        LaunchedEffect(intentId) {
+            if (intentId != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnReferenceChanged(Reference.IntentId(intentId))
+                )
+            }
         }
     }
 }

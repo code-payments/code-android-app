@@ -3,6 +3,7 @@ package com.getcode.network.client
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
+import com.getcode.model.Conversation
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
@@ -17,6 +18,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import timber.log.Timber
+import java.util.UUID
 
 typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.StreamChatEventsRequest, ChatService.StreamChatEventsResponse>
 
@@ -131,19 +133,18 @@ suspend fun Client.startChat(
 
 fun Client.openChatStream(
     scope: CoroutineScope,
-    chat: Chat,
-    identifier: ID,
-    memberId: ID,
+    conversation: Conversation,
+    memberId: UUID,
     owner: KeyPair,
+    chatLookup: (Conversation) -> Chat,
     completion: (Result<List<ChatMessage>>) -> Unit
 ): ChatMessageStreamReference {
-    if (!chat.isV2) throw IllegalArgumentException("Chat is not a V2 Chat")
     return chatServiceV2.openChatStream(
         scope = scope,
-        chat = chat,
-        identifier = identifier,
+        conversation = conversation,
         memberId = memberId,
         owner = owner,
+        chatLookup = chatLookup,
         completion = completion
     )
 }

@@ -18,39 +18,25 @@ interface ConversationDao {
     suspend fun upsertConversations(vararg conversation: Conversation)
 
     @Transaction
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :id")
+    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
     fun observeConversationWithMessages(id: String): Flow<ConversationWithMessages>
 
-    fun observeConversationWithMessages(messageId: ID): Flow<ConversationWithMessages> {
-        return observeConversationWithMessages(messageId.base58)
+    fun observeConversationWithMessages(id: ID): Flow<ConversationWithMessages> {
+        return observeConversationWithMessages(id.base58)
     }
 
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    fun observeConversation(messageId: String): Flow<Conversation?>
+    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    fun observeConversation(id: String): Flow<Conversation?>
 
-    fun observeConversation(messageId: ID): Flow<Conversation?> {
-        return observeConversation(messageId.base58)
+    fun observeConversation(id: ID): Flow<Conversation?> {
+        return observeConversation(id.base58)
     }
 
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    fun observeConversationForMessage(messageId: String): Flow<Conversation?>
+    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    suspend fun findConversation(id: String): Conversation?
 
-    fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
-        return observeConversationForMessage(messageId.base58)
-    }
-
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    suspend fun findConversation(messageId: String): Conversation?
-
-    suspend fun findConversation(messageId: ID): Conversation? {
-        return findConversation(messageId.base58)
-    }
-
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    suspend fun findConversationForMessage(messageId: String): Conversation?
-
-    suspend fun findConversationForMessage(messageId: ID): Conversation? {
-        return findConversationForMessage(messageId.base58)
+    suspend fun findConversation(id: ID): Conversation? {
+        return findConversation(id.base58)
     }
 
     @Query("SELECT * FROM conversations")

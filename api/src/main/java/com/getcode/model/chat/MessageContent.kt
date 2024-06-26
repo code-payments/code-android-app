@@ -131,14 +131,14 @@ sealed interface MessageContent {
                 ChatService.Content.TypeCase.THANK_YOU -> {
                     ThankYou(
                         isFromSelf = isFromSelf,
-                        tipIntentId = proto.thankYou.tipIntent.toByteArray().toList()
+                        tipIntentId = proto.thankYou.tipIntent.value.toByteArray().toList()
                     )
                 }
 
                 ChatService.Content.TypeCase.IDENTITY_REVEALED -> {
                     IdentityRevealed(
                         isFromSelf = isFromSelf,
-                        memberId = proto.identityRevealed.memberId.toByteArray().toList(),
+                        memberId = proto.identityRevealed.memberId.value.toByteArray().toList(),
                         identity = Identity(proto.identityRevealed.identity)
                     )
                 }

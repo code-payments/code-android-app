@@ -17,26 +17,22 @@ import kotlinx.serialization.json.Json
 @Entity(tableName = "conversations")
 data class Conversation(
     @PrimaryKey
-    val messageIdBase58: String,
-    val cursorBase58: String,
-    val tipAmount: KinAmount,
-    val createdByUser: Boolean, // if this conversation was created as a result of the user messaging the tipper.,
+    val idBase58: String,
+    @ColumnInfo(defaultValue = "Tip Chat")
+    val title: String,
     val hasRevealedIdentity: Boolean,
     val user: String?,
     val userImage: String?,
     val lastActivity: Long?,
 ) {
     @Ignore
-    val messageId: ID = Base58.decode(messageIdBase58).toList()
-    @Ignore
-    val cursor: Cursor = Base58.decode(cursorBase58).toList()
+    val id: ID = Base58.decode(idBase58).toList()
 
     override fun toString(): String {
         return """
             {
-            messageId:${messageIdBase58},
-            tipAmount:$tipAmount,
-            createByUser:$createdByUser,
+            id:${idBase58},
+            title:$title,
             hasRevealedIdentity:$hasRevealedIdentity,
             user:$user,
             }
@@ -68,7 +64,7 @@ data class ConversationMessage(
 data class ConversationWithMessages(
     @Embedded val user: Conversation,
     @Relation(
-        parentColumn = "messageIdBase58",
+        parentColumn = "idBase58",
         entityColumn = "conversationIdBase58"
     )
     val messages: List<ConversationMessage>,
@@ -89,6 +85,18 @@ data class ConversationMessageRemoteKey(
     val nextCursor: Cursor? = nextCursorBase58?.let { Base58.decode(it).toList() }
 }
 
+@Entity(tableName = "conversation_intent_id_mapping")
+data class ConversationIntentIdReference(
+    @PrimaryKey
+    val conversationIdBase58: String,
+    val intentIdBase58: String,
+) {
+    @Ignore
+    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+    @Ignore
+    val intentId: ID = Base58.decode(intentIdBase58).toList()
+}
+
 sealed interface ConversationMessageContent {
     val kind: Int
     val isFromSelf: Boolean
@@ -103,7 +111,7 @@ sealed interface ConversationMessageContent {
     }
 
     @Serializable
-    data class TipMessage(override val isFromSelf: Boolean = false) : ConversationMessageContent {
+    data class TipMessage(override val isFromSelf: Boolean = false, val kinAmount: KinAmount) : ConversationMessageContent {
         override val kind: Int = 1
     }
     @Serializable
@@ -129,9 +137,9 @@ sealed interface ConversationMessageContent {
             is IdentityRevealed,
             is IdentityRevealedToYou,
             is ThanksReceived,
-            is ThanksSent,
+            is ThanksSent ->  "$kind|${javaClass.simpleName}"
             is TipMessage -> {
-                "$kind|${javaClass.simpleName}"
+                "$kind|${Json.encodeToString(this)}"
             }
             is Text -> "$kind|${Json.encodeToString(this)}"
         }
@@ -144,7 +152,7 @@ sealed interface ConversationMessageContent {
             val (kind, data) = string.split("|")
             return when (kind.toInt()) {
                 0 -> Json.decodeFromString<Text>(data)
-                1 -> TipMessage()
+                1 -> Json.decodeFromString<TipMessage>(data)
                 2 -> ThanksSent()
                 3 -> ThanksReceived()
                 4 -> IdentityRevealed()

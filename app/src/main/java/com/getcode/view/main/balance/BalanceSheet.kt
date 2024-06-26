@@ -41,8 +41,11 @@ import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.ID
 import com.getcode.model.Rate
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatType
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
+import com.getcode.navigation.screens.ChatMessageConversationScreen
 import com.getcode.navigation.screens.ChatScreen
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
@@ -89,7 +92,13 @@ fun BalanceScreen(
                 state = state,
                 dispatch = dispatch,
                 faqOpen = { navigator.push(FaqScreen) },
-                openChat = { navigator.push(ChatScreen(it)) },
+                openChat = {
+                    if (it.type == ChatType.TwoWay) {
+                        navigator.push(ChatMessageConversationScreen(chatId = it.id))
+                    } else {
+                        navigator.push(ChatScreen(it.id))
+                    }
+                },
                 buyMoreKin = { navigator.push(BuyMoreKinModal()) }
             )
         }
@@ -101,7 +110,7 @@ fun BalanceContent(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
     faqOpen: () -> Unit,
-    openChat: (ID) -> Unit,
+    openChat: (Chat) -> Unit,
     buyMoreKin: () -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
@@ -185,7 +194,7 @@ fun BalanceContent(
             state.chats,
             key = { _, item -> item.id },
             contentType = { _, item -> item }) { index, chat ->
-            ChatNode(chat = chat, onClick = { openChat(chat.id) })
+            ChatNode(chat = chat, onClick = { openChat(chat) })
             Divider(
                 modifier = Modifier.padding(start = CodeTheme.dimens.inset),
                 color = White10,
