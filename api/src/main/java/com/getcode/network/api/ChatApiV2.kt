@@ -1,26 +1,27 @@
 package com.getcode.network.api
 
-import com.codeinc.gen.chat.v2.ChatGrpc
 import com.codeinc.gen.chat.v2.ChatService
-import com.codeinc.gen.chat.v2.ChatService.AdvancePointerRequest
-import com.codeinc.gen.chat.v2.ChatService.AdvancePointerResponse
-import com.codeinc.gen.chat.v2.ChatService.ChatId
-import com.codeinc.gen.chat.v2.ChatService.GetChatsRequest
-import com.codeinc.gen.chat.v2.ChatService.GetMessagesRequest
-import com.codeinc.gen.chat.v2.ChatService.GetMessagesResponse
-import com.codeinc.gen.chat.v2.ChatService.Pointer
-import com.codeinc.gen.chat.v2.ChatService.PointerType
-import com.codeinc.gen.chat.v2.ChatService.SetMuteStateRequest
-import com.codeinc.gen.chat.v2.ChatService.SetMuteStateResponse
-import com.codeinc.gen.chat.v2.ChatService.SetSubscriptionStateRequest
-import com.codeinc.gen.chat.v2.ChatService.SetSubscriptionStateResponse
-import com.codeinc.gen.chat.v2.ChatService.StartChatRequest
-import com.codeinc.gen.chat.v2.ChatService.StartChatResponse
-import com.codeinc.gen.chat.v2.ChatService.StartTipChatParameters
-import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.chat.AdvancePointerRequestV2 as AdvancePointerRequest
+import com.getcode.model.chat.AdvancePointerResponseV2 as AdvancePointerResponse
+import com.getcode.model.chat.ChatCursorV2 as ChatCursor
+import com.getcode.model.chat.ChatGrpcV2 as ChatGrpc
+import com.getcode.model.chat.ChatIdV2 as ChatId
+import com.getcode.model.chat.GetChatsRequestV2 as GetChatsRequest
+import com.getcode.model.chat.GetChatsResponseV2 as GetChatsResponse
+import com.getcode.model.chat.GetMessagesDirectionV2 as GetMessagesDirection
+import com.getcode.model.chat.GetMessagesRequestV2 as GetMessagesRequest
+import com.getcode.model.chat.GetMessagesResponseV2 as GetMessagesResponse
+import com.getcode.model.chat.ModelIntentId as IntentId
+import com.getcode.model.chat.PointerV2 as Pointer
+import com.getcode.model.chat.SetMuteStateRequestV2 as SetMuteStateRequest
+import com.getcode.model.chat.SetMuteStateResponseV2 as SetMuteStateResponse
+import com.getcode.model.chat.SetSubscriptionStateRequestV2 as SetSubscriptionStateRequest
+import com.getcode.model.chat.SetSubscriptionStateResponseV2 as SetSubscriptionStateResponse
+import com.getcode.model.chat.StartChatRequest
+import com.getcode.model.chat.StartChatResponse
 import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
@@ -33,7 +34,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
-class ChatApi @Inject constructor(
+class ChatApiV2 @Inject constructor(
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel)
@@ -42,8 +43,8 @@ class ChatApi @Inject constructor(
         val request = StartChatRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .setTipChat(
-                StartTipChatParameters.newBuilder()
-                    .setIntentId(Model.IntentId.newBuilder()
+                ChatService.StartTipChatParameters.newBuilder()
+                    .setIntentId(IntentId.newBuilder()
                         .setValue(intentId.toByteString()))
             )
             .apply { setSignature(sign(owner)) }
@@ -61,7 +62,7 @@ class ChatApi @Inject constructor(
         }
     }
 
-    fun fetchChats(owner: KeyPair): Flow<ChatService.GetChatsResponse> {
+    fun fetchChats(owner: KeyPair): Flow<GetChatsResponse> {
         val request = GetChatsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .apply { setSignature(sign(owner)) }
@@ -87,7 +88,7 @@ class ChatApi @Inject constructor(
 
         if (cursor != null) {
             builder.setCursor(
-                ChatService.Cursor.newBuilder()
+                ChatCursor.newBuilder()
                     .setValue(cursor.toByteString())
             )
         }
@@ -96,7 +97,7 @@ class ChatApi @Inject constructor(
             builder.setPageSize(limit)
         }
 
-        builder.setDirection(GetMessagesRequest.Direction.DESC)
+        builder.setDirection(GetMessagesDirection.DESC)
 
         val request = builder
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
@@ -116,7 +117,7 @@ class ChatApi @Inject constructor(
                     .build()
             ).setPointer(
                 Pointer.newBuilder()
-                    .setType(PointerType.READ)
+                    .setType(ChatService.PointerType.READ)
                     .setValue(
                         ChatService.ChatMessageId.newBuilder()
                             .setValue(to.toByteArray().toByteString())

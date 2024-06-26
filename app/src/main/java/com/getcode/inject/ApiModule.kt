@@ -25,10 +25,11 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.service.ChatServiceV1
 import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.network.service.ChatService
+import com.getcode.network.service.ChatServiceV2
 import com.getcode.network.service.DeviceService
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
@@ -119,17 +120,14 @@ object ApiModule {
     @Provides
     fun provideBalanceController(
         exchange: Exchange,
-        @ApplicationContext context: Context,
         balanceRepository: BalanceRepository,
         transactionRepository: TransactionRepository,
         accountRepository: AccountRepository,
         privacyMigration: PrivacyMigration,
         transactionReceiver: TransactionReceiver,
         networkObserver: NetworkConnectivityListener,
-        locale: LocaleHelper,
         resources: ResourceHelper,
         currencyUtils: CurrencyUtils,
-        prefRepository: PrefRepository,
     ): BalanceController {
         return BalanceController(
             exchange = exchange,
@@ -139,7 +137,6 @@ object ApiModule {
             privacyMigration = privacyMigration,
             transactionReceiver = transactionReceiver,
             networkObserver = networkObserver,
-
             getCurrencyFromCode = {
                 it?.name?.let(currencyUtils::getCurrency)
             },
@@ -191,8 +188,8 @@ object ApiModule {
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
         networkObserver: NetworkConnectivityListener,
-        chatService: ChatService,
-        chatServiceV2: ChatService,
+        chatServiceV1: ChatServiceV1,
+        chatServiceV2: ChatServiceV2,
         deviceService: DeviceService,
         mnemonicManager: MnemonicManager,
     ): Client {
@@ -208,7 +205,7 @@ object ApiModule {
             exchange,
             transactionReceiver,
             networkObserver,
-            chatService,
+            chatServiceV1,
             chatServiceV2,
             deviceService,
             mnemonicManager

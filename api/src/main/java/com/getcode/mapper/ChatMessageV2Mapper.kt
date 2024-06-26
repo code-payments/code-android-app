@@ -11,7 +11,7 @@ import com.codeinc.gen.chat.v2.ChatService.ChatMessage as ApiChatMessage
 import com.getcode.model.chat.ChatMessage as DomainChatMessage
 
 
-class ChatMessageMapper @Inject constructor(
+class ChatMessageV2Mapper @Inject constructor(
 ): Mapper<Pair<Chat, ApiChatMessage>, DomainChatMessage> {
     override fun map(from: Pair<Chat, ApiChatMessage>): ChatMessage {
         val (chat, message) = from

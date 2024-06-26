@@ -1,5 +1,6 @@
 package com.getcode.model.chat
 
+import com.codeinc.gen.chat.v1.ChatService as ChatServiceV1
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.CurrencyCode
 import com.getcode.model.EncryptedData
@@ -8,7 +9,6 @@ import com.getcode.model.GenericAmount
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.MessageStatus
 import com.getcode.model.Rate
 import com.getcode.network.repository.toPublicKey
 
@@ -56,7 +56,7 @@ sealed interface MessageContent {
 
     companion object {
         operator fun invoke(
-            proto: ChatService.Content,
+            proto: MessageContentV2,
             isFromSelf: Boolean = false,
         ): MessageContent? {
             return when (proto.typeCase) {
@@ -149,6 +149,80 @@ sealed interface MessageContent {
                 )
 
                 ChatService.Content.TypeCase.TYPE_NOT_SET -> return null
+                else -> return null
+            }
+        }
+
+        fun fromV1(
+            proto: MessageContentV1,
+        ): MessageContent? {
+            return when (proto.typeCase) {
+                ChatServiceV1.Content.TypeCase.LOCALIZED -> Localized(
+                    isFromSelf = false,
+                    value = proto.localized.keyOrText
+                )
+
+                ChatServiceV1.Content.TypeCase.EXCHANGE_DATA -> {
+                    val verb = Verb.fromV1(proto.exchangeData.verb)
+                    val isFromSelf = !verb.increasesBalance
+                    when (proto.exchangeData.exchangeDataCase) {
+                        ChatServiceV1.ExchangeDataContent.ExchangeDataCase.EXACT -> {
+                            val exact = proto.exchangeData.exact
+                            val currency = CurrencyCode.tryValueOf(exact.currency) ?: return null
+                            val kinAmount = KinAmount.newInstance(
+                                kin = Kin.fromQuarks(exact.quarks),
+                                rate = Rate(
+                                    fx = exact.exchangeRate,
+                                    currency = currency
+                                )
+                            )
+
+                            Exchange(
+                                isFromSelf = isFromSelf,
+                                amount = GenericAmount.Exact(kinAmount),
+                                verb = verb,
+                                reference = Reference.NoneSet,
+                                didThank = false,
+                            )
+                        }
+
+                        ChatServiceV1.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
+                            val partial = proto.exchangeData.partial
+                            val currency = CurrencyCode.tryValueOf(partial.currency) ?: return null
+
+                            val fiat = Fiat(
+                                currency = currency,
+                                amount = partial.nativeAmount
+                            )
+
+                            Exchange(
+                                isFromSelf = isFromSelf,
+                                amount = GenericAmount.Partial(fiat),
+                                verb = verb,
+                                reference = Reference.NoneSet,
+                                didThank = false
+                            )
+                        }
+
+                        ChatServiceV1.ExchangeDataContent.ExchangeDataCase.EXCHANGEDATA_NOT_SET -> return null
+                        else -> return null
+                    }
+                }
+
+                ChatServiceV1.Content.TypeCase.NACL_BOX -> {
+                    val encryptedContent = proto.naclBox
+                    val peerPublicKey =
+                        encryptedContent.peerPublicKey.value.toByteArray().toPublicKey()
+
+                    val data = EncryptedData(
+                        peerPublicKey = peerPublicKey,
+                        nonce = encryptedContent.nonce.toByteArray().toList(),
+                        encryptedData = encryptedContent.encryptedPayload.toByteArray().toList(),
+                    )
+                    SodiumBox(isFromSelf = false, data = data)
+                }
+
+                ChatServiceV1.Content.TypeCase.TYPE_NOT_SET -> return null
                 else -> return null
             }
         }
