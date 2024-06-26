@@ -8,6 +8,8 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
+import com.getcode.model.chat.Title
+import com.getcode.model.chat.isV2
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
 import kotlinx.coroutines.CoroutineScope
@@ -15,26 +17,42 @@ import timber.log.Timber
 
 typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.StreamChatEventsRequest, ChatService.StreamChatEventsResponse>
 
-
-suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
-    return chatService.fetchChats(owner)
-        .onSuccess {
-            Timber.d("chats fetched=${it.count()}")
-        }.onFailure {
-            it.printStackTrace()
-        }
+suspend fun Client.fetchChats(owner: KeyPair, useV2: Boolean = false): Result<List<Chat>> {
+    return if (useV2) {
+        chatServiceV2.fetchChats(owner)
+            .onSuccess {
+                Timber.d("chats fetched=${it.count()}")
+            }.onFailure {
+                it.printStackTrace()
+            }
+    } else {
+        chatServiceV1.fetchChats(owner)
+            .onSuccess {
+                Timber.d("chats fetched=${it.count()}")
+            }.onFailure {
+                it.printStackTrace()
+            }
+    }
 }
 
-suspend fun Client.setMuted(owner: KeyPair, chat: ID, muted: Boolean): Result<Boolean> {
-    return chatService.setMuteState(owner, chat, muted)
+suspend fun Client.setMuted(owner: KeyPair, chat: Chat, muted: Boolean): Result<Boolean> {
+    return if (chat.isV2) {
+        chatServiceV2.setMuteState(owner, chat.id, muted)
+    } else {
+        chatServiceV1.setMuteState(owner, chat.id, muted)
+    }
 }
 
 suspend fun Client.setSubscriptionState(
     owner: KeyPair,
-    chatId: ID,
+    chat: Chat,
     subscribed: Boolean
 ): Result<Boolean> {
-    return chatService.setSubscriptionState(owner, chatId, subscribed)
+    return if (chat.isV2) {
+        chatServiceV2.setSubscriptionState(owner, chat.id, subscribed)
+    } else {
+        chatServiceV1.setSubscriptionState(owner, chat.id, subscribed)
+    }
 }
 
 suspend fun Client.fetchMessagesFor(
@@ -43,19 +61,26 @@ suspend fun Client.fetchMessagesFor(
     cursor: Cursor? = null,
     limit: Int? = null
 ): Result<List<ChatMessage>> {
-    return chatService.fetchMessagesFor(owner, chat, cursor, limit)
-        .mapCatching {
-            val organizer = SessionManager.getOrganizer() ?: return@mapCatching it
-            val domain = Domain.from(chat.title) ?: return@mapCatching it
-            val relationship = organizer.relationshipFor(domain) ?: return@mapCatching it
+    val result = if (chat.isV2) {
+        chatServiceV2.fetchMessagesFor(owner, chat, cursor, limit)
+    } else {
+        chatServiceV1.fetchMessagesFor(owner, chat, cursor, limit)
+    }
 
-            val hasEncryptedContent = it.firstOrNull { it.hasEncryptedContent } != null
+    return result
+        .mapCatching { messages ->
+            val organizer = SessionManager.getOrganizer() ?: return@mapCatching messages
+            val domain = Domain.from(chat.title?.value) ?: return@mapCatching messages
+
+            val relationship = organizer.relationshipFor(domain) ?: return@mapCatching messages
+
+            val hasEncryptedContent = messages.firstOrNull { it.hasEncryptedContent } != null
             if (hasEncryptedContent) {
-                it.map { message ->
+                messages.map { message ->
                     message.decryptingUsing(relationship.getCluster().authority.keyPair)
                 }
             } else {
-                it
+                messages
             }
         }
         .onSuccess {
@@ -68,10 +93,14 @@ suspend fun Client.fetchMessagesFor(
 
 suspend fun Client.advancePointer(
     owner: KeyPair,
-    chatId: ID,
+    chat: Chat,
     to: ID,
 ): Result<Unit> {
-    return chatService.advancePointer(owner, chatId, to)
+    return if (chat.isV2) {
+        chatServiceV2.advancePointer(owner, chat.id, to)
+    } else {
+        chatServiceV1.advancePointer(owner, chat.id, to)
+    }
 }
 
 fun Client.openChatStream(
@@ -81,6 +110,7 @@ fun Client.openChatStream(
     owner: KeyPair,
     completion: (Result<List<ChatMessage>>) -> Unit
 ): ChatMessageStreamReference {
+    if (!chat.isV2) throw IllegalArgumentException("Chat is not a V2 Chat")
     return chatServiceV2.openChatStream(
         scope = scope,
         chat = chat,

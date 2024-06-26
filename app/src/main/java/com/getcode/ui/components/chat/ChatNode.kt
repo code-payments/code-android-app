@@ -21,6 +21,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils
@@ -53,7 +54,7 @@ fun ChatNode(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = chat.title, maxLines = 1, style = CodeTheme.typography.textMedium)
+            Text(text = chat.title.localized, maxLines = 1, style = CodeTheme.typography.textMedium)
             chat.lastMessageMillis?.let {
                 val isToday = DateUtils.isToday(it)
                 Text(

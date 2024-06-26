@@ -11,6 +11,7 @@ import com.getcode.model.Currency
 import com.getcode.model.Domain
 import com.getcode.model.GenericAmount
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
@@ -279,4 +280,25 @@ val Verb.localizedText: String
         }
 
         resId?.let { getString(it) } ?: this@localizedText.toString()
+    }
+
+internal val Title?.localized: String
+    @Composable get() = when (val t = this) {
+        is Title.Domain -> {
+            t.value.capitalize(Locale.getDefault())
+        }
+
+        is Title.Localized -> {
+            with(LocalContext.current) {
+                val resId = resources.getIdentifier(
+                    t.value,
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+
+                resId?.let { getString(it) } ?: t.value
+            }
+        }
+
+        else -> "Anonymous"
     }

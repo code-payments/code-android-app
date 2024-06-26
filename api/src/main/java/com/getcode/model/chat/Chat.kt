@@ -1,11 +1,7 @@
 package com.getcode.model.chat
 
-import com.codeinc.gen.chat.v2.ChatService
-import com.codeinc.gen.chat.v2.ChatService.ExchangeDataContent
-import com.codeinc.gen.chat.v2.ChatService.ExchangeDataContent.ReferenceCase
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.solana.keys.Signature as SolanaKeysSignature
 
 /**
  * Chat domain model for On-Chain messaging. This serves as a reference to a collection of messages.
@@ -24,20 +20,29 @@ import com.getcode.solana.keys.Signature as SolanaKeysSignature
 data class Chat(
     val id: ID,
     val type: ChatType,
-    val title: String,
-    val members: List<ChatMember>,
+    val title: Title?,
+    val members: List<ChatMember> = emptyList(),
+    private val _unreadCount: Int = 0,
+    private val _isMuted: Boolean = false,
     val canMute: Boolean,
+    private val _isSubscribed: Boolean = false,
     val canUnsubscribe: Boolean,
     val cursor: Cursor,
     val messages: List<ChatMessage>
 ) {
     val unreadCount: Int
         get() {
+            if (!isV2) return _unreadCount
+
             val self = members.firstOrNull { it.isSelf } ?: return 0
             return self.numUnread
         }
 
     fun resetUnreadCount(): Chat {
+        if (!isV2) {
+            return copy(_unreadCount = 0)
+        }
+
         val self = members.firstOrNull { it.isSelf } ?: return this
         val updatedSelf = self.copy(numUnread = 0)
         val updatedMembers = members.map {
@@ -52,11 +57,17 @@ data class Chat(
 
     val isMuted: Boolean
         get() {
+            if (!isV2) return _isMuted
+
             val self = members.firstOrNull { it.isSelf } ?: return false
             return self.isMuted
         }
 
     fun setMuteState(muted: Boolean): Chat {
+        if (!isV2) {
+            return copy(_isMuted = muted)
+        }
+
         val self = members.firstOrNull { it.isSelf } ?: return this
         val updatedSelf = self.copy(isMuted = muted)
         val updatedMembers = members.map {
@@ -71,11 +82,17 @@ data class Chat(
 
     val isSubscribed: Boolean
         get() {
+            if (!isV2) return _isSubscribed
+
             val self = members.firstOrNull { it.isSelf } ?: return false
             return self.isSubscribed
         }
 
     fun setSubscriptionState(subscribed: Boolean): Chat {
+        if (!isV2) {
+            return copy(_isSubscribed = subscribed)
+        }
+
         val self = members.firstOrNull { it.isSelf } ?: return this
         val updatedSelf = self.copy(isSubscribed = subscribed)
         val updatedMembers = members.map {
@@ -95,43 +112,5 @@ data class Chat(
         get() = newestMessage?.dateMillis
 }
 
-
-
-
-enum class ChatType {
-    Unknown,
-    Notification,
-    TwoWay;
-
-    companion object {
-        operator fun invoke(proto: ChatService.ChatType): ChatType {
-            return runCatching { entries[proto.ordinal] }.getOrNull() ?: Unknown
-        }
-    }
-}
-
-sealed interface ConversationType {
-    data object TipChat: ConversationType
-}
-
-/**
- * An ID that can be referenced to the source of the exchange of Kin
- */
-sealed interface Reference {
-    data object NoneSet: Reference
-    data class IntentId(val id: ID): Reference
-    data class Signature(val signature: SolanaKeysSignature): Reference
-
-    companion object {
-        operator fun invoke(proto: ExchangeDataContent): Reference {
-            return when (proto.referenceCase) {
-                ReferenceCase.INTENT -> IntentId(proto.intent.toByteArray().toList())
-                ReferenceCase.SIGNATURE -> Signature(SolanaKeysSignature(proto.signature.toByteArray().toList()))
-                ReferenceCase.REFERENCE_NOT_SET -> NoneSet
-                null -> NoneSet
-            }
-        }
-    }
-}
-
-
+val Chat.isV2: Boolean
+    get() = members.isNotEmpty()

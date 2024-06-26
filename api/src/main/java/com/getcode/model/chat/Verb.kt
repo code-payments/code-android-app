@@ -1,5 +1,6 @@
 package com.getcode.model.chat
 
+import com.codeinc.gen.chat.v1.ChatService as ChatServiceV1
 import com.codeinc.gen.chat.v2.ChatService
 
 sealed interface Verb {
@@ -54,7 +55,7 @@ sealed interface Verb {
     }
 
     companion object {
-        operator fun invoke(proto: ChatService.ExchangeDataContent.Verb): Verb {
+        operator fun invoke(proto: VerbV2): Verb {
             return when (proto) {
                 ChatService.ExchangeDataContent.Verb.UNKNOWN -> Unknown
                 ChatService.ExchangeDataContent.Verb.GAVE -> Gave
@@ -69,6 +70,24 @@ sealed interface Verb {
                 ChatService.ExchangeDataContent.Verb.UNRECOGNIZED -> Unknown
                 ChatService.ExchangeDataContent.Verb.RECEIVED_TIP -> ReceivedTip
                 ChatService.ExchangeDataContent.Verb.SENT_TIP -> SentTip
+            }
+        }
+
+        fun fromV1(proto: VerbV1): Verb {
+            return when (proto) {
+                ChatServiceV1.ExchangeDataContent.Verb.UNKNOWN -> Unknown
+                ChatServiceV1.ExchangeDataContent.Verb.GAVE -> Gave
+                ChatServiceV1.ExchangeDataContent.Verb.RECEIVED -> Received
+                ChatServiceV1.ExchangeDataContent.Verb.WITHDREW -> Withdrew
+                ChatServiceV1.ExchangeDataContent.Verb.DEPOSITED -> Deposited
+                ChatServiceV1.ExchangeDataContent.Verb.SENT -> Sent
+                ChatServiceV1.ExchangeDataContent.Verb.RETURNED -> Returned
+                ChatServiceV1.ExchangeDataContent.Verb.SPENT -> Spent
+                ChatServiceV1.ExchangeDataContent.Verb.PAID -> Paid
+                ChatServiceV1.ExchangeDataContent.Verb.PURCHASED -> Purchased
+                ChatServiceV1.ExchangeDataContent.Verb.UNRECOGNIZED -> Unknown
+                ChatServiceV1.ExchangeDataContent.Verb.RECEIVED_TIP -> ReceivedTip
+                ChatServiceV1.ExchangeDataContent.Verb.SENT_TIP -> SentTip
             }
         }
     }

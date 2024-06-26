@@ -7,14 +7,14 @@ import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsRequest
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsResponse
 import com.codeinc.gen.common.v1.Model.ClientPong
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.mapper.ChatMessageMapper
-import com.getcode.mapper.ChatMetadataMapper
+import com.getcode.mapper.ChatMessageV2Mapper
+import com.getcode.mapper.ChatMetadataV2Mapper
 import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
 import com.getcode.model.chat.Chat
 import com.getcode.model.description
-import com.getcode.network.api.ChatApi
+import com.getcode.network.api.ChatApiV2
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.repository.sign
@@ -35,12 +35,12 @@ import timber.log.Timber
 import javax.inject.Inject
 
 /**
- * Abstraction layer to handle [ChatApi] request results and map to domain models
+ * Abstraction layer to handle [ChatApiV2] request results and map to domain models
  */
-class ChatService @Inject constructor(
-    private val api: ChatApi,
-    private val chatMapper: ChatMetadataMapper,
-    private val messageMapper: ChatMessageMapper,
+class ChatServiceV2 @Inject constructor(
+    private val api: ChatApiV2,
+    private val chatMapper: ChatMetadataV2Mapper,
+    private val messageMapper: ChatMessageV2Mapper,
     private val networkOracle: NetworkOracle,
 ) {
     private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {

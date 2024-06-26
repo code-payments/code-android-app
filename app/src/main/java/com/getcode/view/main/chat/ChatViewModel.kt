@@ -7,6 +7,7 @@ import androidx.paging.map
 import com.getcode.model.chat.Chat
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
 import com.getcode.network.HistoryController
@@ -43,6 +44,7 @@ class ChatViewModel @Inject constructor(
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         chatId = null,
+        chat = null,
         title = null,
         canMute = false,
         isMuted = false,
@@ -54,7 +56,8 @@ class ChatViewModel @Inject constructor(
 ) {
     data class State(
         val chatId: ID?,
-        val title: String?,
+        val chat: Chat?,
+        val title: Title?,
         val canMute: Boolean,
         val isMuted: Boolean,
         private val _canUnsubscribe: Boolean,
@@ -93,12 +96,12 @@ class ChatViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMuteToggled>()
-            .map { stateFlow.value.chatId to stateFlow.value.isMuted }
+            .map { stateFlow.value.chat to stateFlow.value.isMuted }
             .filter { it.first != null }
             .map { it.first!! to it.second }
-            .map { (chatId, muted) ->
+            .map { (chat, muted) ->
                 dispatchEvent(Event.SetMuted(!muted))
-                historyController.setMuted(chatId, !muted)
+                historyController.setMuted(chat, !muted)
             }
             .onEach { result ->
                 if (result.isSuccess) {
@@ -113,12 +116,12 @@ class ChatViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnSubscribeToggled>()
-            .map { stateFlow.value.chatId to stateFlow.value.isSubscribed }
+            .map { stateFlow.value.chat to stateFlow.value.isSubscribed }
             .filter { it.first != null }
             .map { it.first!! to it.second }
-            .map { (chatId, subscribed) ->
+            .map { (chat, subscribed) ->
                 dispatchEvent(Event.SetSubscribed(!subscribed))
-                historyController.setSubscribed(chatId, !subscribed)
+                historyController.setSubscribed(chat, !subscribed)
             }
             .onEach { result ->
                 if (result.isSuccess) {
@@ -208,6 +211,7 @@ class ChatViewModel @Inject constructor(
 
                 is Event.OnChatChanged -> { state ->
                     state.copy(
+                        chat = event.chat,
                         title = event.chat.title,
                         canMute = event.chat.canMute,
                         isMuted = event.chat.isMuted,

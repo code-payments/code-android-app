@@ -38,6 +38,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
 import com.getcode.view.main.balance.BalanceScreen
@@ -147,7 +148,7 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
         val navigator = LocalCodeNavigator.current
 
         ModalContainer(
-            titleString = { state.title },
+            titleString = { state.title.localized },
             backButtonEnabled = { it is ChatScreen },
         ) {
             val messages = vm.chatMessages.collectAsLazyPagingItems()

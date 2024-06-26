@@ -132,7 +132,7 @@ class HistoryController @Inject constructor(
                         val chat = this[index]
                         val newestMessage = chat.newestMessage
                         if (newestMessage != null) {
-                            client.advancePointer(owner, chatId, newestMessage.id)
+                            client.advancePointer(owner, chat, newestMessage.id)
                                 .onSuccess {
                                     this[index] = chat.resetUnreadCount()
                                 }
@@ -142,40 +142,40 @@ class HistoryController @Inject constructor(
         }
     }
 
-    suspend fun setMuted(chatId: ID, muted: Boolean): Result<Boolean> {
+    suspend fun setMuted(chat: Chat, muted: Boolean): Result<Boolean> {
         val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
 
         _chats.update {
             it?.toMutableList()?.apply chats@{
-                indexOfFirst { chat -> chat.id == chatId }
+                indexOfFirst { item -> item.id == chat.id }
                     .takeIf { index -> index >= 0 }
                     ?.let { index ->
-                        val chat = this[index]
+                        val c = this[index]
                         Timber.d("changing mute state for chat locally")
-                        this[index] = chat.setMuteState(muted)
+                        this[index] = c.setMuteState(muted)
                     }
             }?.toList()
         }
 
-        return client.setMuted(owner, chatId, muted)
+        return client.setMuted(owner, chat, muted)
     }
 
-    suspend fun setSubscribed(chatId: ID, subscribed: Boolean): Result<Boolean> {
+    suspend fun setSubscribed(chat: Chat, subscribed: Boolean): Result<Boolean> {
         val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
 
         _chats.update {
             it?.toMutableList()?.apply chats@{
-                indexOfFirst { chat -> chat.id == chatId }
+                indexOfFirst { item -> item.id == chat.id }
                     .takeIf { index -> index >= 0 }
                     ?.let { index ->
-                        val chat = this[index]
+                        val c = this[index]
                         Timber.d("changing subscribed state for chat locally")
-                        this[index] = chat.setSubscriptionState(subscribed)
+                        this[index] = c.setSubscriptionState(subscribed)
                     }
             }?.toList()
         }
 
-        return client.setSubscriptionState(owner, chatId, subscribed)
+        return client.setSubscriptionState(owner, chat, subscribed)
     }
 
     private suspend fun fetchLatestMessageForChat(chat: Chat): Result<ChatMessage?> {
