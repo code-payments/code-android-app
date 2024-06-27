@@ -1,20 +1,15 @@
 package com.getcode.db
 
 import androidx.room.TypeConverter
-import com.getcode.model.ConversationMessageContent
 import com.getcode.model.CurrencyCode
-import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
-import com.getcode.network.repository.base58
+import com.getcode.model.chat.MessageContent
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
-import com.getcode.utils.serializer.ConversationMessageContentSerializer
-import com.getcode.vendor.Base58
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.SerializersModule
 
 class Converters {
     @TypeConverter
@@ -40,9 +35,9 @@ class Converters {
     fun stringToRates(value: String) = Json.decodeFromString<List<Rate>>(value)
 
     @TypeConverter
-    fun messageContentToString(value: ConversationMessageContent) = value.serialize()
+    fun messageContentToString(value: MessageContent) = Json.encodeToString(value)
     @TypeConverter
-    fun stringToMessageContent(value: String) = ConversationMessageContent.deserialize(value)
+    fun stringToMessageContent(value: String) = Json.decodeFromString<MessageContent>(value)
 
     @TypeConverter
     fun kinAmountToString(value: KinAmount) = Json.encodeToString(KinAmount.serializer(), value)

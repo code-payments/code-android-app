@@ -161,13 +161,8 @@ class ChatViewModel @Inject constructor(
             page.map { (message, contents) ->
                 val content =
                     if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
-                        val tipThanked = conversationController.hasInteracted(message.id)
-                        MessageContent.Exchange(
-                            contents.amount,
-                            contents.verb,
-                            contents.reference,
-                            hasInteracted = tipThanked
-                        )
+                        val hasMessaged = conversationController.hasInteracted(message.id)
+                        contents.copy(hasInteracted = hasMessaged)
                     } else {
                         contents
                     }

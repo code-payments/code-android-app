@@ -30,7 +30,7 @@ class ChatMessageV2Mapper @Inject constructor(
             isFromSelf = isFromSelf,
             cursor = message.cursor.value.toList(),
             dateMillis = message.ts.seconds  * 1_000L,
-            contents = message.contentList.mapNotNull { MessageContent(it) },
+            contents = message.contentList.mapNotNull { MessageContent(it, isFromSelf) },
             status = when (messagePointer) {
                 is Pointer.Delivered -> MessageStatus.Delivered
                 is Pointer.Read -> MessageStatus.Read

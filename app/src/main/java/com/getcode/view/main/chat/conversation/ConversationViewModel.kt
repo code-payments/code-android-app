@@ -7,16 +7,12 @@ import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.flatMap
 import androidx.paging.map
 import com.getcode.BuildConfig
-import com.getcode.R
 import com.getcode.model.Conversation
-import com.getcode.model.ConversationMessageContent
 import com.getcode.model.Feature
 import com.getcode.model.ID
-import com.getcode.model.KinAmount
-import com.getcode.model.Rate
-import com.getcode.model.chat.MessageContent
 import com.getcode.model.TipChatCashFeature
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Reference
@@ -24,8 +20,8 @@ import com.getcode.network.ConversationController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.ConversationMessageIndice
 import com.getcode.util.CurrencyUtils
-import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
@@ -35,7 +31,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -59,6 +54,7 @@ class ConversationViewModel @Inject constructor(
 ) {
 
     data class State(
+        val conversationId: ID?,
         val reference: Reference.IntentId?,
         val title: String,
         val textFieldState: TextFieldState,
@@ -75,6 +71,7 @@ class ConversationViewModel @Inject constructor(
 
         companion object {
             val Default = State(
+                conversationId = null,
                 reference = null,
                 tipChatCash = TipChatCashFeature(),
                 title = "Anonymous Tipper",
@@ -110,6 +107,7 @@ class ConversationViewModel @Inject constructor(
     }
 
     init {
+        // this is an existing conversation so we fetch the chat directly
         eventFlow
             .filterIsInstance<Event.OnChatIdChanged>()
             .map { it.chatId }
@@ -120,6 +118,7 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnConversationChanged(it))
             }.launchIn(viewModelScope)
 
+        // reference ID is used to create a chat that is non-existent if needed
         eventFlow
             .filterIsInstance<Event.OnReferenceChanged>()
             .map { it.reference }
@@ -168,7 +167,7 @@ class ConversationViewModel @Inject constructor(
                 val text = textFieldState.text.toString()
                 Timber.d("sending message of $text")
                 textFieldState.clearText()
-                conversationController.sendMessage(it.reference?.id!!, text)
+                conversationController.sendMessage(it.conversationId!!, text)
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -180,71 +179,24 @@ class ConversationViewModel @Inject constructor(
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
-        .map { it.reference?.id }
+        .map { it.conversationId }
         .filterNotNull()
         .flatMapLatest { conversationController.conversationPagingData(it) }
         .map { page ->
-            val state = stateFlow.value
-            val username = state.user?.username.orEmpty()
-
-            page.map { message ->
-                val content = when (val contents = message.content) {
-                    is ConversationMessageContent.IdentityRevealed -> {
-                        MessageContent.Localized(
-                            value = resources.getString(
-                                resourceId = R.string.title_chat_announcement_identityRevealed,
-                                username
-                            ),
-                        )
-                    }
-
-                    is ConversationMessageContent.IdentityRevealedToYou -> {
-                        MessageContent.Localized(
-                            value = resources.getString(
-                                resourceId = R.string.title_chat_announcement_identityRevealedToYou,
-                                username
-                            ),
-                        )
-                    }
-
-                    is ConversationMessageContent.Text -> {
-                        MessageContent.Localized(
-                            value = contents.message,
-                            isFromSelf = contents.isFromSelf
-                        )
-                    }
-
-                    is ConversationMessageContent.ThanksReceived -> {
-                        MessageContent.ThankYou(
-                            tipIntentId = emptyList(), // TODO:
-                            isFromSelf = contents.isFromSelf
-                        )
-                    }
-
-                    is ConversationMessageContent.ThanksSent -> {
-                        MessageContent.Localized(
-                            value = resources.getString(
-                                resourceId = R.string.title_chat_announcement_thanksSent,
-                            ),
-                        )
-                    }
-
-                    is ConversationMessageContent.TipMessage -> {
-                        MessageContent.Localized(
-                            value = resources.getString(
-                                resourceId = R.string.title_chat_announcement_tipHeader,
-                                contents.kinAmount
-                            ),
-                        )
-                    }
-                }
+            page.flatMap { mwc ->
+                mwc.contents.map { ConversationMessageIndice(mwc.message, it) }
+            }
+        }
+        .map { page ->
+            page.map { indice ->
+                val (message, contents) = indice
 
                 ChatItem.Message(
-                    id = message.idBase58,
-                    chatMessageId = stateFlow.value.reference?.id!!,
-                    message = content,
+                    chatMessageId = message.id,
+                    message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
-                    status = message.status
+                    status = message.status,
+                    key = (message.dateMillis.hashCode() + message.status.hashCode())
                 )
             }
         }
@@ -260,6 +212,7 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     state.copy(
+                        conversationId = event.conversation.id,
                         title = event.conversation.title,
                         identityRevealed = event.conversation.hasRevealedIdentity
                     )

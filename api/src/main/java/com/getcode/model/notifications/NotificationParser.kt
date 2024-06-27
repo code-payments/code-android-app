@@ -29,7 +29,7 @@ fun RemoteMessage.parse(): CodeNotification? {
         return null
     }
 
-    if (!type.isNotifiable()) return CodeNotification(type, "", MessageContent.Localized(""))
+    if (!type.isNotifiable()) return CodeNotification(type, "", MessageContent.Localized("", false))
 
     val chatTitle = data[NOTIFICATION_TITLE_KEY].let {
         if (it == null) {
