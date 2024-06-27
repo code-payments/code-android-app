@@ -7,22 +7,25 @@ import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.manager.SessionManager
 import com.getcode.mapper.ConversationMapper
+import com.getcode.mapper.ConversationMessageWithContentMapper
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationIntentIdReference
-import com.getcode.model.ConversationMessage
+import com.getcode.model.ConversationMessageWithContent
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Reference
+import com.getcode.model.description
 import com.getcode.network.client.ChatMessageStreamReference
-import com.getcode.network.client.Client
-import com.getcode.network.client.openChatStream
-import com.getcode.network.client.startChat
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
+import com.getcode.network.service.ChatServiceV2
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 interface ConversationController {
@@ -34,15 +37,16 @@ interface ConversationController {
     fun closeChatStream()
     suspend fun hasInteracted(messageId: ID): Boolean
     suspend fun revealIdentity(messageId: ID)
-    fun sendMessage(conversationId: ID, message: String)
-    fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessage>>
+    suspend fun sendMessage(conversationId: ID, message: String): Result<ID>
+    fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessageWithContent>>
 }
 
 class ConversationStreamController @Inject constructor(
     private val historyController: HistoryController,
     private val exchange: Exchange,
-    private val client: Client,
+    private val chatService: ChatServiceV2,
     private val conversationMapper: ConversationMapper,
+    private val messageWithContentMapper: ConversationMessageWithContentMapper,
 ) : ConversationController {
     private val pagingConfig = PagingConfig(pageSize = 20)
 
@@ -60,7 +64,7 @@ class ConversationStreamController @Inject constructor(
     override suspend fun createConversation(identifier: ID, type: ChatType): Conversation {
         val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
 
-        return client.startChat(owner, identifier, type)
+        return chatService.startChat(owner, identifier, type)
             .map { conversationMapper.map(it) }
             .onSuccess {
                 // TODO: remove
@@ -106,12 +110,10 @@ class ConversationStreamController @Inject constructor(
             it.id == conversation.id
         } ?: throw IllegalArgumentException("Unable to resolve chat for this conversation")
 
-        println(chat.type)
-        println("members in chat ${chat.members.joinToString()}")
         val memberId = chat.members.filter { it.isSelf }
             .map { it.id }.firstOrNull() ?: throw IllegalStateException("Not a member of this chat")
 
-        stream = client.openChatStream(
+        stream = chatService.openChatStream(
             scope = scope,
             conversation = conversation,
             memberId = memberId,
@@ -120,6 +122,12 @@ class ConversationStreamController @Inject constructor(
         ) { result ->
             if (result.isSuccess) {
                 println("chat messages: ${result.getOrNull()}")
+                val messages = result.getOrNull().orEmpty().map {
+                    messageWithContentMapper.map(chat.id to it)
+                }
+                scope.launch(Dispatchers.IO) {
+                    db.conversationMessageDao().upsertMessagesWithContent(messages)
+                }
             } else {
                 println("Error: ${result.exceptionOrNull()?.message}")
             }
@@ -131,27 +139,36 @@ class ConversationStreamController @Inject constructor(
     }
 
     override suspend fun hasInteracted(messageId: ID): Boolean {
-        val lookup = { msg: ChatMessage ->
-            msg.id == messageId ||
-                    msg.contents.filterIsInstance<MessageContent.Exchange>()
-                        .map { it.reference }
-                        .filterIsInstance<Reference.IntentId>()
-                        .any { it.id == messageId }
-        }
-
-        val chat = historyController.chats.value?.firstOrNull {
-            it.messages.find { msg -> lookup(msg) } != null
-        } ?: return false
-
-        val conversation = db.conversationDao().findConversation(chat.id) ?: return false
-        return db.conversationDao().hasInteracted(conversation.id)
+        // TODO: will require conversation model update
+        return false
     }
 
     override suspend fun revealIdentity(messageId: ID) {
     }
 
-    override fun sendMessage(conversationId: ID, message: String) {
+    override suspend fun sendMessage(conversationId: ID, message: String): Result<ID> {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return Result.failure(Throwable("Owner not found"))
 
+        val chat = historyController.chats.value?.firstOrNull {
+            it.id == conversationId
+        } ?: return Result.failure(Throwable("Unable to find chat"))
+
+        val memberId = chat.members.filter { it.isSelf }
+            .map { it.id }.firstOrNull() ?: return Result.failure(Throwable("Not a member of this chat"))
+
+        return chatService.sendMessage(
+            owner = owner,
+            chat = chat,
+            memberId = memberId,
+            content = OutgoingMessageContent.Text(message)
+        ).map {
+            val messageWithContent = messageWithContentMapper.map(conversationId to it)
+            CoroutineScope(Dispatchers.IO).launch {
+                db.conversationMessageDao().upsertMessagesWithContent(messageWithContent)
+            }
+
+            messageWithContent.message.id
+        }
     }
 
     override fun conversationPagingData(conversationId: ID) =

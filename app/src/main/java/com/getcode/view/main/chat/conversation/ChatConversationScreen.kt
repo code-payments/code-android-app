@@ -71,7 +71,6 @@ fun ChatConversationScreen(
                 .padding(padding),
             messages = messages,
             listState = lazyListState,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3, Alignment.Top),
         )
 
         HandleMessageChanges(listState = lazyListState, items = messages)

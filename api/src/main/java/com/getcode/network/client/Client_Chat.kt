@@ -48,9 +48,6 @@ suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
     } else {
         val errors: List<Throwable> =
             listOfNotNull(v1Chats.exceptionOrNull(), v2Chats.exceptionOrNull())
-        errors.onEach {
-            println("${it.message}")
-        }
         return Result.failure(ChatFetchExceptions(errors))
     }
 }

@@ -5,7 +5,6 @@ import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.Identity
 import com.getcode.model.chat.Pointer
 import com.getcode.model.uuid
-import java.util.UUID
 import javax.inject.Inject
 
 class ChatMemberMapper @Inject constructor(): Mapper<ChatService.ChatMember, ChatMember?> {

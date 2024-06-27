@@ -12,14 +12,15 @@ data class ChatMessageIndice(
     val messageContent: MessageContent,
 )
 
-sealed class ChatItem(val key: Any) {
+sealed class ChatItem(open val key: Any) {
     data class Message(
         val id: String = UUID.randomUUID().toString(),
         val chatMessageId: ID,
         val message: MessageContent,
         val date: Instant,
         val status: MessageStatus,
-    ) : ChatItem(id)
+        override val key: Any = id
+    ) : ChatItem(key)
 
     data class Date(val date: String) : ChatItem(date)
 }

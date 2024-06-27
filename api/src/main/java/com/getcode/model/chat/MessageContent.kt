@@ -11,48 +11,75 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.network.repository.toPublicKey
+import com.getcode.utils.serializer.MessageContentSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
+@Serializable
 sealed interface MessageContent {
+    val kind: Int
     val isFromSelf: Boolean
 
+    @Serializable
     data class Localized(
         val value: String,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 0
+    }
 
+    @Serializable
     data class RawText(
         val value: String,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 1
+    }
 
+    @Serializable
     data class Exchange(
         val amount: GenericAmount,
         val verb: Verb,
         val reference: Reference,
         val hasInteracted: Boolean,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 2
+    }
 
+    @Serializable
     data class SodiumBox(
         val data: EncryptedData,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 3
+    }
 
+    @Serializable
     data class ThankYou(
         val tipIntentId: ID,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 4
+    }
 
+    @Serializable
     data class IdentityRevealed(
         val memberId: ID,
         val identity: Identity,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 5
+    }
 
+    @Serializable
     data class Decrypted(
         val data: String,
-        override val isFromSelf: Boolean = false,
-    ) : MessageContent
+        override val isFromSelf: Boolean,
+    ) : MessageContent {
+        override val kind: Int = 6
+    }
 
     companion object {
         operator fun invoke(

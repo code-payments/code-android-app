@@ -3,6 +3,7 @@ package com.getcode.network.service
 import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.chat.v2.ChatService.ChatMemberId
 import com.codeinc.gen.chat.v2.ChatService.OpenChatEventStream
+import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsRequest
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsResponse
 import com.codeinc.gen.common.v1.Model.ClientPong
@@ -15,6 +16,7 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.description
 import com.getcode.network.api.ChatApiV2
 import com.getcode.network.client.ChatMessageStreamReference
@@ -34,9 +36,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 /**
  * Abstraction layer to handle [ChatApiV2] request results and map to domain models
@@ -178,7 +182,15 @@ class ChatServiceV2 @Inject constructor(
                 .firstOrNull()
                 ?: throw IllegalStateException("Fetching messages for a chat you are not a member in")
 
-            networkOracle.managedRequest(api.fetchChatMessages(owner, chat.id, memberId, cursor, limit))
+            networkOracle.managedRequest(
+                api.fetchChatMessages(
+                    owner,
+                    chat.id,
+                    memberId,
+                    cursor,
+                    limit
+                )
+            )
                 .map { response ->
                     when (response.result) {
                         ChatService.GetMessagesResponse.Result.OK -> {
@@ -281,16 +293,19 @@ class ChatServiceV2 @Inject constructor(
                                     Timber.e(t = error)
                                     Result.failure(error)
                                 }
+
                                 ChatService.StartChatResponse.Result.INVALID_PARAMETER -> {
                                     val error = Throwable("Error: Invalid parameter")
                                     Timber.e(t = error)
                                     Result.failure(error)
                                 }
+
                                 ChatService.StartChatResponse.Result.UNRECOGNIZED -> {
                                     val error = Throwable("Error: Unrecognized request.")
                                     Timber.e(t = error)
                                     Result.failure(error)
                                 }
+
                                 else -> {
                                     val error = Throwable("Error: Unknown")
                                     Timber.e(t = error)
@@ -396,7 +411,14 @@ class ChatServiceV2 @Inject constructor(
                         val statusException = t as? StatusRuntimeException
                         if (statusException?.status?.code == Status.Code.UNAVAILABLE) {
                             trace("Chat ${conversation.id.description} Reconnecting keepalive stream...")
-                            openChatStream(conversation, memberId, owner, reference, chatLookup, completion)
+                            openChatStream(
+                                conversation,
+                                memberId,
+                                owner,
+                                reference,
+                                chatLookup,
+                                completion
+                            )
                         } else {
                             t?.printStackTrace()
                         }
@@ -430,6 +452,94 @@ class ChatServiceV2 @Inject constructor(
             } else {
                 ErrorUtils.handleError(e)
             }
+        }
+    }
+
+    suspend fun sendMessage(
+        owner: KeyPair,
+        chat: Chat,
+        memberId: UUID,
+        content: OutgoingMessageContent,
+    ): Result<ChatMessage> = suspendCancellableCoroutine { cont ->
+        val chatId = chat.id
+        try {
+            api.sendMessage(
+                owner = owner,
+                chatId = chatId,
+                memberId = memberId,
+                content = content,
+                observer = object : StreamObserver<SendMessageResponse> {
+                    override fun onNext(value: SendMessageResponse?) {
+                        val requestResult = value?.result
+                        if (requestResult == null) {
+                            trace(
+                                message = "Chat SendMessage Server returned empty message. This is unexpected.",
+                                type = TraceType.Error
+                            )
+                            return
+                        }
+
+                        val result = when (requestResult) {
+                            SendMessageResponse.Result.OK -> {
+                                trace("Chat message sent =: ${value.message.messageId.value.toList().description}")
+                                val message = messageMapper.map(chat to value.message)
+                                Result.success(message)
+                            }
+
+                            SendMessageResponse.Result.DENIED -> {
+                                val error = Throwable("Error: Send Message: Denied")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            SendMessageResponse.Result.CHAT_NOT_FOUND -> {
+                                val error = Throwable("Error: Send Message: chat not found $chatId")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            SendMessageResponse.Result.INVALID_CHAT_TYPE -> {
+                                val error = Throwable("Error: Send Message: invalid chat type")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            SendMessageResponse.Result.INVALID_CONTENT_TYPE -> {
+                                val error = Throwable("Error: Send Message: invalid content type")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            SendMessageResponse.Result.UNRECOGNIZED -> {
+                                val error = Throwable("Error: Send Message: Unrecognized request.")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+                            else -> {
+                                val error = Throwable("Error: Unknown")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+                        }
+
+                        cont.resume(result)
+                    }
+
+                    override fun onError(t: Throwable?) {
+                        val error = t ?: Throwable("Error: Hit a snag")
+                        ErrorUtils.handleError(error)
+                        cont.resume(Result.failure(error))
+                    }
+
+                    override fun onCompleted() {
+
+                    }
+
+                }
+            )
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            cont.resume(Result.failure(e))
         }
     }
 }

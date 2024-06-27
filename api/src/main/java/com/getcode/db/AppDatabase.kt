@@ -36,16 +36,17 @@ import java.io.File
         ExchangeRate::class,
         Conversation::class,
         ConversationMessage::class,
-        ConversationMessageRemoteKey::class,
         ConversationIntentIdReference::class,
+        ConversationMessageContent::class,
     ],
     autoMigrations = [
         AutoMigration(from = 7, to = 8, spec = AppDatabase.Migration7To8::class),
         AutoMigration(from = 8, to = 9, spec = AppDatabase.Migration8To9::class),
         AutoMigration(from = 10, to = 11, spec = AppDatabase.Migration10To11::class),
         AutoMigration(from = 11, to = 12, spec = AppDatabase.Migration11To12::class),
+        AutoMigration(from = 12, to = 13, spec = AppDatabase.Migration12To13::class),
     ],
-    version = 12
+    version = 13
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -58,7 +59,6 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun conversationDao(): ConversationDao
     abstract fun conversationMessageDao(): ConversationMessageDao
-    abstract fun conversationMessageRemoteKeyDao(): ConversationMessageRemoteKeyDao
     abstract fun conversationIntentMappingDao(): ConversationIntentMappingDao
 
     @DeleteTable(tableName = "HistoricalTransaction")
@@ -95,6 +95,19 @@ abstract class AppDatabase : RoomDatabase() {
         )
     )
     class Migration11To12 : Migration(11, 12), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE messages")
+        }
+    }
+
+    @DeleteColumn.Entries(
+        DeleteColumn(
+            tableName = "messages",
+            columnName = "content"
+        )
+    )
+    @DeleteTable("messages_remote_keys")
+    class Migration12To13 : Migration(12, 13), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DROP TABLE messages")
         }

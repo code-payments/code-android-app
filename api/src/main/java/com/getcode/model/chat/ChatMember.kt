@@ -2,6 +2,7 @@ package com.getcode.model.chat
 
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.ID
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -37,14 +38,16 @@ data class ChatMember(
  * @param platform The external social platform linked to this chat member
  * @param username The chat member's username on the external social platform
  */
+@Serializable
 data class Identity(
     val platform: Platform,
     val username: String,
 ) {
     companion object {
-        operator fun invoke(proto: ChatService.ChatMemberIdentity): Identity {
+        operator fun invoke(proto: ChatService.ChatMemberIdentity): Identity? {
+            val platform = Platform(proto.platform).takeIf { it != Platform.Unknown } ?: return null
             return Identity(
-                platform = Platform(proto.platform),
+                platform = platform,
                 username = proto.username
             )
         }
