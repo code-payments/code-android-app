@@ -131,6 +131,7 @@ class ConversationStreamController @Inject constructor(
                 val updates = result.getOrNull() ?: return@result
                 val (messages, pointers) = updates
 
+                historyController.updateChatWithMessages(chat, messages)
                 val messagesWithContent = messages.map {
                     messageWithContentMapper.map(chat.id to it)
                 }
