@@ -83,20 +83,24 @@ class HistoryController @Inject constructor(
             chat = _chats.value?.find { it.id == chatId },
             onMessagesFetched = { messages ->
                 val chat = _chats.value?.find { it.id == chatId } ?: return@ChatMessagePagingSource
-                val updatedMessages = (chat.messages + messages).distinctBy { it.id }
-                val updatedChat = chat.copy(messages = updatedMessages)
-                val chats = _chats.value?.map {
-                    if (it.id == updatedChat.id) {
-                        updatedChat
-                    } else {
-                        it
-                    }
-                }
-                _chats.update { chats }
+                updateChatWithMessages(chat, messages)
             }
         ).also {
             pagerMap[chatId] = it
         }
+    }
+
+    fun updateChatWithMessages(chat: Chat, messages: List<ChatMessage>) {
+        val updatedMessages = (chat.messages + messages).distinctBy { it.id }
+        val updatedChat = chat.copy(messages = updatedMessages)
+        val chats = _chats.value?.map {
+            if (it.id == updatedChat.id) {
+                updatedChat
+            } else {
+                it
+            }
+        }
+        _chats.update { chats }
     }
 
     fun chatFlow(chatId: ID) =
