@@ -2,6 +2,7 @@ package com.getcode.model.chat
 
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import java.util.UUID
 
 /**
  * Chat domain model for On-Chain messaging. This serves as a reference to a collection of messages.
@@ -114,3 +115,12 @@ data class Chat(
 
 val Chat.isV2: Boolean
     get() = members.isNotEmpty()
+
+val Chat.isConversation: Boolean
+    get() = type == ChatType.TwoWay
+
+val Chat.self: ChatMember?
+    get() = members.firstOrNull { it.isSelf }
+
+val Chat.selfId: UUID?
+    get() = self?.id

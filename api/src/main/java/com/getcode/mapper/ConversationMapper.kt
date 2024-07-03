@@ -1,13 +1,7 @@
 package com.getcode.mapper
 
 import com.getcode.model.Conversation
-import com.getcode.model.KinAmount
-import com.getcode.model.Rate
 import com.getcode.model.chat.Chat
-import com.getcode.model.chat.ChatMessage
-import com.getcode.model.chat.MessageContent
-import com.getcode.model.orOneToOne
-import com.getcode.network.exchange.Exchange
 import com.getcode.network.localized
 import com.getcode.network.repository.base58
 import com.getcode.util.resources.ResourceHelper

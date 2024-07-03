@@ -21,12 +21,12 @@ class ChatMessageV1Mapper @Inject constructor(
 
         return ChatMessage(
             id = messageId,
-            senderId = emptyList(),
+            senderId = null,
             isFromSelf = isFromSelf,
             cursor = message.cursor.value.toList(),
             dateMillis = message.ts.seconds  * 1_000L,
             contents = contents,
-            status = if (isFromSelf) MessageStatus.Sent else MessageStatus.Incoming
+//            status = if (isFromSelf) MessageStatus.Sent else MessageStatus.Incoming
         )
     }
 }

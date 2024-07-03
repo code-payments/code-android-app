@@ -6,6 +6,7 @@ import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.getcode.model.chat.Chat
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
@@ -171,7 +172,8 @@ class ChatViewModel @Inject constructor(
                     chatMessageId = message.id,
                     message = content,
                     date = message.dateMillis.toInstantFromMillis(),
-                    status = message.status
+                    status = if (message.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
+                    isFromSelf = message.isFromSelf
                 )
             }
         }

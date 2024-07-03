@@ -10,6 +10,8 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.utils.serializer.MessageContentSerializer
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import java.util.UUID
 
 @Serializable
 @Entity(tableName = "conversations")
@@ -39,6 +41,40 @@ data class Conversation(
 }
 
 @Serializable
+@Entity(tableName = "conversation_pointers", primaryKeys = ["conversationIdBase58", "status"])
+data class ConversationPointerCrossRef(
+    val conversationIdBase58: String,
+    val messageIdString: String,
+    val status: MessageStatus,
+) {
+    @Ignore
+    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+
+    @Ignore
+    @Transient
+    val messageId: UUID = UUID.fromString(messageIdString)
+}
+
+@Serializable
+data class ConversationWithLastPointers(
+    @Embedded val conversation: Conversation,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "conversationIdBase58",
+        entity = ConversationPointerCrossRef::class,
+    )
+    val pointersCrossRef: List<ConversationPointerCrossRef>
+) {
+    val pointers: Map<UUID, MessageStatus>
+        get() {
+            return pointersCrossRef
+                .associateBy { it.status }
+                .mapKeys { it.value.messageId }
+                .mapValues { it.value.status }
+        }
+}
+
+@Serializable
 @Entity(tableName = "messages")
 data class ConversationMessage(
     @PrimaryKey
@@ -46,13 +82,13 @@ data class ConversationMessage(
     val cursorBase58: String,
     val conversationIdBase58: String,
     val dateMillis: Long,
-    @ColumnInfo(defaultValue = "Unknown")
-    val status: MessageStatus,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
+
     @Ignore
     val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+
     @Ignore
     val cursor: Cursor = Base58.decode(cursorBase58).toList()
 }
@@ -72,7 +108,7 @@ data class ConversationMessageWithContent(
         entity = ConversationMessageContent::class,
         projection = ["content"]
     )
-    val contents: List<MessageContent>
+    val contents: List<MessageContent>,
 )
 
 @Entity(tableName = "conversation_intent_id_mapping")
@@ -83,19 +119,20 @@ data class ConversationIntentIdReference(
 ) {
     @Ignore
     val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+
     @Ignore
     val intentId: ID = Base58.decode(intentIdBase58).toList()
 }
 
 enum class MessageStatus {
-    Incoming, Sent, Delivered, Read, Unknown;
+    Sent, Delivered, Read, Unknown;
 
     fun isOutgoing() = when (this) {
-        Incoming -> false
         Sent,
-        Delivered,
-        Read -> true
-        Unknown -> false
+        Delivered -> true
+
+        else -> false
     }
+
     fun isValid() = this != Unknown
 }

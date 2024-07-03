@@ -8,7 +8,7 @@ typealias ID = List<Byte>
 
 val ID.uuid: UUID?
     get() {
-        if (count() != 16) return null
+        if (size != 16) return null
 
         val byteBuffer = ByteBuffer.wrap(this.toByteArray())
         val high = byteBuffer.getLong()

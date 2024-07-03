@@ -82,7 +82,7 @@ class ChatApiV1 @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    fun advancePointer(owner: KeyPair, chatId: ID, to: ID): Flow<AdvancePointerResponse> {
+    fun advancePointer(owner: KeyPair, chatId: ID, to: ID, kind: ChatService.Pointer.Kind): Flow<AdvancePointerResponse> {
         val request = AdvancePointerRequest.newBuilder()
             .setChatId(
                 ChatId.newBuilder()
@@ -90,7 +90,7 @@ class ChatApiV1 @Inject constructor(
                     .build()
             ).setPointer(
                 Pointer.newBuilder()
-                    .setKind(ChatService.Pointer.Kind.READ)
+                    .setKind(kind)
                     .setValue(
                         ChatService.ChatMessageId.newBuilder()
                             .setValue(to.toByteArray().toByteString())

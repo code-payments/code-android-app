@@ -1,11 +1,9 @@
 package com.getcode.mapper
 
 
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.chat.Pointer
 import com.getcode.model.uuid
 import javax.inject.Inject
 import com.codeinc.gen.chat.v2.ChatService.ChatMessage as ApiChatMessage
@@ -18,11 +16,9 @@ class ChatMessageV2Mapper @Inject constructor(
         val (chat, message) = from
 
         val messageId = message.messageId.value.toByteArray().toList()
-        val messageSenderId = message.senderId.value.toByteArray().toList()
+        val messageSenderId = message.senderId.value.toByteArray().toList().uuid
         val selfMember = chat.members.firstOrNull { it.isSelf }
-        val isFromSelf = selfMember?.id == messageSenderId.uuid
-        val pointers = chat.members.firstOrNull { it.id == messageSenderId.uuid }?.pointers
-        val messagePointer = pointers?.find { it.id == messageId }
+        val isFromSelf = selfMember?.id == messageSenderId
 
         return ChatMessage(
             id = messageId,
@@ -31,19 +27,6 @@ class ChatMessageV2Mapper @Inject constructor(
             cursor = message.cursor.value.toList(),
             dateMillis = message.ts.seconds  * 1_000L,
             contents = message.contentList.mapNotNull { MessageContent(it, isFromSelf) },
-            status = when (messagePointer) {
-                is Pointer.Delivered -> MessageStatus.Delivered
-                is Pointer.Read -> MessageStatus.Read
-                is Pointer.Sent -> MessageStatus.Sent
-                // SENT pointers should be inferred by persistence on server.
-                else -> {
-                    if (isFromSelf) {
-                        MessageStatus.Sent
-                    } else {
-                        MessageStatus.Unknown
-                    }
-                }
-            }
         )
     }
 }

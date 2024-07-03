@@ -6,6 +6,7 @@ import com.getcode.mapper.ChatMessageV1Mapper
 import com.getcode.mapper.ChatMetadataV1Mapper
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.description
@@ -165,19 +166,16 @@ class ChatServiceV1 @Inject constructor(
                         ChatService.GetMessagesResponse.Result.NOT_FOUND -> {
                             val error =
                                 Throwable("Error: messages not found for chat ${chat.id.description}")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         ChatService.GetMessagesResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         else -> {
                             val error = Throwable("Error: Unknown")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
                     }
@@ -192,9 +190,15 @@ class ChatServiceV1 @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         to: ID,
+        status: MessageStatus,
     ): Result<Unit> {
+
+        val kind = when (status) {
+            MessageStatus.Read -> ChatService.Pointer.Kind.READ
+            else -> return Result.failure(Throwable("V1 Chat Service only supported READ"))
+        }
         return try {
-            networkOracle.managedRequest(api.advancePointer(owner, chatId, to))
+            networkOracle.managedRequest(api.advancePointer(owner, chatId, to, kind))
                 .map { response ->
                     when (response.result) {
                         ChatService.AdvancePointerResponse.Result.OK -> {

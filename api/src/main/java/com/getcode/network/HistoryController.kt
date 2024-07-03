@@ -10,12 +10,16 @@ import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.mapper.ConversationMapper
+import com.getcode.mapper.ConversationMessageMapper
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Title
+import com.getcode.model.chat.isConversation
+import com.getcode.model.chat.selfId
 import com.getcode.model.description
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
@@ -45,12 +49,13 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-
+// TODO: See if we can merge this into [ChatController]
 @Singleton
 class HistoryController @Inject constructor(
     private val client: Client,
     private val resources: ResourceHelper,
     private val conversationMapper: ConversationMapper,
+    private val conversationMessageMapper: ConversationMessageMapper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val _chats = MutableStateFlow<List<Chat>?>(null)
@@ -65,7 +70,7 @@ class HistoryController @Inject constructor(
     private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
 
     private val pagingConfig = PagingConfig(pageSize = 20)
-    
+
     fun reset() {
         pagerMap.clear()
         chatFlows.clear()
@@ -107,16 +112,21 @@ class HistoryController @Inject constructor(
 
     private fun owner(): KeyPair? = SessionManager.getKeyPair()
 
-    suspend fun fetchChats() {
-        pagerMap.clear()
-        chatFlows.clear()
+    suspend fun fetchChats(update: Boolean = false) {
+        if (loadingMessages) return
 
+        val updatedWithMessages = mutableListOf<Chat>()
         val containers = fetchChatsWithoutMessages()
         trace(message = "Fetched ${containers.count()} chats", type = TraceType.Silent)
-        _chats.value = containers
 
-        loadingMessages = true
-        val updatedWithMessages = mutableListOf<Chat>()
+        if (!update) {
+            pagerMap.clear()
+            chatFlows.clear()
+            _chats.value = containers
+
+            loadingMessages = true
+        }
+
         containers.onEach { chat ->
             val result = fetchLatestMessageForChat(chat)
             result.onSuccess { message ->
@@ -143,10 +153,30 @@ class HistoryController @Inject constructor(
                         val chat = this[index]
                         val newestMessage = chat.newestMessage
                         if (newestMessage != null) {
-                            client.advancePointer(owner, chat, newestMessage.id)
-                                .onSuccess {
+                            client.advancePointer(
+                                owner = owner,
+                                chat = chat,
+                                to = newestMessage.id,
+                                status = MessageStatus.Read
+                            ).onSuccess {
                                     this[index] = chat.resetUnreadCount()
                                 }
+                        }
+                    }
+            }?.toList()
+        }
+    }
+
+    fun advanceReadPointerUpTo(chatId: ID, timestamp: Long) {
+        _chats.update {
+            it?.toMutableList()?.apply chats@{
+                indexOfFirst { chat -> chat.id == chatId }
+                    .takeIf { index -> index >= 0 }
+                    ?.let { index ->
+                        val chat = this[index]
+                        val newestMessage = chat.newestMessage
+                        if (newestMessage != null) {
+                            this[index] = chat.resetUnreadCount()
                         }
                     }
             }?.toList()
@@ -194,6 +224,16 @@ class HistoryController @Inject constructor(
         Timber.d("fetching last message for $encodedId")
         val owner = owner() ?: return Result.success(null)
         return client.fetchMessagesFor(owner, chat, limit = 1)
+            .onSuccess { result ->
+                if (chat.isConversation) {
+                    val messages =
+                        result.map { message -> conversationMessageMapper.map(chat.id to message) }
+                    val memberId = chat.selfId ?: return@onSuccess
+                    val latestRef = messages.maxBy { it.dateMillis }
+                    client.advancePointer(owner, chat, latestRef.id, memberId, MessageStatus.Delivered)
+                }
+
+            }
             .onFailure {
                 Timber.e(t = it, "Failed to fetch messages for $encodedId.")
             }.map { it.getOrNull(0) }
@@ -202,15 +242,21 @@ class HistoryController @Inject constructor(
     private suspend fun fetchChatsWithoutMessages(): List<Chat> {
         val owner = owner() ?: return emptyList()
         val result = client.fetchChats(owner)
-            .onSuccess { chats ->
-                chats.filter { it.type == ChatType.TwoWay }
+            .onSuccess { result ->
+                result.filter { it.isConversation }
+                    .let { chats ->
+                        val chatIds = chats.map { it.id }
+                        db.conversationDao().purgeConversationsNotIn(chatIds)
+                        db.conversationMessageDao().purgeMessagesNotIn(chatIds)
+                        db.conversationPointersDao().purgePointersNoLongerNeeded(chatIds)
+                        db.conversationIntentMappingDao().purgeMappingNoLongerNeeded(chatIds)
+                        chats
+                    }
                     .onEach {
                         if (db.conversationDao().findConversation(it.id) == null) {
                             trace("adding conversation for chat ${it.id.description}")
                             val conversation = conversationMapper.map(it)
                             db.conversationDao().upsertConversations(conversation)
-                        } else {
-                            trace("conversation exists for chat ${it.id.description}")
                         }
                     }
             }

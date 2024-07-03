@@ -11,17 +11,19 @@ import com.getcode.mapper.ConversationMessageWithContentMapper
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationIntentIdReference
 import com.getcode.model.ConversationMessageWithContent
+import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID
-import com.getcode.model.chat.ChatMessage
+import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatType
-import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.OutgoingMessageContent
-import com.getcode.model.chat.Reference
-import com.getcode.model.description
+import com.getcode.model.chat.selfId
+import com.getcode.model.uuid
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -29,14 +31,15 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 interface ConversationController {
-    fun observeConversation(id: ID): Flow<Conversation?>
+    fun observeConversation(id: ID): Flow<ConversationWithLastPointers?>
     suspend fun createConversation(identifier: ID, type: ChatType): Conversation
-    suspend fun getConversation(identifier: ID): Conversation?
-    suspend fun getOrCreateConversation(identifier: ID, type: ChatType): Conversation?
+    suspend fun getConversation(identifier: ID): ConversationWithLastPointers?
+    suspend fun getOrCreateConversation(identifier: ID, type: ChatType): ConversationWithLastPointers
     fun openChatStream(scope: CoroutineScope, conversation: Conversation)
     fun closeChatStream()
     suspend fun hasInteracted(messageId: ID): Boolean
     suspend fun revealIdentity(messageId: ID)
+    suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus)
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID>
     fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessageWithContent>>
 }
@@ -57,7 +60,7 @@ class ConversationStreamController @Inject constructor(
     private fun conversationPagingSource(conversationId: ID) =
         db.conversationMessageDao().observeConversationMessages(conversationId.base58)
 
-    override fun observeConversation(id: ID): Flow<Conversation?> {
+    override fun observeConversation(id: ID): Flow<ConversationWithLastPointers?> {
         return db.conversationDao().observeConversation(id)
     }
 
@@ -83,11 +86,12 @@ class ConversationStreamController @Inject constructor(
             .getOrThrow()
     }
 
-    override suspend fun getConversation(identifier: ID): Conversation? {
-        return db.conversationDao().findConversation(identifier)
+    override suspend fun getConversation(identifier: ID): ConversationWithLastPointers? {
+        val conversation = db.conversationDao().findConversation(identifier) ?: return null
+        return conversation
     }
 
-    override suspend fun getOrCreateConversation(identifier: ID, type: ChatType): Conversation? {
+    override suspend fun getOrCreateConversation(identifier: ID, type: ChatType): ConversationWithLastPointers {
         var conversationByChatId = getConversation(identifier)
         if (conversationByChatId != null) {
             return conversationByChatId
@@ -99,7 +103,11 @@ class ConversationStreamController @Inject constructor(
             conversationByChatId = getConversation(identifier)
         }
 
-        return conversationByChatId ?: createConversation(identifier, type)
+        if (conversationByChatId != null) {
+            return conversationByChatId
+        }
+
+        return ConversationWithLastPointers(createConversation(identifier, type), emptyList())
     }
 
     @Throws(IllegalStateException::class)
@@ -110,8 +118,7 @@ class ConversationStreamController @Inject constructor(
             it.id == conversation.id
         } ?: throw IllegalArgumentException("Unable to resolve chat for this conversation")
 
-        val memberId = chat.members.filter { it.isSelf }
-            .map { it.id }.firstOrNull() ?: throw IllegalStateException("Not a member of this chat")
+        val memberId = chat.selfId ?: throw IllegalStateException("Not a member of this chat")
 
         stream = chatService.openChatStream(
             scope = scope,
@@ -119,17 +126,35 @@ class ConversationStreamController @Inject constructor(
             memberId = memberId,
             owner = owner,
             chatLookup = { chat }
-        ) { result ->
+        ) result@{ result ->
             if (result.isSuccess) {
-                println("chat messages: ${result.getOrNull()}")
-                val messages = result.getOrNull().orEmpty().map {
+                val updates = result.getOrNull() ?: return@result
+                val (messages, pointers) = updates
+
+                val messagesWithContent = messages.map {
                     messageWithContentMapper.map(chat.id to it)
                 }
+
+                println("chat messages: ${messages.count()}, pointers=${pointers.count()}")
+
                 scope.launch(Dispatchers.IO) {
-                    db.conversationMessageDao().upsertMessagesWithContent(messages)
+                    db.conversationMessageDao().upsertMessagesWithContent(messagesWithContent)
+                    pointers
+                        // we only care about pointers of others
+                        .filter { it.memberId != chat.selfId }
+                        .onEach {
+                        println("inserting $it")
+                        db.conversationPointersDao().insert(
+                            conversationId = conversation.id,
+                            messageId = it.messageId,
+                            status = it.messageStatus
+                        )
+                    }
                 }
             } else {
-                println("Error: ${result.exceptionOrNull()?.message}")
+                result.exceptionOrNull()?.let {
+                    ErrorUtils.handleError(it)
+                }
             }
         }
     }
@@ -146,6 +171,21 @@ class ConversationStreamController @Inject constructor(
     override suspend fun revealIdentity(messageId: ID) {
     }
 
+    override suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus) {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return
+
+        val chat = historyController.chats.value?.firstOrNull {
+            it.id == conversationId
+        } ?: return
+
+        val memberId = chat.selfId ?: return
+
+        chatService.advancePointer(owner, conversationId, memberId, messageId, status)
+            .onSuccess {
+
+            }.onFailure { it.printStackTrace() }
+    }
+
     override suspend fun sendMessage(conversationId: ID, message: String): Result<ID> {
         val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return Result.failure(Throwable("Owner not found"))
 
@@ -153,8 +193,7 @@ class ConversationStreamController @Inject constructor(
             it.id == conversationId
         } ?: return Result.failure(Throwable("Unable to find chat"))
 
-        val memberId = chat.members.filter { it.isSelf }
-            .map { it.id }.firstOrNull() ?: return Result.failure(Throwable("Not a member of this chat"))
+        val memberId = chat.selfId ?: return Result.failure(Throwable("Not a member of this chat"))
 
         return chatService.sendMessage(
             owner = owner,
