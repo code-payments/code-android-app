@@ -105,7 +105,8 @@ internal fun MessagePayment(
             modifier = Modifier
                 .align(Alignment.End),
             date = date,
-            status = status
+            status = status,
+            isFromSelf = contents.isFromSelf,
         )
     }
 }

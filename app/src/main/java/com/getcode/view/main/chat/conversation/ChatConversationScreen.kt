@@ -35,6 +35,7 @@ import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
+import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import kotlinx.coroutines.delay
 
@@ -71,9 +72,16 @@ fun ChatConversationScreen(
                 .padding(padding),
             messages = messages,
             listState = lazyListState,
+            dispatch = { event ->
+                if (event is MessageListEvent.AdvancePointer) {
+                    dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
+                }
+            }
         )
 
-        HandleMessageChanges(listState = lazyListState, items = messages)
+        HandleMessageChanges(listState = lazyListState, items = messages) { message ->
+            dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
+        }
     }
 }
 

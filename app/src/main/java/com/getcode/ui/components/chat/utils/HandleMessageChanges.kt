@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.map
 internal fun HandleMessageChanges(
     listState: LazyListState,
     items: LazyPagingItems<ChatItem>,
+    onIncomingMessageReceivedBelowFold: (ChatItem.Message) -> Unit,
 ) {
     var lastMessageSent by rememberSaveable {
         mutableLongStateOf(0L)
@@ -40,21 +41,18 @@ internal fun HandleMessageChanges(
             .filterNotNull()
             .filterIsInstance<ChatItem.Message>()
             .distinctUntilChangedBy { it.date }
-            .filter { it.message is MessageContent.Localized || it.message is MessageContent.Exchange }
             .collect { newMessage ->
-                val date = newMessage.date
-                val isTextMessage = newMessage.message is MessageContent.Localized
-                val isExchangeMessage = newMessage.message is MessageContent.Exchange
-
-                if (newMessage.status.isOutgoing() && newMessage.date.toEpochMilliseconds() > lastMessageSent) {
-                    listState.handleAndReplayAfter(300) {
-                        scrollToItem(0)
-                        lastMessageSent = newMessage.date.toEpochMilliseconds()
+                if (newMessage.status.isOutgoing()) {
+                    if (newMessage.date.toEpochMilliseconds() > lastMessageSent) {
+                        listState.handleAndReplayAfter(300) {
+                            scrollToItem(0)
+                            lastMessageSent = newMessage.date.toEpochMilliseconds()
+                        }
                     }
                 } else {
                     listState.handleAndReplayAfter(300) {
                         if (listState.isScrolledToTheBeginning() && newMessage.date.toEpochMilliseconds() > lastMessageReceived) {
-                            // Android 10 (specifically the S1?) we have to utilize a mimic for IME nested scrolling
+                            // Android 10 we have to utilize a mimic for IME nested scrolling
                             // using the [LazyListState#isScrollInProgress] which animateScrollToItem triggers
                             // thus causing the IME to be dismissed when we trigger the sync.
                             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
@@ -62,6 +60,8 @@ internal fun HandleMessageChanges(
                             } else {
                                 listState.animateScrollToItem(0)
                             }
+                        } else {
+                            onIncomingMessageReceivedBelowFold(newMessage)
                         }
                         lastMessageReceived = newMessage.date.toEpochMilliseconds()
                     }

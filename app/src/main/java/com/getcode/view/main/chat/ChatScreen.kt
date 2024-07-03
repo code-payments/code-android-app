@@ -43,6 +43,7 @@ fun ChatScreen(
             dispatch = {
                 when (it) {
                     is MessageListEvent.OpenMessageChat -> dispatch(ChatViewModel.Event.OpenMessageChat(it.reference))
+                    is MessageListEvent.AdvancePointer -> Unit // handled on conversation open
                 }
             }
         )

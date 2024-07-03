@@ -2,6 +2,7 @@ package com.getcode.network.api
 
 import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.chat.v2.ChatService.Content
+import com.codeinc.gen.chat.v2.ChatService.PointerType
 import com.codeinc.gen.chat.v2.ChatService.SendMessageRequest
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.common.v1.Model
@@ -115,7 +116,7 @@ class ChatApiV2 @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    fun advancePointer(owner: KeyPair, chatId: ID, to: ID): Flow<AdvancePointerResponse> {
+    fun advancePointer(owner: KeyPair, chatId: ID, memberId: UUID, to: ID, type: PointerType): Flow<AdvancePointerResponse> {
         val request = AdvancePointerRequest.newBuilder()
             .setChatId(
                 ChatId.newBuilder()
@@ -123,7 +124,9 @@ class ChatApiV2 @Inject constructor(
                     .build()
             ).setPointer(
                 Pointer.newBuilder()
-                    .setType(ChatService.PointerType.READ)
+                    .setType(type)
+                    .setMemberId(ChatService.ChatMemberId.newBuilder()
+                        .setValue(memberId.bytes.toByteString()))
                     .setValue(
                         ChatService.ChatMessageId.newBuilder()
                             .setValue(to.toByteArray().toByteString())

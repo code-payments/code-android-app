@@ -129,6 +129,12 @@ data object BalanceModal : ChatGraph, ModalRoot {
         }
 
         LifecycleEffect(
+            onStarted = {
+                val disposedScreen = navigator.lastItem
+                if (disposedScreen !is BalanceModal) {
+                    viewModel.dispatchEvent(BalanceSheetViewModel.Event.OnOpened)
+                }
+            },
             onDisposed = {
                 val disposedScreen = navigator.lastItem
                 if (disposedScreen !is BalanceModal) {

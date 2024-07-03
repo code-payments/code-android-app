@@ -19,6 +19,7 @@ sealed class ChatItem(open val key: Any) {
         val message: MessageContent,
         val date: Instant,
         val status: MessageStatus,
+        val isFromSelf: Boolean,
         override val key: Any = id
     ) : ChatItem(key)
 

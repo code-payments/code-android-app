@@ -4,11 +4,13 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
+import java.util.UUID
 
 /**
  * A message in a chat
  *
  * @param id Globally unique ID for this message
+ * This is a time based UUID in v2
  * @param senderId The chat member that sent the message.
  * For [ChatType.Notification] chats, this field is omitted since the chat has exactly 1 member.
  * @param cursor Cursor value for this message for reference in a paged GetMessagesRequest
@@ -17,13 +19,13 @@ import com.getcode.model.MessageStatus
  * @param status Derived [MessageStatus] from [Pointer]'s in [ChatMember].
  */
 data class ChatMessage(
-    val id: ID,
-    val senderId: ID?,
+    val id: ID, // time based UUID in v2
+    val senderId: UUID?,
     val isFromSelf: Boolean,
     val cursor: Cursor,
     val dateMillis: Long,
     val contents: List<MessageContent>,
-    val status: MessageStatus,
+//    val status: MessageStatus,
 ) {
     val hasEncryptedContent: Boolean
         get() {
@@ -34,7 +36,7 @@ data class ChatMessage(
         return ChatMessage(
             id = id,
             senderId = senderId,
-            status = status,
+//            status = status,
             isFromSelf = isFromSelf,
             dateMillis = dateMillis,
             cursor = cursor,

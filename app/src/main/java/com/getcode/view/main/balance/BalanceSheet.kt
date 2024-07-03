@@ -43,6 +43,7 @@ import com.getcode.model.ID
 import com.getcode.model.Rate
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.isConversation
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.ChatMessageConversationScreen
@@ -93,7 +94,7 @@ fun BalanceScreen(
                 dispatch = dispatch,
                 faqOpen = { navigator.push(FaqScreen) },
                 openChat = {
-                    if (it.type == ChatType.TwoWay) {
+                    if (it.isConversation) {
                         navigator.push(ChatMessageConversationScreen(chatId = it.id))
                     } else {
                         navigator.push(ChatScreen(it.id))

@@ -35,6 +35,7 @@ import java.io.File
         GiftCard::class,
         ExchangeRate::class,
         Conversation::class,
+        ConversationPointerCrossRef::class,
         ConversationMessage::class,
         ConversationIntentIdReference::class,
         ConversationMessageContent::class,
@@ -45,8 +46,9 @@ import java.io.File
         AutoMigration(from = 10, to = 11, spec = AppDatabase.Migration10To11::class),
         AutoMigration(from = 11, to = 12, spec = AppDatabase.Migration11To12::class),
         AutoMigration(from = 12, to = 13, spec = AppDatabase.Migration12To13::class),
+        AutoMigration(from = 13, to = 14, spec = AppDatabase.Migration13To14::class),
     ],
-    version = 13
+    version = 14
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -58,6 +60,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun exchangeDao(): ExchangeDao
 
     abstract fun conversationDao(): ConversationDao
+    abstract fun conversationPointersDao(): ConversationPointerDao
     abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun conversationIntentMappingDao(): ConversationIntentMappingDao
 
@@ -112,6 +115,14 @@ abstract class AppDatabase : RoomDatabase() {
             db.execSQL("DROP TABLE messages")
         }
     }
+
+    @DeleteColumn.Entries(
+        DeleteColumn(
+            tableName = "messages",
+            columnName = "status"
+        )
+    )
+    class Migration13To14: AutoMigrationSpec
 }
 
 object Database {
@@ -133,7 +144,7 @@ object Database {
 
         instance =
             Room.databaseBuilder(context, AppDatabase::class.java, dbName)
-                .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
+//                .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                 .fallbackToDestructiveMigration()
                 .build()
 

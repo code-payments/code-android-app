@@ -18,6 +18,7 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -66,6 +67,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         data class OnChatsLoading(val loading: Boolean) : Event
         data class OnChatsUpdated(val chats: List<Chat>) : Event
+        data object OnOpened: Event
     }
 
     init {
@@ -119,6 +121,11 @@ class BalanceSheetViewModel @Inject constructor(
             }.onEach {
                 dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnOpened>()
+            .onEach { historyController.fetchChats(true) }
+            .launchIn(viewModelScope)
     }
 
     companion object {
@@ -162,6 +169,8 @@ class BalanceSheetViewModel @Inject constructor(
                 is Event.OnChatsUpdated -> { state ->
                     state.copy(chats = event.chats)
                 }
+
+                Event.OnOpened -> { state -> state }
             }
         }
     }

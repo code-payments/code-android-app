@@ -9,8 +9,9 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
-import com.getcode.model.chat.Title
 import com.getcode.model.chat.isV2
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
@@ -112,11 +113,14 @@ suspend fun Client.advancePointer(
     owner: KeyPair,
     chat: Chat,
     to: ID,
+    memberId: UUID? = null,
+    status: MessageStatus = MessageStatus.Read,
 ): Result<Unit> {
     return if (chat.isV2) {
-        chatServiceV2.advancePointer(owner, chat.id, to)
+        memberId ?: return Result.failure(Throwable("member ID was not provided"))
+        chatServiceV2.advancePointer(owner, chat.id, memberId, to, status)
     } else {
-        chatServiceV1.advancePointer(owner, chat.id, to)
+        chatServiceV1.advancePointer(owner, chat.id, to, status)
     }
 }
 
@@ -134,7 +138,7 @@ fun Client.openChatStream(
     memberId: UUID,
     owner: KeyPair,
     chatLookup: (Conversation) -> Chat,
-    completion: (Result<List<ChatMessage>>) -> Unit
+    onEvent: (Result<ChatStreamEventUpdate>) -> Unit
 ): ChatMessageStreamReference {
     return chatServiceV2.openChatStream(
         scope = scope,
@@ -142,6 +146,6 @@ fun Client.openChatStream(
         memberId = memberId,
         owner = owner,
         chatLookup = chatLookup,
-        completion = completion
+        onEvent = onEvent
     )
 }

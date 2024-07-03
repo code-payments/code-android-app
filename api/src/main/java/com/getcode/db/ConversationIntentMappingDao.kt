@@ -20,6 +20,13 @@ interface ConversationIntentMappingDao {
         return conversationIdByReference(id.base58)
     }
 
+    @Query("DELETE FROM conversation_intent_id_mapping WHERE conversationIdBase58 NOT IN (:chatIds)")
+    suspend fun purgeMappingNoLongerNeededByString(chatIds: List<String>)
+
+    suspend fun purgeMappingNoLongerNeeded(chatIds: List<ID>) {
+        purgeMappingNoLongerNeededByString(chatIds.map { it.base58 })
+    }
+
     @Query("DELETE FROM conversation_intent_id_mapping")
     suspend fun clearMapping()
 }

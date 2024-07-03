@@ -3,6 +3,7 @@ package com.getcode.network.service
 import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.chat.v2.ChatService.ChatMemberId
 import com.codeinc.gen.chat.v2.ChatService.OpenChatEventStream
+import com.codeinc.gen.chat.v2.ChatService.PointerType
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsRequest
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsResponse
@@ -10,11 +11,14 @@ import com.codeinc.gen.common.v1.Model.ClientPong
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.mapper.ChatMessageV2Mapper
 import com.getcode.mapper.ChatMetadataV2Mapper
+import com.getcode.mapper.PointerMapper
 import com.getcode.model.Conversation
 import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.description
@@ -49,6 +53,7 @@ class ChatServiceV2 @Inject constructor(
     private val api: ChatApiV2,
     private val chatMapper: ChatMetadataV2Mapper,
     private val messageMapper: ChatMessageV2Mapper,
+    private val pointerMapper: PointerMapper,
     private val networkOracle: NetworkOracle,
 ) {
     private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
@@ -202,19 +207,16 @@ class ChatServiceV2 @Inject constructor(
                         ChatService.GetMessagesResponse.Result.MESSAGE_NOT_FOUND -> {
                             val error =
                                 Throwable("Error: messages not found for chat ${chat.id.description}")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         ChatService.GetMessagesResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         else -> {
                             val error = Throwable("Error: Unknown")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
                     }
@@ -228,10 +230,19 @@ class ChatServiceV2 @Inject constructor(
     suspend fun advancePointer(
         owner: KeyPair,
         chatId: ID,
+        memberId: UUID,
         to: ID,
+        status: MessageStatus,
     ): Result<Unit> {
+
+        val type = when (status) {
+            MessageStatus.Sent -> PointerType.SENT
+            MessageStatus.Delivered ->  PointerType.DELIVERED
+            MessageStatus.Read ->  PointerType.READ
+            MessageStatus.Unknown -> return Result.failure(Throwable("Can't update a pointer to Unknown"))
+        }
         return try {
-            networkOracle.managedRequest(api.advancePointer(owner, chatId, to))
+            networkOracle.managedRequest(api.advancePointer(owner, chatId, memberId, to, type))
                 .map { response ->
                     when (response.result) {
                         ChatService.AdvancePointerResponse.Result.OK -> {
@@ -327,7 +338,7 @@ class ChatServiceV2 @Inject constructor(
         memberId: UUID,
         owner: KeyPair,
         chatLookup: (Conversation) -> Chat,
-        completion: (Result<List<ChatMessage>>) -> Unit
+        onEvent: (Result<ChatStreamEventUpdate>) -> Unit
     ): ChatMessageStreamReference {
         trace("Chat ${conversation.id.description} Opening stream.")
         val streamReference = ChatMessageStreamReference(scope)
@@ -340,11 +351,11 @@ class ChatServiceV2 @Inject constructor(
                 owner = owner,
                 reference = streamReference,
                 chatLookup = chatLookup,
-                completion = completion
+                onEvent = onEvent
             )
         }
 
-        openChatStream(conversation, memberId, owner, streamReference, chatLookup, completion)
+        openChatStream(conversation, memberId, owner, streamReference, chatLookup, onEvent)
 
         return streamReference
     }
@@ -355,7 +366,7 @@ class ChatServiceV2 @Inject constructor(
         owner: KeyPair,
         reference: ChatMessageStreamReference,
         chatLookup: (Conversation) -> Chat,
-        completion: (Result<List<ChatMessage>>) -> Unit
+        onEvent: (Result<ChatStreamEventUpdate>) -> Unit
     ) {
         try {
             reference.cancel()
@@ -373,12 +384,17 @@ class ChatServiceV2 @Inject constructor(
 
                         when (result) {
                             StreamChatEventsResponse.TypeCase.EVENTS -> {
+                                val pointerStatuses = value.events.eventsList
+                                    .map { it.pointer }
+                                    .mapNotNull { pointerMapper.map(it) }
+
                                 val messages = value.events.eventsList
                                     .map { it.message }
                                     .map { messageMapper.map(chatLookup(conversation) to it) }
 
-                                trace("Chat ${conversation.id.description} received ${messages.count()} messages.")
-                                completion(Result.success(messages))
+                                trace("Chat ${conversation.id.description} received ${messages.count()} messages and ${pointerStatuses.count()} status updates.")
+                                val update = ChatStreamEventUpdate(messages, pointerStatuses)
+                                onEvent(Result.success(update))
                             }
 
                             StreamChatEventsResponse.TypeCase.PING -> {
@@ -417,7 +433,7 @@ class ChatServiceV2 @Inject constructor(
                                 owner,
                                 reference,
                                 chatLookup,
-                                completion
+                                onEvent
                             )
                         } else {
                             t?.printStackTrace()

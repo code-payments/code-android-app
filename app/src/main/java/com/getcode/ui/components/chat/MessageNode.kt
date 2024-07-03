@@ -44,7 +44,7 @@ class MessageNodeScope(
     private val boxScope: BoxWithConstraintsScope
 ) {
     fun Modifier.sizeableWidth() =
-        this.widthIn(min = boxScope.maxWidth * 0.30f, max = boxScope.maxWidth * 0.85f)
+        this.widthIn(max = boxScope.maxWidth * 0.85f)
 
     val color = if (contents is MessageContent.Exchange && !contents.verb.increasesBalance) {
         ChatOutgoing
