@@ -21,8 +21,8 @@ platform :android do
     gradle(task: "test")
   end
 
-  desc "Build and Deploy a new version to the Google Play"
-  lane :deploy do
+  desc "Build and Deploy a new alpha version to the Google Play"
+  lane :deploy_alpha do
     #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
     gradle(
       task: "clean bundle", #"clean app:bundleRelease",
@@ -41,7 +41,7 @@ platform :android do
     )
 
     upload_to_play_store(
-      track: "internal",
+      track: "alpha",
       aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
       skip_upload_apk: true,
       skip_upload_changelogs: true,
@@ -50,4 +50,34 @@ platform :android do
     #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
     )
   end
+
+  desc "Build and Deploy a new internal version to the Google Play"
+    lane :deploy_internal do
+      #puts "Patch version for this build will be " + ENV["BUILD_NUMBER"]
+      gradle(
+        task: "clean bundle", #"clean app:bundleRelease",
+        build_type: "release",
+        properties: {
+          #"versionPatch" => ENV["BUILD_NUMBER"],
+          "android.injected.signing.store.file" => "key/key",
+          "android.injected.signing.store.password" => ENV["STORE_PASSWORD"],
+          "android.injected.signing.key.alias" => ENV["KEY_ALIAS"],
+          "android.injected.signing.key.password" => ENV["KEY_PASSWORD"]
+        }
+      )
+
+      validate_play_store_json_key(
+        json_key: ENV["SERVICE_ACCOUNT_KEY_JSON"]
+      )
+
+      upload_to_play_store(
+        track: "internal",
+        aab: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+        skip_upload_apk: true,
+        skip_upload_changelogs: true,
+        skip_upload_images: true,
+        mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
+      #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
+      )
+    end
 end
