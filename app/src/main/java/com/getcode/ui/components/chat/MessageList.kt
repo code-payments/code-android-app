@@ -8,20 +8,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Reference
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.formatDateRelatively
 
 sealed interface MessageListEvent {
-    data class ThankUser(val messageId: ID): MessageListEvent
-    data class OpenMessageChat(val messageId: ID): MessageListEvent
+    data class OpenMessageChat(val reference: Reference): MessageListEvent
+    data class AdvancePointer(val messageId: ID): MessageListEvent
 }
 @Composable
 fun MessageList(
@@ -31,6 +37,20 @@ fun MessageList(
     messages: LazyPagingItems<ChatItem>,
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
+
+    LaunchedEffect(messages.itemSnapshotList, listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { index ->
+                val closetChatMessage = messages.itemSnapshotList.toList().getClosestChat(index)
+                if (closetChatMessage != null) {
+                    val (id, isFromSelf, status) = closetChatMessage
+                    if (!isFromSelf) {
+                        dispatch(MessageListEvent.AdvancePointer(id))
+                    }
+                }
+            }
+    }
+
     LazyColumn(
         modifier = modifier,
         state = listState,
@@ -72,11 +92,11 @@ fun MessageList(
                     MessageNode(
                         modifier = Modifier.fillMaxWidth(),
                         contents = item.message,
+                        status = item.status,
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
                         isNextSameMessage = next == item.chatMessageId,
-                        thankUser = { dispatch(MessageListEvent.ThankUser(item.chatMessageId)) },
-                        openMessageChat = { dispatch(MessageListEvent.OpenMessageChat(item.chatMessageId)) }
+                        openMessageChat = { dispatch(MessageListEvent.OpenMessageChat(it)) }
                     )
                 }
 
@@ -99,5 +119,16 @@ fun MessageList(
                 }
             }
         }
+    }
+}
+
+
+private fun List<ChatItem?>.getClosestChat(index: Int): Triple<ID, Boolean, MessageStatus>? {
+    if (index !in indices) return null
+    val item = this[index]
+    return when {
+        item is ChatItem.Message -> Triple(item.chatMessageId, item.isFromSelf, item.status)
+        index > 0 -> getClosestChat(index - 1)
+        else -> null
     }
 }

@@ -5,12 +5,22 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.cachedIn
+import com.getcode.db.AppDatabase
+import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.model.Chat
-import com.getcode.model.ChatMessage
+import com.getcode.mapper.ConversationMapper
+import com.getcode.mapper.ConversationMessageMapper
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.Title
+import com.getcode.model.chat.isConversation
+import com.getcode.model.chat.selfId
+import com.getcode.model.description
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchChats
@@ -19,6 +29,10 @@ import com.getcode.network.client.setMuted
 import com.getcode.network.client.setSubscriptionState
 import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
+import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.resources.ResourceType
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -31,56 +45,62 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// TODO: See if we can merge this into [ChatController]
 @Singleton
 class HistoryController @Inject constructor(
     private val client: Client,
+    private val resources: ResourceHelper,
+    private val conversationMapper: ConversationMapper,
+    private val conversationMessageMapper: ConversationMessageMapper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
-
-    val hasFetchedChats: Boolean
-        get() = _chats.value.orEmpty().isNotEmpty()
 
     private val _chats = MutableStateFlow<List<Chat>?>(null)
     val chats: StateFlow<List<Chat>?>
         get() = _chats.asStateFlow()
 
+    var loadingMessages: Boolean = false
+
+    private val db: AppDatabase by lazy { Database.requireInstance() }
 
     private val pagerMap = mutableMapOf<ID, PagingSource<Cursor, ChatMessage>>()
     private val chatFlows = mutableMapOf<ID, Flow<PagingData<ChatMessage>>>()
 
     private val pagingConfig = PagingConfig(pageSize = 20)
-    
+
     fun reset() {
         pagerMap.clear()
         chatFlows.clear()
     }
 
     private fun chatMessagePager(chatId: ID) = Pager(pagingConfig) {
-        val chat = _chats.value?.find { it.id == chatId }
         pagerMap[chatId] ?: ChatMessagePagingSource(
             client = client,
             owner = owner()!!,
-            chat = chat,
+            chat = _chats.value?.find { it.id == chatId },
             onMessagesFetched = { messages ->
-                chat ?: return@ChatMessagePagingSource
-                val updatedMessages = (chat.messages + messages).distinctBy { it.id }
-                val updatedChat = chat.copy(messages = updatedMessages)
-                _chats.update { chats ->
-                    val index = chats.orEmpty().indexOfFirst { it.id == chat.id }
-                    if (index >= 0) {
-                        chats.orEmpty().toMutableList().apply {
-                            this[index] = updatedChat
-                        }.toList()
-                    } else {
-                        chats
-                    }
-                }
+                val chat = _chats.value?.find { it.id == chatId } ?: return@ChatMessagePagingSource
+                updateChatWithMessages(chat, messages)
             }
         ).also {
             pagerMap[chatId] = it
         }
+    }
+
+    fun updateChatWithMessages(chat: Chat, messages: List<ChatMessage>) {
+        val updatedMessages = (chat.messages + messages).distinctBy { it.id }
+        val updatedChat = chat.copy(messages = updatedMessages)
+        val chats = _chats.value?.map {
+            if (it.id == updatedChat.id) {
+                updatedChat
+            } else {
+                it
+            }
+        }
+        _chats.update { chats }
     }
 
     fun chatFlow(chatId: ID) =
@@ -96,14 +116,21 @@ class HistoryController @Inject constructor(
 
     private fun owner(): KeyPair? = SessionManager.getKeyPair()
 
-    suspend fun fetchChats() {
-        pagerMap.clear()
-        chatFlows.clear()
-
-        val containers = fetchChatsWithoutMessages()
-        _chats.value = containers
+    suspend fun fetchChats(update: Boolean = false) {
+        if (loadingMessages) return
 
         val updatedWithMessages = mutableListOf<Chat>()
+        val containers = fetchChatsWithoutMessages()
+        trace(message = "Fetched ${containers.count()} chats", type = TraceType.Silent)
+
+        if (!update) {
+            pagerMap.clear()
+            chatFlows.clear()
+            _chats.value = containers
+
+            loadingMessages = true
+        }
+
         containers.onEach { chat ->
             val result = fetchLatestMessageForChat(chat)
             result.onSuccess { message ->
@@ -115,6 +142,7 @@ class HistoryController @Inject constructor(
             }
         }
 
+        loadingMessages = false
         _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
     }
 
@@ -129,8 +157,12 @@ class HistoryController @Inject constructor(
                         val chat = this[index]
                         val newestMessage = chat.newestMessage
                         if (newestMessage != null) {
-                            client.advancePointer(owner, chatId, newestMessage.id)
-                                .onSuccess {
+                            client.advancePointer(
+                                owner = owner,
+                                chat = chat,
+                                to = newestMessage.id,
+                                status = MessageStatus.Read
+                            ).onSuccess {
                                     this[index] = chat.resetUnreadCount()
                                 }
                         }
@@ -139,40 +171,56 @@ class HistoryController @Inject constructor(
         }
     }
 
-    suspend fun setMuted(chatId: ID, muted: Boolean): Result<Boolean> {
-        val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
-
+    fun advanceReadPointerUpTo(chatId: ID, timestamp: Long) {
         _chats.update {
             it?.toMutableList()?.apply chats@{
                 indexOfFirst { chat -> chat.id == chatId }
                     .takeIf { index -> index >= 0 }
                     ?.let { index ->
                         val chat = this[index]
-                        Timber.d("changing mute state for chat locally")
-                        this[index] = chat.copy(isMuted = muted)
+                        val newestMessage = chat.newestMessage
+                        if (newestMessage != null) {
+                            this[index] = chat.resetUnreadCount()
+                        }
                     }
             }?.toList()
         }
-
-        return client.setMuted(owner, chatId, muted)
     }
 
-    suspend fun setSubscribed(chatId: ID, subscribed: Boolean): Result<Boolean> {
+    suspend fun setMuted(chat: Chat, muted: Boolean): Result<Boolean> {
         val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
 
         _chats.update {
             it?.toMutableList()?.apply chats@{
-                indexOfFirst { chat -> chat.id == chatId }
+                indexOfFirst { item -> item.id == chat.id }
                     .takeIf { index -> index >= 0 }
                     ?.let { index ->
-                        val chat = this[index]
-                        Timber.d("changing subscribed state for chat locally")
-                        this[index] = chat.copy(isSubscribed = subscribed)
+                        val c = this[index]
+                        Timber.d("changing mute state for chat locally")
+                        this[index] = c.setMuteState(muted)
                     }
             }?.toList()
         }
 
-        return client.setSubscriptionState(owner, chatId, subscribed)
+        return client.setMuted(owner, chat, muted)
+    }
+
+    suspend fun setSubscribed(chat: Chat, subscribed: Boolean): Result<Boolean> {
+        val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
+
+        _chats.update {
+            it?.toMutableList()?.apply chats@{
+                indexOfFirst { item -> item.id == chat.id }
+                    .takeIf { index -> index >= 0 }
+                    ?.let { index ->
+                        val c = this[index]
+                        Timber.d("changing subscribed state for chat locally")
+                        this[index] = c.setSubscriptionState(subscribed)
+                    }
+            }?.toList()
+        }
+
+        return client.setSubscriptionState(owner, chat, subscribed)
     }
 
     private suspend fun fetchLatestMessageForChat(chat: Chat): Result<ChatMessage?> {
@@ -180,6 +228,16 @@ class HistoryController @Inject constructor(
         Timber.d("fetching last message for $encodedId")
         val owner = owner() ?: return Result.success(null)
         return client.fetchMessagesFor(owner, chat, limit = 1)
+            .onSuccess { result ->
+                if (chat.isConversation) {
+                    val messages =
+                        result.map { message -> conversationMessageMapper.map(chat.id to message) }
+                    val memberId = chat.selfId ?: return@onSuccess
+                    val latestRef = messages.maxBy { it.dateMillis }
+                    client.advancePointer(owner, chat, latestRef.id, memberId, MessageStatus.Delivered)
+                }
+
+            }
             .onFailure {
                 Timber.e(t = it, "Failed to fetch messages for $encodedId.")
             }.map { it.getOrNull(0) }
@@ -188,22 +246,43 @@ class HistoryController @Inject constructor(
     private suspend fun fetchChatsWithoutMessages(): List<Chat> {
         val owner = owner() ?: return emptyList()
         val result = client.fetchChats(owner)
-        return if (result.isSuccess) {
-            result.getOrNull().orEmpty()
-        } else {
-            result.exceptionOrNull()?.printStackTrace()
-            emptyList()
-        }
+            .onSuccess { result ->
+                result.filter { it.isConversation }
+                    .let { chats ->
+                        val chatIds = chats.map { it.id }
+                        db.conversationDao().purgeConversationsNotIn(chatIds)
+                        db.conversationMessageDao().purgeMessagesNotIn(chatIds)
+                        db.conversationPointersDao().purgePointersNoLongerNeeded(chatIds)
+                        db.conversationIntentMappingDao().purgeMappingNoLongerNeeded(chatIds)
+                        chats
+                    }
+                    .onEach {
+                        if (db.conversationDao().findConversation(it.id) == null) {
+                            trace("adding conversation for chat ${it.id.description}")
+                            val conversation = conversationMapper.map(it)
+                            db.conversationDao().upsertConversations(conversation)
+                        }
+                    }
+            }
+        return result.getOrNull().orEmpty()
     }
 }
 
-fun List<Chat>.mapInPlace(mutator: (Chat) -> (Chat)): List<Chat> {
-    val updated = toMutableList().apply {
-        this.forEachIndexed { i, value ->
-            val changedValue = mutator(value)
-
-            this[i] = changedValue
+fun Title?.localized(resources: ResourceHelper): String {
+    return when (val t = this) {
+        is Title.Domain -> {
+            t.value.capitalize(Locale.getDefault())
         }
+
+        is Title.Localized -> {
+            val resId = resources.getIdentifier(
+                t.value,
+                ResourceType.String,
+            ).let { if (it == 0) null else it }
+
+            resId?.let { resources.getString(it) } ?: t.value
+        }
+
+        else -> "Anonymous"
     }
-    return updated.toImmutableList()
 }

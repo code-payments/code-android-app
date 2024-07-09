@@ -22,6 +22,7 @@
     <string name="action_thank">🙏 Thank</string>
     <string name="action_thanked">🙏 Thanked</string>
     <string name="action_message">Message</string>
+    <string name="action_messaged">Messaged</string>
 
     <string name="title_chat_announcement_identityRevealed">You revealed your identity to %1$s</string>
     <string name="title_chat_announcement_identityRevealedToYou">%1$s revealed their identity to you</string>

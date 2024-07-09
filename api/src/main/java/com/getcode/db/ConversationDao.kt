@@ -1,12 +1,14 @@
 package com.getcode.db
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.model.Conversation
-import com.getcode.model.ConversationWithMessages
+import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.network.repository.base58
 import kotlinx.coroutines.flow.Flow
@@ -17,64 +19,53 @@ interface ConversationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertConversations(vararg conversation: Conversation)
 
-    @Transaction
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :id")
-    fun observeConversationWithMessages(id: String): Flow<ConversationWithMessages>
+    @RewriteQueriesToDropUnusedColumns
+    @Query("SELECT * FROM conversations LEFT JOIN conversation_pointers ON conversations.idBase58 = conversation_pointers.conversationIdBase58 WHERE conversations.idBase58 = :id")
+    fun observeConversation(id: String): Flow<ConversationWithLastPointers?>
 
-    fun observeConversationWithMessages(messageId: ID): Flow<ConversationWithMessages> {
-        return observeConversationWithMessages(messageId.base58)
+    fun observeConversation(id: ID): Flow<ConversationWithLastPointers?> {
+        return observeConversation(id.base58)
     }
 
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    fun observeConversation(messageId: String): Flow<Conversation?>
+    @RewriteQueriesToDropUnusedColumns
+    @Query("SELECT * FROM conversations LEFT JOIN conversation_pointers ON conversations.idBase58 = conversation_pointers.conversationIdBase58 WHERE conversations.idBase58 = :id")
+    suspend fun findConversation(id: String): ConversationWithLastPointers?
 
-    fun observeConversation(messageId: ID): Flow<Conversation?> {
-        return observeConversation(messageId.base58)
-    }
-
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    fun observeConversationForMessage(messageId: String): Flow<Conversation?>
-
-    fun observeConversationForMessage(messageId: ID): Flow<Conversation?> {
-        return observeConversationForMessage(messageId.base58)
-    }
-
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    suspend fun findConversation(messageId: String): Conversation?
-
-    suspend fun findConversation(messageId: ID): Conversation? {
-        return findConversation(messageId.base58)
-    }
-
-    @Query("SELECT * FROM conversations WHERE messageIdBase58 = :messageId")
-    suspend fun findConversationForMessage(messageId: String): Conversation?
-
-    suspend fun findConversationForMessage(messageId: ID): Conversation? {
-        return findConversationForMessage(messageId.base58)
+    suspend fun findConversation(id: ID): ConversationWithLastPointers? {
+        return findConversation(id.base58)
     }
 
     @Query("SELECT * FROM conversations")
     suspend fun queryConversations(): List<Conversation>
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%1|%')")
-    suspend fun hasTipMessage(messageId: String): Boolean
+    @Query("SELECT EXISTS (SELECT 1 FROM messages WHERE conversationIdBase58 = :conversationId)")
+    suspend fun hasInteracted(conversationId: String): Boolean
 
-    suspend fun hasTipMessage(messageId: ID): Boolean {
-        return hasTipMessage(messageId.base58)
+    suspend fun hasInteracted(conversationId: ID): Boolean {
+        return hasInteracted(conversationId.base58)
     }
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%2|%')")
-    suspend fun hasThanked(messageId: String): Boolean
+//    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")
+//    suspend fun hasRevealedIdentity(messageId: String): Boolean
+//
+//    suspend fun hasRevealedIdentity(messageId: ID): Boolean {
+//        return hasRevealedIdentity(messageId.base58)
+//    }
 
-    suspend fun hasThanked(messageId: ID): Boolean {
-        return hasThanked(messageId.base58)
+    @Delete
+    fun deleteConversation(conversation: Conversation)
+
+    @Query("DELETE FROM conversations WHERE idBase58 = :id")
+    suspend fun deleteConversationById(id: String)
+
+    suspend fun deleteConversationById(id: ID) {
+        deleteConversationById(id.base58)
     }
 
-    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")
-    suspend fun hasRevealedIdentity(messageId: String): Boolean
-
-    suspend fun hasRevealedIdentity(messageId: ID): Boolean {
-        return hasRevealedIdentity(messageId.base58)
+    @Query("DELETE FROM conversations WHERE idBase58 NOT IN (:chatIds)")
+    suspend fun purgeConversationsNotInByString(chatIds: List<String>)
+    suspend fun purgeConversationsNotIn(chatIds: List<ID>) {
+        purgeConversationsNotInByString(chatIds.map { it.base58 })
     }
 
     @Query("DELETE FROM conversations")
