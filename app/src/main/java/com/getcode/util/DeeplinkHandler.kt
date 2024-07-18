@@ -2,13 +2,24 @@ package com.getcode.util
 
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
+import com.getcode.models.DeepLinkRequest
+import com.getcode.models.PlatformKeys
+import com.getcode.models.encode
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
+import com.getcode.network.repository.encodeBase64
 import com.getcode.network.repository.urlDecode
 import com.getcode.utils.TraceType
+import com.getcode.utils.base64EncodedData
 import com.getcode.utils.trace
+import com.getcode.vendor.Base58
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -42,7 +53,17 @@ class DeeplinkHandler @Inject constructor() {
     val intent = MutableStateFlow(debounceIntent)
 
     fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
-        val uri = intent?.data ?: return null
+        val uri = when {
+            intent?.data != null -> intent.data
+            intent?.getStringExtra(Intent.EXTRA_TEXT) != null -> {
+                val sharedLink = intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri() ?: return null
+                sharedLink.resolveSharedEntity
+            }
+
+            else -> null
+        } ?: return null
+
+        println("resolved uri=$uri")
         return when (val type = uri.deeplinkType) {
             is Type.Login -> {
                 DeeplinkResult(
@@ -70,6 +91,35 @@ class DeeplinkHandler @Inject constructor() {
             is Type.Unknown -> null
         }
     }
+
+    /**
+     * Handles converting inbound shared content with possible deeplinks
+     * e.g sharing a tweet to trigger a tipcard flow
+     */
+    private val Uri.resolveSharedEntity: Uri
+        get() {
+            // https://x.com/<username>/status/<tweetId>
+            when (this.host) {
+                "x.com",
+                "twitter.com" -> {
+                    // convert shared tweets to owner's tip card
+                    val username = pathSegments.firstOrNull() ?: return this
+                    val payload = buildJsonObject {
+                        put("mode", "tip")
+                        put(
+                            "platform",
+                            buildJsonObject {
+                                put("name", "Twitter")
+                                put("username", username)
+                            }
+                        )
+                    }
+                    val encodedPayload = encode(payload).toByteArray().encodeBase64()
+                    return "codewallet://sdk.getcode.com/v1/elements/tip-request-page-mobile/#/p=$encodedPayload".toUri()
+                }
+                else -> return this
+            }
+        }
 
     private val Uri.deeplinkType: Type
         get() = when (val segment = lastPathSegment) {
