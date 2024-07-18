@@ -21,7 +21,6 @@ import com.getcode.ui.components.Row
 import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
-import com.getcode.ui.components.chat.localized
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.utils.withTopBorder
 
@@ -34,7 +33,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
 
     val context = LocalContext.current
-    val title = state.title.localized
+    val title = state.title
 
     Column(modifier = Modifier.fillMaxSize()) {
         MessageList(
@@ -43,8 +42,8 @@ fun ChatScreen(
             messages = messages,
             dispatch = {
                 when (it) {
-                    is MessageListEvent.OpenMessageChat -> dispatch(ChatViewModel.Event.OpenMessageChat(it.messageId))
-                    is MessageListEvent.ThankUser -> dispatch(ChatViewModel.Event.ThankUser(it.messageId))
+                    is MessageListEvent.OpenMessageChat -> dispatch(ChatViewModel.Event.OpenMessageChat(it.reference))
+                    is MessageListEvent.AdvancePointer -> Unit // handled on conversation open
                 }
             }
         )

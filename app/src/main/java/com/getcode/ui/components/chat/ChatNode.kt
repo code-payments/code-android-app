@@ -1,6 +1,5 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,22 +15,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import com.getcode.BuildConfig
-import com.getcode.model.Chat
-import com.getcode.model.MessageContent
-import com.getcode.model.Title
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.MessageContent
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.ui.utils.debugBounds
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils
 import com.getcode.util.formatTimeRelatively
-import com.getcode.util.toInstantFromMillis
-import java.util.Locale
 
 object ChatNodeDefaults {
     val UnreadIndicator: Color = Color(0xFF31BB00)
@@ -60,7 +54,7 @@ fun ChatNode(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(text = chat.localizedTitle, maxLines = 1, style = CodeTheme.typography.textMedium)
+            Text(text = chat.title.localized, maxLines = 1, style = CodeTheme.typography.textMedium)
             chat.lastMessageMillis?.let {
                 val isToday = DateUtils.isToday(it)
                 Text(
@@ -103,33 +97,6 @@ fun ChatNode(
         }
     }
 }
-
-
-private val Chat.localizedTitle: String
-    @Composable get() {
-        return title.localized
-    }
-
-val Title?.localized: String
-    @Composable get() = when (val t = this) {
-        is Title.Domain -> {
-            t.value.capitalize(Locale.getDefault())
-        }
-
-        is Title.Localized -> {
-            with(LocalContext.current) {
-                val resId = resources.getIdentifier(
-                    t.value,
-                    "string",
-                    BuildConfig.APPLICATION_ID
-                ).let { if (it == 0) null else it }
-
-                resId?.let { getString(it) } ?: t.value
-            }
-        }
-
-        else -> "Anonymous"
-    }
 
 private val Chat.messagePreview: String
     @Composable get() {

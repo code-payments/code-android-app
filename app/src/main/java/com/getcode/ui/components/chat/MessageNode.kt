@@ -13,7 +13,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.getcode.model.MessageContent
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Reference
 import com.getcode.theme.BrandDark
 import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
@@ -42,7 +44,7 @@ class MessageNodeScope(
     private val boxScope: BoxWithConstraintsScope
 ) {
     fun Modifier.sizeableWidth() =
-        this.widthIn(min = boxScope.maxWidth * 0.40f, max = boxScope.maxWidth * 0.85f)
+        this.widthIn(max = boxScope.maxWidth * 0.85f)
 
     val color = if (contents is MessageContent.Exchange && !contents.verb.increasesBalance) {
         ChatOutgoing
@@ -52,7 +54,11 @@ class MessageNodeScope(
 
     val isAnnouncement: Boolean
         @Composable get() = remember {
-            (contents as? MessageContent.Localized)?.isAnnouncement ?: false
+            when (contents) {
+                is MessageContent.IdentityRevealed -> true
+                is MessageContent.ThankYou -> true
+                else -> false
+            }
         }
 }
 
@@ -71,11 +77,11 @@ fun MessageNode(
     modifier: Modifier = Modifier,
     contents: MessageContent,
     date: Instant,
+    status: MessageStatus,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
     showTipActions: Boolean = true,
-    thankUser: () -> Unit = { },
-    openMessageChat: () -> Unit = { },
+    openMessageChat: (Reference) -> Unit = { },
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -88,7 +94,7 @@ fun MessageNode(
                 is MessageContent.Exchange -> {
                     MessagePayment(
                         modifier = Modifier
-                            .align(if (contents.verb.increasesBalance) Alignment.CenterStart else Alignment.CenterEnd)
+                            .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
                             .sizeableWidth()
                             .background(
                                 color = color,
@@ -102,34 +108,26 @@ fun MessageNode(
                             ),
                         contents = contents,
                         showTipActions = showTipActions,
-                        thankUser = thankUser,
-                        status = contents.status,
+                        status = status,
                         date = date,
-                        openMessageChat = openMessageChat
+                        openMessageChat = { openMessageChat(contents.reference) }
                     )
                 }
 
                 is MessageContent.Localized -> {
-                    if (contents.isAnnouncement) {
-                        AnnouncementMessage(
-                            modifier = Modifier.align(Alignment.Center),
-                            text = contents.localizedText
-                        )
-                    } else {
-                        MessageText(
-                            modifier = Modifier.fillMaxWidth(),
-                            content = contents.localizedText,
-                            date = date,
-                            status = contents.status,
-                            isFromSelf = contents.status.isOutgoing()
-                        )
-                    }
+                    MessageText(
+                        modifier = Modifier.fillMaxWidth(),
+                        content = contents.localizedText,
+                        date = date,
+                        status = status,
+                        isFromSelf = contents.isFromSelf
+                    )
                 }
 
                 is MessageContent.SodiumBox -> {
                     EncryptedContent(
                         modifier = Modifier
-                            .align(if (contents.status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
+                            .align(if (status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
                             .sizeableWidth()
                             .background(
                                 color = color,
@@ -151,8 +149,30 @@ fun MessageNode(
                         modifier = Modifier.fillMaxWidth(),
                         content = contents.data,
                         date = date,
-                        status = contents.status,
-                        isFromSelf = contents.status.isOutgoing()
+                        status = status,
+                        isFromSelf = contents.isFromSelf
+                    )
+                }
+
+                is MessageContent.IdentityRevealed -> {
+                    AnnouncementMessage(
+                        modifier = Modifier.align(Alignment.Center),
+                        text = contents.localizedText
+                    )
+                }
+                is MessageContent.RawText -> {
+                    MessageText(
+                        modifier = Modifier.fillMaxWidth(),
+                        content = contents.value,
+                        date = date,
+                        status = status,
+                        isFromSelf = contents.isFromSelf
+                    )
+                }
+                is MessageContent.ThankYou -> {
+                    AnnouncementMessage(
+                        modifier = Modifier.align(Alignment.Center),
+                        text = contents.localizedText
                     )
                 }
             }

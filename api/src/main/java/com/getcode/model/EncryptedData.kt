@@ -4,7 +4,9 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.boxOpen
 import com.getcode.solana.keys.encryptionPrivateKey
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class EncryptedData(
     val peerPublicKey: PublicKey,
     val nonce: List<Byte>,

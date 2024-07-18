@@ -16,9 +16,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.LocalExchange
-import com.getcode.model.MessageContent
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.MessageStatus
-import com.getcode.model.Verb
+import com.getcode.model.chat.Verb
 import com.getcode.model.orOneToOne
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.localizedText
@@ -32,7 +32,6 @@ internal fun MessagePayment(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showTipActions: Boolean = true,
-    thankUser: () -> Unit,
     openMessageChat: () -> Unit,
 ) {
     Column(
@@ -99,7 +98,6 @@ internal fun MessagePayment(
         TipChatActions(
             contents = contents,
             showTipActions = showTipActions,
-            thankUser = thankUser,
             openMessageChat = openMessageChat
         )
 
@@ -107,7 +105,8 @@ internal fun MessagePayment(
             modifier = Modifier
                 .align(Alignment.End),
             date = date,
-            status = status
+            status = status,
+            isFromSelf = contents.isFromSelf,
         )
     }
 }

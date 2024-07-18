@@ -4,6 +4,7 @@ import android.content.Context
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.annotations.DevManagedChannel
 import com.getcode.manager.MnemonicManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
@@ -23,7 +24,11 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.service.ChatService
+import com.getcode.network.service.ChatServiceV1
+import com.getcode.util.AccountAuthenticator
+import com.getcode.util.locale.LocaleHelper
+import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.network.service.ChatServiceV2
 import com.getcode.network.service.DeviceService
 import com.getcode.util.AccountAuthenticator
 import com.getcode.util.CurrencyUtils
@@ -65,14 +70,27 @@ object ApiModule {
 
     @Singleton
     @Provides
-    //@Named("unauthenticatedManagedChannel")
-    fun provideUnauthenticatedManagedChannel(@ApplicationContext context: Context): ManagedChannel {
+    fun provideManagedChannel(@ApplicationContext context: Context): ManagedChannel {
         val TLS_PORT = 443
-        val DEV_URL = "api.codeinfra.dev"
         val PROD_URL = "api.codeinfra.net"
 
         return AndroidChannelBuilder
             .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(PROD_URL, TLS_PORT))
+            .context(context)
+            .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
+            .keepAliveTime(4, TimeUnit.MINUTES)
+            .build()
+    }
+
+    @Singleton
+    @Provides
+    @DevManagedChannel
+    fun provideDevManagedChannel(@ApplicationContext context: Context): ManagedChannel {
+        val TLS_PORT = 443
+        val DEV_URL = "api.codeinfra.dev"
+
+        return AndroidChannelBuilder
+            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(DEV_URL, TLS_PORT))
             .context(context)
             .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
             .keepAliveTime(4, TimeUnit.MINUTES)
@@ -172,7 +190,8 @@ object ApiModule {
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
         networkObserver: NetworkConnectivityListener,
-        chatService: ChatService,
+        chatServiceV1: ChatServiceV1,
+        chatServiceV2: ChatServiceV2,
         deviceService: DeviceService,
         mnemonicManager: MnemonicManager,
     ): Client {
@@ -188,7 +207,8 @@ object ApiModule {
             exchange,
             transactionReceiver,
             networkObserver,
-            chatService,
+            chatServiceV1,
+            chatServiceV2,
             deviceService,
             mnemonicManager
         )

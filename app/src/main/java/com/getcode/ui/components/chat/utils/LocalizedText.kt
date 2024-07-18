@@ -10,8 +10,9 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
 import com.getcode.model.Domain
 import com.getcode.model.GenericAmount
-import com.getcode.model.MessageContent
-import com.getcode.model.Verb
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Title
+import com.getcode.model.chat.Verb
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.Kin
 import com.getcode.util.formatted
@@ -21,14 +22,21 @@ import com.getcode.utils.FormatUtils
 import timber.log.Timber
 import java.util.Locale
 
-internal fun MessageContent.localizedText(title: String, resources: ResourceHelper, currencyUtils: CurrencyUtils,): String {
+internal fun MessageContent.localizedText(
+    title: String,
+    resources: ResourceHelper,
+    currencyUtils: CurrencyUtils,
+): String {
     return when (val content = this) {
         is MessageContent.Exchange -> {
             val amount = when (val kinAmount = content.amount) {
                 is GenericAmount.Exact -> {
                     Timber.d("exact")
                     val currency = currencyUtils.getCurrency(kinAmount.currencyCode.name)
-                    kinAmount.amount.formatted(resources = resources, currency = currency ?: Currency.Kin)
+                    kinAmount.amount.formatted(
+                        resources = resources,
+                        currency = currency ?: Currency.Kin
+                    )
                 }
 
                 is GenericAmount.Partial -> {
@@ -55,6 +63,7 @@ internal fun MessageContent.localizedText(title: String, resources: ResourceHelp
                 Verb.SentTip -> {
                     "$localized $amount"
                 }
+
                 Verb.Returned -> {
                     "$amount $localized"
                 }
@@ -71,7 +80,7 @@ internal fun MessageContent.localizedText(title: String, resources: ResourceHelp
         }
 
         is MessageContent.SodiumBox -> {
-            val organizer = SessionManager.getOrganizer() ?: return  "<! encrypted content !>"
+            val organizer = SessionManager.getOrganizer() ?: return "<! encrypted content !>"
             val domain = Domain.from(title) ?: return "<! encrypted content !>"
             val relationship = organizer.relationshipFor(domain) ?: return "<! encrypted content !>"
             val decrypted = content.data.decryptMessageUsingNaClBox(
@@ -80,7 +89,22 @@ internal fun MessageContent.localizedText(title: String, resources: ResourceHelp
 
             decrypted
         }
+
         is MessageContent.Decrypted -> content.data
+        is MessageContent.IdentityRevealed -> {
+            val resId = if (content.isFromSelf) R.string.title_chat_announcement_identityRevealed
+            else R.string.title_chat_announcement_identityRevealedToYou
+
+            resources.getString(resId, content.identity.username)
+        }
+
+        is MessageContent.RawText -> content.value
+        is MessageContent.ThankYou -> {
+            val resId = if (content.isFromSelf) R.string.title_chat_announcement_thanksSent
+            else R.string.title_chat_announcement_thanksReceived
+
+            resources.getString(resId, "some username")
+        }
     }
 }
 
@@ -97,9 +121,10 @@ internal val MessageContent.localizedText: String
                     }
 
                     is GenericAmount.Partial -> {
-                        FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode).let {
-                            "$it ${context.getString(R.string.core_ofKin)}"
-                        }
+                        FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode)
+                            .let {
+                                "$it ${context.getString(R.string.core_ofKin)}"
+                            }
                     }
                 }
 
@@ -119,6 +144,7 @@ internal val MessageContent.localizedText: String
                     Verb.SentTip -> {
                         "$localized $amount"
                     }
+
                     Verb.Returned -> {
                         "$amount $localized"
                     }
@@ -140,6 +166,23 @@ internal val MessageContent.localizedText: String
 
             is MessageContent.SodiumBox -> "<! encrypted content !>"
             is MessageContent.Decrypted -> content.data
+            is MessageContent.IdentityRevealed -> {
+                with(LocalContext.current) {
+                    val resId = if (content.isFromSelf) R.string.title_chat_announcement_identityRevealed
+                    else R.string.title_chat_announcement_identityRevealedToYou
+
+                    getString(resId, content.identity.username)
+                }
+            }
+            is MessageContent.RawText -> content.value
+            is MessageContent.ThankYou -> {
+                with(LocalContext.current) {
+                    val resId = if (content.isFromSelf) R.string.title_chat_announcement_thanksSent
+                    else R.string.title_chat_announcement_thanksReceived
+
+                    getString(resId, "some username")
+                }
+            }
         }
     }
 
@@ -152,7 +195,7 @@ fun Verb.localizedText(resources: ResourceHelper): String {
         Verb.Received,
         Verb.Sent,
         Verb.Spent,
-        Verb.Withdrew  -> {
+        Verb.Withdrew -> {
             resources.getIdentifier(
                 "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
                 ResourceType.String,
@@ -199,7 +242,7 @@ val Verb.localizedText: String
             Verb.Received,
             Verb.Sent,
             Verb.Spent,
-            Verb.Withdrew  -> {
+            Verb.Withdrew -> {
                 resources.getIdentifier(
                     "subtitle_you${this@localizedText.toString().capitalize(Locale.ENGLISH)}",
                     "string",
@@ -237,4 +280,25 @@ val Verb.localizedText: String
         }
 
         resId?.let { getString(it) } ?: this@localizedText.toString()
+    }
+
+val Title?.localized: String
+    @Composable get() = when (val t = this) {
+        is Title.Domain -> {
+            t.value.capitalize(Locale.getDefault())
+        }
+
+        is Title.Localized -> {
+            with(LocalContext.current) {
+                val resId = resources.getIdentifier(
+                    t.value,
+                    "string",
+                    BuildConfig.APPLICATION_ID
+                ).let { if (it == 0) null else it }
+
+                resId?.let { getString(it) } ?: t.value
+            }
+        }
+
+        else -> ""
     }

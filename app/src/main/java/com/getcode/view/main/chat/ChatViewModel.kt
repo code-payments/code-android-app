@@ -1,15 +1,16 @@
 package com.getcode.view.main.chat
 
 import androidx.lifecycle.viewModelScope
-import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
-import com.getcode.model.Chat
+import com.getcode.model.chat.Chat
 import com.getcode.model.ID
-import com.getcode.model.MessageContent
-import com.getcode.model.Title
-import com.getcode.model.Verb
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Reference
+import com.getcode.model.chat.Title
+import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
 import com.getcode.network.HistoryController
 import com.getcode.network.repository.BetaFlagsRepository
@@ -33,9 +34,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.datetime.Instant
 import timber.log.Timber
-import java.util.UUID
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -47,6 +46,7 @@ class ChatViewModel @Inject constructor(
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
     initialState = State(
         chatId = null,
+        chat = null,
         title = null,
         canMute = false,
         isMuted = false,
@@ -58,6 +58,7 @@ class ChatViewModel @Inject constructor(
 ) {
     data class State(
         val chatId: ID?,
+        val chat: Chat?,
         val title: Title?,
         val canMute: Boolean,
         val isMuted: Boolean,
@@ -76,10 +77,8 @@ class ChatViewModel @Inject constructor(
         data object OnSubscribeToggled : Event
         data class SetMuted(val muted: Boolean) : Event
         data class SetSubscribed(val subscribed: Boolean) : Event
-        data class EnableUnsubscribe(val enabled: Boolean): Event
-
-        data class ThankUser(val message: ID): Event
-        data class OpenMessageChat(val messageId: ID): Event
+        data class EnableUnsubscribe(val enabled: Boolean) : Event
+        data class OpenMessageChat(val reference: Reference) : Event
     }
 
     init {
@@ -97,12 +96,12 @@ class ChatViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnMuteToggled>()
-            .map { stateFlow.value.chatId to stateFlow.value.isMuted }
+            .map { stateFlow.value.chat to stateFlow.value.isMuted }
             .filter { it.first != null }
             .map { it.first!! to it.second }
-            .map { (chatId, muted) ->
+            .map { (chat, muted) ->
                 dispatchEvent(Event.SetMuted(!muted))
-                historyController.setMuted(chatId, !muted)
+                historyController.setMuted(chat, !muted)
             }
             .onEach { result ->
                 if (result.isSuccess) {
@@ -117,12 +116,12 @@ class ChatViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnSubscribeToggled>()
-            .map { stateFlow.value.chatId to stateFlow.value.isSubscribed }
+            .map { stateFlow.value.chat to stateFlow.value.isSubscribed }
             .filter { it.first != null }
             .map { it.first!! to it.second }
-            .map { (chatId, subscribed) ->
+            .map { (chat, subscribed) ->
                 dispatchEvent(Event.SetSubscribed(!subscribed))
-                historyController.setSubscribed(chatId, !subscribed)
+                historyController.setSubscribed(chat, !subscribed)
             }
             .onEach { result ->
                 if (result.isSuccess) {
@@ -133,18 +132,6 @@ class ChatViewModel @Inject constructor(
                     dispatchEvent(Event.SetSubscribed(!stateFlow.value.isSubscribed))
                 }
             }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.ThankUser>()
-            .map { it.message }
-            .onEach { conversationController.thankTipper(it) }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OpenMessageChat>()
-            .map { it.messageId }
-            .onEach { conversationController.createConversation(it) }
             .launchIn(viewModelScope)
 
         betaFlags.observe()
@@ -163,22 +150,30 @@ class ChatViewModel @Inject constructor(
             page.flatMap { message ->
                 message.contents
                     .sortedWith(compareBy { it is MessageContent.Localized })
-                    .map { ChatMessageIndice(it, message.id, message.dateMillis.toInstantFromMillis()) }
+                    .map {
+                        ChatMessageIndice(
+                            message,
+                            it,
+                        )
+                    }
             }
         }
         .mapLatest { page ->
-            page.map { (contents, id, date) ->
-                val message = if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
-                    val tipThanked = conversationController.hasThanked(id)
-                    MessageContent.Exchange(contents.amount, contents.verb, thanked = tipThanked)
-                } else {
-                    contents
-                }
+            page.map { (message, contents) ->
+                val content =
+                    if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
+                        val hasMessaged = conversationController.hasInteracted(message.id)
+                        contents.copy(hasInteracted = hasMessaged)
+                    } else {
+                        contents
+                    }
 
                 ChatItem.Message(
-                    chatMessageId = id,
-                    message = message,
-                    date = date,
+                    chatMessageId = message.id,
+                    message = content,
+                    date = message.dateMillis.toInstantFromMillis(),
+                    status = if (message.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
+                    isFromSelf = message.isFromSelf
                 )
             }
         }
@@ -204,6 +199,7 @@ class ChatViewModel @Inject constructor(
 
                 is Event.OnChatChanged -> { state ->
                     state.copy(
+                        chat = event.chat,
                         title = event.chat.title,
                         canMute = event.chat.canMute,
                         isMuted = event.chat.isMuted,
@@ -212,7 +208,6 @@ class ChatViewModel @Inject constructor(
                     )
                 }
 
-                is Event.ThankUser,
                 is Event.OpenMessageChat,
                 Event.OnMuteToggled,
                 Event.OnSubscribeToggled -> { state -> state }
@@ -220,6 +215,7 @@ class ChatViewModel @Inject constructor(
                 is Event.SetMuted -> { state ->
                     state.copy(isMuted = event.muted)
                 }
+
                 is Event.SetSubscribed -> { state ->
                     state.copy(isSubscribed = event.subscribed)
                 }

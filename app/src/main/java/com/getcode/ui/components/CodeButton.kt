@@ -45,8 +45,8 @@ fun CodeButton(
     isSuccess: Boolean = false,
     enabled: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(
-        top = CodeTheme.dimens.grid.x3,
-        bottom = CodeTheme.dimens.grid.x3,
+        top = CodeTheme.dimens.grid.x2,
+        bottom = CodeTheme.dimens.grid.x2,
     ),
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
