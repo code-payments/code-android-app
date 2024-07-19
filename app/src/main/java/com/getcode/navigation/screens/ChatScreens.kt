@@ -224,7 +224,7 @@ data class ChatMessageConversationScreen(
                     )
                     Column {
                         Text(
-                            text = user.username,
+                            text = user.username.orEmpty(),
                             style = CodeTheme.typography.screenTitle
                         )
                         state.lastSeen?.let {
