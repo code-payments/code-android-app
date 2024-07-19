@@ -4,6 +4,7 @@ import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.chat.v2.ChatService.ChatMemberId
 import com.codeinc.gen.chat.v2.ChatService.OpenChatEventStream
 import com.codeinc.gen.chat.v2.ChatService.PointerType
+import com.codeinc.gen.chat.v2.ChatService.RevealIdentityResponse
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsRequest
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsResponse
@@ -21,6 +22,7 @@ import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.OutgoingMessageContent
+import com.getcode.model.chat.Platform
 import com.getcode.model.description
 import com.getcode.network.api.ChatApiV2
 import com.getcode.network.client.ChatMessageStreamReference
@@ -237,8 +239,8 @@ class ChatServiceV2 @Inject constructor(
 
         val type = when (status) {
             MessageStatus.Sent -> PointerType.SENT
-            MessageStatus.Delivered ->  PointerType.DELIVERED
-            MessageStatus.Read ->  PointerType.READ
+            MessageStatus.Delivered -> PointerType.DELIVERED
+            MessageStatus.Read -> PointerType.READ
             MessageStatus.Unknown -> return Result.failure(Throwable("Can't update a pointer to Unknown"))
         }
         return try {
@@ -531,6 +533,86 @@ class ChatServiceV2 @Inject constructor(
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
+
+                            else -> {
+                                val error = Throwable("Error: Unknown")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+                        }
+
+                        cont.resume(result)
+                    }
+
+                    override fun onError(t: Throwable?) {
+                        val error = t ?: Throwable("Error: Hit a snag")
+                        ErrorUtils.handleError(error)
+                        cont.resume(Result.failure(error))
+                    }
+
+                    override fun onCompleted() {
+
+                    }
+
+                }
+            )
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            cont.resume(Result.failure(e))
+        }
+    }
+
+    suspend fun revealIdentity(
+        owner: KeyPair,
+        chat: Chat,
+        memberId: UUID,
+        platform: Platform,
+        username: String,
+    ): Result<ChatMessage> = suspendCancellableCoroutine { cont ->
+        val chatId = chat.id
+        try {
+            api.revealIdentity(
+                owner,
+                chatId,
+                memberId,
+                platform,
+                username,
+                observer = object : StreamObserver<RevealIdentityResponse> {
+                    override fun onNext(value: RevealIdentityResponse?) {
+                        val requestResult = value?.result
+                        if (requestResult == null) {
+                            trace(
+                                message = "Chat SendMessage Server returned empty message. This is unexpected.",
+                                type = TraceType.Error
+                            )
+                            return
+                        }
+
+                        val result = when (requestResult) {
+                            RevealIdentityResponse.Result.OK -> {
+                                trace("Chat message sent =: ${value.message.messageId.value.toList().description}")
+                                val message = messageMapper.map(chat to value.message)
+                                Result.success(message)
+                            }
+
+                            RevealIdentityResponse.Result.DENIED -> {
+                                val error = Throwable("Error: Send Message: Denied")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            RevealIdentityResponse.Result.CHAT_NOT_FOUND -> {
+                                val error = Throwable("Error: Send Message: chat not found $chatId")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            RevealIdentityResponse.Result.UNRECOGNIZED -> {
+                                val error = Throwable("Error: Send Message: Unrecognized request.")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
                             else -> {
                                 val error = Throwable("Error: Unknown")
                                 Timber.e(t = error)

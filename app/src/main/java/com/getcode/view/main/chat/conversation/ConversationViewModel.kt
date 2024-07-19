@@ -15,7 +15,9 @@ import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.TipChatCashFeature
+import com.getcode.model.TwitterUser
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
@@ -216,9 +218,16 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.RevealIdentity>()
-            .mapNotNull { stateFlow.value.reference?.id }
-            .onEach { delay(300) }
-            .onEach { conversationController.revealIdentity(it) }
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach { conversationId ->
+                val identity = tipController.connectedAccount.value ?: return@onEach
+                val platform = when (identity) {
+                    is TwitterUser -> Platform.Twitter
+                }
+                conversationController.revealIdentity(conversationId, platform, identity.username)
+                    .onSuccess { dispatchEvent(Event.OnIdentityRevealed) }
+                    .onFailure { it.printStackTrace() }
+            }
             .launchIn(viewModelScope)
 
         stateFlow

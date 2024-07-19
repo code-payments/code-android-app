@@ -11,6 +11,7 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
+import com.getcode.domain.CashLinkManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.GiftCardManager
@@ -185,6 +186,7 @@ class HomeViewModel @Inject constructor(
     private val exchange: Exchange,
     private val giftCardManager: GiftCardManager,
     private val mnemonicManager: MnemonicManager,
+    private val cashLinkManager: CashLinkManager,
     appSettings: AppSettingsRepository,
     betaFlags: BetaFlagsRepository,
     features: FeatureRepository,
@@ -194,9 +196,7 @@ class HomeViewModel @Inject constructor(
     private val _eventFlow: MutableSharedFlow<HomeEvent> = MutableSharedFlow()
     val eventFlow: SharedFlow<HomeEvent> = _eventFlow.asSharedFlow()
 
-    private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
-    private var sendTransactionDisposable: Disposable? = null
 
     init {
         onDrawn()
@@ -426,39 +426,37 @@ class HomeViewModel @Inject constructor(
             else -> Unit
         }
 
-        // this should not be in the view model
-        sendTransactionDisposable?.dispose()
-        sendTransactionRepository.init(amountFloor, organizer, owner)
-        sendTransactionDisposable =
-            sendTransactionRepository.startTransaction()
-                .subscribe({
-                    cancelSend(PresentationStyle.Pop)
-                    vibrator.vibrate()
+        cashLinkManager.awaitBillGrab(
+            amount = amountFloor,
+            organizer = organizer,
+            owner = owner,
+            onGrabbed = {
+                cancelSend(PresentationStyle.Pop)
+                vibrator.vibrate()
 
-                    viewModelScope.launch {
-                        balanceController.fetchBalanceSuspend()
-                        client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
-                    }
-                }, {
-                    ErrorUtils.handleError(it)
-                    cancelSend(style = PresentationStyle.Slide)
-                })
-
-        presentSend(sendTransactionRepository.payloadData, bill, vibrate)
-    }
-
-    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) =
-        viewModelScope.launch {
-            billDismissTimer?.cancel()
-            billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
+                viewModelScope.launch {
+                    balanceController.fetchBalanceSuspend()
+                    client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
+                }
+            },
+            onTimeout = {
                 cancelSend()
                 analytics.billTimeoutReached(
                     bill.amount.kin,
                     bill.amount.rate.currency,
                     AnalyticsManager.BillPresentationStyle.Slide
                 )
+            },
+            onError = {
+                cancelSend(style = PresentationStyle.Slide)
             }
+        )
 
+        presentSend(sendTransactionRepository.payloadData, bill, vibrate)
+    }
+
+    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) =
+        viewModelScope.launch {
             if (bill.didReceive) {
                 withContext(Dispatchers.Main) {
                     uiFlow.update {
@@ -512,8 +510,7 @@ class HomeViewModel @Inject constructor(
         }
 
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
-        billDismissTimer?.cancel()
-        sendTransactionDisposable?.dispose()
+        cashLinkManager.cancelSend()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
 
@@ -935,7 +932,7 @@ class HomeViewModel @Inject constructor(
 
     fun completePayment() = viewModelScope.launch {
         // keep bill active while sending
-        billDismissTimer?.cancel()
+        cashLinkManager.cancelBillTimeout()
 
         val paymentConfirmation = uiFlow.value.billState.paymentConfirmation ?: return@launch
         withContext(Dispatchers.Main) {
@@ -1369,17 +1366,8 @@ class HomeViewModel @Inject constructor(
     private fun shareTipCard() = viewModelScope.launch {
         val username = tipController.connectedAccount.value?.username ?: return@launch
 
-        val url = "https://tipcard.getcode.com/x/$username"
-
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, url)
-            type = "text/plain"
-        }
         withContext(Dispatchers.Main) {
-            val shareIntent = Intent.createChooser(sendIntent, null).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
+            val shareIntent = IntentUtils.tipCard(username)
 
             _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
         }
@@ -1402,32 +1390,21 @@ class HomeViewModel @Inject constructor(
         giftCard: GiftCardAccount,
         amount: KinAmount
     ) {
-        val url = "https://cash.getcode.com/c/#/e=" + giftCardManager.getEntropy(giftCard)
-        val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(
-                amount.formatted(
-                    currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
-                    resources = resources
-                ),
-                url
+        val shareIntent = IntentUtils.cashLink(
+            entropy = giftCardManager.getEntropy(giftCard),
+            formattedAmount = amount.formatted(
+                currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
+                resources = resources
             )
-
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, text)
-            type = "text/plain"
-        }
-        val shareIntent = Intent.createChooser(sendIntent, null).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
+        )
 
         CoroutineScope(Dispatchers.IO).launch {
-            viewModelScope.launch {
+            withContext(Dispatchers.Main) {
                 _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
             }
             delay(2500)
 
-            billDismissTimer?.cancel()
+            cashLinkManager.cancelBillTimeout()
 
             BottomBarManager.showMessage(
                 BottomBarManager.BottomBarMessage(
@@ -1614,7 +1591,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun onDrawn() {
+    private fun onDrawn() {
         analytics.onAppStarted()
     }
 

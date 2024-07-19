@@ -98,7 +98,7 @@ private fun IdentityRevealHeader(
         if (!state.identityRevealed) {
             delay(500)
         }
-        showRevealHeader = !state.identityRevealed && state.user != null
+        showRevealHeader = !state.identityRevealed
     }
 
     AnimatedContent(
