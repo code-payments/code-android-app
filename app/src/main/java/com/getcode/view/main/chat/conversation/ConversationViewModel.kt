@@ -19,6 +19,7 @@ import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
+import com.getcode.network.TipController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -51,9 +52,8 @@ import javax.inject.Inject
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
     private val conversationController: ConversationController,
-    currencyUtils: CurrencyUtils,
-    resources: ResourceHelper,
     features: FeatureRepository,
+    tipController: TipController,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -71,8 +71,7 @@ class ConversationViewModel @Inject constructor(
         val pointers: Map<UUID, MessageStatus>,
     ) {
         data class User(
-            val username: String,
-            val publicKey: PublicKey,
+            val username: String?,
             val imageUrl: String?,
         )
 
@@ -98,9 +97,8 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnUserRevealed(
-            val username: String,
-            val publicKey: PublicKey,
-            val imageUrl: String?,
+            val username: String? = null,
+            val imageUrl: String? = null,
         ) : Event
 
         data class OnTipsChatCashChanged(val module: Feature) : Event
@@ -222,6 +220,18 @@ class ConversationViewModel @Inject constructor(
             .onEach { delay(300) }
             .onEach { conversationController.revealIdentity(it) }
             .launchIn(viewModelScope)
+
+        stateFlow
+            .mapNotNull { it.user }
+            .distinctUntilChanged()
+            .filter { it.imageUrl == null }
+            .mapNotNull { it.username }
+            .map { username -> runCatching { tipController.fetch(username) } }
+            .map { it.getOrNull() }
+            .filterNotNull()
+            .map { it.imageUrl }
+            .onEach { dispatchEvent(Event.OnUserRevealed(imageUrl = it)) }
+            .launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -277,7 +287,13 @@ class ConversationViewModel @Inject constructor(
                         conversationId = conversation.id,
                         title = conversation.title,
                         identityRevealed = conversation.hasRevealedIdentity,
-                        pointers = event.conversationWithPointers.pointers
+                        pointers = event.conversationWithPointers.pointers,
+                        user = conversation.user?.let {
+                            State.User(
+                                username = it,
+                                imageUrl = conversation.userImage
+                            )
+                        }
                     )
                 }
 
@@ -316,8 +332,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnUserRevealed -> { state ->
                     state.copy(
                         user = State.User(
-                            username = event.username,
-                            publicKey = event.publicKey,
+                            username = event.username ?: state.user?.username,
                             imageUrl = event.imageUrl,
                         )
                     )
