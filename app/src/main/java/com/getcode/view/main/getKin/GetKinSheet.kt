@@ -232,6 +232,7 @@ private fun Items(items: List<GetKinItem>) {
 private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
     Row(
         modifier = modifier
+            .fillMaxWidth()
             .addIf(
                 item.isStrikeThrough.not(),
             ) {
@@ -280,8 +281,6 @@ private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
                     .size(CodeTheme.dimens.grid.x3)
                     .align(Alignment.CenterVertically),
             )
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
