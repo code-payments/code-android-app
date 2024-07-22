@@ -13,24 +13,16 @@ class TimelockDerivedAccounts(
     val vault: ProgramDerivedAccount
 ) {
     companion object {
-        const val lockoutInDays: Long = 21
-        const val dataVersion: Long = 3
+        private const val LOCKOUT_IN_DAYS: Long = 21
+        private const val DATA_VERSION: Long = 3
 
-        fun newInstance(owner: PublicKey, legacy: Boolean = false): TimelockDerivedAccounts {
-            val state: ProgramDerivedAccount
-            val vault: ProgramDerivedAccount
-
-            if (legacy) {
-                state =
-                    PublicKey.deriveLegacyTimelockStateAccount(owner = owner, lockout = 1_814_400)
-                vault = PublicKey.deriveLegacyTimelockVaultAccount(stateAccount = state.publicKey)
-            } else {
-                state = PublicKey.deriveTimelockStateAccount(owner = owner, lockout = lockoutInDays)
-                vault = PublicKey.deriveTimelockVaultAccount(
-                    stateAccount = state.publicKey,
-                    version = dataVersion
-                )
-            }
+        fun newInstance(owner: PublicKey): TimelockDerivedAccounts {
+            val state: ProgramDerivedAccount =
+                PublicKey.deriveTimelockStateAccount(owner = owner, lockout = LOCKOUT_IN_DAYS)
+            val vault: ProgramDerivedAccount = PublicKey.deriveTimelockVaultAccount(
+                stateAccount = state.publicKey,
+                version = DATA_VERSION
+            )
 
             return TimelockDerivedAccounts(
                 owner = owner,

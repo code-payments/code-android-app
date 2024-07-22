@@ -227,11 +227,8 @@ class AnalyticsManager @Inject constructor(
         cashLinkGrabStartMillis = 0
     }
 
-    override fun migration(amount: Kin) {
-        track(
-            Name.PrivacyMigration,
-            Pair(Property.Amount, amount.toKin().toInt().toString())
-        )
+    override fun migrationRequired() {
+        track(Name.MigrationRequired,)
     }
 
     override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) {
@@ -335,7 +332,7 @@ class AnalyticsManager @Inject constructor(
         CashLinkGrab("Cash Link Grab"),
         UpgradePrivacy("Upgrade Privacy"),
         ClaimGetFreeKin("Claim Get Free Kin"),
-        PrivacyMigration("Privacy Migration"),
+        MigrationRequired("Migration Required"),
         BackgroundSwap("Background Swap Initiated"),
         Withdrawal("Withdrawal"),
 

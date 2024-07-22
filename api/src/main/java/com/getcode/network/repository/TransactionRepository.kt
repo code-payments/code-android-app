@@ -19,7 +19,6 @@ import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentEstablishRelationship
-import com.getcode.model.intents.IntentMigratePrivacy
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentReceive
@@ -283,18 +282,6 @@ class TransactionRepository @Inject constructor(
             amount = amount,
             isVoidingGiftCard = isVoiding
         )
-        return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
-    }
-
-    fun migrateToPrivacy(
-        amount: Kin,
-        organizer: Organizer
-    ): Single<IntentType> {
-        val intent = IntentMigratePrivacy.newInstance(
-            organizer = organizer,
-            amount = amount,
-        )
-
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
