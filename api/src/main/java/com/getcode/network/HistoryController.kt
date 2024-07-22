@@ -246,6 +246,21 @@ class HistoryController @Inject constructor(
     private suspend fun fetchChatsWithoutMessages(): List<Chat> {
         val owner = owner() ?: return emptyList()
         val result = client.fetchChats(owner)
+            .map { chats ->
+                chats.map { chat ->
+                    // map revealed identity as title if known
+                    if (chat.isConversation) {
+                        val conversation = conversationMapper.map(chat)
+                        if (conversation.user != null) {
+                            chat.copy(title = Title.Localized(conversation.user))
+                        } else {
+                            chat
+                        }
+                    } else {
+                        chat
+                    }
+                }
+            }
             .onSuccess { result ->
                 result.filter { it.isConversation }
                     .let { chats ->
@@ -257,11 +272,8 @@ class HistoryController @Inject constructor(
                         chats
                     }
                     .onEach {
-                        if (db.conversationDao().findConversation(it.id) == null) {
-                            trace("adding conversation for chat ${it.id.description}")
-                            val conversation = conversationMapper.map(it)
-                            db.conversationDao().upsertConversations(conversation)
-                        }
+                        val conversation = conversationMapper.map(it)
+                        db.conversationDao().upsertConversations(conversation)
                     }
             }
         return result.getOrNull().orEmpty()
