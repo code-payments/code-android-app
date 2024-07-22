@@ -15,16 +15,16 @@ import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Platform
+import com.getcode.model.chat.isConversation
 import com.getcode.model.chat.selfId
-import com.getcode.model.uuid
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.timestamp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -135,6 +135,21 @@ class ConversationStreamController @Inject constructor(
                 historyController.updateChatWithMessages(chat, messages)
                 val messagesWithContent = messages.map {
                     messageWithContentMapper.map(chat.id to it)
+                }
+
+                val identityRevealed = messages
+                    .flatMap { it.contents }
+                    .filterIsInstance<MessageContent.IdentityRevealed>()
+                    .firstOrNull()
+                    .takeIf { chat.isConversation }
+
+                if (identityRevealed != null && conversation.user == null) {
+                    scope.launch(Dispatchers.IO) {
+                        db.conversationDao()
+                            .upsertConversations(
+                                conversation.copy(user = identityRevealed.identity.username)
+                            )
+                    }
                 }
 
                 println("chat messages: ${messages.count()}, pointers=${pointers.count()}")
