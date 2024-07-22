@@ -2,7 +2,7 @@
 
 object Android {
     const val namespace = "com.getcode"
-    const val versionCode = 407
+    const val versionCode = 408
     const val compileSdkVersion = 34
     const val minSdkVersion = 24
     const val targetSdkVersion = 33
