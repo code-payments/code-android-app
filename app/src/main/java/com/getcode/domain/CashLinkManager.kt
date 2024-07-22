@@ -1,7 +1,7 @@
 package com.getcode.domain
 
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.ed25519.Ed25519
+import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.KinAmount
 import com.getcode.network.repository.SendTransactionRepository
 import com.getcode.solana.organizer.Organizer
@@ -20,17 +20,24 @@ class CashLinkManager @Inject constructor(
     private var billDismissTimer: TimerTask? = null
     private var sendTransactionDisposable: Disposable? = null
 
+    val amount: KinAmount
+        get() = sendTransactionRepository.getAmount()
+
+    val rendezvous: KeyPair
+        get() = sendTransactionRepository.getRendezvous()
+
     fun awaitBillGrab(
         amount: KinAmount,
         organizer: Organizer,
         owner: Ed25519.KeyPair,
+        present: (List<Byte>) -> Unit,
         onGrabbed: () -> Unit,
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit
     ) {
         // this should not be in the view model
         sendTransactionDisposable?.dispose()
-        sendTransactionRepository.init(amount, organizer, owner)
+        val payload = sendTransactionRepository.init(amount, organizer, owner)
         sendTransactionDisposable =
             sendTransactionRepository.startTransaction()
                 .subscribe({
@@ -41,10 +48,12 @@ class CashLinkManager @Inject constructor(
                 })
 
         presentSend(onTimeout)
+
+        present(payload)
     }
 
     private fun presentSend(onTimeout: () -> Unit) {
-        billDismissTimer?.cancel()
+        cancelBillTimeout()
         billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
             onTimeout()
         }

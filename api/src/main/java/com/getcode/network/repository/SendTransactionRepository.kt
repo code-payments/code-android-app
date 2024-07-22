@@ -27,12 +27,12 @@ class SendTransactionRepository @Inject constructor(
     private lateinit var organizer: Organizer
     private lateinit var owner: Ed25519.KeyPair
     private lateinit var payload: CodePayload
-    lateinit var payloadData: List<Byte>
+    private lateinit var payloadData: List<Byte>
 
     private lateinit var rendezvousKey: Ed25519.KeyPair
     private var receivingAccount: PublicKey? = null
 
-    fun init(amount: KinAmount, organizer: Organizer, owner: Ed25519.KeyPair) {
+    fun init(amount: KinAmount, organizer: Organizer, owner: Ed25519.KeyPair): List<Byte> {
         this.amount = amount
         this.organizer = organizer
         this.owner = owner
@@ -46,6 +46,8 @@ class SendTransactionRepository @Inject constructor(
         this.payloadData = payload.codeData.toList()
         this.rendezvousKey = payload.rendezvous
         this.receivingAccount = null
+
+        return payloadData
     }
 
     fun startTransaction(): Flowable<IntentMetadata> {

@@ -18,7 +18,6 @@ import com.getcode.manager.GiftCardManager
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.AppSetting
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
@@ -62,17 +61,14 @@ import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.AppSettings
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
-import com.getcode.network.repository.SendTransactionRepository
 import com.getcode.network.repository.StatusRepository
 import com.getcode.network.repository.hexEncodedString
-import com.getcode.network.repository.replaceParam
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
@@ -93,7 +89,6 @@ import com.getcode.view.BaseViewModel
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -170,7 +165,6 @@ enum class RestrictionType {
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val client: Client,
-    private val sendTransactionRepository: SendTransactionRepository,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
@@ -440,95 +434,86 @@ class HomeViewModel @Inject constructor(
                 }
             },
             onTimeout = {
-                cancelSend()
+                cancelSend(style = PresentationStyle.Slide)
                 analytics.billTimeoutReached(
                     bill.amount.kin,
                     bill.amount.rate.currency,
                     AnalyticsManager.BillPresentationStyle.Slide
                 )
             },
-            onError = {
-                cancelSend(style = PresentationStyle.Slide)
-            }
+            onError = { cancelSend(style = PresentationStyle.Slide) },
+            present = { data -> presentSend(data, bill, vibrate) }
         )
-
-        presentSend(sendTransactionRepository.payloadData, bill, vibrate)
     }
 
-    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) =
-        viewModelScope.launch {
-            if (bill.didReceive) {
-                withContext(Dispatchers.Main) {
-                    uiFlow.update {
-                        val billState = it.billState
-                        it.copy(
-                            billState = billState.copy(
-                                valuation = PaymentValuation(
-                                    bill.amount
-                                ),
-                            )
-                        )
-                    }
-                }
-            }
-
-            val style: PresentationStyle =
-                if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
-
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    val billState = it.billState
-                    it.copy(
-                        presentationStyle = style,
-                        billState = billState.copy(
-                            bill = Bill.Cash(
-                                data = data,
-                                amount = bill.amount,
-                                didReceive = bill.didReceive
-                            ),
-                            valuation = PaymentValuation(bill.amount),
-                            showToast = bill.didReceive
-                        )
+    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+        if (bill.didReceive) {
+            uiFlow.update {
+                val billState = it.billState
+                it.copy(
+                    billState = billState.copy(
+                        valuation = PaymentValuation(
+                            bill.amount
+                        ),
                     )
-                }
-            }
-
-            if (style is PresentationStyle.Visible) {
-                analytics.billShown(
-                    bill.amountFloored.kin,
-                    bill.amountFloored.rate.currency,
-                    when (style) {
-                        PresentationStyle.Pop -> AnalyticsManager.BillPresentationStyle.Pop
-                        PresentationStyle.Slide -> AnalyticsManager.BillPresentationStyle.Slide
-                    }
                 )
             }
-
-            if (isVibrate) {
-                vibrator.vibrate()
-            }
         }
+
+        val style: PresentationStyle =
+            if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
+
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                presentationStyle = style,
+                billState = billState.copy(
+                    bill = Bill.Cash(
+                        data = data,
+                        amount = bill.amount,
+                        didReceive = bill.didReceive
+                    ),
+                    valuation = PaymentValuation(bill.amount),
+                    showToast = bill.didReceive
+                )
+            )
+        }
+
+        if (style is PresentationStyle.Visible) {
+            analytics.billShown(
+                bill.amountFloored.kin,
+                bill.amountFloored.rate.currency,
+                when (style) {
+                    PresentationStyle.Pop -> AnalyticsManager.BillPresentationStyle.Pop
+                    PresentationStyle.Slide -> AnalyticsManager.BillPresentationStyle.Slide
+                }
+            )
+        }
+
+        if (isVibrate) {
+            vibrator.vibrate()
+        }
+    }
 
     fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
         cashLinkManager.cancelSend()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
+        val shown = showToastIfNeeded(style)
+
+        uiFlow.update {
+            it.copy(
+                presentationStyle = style,
+                billState = it.billState.copy(
+                    bill = null,
+                    valuation = null,
+                    primaryAction = null,
+                    secondaryAction = null,
+                )
+            )
+        }
 
         viewModelScope.launch {
-            val shown = showToastIfNeeded(style)
-
-            uiFlow.update {
-                it.copy(
-                    presentationStyle = style,
-                    billState = it.billState.copy(
-                        bill = null,
-                        valuation = null,
-                        primaryAction = null,
-                        secondaryAction = null,
-                    )
-                )
-            }
-
             historyController.fetchChats()
             balanceController.fetchBalanceSuspend()
 
@@ -1325,7 +1310,7 @@ class HomeViewModel @Inject constructor(
 
     private fun shareGiftCard() {
         val giftCard = giftCardManager.createGiftCard()
-        val amount = sendTransactionRepository.getAmount()
+        val amount = cashLinkManager.amount
         var loadingIndicatorTimer: TimerTask? = null
 
         if (!networkObserver.isConnected) {
@@ -1335,7 +1320,7 @@ class HomeViewModel @Inject constructor(
 
         client.sendRemotely(
             amount = amount,
-            rendezvousKey = sendTransactionRepository.getRendezvous().publicKeyBytes.toPublicKey(),
+            rendezvousKey = cashLinkManager.rendezvous.publicKeyBytes.toPublicKey(),
             giftCard = giftCard
         )
             .doOnSubscribe {
