@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.rememberTextFieldState
 import androidx.compose.material.Icon
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.LocalBetaFlags
@@ -86,6 +88,9 @@ fun ChatInput(
             minHeight = 40.dp,
             state = state,
             shape = CodeTheme.shapes.extraLarge,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                capitalization = KeyboardCapitalization.Sentences
+            ),
             contentPadding = PaddingValues(8.dp),
             colors = inputColors(
                 backgroundColor = Color.White,
