@@ -43,7 +43,7 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
-import com.getcode.navigation.screens.RequestTip
+import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
@@ -114,7 +114,7 @@ fun GetKinSheet(
                 if (dataState.isTipCardConnected) {
                     navigator.hideWithResult(HomeResult.ShowTipCard)
                 } else {
-                    navigator.push(RequestTip)
+                    navigator.push(ConnectAccount())
                 }
             },
         ),

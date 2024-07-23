@@ -45,8 +45,13 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
+enum class IdentityConnectionReason {
+    TipCard,
+    IdentityReveal,
+}
+
 @Composable
-fun RequestTipScreen(
+fun ConnectAccountScreen(
     viewModel: TipConnectViewModel = hiltViewModel()
 ) {
     val state by viewModel.stateFlow.collectAsState()
@@ -59,7 +64,10 @@ fun RequestTipScreen(
             .onEach {
                 composeTweet(context, it.intent)
                 delay(1_000)
-                navigator.hide()
+                when (state.reason) {
+                    IdentityConnectionReason.IdentityReveal -> navigator.pop()
+                    else -> navigator.hide()
+                }
             }
             .launchIn(this)
     }
@@ -78,11 +86,19 @@ fun RequestTipScreen(
 @Composable
 private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick: () -> Unit) {
     Text(
-        text = stringResource(id = R.string.title_requestTip),
+        text = when(state.reason) {
+            IdentityConnectionReason.TipCard -> stringResource(id = R.string.title_requestTip)
+            IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.title_connectAccount)
+            null -> ""
+        },
         style = CodeTheme.typography.displayMedium.bolded()
     )
     Text(
-        text = stringResource(id = R.string.subtitle_tipCardForX),
+        text = when(state.reason) {
+            IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardForX)
+            IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.subtitle_connectXAccount)
+            null -> ""
+        },
         style = CodeTheme.typography.textSmall
     )
     Spacer(modifier = Modifier.weight(0.3f))
@@ -142,6 +158,8 @@ private fun composeTweet(context: Context, intent: Intent) {
 @Composable
 private fun Preview_TweetPreview() {
     CodeTheme {
-        TweetPreview(xMessage = "I’m connecting my X account with @getcode so I can receive tips from people all over the world. My accountForX=fh5g376")
+        TweetPreview(xMessage = "I’m connecting my X account with @getcode\n" +
+                "\n" +
+                "CodeAccount:349pQtzGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQPXved:zGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQP")
     }
 }

@@ -30,7 +30,9 @@ import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.GetKinSheetViewModel
 import com.getcode.view.main.tip.EnterTipScreen
-import com.getcode.view.main.tip.RequestTipScreen
+import com.getcode.view.main.tip.IdentityConnectionReason
+import com.getcode.view.main.tip.ConnectAccountScreen
+import com.getcode.view.main.tip.TipConnectViewModel
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -393,23 +395,32 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
 }
 
 @Parcelize
-data object RequestTip : MainGraph, ModalContent {
+data class ConnectAccount(
+    private val reason: IdentityConnectionReason = IdentityConnectionReason.TipCard,
+) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val viewModel = getViewModel<TipConnectViewModel>()
         ModalContainer(
             backButtonEnabled = {
                 if (navigator.isVisible) {
-                    it is RequestTip
+                    it is ConnectAccount
                 } else {
                     navigator.progress > 0f
                 }
             }
         ) {
-            RequestTipScreen(getViewModel())
+
+            ConnectAccountScreen(viewModel)
+        }
+
+
+        LaunchedEffect(viewModel, reason) {
+            viewModel.dispatchEvent(TipConnectViewModel.Event.OnReasonChanged(reason))
         }
     }
 }
