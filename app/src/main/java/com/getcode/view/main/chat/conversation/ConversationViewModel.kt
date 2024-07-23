@@ -10,25 +10,27 @@ import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
 import com.getcode.BuildConfig
+import com.getcode.R
+import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.TipChatCashFeature
+import com.getcode.model.TwitterUser
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
 import com.getcode.network.TipController
 import com.getcode.network.repository.FeatureRepository
-import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ConversationMessageIndice
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.floored
 import com.getcode.utils.timestamp
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -44,6 +46,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
@@ -54,6 +57,7 @@ class ConversationViewModel @Inject constructor(
     private val conversationController: ConversationController,
     features: FeatureRepository,
     tipController: TipController,
+    resources: ResourceHelper,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -65,7 +69,8 @@ class ConversationViewModel @Inject constructor(
         val title: String,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
-        val identityRevealed: Boolean,
+        val identityAvailable: Boolean,
+        val identityRevealed: Boolean?,
         val user: User?,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
@@ -82,7 +87,8 @@ class ConversationViewModel @Inject constructor(
                 tipChatCash = TipChatCashFeature(),
                 title = "Anonymous Tipper",
                 textFieldState = TextFieldState(),
-                identityRevealed = false,
+                identityAvailable = false,
+                identityRevealed = null,
                 user = null,
                 lastSeen = null,
                 pointers = emptyMap(),
@@ -109,6 +115,7 @@ class ConversationViewModel @Inject constructor(
         data object SendMessage : Event
         data object RevealIdentity : Event
 
+        data class OnIdentityAvailable(val available: Boolean): Event
         data object OnIdentityRevealed : Event
 
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
@@ -167,16 +174,18 @@ class ConversationViewModel @Inject constructor(
             }.flatMapLatest { (conversation, _) ->
                 conversationController.observeConversation(conversation.id)
             }.filterNotNull()
-            .map { it.pointers }
             .distinctUntilChanged()
-            .onEach {
-                dispatchEvent(Event.OnPointersUpdated(it))
-            }
+            .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
         features.tipChatCash
             .onEach { dispatchEvent(Event.OnTipsChatCashChanged(it)) }
             .launchIn(viewModelScope)
+
+        tipController.connectedAccount
+            .onEach {
+                dispatchEvent(Event.OnIdentityAvailable(it != null))
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.MarkRead>()
@@ -216,9 +225,37 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.RevealIdentity>()
-            .mapNotNull { stateFlow.value.reference?.id }
-            .onEach { delay(300) }
-            .onEach { conversationController.revealIdentity(it) }
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach { conversationId ->
+                val user = stateFlow.value.user?.username ?: "This user"
+                val identity = tipController.connectedAccount.value ?: return@onEach
+                val platform = when (identity) {
+                    is TwitterUser -> Platform.Twitter
+                }
+                BottomBarManager.showMessage(
+                    BottomBarManager.BottomBarMessage(
+                        title = resources.getString(R.string.prompt_title_revealIdentity),
+                        subtitle = resources.getString(
+                            R.string.prompt_subtitle_revealIdentity,
+                            user,
+                            identity.username
+                        ),
+                        positiveText = resources.getString(R.string.action_yes),
+                        type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
+                        onPositive = {
+                            viewModelScope.launch {
+                                conversationController.revealIdentity(
+                                    conversationId,
+                                    platform,
+                                    identity.username
+                                ).onSuccess { dispatchEvent(Event.OnIdentityRevealed) }
+                                    .onFailure { it.printStackTrace() }
+                            }
+                        },
+                        negativeText = resources.getString(R.string.action_nevermind)
+                    )
+                )
+            }
             .launchIn(viewModelScope)
 
         stateFlow
@@ -311,6 +348,10 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnPointersUpdated -> { state ->
                     state.copy(pointers = event.pointers)
+                }
+
+                is Event.OnIdentityAvailable -> { state ->
+                    state.copy(identityAvailable = event.available)
                 }
 
                 is Event.OnChatIdChanged,

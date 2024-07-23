@@ -45,6 +45,13 @@ interface ConversationDao {
         return hasInteracted(conversationId.base58)
     }
 
+    @Query("UPDATE conversations SET hasRevealedIdentity = 1 WHERE idBase58 = :conversationId")
+    suspend fun revealIdentity(conversationId: String)
+
+    suspend fun revealIdentity(conversationId: ID) {
+        revealIdentity(conversationId.base58)
+    }
+
 //    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")
 //    suspend fun hasRevealedIdentity(messageId: String): Boolean
 //

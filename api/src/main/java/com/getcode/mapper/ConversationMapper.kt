@@ -2,6 +2,8 @@ package com.getcode.mapper
 
 import com.getcode.model.Conversation
 import com.getcode.model.chat.Chat
+import com.getcode.model.chat.self
+import com.getcode.network.TipController
 import com.getcode.network.localized
 import com.getcode.network.repository.base58
 import com.getcode.util.resources.ResourceHelper
@@ -12,12 +14,13 @@ class ConversationMapper @Inject constructor(
 ) : Mapper<Chat, Conversation> {
     override fun map(from: Chat): Conversation {
 
+        val self = from.self?.identity
         val identity = from.members.filterNot { it.isSelf }.firstNotNullOfOrNull { it.identity }
 
         return Conversation(
             idBase58 = from.id.base58,
             title = from.title.localized(resources),
-            hasRevealedIdentity = identity != null,
+            hasRevealedIdentity = self != null,
             lastActivity = null, // TODO: ?
             user = identity?.username,
             userImage = null,
