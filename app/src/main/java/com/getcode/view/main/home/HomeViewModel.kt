@@ -238,6 +238,7 @@ class HomeViewModel @Inject constructor(
             .flatMapLatest { tipController.connectedAccount }
             .filterNotNull()
             .distinctUntilChanged()
+            .filter { uiFlow.value.isCameraScanEnabled }
             .onEach {
                 when (it) {
                     is TwitterUser -> {
@@ -373,6 +374,10 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun onCameraScanning(scanning: Boolean) {
+        uiFlow.update { it.copy(isCameraScanEnabled = scanning) }
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {

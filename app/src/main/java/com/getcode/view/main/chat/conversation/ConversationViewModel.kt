@@ -12,6 +12,7 @@ import androidx.paging.map
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
@@ -34,6 +35,7 @@ import com.getcode.utils.timestamp
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
