@@ -161,6 +161,10 @@ private fun HomeScan(
         mutableStateOf(dataState.autoStartCamera == true)
     }
 
+    LaunchedEffect(previewing) {
+        homeViewModel.onCameraScanning(previewing)
+    }
+
     val focusManager = LocalFocusManager.current
 
     var deepLinkSaved by remember(deepLink) {

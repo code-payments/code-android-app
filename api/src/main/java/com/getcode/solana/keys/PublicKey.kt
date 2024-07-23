@@ -5,13 +5,15 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.instructions.programs.*
+import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import com.getcode.vendor.Base58
 import com.google.protobuf.ByteString
+import kotlinx.serialization.Serializable
 import org.kin.sdk.base.tools.longToByteArray
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
-
+@Serializable(with = PublicKeyAsStringSerializer::class)
 class PublicKey(bytes: List<Byte>) : Key32(bytes) {
 
     constructor(base58: String): this(Base58.decode(base58).toList())

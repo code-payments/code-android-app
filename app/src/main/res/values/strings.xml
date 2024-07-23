@@ -22,6 +22,7 @@
     <string name="action_thank">🙏 Thank</string>
     <string name="action_thanked">🙏 Thanked</string>
     <string name="action_message">Message</string>
+    <string name="action_messaged">Messaged</string>
 
     <string name="title_chat_announcement_identityRevealed">You revealed your identity to %1$s</string>
     <string name="title_chat_announcement_identityRevealedToYou">%1$s revealed their identity to you</string>
@@ -40,4 +41,12 @@
     <string name="action_biometricsClickToAuthenticate">Click to authenticate</string>
     <string name="error_title_missingBiometrics">Biometrics Removed</string>
     <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
+
+    <string name="title_accessKeySnapshotDescription">Warning! This image gives access to all the funds you have in Code. Do not share this image with anyone else.\nKeep it secure and safe.</string>
+    <string name="prompt_title_revealIdentity">Reveal your identity?</string>
+    <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
+
+    <string name="subtitle_linkingTwitterToRevealIdentity">I\'m connecting my X account with @getcode</string>
+    <string name="title_connectAccount">Connect Account</string>
+    <string name="subtitle_connectXAccount">Connecting your X account allows you to reveal your identity to the people you tip. To connect your account post to X.</string>
 </resources>

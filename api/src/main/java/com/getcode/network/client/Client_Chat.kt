@@ -1,53 +1,104 @@
 package com.getcode.network.client
 
+import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.model.Chat
-import com.getcode.model.ChatMessage
+import com.getcode.model.Conversation
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
-import com.getcode.model.Title
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.ChatStreamEventUpdate
+import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.isV2
+import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
-import com.getcode.network.repository.encodeBase64
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import kotlinx.coroutines.CoroutineScope
 import timber.log.Timber
+import java.util.UUID
+
+typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.StreamChatEventsRequest, ChatService.StreamChatEventsResponse>
+
+data class ChatFetchExceptions(val errors: List<Throwable>): Throwable()
 
 suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
-    return chatService.fetchChats(owner)
+    val v2Chats = chatServiceV2.fetchChats(owner)
         .onSuccess {
-            Timber.d("chats fetched=${it.count()}")
+            Timber.d("v2 chats fetched=${it.count()}")
         }.onFailure {
-            it.printStackTrace()
+            trace("Failed fetching chats from V2", error = it, type = TraceType.Error)
         }
+
+    val v1Chats = chatServiceV1.fetchChats(owner)
+        .onSuccess {
+            Timber.d("v1 chats fetched=${it.count()}")
+        }.onFailure {
+            trace("Failed fetching chats from V1", error = it, type = TraceType.Error)
+        }
+
+    if (v2Chats.isSuccess || v1Chats.isSuccess) {
+        val chats = (v1Chats.getOrNull().orEmpty() + v2Chats.getOrNull().orEmpty())
+            .sortedByDescending { it.lastMessageMillis }
+            .distinctBy { it.id }
+
+        return Result.success(chats)
+    } else {
+        val errors: List<Throwable> =
+            listOfNotNull(v1Chats.exceptionOrNull(), v2Chats.exceptionOrNull())
+        return Result.failure(ChatFetchExceptions(errors))
+    }
 }
 
-suspend fun Client.setMuted(owner: KeyPair, chat: ID, muted: Boolean): Result<Boolean> {
-    return chatService.setMuteState(owner, chat, muted)
+suspend fun Client.setMuted(owner: KeyPair, chat: Chat, muted: Boolean): Result<Boolean> {
+    return if (chat.isV2) {
+        chatServiceV2.setMuteState(owner, chat.id, muted)
+    } else {
+        chatServiceV1.setMuteState(owner, chat.id, muted)
+    }
 }
 
-suspend fun Client.setSubscriptionState(owner: KeyPair, chatId: ID, subscribed: Boolean): Result<Boolean> {
-    return chatService.setSubscriptionState(owner, chatId, subscribed)
+suspend fun Client.setSubscriptionState(
+    owner: KeyPair,
+    chat: Chat,
+    subscribed: Boolean
+): Result<Boolean> {
+    return if (chat.isV2) {
+        chatServiceV2.setSubscriptionState(owner, chat.id, subscribed)
+    } else {
+        chatServiceV1.setSubscriptionState(owner, chat.id, subscribed)
+    }
 }
 
-suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? = null, limit: Int? = null) : Result<List<ChatMessage>> {
-    return chatService.fetchMessagesFor(owner, chat.id, cursor, limit)
-        .mapCatching {
-            val domain = if (chat.title is Title.Domain) {
-                Domain.from(chat.title.value)
-            } else {
-                null
-            } ?: return@mapCatching it
+suspend fun Client.fetchMessagesFor(
+    owner: KeyPair,
+    chat: Chat,
+    cursor: Cursor? = null,
+    limit: Int? = null
+): Result<List<ChatMessage>> {
+    val result = if (chat.isV2) {
+        chatServiceV2.fetchMessagesFor(owner, chat, cursor, limit)
+    } else {
+        chatServiceV1.fetchMessagesFor(owner, chat, cursor, limit)
+    }
 
-            val organizer = SessionManager.getOrganizer() ?: return@mapCatching it
-            val relationship = organizer.relationshipFor(domain) ?: return@mapCatching it
+    return result
+        .mapCatching { messages ->
+            val organizer = SessionManager.getOrganizer() ?: return@mapCatching messages
+            val domain = Domain.from(chat.title?.value) ?: return@mapCatching messages
 
-            val hasEncryptedContent = it.firstOrNull { it.hasEncryptedContent } != null
+            val relationship = organizer.relationshipFor(domain) ?: return@mapCatching messages
+
+            val hasEncryptedContent = messages.firstOrNull { it.hasEncryptedContent } != null
             if (hasEncryptedContent) {
-                it.map { message ->
+                messages.map { message ->
                     message.decryptingUsing(relationship.getCluster().authority.keyPair)
                 }
             } else {
-                it
+                messages
             }
         }
         .onSuccess {
@@ -60,8 +111,41 @@ suspend fun Client.fetchMessagesFor(owner: KeyPair, chat: Chat, cursor: Cursor? 
 
 suspend fun Client.advancePointer(
     owner: KeyPair,
-    chatId: ID,
+    chat: Chat,
     to: ID,
+    memberId: UUID? = null,
+    status: MessageStatus = MessageStatus.Read,
 ): Result<Unit> {
-    return chatService.advancePointer(owner, chatId, to)
+    return if (chat.isV2) {
+        memberId ?: return Result.failure(Throwable("member ID was not provided"))
+        chatServiceV2.advancePointer(owner, chat.id, memberId, to, status)
+    } else {
+        chatServiceV1.advancePointer(owner, chat.id, to, status)
+    }
+}
+
+suspend fun Client.startChat(
+    owner: KeyPair,
+    reference: ID,
+    type: ChatType,
+): Result<Chat> {
+    return chatServiceV2.startChat(owner, reference, type)
+}
+
+fun Client.openChatStream(
+    scope: CoroutineScope,
+    conversation: Conversation,
+    memberId: UUID,
+    owner: KeyPair,
+    chatLookup: (Conversation) -> Chat,
+    onEvent: (Result<ChatStreamEventUpdate>) -> Unit
+): ChatMessageStreamReference {
+    return chatServiceV2.openChatStream(
+        scope = scope,
+        conversation = conversation,
+        memberId = memberId,
+        owner = owner,
+        chatLookup = chatLookup,
+        onEvent = onEvent
+    )
 }

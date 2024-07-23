@@ -2,7 +2,7 @@
 
 object Android {
     const val namespace = "com.getcode"
-    const val versionCode = 405
+    const val versionCode = 409
     const val compileSdkVersion = 34
     const val minSdkVersion = 24
     const val targetSdkVersion = 34
@@ -64,7 +64,7 @@ object Versions {
     const val lib_phone_number_port: String = "8.12.43"
     const val lib_phone_number_google: String = "8.12.54"
     const val hilt_nav_compose: String = "1.1.0-alpha02"
-    const val qr_generator: String = "1.0.4"
+    const val qr_generator: String = "1.0.1"
     const val zxing: String = "3.3.2"
 
     const val androidx_test_runner = "1.4.0"
@@ -221,7 +221,7 @@ object Libs {
     const val lib_phone_number_port = "io.michaelrocks:libphonenumber-android:${Versions.lib_phone_number_port}"
     const val lib_phone_number_google = "com.googlecode.libphonenumber:libphonenumber:${Versions.lib_phone_number_google}"
     const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:1.1.0-alpha01"
-    const val qr_generator = "androidmads.library.qrgenearator:QRGenearator:${Versions.qr_generator}"
+    const val qr_generator = "com.github.androidmads:QRGenerator:${Versions.qr_generator}"
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
 
     const val androidx_test_runner =

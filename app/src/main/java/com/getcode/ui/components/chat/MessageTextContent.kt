@@ -55,7 +55,7 @@ fun MessageNodeScope.MessageText(
             ) {
                 MessageContent(
                     maxWidth = maxWidthPx,
-                    message = content, date = date, status = status)
+                    message = content, date = date, status = status, isFromSelf = isFromSelf)
             }
         }
     }
@@ -120,7 +120,7 @@ private fun rememberAlignmentRule(
 }
 
 @Composable
-private fun MessageContent(maxWidth: Int, message: String, date: Instant, status: MessageStatus) {
+private fun MessageContent(maxWidth: Int, message: String, date: Instant, status: MessageStatus, isFromSelf: Boolean) {
     val contentStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = contentStyle,
@@ -140,7 +140,8 @@ private fun MessageContent(maxWidth: Int, message: String, date: Instant, status
                     modifier = Modifier
                         .align(Alignment.End),
                     date = date,
-                    status = status
+                    status = status,
+                    isFromSelf = isFromSelf
                 )
             }
         }
@@ -154,7 +155,8 @@ private fun MessageContent(maxWidth: Int, message: String, date: Instant, status
                     modifier = Modifier
                         .align(Alignment.End),
                     date = date,
-                    status = status
+                    status = status,
+                    isFromSelf = isFromSelf
                 )
             }
         }
@@ -168,7 +170,8 @@ private fun MessageContent(maxWidth: Int, message: String, date: Instant, status
                     modifier = Modifier
                         .padding(top = CodeTheme.dimens.grid.x1),
                     date = date,
-                    status = status
+                    status = status,
+                    isFromSelf = isFromSelf
                 )
             }
         }

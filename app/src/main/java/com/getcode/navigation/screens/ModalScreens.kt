@@ -2,13 +2,11 @@ package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel
@@ -31,9 +29,10 @@ import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.GetKinSheetViewModel
-import com.getcode.view.main.getKin.ReferFriend
 import com.getcode.view.main.tip.EnterTipScreen
-import com.getcode.view.main.tip.RequestTipScreen
+import com.getcode.view.main.tip.IdentityConnectionReason
+import com.getcode.view.main.tip.ConnectAccountScreen
+import com.getcode.view.main.tip.TipConnectViewModel
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -262,19 +261,6 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data object ReferFriendScreen : MainGraph, ModalContent {
-    @IgnoredOnParcel
-    override val key: ScreenKey = uniqueScreenKey
-
-    @Composable
-    override fun Content() {
-        ModalContainer(backButtonEnabled = { it is DeleteConfirmationScreen }) {
-            ReferFriend()
-        }
-    }
-}
-
-@Parcelize
 data class CurrencySelectionModal(val kind: CurrencySelectKind = CurrencySelectKind.Entry) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -409,23 +395,32 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
 }
 
 @Parcelize
-data object RequestTip : MainGraph, ModalContent {
+data class ConnectAccount(
+    private val reason: IdentityConnectionReason = IdentityConnectionReason.TipCard,
+) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val viewModel = getViewModel<TipConnectViewModel>()
         ModalContainer(
             backButtonEnabled = {
                 if (navigator.isVisible) {
-                    it is RequestTip
+                    it is ConnectAccount
                 } else {
                     navigator.progress > 0f
                 }
             }
         ) {
-            RequestTipScreen(getViewModel())
+
+            ConnectAccountScreen(viewModel)
+        }
+
+
+        LaunchedEffect(viewModel, reason) {
+            viewModel.dispatchEvent(TipConnectViewModel.Event.OnReasonChanged(reason))
         }
     }
 }

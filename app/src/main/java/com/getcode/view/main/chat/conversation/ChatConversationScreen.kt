@@ -4,7 +4,6 @@ package com.getcode.view.main.chat.conversation
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,18 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.paging.compose.LazyPagingItems
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
+import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
+import com.getcode.view.main.tip.IdentityConnectionReason
 import kotlinx.coroutines.delay
 
 @Composable
@@ -44,10 +43,15 @@ fun ChatConversationScreen(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
+    val navigator = LocalCodeNavigator.current
     CodeScaffold(
         topBar = {
             IdentityRevealHeader(state = state) {
-                dispatchEvent(ConversationViewModel.Event.RevealIdentity)
+                if (state.identityAvailable) {
+                    dispatchEvent(ConversationViewModel.Event.RevealIdentity)
+                } else {
+                    navigator.push(ConnectAccount(IdentityConnectionReason.IdentityReveal))
+                }
             }
         },
         bottomBar = {
@@ -71,10 +75,16 @@ fun ChatConversationScreen(
                 .padding(padding),
             messages = messages,
             listState = lazyListState,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3, Alignment.Top),
+            dispatch = { event ->
+                if (event is MessageListEvent.AdvancePointer) {
+                    dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
+                }
+            }
         )
 
-        HandleMessageChanges(listState = lazyListState, items = messages)
+        HandleMessageChanges(listState = lazyListState, items = messages) { message ->
+            dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
+        }
     }
 }
 
@@ -88,10 +98,10 @@ private fun IdentityRevealHeader(
     }
 
     LaunchedEffect(state.identityRevealed, state.user) {
-        if (!state.identityRevealed) {
+        if (state.identityRevealed == false) {
             delay(500)
         }
-        showRevealHeader = !state.identityRevealed && state.user != null
+        showRevealHeader = state.identityRevealed == false
     }
 
     AnimatedContent(

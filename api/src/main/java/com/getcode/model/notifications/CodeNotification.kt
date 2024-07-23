@@ -1,6 +1,6 @@
 package com.getcode.model.notifications
 
-import com.getcode.model.MessageContent
+import com.getcode.model.chat.MessageContent
 
 data class CodeNotification(
     val type: NotificationType,

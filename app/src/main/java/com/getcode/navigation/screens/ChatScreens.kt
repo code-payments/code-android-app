@@ -1,5 +1,6 @@
 package com.getcode.navigation.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -33,13 +34,13 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.error
 import com.getcode.R
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.model.ID
+import com.getcode.model.chat.Reference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
-import com.getcode.ui.components.chat.localized
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
 import com.getcode.view.main.balance.BalanceScreen
@@ -85,6 +86,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                         tint = Color.White,
                     )
                 }
+
                 else -> Unit
             }
         }
@@ -102,6 +104,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                         )
                     }
                 }
+
                 state.isBucketDebuggerEnabled -> {
                     {
                         viewModel.dispatchEvent(
@@ -109,6 +112,7 @@ data object BalanceModal : ChatGraph, ModalRoot {
                         )
                     }
                 }
+
                 else -> null
             },
             closeButtonEnabled = close@{
@@ -125,6 +129,12 @@ data object BalanceModal : ChatGraph, ModalRoot {
         }
 
         LifecycleEffect(
+            onStarted = {
+                val disposedScreen = navigator.lastItem
+                if (disposedScreen !is BalanceModal) {
+                    viewModel.dispatchEvent(BalanceSheetViewModel.Event.OnOpened)
+                }
+            },
             onDisposed = {
                 val disposedScreen = navigator.lastItem
                 if (disposedScreen !is BalanceModal) {
@@ -159,8 +169,10 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
         LaunchedEffect(vm) {
             vm.eventFlow
                 .filterIsInstance<ChatViewModel.Event.OpenMessageChat>()
-                .map { it.messageId }
-                .onEach { navigator.push(ChatMessageConversationScreen(it)) }
+                .map { it.reference }
+                .filterIsInstance<Reference.IntentId>()
+                .map { it.id }
+                .onEach { navigator.push(ChatMessageConversationScreen(intentId = it)) }
                 .launchIn(this)
         }
 
@@ -171,7 +183,10 @@ data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
 }
 
 @Parcelize
-data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatGraph, ModalContent {
+data class ChatMessageConversationScreen(
+    val chatId: ID? = null,
+    val intentId: ID? = null
+) : AppScreen(), ChatGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -189,9 +204,10 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                     return@ModalContainer
                 }
                 val user = state.user!!
-                Row(modifier = Modifier
-                    .padding(start = CodeTheme.dimens.staticGrid.x6)
-                    .align(Alignment.CenterStart),
+                Row(
+                    modifier = Modifier
+                        .padding(start = CodeTheme.dimens.staticGrid.x6)
+                        .align(Alignment.CenterStart),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
@@ -207,7 +223,8 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                         contentDescription = null,
                     )
                     Column {
-                        Text(text = user.username,
+                        Text(
+                            text = user.username.orEmpty(),
                             style = CodeTheme.typography.screenTitle
                         )
                         state.lastSeen?.let {
@@ -234,8 +251,32 @@ data class ChatMessageConversationScreen(val messageId: ID) : AppScreen(), ChatG
                 }.launchIn(this)
         }
 
-        LaunchedEffect(messageId) {
-            vm.dispatchEvent(ConversationViewModel.Event.OnMessageIdChanged(messageId))
+        val context = LocalContext.current
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ConversationViewModel.Event.Error>()
+                .onEach {
+                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                    if (it.fatal) {
+                        navigator.pop()
+                    }
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(chatId) {
+            if (chatId != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnChatIdChanged(chatId)
+                )
+            }
+        }
+
+        LaunchedEffect(intentId) {
+            if (intentId != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnReferenceChanged(Reference.IntentId(intentId))
+                )
+            }
         }
     }
 }

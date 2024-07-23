@@ -2,35 +2,34 @@ package com.getcode.network.service
 
 import com.codeinc.gen.chat.v1.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.mapper.ChatMessageMapper
-import com.getcode.mapper.ChatMetadataMapper
-import com.getcode.model.Chat
-import com.getcode.model.ChatMessage
+import com.getcode.mapper.ChatMessageV1Mapper
+import com.getcode.mapper.ChatMetadataV1Mapper
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.network.api.ChatApi
+import com.getcode.model.MessageStatus
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatMessage
+import com.getcode.model.description
+import com.getcode.network.api.ChatApiV1
 import com.getcode.network.core.NetworkOracle
-import com.getcode.network.repository.base58
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
-import kotlin.reflect.KClass
 
 /**
- * Abstraction layer to handle [ChatApi] request results and map to domain models
+ * Abstraction layer to handle [ChatApiV1] request results and map to domain models
  */
-class ChatService @Inject constructor(
-    private val api: ChatApi,
-    private val chatMapper: ChatMetadataMapper,
-    private val messageMapper: ChatMessageMapper,
+@Deprecated("Replaced by V2")
+class ChatServiceV1 @Inject constructor(
+    private val api: ChatApiV1,
+    private val chatMapper: ChatMetadataV1Mapper,
+    private val messageMapper: ChatMessageV1Mapper,
     private val networkOracle: NetworkOracle,
 ) {
-
-    fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
+    private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
         return networkOracle.managedRequest(api.fetchChats(owner))
             .map { response ->
                 when (response.result) {
@@ -150,33 +149,33 @@ class ChatService @Inject constructor(
 
     suspend fun fetchMessagesFor(
         owner: KeyPair,
-        chatId: ID,
+        chat: Chat,
         cursor: Cursor? = null,
         limit: Int? = null
     ): Result<List<ChatMessage>> {
         return try {
-            networkOracle.managedRequest(api.fetchChatMessages(owner, chatId, cursor, limit))
+            networkOracle.managedRequest(api.fetchChatMessages(owner, chat.id, cursor, limit))
                 .map { response ->
                     when (response.result) {
                         ChatService.GetMessagesResponse.Result.OK -> {
-                            Result.success(response.messagesList.map(messageMapper::map))
+                            Result.success(response.messagesList.map {
+                                messageMapper.map(chat to it)
+                            })
                         }
 
                         ChatService.GetMessagesResponse.Result.NOT_FOUND -> {
-                            val error = Throwable("Error: messages not found for chat ${chatId.base58}")
-                            Timber.e(t = error)
+                            val error =
+                                Throwable("Error: messages not found for chat ${chat.id.description}")
                             Result.failure(error)
                         }
 
                         ChatService.GetMessagesResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         else -> {
                             val error = Throwable("Error: Unknown")
-                            Timber.e(t = error)
                             Result.failure(error)
                         }
                     }
@@ -191,29 +190,39 @@ class ChatService @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         to: ID,
+        status: MessageStatus,
     ): Result<Unit> {
+
+        val kind = when (status) {
+            MessageStatus.Read -> ChatService.Pointer.Kind.READ
+            else -> return Result.failure(Throwable("V1 Chat Service only supported READ"))
+        }
         return try {
-            networkOracle.managedRequest(api.advancePointer(owner, chatId, to))
+            networkOracle.managedRequest(api.advancePointer(owner, chatId, to, kind))
                 .map { response ->
                     when (response.result) {
                         ChatService.AdvancePointerResponse.Result.OK -> {
                             Result.success(Unit)
                         }
+
                         ChatService.AdvancePointerResponse.Result.CHAT_NOT_FOUND -> {
                             val error = Throwable("Error: chat not found $chatId")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         ChatService.AdvancePointerResponse.Result.MESSAGE_NOT_FOUND -> {
                             val error = Throwable("Error: message not found $to")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         ChatService.AdvancePointerResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = Throwable("Error: Unknown")
                             Timber.e(t = error)
