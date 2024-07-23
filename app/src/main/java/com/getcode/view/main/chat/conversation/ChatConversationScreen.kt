@@ -95,10 +95,10 @@ private fun IdentityRevealHeader(
     }
 
     LaunchedEffect(state.identityRevealed, state.user) {
-        if (!state.identityRevealed) {
+        if (state.identityRevealed == false) {
             delay(500)
         }
-        showRevealHeader = !state.identityRevealed
+        showRevealHeader = state.identityRevealed == false
     }
 
     AnimatedContent(
