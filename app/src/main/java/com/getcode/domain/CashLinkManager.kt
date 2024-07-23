@@ -35,7 +35,6 @@ class CashLinkManager @Inject constructor(
         onTimeout: () -> Unit,
         onError: (Throwable) -> Unit
     ) {
-        // this should not be in the view model
         sendTransactionDisposable?.dispose()
         val payload = sendTransactionRepository.init(amount, organizer, owner)
         sendTransactionDisposable =

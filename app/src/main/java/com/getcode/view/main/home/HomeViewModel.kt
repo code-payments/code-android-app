@@ -429,7 +429,6 @@ class HomeViewModel @Inject constructor(
                 vibrator.vibrate()
 
                 viewModelScope.launch {
-                    balanceController.fetchBalanceSuspend()
                     client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
                 }
             },
@@ -447,6 +446,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+        println("present send")
         if (bill.didReceive) {
             uiFlow.update {
                 val billState = it.billState
@@ -499,36 +499,40 @@ class HomeViewModel @Inject constructor(
         cashLinkManager.cancelSend()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
-        val shown = showToastIfNeeded(style)
-
-        uiFlow.update {
-            it.copy(
-                presentationStyle = style,
-                billState = it.billState.copy(
-                    bill = null,
-                    valuation = null,
-                    primaryAction = null,
-                    secondaryAction = null,
-                )
-            )
-        }
-
         viewModelScope.launch {
+            val shown = showToastIfNeeded(style)
+            withContext(Dispatchers.Main) {
+                uiFlow.update {
+                    it.copy(
+                        presentationStyle = style,
+                    )
+                }
+
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(
+                            bill = null,
+                            valuation = null,
+                            primaryAction = null,
+                            secondaryAction = null,
+                        )
+                    )
+                }
+            }
+
             historyController.fetchChats()
             balanceController.fetchBalanceSuspend()
 
             if (shown) {
-                delay(300)
-            }
-
-            if (shown) {
                 delay(5.seconds.inWholeMilliseconds)
             }
+            withContext(Dispatchers.Main) {
             uiFlow.update {
                 it.copy(
                     billState = it.billState.copy(showToast = false)
                 )
             }
+                }
         }
     }
 
