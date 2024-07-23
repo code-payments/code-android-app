@@ -99,7 +99,7 @@ class HistoryController @Inject constructor(
             } else {
                 it
             }
-        }
+        }?.sortedByDescending { it.lastMessageMillis }
         _chats.update { chats }
     }
 
