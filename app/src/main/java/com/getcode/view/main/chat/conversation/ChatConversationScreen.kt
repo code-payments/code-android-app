@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.paging.compose.LazyPagingItems
+import com.getcode.manager.BottomBarManager
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -48,7 +49,11 @@ fun ChatConversationScreen(
     CodeScaffold(
         topBar = {
             IdentityRevealHeader(state = state) {
-                dispatchEvent(ConversationViewModel.Event.RevealIdentity)
+                if (state.identityAvailable) {
+                    dispatchEvent(ConversationViewModel.Event.RevealIdentity)
+                } else {
+                    // TODO: connect UI flow
+                }
             }
         },
         bottomBar = {
