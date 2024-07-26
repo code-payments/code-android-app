@@ -13,6 +13,8 @@ import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.net.URLDecoder
 import java.net.URLEncoder
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
 
 fun isMock() = false
 
@@ -88,6 +90,17 @@ fun ByteArray.encodeBase64(): String {
 
 fun ByteArray.encodeBase64ToArray(): ByteArray {
     return Base64.encode(this, Base64.NO_WRAP)
+}
+
+fun ByteArray.sha512(): ByteArray {
+    return try {
+        MessageDigest.getInstance("SHA-512")
+            .apply { update(this@sha512) }
+            .digest()
+
+    } catch (e: NoSuchAlgorithmException) {
+        throw RuntimeException("SHA-512 not implemented")
+    }
 }
 
 fun List<Int>.toByteList(): List<Byte> {
