@@ -414,7 +414,6 @@ data class ConnectAccount(
                 }
             }
         ) {
-
             ConnectAccountScreen(viewModel)
         }
 

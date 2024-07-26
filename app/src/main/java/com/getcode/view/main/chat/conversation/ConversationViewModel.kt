@@ -37,11 +37,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -71,14 +74,18 @@ class ConversationViewModel @Inject constructor(
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
         val identityRevealed: Boolean?,
-        val user: User?,
+        val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
     ) {
         data class User(
+            val memberId: UUID,
             val username: String?,
             val imageUrl: String?,
-        )
+        ) {
+            val isRevealed: Boolean
+                get() = username != null
+        }
 
         companion object {
             val Default = State(
@@ -89,7 +96,7 @@ class ConversationViewModel @Inject constructor(
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
                 identityRevealed = null,
-                user = null,
+                users = emptyList(),
                 lastSeen = null,
                 pointers = emptyMap(),
             )
@@ -103,6 +110,7 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnUserRevealed(
+            val memberId: UUID,
             val username: String? = null,
             val imageUrl: String? = null,
         ) : Event
@@ -227,7 +235,7 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.RevealIdentity>()
             .mapNotNull { stateFlow.value.conversationId }
             .onEach { conversationId ->
-                val user = stateFlow.value.user?.username ?: "This user"
+                val user = stateFlow.value.users.firstOrNull()?.username ?: "This user"
                 val identity = tipController.connectedAccount.value ?: return@onEach
                 val platform = when (identity) {
                     is TwitterUser -> Platform.Twitter
@@ -259,15 +267,22 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         stateFlow
-            .mapNotNull { it.user }
+            .mapNotNull { it.users }
             .distinctUntilChanged()
-            .filter { it.imageUrl == null }
-            .mapNotNull { it.username }
-            .map { username -> runCatching { tipController.fetch(username) } }
-            .map { it.getOrNull() }
-            .filterNotNull()
-            .map { it.imageUrl }
-            .onEach { dispatchEvent(Event.OnUserRevealed(imageUrl = it)) }
+            .flatMapLatest { users ->
+                users.asFlow() // Convert the list to a flow
+            }
+            .filter { it.username != null }
+            .mapNotNull { user ->
+                val username = user.username ?: return@mapNotNull null
+                runCatching { tipController.fetch(username) }
+                    .getOrNull() to user
+            }
+            .onEach { (result, user) ->
+                if (result != null) {
+                    dispatchEvent(Event.OnUserRevealed(memberId = user.memberId, result.username, result.imageUrl))
+                }
+            }
             .launchIn(viewModelScope)
     }
 
@@ -320,15 +335,18 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _) = event.conversationWithPointers
+                    val members = conversation.nonSelfMembers
+
                     state.copy(
                         conversationId = conversation.id,
-                        title = conversation.title,
+                        title = conversation.name ?: "Anonymous Tipper",
                         identityRevealed = conversation.hasRevealedIdentity,
                         pointers = event.conversationWithPointers.pointers,
-                        user = conversation.user?.let {
+                        users = members.map {
                             State.User(
-                                username = it,
-                                imageUrl = conversation.userImage
+                                memberId = it.id,
+                                username = it.identity?.username,
+                                imageUrl = null,
                             )
                         }
                     )
@@ -371,12 +389,19 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 is Event.OnUserRevealed -> { state ->
-                    state.copy(
-                        user = State.User(
-                            username = event.username ?: state.user?.username,
-                            imageUrl = event.imageUrl,
-                        )
-                    )
+                    val users = state.users
+                    val updatedUsers = users.map {
+                        if (it.memberId == event.memberId) {
+                            it.copy(
+                                username = event.username ?: it.username,
+                                imageUrl = event.imageUrl ?: it.imageUrl,
+                            )
+                        } else {
+                            it
+                        }
+                    }
+
+                    state.copy(users = updatedUsers)
                 }
 
                 is Event.OnUserActivity -> { state ->

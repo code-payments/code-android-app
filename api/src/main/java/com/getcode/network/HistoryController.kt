@@ -16,7 +16,10 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
+import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.Identity
+import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.isConversation
 import com.getcode.model.chat.selfId
@@ -43,6 +46,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import okhttp3.internal.toImmutableList
 import timber.log.Timber
 import java.util.Locale
@@ -54,6 +58,7 @@ import javax.inject.Singleton
 class HistoryController @Inject constructor(
     private val client: Client,
     private val resources: ResourceHelper,
+    private val tipController: TipController,
     private val conversationMapper: ConversationMapper,
     private val conversationMessageMapper: ConversationMessageMapper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -132,13 +137,15 @@ class HistoryController @Inject constructor(
         }
 
         containers.onEach { chat ->
-            val result = fetchLatestMessageForChat(chat)
+            val members = fetchMemberImages(chat)
+            val updatedChat = chat.copy(members = members)
+            val result = fetchLatestMessageForChat(updatedChat)
             result.onSuccess { message ->
                 if (message != null) {
-                    updatedWithMessages.add(chat.copy(messages = listOf(message)))
+                    updatedWithMessages.add(updatedChat.copy(messages = listOf(message)))
                 }
             }.onFailure {
-                updatedWithMessages.add(chat)
+                updatedWithMessages.add(updatedChat)
             }
         }
 
@@ -163,8 +170,8 @@ class HistoryController @Inject constructor(
                                 to = newestMessage.id,
                                 status = MessageStatus.Read
                             ).onSuccess {
-                                    this[index] = chat.resetUnreadCount()
-                                }
+                                this[index] = chat.resetUnreadCount()
+                            }
                         }
                     }
             }?.toList()
@@ -234,7 +241,13 @@ class HistoryController @Inject constructor(
                         result.map { message -> conversationMessageMapper.map(chat.id to message) }
                     val memberId = chat.selfId ?: return@onSuccess
                     val latestRef = messages.maxBy { it.dateMillis }
-                    client.advancePointer(owner, chat, latestRef.id, memberId, MessageStatus.Delivered)
+                    client.advancePointer(
+                        owner,
+                        chat,
+                        latestRef.id,
+                        memberId,
+                        MessageStatus.Delivered
+                    )
                 }
 
             }
@@ -251,11 +264,7 @@ class HistoryController @Inject constructor(
                     // map revealed identity as title if known
                     if (chat.isConversation) {
                         val conversation = conversationMapper.map(chat)
-                        if (conversation.user != null) {
-                            chat.copy(title = Title.Localized(conversation.user))
-                        } else {
-                            chat
-                        }
+                        conversation.name?.let { chat.copy(title = Title.Localized(it)) } ?: chat
                     } else {
                         chat
                     }
@@ -277,6 +286,26 @@ class HistoryController @Inject constructor(
                     }
             }
         return result.getOrNull().orEmpty()
+    }
+
+    private suspend fun fetchMemberImages(chat: Chat): List<ChatMember> {
+        return chat.members
+            .map { member ->
+                if (member.isSelf) return@map member
+                if (member.identity == null) return@map member
+                if (member.identity.imageUrl != null) return@map member
+                val metadata = runCatching {
+                    tipController.fetch(member.identity.username)
+                }.getOrNull() ?: return@map member
+
+                member.copy(
+                    identity = Identity(
+                        platform = Platform.named(metadata.platform),
+                        username = metadata.username,
+                        imageUrl = metadata.imageUrl
+                    )
+                )
+            }
     }
 }
 

@@ -3,17 +3,40 @@ package com.getcode.model.chat
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.ID
 import com.getcode.model.uuid
+import com.getcode.utils.serializer.UUIDSerializer
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
+@Serializable
 sealed interface Pointer {
     val messageId: UUID?
     val memberId: ID?
+
+    @Serializable
     data class Unknown(override val memberId: ID) : Pointer {
+        @Serializable(with = UUIDSerializer::class)
         override val messageId: UUID? = null
     }
-    data class Sent(override val memberId: ID, override val messageId: UUID?): Pointer
-    data class Delivered(override val memberId: ID, override val messageId: UUID?): Pointer
-    data class Read(override val memberId: ID, override val messageId: UUID?) : Pointer
+    @Serializable
+    data class Sent(
+        override val memberId: ID,
+        @Serializable(with = UUIDSerializer::class)
+        override val messageId: UUID?
+    ): Pointer
+
+    @Serializable
+    data class Delivered(
+        override val memberId: ID,
+        @Serializable(with = UUIDSerializer::class)
+        override val messageId: UUID?
+    ): Pointer
+
+    @Serializable
+    data class Read(
+        override val memberId: ID,
+        @Serializable(with = UUIDSerializer::class)
+        override val messageId: UUID?
+    ) : Pointer
 
     companion object {
         operator fun invoke(proto: ChatService.Pointer): Pointer {

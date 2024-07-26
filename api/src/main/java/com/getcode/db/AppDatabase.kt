@@ -47,8 +47,9 @@ import java.io.File
         AutoMigration(from = 11, to = 12, spec = AppDatabase.Migration11To12::class),
         AutoMigration(from = 12, to = 13, spec = AppDatabase.Migration12To13::class),
         AutoMigration(from = 13, to = 14, spec = AppDatabase.Migration13To14::class),
+        AutoMigration(from = 14, to = 15, spec = AppDatabase.Migration14To15::class),
     ],
-    version = 14
+    version = 15
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -123,6 +124,18 @@ abstract class AppDatabase : RoomDatabase() {
         )
     )
     class Migration13To14: AutoMigrationSpec
+
+    @DeleteColumn.Entries(
+        DeleteColumn(
+            tableName = "conversations",
+            columnName = "user"
+        ),
+        DeleteColumn(
+            tableName = "conversations",
+            columnName = "userImage"
+        )
+    )
+    class Migration14To15: AutoMigrationSpec
 }
 
 object Database {

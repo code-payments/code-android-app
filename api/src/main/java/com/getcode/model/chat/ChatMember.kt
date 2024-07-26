@@ -2,6 +2,8 @@ package com.getcode.model.chat
 
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.ID
+import com.getcode.utils.serializer.UUIDSerializer
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -22,7 +24,9 @@ import java.util.UUID
  * @param isSubscribed Is the chat member subscribed to this chat?
  * Only valid when `isSelf = true`
  */
+@Serializable
 data class ChatMember(
+    @Serializable(with = UUIDSerializer::class)
     val id: UUID,
     val isSelf: Boolean,
     val identity: Identity?,
@@ -42,13 +46,15 @@ data class ChatMember(
 data class Identity(
     val platform: Platform,
     val username: String,
+    val imageUrl: String?
 ) {
     companion object {
         operator fun invoke(proto: ChatService.ChatMemberIdentity): Identity? {
             val platform = Platform(proto.platform).takeIf { it != Platform.Unknown } ?: return null
             return Identity(
                 platform = platform,
-                username = proto.username
+                username = proto.username,
+                imageUrl = null,
             )
         }
     }

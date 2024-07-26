@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -24,6 +25,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEachIndexed
+import androidx.compose.ui.zIndex
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -40,6 +43,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
+import com.getcode.ui.components.chat.AnonymousAvatar
+import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
@@ -199,11 +204,6 @@ data class ChatMessageConversationScreen(
 
         ModalContainer(
             title = {
-                if (state.user == null) {
-                    SheetTitleText(text = state.title)
-                    return@ModalContainer
-                }
-                val user = state.user!!
                 Row(
                     modifier = Modifier
                         .padding(start = CodeTheme.dimens.staticGrid.x6)
@@ -211,20 +211,34 @@ data class ChatMessageConversationScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
                 ) {
-                    AsyncImage(
-                        modifier = Modifier
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy((-8).dp)
+                    ) {
+                        val imageModifier = Modifier
                             .padding(start = CodeTheme.dimens.grid.x7)
-                            .size(30.dp)
-                            .clip(CircleShape),
-                        model = ImageRequest.Builder(LocalPlatformContext.current)
-                            .data(user.imageUrl)
-                            .error(R.drawable.ic_placeholder_user)
-                            .build(),
-                        contentDescription = null,
-                    )
+                            .size(CodeTheme.dimens.staticGrid.x6)
+                            .clip(CircleShape)
+
+                        state.users.fastForEachIndexed { index, user ->
+                            UserAvatar(
+                                modifier = imageModifier
+                                    .zIndex((state.users.size - index).toFloat()),
+                                data = if (user.isRevealed) {
+                                    user.imageUrl
+                                } else {
+                                    user.memberId
+                                }
+                            )
+                        }
+                    }
+
                     Column {
+                        val title = state.users.mapNotNull { it.username }
+                            .joinToString()
+                            .takeIf { it.isNotEmpty() } ?: "Anonymous Tipper"
                         Text(
-                            text = user.username.orEmpty(),
+                            text = title,
                             style = CodeTheme.typography.screenTitle
                         )
                         state.lastSeen?.let {
@@ -236,6 +250,7 @@ data class ChatMessageConversationScreen(
                         }
                     }
                 }
+
             },
             backButtonEnabled = { it is ChatMessageConversationScreen },
         ) {
