@@ -2,10 +2,10 @@
 
 object Android {
     const val namespace = "com.getcode"
-    const val versionCode = 408
+    const val versionCode = 409
     const val compileSdkVersion = 34
     const val minSdkVersion = 24
-    const val targetSdkVersion = 33
+    const val targetSdkVersion = 34
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
 }
