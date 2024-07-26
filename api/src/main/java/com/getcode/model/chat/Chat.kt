@@ -31,6 +31,25 @@ data class Chat(
     val cursor: Cursor,
     val messages: List<ChatMessage>
 ) {
+    val imageData: Any
+        get() {
+            return when (type) {
+                ChatType.Unknown -> id
+                ChatType.Notification -> id
+                ChatType.TwoWay -> {
+                    members
+                        .filterNot { it.isSelf }
+                        .firstNotNullOf {
+                            if (it.identity != null) {
+                                it.identity.imageUrl.orEmpty()
+                            } else {
+                                it.id
+                            }
+                        }
+                }
+            }
+        }
+
     val unreadCount: Int
         get() {
             if (!isV2) return _unreadCount

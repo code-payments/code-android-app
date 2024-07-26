@@ -97,7 +97,7 @@ private fun IdentityRevealHeader(
         mutableStateOf(false)
     }
 
-    LaunchedEffect(state.identityRevealed, state.user) {
+    LaunchedEffect(state.identityRevealed, state.users) {
         if (state.identityRevealed == false) {
             delay(500)
         }

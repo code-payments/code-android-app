@@ -25,6 +25,7 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.bytes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -143,11 +144,18 @@ class ConversationStreamController @Inject constructor(
                     .firstOrNull()
                     .takeIf { chat.isConversation }
 
-                if (identityRevealed != null && conversation.user == null) {
+                if (identityRevealed != null && conversation.members.isNotEmpty()) {
+                    val members = conversation.members.map {
+                        if (identityRevealed.memberId == it.id.bytes) {
+                            it.copy(identity = identityRevealed.identity)
+                        } else {
+                            it
+                        }
+                    }
                     scope.launch(Dispatchers.IO) {
                         db.conversationDao()
                             .upsertConversations(
-                                conversation.copy(user = identityRevealed.identity.username)
+                                conversation.copy(members = members)
                             )
                     }
                 }
