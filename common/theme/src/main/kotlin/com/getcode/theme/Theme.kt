@@ -23,6 +23,9 @@ private val DarkColorPalette = CodeColors(
     brandLight = BrandLight,
     brandSubtle = BrandSubtle,
     brandMuted = BrandMuted,
+    brandDark = BrandDark,
+    brandOverlay = BrandOverlay,
+    secondary = BrandAccent,
     background = Brand,
     onBackground = White,
     surface = Brand,
@@ -82,6 +85,9 @@ class CodeColors(
     brandLight: Color,
     brandSubtle: Color,
     brandMuted: Color,
+    brandDark: Color,
+    brandOverlay: Color,
+    secondary: Color,
     background: Color,
     onBackground: Color,
     surface: Color,
@@ -99,6 +105,10 @@ class CodeColors(
         private set
     var brandMuted by mutableStateOf(brandMuted)
         private set
+    var brandDark by mutableStateOf(brandDark)
+        private set
+    var brandOverlay by mutableStateOf(brandOverlay)
+        private set
     var background by mutableStateOf(background)
         private set
     var onBackground by mutableStateOf(onBackground)
@@ -115,12 +125,16 @@ class CodeColors(
         private set
     var textSecondary by mutableStateOf(textSecondary)
         private set
+    var secondary by mutableStateOf(secondary)
+        private set
 
     fun update(other: CodeColors) {
         brand = other.brand
         brandLight = other.brandLight
         brandSubtle = other.brandSubtle
         brandMuted = other.brandMuted
+        brandDark = other.brandDark
+        brandOverlay = other.brandOverlay
         background = other.background
         onBackground = other.onBackground
         surface = other.surface
@@ -129,6 +143,8 @@ class CodeColors(
         errorText = other.errorText
         textMain = other.textMain
         textSecondary = other.textSecondary
+        secondary = other.secondary
+
     }
 
     fun copy(): CodeColors = CodeColors(
@@ -136,6 +152,8 @@ class CodeColors(
         brandLight = brandLight,
         brandSubtle = brandSubtle,
         brandMuted = brandMuted,
+        brandDark = brandDark,
+        brandOverlay = brandOverlay,
         background = background,
         onBackground = onBackground,
         surface = surface,
@@ -144,6 +162,7 @@ class CodeColors(
         errorText = errorText,
         textMain = textMain,
         textSecondary = textSecondary,
+        secondary = secondary
     )
 }
 

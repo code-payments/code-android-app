@@ -2,6 +2,8 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -35,7 +37,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.LocalBetaFlags
 import com.getcode.R
-import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import com.getcode.theme.inputColors
@@ -99,25 +100,20 @@ fun ChatInput(
             )
         )
         AnimatedContent(
-            modifier = Modifier.fillMaxHeight(),
             targetState = state.text.isNotEmpty(),
             label = "show/hide send button",
             transitionSpec = {
-                slideIntoContainer(
-                    AnimatedContentTransitionScope.SlideDirection.Start
-                ) togetherWith slideOutOfContainer(
-                    AnimatedContentTransitionScope.SlideDirection.End
-                )
+                slideInHorizontally { it } togetherWith slideOutHorizontally { it }
             }
         ) { show ->
             if (show) {
                 Box(
                     modifier = Modifier
+                        .size(ChatInput_Size)
                         .align(Alignment.Bottom)
-                        .background(ChatOutgoing, shape = CircleShape)
+                        .background(CodeTheme.colors.secondary, shape = CircleShape)
                         .clip(CircleShape)
                         .rememberedClickable { onSendMessage() }
-                        .size(ChatInput_Size)
                         .padding(8.dp),
                     contentAlignment = Alignment.Center,
                 ) {

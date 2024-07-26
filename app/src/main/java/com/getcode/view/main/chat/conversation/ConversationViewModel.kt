@@ -5,6 +5,7 @@ package com.getcode.view.main.chat.conversation
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
+import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
@@ -12,7 +13,6 @@ import androidx.paging.map
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
@@ -35,16 +35,13 @@ import com.getcode.utils.timestamp
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -65,7 +62,6 @@ class ConversationViewModel @Inject constructor(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
 ) {
-
     data class State(
         val conversationId: ID?,
         val reference: Reference.IntentId?,
@@ -77,6 +73,8 @@ class ConversationViewModel @Inject constructor(
         val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
+        val showTypingIndicator: Boolean,
+        val isSelfTyping: Boolean,
     ) {
         data class User(
             val memberId: UUID,
@@ -99,6 +97,8 @@ class ConversationViewModel @Inject constructor(
                 users = emptyList(),
                 lastSeen = null,
                 pointers = emptyMap(),
+                showTypingIndicator = false,
+                isSelfTyping = false,
             )
         }
     }
@@ -131,6 +131,12 @@ class ConversationViewModel @Inject constructor(
         data class MarkDelivered(val messageId: ID) : Event
 
         data class Error(val message: String, val fatal: Boolean) : Event
+
+        data object OnTypingStarted: Event
+        data object OnTypingStopped: Event
+
+        data object OnUserTypingStarted: Event
+        data object OnUserTypingStopped: Event
     }
 
     init {
@@ -284,6 +290,31 @@ class ConversationViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        stateFlow
+            .map { it.textFieldState }
+            .flatMapLatest { it.textAsFlow() }
+            .onEach {
+                if (it.isEmpty()) {
+                    dispatchEvent(Event.OnUserTypingStopped)
+                } else if (it.isNotEmpty()) {
+                    if (!stateFlow.value.isSelfTyping) {
+                        dispatchEvent(Event.OnUserTypingStarted)
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStarted>()
+            .onEach {
+                // TODO
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStopped>()
+            .onEach {
+                // TODO
+            }.launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -370,6 +401,20 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnIdentityAvailable -> { state ->
                     state.copy(identityAvailable = event.available)
+                }
+
+                is Event.OnTypingStarted -> { state ->
+                    state.copy(showTypingIndicator = true)
+                }
+                is Event.OnTypingStopped -> { state ->
+                    state.copy(showTypingIndicator = false)
+                }
+
+                is Event.OnUserTypingStarted -> { state ->
+                    state.copy(isSelfTyping = true)
+                }
+                is Event.OnUserTypingStopped -> { state ->
+                    state.copy(isSelfTyping = false)
                 }
 
                 is Event.OnChatIdChanged,

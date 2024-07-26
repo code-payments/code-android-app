@@ -3,7 +3,17 @@
 package com.getcode.view.main.chat.conversation
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +43,7 @@ import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
+import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.view.main.tip.IdentityConnectionReason
 import kotlinx.coroutines.delay
@@ -43,7 +54,9 @@ fun ChatConversationScreen(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
+
     val navigator = LocalCodeNavigator.current
+
     CodeScaffold(
         topBar = {
             IdentityRevealHeader(state = state) {
@@ -56,9 +69,24 @@ fun ChatConversationScreen(
         },
         bottomBar = {
             Column(
-                modifier = Modifier
-                    .imePadding()
+                modifier = Modifier.imePadding(),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
+                AnimatedVisibility(
+                    visible = state.showTypingIndicator,
+                    enter = slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    ) { it } + scaleIn() + fadeIn(),
+                    exit = fadeOut() + scaleOut() + slideOutVertically { it }
+                ) {
+                    TypingIndicator(
+                        modifier = Modifier
+                            .padding(horizontal = CodeTheme.dimens.grid.x2)
+                    )
+                }
                 ChatInput(
                     state = state.textFieldState,
                     sendCashEnabled = state.tipChatCash.enabled,
@@ -123,7 +151,8 @@ private fun IdentityRevealHeader(
                         text = "Your messages are showing up anonymously.",
                         style = CodeTheme.typography.linkSmall.copy(
                             textDecoration = null,
-                            fontWeight = FontWeight.W700),
+                            fontWeight = FontWeight.W700
+                        ),
                     )
 
                     ClickableText(
