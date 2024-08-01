@@ -49,4 +49,5 @@
     <string name="subtitle_linkingTwitterToRevealIdentity">I\'m connecting my X account with @getcode</string>
     <string name="title_connectAccount">Connect Account</string>
     <string name="subtitle_connectXAccount">Connecting your X account allows you to reveal your identity to the people you tip. To connect your account post to X.</string>
+    <string name="title_useKadoSandbox">Use Kado Sandbox</string>
 </resources>

@@ -75,12 +75,6 @@ fun BetaFlagsScreen(
             state.buyKinEnabled
         ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableBuyKin(it)) },
         BetaFeature(
-            PrefsBool.ESTABLISH_CODE_RELATIONSHIP,
-            R.string.beta_code_relationship,
-            stringResource(id = R.string.beta_code_relationship_description),
-            state.establishCodeRelationship,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableCodeRelationshipEstablish(it)) },
-        BetaFeature(
             PrefsBool.CHAT_UNSUB_ENABLED,
             R.string.beta_chat_unsub,
             stringResource(id = R.string.beta_chat_unsub_description),

@@ -214,13 +214,11 @@ class BuyKinViewModel @Inject constructor(
         }
     }
 
-    private fun buildKadoUrl(amount: KinAmount, rate: Rate, nonce: UUID): Uri? {
+    private suspend fun buildKadoUrl(amount: KinAmount, rate: Rate, nonce: UUID): Uri? {
         val apiKey = BuildConfig.KADO_API_KEY
         if (apiKey.isEmpty()) {
             return null
         }
-
-
 
         return Uri.Builder()
             .scheme("https")
@@ -235,6 +233,7 @@ class BuyKinViewModel @Inject constructor(
             .appendQueryParameter("phone", phoneRepository.phoneNumber.makeE164())
             .appendQueryParameter("onToAddress", SessionManager.getOrganizer()?.swapDepositAddress)
             .appendQueryParameter("memo", nonce.blockchainMemo)
+            .appendQueryParameter("isMobileWebview", true.toString())
             .build()
     }
 

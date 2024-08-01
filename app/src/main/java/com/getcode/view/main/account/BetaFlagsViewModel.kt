@@ -47,7 +47,6 @@ class BetaFlagsViewModel @Inject constructor(
         data class EnableGiveRequests(val enabled: Boolean) : Event
         data class EnableBuyKin(val enabled: Boolean) : Event
         data class EnableTipCard(val enabled: Boolean) : Event
-        data class EnableCodeRelationshipEstablish(val enabled: Boolean) : Event
         data class EnableChatUnsubscribe(val enabled: Boolean) : Event
         data class EnableTipChats(val enabled: Boolean) : Event
         data class EnableTipsChatCash(val enabled: Boolean) : Event
@@ -71,11 +70,6 @@ class BetaFlagsViewModel @Inject constructor(
 
                     is Event.EnableChatUnsubscribe -> prefRepository.set(
                         PrefsBool.CHAT_UNSUB_ENABLED,
-                        event.enabled
-                    )
-
-                    is Event.EnableCodeRelationshipEstablish -> prefRepository.set(
-                        PrefsBool.ESTABLISH_CODE_RELATIONSHIP,
                         event.enabled
                     )
 
@@ -142,7 +136,6 @@ class BetaFlagsViewModel @Inject constructor(
                             displayErrors = displayErrors,
                             giveRequestsEnabled = giveRequestsEnabled,
                             buyKinEnabled = buyModuleEnabled,
-                            establishCodeRelationship = establishCodeRelationship,
                             chatUnsubEnabled = chatUnsubEnabled,
                             tipsEnabled = tipsEnabled,
                             tipsChatEnabled = tipsChatEnabled,
@@ -158,7 +151,6 @@ class BetaFlagsViewModel @Inject constructor(
                 is Event.UseDebugBuckets,
                 is Event.EnableCurrencySelectionInBalance,
                 is Event.SetVibrateOnScan,
-                is Event.EnableCodeRelationshipEstablish,
                 is Event.EnableChatUnsubscribe,
                 is Event.EnableTipChats,
                 is Event.EnableTipsChatCash,
