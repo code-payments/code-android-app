@@ -1,14 +1,12 @@
 package com.getcode.navigation.screens
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.model.KinAmount
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
@@ -185,6 +183,7 @@ data object ShareDownloadLinkModal : MainGraph, ModalRoot {
         }
     }
 }
+
 
 @Composable
 fun <T> AppScreen.OnScreenResult(block: (T) -> Unit) {

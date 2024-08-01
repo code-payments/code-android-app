@@ -1,15 +1,26 @@
 package com.getcode.navigation.screens
 
+import android.webkit.JavascriptInterface
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel
+import com.getcode.ui.utils.toAGColor
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
@@ -29,10 +40,14 @@ import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.GetKinSheetViewModel
+import com.getcode.view.main.tip.ConnectAccountScreen
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.IdentityConnectionReason
-import com.getcode.view.main.tip.ConnectAccountScreen
 import com.getcode.view.main.tip.TipConnectViewModel
+import com.kevinnzou.web.LoadingState
+import com.kevinnzou.web.WebView
+import com.kevinnzou.web.rememberWebViewNavigator
+import com.kevinnzou.web.rememberWebViewState
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -261,7 +276,8 @@ data object DeleteConfirmationScreen : MainGraph, ModalContent {
 }
 
 @Parcelize
-data class CurrencySelectionModal(val kind: CurrencySelectKind = CurrencySelectKind.Entry) : MainGraph, ModalContent {
+data class CurrencySelectionModal(val kind: CurrencySelectKind = CurrencySelectKind.Entry) :
+    MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -309,11 +325,7 @@ data class BuyMoreKinModal(
             BuyKinScreen(
                 viewModel = getViewModel(),
                 onRedirected = {
-                    if (showClose) {
-                        navigator.hide()
-                    } else {
-                        navigator.popAll()
-                    }
+                    navigator.hide()
                 }
             )
         }
@@ -342,6 +354,68 @@ data class BuyMoreKinModal(
             ) {
                 content()
             }
+        }
+    }
+}
+
+@Parcelize
+data class KadoWebScreen(val url: String) : MainGraph, ModalContent {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(id = R.string.action_buyMoreKin)
+
+    @Composable
+    override fun Content() {
+        val state = rememberWebViewState(url = url)
+        val navigator = LocalCodeNavigator.current
+        val webNavigator = rememberWebViewNavigator()
+        ModalContainer(
+            modalColor = if (isSystemInDarkTheme()) {
+                Color(0xFF0A121F)
+            } else {
+                CodeTheme.colors.background
+            },
+            backButtonEnabled = { true },
+            backButton = { SheetTitleDefaults.CloseButton() },
+            onBackClicked = { navigator.hide() },
+            closeButtonEnabled = { true },
+            closeButton = {
+                SheetTitleDefaults.RefreshButton()
+            },
+            onCloseClicked = { webNavigator.reload() }
+        ) {
+            val loadingState = state.loadingState
+            if (loadingState is LoadingState.Loading) {
+                CodeCircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+            WebView(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding(),
+                captureBackPresses = false,
+                navigator = webNavigator,
+                state = state,
+                onCreated = { nativeWebView ->
+                    nativeWebView.addJavascriptInterface(BuyKinWebInterface(), "Android")
+                    nativeWebView.clipToOutline = true
+                    nativeWebView.setBackgroundColor(Color.Transparent.toAGColor())
+                    nativeWebView.settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                    }
+                }
+            )
+        }
+    }
+
+    class BuyKinWebInterface {
+
+        @JavascriptInterface
+        fun handleMessage(message: String) {
+            println("KADO BUY KIN MESSAGE :: $message")
         }
     }
 }

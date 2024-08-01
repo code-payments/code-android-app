@@ -204,19 +204,19 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        betaFlags.observe()
-            .distinctUntilChanged()
-            .onEach { beta ->
-                ErrorUtils.setDisplayErrors(beta.displayErrors)
-
-                if (beta.establishCodeRelationship) {
-                    val organizer = SessionManager.getOrganizer() ?: return@onEach
-                    val domain = Domain.from("getcode.com") ?: return@onEach
-                    if (organizer.relationshipFor(domain) == null) {
-                        client.awaitEstablishRelationship(organizer, domain)
-                    }
-                }
-            }.launchIn(viewModelScope)
+//        betaFlags.observe()
+//            .distinctUntilChanged()
+//            .onEach { beta ->
+//                ErrorUtils.setDisplayErrors(beta.displayErrors)
+//
+//                if (beta.establishCodeRelationship) {
+//                    val organizer = SessionManager.getOrganizer() ?: return@onEach
+//                    val domain = Domain.from("getcode.com") ?: return@onEach
+//                    if (organizer.relationshipFor(domain) == null) {
+//                        client.awaitEstablishRelationship(organizer, domain)
+//                    }
+//                }
+//            }.launchIn(viewModelScope)
 
         features.buyModule
             .onEach { module ->

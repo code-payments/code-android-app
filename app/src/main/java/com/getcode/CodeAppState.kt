@@ -3,11 +3,9 @@ package com.getcode
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.rememberScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.lifecycle.MutableLiveData
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
@@ -86,7 +84,6 @@ class CodeAppState(
 
     val topBarMessage = MutableStateFlow<TopBarManager.TopBarMessage?>(null)
     val bottomBarMessage = MutableStateFlow<BottomBarManager.BottomBarMessage?>(null)
-
 
     fun upPress() {
         if (navigator.pop().not()) {

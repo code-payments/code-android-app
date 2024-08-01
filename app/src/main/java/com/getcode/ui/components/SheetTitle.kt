@@ -6,8 +6,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,7 +40,7 @@ object SheetTitleDefaults {
     @Composable
     fun BackButton() {
         Icon(
-            imageVector = Icons.Outlined.ArrowBack,
+            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
             contentDescription = "",
             tint = Color.White,
         )
@@ -52,11 +54,21 @@ object SheetTitleDefaults {
             tint = Color.White,
         )
     }
+
+    @Composable
+    fun RefreshButton() {
+        Icon(
+            imageVector = Icons.Outlined.Refresh,
+            contentDescription = "",
+            tint = Color.White,
+        )
+    }
 }
 
 @Composable
 fun SheetTitle(
     modifier: Modifier = Modifier,
+    color: Color = CodeTheme.colors.background,
     title: @Composable BoxScope.() -> Unit = { },
     displayLogo: Boolean = false,
     onLogoClicked: () -> Unit = { },
@@ -69,12 +81,12 @@ fun SheetTitle(
 ) {
     Surface(
         modifier = modifier,
-        color = Brand,
+        color = color,
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Brand)
+                .background(color)
                 .padding(vertical = CodeTheme.dimens.grid.x2)
                 .fillMaxWidth()
                 .height(topBarHeight),
