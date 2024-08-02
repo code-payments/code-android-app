@@ -40,10 +40,12 @@ object Versions {
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
     const val compose_paging = "3.3.0-alpha02"
+    const val compose_webview = "0.33.6"
 
     const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
+    const val retrofit = "2.6.0"
     const val rxjava: String = "3.1.3"
     const val rxandroid: String = "3.0.0"
 
@@ -193,6 +195,7 @@ object Libs {
     const val compose_voyager_navigation_hilt = "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
     const val compose_voyager_navigation_bottomsheet = "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
     const val compose_voyager_navigation_transitions = "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
+    const val compose_webview = "io.github.kevinnzou:compose-webview:${Versions.compose_webview}"
 
     const val rxjava = "io.reactivex.rxjava3:rxjava:${Versions.rxjava}"
     const val rxandroid = "io.reactivex.rxjava3:rxandroid:${Versions.rxandroid}"
@@ -223,6 +226,9 @@ object Libs {
     const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:1.1.0-alpha01"
     const val qr_generator = "com.github.androidmads:QRGenerator:${Versions.qr_generator}"
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
+
+    const val retrofit = "com.squareup.retrofit2:retrofit:${Versions.retrofit}"
+    const val retrofit_converter = "com.squareup.retrofit2:converter-gson:${Versions.retrofit}"
 
     const val androidx_test_runner =
         "androidx.test:runner:${Versions.androidx_test_runner}"

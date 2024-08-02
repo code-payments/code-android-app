@@ -14,6 +14,7 @@ data class PrefBool(
 sealed interface InternalRouting
 sealed interface AppSetting
 sealed interface BetaFlag
+sealed interface DevSetting
 
 
 sealed class PrefsBool(val value: String) {
@@ -31,6 +32,9 @@ sealed class PrefsBool(val value: String) {
     data object CAMERA_START_BY_DEFAULT: PrefsBool("camera_start_default"), AppSetting
     data object REQUIRE_BIOMETRICS: PrefsBool("require_biometrics"), AppSetting
 
+    // dev settings
+    data object ESTABLISH_CODE_RELATIONSHIP : PrefsBool("establish_code_relationship_enabled"), DevSetting
+
     // beta flags
     data object BUCKET_DEBUGGER_ENABLED: PrefsBool("debug_buckets"), BetaFlag
     data object VIBRATE_ON_SCAN: PrefsBool("vibrate_on_scan"), BetaFlag
@@ -40,7 +44,7 @@ sealed class PrefsBool(val value: String) {
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
     data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
 
-    data object ESTABLISH_CODE_RELATIONSHIP : PrefsBool("establish_code_relationship_enabled"), BetaFlag
+
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
     data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag

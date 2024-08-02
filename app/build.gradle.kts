@@ -131,6 +131,7 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
+    implementation("androidx.webkit:webkit:1.11.0")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
     androidTestImplementation(Libs.hilt)
@@ -159,6 +160,7 @@ dependencies {
     implementation(Libs.compose_voyager_navigation_transitions)
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
+    implementation(Libs.compose_webview)
 
     implementation(Libs.androidx_biometrics)
 
@@ -191,6 +193,10 @@ dependencies {
     implementation(Libs.qr_generator)
     implementation(Libs.zxing)
     implementation(Libs.mixpanel)
+
+    implementation(Libs.retrofit)
+    implementation(Libs.retrofit_converter)
+    implementation(Libs.okhttp_logging_interceptor)
 
     implementation(Libs.cloudy)
 
