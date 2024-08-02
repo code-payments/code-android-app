@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">คีย์การเข้าถึงของคุณเป็นวิธีเดียวที่จะเข้าถึงเงินของคุณ โปรดรักษาให้เป็นส่วนตัวและปลอดภัย</string>
   <string name="subtitle_accessKeyFaceID">ยืนยันตัวตนของคุณเพื่อดูคีย์การเข้าถึงของคุณ</string>
   <string name="subtitle_accessKeySnapshotDescription">แตะไอคอน Google Lens เพื่อเปิดรหัส QR เพื่อเข้าสู่ระบบ Code หรืออีกทางเลือกหนึ่ง คุณสามารถเข้าสู่ระบบได้ด้วยตนเองโดยป้อนคำ 12 คำในหน้าจอเข้าสู่ระบบ Code</string>
+  <string name="subtitle_accessKeySnapshotWarning">คำเตือน! รูปภาพนี้จะให้การเข้าถึงเงินทุนทั้งหมดที่คุณมีอยู่ใน Code อย่าได้แชร์รูปภาพนี้กับคนอื่น และโปรดเก็บรักษาให้ปลอดภัย</string>
   <string name="subtitle_allowCameraAccess">Code ช่วยให้คุณสามารถรับ Kin โดยการชี้กล้องของคุณไปที่ใบเรียกเก็บเงินดิจิทัลบนโทรศัพท์ของผู้ใช้อื่น</string>
   <string name="subtitle_allowCameraSettings">คุณต้องอนุญาตให้เข้าถึงกล้องจึงจะรับ Kin ได้</string>
   <string name="subtitle_authenticateToAccess">รับรองความถูกต้องเพื่อเข้าถึง Code</string>

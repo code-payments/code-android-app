@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Khóa Truy cập là cách duy nhất để bạn truy cập tiền của mình. Xin vui lòng giữ bí mật và an toàn cho Khóa Truy cập.</string>
   <string name="subtitle_accessKeyFaceID">Xác minh danh tính để xem Khóa Truy cập của bạn.</string>
   <string name="subtitle_accessKeySnapshotDescription">Nhấn vào biểu tượng Google Ống kính để mở mã QR để đăng nhập vào ứng dụng Code. Ngoài ra, bạn có thể đăng nhập thủ công bằng cách nhập 12 từ vào màn hình Đăng nhập của Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Cảnh báo! Hình ảnh này cho phép truy cập vào tất cả các khoản tiền bạn có trong Code. Không chia sẻ hình ảnh này với bất kỳ ai khác. Hãy giữ an toàn và bảo mật.</string>
   <string name="subtitle_allowCameraAccess">Mã giúp bạn có thể nhận được Kin bằng cách hướng camera của bạn vào hóa đơn kỹ thuật số trên điện thoại của người dùng khác</string>
   <string name="subtitle_allowCameraSettings">Bạn cần cho phép truy cập camera để có thể nhận được Kin</string>
   <string name="subtitle_authenticateToAccess">Xác thực để truy cập Code.</string>

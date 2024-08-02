@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Vaš ključ za pristup je jedini način da pristupite svojim sredstvima. Čuvajte ga u privatnosti i na sigurnom.</string>
   <string name="subtitle_accessKeyFaceID">Potvrdite svoj identitet da biste videli svoj ključ za pristup.</string>
   <string name="subtitle_accessKeySnapshotDescription">Kliknite na Google Lens ikonu kako biste otvorili QR kod kojim ćete se prijaviti u Code aplikaciju.\nMožete se prijaviti i ručno tako što ćete uneti 12 reči na ekranu za prijavu Code aplikacije.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Упозорење! Ова слика даје приступ свим средствима које имате у Code новчанику. Немојте да делите ову слику ни са ким другим. Чувајте је на сигурном и безбедном месту.</string>
   <string name="subtitle_allowCameraAccess">Code vam omogućava da primite Kin tako što ćete usmeriti kameru ka digitalnom računu na telefonu drugog korisnika</string>
   <string name="subtitle_allowCameraSettings">Morate da dozvolite pristup kameri da biste mogli da primite Kin</string>
   <string name="subtitle_authenticateToAccess">Потврдите идентитет да бисте приступили Code новчанику.</string>

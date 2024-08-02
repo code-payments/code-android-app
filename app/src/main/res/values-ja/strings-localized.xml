@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">アクセスキーは,お客様の資金にアクセスする唯一の方法です。公表せずに安全に保管してください。</string>
   <string name="subtitle_accessKeyFaceID">お客様のアクセスキーを表示するために本人確認を行ってください。</string>
   <string name="subtitle_accessKeySnapshotDescription">GoogleレンズのアイコンをタップしてQR コードを開き,Code にログインしてください。または,Codeのログイン画面に12文字を入力することで手動ログインすることもできます。</string>
+  <string name="subtitle_accessKeySnapshotWarning">警告！この画像は,あなたがCodeに保有しているすべての資金へのアクセスを提供するものです。この画像を他人と共有しないでください。安全に保管してください。</string>
   <string name="subtitle_allowCameraAccess">Codeを使用すると,他のユーザーの電話のデジタル請求書にカメラを向けることで,Kinを受信することができます</string>
   <string name="subtitle_allowCameraSettings">Kinを受信できるようにするには,カメラへのアクセスを許可する必要があります</string>
   <string name="subtitle_authenticateToAccess">Codeにアクセスするには認証を行ってください。</string>

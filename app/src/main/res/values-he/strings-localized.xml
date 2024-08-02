@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">מפתח הגישה שלך הוא הדרך היחידה לגשת לכספים שלך. אנא שמור אותו בסוד ובמקום בטוח.</string>
   <string name="subtitle_accessKeyFaceID">אמת את הזהות שלך כדי לצפות במפתח הגישה שלך.</string>
   <string name="subtitle_accessKeySnapshotDescription"/>
+  <string name="subtitle_accessKeySnapshotWarning">אזהרה! תמונה זו מעניקה גישה לכל הכספים שיש לך ב-Code. אין לשתף תמונה זו עם אף אחד אחר. יש לשמור אותה מאובטחת ובטוחה.</string>
   <string name="subtitle_allowCameraAccess">קוד מאפשרת לך לקבל קין באמצעות כיוון המצלמה שלך לשטר דיגיטלי בטלפון של משתמש אחר</string>
   <string name="subtitle_allowCameraSettings">אתה צריך לאפשר גישה למצלמה כדי שתוכל לקבל קין.</string>
   <string name="subtitle_authenticateToAccess">יש לאמת כדי לגשת ל-Code.</string>
