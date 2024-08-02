@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Ihr Zugangsschlüssel ist die einzige Möglichkeit, wie Sie auf Ihr Geld zugreifen können. Bitte bewahren Sie ihn geschützt und sicher auf.</string>
   <string name="subtitle_accessKeyFaceID">Verifizieren Sie Ihre Identität, um Ihren Zugangsschlüssel anzuzeigen.</string>
   <string name="subtitle_accessKeySnapshotDescription">Tippen Sie auf das Google-Lens-Symbol, um den QR-Code für die Anmeldung bei Code zu öffnen. Alternativ können Sie sich auch manuell anmelden, indem Sie die 12 Wörter auf dem Bildschirm „Code-Anmeldung\" eingeben.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Achtung! Dieses Bild ermöglicht Ihnen den Zugriff auf alle Gelder, die Sie in „Code\" haben. Teilen Sie dieses Bild nicht mit anderen. Bewahren Sie es sicher auf.</string>
   <string name="subtitle_allowCameraAccess">Mit Code können Sie Kin empfangen, indem Sie Ihre Kamera auf die digitale Rechnung auf dem Telefon eines anderen Benutzers richten.</string>
   <string name="subtitle_allowCameraSettings">Sie müssen den Zugriff auf die Kamera erlauben, um Kin empfangen zu können.</string>
   <string name="subtitle_authenticateToAccess">Authentifizierung für den Zugriff auf Code.</string>

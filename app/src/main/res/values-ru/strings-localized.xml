@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Ваш ключ доступа — единственный способ получить доступ к вашим средствам. Храните его в безопасном месте и не разглашайте.</string>
   <string name="subtitle_accessKeyFaceID">Подтвердите свою личность, чтобы посмотреть свой ключ доступа.</string>
   <string name="subtitle_accessKeySnapshotDescription">Нажмите на значок Google Lens, чтобы открыть QR-код и войти в Code. Вы также можете войти вручную, введя 12 слов на экране входа Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Внимание! Это изображение дает доступ ко всем вашим средствам в Code. Не делитесь этим изображением больше ни с кем. Храните его в безопасном и надежном месте.</string>
   <string name="subtitle_allowCameraAccess">Code позволяет вам получать Kin, наводя свою камеру на цифровую квитанцию на телефоне другого пользователя.</string>
   <string name="subtitle_allowCameraSettings">Вы должны разрешить доступ к камере, чтобы иметь возможность получать Kin</string>
   <string name="subtitle_authenticateToAccess">Пройдите аутентификацию для доступа к Code.</string>

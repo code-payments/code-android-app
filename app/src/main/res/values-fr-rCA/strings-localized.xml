@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Votre clé d\'accès est le seul moyen d\'accéder à vos fonds. Veuillez le garder en privé et en sécurité.</string>
   <string name="subtitle_accessKeyFaceID">Vérifiez votre identité pour voir votre clé d\'accès.</string>
   <string name="subtitle_accessKeySnapshotDescription">Appuyez sur l\'icône Google Lens pour ouvrir le code QR permettant de se connecter à Code. Vous pouvez également vous connecter manuellement en saisissant les 12 mots sur l\'écran de connexion au Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Attention! Cette image donne accès à tous les fonds dont vous disposez dans Code. Ne partagez pas cette image avec qui que ce soit. Gardez-la en sécurité.</string>
   <string name="subtitle_allowCameraAccess">Code vous permet de recevoir Kin en pointant votre appareil photo vers la facture numérique sur le téléphone d\'un autre utilisateur</string>
   <string name="subtitle_allowCameraSettings">Vous devez autoriser l\'accès à la caméra pour pouvoir recevoir Kin</string>
   <string name="subtitle_authenticateToAccess">Authentifiez-vous pour accéder à Code.</string>

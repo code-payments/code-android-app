@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Kunci Akses Anda adalah satu-satunya cara untuk mengakses dana Anda. Harap jaga kerahasiaan dan keamanannya.</string>
   <string name="subtitle_accessKeyFaceID">Verifikasi identitas Anda untuk melihat Kunci Akses Anda.</string>
   <string name="subtitle_accessKeySnapshotDescription">Ketuk ikon Google Lens untuk membuka kode QR untuk masuk ke Code. Atau Anda dapat masuk secara manual dengan memasukkan 12 kata di layar Masuk Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Peringatan! Gambar ini memberikan akses ke semua dana yang Anda miliki di Kode. Jangan bagikan gambar ini ke orang lain. Jaga agar tetap aman dan terlindungi.</string>
   <string name="subtitle_allowCameraAccess">Code memungkinkan Anda menerima Kin dengan mengarahkan kamera Anda ke tagihan digital di ponsel pengguna lain</string>
   <string name="subtitle_allowCameraSettings">Anda perlu mengizinkan akses kamera untuk dapat menerima Kin</string>
   <string name="subtitle_authenticateToAccess">Autentikasikan untuk mengakses Code.</string>

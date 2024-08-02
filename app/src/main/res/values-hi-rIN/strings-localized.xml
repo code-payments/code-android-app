@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">आपकी एक्सेस की आपके फंड तक पहुंचने का एकमात्र तरीका है. कृपया इसे गोपनीय और सुरक्षित रखें.</string>
   <string name="subtitle_accessKeyFaceID">अपनी एक्सेस कुंजी देखने के लिए अपनी पहचान वेरीफाई करें</string>
   <string name="subtitle_accessKeySnapshotDescription">अगर आपको Code ऐप में लॉग इन करना है, तो QR कोड खोलने के लिए Google Lens आइकॉन पर टैप करें. इसके अलावा, आप Code की लॉग इन स्क्रीन में 12 शब्द दर्ज करके मैन्युअल रूप से लॉग इन कर सकते हैं.</string>
+  <string name="subtitle_accessKeySnapshotWarning">चेतावनी! यह इमेज कोड में आपके पास मौजूद सभी फंडों तक पहुंच प्रदान करती है. इस इमेज को किसी और के साथ शेयर न करें. इसे बचा कर और सुरक्षित रखें.</string>
   <string name="subtitle_allowCameraAccess">कोड आपको अपने कैमरे को किसी अन्य उपयोगकर्ता के फ़ोन में डिजिटल बिल पर पॉइंट  करके Kin को प्राप्त करने में इनेबल करता है</string>
   <string name="subtitle_allowCameraSettings">Kin प्राप्त करने में इनेबल होने के लिए आपको कैमरा एक्सेस की अनुमति देनी होगी</string>
   <string name="subtitle_authenticateToAccess">Code को एक्सेस करने के लिए प्रमाणित करें.</string>

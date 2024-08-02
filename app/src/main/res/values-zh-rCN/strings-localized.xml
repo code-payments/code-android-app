@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">您的访问密钥是访问您资金的唯一途径。请将其存放在安全保密的地方。</string>
   <string name="subtitle_accessKeyFaceID">验证您的身份以查看您的访问密钥。</string>
   <string name="subtitle_accessKeySnapshotDescription">点击 Google Lens 图标,打开 QR 码以登录 Code。或者,您可以通过在 Code 登录界面中输入 12 个单词来手动登录。</string>
+  <string name="subtitle_accessKeySnapshotWarning">警告！此图像可用以访问您在 Code 中的所有资金。请勿向其他任何人分享此图像。请稳妥存放。</string>
   <string name="subtitle_allowCameraAccess">Code 使您可以通过将相机对准其他用户手机上的数字账单来接收 Kin</string>
   <string name="subtitle_allowCameraSettings">您需要允许相机访问才能接收 Kin</string>
   <string name="subtitle_authenticateToAccess">完成身份验证以访问Code。</string>
