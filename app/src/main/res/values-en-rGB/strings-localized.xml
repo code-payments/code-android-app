@@ -211,10 +211,11 @@
   <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your funds. Please keep it private and safe.</string>
   <string name="subtitle_accessKeyFaceID">Verify your identity to view your Access Key.</string>
   <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Code. Alternatively you can log in manually by entering the 12 words in the Code Log In screen.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Advarsel! Dette billede giver adgang til alle de funds, du har i Code. Del ikke dette billede med andre. Hold det sikkert og beskyttet.</string>
   <string name="subtitle_allowCameraAccess">Code enables you to receive Kin by pointing your camera at the digital bill on another user\'s phone</string>
   <string name="subtitle_allowCameraSettings">You need to turn on Camera in Settings to scan Codes</string>
   <string name="subtitle_authenticateToAccess">Authenticate to access Code.</string>
-  <string name="subtitle_buyKin">Buy Kin</string>
+  <string name="subtitle_buyKin">Add Cash with a Debit Card</string>
   <string name="subtitle_buyKinComingSoon">Buy Kin (Coming Soon)</string>
   <string name="subtitle_buySellDescription">Buying and selling Kin is currently a complex process. These processes will become simpler over time. If you would like to learn how to buy and sell Kin today, you can watch the walkthrough videos below.</string>
   <string name="subtitle_canOnlyGiveUpTo">You can only give up to %1$s</string>

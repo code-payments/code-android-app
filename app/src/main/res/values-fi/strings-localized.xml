@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Käyttöoikeusavaimesi on ainoa keino käyttää rahojasi. Pidä se yksityisenä ja turvassa.</string>
   <string name="subtitle_accessKeyFaceID">Vahvista henkilöllisyytesi nähdäksesi käyttöoikeusavaimesi.</string>
   <string name="subtitle_accessKeySnapshotDescription">Napauta Google Lens -ikonia ja avaa QR-koodi kirjautuaksesi Codeen. Voit myös kirjautua sisään manuaalisesti syöttämällä 12 sanaa Code-kirjautumisruudulle.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Varoitus! Tämä kuva antaa pääsyn kaikkiin Code-varoihisi. Älä jaa tätä kuvaa kenenkään muun kanssa. Säilytä se turvallisesti tallessa.</string>
   <string name="subtitle_allowCameraAccess">Code antaa sinun vastaanottaa kinejä osoittamalla kamerasi toisen käyttäjän puhelimessa olevaan digitaaliseen seteliin</string>
   <string name="subtitle_allowCameraSettings">Sinun on annettava kameran käyttöoikeudet voidaksesi saada kinejä</string>
   <string name="subtitle_authenticateToAccess">Todenna henkilöllisyytesi, jotta voit käyttää Codea.</string>

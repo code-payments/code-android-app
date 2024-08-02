@@ -167,7 +167,7 @@ abstract class BaseAccessKeyViewModel(
                 drawPaint(paintBackground)
             }
 
-            val topTextChunks = getString(R.string.title_accessKeySnapshotDescription)
+            val topTextChunks = getString(R.string.subtitle_accessKeySnapshotWarning)
                 .split(" ", "\n")
                 .chunked(7)
                 .map { it.joinToString(" ") }
