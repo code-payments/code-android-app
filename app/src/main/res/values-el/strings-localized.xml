@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Το Κλειδί Πρόσβασης είναι ο μόνος τρόπος πρόσβασης στα κεφάλαιά σας. Κρατήστε το απόρρητο και ασφαλές.</string>
   <string name="subtitle_accessKeyFaceID">Επαληθεύστε την ταυτότητά σας για να δείτε το Κλειδί Πρόσβασής σας.</string>
   <string name="subtitle_accessKeySnapshotDescription">Πατήστε το εικονίδιο Google Lens για να ανοίξετε τον κωδικό QR για να συνδεθείτε στο Code. Εναλλακτικά, μπορείτε να συνδεθείτε χειροκίνητα εισάγοντας τις 12 λέξεις στην οθόνη σύνδεσης του Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Προειδοποίηση! Αυτή η εικόνα παρέχει πρόσβαση σε όλα τα χρήματα που έχεις στον Κώδικα. Μη μοιραστείς αυτή την εικόνα με κανέναν άλλο. Διατήρησέ τη σε ασφάλεια.</string>
   <string name="subtitle_allowCameraAccess">Το Code σάς επιτρέπει να λαμβάνετε Kin στρέφοντας την κάμερά σας στον ψηφιακό λογαριασμό στο τηλέφωνο ενός άλλου χρήστη.</string>
   <string name="subtitle_allowCameraSettings">Πρέπει να επιτρέψετε την πρόσβαση στην κάμερα για να μπορείτε να λαμβάνετε Kin.</string>
   <string name="subtitle_authenticateToAccess">Πιστοποίηση ταυτότητας για πρόσβαση στο Code.</string>

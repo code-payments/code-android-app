@@ -42,7 +42,6 @@
     <string name="error_title_missingBiometrics">Biometrics Removed</string>
     <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
 
-    <string name="title_accessKeySnapshotDescription">Warning! This image gives access to all the funds you have in Code. Do not share this image with anyone else.\nKeep it secure and safe.</string>
     <string name="prompt_title_revealIdentity">Reveal your identity?</string>
     <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
 

@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Ваш ключ доступу — це єдиний спосіб отримати доступ до ваших коштів. Будь ласка, тримайте його в таємниці та безпеці.</string>
   <string name="subtitle_accessKeyFaceID">Підтвердьте свою особу, щоб переглянути свій ключ доступу.</string>
   <string name="subtitle_accessKeySnapshotDescription">Торкніться іконки Google Об\'єктиву, щоб відкрити QR-код і увійти в Code. Ви також можете увійти вручну, увівши 12 слів на екрані входу у Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Увага! Це зображення дає доступ до всіх коштів, які Ви маєте у Code. Не діліться ні з ким цим зображенням. Зберігайте його під надійним захистом.</string>
   <string name="subtitle_allowCameraAccess">Code дозволяє вам отримати Kin, навівши свою камеру на цифровий рахунок на телефоні іншого користувача</string>
   <string name="subtitle_allowCameraSettings">Вам слід надати доступ до камери, щоб мати можливість приймати Kin</string>
   <string name="subtitle_authenticateToAccess">Пройдіть автентифікацію для доступу до Code.</string>

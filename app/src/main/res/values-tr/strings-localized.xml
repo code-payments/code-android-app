@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Erişim Anahtarın, paralarına erişmenin tek yoludur. Lütfen kişisel ve güvenli olarak sakla.</string>
   <string name="subtitle_accessKeyFaceID">Erişim Anahtarını görüntülemek için kimliğini doğrula.</string>
   <string name="subtitle_accessKeySnapshotDescription">Code\'da oturum açmak amacıyla QR kodunu açmak için Google Lens simgesine dokunun. Alternatif olarak Code Oturum Açma ekranında 12 kelimeyi girerek manuel olarak oturum açabilirsiniz.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Uyarı! Bu görüntü, Code\'da sahip olduğunuz tüm fonlara erişim sağlar. Bu görüntüyü başka kimseyle paylaşmayın. Emniyetli bir şekilde saklayın.</string>
   <string name="subtitle_allowCameraAccess">Code, kameranı başka bir kullanıcının telefonundaki dijital faturaya doğrultarak Kin almanı sağlar.</string>
   <string name="subtitle_allowCameraSettings">Kin alabilmek için kamera erişimine izin vermen gerekiyor</string>
   <string name="subtitle_authenticateToAccess">Code\'a erişmek için kimlik doğrulaması yapın.</string>

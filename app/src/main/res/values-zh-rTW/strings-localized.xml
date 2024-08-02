@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">您的存取金鑰是存取自身資金的唯一辦法。請隱密並妥善地保管您的存取金鑰。</string>
   <string name="subtitle_accessKeyFaceID">驗證您的身分以查看您的存取金鑰。</string>
   <string name="subtitle_accessKeySnapshotDescription">點擊 Google 智慧鏡頭圖示,開啟 QR code 以登入 Code 應用程式。或者,您可以採取手動登入方式,在 Code 登入畫面輸入 12 字元。 </string>
+  <string name="subtitle_accessKeySnapshotWarning">警告！此圖片可存取您在 Code 中的所有資金。請勿與他人分享此圖片,並確保其安全。</string>
   <string name="subtitle_allowCameraAccess">Code 使您能夠將相機對準其他使用者手機上的數位帳單來接收 Kin</string>
   <string name="subtitle_allowCameraSettings">您需要允許相機存取權才能夠接收 Kin</string>
   <string name="subtitle_authenticateToAccess">請驗證以存取 Code。</string>

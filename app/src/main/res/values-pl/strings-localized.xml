@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Twój klucz dostępu to jedyny sposób uzyskania dostępu do Twoich środków. Nie przekazuj go nikomu i trzymaj go w bezpiecznym miejscu.</string>
   <string name="subtitle_accessKeyFaceID">Zweryfikuj tożsamość, żeby zobaczyć Klucz dostępu.</string>
   <string name="subtitle_accessKeySnapshotDescription">Stuknij ikonę Google Lens, żeby otworzyć kod QR do logowania się do Code. Alternatywnie możesz się zalogować ręcznie, wpisując 12 słów w Code Log na ekranie.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Ostrzeżenie! Ten obraz daje dostęp do wszystkich środków, które posiadasz w Code. Nie udostępniaj tego obrazu nikomu innemu. Przechowuj go w bezpiecznym miejscu.</string>
   <string name="subtitle_allowCameraAccess">Code umożliwia otrzymywanie Kin poprzez wskazywanie kamerą na banknot cyfrowy na telefonie innego użytkownika</string>
   <string name="subtitle_allowCameraSettings">Żeby móc otrzymywać Kin, trzeba zezwolić na dostęp do kamery</string>
   <string name="subtitle_authenticateToAccess">Uwierzytelnij, aby uzyskać dostęp do Code.</string>

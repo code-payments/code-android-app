@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">A hozzáférési kulcs az egyetlen módja annak, hogy hozzáférjen pénzeszközeihez. Kérjük, tartsa privátban és legyen óvatos.</string>
   <string name="subtitle_accessKeyFaceID">A hozzáférési kulcs megtekintéséhez igazolja személyazonosságát.</string>
   <string name="subtitle_accessKeySnapshotDescription">Koppintson a Google Lens ikonra a QR-kód megnyitásához a Code-ba való bejelentkezéshez. Alternatív megoldásként manuálisan is bejelentkezhet úgy, hogy beírja a 12 szót a Kódbejelentkezés képernyőn.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Figyelem! Ez a kép hozzáférést biztosít a Code-ban lévő összes pénzeszközéhez. Ne ossza meg ezt a képet senki mással. Tartsa biztonságban.</string>
   <string name="subtitle_allowCameraAccess">A Code lehetővé teszi a Kin fogadását, ha kameráját egy másik felhasználó telefonján lévő digitális számlára irányítja</string>
   <string name="subtitle_allowCameraSettings">A Kin fogadásához engedélyeznie kell a kamerához való hozzáférést</string>
   <string name="subtitle_authenticateToAccess">Azonosítsa magát a Code eléréséhez.</string>
