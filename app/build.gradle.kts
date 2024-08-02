@@ -194,6 +194,10 @@ dependencies {
     implementation(Libs.zxing)
     implementation(Libs.mixpanel)
 
+    implementation(Libs.retrofit)
+    implementation(Libs.retrofit_converter)
+    implementation(Libs.okhttp_logging_interceptor)
+
     implementation(Libs.cloudy)
 
     androidTestImplementation(Libs.androidx_test_runner)

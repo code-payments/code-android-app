@@ -45,6 +45,7 @@ object Versions {
     const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
+    const val retrofit = "2.6.0"
     const val rxjava: String = "3.1.3"
     const val rxandroid: String = "3.0.0"
 
@@ -225,6 +226,9 @@ object Libs {
     const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:1.1.0-alpha01"
     const val qr_generator = "com.github.androidmads:QRGenerator:${Versions.qr_generator}"
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
+
+    const val retrofit = "com.squareup.retrofit2:retrofit:${Versions.retrofit}"
+    const val retrofit_converter = "com.squareup.retrofit2:converter-gson:${Versions.retrofit}"
 
     const val androidx_test_runner =
         "androidx.test:runner:${Versions.androidx_test_runner}"
