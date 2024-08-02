@@ -40,6 +40,7 @@ import com.getcode.view.main.getKin.BuyAndSellKin
 import com.getcode.view.main.getKin.BuyKinScreen
 import com.getcode.view.main.getKin.GetKinSheet
 import com.getcode.view.main.getKin.GetKinSheetViewModel
+import com.getcode.view.main.getKin.KadoWebScreen
 import com.getcode.view.main.tip.ConnectAccountScreen
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.IdentityConnectionReason
@@ -382,32 +383,10 @@ data class KadoWebScreen(val url: String) : MainGraph, ModalContent {
             backButton = { SheetTitleDefaults.CloseButton() },
             onBackClicked = { navigator.hide() },
             closeButtonEnabled = { true },
-            closeButton = {
-                SheetTitleDefaults.RefreshButton()
-            },
+            closeButton = { SheetTitleDefaults.RefreshButton() },
             onCloseClicked = { webNavigator.reload() }
         ) {
-            val loadingState = state.loadingState
-            if (loadingState is LoadingState.Loading) {
-                CodeCircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-            WebView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .imePadding(),
-                captureBackPresses = false,
-                navigator = webNavigator,
-                state = state,
-                onCreated = { nativeWebView ->
-                    nativeWebView.addJavascriptInterface(BuyKinWebInterface(), "Android")
-                    nativeWebView.clipToOutline = true
-                    nativeWebView.setBackgroundColor(Color.Transparent.toAGColor())
-                    nativeWebView.settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                    }
-                }
-            )
+            KadoWebScreen(viewModel = getViewModel(), state = state, webNavigator = webNavigator)
         }
     }
 
