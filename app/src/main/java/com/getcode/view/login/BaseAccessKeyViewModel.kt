@@ -5,23 +5,19 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Environment
-import androidmads.library.qrgenearator.QRGContents
-import androidmads.library.qrgenearator.QRGEncoder
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.media.MediaScanner
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.media.MediaScanner
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.TransactionRepository.DeniedReason
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.Alert
-import com.getcode.theme.R as themeR
 import com.getcode.theme.Brand
-import com.getcode.theme.Transparent
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.generateQrCode
@@ -41,6 +37,7 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.getcode.theme.R as themeR
 
 
 data class AccessKeyUiModel(
