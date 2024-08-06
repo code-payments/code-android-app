@@ -2,12 +2,21 @@
 
 object Android {
     const val namespace = "com.getcode"
-    const val versionCode = 410
     const val compileSdkVersion = 34
     const val minSdkVersion = 24
     const val targetSdkVersion = 34
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
+}
+
+object Packaging {
+    private const val majorVersion = 2
+    private const val minorVersion = 1
+    private const val patchVersion = 7
+    const val buildNumber = 411
+
+    val versionCode = buildNumber
+    val versionName = "$majorVersion.$minorVersion.$patchVersion"
 }
 
 object Versions {
