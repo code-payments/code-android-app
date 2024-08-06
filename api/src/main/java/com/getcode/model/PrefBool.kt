@@ -50,6 +50,7 @@ sealed class PrefsBool(val value: String) {
     data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag
     data object TIPS_CHAT_CASH_ENABLED: PrefsBool("tips_chat_cash_enabled"), BetaFlag
     data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
+    data object KADO_WEBVIEW_ENABLED : PrefsBool("kado_inapp_enabled"), BetaFlag
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

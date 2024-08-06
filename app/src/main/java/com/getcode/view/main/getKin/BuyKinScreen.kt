@@ -15,9 +15,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.LocalBetaFlags
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -30,7 +32,9 @@ import com.getcode.ui.components.Row
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.main.giveKin.AmountArea
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 @Composable
 fun BuyKinScreen(
@@ -43,6 +47,8 @@ fun BuyKinScreen(
     val dataState by viewModel.state.collectAsState()
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsState()
+    val betaFlags = LocalBetaFlags.current
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -118,7 +124,13 @@ fun BuyKinScreen(
 
                 composeScope.launch {
                     viewModel.initiatePurchase()?.let {
-                        navigator.push(KadoWebScreen(it))
+                        if (betaFlags.kadoWebViewEnabled) {
+                            navigator.push(KadoWebScreen(it))
+                        } else {
+                            uriHandler.openUri(it)
+                            delay(1.seconds)
+                            onRedirected()
+                        }
                     }
                 }
             },
