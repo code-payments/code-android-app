@@ -147,6 +147,7 @@ private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         PrefsBool.BUY_MODULE_ENABLED -> false
         PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
+        PrefsBool.TIPS_ENABLED -> false
         PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
         else -> true
     }
