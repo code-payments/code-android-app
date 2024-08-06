@@ -2,8 +2,6 @@ package com.getcode.util
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import androidmads.library.qrgenearator.QRGContents
-import androidmads.library.qrgenearator.QRGEncoder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,9 +13,6 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.getcode.theme.Transparent
-import com.getcode.theme.White
-import com.getcode.ui.utils.toAGColor
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.WriterException
@@ -25,15 +20,14 @@ import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-fun generateQrCode(url: String, size: Int? = null): Bitmap? {
-    val qrgEncoder = if (size == null) {
-        QRGEncoder(url, QRGContents.Type.TEXT)
-    } else {
-        QRGEncoder(url, null, QRGContents.Type.TEXT, size)
-    }
-    qrgEncoder.colorBlack = White.toAGColor()
-    qrgEncoder.colorWhite = Transparent.toAGColor()
-    return qrgEncoder.bitmap
+fun generateQrCode(url: String, size: Int): Bitmap? {
+    return generateQr(
+        url = url,
+        size = size,
+        padding = 0,
+        contentColor = Color.WHITE,
+        spaceColor = Color.TRANSPARENT
+    )
 }
 
 @Composable
@@ -47,7 +41,6 @@ fun rememberQrBitmapPainter(
     val sizePx = with(density) { size.roundToPx() }
     val paddingPx = with(density) { padding.roundToPx() }
 
-
     var bitmap by remember(content) {
         mutableStateOf<Bitmap?>(null)
     }
@@ -56,45 +49,11 @@ fun rememberQrBitmapPainter(
         if (bitmap != null) return@LaunchedEffect
 
         launch(Dispatchers.IO) {
-            val qrCodeWriter = QRCodeWriter()
-
-            val encodeHints = mutableMapOf<EncodeHintType, Any?>()
-                .apply {
-                    this[EncodeHintType.MARGIN] = paddingPx
-                }
-
-            val bitmapMatrix = try {
-                qrCodeWriter.encode(
-                    content, BarcodeFormat.QR_CODE,
-                    sizePx, sizePx, encodeHints
-                )
-            } catch (ex: WriterException) {
-                null
-            }
-
-            val matrixWidth = bitmapMatrix?.width ?: sizePx
-            val matrixHeight = bitmapMatrix?.height ?: sizePx
-
-            val newBitmap = Bitmap.createBitmap(
-                bitmapMatrix?.width ?: sizePx,
-                bitmapMatrix?.height ?: sizePx,
-                Bitmap.Config.ARGB_8888,
+            bitmap = generateQr(
+                url = content,
+                size = sizePx,
+                padding = paddingPx,
             )
-
-            val pixels = IntArray(matrixWidth * matrixHeight)
-
-            for (x in 0 until matrixWidth) {
-                for (y in 0 until matrixHeight) {
-                    val shouldColorPixel = bitmapMatrix?.get(x, y) ?: false
-                    val pixelColor = if (shouldColorPixel) Color.BLACK else Color.WHITE
-
-                    pixels[y * matrixWidth + x] = pixelColor
-                }
-            }
-
-            newBitmap.setPixels(pixels, 0, matrixWidth, 0, 0, matrixWidth, matrixHeight)
-
-            bitmap = newBitmap
         }
     }
 
@@ -106,4 +65,52 @@ fun rememberQrBitmapPainter(
 
         BitmapPainter(currentBitmap.asImageBitmap())
     }
+}
+
+private fun generateQr(
+    url: String,
+    size: Int,
+    padding: Int,
+    contentColor: Int = Color.BLACK,
+    spaceColor: Int = Color.WHITE,
+    ): Bitmap {
+    val qrCodeWriter = QRCodeWriter()
+
+    val encodeHints = mutableMapOf<EncodeHintType, Any?>()
+        .apply {
+            this[EncodeHintType.MARGIN] = padding
+        }
+
+    val bitmapMatrix = try {
+        qrCodeWriter.encode(
+            url, BarcodeFormat.QR_CODE,
+            size, size, encodeHints
+        )
+    } catch (ex: WriterException) {
+        null
+    }
+
+    val matrixWidth = bitmapMatrix?.width ?: size
+    val matrixHeight = bitmapMatrix?.height ?: size
+
+    val newBitmap = Bitmap.createBitmap(
+        bitmapMatrix?.width ?: size,
+        bitmapMatrix?.height ?: size,
+        Bitmap.Config.ARGB_8888,
+    )
+
+    val pixels = IntArray(matrixWidth * matrixHeight)
+
+    for (x in 0 until matrixWidth) {
+        for (y in 0 until matrixHeight) {
+            val shouldColorPixel = bitmapMatrix?.get(x, y) ?: false
+            val pixelColor = if (shouldColorPixel) contentColor else spaceColor
+
+            pixels[y * matrixWidth + x] = pixelColor
+        }
+    }
+
+    newBitmap.setPixels(pixels, 0, matrixWidth, 0, 0, matrixWidth, matrixHeight)
+
+    return newBitmap
 }

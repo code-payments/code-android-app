@@ -190,7 +190,6 @@ dependencies {
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)
     implementation(Libs.mp_android_chart)
-    implementation(Libs.qr_generator)
     implementation(Libs.zxing)
     implementation(Libs.mixpanel)
 
