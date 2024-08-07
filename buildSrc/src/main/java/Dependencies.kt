@@ -13,10 +13,10 @@ object Packaging {
     private const val majorVersion = 2
     private const val minorVersion = 1
     private const val patchVersion = 7
-    const val buildNumber = 411
+    private const val buildNumber = 412
 
-    val versionCode = buildNumber
-    val versionName = "$majorVersion.$minorVersion.$patchVersion"
+    const val versionCode = buildNumber
+    const val versionName = "$majorVersion.$minorVersion.$patchVersion"
 }
 
 object Versions {
