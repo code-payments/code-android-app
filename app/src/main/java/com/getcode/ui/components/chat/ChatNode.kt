@@ -26,6 +26,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.error
+import com.getcode.LocalBetaFlags
 import com.getcode.R
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.MessageContent
@@ -49,6 +50,8 @@ fun ChatNode(
     chat: Chat,
     onClick: () -> Unit,
 ) {
+    val betaFlags = LocalBetaFlags.current
+
     Row(
         modifier = modifier
             .rememberedClickable { onClick() }
@@ -59,11 +62,13 @@ fun ChatNode(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val imageModifier = Modifier
-            .size(CodeTheme.dimens.staticGrid.x10)
-            .clip(CircleShape)
+        if (betaFlags.tipsChatEnabled) {
+            val imageModifier = Modifier
+                .size(CodeTheme.dimens.staticGrid.x10)
+                .clip(CircleShape)
 
-        UserAvatar(modifier = imageModifier, data = chat.imageData)
+            UserAvatar(modifier = imageModifier, data = chat.imageData)
+        }
 
         Column(
             modifier = Modifier.weight(1f),
