@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import android.webkit.JavascriptInterface
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -436,12 +437,19 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
                     } else {
                         navigator.progress > 0f
                     }
+                },
+                onCloseClicked = {
+                    navigator.hideWithResult(HomeResult.CancelTipEntry)
                 }
             ) {
                 EnterTipScreen(getViewModel()) { result ->
                     navigator.hideWithResult(result)
                 }
             }
+        }
+
+        BackHandler {
+            navigator.hideWithResult(HomeResult.CancelTipEntry)
         }
     }
 

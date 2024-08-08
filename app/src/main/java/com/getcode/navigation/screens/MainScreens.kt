@@ -31,6 +31,7 @@ sealed interface HomeResult {
     data class Request(val amount: KinAmount) : HomeResult
     data class ConfirmTip(val amount: KinAmount) : HomeResult
     data object ShowTipCard : HomeResult
+    data object CancelTipEntry: HomeResult
 }
 
 @Parcelize
@@ -65,6 +66,10 @@ data class HomeScreen(
 
                 is HomeResult.ShowTipCard -> {
                     vm.presentShareableTipCard()
+                }
+
+                is HomeResult.CancelTipEntry -> {
+                    vm.cancelTipEntry()
                 }
             }
         }

@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import cafe.adriel.voyager.core.stack.StackEvent
 import com.getcode.LocalBiometricsState
 import com.getcode.R
 import com.getcode.manager.TopBarManager
@@ -125,15 +126,6 @@ fun HomeScreen(
                             }
                         }
                     }
-                    .launchIn(this)
-            }
-
-            LaunchedEffect(navigator) {
-                // reset tip entry state when tip entry is manually dismissed
-                // without advancing next
-                snapshotFlow { navigator.progress }
-                    .filter { it == 0f && navigator.lastModalItem is EnterTipModal }
-                    .onEach { homeViewModel.cancelTipEntry() }
                     .launchIn(this)
             }
         }
