@@ -145,7 +145,7 @@ private fun TweetPreview(
             modifier = Modifier.weight(1f),
             text = xMessage,
             color = Color.White,
-            style = CodeTheme.typography.textSmall
+            style = CodeTheme.typography.textSmall,
         )
     }
 }
