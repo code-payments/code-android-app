@@ -8,6 +8,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.model.KinAmount
+import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
@@ -19,6 +20,7 @@ import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
 import com.getcode.view.main.requestKin.RequestKinScreen
+import com.google.firebase.encoders.annotations.Encodable.Ignore
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.mapNotNull
@@ -38,7 +40,8 @@ sealed interface HomeResult {
 data class HomeScreen(
     val seed: String? = null,
     val cashLink: String? = null,
-    val requestPayload: String? = null,
+    @IgnoredOnParcel
+    val request: DeepLinkRequest? = null,
 ) : AppScreen(), MainGraph {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -48,7 +51,7 @@ data class HomeScreen(
         val vm = getViewModel<HomeViewModel>()
 
         trace("home rendered")
-        HomeScreen(vm, cashLink, requestPayload)
+        HomeScreen(vm, cashLink, request)
 
         OnScreenResult<HomeResult> { result ->
             when (result) {

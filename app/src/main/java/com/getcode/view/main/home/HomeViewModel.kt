@@ -1430,9 +1430,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun handleRequest(bytes: String?) {
-        val data = bytes?.base64EncodedData() ?: return
-        val request = DeepLinkRequest.from(data)
+    fun handleRequest(request: DeepLinkRequest?) {
         if (request != null) {
             if (request.paymentRequest != null) {
                 viewModelScope.launch {
