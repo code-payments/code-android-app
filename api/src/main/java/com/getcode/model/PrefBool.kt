@@ -43,14 +43,13 @@ sealed class PrefsBool(val value: String) {
     data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
     data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
-
-
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
     data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag
     data object TIPS_CHAT_CASH_ENABLED: PrefsBool("tips_chat_cash_enabled"), BetaFlag
     data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
     data object KADO_WEBVIEW_ENABLED : PrefsBool("kado_inapp_enabled"), BetaFlag
+    data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

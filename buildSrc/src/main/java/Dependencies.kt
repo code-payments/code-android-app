@@ -260,4 +260,7 @@ object Libs {
     const val sodium_bindings = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
 
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
+
+    const val haze = "dev.chrisbanes.haze:haze:0.7.3"
+    const val process_phoenix = "com.jakewharton:process-phoenix:3.0.0"
 }

@@ -1358,10 +1358,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun shareTipCard() = viewModelScope.launch {
-        val username = tipController.connectedAccount.value?.username ?: return@launch
-
+        val connectedAccount = tipController.connectedAccount.value ?: return@launch
         withContext(Dispatchers.Main) {
-            val shareIntent = IntentUtils.tipCard(username)
+            val shareIntent = IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
 
             _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
         }

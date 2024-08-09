@@ -24,6 +24,7 @@
     <string translatable="false" name="beta_tipchats_cash">Tip Chats Cash</string>
     <string translatable="false" name="beta_balance_currency">Currency Selection in Balance</string>
     <string translatable="false" name="beta_kado_webview">Buy Kin Internally</string>
+    <string translatable="false" name="beta_share_tweet_tip">Share Tweets to Tip</string>
     <string translatable="false" name="beta_display_errors">Show Errors</string>
     <string name="beta_bucket_debugger_description" translatable="false">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description" translatable="false">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
@@ -37,6 +38,7 @@
     <string name="beta_tipchats_description" translatable="false">If enabled, you\'ll gain the ability to chat with tippers.</string>
     <string name="beta_tipchats_cash_description" translatable="false">If enabled, you\'ll gain the ability to send Kin in Tip Chats.</string>
     <string name="beta_kado_webview_description" translatable="false">If enabled, the Buy Kin flow will open in an internal WebView.</string>
+    <string name="beta_share_tweet_tip_description" translatable="false">If enabled, you\'ll gain the ability to share tweets directly from Twitter to Code to tip the author.</string>
     <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
     <string name="beta_resetTooltips" translatable="false">Reset Tooltips</string>
 

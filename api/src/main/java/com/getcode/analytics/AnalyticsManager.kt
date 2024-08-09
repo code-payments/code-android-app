@@ -323,7 +323,7 @@ class AnalyticsManager @Inject constructor(
         //Bill
         Bill("Bill"),
         Request("Request Card"),
-        TipCard("TIp Card"),
+        TipCard("Tip Card"),
 
         //Transfer
         Transfer("Transfer"),
