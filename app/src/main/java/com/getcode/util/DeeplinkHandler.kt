@@ -1,18 +1,24 @@
 package com.getcode.util
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
+import com.getcode.model.BetaFlag
+import com.getcode.model.PrefsBool
 import com.getcode.models.DeepLinkRequest
 import com.getcode.models.encode
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.encodeBase64
 import com.getcode.network.repository.urlDecode
+import com.getcode.ui.utils.getActivity
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64EncodedData
 import com.getcode.utils.trace
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -39,7 +45,10 @@ data class DeeplinkResult(
  * in favour of the latest request in the navigation graph.
  */
 @Singleton
-class DeeplinkHandler @Inject constructor() {
+class DeeplinkHandler @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val betaFlags: BetaFlagsRepository
+) {
     var debounceIntent: Intent? = null
         set(value) {
             intent.value = value
@@ -49,12 +58,13 @@ class DeeplinkHandler @Inject constructor() {
 
     val intent = MutableStateFlow(debounceIntent)
 
-    fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
+    suspend fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
+        println(intent)
         val uri = when {
             intent?.data != null -> intent.data
             intent?.getStringExtra(Intent.EXTRA_TEXT) != null -> {
                 val sharedLink = intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri() ?: return null
-                sharedLink.resolveSharedEntity
+                sharedLink.resolveSharedEntity()
             }
 
             else -> null
@@ -108,19 +118,19 @@ class DeeplinkHandler @Inject constructor() {
      * Handles converting inbound shared content with possible deeplinks
      * e.g sharing a tweet to trigger a tipcard flow
      */
-    private val Uri.resolveSharedEntity: Uri
-        get() {
-            // https://x.com/<username>/status/<tweetId>
-            return when {
-                this.host == "x.com" || this.host == "twitter.com" -> {
+    private suspend fun Uri.resolveSharedEntity(): Uri {
+        when {
+            this.host == "x.com" || this.host == "twitter.com" -> {
+                // https://x.com/<username>/status/<tweetId>
+                if (betaFlags.isEnabled(PrefsBool.SHARE_TWEET_TO_TIP)) {
                     // convert shared tweets to owner's tip card
                     val username = pathSegments.firstOrNull() ?: return this
-                    Uri.parse(Linkify.tipCard(username, "x"))
+                    return Uri.parse(Linkify.tipCard(username, "x"))
                 }
-
-                else -> this
             }
         }
+        return this
+    }
 
     private val Uri.deeplinkType: Type
         get() {

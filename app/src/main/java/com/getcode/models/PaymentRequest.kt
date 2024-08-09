@@ -10,7 +10,6 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -58,8 +57,12 @@ data class DeepLinkRequest(
 
             val mode = container.decode<Mode>("mode") ?: return null
             Timber.d("mode=$mode")
-            val secret = container.decode<String>("clientSecret")
-            val clientSecret = secret?.let { Base58.decode(it) }
+            val secret = container.decode<String>("clientSecret") ?: return null
+            val clientSecret = Base58.decode(secret)
+            if (clientSecret.size != 11) {
+                Timber.e("Invalid client secret")
+                return null
+            }
 
             val (successUrl, cancelUrl) = container.decode<ConfirmParams>("confirmParams")
                 ?: ConfirmParams(null, null)
@@ -67,7 +70,7 @@ data class DeepLinkRequest(
 
             val baseRequest = DeepLinkRequest(
                 mode = mode,
-                clientSecret = clientSecret?.toList().orEmpty(),
+                clientSecret = clientSecret.toList(),
                 successUrl = successUrl?.url,
                 cancelUrl = cancelUrl?.url,
             )
@@ -164,10 +167,6 @@ private inline fun <reified T> JsonObject.decode(key: String): T? {
         }
 }
 
-inline fun <reified T> encode(data: T): String {
-    return runCatching { Json.encodeToString<T>(data) }.getOrNull().orEmpty()
-}
-
 private inline fun <reified T, R> JsonObject.decode(key: String, map: (T) -> R): R? {
     return decode<T>(key)?.let { map(it) }
 }
@@ -180,7 +179,7 @@ private data class LoginKeys(
 )
 
 @Serializable
-data class PlatformKeys(
+private data class PlatformKeys(
     val name: String,
     val username: String,
 )

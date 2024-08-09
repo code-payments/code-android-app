@@ -19,6 +19,7 @@ data class BetaOptions(
     val tipsChatCashEnabled: Boolean,
     val balanceCurrencySelectionEnabled: Boolean,
     val kadoWebViewEnabled: Boolean,
+    val shareTweetToTip: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -36,6 +37,7 @@ data class BetaOptions(
             tipsChatCashEnabled = false,
             balanceCurrencySelectionEnabled = true,
             kadoWebViewEnabled = false,
+            shareTweetToTip = false
         )
     }
 }
@@ -70,7 +72,8 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.TIPS_CHAT_CASH_ENABLED, default = defaults.tipsChatCashEnabled),
             observeBetaFlag(PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED, defaults.balanceCurrencySelectionEnabled),
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
-            observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled)
+            observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled),
+            observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip)
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -86,6 +89,7 @@ class BetaFlagsRepository @Inject constructor(
                 balanceCurrencySelectionEnabled = it[10],
                 displayErrors = it[11],
                 kadoWebViewEnabled = it[12],
+                shareTweetToTip = it[13]
             )
         }
     }
@@ -97,5 +101,9 @@ class BetaFlagsRepository @Inject constructor(
         ) { a, b ->
             b.takeIf { a } ?: default
         }
+    }
+
+    suspend fun isEnabled(flag: PrefsBool): Boolean {
+        return prefRepository.get(flag, false)
     }
 }
