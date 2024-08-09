@@ -6,6 +6,7 @@ import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import androidx.room.Relation
+import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.MessageContent
 import com.getcode.utils.serializer.MessageContentSerializer
 import com.getcode.vendor.Base58
@@ -18,15 +19,23 @@ import java.util.UUID
 data class Conversation(
     @PrimaryKey
     val idBase58: String,
-    @ColumnInfo(defaultValue = "Tip Chat")
-    val title: String,
+    val title: String?,
     val hasRevealedIdentity: Boolean,
-    val user: String?,
-    val userImage: String?,
+    @ColumnInfo(defaultValue = "")
+    val members: List<ChatMember>,
     val lastActivity: Long?,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
+
+    val name: String?
+        get() = nonSelfMembers
+            .mapNotNull { it.identity?.username }
+            .joinToString()
+            .takeIf { it.isNotEmpty() }
+
+    val nonSelfMembers: List<ChatMember>
+        get() = members.filterNot { it.isSelf }
 
     override fun toString(): String {
         return """
@@ -34,7 +43,7 @@ data class Conversation(
             id:${idBase58},
             title:$title,
             hasRevealedIdentity:$hasRevealedIdentity,
-            user:$user,
+            members:${members.joinToString()}
             }
         """.trimIndent()
     }

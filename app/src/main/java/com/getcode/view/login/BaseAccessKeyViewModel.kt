@@ -5,22 +5,19 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Environment
-import androidmads.library.qrgenearator.QRGContents
-import androidmads.library.qrgenearator.QRGEncoder
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.media.MediaScanner
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.media.MediaScanner
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.TransactionRepository.DeniedReason
 import com.getcode.network.repository.decodeBase64
-import com.getcode.theme.R as themeR
+import com.getcode.theme.Alert
 import com.getcode.theme.Brand
-import com.getcode.theme.Transparent
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.generateQrCode
@@ -40,6 +37,7 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.getcode.theme.R as themeR
 
 
 data class AccessKeyUiModel(
@@ -85,7 +83,7 @@ abstract class BaseAccessKeyViewModel(
             val accessKeyBitmapDisplay =
                 createBitmapForExport(drawBackground = false, words, entropyB64)
             val accessKeyCroppedBitmap =
-                Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 300, 1200, 1450)
+                Bitmap.createBitmap(accessKeyBitmapDisplay, 0, 500, 1200, 1450)
 
             uiFlow.value = uiFlow.value.copy(
                 accessKeyBitmap = accessKeyBitmap,
@@ -108,10 +106,11 @@ abstract class BaseAccessKeyViewModel(
     private val logoHeight = 88
     private val qrCodeSize = 480
 
-    private val bgTopOffset = 350
-    private val logoTopOffset = 570
-    private val qrTopOffset = 780
-    private val keyTextTopOffset = 1400
+    private val bgTopOffset = 550
+    private val logoTopOffset = 770
+    private val qrTopOffset = 980
+    private val keyTextTopOffset = 1600
+    private val topTextTopOffset = 200
     private val bottomTextTopOffset = 2000
 
 
@@ -164,6 +163,22 @@ abstract class BaseAccessKeyViewModel(
                 paintBackground.style = Paint.Style.FILL
                 drawPaint(paintBackground)
             }
+
+            val topTextChunks = getString(R.string.subtitle_accessKeySnapshotWarning)
+                .split(" ", "\n")
+                .chunked(7)
+                .map { it.joinToString(" ") }
+
+            topTextChunks.forEachIndexed { index, text ->
+                drawText(
+                    canvas = this,
+                    y = topTextTopOffset + (60 * (index + 1)),
+                    sizePx = 40,
+                    color = Alert.toAGColor(),
+                    text = text
+                )
+            }
+
 
             drawBitmap(
                 accessKeyBg,

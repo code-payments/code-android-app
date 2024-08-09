@@ -10,8 +10,8 @@ import javax.inject.Inject
 
 class AppSettingsMapper @Inject constructor(
     private val biometricManager: BiometricManager,
-): Mapper<AppSettings, List<SettingItem>> {
-    override fun map(from: AppSettings): List<SettingItem> {
+): SuspendMapper<AppSettings, List<SettingItem>> {
+    override suspend fun map(from: AppSettings): List<SettingItem> {
 
         return APP_SETTINGS.map { setting ->
             when (setting) {

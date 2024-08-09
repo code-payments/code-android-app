@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Jako jediný způsob přístupu ke svým financím vám slouží přístupový klíč. Chraňte si ho bezpečně v soukromí.</string>
   <string name="subtitle_accessKeyFaceID">Abyste si mohli zobrazit přístupový kód, nechejte si ověřit totožnost.</string>
   <string name="subtitle_accessKeySnapshotDescription">Pokud se chcete přihlásit do aplikace Code, klepněte na ikonu Google Lens a otevřetete QR kód. Případně se můžete přihlásit ručně zadáním 12 slov na přihlašovací obrazovce aplikace Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Pozor! Tento obrázek umožňuje přístup ke všem prostředkům, které máte v Code. Nesdílejte tento obrázek s nikým dalším. Uchovávejte jej v bezpečí.</string>
   <string name="subtitle_allowCameraAccess">Kód vám umožňuje získávat kin zaměřením fotoaparátu na digitální účet nebo na telefon jiného uživatele.</string>
   <string name="subtitle_allowCameraSettings">Abyste mohli získávat kin, budete muset povolit přístup k fotoaparátu</string>
   <string name="subtitle_authenticateToAccess">Ověření pro přístup ke Code.</string>

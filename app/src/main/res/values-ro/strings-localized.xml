@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Cheia ta de acces reprezintă singura modalitate prin care îți poți accesa fondurile. Asigură-te că o păstrezi în confidențialitate și siguranță.</string>
   <string name="subtitle_accessKeyFaceID">Verifică-ți identitatea pentru a-ți vizualiza cheia de acces.</string>
   <string name="subtitle_accessKeySnapshotDescription">Apasă pe pictograma Google Lens pentru a deschide codul QR pentru conectarea la Code. Alternativ, te poți conecta manual introducând cele 12 cuvinte în ecranul de conectare al Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Atenție! Această imagine asigură accesul la toate fondurile pe care le aveți în Code. Nu divulgați această imagine nimănui altcuiva. Păstrați-o în condiții de siguranță și protecție.</string>
   <string name="subtitle_allowCameraAccess">Code îți permite să primești Kin încadrând cu fotocamera factura digitală de pe telefonul unui alt utilizator</string>
   <string name="subtitle_allowCameraSettings">Va fi nevoie să permiți accesul la fotocamera pentru a putea primi Kin</string>
   <string name="subtitle_authenticateToAccess">Autentificați-te pentru a accesa Code.</string>

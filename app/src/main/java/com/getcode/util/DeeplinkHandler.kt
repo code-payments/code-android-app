@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.models.DeepLinkRequest
-import com.getcode.models.PlatformKeys
 import com.getcode.models.encode
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
@@ -14,10 +13,7 @@ import com.getcode.network.repository.urlDecode
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64EncodedData
 import com.getcode.utils.trace
-import com.getcode.vendor.Base58
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import timber.log.Timber
@@ -28,6 +24,7 @@ data class DeeplinkResult(
     val type: DeeplinkHandler.Type,
     val stack: List<Screen>,
 )
+
 /**
  * This class is used to manage intent state across navigation.
  *
@@ -63,7 +60,6 @@ class DeeplinkHandler @Inject constructor() {
             else -> null
         } ?: return null
 
-        println("resolved uri=$uri")
         return when (val type = uri.deeplinkType) {
             is Type.Login -> {
                 DeeplinkResult(
@@ -82,9 +78,25 @@ class DeeplinkHandler @Inject constructor() {
 
             is Type.Sdk -> {
                 Timber.d("sdk=${type.payload}")
+                val request = type.payload?.base64EncodedData()?.let { DeepLinkRequest.from(it) }
                 DeeplinkResult(
                     type,
-                    listOf(HomeScreen(requestPayload = type.payload)),
+                    listOf(HomeScreen(request = request)),
+                )
+            }
+
+            is Type.Tip -> {
+                Timber.d("tipcard for ${type.username} on ${type.platform}")
+                DeeplinkResult(
+                    type,
+                    listOf(
+                        HomeScreen(
+                            request = DeepLinkRequest.fromTipCardUsername(
+                                type.platform,
+                                type.username
+                            )
+                        )
+                    ),
                 )
             }
 
@@ -99,43 +111,41 @@ class DeeplinkHandler @Inject constructor() {
     private val Uri.resolveSharedEntity: Uri
         get() {
             // https://x.com/<username>/status/<tweetId>
-            when (this.host) {
-                "x.com",
-                "twitter.com" -> {
+            return when {
+                this.host == "x.com" || this.host == "twitter.com" -> {
                     // convert shared tweets to owner's tip card
                     val username = pathSegments.firstOrNull() ?: return this
-                    val payload = buildJsonObject {
-                        put("mode", "tip")
-                        put(
-                            "platform",
-                            buildJsonObject {
-                                put("name", "Twitter")
-                                put("username", username)
-                            }
-                        )
-                    }
-                    val encodedPayload = encode(payload).toByteArray().encodeBase64()
-                    return "codewallet://sdk.getcode.com/v1/elements/tip-request-page-mobile/#/p=$encodedPayload".toUri()
+                    Uri.parse(Linkify.tipCard(username, "x"))
                 }
-                else -> return this
+
+                else -> this
             }
         }
 
     private val Uri.deeplinkType: Type
-        get() = when (val segment = lastPathSegment) {
-            "login" -> {
-                var entropy = fragments[Key.entropy]
-                if (entropy == null) {
-                    entropy = this.getQueryParameter("data")
-                }
-
-                Type.Login(entropy.also { Timber.d("entropy=$it") })
+        get() {
+            // check for tipcard URLs
+            val components = pathSegments
+            if (components.count() >= 2 && components[0] == "x" && components[1].isNotEmpty()) {
+                return Type.Tip(components[0], components[1])
             }
 
-            "cash", "c" -> Type.Cash(fragments[Key.entropy])
-            // support all variations of SDK request triggers
-            in Type.Sdk.regex -> Type.Sdk(fragments[Key.payload]?.urlDecode())
-            else -> Type.Unknown(path = segment)
+            return when (val segment = lastPathSegment) {
+                "login" -> {
+                    var entropy = fragments[Key.entropy]
+                    if (entropy == null) {
+                        entropy = this.getQueryParameter("data")
+                    }
+
+                    Type.Login(entropy.also { Timber.d("entropy=$it") })
+                }
+
+                "cash", "c" -> Type.Cash(fragments[Key.entropy])
+
+                // support all variations of SDK request triggers
+                in Type.Sdk.regex -> Type.Sdk(fragments[Key.payload]?.urlDecode())
+                else -> Type.Unknown(path = segment)
+            }
         }
 
     private val Uri.fragments: Map<Key, String>
@@ -154,11 +164,13 @@ class DeeplinkHandler @Inject constructor() {
     sealed interface Type {
         data class Login(val link: String?) : Type
         data class Cash(val link: String?) : Type
+        data class Tip(val platform: String, val username: String) : Type
         data class Sdk(val payload: String?) : Type {
             companion object {
                 val regex = Regex("^(login|payment|tip)?-?request-(modal|page)-(mobile|desktop)\$")
             }
         }
+
         data class Unknown(val path: String?) : Type
     }
 
@@ -190,4 +202,5 @@ class DeeplinkHandler @Inject constructor() {
     }
 }
 
-private operator fun Regex.contains(text: String?): Boolean = text?.let { this.matches(it) } ?: false
+private operator fun Regex.contains(text: String?): Boolean =
+    text?.let { this.matches(it) } ?: false

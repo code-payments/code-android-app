@@ -1,11 +1,9 @@
 package com.getcode.util
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import com.getcode.BuildConfig
-import com.getcode.network.repository.urlEncode
 import com.getcode.utils.makeE164
 
 object IntentUtils {
@@ -24,7 +22,7 @@ object IntentUtils {
     }
 
     fun tweet(message: String) = Intent(Intent.ACTION_VIEW).apply {
-        val url = "https://www.twitter.com/intent/tweet?text=${message.urlEncode()}"
+        val url = Linkify.tweet(message)
         setData(Uri.parse(url))
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
@@ -37,6 +35,41 @@ object IntentUtils {
         }
         val shareIntent = Intent.createChooser(sendIntent, null)
         shareIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+
+        return shareIntent
+    }
+
+    fun tipCard(username: String, platform: String): Intent {
+        val url = Linkify.tipCard(username, platform)
+
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, url)
+            type = "text/plain"
+        }
+
+        val shareIntent = Intent.createChooser(sendIntent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+
+        return shareIntent
+    }
+
+    fun cashLink(
+        entropy: String,
+        formattedAmount: String,
+    ): Intent {
+        val url = Linkify.cashLink(entropy)
+        val text = "$formattedAmount $url"
+
+        val sendIntent: Intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, text)
+            type = "text/plain"
+        }
+        val shareIntent = Intent.createChooser(sendIntent, null).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
 
         return shareIntent
     }

@@ -43,7 +43,7 @@ import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.RequestKinModal
-import com.getcode.navigation.screens.RequestTip
+import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
@@ -114,7 +114,7 @@ fun GetKinSheet(
                 if (dataState.isTipCardConnected) {
                     navigator.hideWithResult(HomeResult.ShowTipCard)
                 } else {
-                    navigator.push(RequestTip)
+                    navigator.push(ConnectAccount())
                 }
             },
         ),
@@ -232,6 +232,7 @@ private fun Items(items: List<GetKinItem>) {
 private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
     Row(
         modifier = modifier
+            .fillMaxWidth()
             .addIf(
                 item.isStrikeThrough.not(),
             ) {
@@ -280,8 +281,6 @@ private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
                     .size(CodeTheme.dimens.grid.x3)
                     .align(Alignment.CenterVertically),
             )
-        } else {
-            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

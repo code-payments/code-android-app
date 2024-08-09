@@ -36,6 +36,19 @@ data class DeepLinkRequest(
     }
 
     companion object {
+        fun fromTipCardUsername(platform: String, username: String): DeepLinkRequest {
+            return DeepLinkRequest(
+                mode = Mode.Tip,
+                clientSecret = emptyList(),
+                tipRequest = TipRequest(
+                    platformName = platform,
+                    username = username
+                ),
+                cancelUrl = null,
+                successUrl = null,
+            )
+        }
+
         fun from(data: ByteArray?): DeepLinkRequest? {
             data ?: return null
             val container = runCatching {

@@ -134,7 +134,7 @@ fun AccountHome(
                         .padding(top = CodeTheme.dimens.grid.x7)
                         .fillMaxWidth()
                         .align(Alignment.Center),
-                    text = "v${BuildConfig.VERSION_NAME}",
+                    text = "Version ${BuildConfig.VERSION_NAME} • Build ${BuildConfig.VERSION_CODE}",
                     color = CodeTheme.colors.textSecondary,
                     style = CodeTheme.typography.textSmall.copy(
                         textAlign = TextAlign.Center

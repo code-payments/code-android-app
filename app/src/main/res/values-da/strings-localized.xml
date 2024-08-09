@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">Du kan kun få adgang til dine midler ved hjælp af en adgangskode. Sørg for at gemme den sikkert og privat.</string>
   <string name="subtitle_accessKeyFaceID">Bekræft din identitet for at se din adgangskode</string>
   <string name="subtitle_accessKeySnapshotDescription">Tryk på Google Lens-ikonet for at åbne QR-koden og logge ind på Code. Alternativt kan du logge på manuelt ved at indtaste de 12 ord i log ind-skærmen i Code. </string>
+  <string name="subtitle_accessKeySnapshotWarning">Advarsel! Dette billede giver adgang til alle de funds, du har i Code. Del ikke dette billede med andre. Hold det sikkert og beskyttet.</string>
   <string name="subtitle_allowCameraAccess">Code giver dig mulighed for at modtage Kin, ved at rette dit kamera mod den digitale regning på en anden brugers telefon</string>
   <string name="subtitle_allowCameraSettings">Du skal tillade kameraadgang for at modtage Kin</string>
   <string name="subtitle_authenticateToAccess">Godkend for at få adgang til Code.</string>

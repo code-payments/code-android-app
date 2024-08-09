@@ -56,7 +56,6 @@ import com.getcode.util.launchAppSettings
 fun BackupKey(
     viewModel: AccountAccessKeyViewModel,
 ) {
-    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     val context = LocalContext.current
@@ -83,7 +82,7 @@ fun BackupKey(
     val launcher = getPermissionLauncher(onPermissionResult)
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navigator)
+        viewModel.onSubmit()
         isExportSeedRequested = false
     }
 

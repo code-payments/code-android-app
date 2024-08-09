@@ -24,8 +24,8 @@ android {
 
     defaultConfig {
         applicationId = Android.namespace
-        versionCode = Android.versionCode
-        versionName = "1.1.$versionCode"
+        versionCode = Packaging.versionCode
+        versionName = Packaging.versionName
 
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
@@ -131,6 +131,7 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
+    implementation("androidx.webkit:webkit:1.11.0")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
     androidTestImplementation(Libs.hilt)
@@ -139,7 +140,7 @@ dependencies {
     testImplementation(Libs.hilt_android_test)
     kaptTest(Libs.hilt_android_compiler)
 
-    androidTestImplementation("io.mockk:mockk:1.13.11")
+    androidTestImplementation("io.mockk:mockk:1.13.12")
 
     //Jetpack compose
     implementation(platform(Libs.compose_bom))
@@ -159,6 +160,7 @@ dependencies {
     implementation(Libs.compose_voyager_navigation_transitions)
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
+    implementation(Libs.compose_webview)
 
     implementation(Libs.androidx_biometrics)
 
@@ -188,9 +190,12 @@ dependencies {
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)
     implementation(Libs.mp_android_chart)
-    implementation(Libs.qr_generator)
     implementation(Libs.zxing)
     implementation(Libs.mixpanel)
+
+    implementation(Libs.retrofit)
+    implementation(Libs.retrofit_converter)
+    implementation(Libs.okhttp_logging_interceptor)
 
     implementation(Libs.cloudy)
 
@@ -218,5 +223,5 @@ dependencies {
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
 
-    implementation("dev.chrisbanes.haze:haze:0.6.2")
+    implementation("dev.chrisbanes.haze:haze:0.7.3")
 }

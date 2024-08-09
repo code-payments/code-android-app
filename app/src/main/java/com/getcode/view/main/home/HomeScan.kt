@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,6 +41,7 @@ import com.getcode.LocalBiometricsState
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
+import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
@@ -68,7 +68,6 @@ import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import com.getcode.view.main.home.components.TipConfirmation
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -88,8 +87,8 @@ enum class HomeBottomSheet {
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
-    deepLink: String? = null,
-    requestPayload: String? = null,
+    cashLink: String? = null,
+    request: DeepLinkRequest? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by homeViewModel.uiFlow.collectAsState()
@@ -107,8 +106,8 @@ fun HomeScreen(
             HomeScan(
                 homeViewModel = homeViewModel,
                 dataState = dataState,
-                deepLink = deepLink,
-                requestPayload = requestPayload,
+                cashLink = cashLink,
+                request = request,
             )
 
             val context = LocalContext.current
@@ -127,15 +126,6 @@ fun HomeScreen(
                     }
                     .launchIn(this)
             }
-
-            LaunchedEffect(navigator) {
-                // reset tip entry state when tip entry is manually dismissed
-                // without advancing next
-                snapshotFlow { navigator.progress }
-                    .filter { it == 0f && navigator.lastModalItem is EnterTipModal }
-                    .onEach { homeViewModel.cancelTipEntry() }
-                    .launchIn(this)
-            }
         }
     }
 }
@@ -144,8 +134,8 @@ fun HomeScreen(
 private fun HomeScan(
     homeViewModel: HomeViewModel,
     dataState: HomeUiModel,
-    deepLink: String?,
-    requestPayload: String?,
+    cashLink: String?,
+    request: DeepLinkRequest?,
 ) {
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
@@ -161,30 +151,34 @@ private fun HomeScan(
         mutableStateOf(dataState.autoStartCamera == true)
     }
 
-    val focusManager = LocalFocusManager.current
-
-    var deepLinkSaved by remember(deepLink) {
-        mutableStateOf(deepLink)
+    LaunchedEffect(previewing) {
+        homeViewModel.onCameraScanning(previewing)
     }
 
-    var requestPayloadSaved by remember(requestPayload) {
-        mutableStateOf(requestPayload)
+    val focusManager = LocalFocusManager.current
+
+    var cashLinkSaved by remember(cashLink) {
+        mutableStateOf(cashLink)
+    }
+
+    var requestPayloadSaved by remember(request) {
+        mutableStateOf(request)
     }
 
     val biometricsState = LocalBiometricsState.current
-    LaunchedEffect(biometricsState, previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
+    LaunchedEffect(biometricsState, previewing, dataState.balance, cashLinkSaved, requestPayloadSaved) {
         if (previewing) {
             focusManager.clearFocus()
         }
 
-        if (biometricsState.passed && !deepLinkSaved.isNullOrBlank()) {
-            homeViewModel.openCashLink(deepLink)
-            deepLinkSaved = null
+        if (biometricsState.passed && !cashLinkSaved.isNullOrBlank()) {
+            homeViewModel.openCashLink(cashLink)
+            cashLinkSaved = null
         }
 
-        if (biometricsState.passed && !requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
+        if (biometricsState.passed && requestPayloadSaved != null && dataState.balance != null) {
             delay(500.milliseconds)
-            homeViewModel.handleRequest(requestPayload)
+            homeViewModel.handleRequest(request)
             requestPayloadSaved = null
         }
     }

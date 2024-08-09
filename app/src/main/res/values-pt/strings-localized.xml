@@ -211,6 +211,7 @@
   <string name="subtitle_accessKeyDescription">A Sua Chave de Acesso é a única forma de aceder aos seus fundos. Mantenha-o privado e seguro.</string>
   <string name="subtitle_accessKeyFaceID">Verifique a sua identidade para ver a sua Chave de Acesso.</string>
   <string name="subtitle_accessKeySnapshotDescription">Toque no ícone do Google Lens para ler o código QR e iniciar sessão no Code.\nEm alternativa, pode iniciar sessão manualmente inserindo as 12 letras no ecrã de Início de Sessão do Code.\n</string>
+  <string name="subtitle_accessKeySnapshotWarning">Atenção! Esta imagem dá acesso a todos os fundos que tem no Code. Não partilhe esta imagem com ninguém. Mantenha-a segura e protegida.</string>
   <string name="subtitle_allowCameraAccess">A Code permite-lhe receber Kin apontando a sua câmara ao recibo digital no telemóvel de outro utilizador</string>
   <string name="subtitle_allowCameraSettings">Tem de permitir o acesso à câmara para ser capaz de receber Kin</string>
   <string name="subtitle_authenticateToAccess">Autenticar para aceder à Code.</string>

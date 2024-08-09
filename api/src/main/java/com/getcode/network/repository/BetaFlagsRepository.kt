@@ -13,12 +13,12 @@ data class BetaOptions(
     val displayErrors: Boolean,
     val giveRequestsEnabled: Boolean,
     val buyModuleEnabled: Boolean,
-    val establishCodeRelationship: Boolean,
     val chatUnsubEnabled: Boolean,
     val tipsEnabled: Boolean,
     val tipsChatEnabled: Boolean,
     val tipsChatCashEnabled: Boolean,
     val balanceCurrencySelectionEnabled: Boolean,
+    val kadoWebViewEnabled: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -30,12 +30,12 @@ data class BetaOptions(
             displayErrors = false,
             giveRequestsEnabled = false,
             buyModuleEnabled = true,
-            establishCodeRelationship = false,
             chatUnsubEnabled = false,
-            tipsEnabled = false,
+            tipsEnabled = true,
             tipsChatEnabled = false,
             tipsChatCashEnabled = false,
-            balanceCurrencySelectionEnabled = true
+            balanceCurrencySelectionEnabled = true,
+            kadoWebViewEnabled = false,
         )
     }
 }
@@ -43,6 +43,8 @@ data class BetaOptions(
 class BetaFlagsRepository @Inject constructor(
     private val prefRepository: PrefRepository,
 ) {
+    suspend fun isEnabled() = prefRepository.get(PrefsBool.IS_DEBUG_ALLOWED, false)
+
     fun enableBeta(allowed: Boolean) {
         prefRepository.set(
             PrefsBool.IS_DEBUG_ALLOWED,
@@ -62,13 +64,13 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.LOG_SCAN_TIMES, default = defaults.debugScanTimesEnabled),
             observeBetaFlag(PrefsBool.GIVE_REQUESTS_ENABLED, default = defaults.giveRequestsEnabled),
             observeBetaFlag(PrefsBool.BUY_MODULE_ENABLED, default = defaults.buyModuleEnabled),
-            observeBetaFlag(PrefsBool.ESTABLISH_CODE_RELATIONSHIP, default = defaults.establishCodeRelationship),
             observeBetaFlag(PrefsBool.CHAT_UNSUB_ENABLED, default = defaults.chatUnsubEnabled),
             observeBetaFlag(PrefsBool.TIPS_ENABLED, default = defaults.tipsEnabled),
             observeBetaFlag(PrefsBool.TIPS_CHAT_ENABLED, default = defaults.tipsChatEnabled),
             observeBetaFlag(PrefsBool.TIPS_CHAT_CASH_ENABLED, default = defaults.tipsChatCashEnabled),
             observeBetaFlag(PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED, defaults.balanceCurrencySelectionEnabled),
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
+            observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled)
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -77,13 +79,13 @@ class BetaFlagsRepository @Inject constructor(
                 debugScanTimesEnabled = it[3],
                 giveRequestsEnabled = it[4],
                 buyModuleEnabled = it[5],
-                establishCodeRelationship = it[6],
-                chatUnsubEnabled = it[7],
-                tipsEnabled = it[8],
-                tipsChatEnabled = it[9],
-                tipsChatCashEnabled = it[10],
-                balanceCurrencySelectionEnabled = it[11],
-                displayErrors = it[12],
+                chatUnsubEnabled = it[6],
+                tipsEnabled = it[7],
+                tipsChatEnabled = it[8],
+                tipsChatCashEnabled = it[9],
+                balanceCurrencySelectionEnabled = it[10],
+                displayErrors = it[11],
+                kadoWebViewEnabled = it[12],
             )
         }
     }
