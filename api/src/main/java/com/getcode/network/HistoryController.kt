@@ -34,6 +34,7 @@ import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope

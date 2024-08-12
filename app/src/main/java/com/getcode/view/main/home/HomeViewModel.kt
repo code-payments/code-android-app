@@ -883,30 +883,28 @@ class HomeViewModel @Inject constructor(
 
         val isReceived = payload != null
         val presentationStyle = if (isReceived) PresentationStyle.Pop else PresentationStyle.Slide
-        withContext(Dispatchers.Main) {
-            uiFlow.update {
-                var billState = it.billState.copy(
-                    bill = Bill.Payment(amount, code, request),
-                    valuation = PaymentValuation(amount),
-                    primaryAction = null,
-                )
+        uiFlow.update {
+            var billState = it.billState.copy(
+                bill = Bill.Payment(amount, code, request),
+                valuation = PaymentValuation(amount),
+                primaryAction = null,
+            )
 
-                if (isReceived) {
-                    billState = billState.copy(
-                        paymentConfirmation = PaymentConfirmation(
-                            state = ConfirmationState.AwaitingConfirmation,
-                            payload = code,
-                            requestedAmount = amount,
-                            localAmount = amount.replacing(exchange.localRate)
-                        ),
-                    )
-                }
-
-                it.copy(
-                    presentationStyle = presentationStyle,
-                    billState = billState,
+            if (isReceived) {
+                billState = billState.copy(
+                    paymentConfirmation = PaymentConfirmation(
+                        state = ConfirmationState.AwaitingConfirmation,
+                        payload = code,
+                        requestedAmount = amount,
+                        localAmount = amount.replacing(exchange.localRate)
+                    ),
                 )
             }
+
+            it.copy(
+                presentationStyle = presentationStyle,
+                billState = billState,
+            )
         }
 
         analytics.requestShown(amount = amount)
@@ -929,17 +927,14 @@ class HomeViewModel @Inject constructor(
         cashLinkManager.cancelBillTimeout()
 
         val paymentConfirmation = uiFlow.value.billState.paymentConfirmation ?: return@launch
-        withContext(Dispatchers.Main) {
-            uiFlow.update {
-                val billState = it.billState
-                it.copy(
-                    billState = billState.copy(
-                        paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
-                    ),
-                )
-            }
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
+                ),
+            )
         }
-
         runCatching {
             paymentRepository.completePayment(
                 paymentConfirmation.requestedAmount,
