@@ -242,6 +242,7 @@ class HomeViewModel @Inject constructor(
             .onEach {
                 when (it) {
                     is TwitterUser -> {
+                        analytics.tipCardLinked()
                         TopBarManager.showMessage(
                             topBarMessage = TopBarManager.TopBarMessage(
                                 type = TopBarManager.TopBarMessageType.SUCCESS,
