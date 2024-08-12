@@ -3,6 +3,7 @@ package com.getcode.network
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.PrefsBool
@@ -11,6 +12,8 @@ import com.getcode.model.TipMetadata
 import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
+import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
 import com.getcode.network.repository.base58
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -44,6 +48,7 @@ typealias TipUser = Pair<String, CodePayload>
 @Singleton
 class TipController @Inject constructor(
     private val client: Client,
+    betaFlags: BetaFlagsRepository,
     private val prefRepository: PrefRepository,
 ): LifecycleEventObserver {
 
@@ -70,7 +75,7 @@ class TipController @Inject constructor(
     val showTwitterSplat: Flow<Boolean> =
         combine(
             connectedAccount,
-            prefRepository.observeOrDefault(PrefsBool.TIPS_ENABLED, false),
+            betaFlags.observe().map { it.tipsEnabled },
             prefRepository.observeOrDefault(PrefsBool.SEEN_TIP_CARD, false)
         ) { connected, tipsEnabled, seen ->
             connected != null && !seen && tipsEnabled
