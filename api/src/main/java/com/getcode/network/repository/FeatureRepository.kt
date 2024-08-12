@@ -1,7 +1,9 @@
 package com.getcode.network.repository
 
 import com.getcode.model.BalanceCurrencyFeature
+import com.getcode.model.BetaFlag
 import com.getcode.model.BuyModuleFeature
+import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
@@ -15,7 +17,7 @@ import javax.inject.Inject
  * Collates [BetaOptions] with server availability (stored in [PrefRepository]).
  */
 class FeatureRepository @Inject constructor(
-    betaFlags: BetaFlagsRepository,
+    private val betaFlags: BetaFlagsRepository,
     prefRepository: PrefRepository,
 ) {
     val buyModule = combine(
@@ -31,4 +33,6 @@ class FeatureRepository @Inject constructor(
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 
     val balanceCurrencySelection = betaFlags.observe().map { BalanceCurrencyFeature(it.balanceCurrencySelectionEnabled) }
+
+    suspend fun isEnabled(feature: PrefsBool): Boolean = betaFlags.isEnabled(feature)
 }

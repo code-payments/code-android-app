@@ -18,10 +18,12 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -90,7 +92,9 @@ class PaymentRepository @Inject constructor(
     @SuppressLint("CheckResult")
     suspend fun completePayment(amount: KinAmount, rendezvousKey: KeyPair) {
         // 1. ensure we have exchange rates and compute the fees for this transaction
-        exchange.fetchRatesIfNeeded()
+        withContext(Dispatchers.IO) {
+            exchange.fetchRatesIfNeeded()
+        }
 
         var paymentAmount = amount
         return suspendCancellableCoroutine { cont ->
@@ -156,7 +160,7 @@ class PaymentRepository @Inject constructor(
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true)
-                    ).doOnComplete {
+                    ).observeOn(Schedulers.io()).doOnComplete {
                         analytics.transfer(
                             amount = paymentAmount,
                             successful = true,
@@ -209,7 +213,7 @@ class PaymentRepository @Inject constructor(
                     Completable.concatArray(
                         balanceController.fetchBalance(),
                         client.fetchLimits(isForce = true)
-                    ).doOnComplete {
+                    ).observeOn(Schedulers.io()).doOnComplete {
                         analytics.transferForTip(amount = amount, successful = true)
                         cont.resume(Unit)
                     }.subscribe()
