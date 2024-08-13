@@ -15,10 +15,14 @@ import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Clock
 import kotlin.coroutines.resume
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 
 object AccountUtils {
@@ -51,7 +55,7 @@ object AccountUtils {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
-                val result = getAccountNoActivity(context)
+                val result = getAccountInternal(context)
                 subject.onSuccess(result ?: (null to null))
             }
         }
@@ -66,15 +70,46 @@ object AccountUtils {
         }
     }
 
+    private suspend fun getAccountInternal(
+        context: Context,
+        maxRetries: Int = 3,
+        delayDuration: Duration = 2.seconds
+    ): Pair<String?, Account?>? {
+        var currentAttempt = 0
+        val startTime = TimeSource.Monotonic.markNow()
+
+        while (currentAttempt < maxRetries) {
+            val result = try {
+                getAccountNoActivity(context)
+            } catch (e: Exception) {
+                trace(message = "Attempt $currentAttempt failed with exception: ${e.message}", error = e, type = TraceType.Error)
+                null
+            }
+
+            if (result != null) {
+                return result
+            } else {
+                currentAttempt++
+                if (currentAttempt < maxRetries) {
+                    trace("Retrying after ${delayDuration.inWholeMilliseconds} ms...", type = TraceType.Log)
+                    delay(delayDuration.inWholeMilliseconds)
+                }
+            }
+        }
+
+        trace("Failed to get account after $maxRetries attempts in ${startTime.elapsedNow().inWholeMilliseconds} ms", type = TraceType.Error)
+        return null
+    }
+
     private suspend fun getAccountNoActivity(
         context: Context
     ): Pair<String?, Account?>? = suspendCancellableCoroutine { cont ->
         trace("getAuthToken", type = TraceType.Silent)
         val am: AccountManager = AccountManager.get(context)
-        val account = am.accounts.getOrNull(0)
+        val account = am.getAccountsByType(ACCOUNT_TYPE).firstOrNull()
         if (account == null) {
             trace("no associated account found", type = TraceType.Error)
-            cont.resume(null to null)
+            cont.resume(null)
             return@suspendCancellableCoroutine
         }
         val start = Clock.System.now()
@@ -90,9 +125,8 @@ object AccountUtils {
 
                     cont.resume(authToken.orEmpty() to account)
                 } catch (e: AuthenticatorException) {
-                    e.printStackTrace()
                     trace(message = "failed to read account", error = e, type = TraceType.Error)
-                    cont.resume(null to null)
+                    cont.resume(null)
                 }
             }, handler
         )
@@ -110,6 +144,6 @@ object AccountUtils {
             }
         }
 
-        return getAccountNoActivity(context)?.first
+        return getAccountInternal(context)?.first
     }
 }

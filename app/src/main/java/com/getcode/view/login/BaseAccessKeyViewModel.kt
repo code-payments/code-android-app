@@ -14,7 +14,9 @@ import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.media.MediaScanner
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.repository.TransactionRepository.DeniedReason
+import com.getcode.network.repository.DeniedReason
+import com.getcode.network.repository.ErrorSubmitIntent
+import com.getcode.network.repository.ErrorSubmitIntentException
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.Alert
 import com.getcode.theme.Brand
@@ -299,9 +301,9 @@ abstract class BaseAccessKeyViewModel(
 
     internal fun onSubmitError(e: Throwable) {
         when (e) {
-            is TransactionRepository.ErrorSubmitIntentException -> {
+            is ErrorSubmitIntentException -> {
                 when (val intent = e.errorSubmitIntent) {
-                    is TransactionRepository.ErrorSubmitIntent.Denied -> {
+                    is ErrorSubmitIntent.Denied -> {
                         if (intent.reasons.isEmpty() || intent.reasons.first() == DeniedReason.Unspecified) {
                             getSomethingWentWrongError()
                         } else {

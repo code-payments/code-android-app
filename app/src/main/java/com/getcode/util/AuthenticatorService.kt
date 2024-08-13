@@ -10,8 +10,9 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class AuthenticatorService : Service() {
-    @Inject
-    lateinit var accountAuthenticator: AccountAuthenticator
+    private val accountAuthenticator: AccountAuthenticator by lazy {
+        AccountAuthenticator(this)
+    }
 
     override fun onBind(intent: Intent): IBinder? {
         var binder: IBinder? = null

@@ -42,6 +42,7 @@ import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.bytes
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
@@ -303,8 +304,8 @@ class TransactionRepository @Inject constructor(
         val subject = SingleSubject.create<IntentType>()
 
         var serverMessageStream: StreamObserver<TransactionService.SubmitIntentRequest>? = null
-        val serverResponse = object : StreamObserver<TransactionService.SubmitIntentResponse> {
-            override fun onNext(value: TransactionService.SubmitIntentResponse?) {
+        val serverResponse = object : StreamObserver<SubmitIntentResponse> {
+            override fun onNext(value: SubmitIntentResponse?) {
                 Timber.i("Received: " + value?.responseCase?.name.orEmpty())
 
                 when (value?.responseCase) {
@@ -373,8 +374,9 @@ class TransactionRepository @Inject constructor(
                                 else -> Unit
                             }
 
-                            Timber.e(
-                                "Error: ${errors.joinToString("\n")}"
+                            trace(
+                                "Error: ${errors.joinToString("\n")}",
+                                type = TraceType.Error
                             )
                         }
 
@@ -696,90 +698,90 @@ class TransactionRepository @Inject constructor(
             }
         }
     }
+}
 
-    class ErrorSubmitIntentException(
-        val errorSubmitIntent: ErrorSubmitIntent,
-        cause: Throwable? = null,
-        val messageString: String = ""
-    ) : Exception(cause) {
-        override val message: String
-            get() = "${errorSubmitIntent.javaClass.simpleName} $messageString"
+class ErrorSubmitIntentException(
+    val errorSubmitIntent: ErrorSubmitIntent,
+    cause: Throwable? = null,
+    val messageString: String = ""
+) : Exception(cause) {
+    override val message: String
+        get() = "${errorSubmitIntent.javaClass.simpleName} $messageString"
+}
+
+enum class DeniedReason {
+    Unspecified,
+    TooManyFreeAccountsForPhoneNumber,
+    TooManyFreeAccountsForDevice,
+    UnsupportedCountry,
+    UnsupportedDevice;
+
+    companion object {
+        fun fromValue(value: Int): DeniedReason {
+            return entries.firstOrNull { it.ordinal == value } ?: Unspecified
+        }
     }
+}
 
-    enum class DeniedReason {
-        Unspecified,
-        TooManyFreeAccountsForPhoneNumber,
-        TooManyFreeAccountsForDevice,
-        UnsupportedCountry,
-        UnsupportedDevice;
+sealed class ErrorSubmitIntent(val value: Int) {
+    data class Denied(val reasons: List<DeniedReason> = emptyList()): ErrorSubmitIntent(0)
+    data class InvalidIntent(val reasons: List<String>): ErrorSubmitIntent(1)
+    data object SignatureError: ErrorSubmitIntent(2)
+    data class StaleState(val reasons: List<String>): ErrorSubmitIntent(3)
+    data object Unknown: ErrorSubmitIntent(-1)
+    data object DeviceTokenUnavailable: ErrorSubmitIntent(-2)
 
-        companion object {
-            fun fromValue(value: Int): DeniedReason {
-                return entries.firstOrNull { it.ordinal == value } ?: Unspecified
-            }
+    override fun toString(): String {
+        return when (this) {
+            is Denied -> "denied(${reasons.joinToString()})"
+            DeviceTokenUnavailable -> "deviceTokenUnavailable"
+            is InvalidIntent -> "invalidIntent(${reasons.joinToString()})"
+            SignatureError -> "signatureError"
+            is StaleState -> "staleState(${reasons.joinToString()})"
+            Unknown -> "unknown"
         }
     }
 
-    sealed class ErrorSubmitIntent(val value: Int) {
-        data class Denied(val reasons: List<DeniedReason> = emptyList()): ErrorSubmitIntent(0)
-        data class InvalidIntent(val reasons: List<String>): ErrorSubmitIntent(1)
-        data object SignatureError: ErrorSubmitIntent(2)
-        data class StaleState(val reasons: List<String>): ErrorSubmitIntent(3)
-        data object Unknown: ErrorSubmitIntent(-1)
-        data object DeviceTokenUnavailable: ErrorSubmitIntent(-2)
-
-        override fun toString(): String {
-            return when (this) {
-                is Denied -> "denied(${reasons.joinToString()})"
-                DeviceTokenUnavailable -> "deviceTokenUnavailable"
-                is InvalidIntent -> "invalidIntent(${reasons.joinToString()})"
-                SignatureError -> "signatureError"
-                is StaleState -> "staleState(${reasons.joinToString()})"
-                Unknown -> "unknown"
-            }
-        }
-
-        companion object {
-            operator fun invoke(proto: SubmitIntentResponse.Error): ErrorSubmitIntent {
-                val reasonStrings = proto.errorDetailsList.mapNotNull {
-                    when (it.typeCase) {
-                        TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
-                            it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
-                        else -> null
-                    }
-                }
-                return when (proto.code) {
-                    SubmitIntentResponse.Error.Code.DENIED -> {
-                        val reasons = proto.errorDetailsList.mapNotNull {
-                            if (!it.hasIntentDenied()) return@mapNotNull null
-                            DeniedReason.fromValue(it.intentDenied.reasonValue)
-                        }
-
-                        Denied(reasons)
-                    }
-                    SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent(reasonStrings)
-                    SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> SignatureError
-                    SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState(reasonStrings)
-                    SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unknown
-                    else -> return Unknown
+    companion object {
+        operator fun invoke(proto: SubmitIntentResponse.Error): ErrorSubmitIntent {
+            val reasonStrings = proto.errorDetailsList.mapNotNull {
+                when (it.typeCase) {
+                    TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
+                        it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+                    else -> null
                 }
             }
+            return when (proto.code) {
+                SubmitIntentResponse.Error.Code.DENIED -> {
+                    val reasons = proto.errorDetailsList.mapNotNull {
+                        if (!it.hasIntentDenied()) return@mapNotNull null
+                        DeniedReason.fromValue(it.intentDenied.reasonValue)
+                    }
+
+                    Denied(reasons)
+                }
+                SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent(reasonStrings)
+                SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> SignatureError
+                SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState(reasonStrings)
+                SubmitIntentResponse.Error.Code.UNRECOGNIZED -> Unknown
+                else -> return Unknown
+            }
         }
     }
+}
 
-    sealed class WithdrawException : Exception() {
-        class InvalidFractionalKinAmountException : WithdrawException()
-        class InsufficientFundsException : WithdrawException()
-    }
+sealed class WithdrawException : Exception() {
+    class InvalidFractionalKinAmountException : WithdrawException()
+    class InsufficientFundsException : WithdrawException()
+}
 
-    sealed class FetchUpgradeableIntentsException : Exception() {
-        class DeserializationException : FetchUpgradeableIntentsException()
-        class UnknownException : FetchUpgradeableIntentsException()
-    }
+sealed class FetchUpgradeableIntentsException : Exception() {
+    class DeserializationException : FetchUpgradeableIntentsException()
+    class UnknownException : FetchUpgradeableIntentsException()
+}
 
-    sealed class AirdropException : Exception() {
-        class AlreadyClaimedException : AirdropException()
-        class UnavailableException : AirdropException()
-        class UnknownException : AirdropException()
-    }
+sealed class AirdropException : Exception() {
+    class AlreadyClaimedException : AirdropException()
+    class UnavailableException : AirdropException()
+    class UnknownException : AirdropException()
 }

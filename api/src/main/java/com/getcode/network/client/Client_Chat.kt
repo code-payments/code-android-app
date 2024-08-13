@@ -30,14 +30,14 @@ suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
         .onSuccess {
             Timber.d("v2 chats fetched=${it.count()}")
         }.onFailure {
-            trace("Failed fetching chats from V2", error = it, type = TraceType.Error)
+            trace("Failed fetching chats from V2", type = TraceType.Error)
         }
 
     val v1Chats = chatServiceV1.fetchChats(owner)
         .onSuccess {
             Timber.d("v1 chats fetched=${it.count()}")
         }.onFailure {
-            trace("Failed fetching chats from V1", error = it, type = TraceType.Error)
+            trace("Failed fetching chats from V1", type = TraceType.Error)
         }
 
     if (v2Chats.isSuccess || v1Chats.isSuccess) {
