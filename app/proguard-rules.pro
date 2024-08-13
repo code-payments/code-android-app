@@ -56,6 +56,11 @@
 }
 
 -keep public class * extends java.lang.Exception
+-keep public class * extends com.getcode.network.repository.ErrorSubmitIntent
+-keep public class * extends com.getcode.network.repository.ErrorSubmitIntentException
+-keep public class * extends com.getcode.network.repository.WithdrawException
+-keep public class * extends com.getcode.network.repository.FetchUpgradeableIntentsException
+-keep public class * extends com.getcode.network.repository.AirdropException
 
 # https://github.com/firebase/firebase-android-sdk/issues/3688
 -keep class org.json.** { *; }

@@ -24,6 +24,7 @@ import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.repository.WithdrawException
 import com.getcode.network.repository.initiateSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
@@ -257,11 +258,11 @@ fun Client.withdrawExternally(
     destination: PublicKey
 ): Completable {
     if (amount.kin.fractionalQuarks().quarks != 0L) {
-        throw TransactionRepository.WithdrawException.InvalidFractionalKinAmountException()
+        throw WithdrawException.InvalidFractionalKinAmountException()
     }
 
     if (amount.kin > organizer.availableBalance) {
-        throw TransactionRepository.WithdrawException.InsufficientFundsException()
+        throw WithdrawException.InsufficientFundsException()
     }
 
     val intent = PublicKey.generate()

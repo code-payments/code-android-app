@@ -49,6 +49,9 @@ class BetaFlagsViewModel @Inject constructor(
                     PrefsBool.SHARE_TWEET_TO_TIP -> {
                         pacman.enableTweetShare(it.state)
                     }
+                    PrefsBool.DISPLAY_ERRORS -> {
+                        ErrorUtils.setDisplayErrors(it.state)
+                    }
                     else -> Unit
                 }
             }.launchIn(viewModelScope)

@@ -8,7 +8,6 @@ import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.model.intents.SwapIntent
 import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.core.BidirectionalStreamReference
-import com.getcode.network.repository.TransactionRepository.ErrorSubmitIntent
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
 import com.getcode.solana.keys.Signature
@@ -17,7 +16,6 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.suspendCancellableCoroutine
-import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import kotlin.coroutines.resume
 
