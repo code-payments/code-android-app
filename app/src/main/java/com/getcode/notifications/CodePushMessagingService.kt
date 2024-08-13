@@ -3,7 +3,9 @@ package com.getcode.notifications
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -26,6 +28,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.installationId
+import com.getcode.view.MainActivity
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -183,6 +186,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setSmallIcon(R.drawable.ic_code_logo_outline)
                 .setAutoCancel(true)
+                .setContentIntent(buildContentIntent(type))
 
         notificationManager.notify(title.hashCode(), notificationBuilder.build())
     }
@@ -205,6 +209,19 @@ class CodePushMessagingService : FirebaseMessagingService(),
         SessionManager.update { it.copy(organizer = organizer) }
         transactionRepository.swapIfNeeded(organizer)
     }
+}
+
+private fun Context.buildContentIntent(type: NotificationType): PendingIntent {
+    val launchIntent = Intent(this, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+
+    return PendingIntent.getActivity(
+        this,
+        type.ordinal,
+        launchIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 }
 
 
