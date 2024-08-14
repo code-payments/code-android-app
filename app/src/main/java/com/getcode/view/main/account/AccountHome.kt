@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
@@ -47,11 +48,12 @@ import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.DepositKinScreen
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.navigation.screens.WithdrawalAmountScreen
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
+import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.rememberedClickable
+import com.getcode.ui.utils.verticalScrollStateGradient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -86,6 +88,7 @@ fun AccountHome(
                             navigator.push(BuySellScreen)
                         }
                     }
+
                     AccountPage.DEPOSIT -> navigator.push(DepositKinScreen)
                     AccountPage.WITHDRAW -> navigator.push(WithdrawalAmountScreen)
                     AccountPage.FAQ -> navigator.push(FaqScreen)
@@ -120,18 +123,11 @@ fun AccountHome(
         }
     }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(dataState.items, key = { it.type }, contentType = { it }) { item ->
-            ListItem(item = item) {
-                handleItemClicked(item.type)
-            }
-        }
-
-        item {
+    CodeScaffold(
+        bottomBar = {
             Box(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     modifier = Modifier
-                        .padding(top = CodeTheme.dimens.grid.x7)
                         .fillMaxWidth()
                         .align(Alignment.Center),
                     text = "Version ${BuildConfig.VERSION_NAME} • Build ${BuildConfig.VERSION_CODE}",
@@ -140,6 +136,24 @@ fun AccountHome(
                         textAlign = TextAlign.Center
                     ),
                 )
+            }
+        }
+    ) { padding ->
+        val listState = rememberLazyListState()
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScrollStateGradient(
+                    scrollState = listState,
+                    isLongGradient = true,
+                ),
+            state = listState,
+        ) {
+            items(dataState.items, key = { it.type }, contentType = { it }) { item ->
+                ListItem(item = item) {
+                    handleItemClicked(item.type)
+                }
             }
         }
     }

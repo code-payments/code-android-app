@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onPlaced
@@ -37,6 +40,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
 import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
 
 inline fun Modifier.addIf(
     predicate: Boolean,
@@ -235,4 +239,130 @@ fun Modifier.drawWithGradient(
                 blendMode = blendMode
             )
         }
+}
+
+private val gradientSize
+    @Composable get() = CodeTheme.dimens.staticGrid.x8
+
+fun Modifier.verticalScrollStateGradient(
+    scrollState: LazyListState,
+    color: Color = Color.Unspecified,
+    showAtStart: Boolean = true,
+    showAtEnd: Boolean = true,
+    isLongGradient: Boolean = false,
+): Modifier = composed {
+    val backgroundColor = color.takeOrElse { CodeTheme.colors.background }
+    val gradientSizePx =
+        with(LocalDensity.current) { gradientSize.toPx() } * if (isLongGradient) 1.5f else 1f
+    this
+        .addIf(showAtStart && !scrollState.isScrolledToStart()) {
+            Modifier.drawWithGradient(
+                color = backgroundColor,
+                startY = { gradientSizePx },
+                endY = { 0f },
+            )
+        }
+        .addIf(showAtEnd && !scrollState.isScrolledToEnd()) {
+            Modifier.drawWithGradient(
+                color = backgroundColor,
+                startY = { size.height - gradientSizePx },
+            )
+        }
+}
+
+fun Modifier.horizontalScrollStateGradient(
+    scrollState: LazyListState,
+    color: Color,
+    showAtStart: Boolean = true,
+    showAtEnd: Boolean = true,
+): Modifier = composed {
+    val gradientSizePx =
+        with(LocalDensity.current) { gradientSize.toPx() }
+    this
+        .addIf(showAtStart && !scrollState.isScrolledToStart()) {
+            Modifier.drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            color,
+                            Color.Transparent,
+                        ),
+                        startX = 0f,
+                        endX = gradientSizePx,
+                    ),
+                )
+            }
+        }
+        .addIf(showAtEnd && !scrollState.isScrolledToEnd()) {
+            Modifier.drawWithContent {
+                drawContent()
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            color,
+                        ),
+                        startX = size.width - gradientSizePx,
+                        endX = size.width,
+                    ),
+                )
+            }
+        }
+}
+
+fun Modifier.verticalScrollStateGradient(
+    scrollState: LazyGridState,
+    color: Color,
+    showAtStart: Boolean = true,
+    showAtEnd: Boolean = true,
+): Modifier = composed {
+    val gradientSizePx =
+        with(LocalDensity.current) { gradientSize.toPx() }
+    this
+        .addIf(showAtStart && !scrollState.isVerticallyScrolledToStart()) {
+            Modifier.drawWithGradient(
+                color = color,
+                startY = { gradientSizePx },
+                endY = { 0f },
+            )
+        }
+        .addIf(showAtEnd && !scrollState.isVerticallyScrolledToEnd()) {
+            Modifier.drawWithGradient(
+                color = color,
+                startY = { size.height - gradientSizePx },
+            )
+        }
+}
+
+fun LazyListState.isScrolledToEnd(): Boolean {
+    val lastItem = layoutInfo.visibleItemsInfo.lastOrNull()
+    return lastItem == null ||
+            (lastItem.index == layoutInfo.totalItemsCount - 1 && lastItem.size + lastItem.offset <= layoutInfo.viewportEndOffset)
+}
+
+fun LazyListState.isScrolledToStart(): Boolean {
+    val firstItem = layoutInfo.visibleItemsInfo.firstOrNull()
+    return firstItem == null || firstItem.offset == 0
+}
+
+fun LazyGridState.isVerticallyScrolledToEnd(): Boolean {
+    val lastItem = layoutInfo.visibleItemsInfo.lastOrNull()
+    return lastItem == null ||
+            (lastItem.index == layoutInfo.totalItemsCount - 1 && lastItem.size.height + lastItem.offset.y <= layoutInfo.viewportEndOffset)
+}
+
+fun LazyGridState.isVerticallyScrolledToStart(): Boolean {
+    val firstItem = layoutInfo.visibleItemsInfo.firstOrNull()
+    return firstItem == null || firstItem.offset.y == 0
+}
+
+fun Modifier.footerShadow() = this.drawWithContent {
+    drawContent()
+    drawRect(
+        brush = Brush.verticalGradient(
+            endY = size.height * 0.12f,
+            colors = listOf(Color(0x10000000), Color.Transparent),
+        ),
+    )
 }
