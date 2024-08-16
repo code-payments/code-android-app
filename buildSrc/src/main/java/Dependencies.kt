@@ -13,9 +13,7 @@ object Packaging {
     private const val majorVersion = 2
     private const val minorVersion = 1
     private const val patchVersion = 7
-    private const val buildNumber = 417
 
-    const val versionCode = buildNumber
     const val versionName = "$majorVersion.$minorVersion.$patchVersion"
 }
 
@@ -104,6 +102,7 @@ object Classpath {
     const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.+"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
     const val secrets_gradle_plugin = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
+    const val versioning_gradle_plugin = "de.nanogiants:android-versioning:2.4.0"
 }
 
 object Plugins {
@@ -120,6 +119,7 @@ object Plugins {
     const val firebase_perf = "com.google.firebase.firebase-perf"
     const val bugsnag = "com.bugsnag.android.gradle"
     const val secrets_gradle_plugin = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
+    const val versioning_gradle_plugin = "de.nanogiants.android-versioning"
 }
 
 object Libs {

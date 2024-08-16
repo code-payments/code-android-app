@@ -14,6 +14,7 @@ plugins {
     id(Plugins.firebase_perf)
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
+    id(Plugins.versioning_gradle_plugin)
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -24,7 +25,7 @@ android {
 
     defaultConfig {
         applicationId = Android.namespace
-        versionCode = Packaging.versionCode
+        versionCode = versioning.getVersionCode()
         versionName = Packaging.versionName
 
         minSdk = Android.minSdkVersion
