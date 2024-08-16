@@ -27,7 +27,9 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
+import com.getcode.utils.trace
 import com.getcode.view.MainActivity
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
@@ -189,6 +191,15 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 .setContentIntent(buildContentIntent(type))
 
         notificationManager.notify(title.hashCode(), notificationBuilder.build())
+
+        trace(
+            tag = "Push",
+            message = "Push notification shown",
+            metadata = {
+                "category" to type.name
+            },
+            type = TraceType.Process
+        )
     }
 
     private fun updateOrganizerAndSwap() = launch {

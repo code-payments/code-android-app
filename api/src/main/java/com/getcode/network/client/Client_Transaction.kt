@@ -31,7 +31,9 @@ import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
+import com.getcode.utils.TraceType
 import com.getcode.utils.flowInterval
+import com.getcode.utils.trace
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -337,15 +339,20 @@ fun Client.withdrawExternally(
         Completable.complete()
     }.doOnComplete {
         Timber.d(steps.joinToString("\n"))
-    }
+    }.concatWith(
         // 6. Execute withdrawal
-        .concatWith(
-            withdraw(
-                amount = amount,
-                organizer = organizer,
-                destination = destination
-            )
+        withdraw(
+            amount = amount,
+            organizer = organizer,
+            destination = destination
         )
+    ).doOnComplete {
+        trace(
+            tag = "Trx",
+            message = "Withdraw completed",
+            type = TraceType.Process
+        )
+    }
 }
 
 private fun Client.withdraw(
@@ -517,6 +524,13 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
             }
         }
         .ignoreElement()
+        .andThen {
+            trace(
+                tag = "Trx",
+                message = "Received from primary",
+                type = TraceType.Process
+            )
+        }
         .andThen { fetchLimits(true) }
 }
 

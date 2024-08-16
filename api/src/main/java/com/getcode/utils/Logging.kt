@@ -67,25 +67,28 @@ fun trace(
     message: String,
     tag: String? = null,
     type: TraceType = TraceType.Log,
+    metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null
 ) {
-    val tree = if (tag == null) Timber else Timber.tag(tag)
-    val traceMessage = if (tag == null) message else "trace : $message"
+    val tagBlock = tag?.let { "[$it] " }
+    val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 
-    tree.d(traceMessage)
+    tree.d(message)
+
+    val metadataMap = metadata { metadata() }
 
     if (Bugsnag.isStarted()) {
         val breadcrumb = if (tag != null) {
-            "$tag | $traceMessage"
+            "$tagBlock $message"
         } else {
-            traceMessage
+            message
         }
 
         val breadcrumbType = type.toBugsnagBreadcrumbType()
         if (breadcrumbType != null) {
             Bugsnag.leaveBreadcrumb(
                 breadcrumb,
-                emptyMap(),
+                metadataMap,
                 breadcrumbType
             )
         }
@@ -98,6 +101,7 @@ fun <T> timedTrace(
     message: String,
     tag: String? = null,
     type: TraceType = TraceType.Log,
+    metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null,
     block: () -> T
 ): T {
@@ -107,7 +111,23 @@ fun <T> timedTrace(
     }
 
     val newMessage = "$message took ${time.inWholeMilliseconds}ms"
-    trace(newMessage, tag, type, error)
+    trace(newMessage, tag, type, metadata, error)
 
     return result
+}
+
+class MetadataBuilder {
+    private val map = mutableMapOf<String, Any>()
+
+    infix fun String.to(value: Any) {
+        map[this] = value
+    }
+
+    fun build(): Map<String, Any> = map
+}
+
+fun metadata(block: MetadataBuilder.() -> Unit): Map<String, Any> {
+    val builder = MetadataBuilder()
+    builder.block()
+    return builder.build()
 }

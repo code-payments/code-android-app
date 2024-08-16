@@ -74,6 +74,7 @@ dependencies {
     implementation(Libs.rxjava)
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_datetime)
     implementation(Libs.inject)
 
     implementation(Libs.grpc_okhttp)

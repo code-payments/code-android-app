@@ -81,10 +81,12 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.base64EncodedData
 import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
+import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
 import com.kik.kikx.models.ScannableKikCode
@@ -456,7 +458,19 @@ class HomeViewModel @Inject constructor(
                 )
             },
             onError = { cancelSend(style = PresentationStyle.Slide) },
-            present = { data -> presentSend(data, bill, vibrate) }
+            present = { data ->
+                if (!bill.didReceive) {
+                    trace(
+                        tag = "Bill",
+                        message = "Pull out cash",
+                        metadata = {
+                            "amount" to bill.amount
+                        },
+                        type = TraceType.User,
+                    )
+                }
+                presentSend(data, bill, vibrate)
+            }
         )
     }
 
@@ -653,13 +667,41 @@ class HomeViewModel @Inject constructor(
 
         when (codePayload.kind) {
             Kind.Cash,
-            Kind.GiftCard -> attemptReceive(organizer, codePayload)
+            Kind.GiftCard -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned cash",
+                    type = TraceType.User,
+                )
+                attemptReceive(organizer, codePayload)
+            }
 
             Kind.RequestPayment,
-            Kind.RequestPaymentV2 -> attemptPayment(codePayload)
+            Kind.RequestPaymentV2 -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned request card",
+                    type = TraceType.User,
+                )
+                attemptPayment(codePayload)
+            }
 
-            Kind.Login -> attemptLogin(codePayload)
-            Kind.Tip -> attemptTip(codePayload)
+            Kind.Login -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned login card",
+                    type = TraceType.User,
+                )
+                attemptLogin(codePayload)
+            }
+            Kind.Tip -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned tip card",
+                    type = TraceType.User,
+                )
+                attemptTip(codePayload)
+            }
         }
     }
 
@@ -694,6 +736,12 @@ class HomeViewModel @Inject constructor(
         )
 
         tipController.clearTwitterSplat()
+
+        trace(
+            tag = "Bill",
+            message = "Show my tip card",
+            type = TraceType.User,
+        )
 
         withContext(Dispatchers.Main) {
             uiFlow.update {

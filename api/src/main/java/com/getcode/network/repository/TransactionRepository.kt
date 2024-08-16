@@ -584,6 +584,17 @@ class TransactionRepository @Inject constructor(
             .doOnSuccess {
                 setLimits(it)
                 setMaximumDeposit(it.maxDeposit)
+                trace(
+                    tag = "Trx",
+                    message = "Fetched limits",
+                    type = TraceType.Process,
+                    metadata = {
+                        val sendLimit = it.sendLimitFor(CurrencyCode.USD)
+                        if (sendLimit != null) {
+                            "limitNextTx" to sendLimit
+                        }
+                    }
+                )
             }
             .doOnError(ErrorUtils::handleError)
             .toFlowable()

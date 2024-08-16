@@ -63,10 +63,13 @@ data class Kin(val quarks: Long): Value {
     }
 }
 
-fun min(a: Kin, b: Kin): Kin {
+private fun min(a: Kin, b: Kin): Kin {
     if (a.quarks > b.quarks) {
         return b
     }
 
     return a
 }
+
+val Kin.description: String
+    get() = "K ${toKinTruncating().quarks} ${fractionalQuarks()}"
