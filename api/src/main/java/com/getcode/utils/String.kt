@@ -30,5 +30,15 @@ fun String.base64EncodedData(): ByteArray {
     return data
 }
 
+fun String.padded(minCount: Int): String {
+    return if (this.length < minCount) {
+        val toInsert = minCount - this.length
+        val padding = " ".repeat(toInsert)
+        this + padding
+    } else {
+        this
+    }
+}
+
 typealias Base64String = String
 typealias Base58String = String

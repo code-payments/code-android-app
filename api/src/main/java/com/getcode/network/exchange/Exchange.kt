@@ -11,6 +11,7 @@ import com.getcode.network.core.NetworkOracle
 import com.getcode.network.repository.PrefRepository
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.format
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
@@ -248,6 +250,14 @@ class CodeExchange @Inject constructor(
             )
             rates.rateForUsd()!!
         }
+
+        trace(tag = "Background",
+            message = "Updated rates",
+            type = TraceType.Process,
+            metadata = {
+                "date" to Instant.fromEpochMilliseconds(rates.dateMillis).format("yyyy-MM-dd HH:mm:ss")
+            }
+        )
 
     }
 

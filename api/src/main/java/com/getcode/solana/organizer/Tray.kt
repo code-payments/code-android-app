@@ -1,6 +1,5 @@
 package com.getcode.solana.organizer
 
-import android.content.Context
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
@@ -8,9 +7,11 @@ import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.RelationshipBox
+import com.getcode.model.description
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
-import com.getcode.utils.timedTrace
+import com.getcode.utils.padded
 import com.getcode.utils.trace
 import kotlin.math.min
 
@@ -864,6 +865,29 @@ class Tray(
         }
 
         return container
+    }
+
+    fun reportableRepresentation(): List<String> {
+        return listOf(
+            string(named = "Primary  ", partialAccount = owner),
+            string(named = "Incoming ", partialAccount = incoming),
+            string(named = "Outgoing ", partialAccount = outgoing),
+            string("1         ", slot = slot(SlotType.Bucket1)),
+            string("10        ", slot = slot(SlotType.Bucket10)),
+            string("100       ", slot = slot(SlotType.Bucket100)),
+            string("1k        ", slot = slot(SlotType.Bucket1k)),
+            string("10k       ", slot = slot(SlotType.Bucket10k)),
+            string("100k      ", slot = slot(SlotType.Bucket100k)),
+            string("1m        ", slot = slot(SlotType.Bucket1m)),
+        )
+    }
+
+    private fun string(named: String,  partialAccount: PartialAccount): String {
+        return "$named ${partialAccount.getCluster().vaultPublicKey.base58().padded(44)}) ${partialAccount.partialBalance.description}"
+    }
+
+    private fun string(named: String, slot: Slot): String {
+        return "$named ${slot.getCluster().vaultPublicKey.base58().padded(44)}) ${slot.partialBalance.description}"
     }
 
     override fun equals(other: Any?): Boolean {

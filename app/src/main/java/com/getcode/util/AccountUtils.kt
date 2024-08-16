@@ -91,6 +91,14 @@ object AccountUtils {
             } else {
                 currentAttempt++
                 if (currentAttempt < maxRetries) {
+                    trace(
+                        tag = "Account",
+                        message = "Retrying login",
+                        metadata = {
+                            "count" to currentAttempt
+                        },
+                        type = TraceType.Process,
+                    )
                     trace("Retrying after ${delayDuration.inWholeMilliseconds} ms...", type = TraceType.Log)
                     delay(delayDuration.inWholeMilliseconds)
                 }
