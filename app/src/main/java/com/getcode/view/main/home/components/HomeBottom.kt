@@ -50,7 +50,11 @@ internal fun HomeBottom(
         contentPadding = PaddingValues(horizontal = CodeTheme.dimens.grid.x3),
     ) {
         BottomBarAction(
-            label = stringResource(R.string.title_getKin),
+            label = if (state.tipCardOnHomeScreen.enabled) {
+                stringResource(R.string.title_tipCard)
+            } else {
+                stringResource(R.string.title_getKin)
+            },
             contentPadding = PaddingValues(
                 start = CodeTheme.dimens.grid.x3,
                 end = CodeTheme.dimens.grid.x3,
@@ -58,8 +62,18 @@ internal fun HomeBottom(
                 bottom = CodeTheme.dimens.grid.x2,
             ),
             imageSize = CodeTheme.dimens.grid.x7,
-            painter = painterResource(R.drawable.ic_wallet),
-            onClick = { onPress(HomeBottomSheet.GET_KIN) },
+            painter = if (state.tipCardOnHomeScreen.enabled) {
+                painterResource(R.drawable.ic_tip_card)
+            } else {
+                painterResource(R.drawable.ic_wallet)
+            },
+            onClick = {
+                if (state.tipCardOnHomeScreen.enabled) {
+                    onPress(HomeBottomSheet.TIP_CARD)
+                } else {
+                    onPress(HomeBottomSheet.GET_KIN)
+                }
+            },
         )
         Spacer(modifier = Modifier.weight(1f))
         BottomBarAction(
@@ -86,7 +100,12 @@ internal fun HomeBottom(
                     modifier = Modifier.padding(top = 2.dp, end = 2.dp),
                     count = state.chatUnreadCount,
                     color = ChatNodeDefaults.UnreadIndicator,
-                    enterTransition = scaleIn(animationSpec = tween(durationMillis = 300, delayMillis = 1000)) + fadeIn()
+                    enterTransition = scaleIn(
+                        animationSpec = tween(
+                            durationMillis = 300,
+                            delayMillis = 1000
+                        )
+                    ) + fadeIn()
                 )
             }
         )

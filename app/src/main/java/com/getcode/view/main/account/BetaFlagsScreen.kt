@@ -90,6 +90,12 @@ fun BetaFlagsScreen(
             state.tipsEnabled,
         ),
         BetaFeature(
+            PrefsBool.TIP_CARD_ON_HOMESCREEN,
+            R.string.beta_tipcard_on_homescreen,
+            stringResource(id = R.string.beta_tipcard_on_homescreen_description),
+            state.tipCardOnHomeScreen,
+        ),
+        BetaFeature(
             PrefsBool.TIPS_CHAT_ENABLED,
             R.string.beta_tipchats,
             stringResource(id = R.string.beta_tipchats_description),

@@ -20,6 +20,7 @@ data class BetaOptions(
     val balanceCurrencySelectionEnabled: Boolean,
     val kadoWebViewEnabled: Boolean,
     val shareTweetToTip: Boolean,
+    val tipCardOnHomeScreen: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -37,7 +38,8 @@ data class BetaOptions(
             tipsChatCashEnabled = false,
             balanceCurrencySelectionEnabled = true,
             kadoWebViewEnabled = false,
-            shareTweetToTip = false
+            shareTweetToTip = false,
+            tipCardOnHomeScreen = true,
         )
     }
 }
@@ -73,7 +75,8 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED, defaults.balanceCurrencySelectionEnabled),
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
             observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled),
-            observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip)
+            observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
+            observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen)
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -89,7 +92,8 @@ class BetaFlagsRepository @Inject constructor(
                 balanceCurrencySelectionEnabled = it[10],
                 displayErrors = it[11],
                 kadoWebViewEnabled = it[12],
-                shareTweetToTip = it[13]
+                shareTweetToTip = it[13],
+                tipCardOnHomeScreen = it[14]
             )
         }
     }

@@ -32,6 +32,7 @@ import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
+import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
 import com.getcode.models.Bill
@@ -147,6 +148,7 @@ data class HomeUiModel(
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
     val tips: Feature = TipCardFeature(),
+    val tipCardOnHomeScreen: Feature = TipCardOnHomeScreenFeature(),
     val tipCardConnected: Boolean = false,
 )
 
@@ -222,6 +224,13 @@ class HomeViewModel @Inject constructor(
             .onEach { module ->
                 uiFlow.update {
                     it.copy(buyModule = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.tipCardOnHomeScreen
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(tipCardOnHomeScreen = module)
                 }
             }.launchIn(viewModelScope)
 
