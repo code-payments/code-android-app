@@ -318,7 +318,7 @@ data class BuyMoreKinModal(
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.action_buyMoreKin)
+        @Composable get() = stringResource(id = R.string.action_addCash)
 
     @Composable
     override fun Content() {
@@ -367,7 +367,7 @@ data class KadoWebScreen(val url: String) : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.action_buyMoreKin)
+        @Composable get() = stringResource(id = R.string.action_addCash)
 
     @Composable
     override fun Content() {

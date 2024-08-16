@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Внести гроші з дебетової картки</string>
   <string name="action_allowCameraAccess">Дозволити доступ до камери</string>
   <string name="action_allowContacts">Дозволити доступ до контактів</string>
   <string name="action_allowPushNotifications">Дозволити push-сповіщення</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Не вдалося</string>
   <string name="title_faq">Часто задавані питання</string>
   <string name="title_gaveKin">Надано</string>
+  <string name="title_getCash">Отримати гроші.</string>
   <string name="title_getFriendStartedOnCode">Запросіть друга в Code</string>
   <string name="title_getKin">Отримати Kin</string>
   <string name="title_getMoreKin">Отримати більше Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Останні валюти</string>
   <string name="title_referFriend">Порекомендуйте другу, отримайте 5 дол.</string>
   <string name="title_referralBonus">Реферальний бонус</string>
+  <string name="title_requestCash">Запросити грошовий переказ</string>
   <string name="title_requestKin">Запит на Kin</string>
   <string name="title_requestTip">Запросити чайові</string>
   <string name="title_requireFaceID">Вимагати Face ID</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Bargeld mit einer Debitkarte hinzufügen\n</string>
   <string name="action_allowCameraAccess">Kamera-Zugriff erlauben</string>
   <string name="action_allowContacts">Zugriff auf Kontakte zulassen</string>
   <string name="action_allowPushNotifications">Push-Benachrichtigungen zulassen</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Fehlgeschlagen</string>
   <string name="title_faq">FAQ</string>
   <string name="title_gaveKin">Überwiesen</string>
+  <string name="title_getCash">Bargeld erhalten\n</string>
   <string name="title_getFriendStartedOnCode">Gewinne einen deiner Freunde für Code</string>
   <string name="title_getKin">Kin erhalten</string>
   <string name="title_getMoreKin">Mehr Kin erhalten\n</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Letzte Währungen</string>
   <string name="title_referFriend">Empfehle Sie uns an einen Freund oder eine Freundin weiter und erhalten Sie 5 $ dafür</string>
   <string name="title_referralBonus">Empfehlungsbonus</string>
+  <string name="title_requestCash">Bargeld anfordern</string>
   <string name="title_requestKin">Kin anfordern</string>
   <string name="title_requestTip">Trinkgeld anfordern</string>
   <string name="title_requireFaceID">Face ID erforderlich</string>

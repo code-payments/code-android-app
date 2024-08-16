@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">เติมเงินสดด้วยบัตรเดบิต</string>
   <string name="action_allowCameraAccess">อนุญาตให้เข้าถึงกล้อง</string>
   <string name="action_allowContacts">อนุญาตให้เข้าถึงรายชื่อติดต่อ</string>
   <string name="action_allowPushNotifications">อนุญาตให้แจ้งเตือนแบบพุช</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">ล้มเหลว</string>
   <string name="title_faq">คำถามที่พบบ่อย</string>
   <string name="title_gaveKin">ให้</string>
+  <string name="title_getCash">รับเงินสด</string>
   <string name="title_getFriendStartedOnCode">ชวนเพื่อนมาเริ่มต้นใช้งาน Code</string>
   <string name="title_getKin">รับ Kin</string>
   <string name="title_getMoreKin">รับ Kin เพิ่มเติม</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">สกุลเงินล่าสุด</string>
   <string name="title_referFriend">แนะนำเพื่อน รับ $5</string>
   <string name="title_referralBonus">โบนัสการแนะนำ</string>
+  <string name="title_requestCash">ขอรับเงินสด</string>
   <string name="title_requestKin">ขอรับ Kin</string>
   <string name="title_requestTip">ขอรับทิป</string>
   <string name="title_requireFaceID">ต้องใช้ Face ID</string>

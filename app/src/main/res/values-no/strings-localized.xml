@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Sett inn penger med et debetkort</string>
   <string name="action_allowCameraAccess">Tillat kameratilgang</string>
   <string name="action_allowContacts">Gi tilgang til kontakter</string>
   <string name="action_allowPushNotifications">Tillat push-varsler</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Mislyktes</string>
   <string name="title_faq">Vanlige spørsmål</string>
   <string name="title_gaveKin">Ga</string>
+  <string name="title_getCash">Få penger</string>
   <string name="title_getFriendStartedOnCode">Få en venn i gang med Code</string>
   <string name="title_getKin">Skaff deg Kin</string>
   <string name="title_getMoreKin">Få flere Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Nylige valutaer</string>
   <string name="title_referFriend">Henvis en venn, få USD 5</string>
   <string name="title_referralBonus">Henvisningsbonus</string>
+  <string name="title_requestCash">Be om penger</string>
   <string name="title_requestKin">Be om Kin</string>
   <string name="title_requestTip">Be om tips</string>
   <string name="title_requireFaceID">Krev ansikts-ID</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">使用簽帳金融卡添加現金</string>
   <string name="action_allowCameraAccess">允許相機存取權</string>
   <string name="action_allowContacts">允許存取聯絡人</string>
   <string name="action_allowPushNotifications">允許推播通知</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">失敗</string>
   <string name="title_faq">常見問題集</string>
   <string name="title_gaveKin">已給予</string>
+  <string name="title_getCash">獲取現金</string>
   <string name="title_getFriendStartedOnCode">邀請朋友開始使用 Code 錢包</string>
   <string name="title_getKin">取得 Kin</string>
   <string name="title_getMoreKin">獲得更多 Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">最近使用的貨幣</string>
   <string name="title_referFriend">推薦一位朋友,可獲 5 美元獎勵</string>
   <string name="title_referralBonus">推薦獎勵</string>
+  <string name="title_requestCash">請求現金</string>
   <string name="title_requestKin">要求 Kin</string>
   <string name="title_requestTip">要求小費</string>
   <string name="title_requireFaceID">需要 Face ID</string>

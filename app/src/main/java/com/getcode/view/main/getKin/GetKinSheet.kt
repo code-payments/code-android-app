@@ -190,7 +190,7 @@ private fun Header() {
             modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
         )
         Text(
-            text = stringResource(R.string.title_getKin),
+            text = stringResource(R.string.title_getCash),
             style = CodeTheme.typography.displayMedium.bolded(),
             modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x3),
         )

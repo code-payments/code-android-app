@@ -53,7 +53,7 @@ internal fun HomeBottom(
             label = if (state.tipCardOnHomeScreen.enabled) {
                 stringResource(R.string.title_tipCard)
             } else {
-                stringResource(R.string.title_getKin)
+                stringResource(R.string.title_getCash)
             },
             contentPadding = PaddingValues(
                 start = CodeTheme.dimens.grid.x3,

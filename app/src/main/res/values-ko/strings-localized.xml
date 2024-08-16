@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">직불 카드로 현금 추가</string>
   <string name="action_allowCameraAccess">카메라 접근 허용</string>
   <string name="action_allowContacts">연락처 접근 허용</string>
   <string name="action_allowPushNotifications">푸쉬 알림 허용</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">실패함</string>
   <string name="title_faq">자주 묻는 질문</string>
   <string name="title_gaveKin">보낸 내역</string>
+  <string name="title_getCash">현금 받기</string>
   <string name="title_getFriendStartedOnCode">친구가 Code를 시작하게 만들기</string>
   <string name="title_getKin">Kin 받기</string>
   <string name="title_getMoreKin">킨 더 확보하기</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">최근 통화</string>
   <string name="title_referFriend">친구 추천하고 $5 받으세요</string>
   <string name="title_referralBonus">추천 보너스</string>
+  <string name="title_requestCash">현금 요청</string>
   <string name="title_requestKin">킨 요청</string>
   <string name="title_requestTip">팁 요청</string>
   <string name="title_requireFaceID">Face ID 필요</string>

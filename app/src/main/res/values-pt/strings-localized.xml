@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Adicionar dinheiro com um cartão de débito</string>
   <string name="action_allowCameraAccess">Permitir Acesso à Câmara</string>
   <string name="action_allowContacts">Permitir Acesso aos Contactos</string>
   <string name="action_allowPushNotifications">Permitir Notificações Push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Falhou</string>
   <string name="title_faq">Guiar FAQ</string>
   <string name="title_gaveKin">Deu</string>
+  <string name="title_getCash">Receber dinheiro</string>
   <string name="title_getFriendStartedOnCode">Iniciar um Amigo na Code</string>
   <string name="title_getKin">Obter Kin</string>
   <string name="title_getMoreKin">Obter mais Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Moedas Recentes</string>
   <string name="title_referFriend">Refira a uma amigo, ganhe 5€</string>
   <string name="title_referralBonus">Bónus de Referência</string>
+  <string name="title_requestCash">Solicitar dinheiro</string>
   <string name="title_requestKin">Solicitar Kin</string>
   <string name="title_requestTip">Solicitar uma recompensa</string>
   <string name="title_requireFaceID">Pedir Face ID</string>

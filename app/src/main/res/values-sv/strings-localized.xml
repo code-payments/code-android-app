@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Lägg till kontanter med ett betalkort</string>
   <string name="action_allowCameraAccess">Tillåt åtkomst till kameran</string>
   <string name="action_allowContacts">Tillåt åtkomst till kontakter</string>
   <string name="action_allowPushNotifications">Tillåt push-notiser</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Misslyckad</string>
   <string name="title_faq">VANLIGA FRÅGOR</string>
   <string name="title_gaveKin">Gav</string>
+  <string name="title_getCash">Få kontanter</string>
   <string name="title_getFriendStartedOnCode">Få en vän att börja med Code</string>
   <string name="title_getKin">Få Kin</string>
   <string name="title_getMoreKin">Skaffa mer Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Senaste valutorna</string>
   <string name="title_referFriend">Värva en vän, få 5 USD</string>
   <string name="title_referralBonus">Värvningsbonus</string>
+  <string name="title_requestCash">Begär kontanter</string>
   <string name="title_requestKin">Begär Kin</string>
   <string name="title_requestTip">Be om dricks</string>
   <string name="title_requireFaceID">Kräv Face ID</string>

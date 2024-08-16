@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">使用借记卡添加现金</string>
   <string name="action_allowCameraAccess">允许相机访问</string>
   <string name="action_allowContacts">允许访问通讯录</string>
   <string name="action_allowPushNotifications">允许推送通知</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">失败</string>
   <string name="title_faq">常见问题</string>
   <string name="title_gaveKin">已给</string>
+  <string name="title_getCash">获取现金</string>
   <string name="title_getFriendStartedOnCode">让好友开始使用 Code</string>
   <string name="title_getKin">获取 Kin 币</string>
   <string name="title_getMoreKin">获取更多 Kin 币</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">最近的货币</string>
   <string name="title_referFriend">推荐好友,获得 $5</string>
   <string name="title_referralBonus">推荐奖金</string>
+  <string name="title_requestCash">申请现金</string>
   <string name="title_requestKin">请求 Kin</string>
   <string name="title_requestTip">请求小费</string>
   <string name="title_requireFaceID">需要Face ID</string>

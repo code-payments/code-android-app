@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Добавить наличные с помощью дебетовой карты</string>
   <string name="action_allowCameraAccess">Разрешить доступ к камере</string>
   <string name="action_allowContacts">Разрешить доступ к контактам</string>
   <string name="action_allowPushNotifications">Разрешить push-уведомления</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Сбой</string>
   <string name="title_faq">Частые вопросы</string>
   <string name="title_gaveKin">Дал(-а)</string>
+  <string name="title_getCash">Получить наличные</string>
   <string name="title_getFriendStartedOnCode">Пригласите друга начать пользоваться Code</string>
   <string name="title_getKin">Получить Kin</string>
   <string name="title_getMoreKin">Получить больше Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Недавние валюты</string>
   <string name="title_referFriend">Приведите друга, получите 5 долл. США</string>
   <string name="title_referralBonus">Реферальный бонус</string>
+  <string name="title_requestCash">Потребовать наличные</string>
   <string name="title_requestKin">Запросить кин</string>
   <string name="title_requestTip">Запросить чаевые</string>
   <string name="title_requireFaceID">Запрашивать Face ID</string>

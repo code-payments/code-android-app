@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">הוספת כסף באמצעות כרטיס חיוב</string>
   <string name="action_allowCameraAccess">אפשר גישה למצלמה </string>
   <string name="action_allowContacts">אפשר גישה לאנשי הקשר</string>
   <string name="action_allowPushNotifications">אפשר הודעות דחיפה</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">נכשל</string>
   <string name="title_faq">שאלות נפוצות</string>
   <string name="title_gaveKin">העברות שבוצעו</string>
+  <string name="title_getCash">קבלת כסף</string>
   <string name="title_getFriendStartedOnCode">עודד חבר להתחיל להשתמש ב-Code</string>
   <string name="title_getKin">השגת Kin</string>
   <string name="title_getMoreKin">השיגו עוד Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">סוגי מטבע בשימוש לאחרונה</string>
   <string name="title_referFriend">הפנה חבר, קבל 5$</string>
   <string name="title_referralBonus">בונוס הפניה</string>
+  <string name="title_requestCash">בקשת כסף</string>
   <string name="title_requestKin">בקשת Kin</string>
   <string name="title_requestTip">בקשת טיפ</string>
   <string name="title_requireFaceID">נדרש Face ID</string>
