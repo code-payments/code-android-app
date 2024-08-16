@@ -466,18 +466,34 @@ data class ConnectAccount(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val viewModel = getViewModel<TipConnectViewModel>()
-        ModalContainer(
-            backButtonEnabled = {
-                if (navigator.isVisible) {
-                    it is ConnectAccount
-                } else {
-                    navigator.progress > 0f
+        when (reason) {
+            IdentityConnectionReason.TipCard -> {
+                ModalContainer(
+                    closeButtonEnabled = {
+                        if (navigator.isVisible) {
+                            it is ConnectAccount
+                        } else {
+                            navigator.progress > 0f
+                        }
+                    }
+                ) {
+                    ConnectAccountScreen(viewModel)
                 }
             }
-        ) {
-            ConnectAccountScreen(viewModel)
+            IdentityConnectionReason.IdentityReveal -> {
+                ModalContainer(
+                    backButtonEnabled = {
+                        if (navigator.isVisible) {
+                            it is ConnectAccount
+                        } else {
+                            navigator.progress > 0f
+                        }
+                    }
+                ) {
+                    ConnectAccountScreen(viewModel)
+                }
+            }
         }
-
 
         LaunchedEffect(viewModel, reason) {
             viewModel.dispatchEvent(TipConnectViewModel.Event.OnReasonChanged(reason))

@@ -48,9 +48,11 @@ import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
+import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
+import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.ShareDownloadLinkModal
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
@@ -81,7 +83,8 @@ enum class HomeBottomSheet {
     GIVE_KIN,
     GET_KIN,
     BALANCE,
-    SHARE_DOWNLOAD
+    SHARE_DOWNLOAD,
+    TIP_CARD
 }
 
 @Composable
@@ -191,6 +194,13 @@ private fun HomeScan(
                 HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
                 HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
                 HomeBottomSheet.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
+                HomeBottomSheet.TIP_CARD -> {
+                    if (dataState.tipCardConnected) {
+                        homeViewModel.presentShareableTipCard()
+                    } else {
+                        navigator.push(ConnectAccount())
+                    }
+                }
                 HomeBottomSheet.NONE -> Unit
             }
         }

@@ -17,6 +17,11 @@ data class TipCardFeature(
     override val available: Boolean = true, // always available
 ): Feature
 
+data class TipCardOnHomeScreenFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.tipCardOnHomeScreen,
+    override val available: Boolean = true, // always available
+): Feature
+
 data class TipChatFeature(
     override val enabled: Boolean = BetaOptions.Defaults.tipsChatEnabled,
     override val available: Boolean = true, // always available
