@@ -198,7 +198,7 @@ private fun HomeScan(
                     if (dataState.tipCardConnected) {
                         homeViewModel.presentShareableTipCard()
                     } else {
-                        navigator.push(ConnectAccount())
+                        navigator.show(ConnectAccount())
                     }
                 }
                 HomeBottomSheet.NONE -> Unit
