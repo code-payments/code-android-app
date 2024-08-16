@@ -47,7 +47,7 @@ data class BillState(
 
     sealed interface Action {
 
-        val label: String
+        val label: String?
             @Composable get
         val asset: Painter
             @Composable get
@@ -63,7 +63,7 @@ data class BillState(
 
         data class Share(override val action: () -> Unit): Action {
             override val label: String
-                @Composable get() = stringResource(R.string.action_share)
+                @Composable get() = stringResource(R.string.action_shareAsURL)
 
             override val asset: Painter
                 @Composable get() = painterResource(id = R.drawable.ic_remote_send)

@@ -21,6 +21,7 @@ import com.getcode.theme.Gray50
 import com.getcode.theme.White
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Pill
+import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
 
 @Composable
@@ -45,10 +46,9 @@ internal fun BillManagementOptions(
             if (primaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = !isSending) { primaryAction.action() }
-                        .padding(vertical = 15.dp, horizontal = 20.dp),
-                    contentPadding = PaddingValues(),
-                    backgroundColor = Gray50,
+                        .rememberedClickable(enabled = !isSending) { primaryAction.action() },
+                    contentPadding = PaddingValues(15.dp),
+                    backgroundColor = CodeTheme.colors.action,
                 ) {
                     Box {
                         Row(
@@ -59,10 +59,12 @@ internal fun BillManagementOptions(
                                 contentDescription = "",
                                 modifier = Modifier.width(22.dp)
                             )
-                            Text(
-                                modifier = Modifier.padding(start = 10.dp),
-                                text = primaryAction.label
-                            )
+                            primaryAction.label?.let { label ->
+                                Text(
+                                    modifier = Modifier.padding(start = 10.dp),
+                                    text = label
+                                )
+                            }
                         }
 
                         if (isSending) {
@@ -80,20 +82,21 @@ internal fun BillManagementOptions(
             if (secondaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = isInteractable) { secondaryAction.action() }
-                        .padding(vertical = 15.dp, horizontal = 20.dp),
-                    contentPadding = PaddingValues(),
-                    backgroundColor = Gray50,
+                        .rememberedClickable(enabled = isInteractable) { secondaryAction.action() },
+                    contentPadding = PaddingValues(15.dp),
+                    backgroundColor = CodeTheme.colors.action,
                 ) {
                     Image(
                         painter = secondaryAction.asset,
                         contentDescription = "",
                         modifier = Modifier.size(18.dp)
                     )
-                    Text(
-                        modifier = Modifier.padding(start = 10.dp),
-                        text = secondaryAction.label
-                    )
+                    secondaryAction.label?.let { label ->
+                        Text(
+                            modifier = Modifier.padding(start = 10.dp),
+                            text = label
+                        )
+                    }
                 }
             }
         }

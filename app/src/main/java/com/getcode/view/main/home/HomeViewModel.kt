@@ -748,7 +748,7 @@ class HomeViewModel @Inject constructor(
                 val billState = it.billState.copy(
                     bill = Bill.Tip(code),
                     primaryAction = BillState.Action.Share { onRemoteSend() },
-                    secondaryAction = BillState.Action.Done(::cancelSend)
+                    secondaryAction = BillState.Action.Cancel(::cancelSend)
                 )
 
                 it.copy(
