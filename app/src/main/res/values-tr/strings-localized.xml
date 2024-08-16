@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Banka Kartıyla Nakit Ekle</string>
   <string name="action_allowCameraAccess">Kamera Erişimine İzin Ver</string>
   <string name="action_allowContacts">Kişiler\'e Erişime İzin Ver</string>
   <string name="action_allowPushNotifications">Anlık Bildirimlere İzin Ver</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Başarısız</string>
   <string name="title_faq">SSS</string>
   <string name="title_gaveKin">Verdi</string>
+  <string name="title_getCash">Nakıt Al</string>
   <string name="title_getFriendStartedOnCode">Bir Arkadaşınızı Code\'a başlatın</string>
   <string name="title_getKin">Kin Al</string>
   <string name="title_getMoreKin">Daha Fazla Kin Al</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Son Para Birimleri</string>
   <string name="title_referFriend">Bir Arkadaş Yönlendir, $5\'ı Kazan</string>
   <string name="title_referralBonus">Yönlendirme Bonusu</string>
+  <string name="title_requestCash">Nakit Talep Et</string>
   <string name="title_requestKin">Kin Talep Et</string>
   <string name="title_requestTip">Bahşiş İste</string>
   <string name="title_requireFaceID">Face ID gerekir</string>

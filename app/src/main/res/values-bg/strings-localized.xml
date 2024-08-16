@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Добавете парична сума  с дебитна карта</string>
   <string name="action_allowCameraAccess">Разреши достъп до камерата </string>
   <string name="action_allowContacts">Разреши достъп до контактите </string>
   <string name="action_allowPushNotifications">Разреши насочени известия </string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Неуспешно </string>
   <string name="title_faq">Често задавани въпроси </string>
   <string name="title_gaveKin">Даде</string>
+  <string name="title_getCash">Вземете парична сума </string>
   <string name="title_getFriendStartedOnCode">Вземете \"Приятел се присъедини\" към Code</string>
   <string name="title_getKin">Получаване на средства в Kin</string>
   <string name="title_getMoreKin">Получавайте повече Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Последно използвани валути </string>
   <string name="title_referFriend">Препоръчай на приятел, вземи $5</string>
   <string name="title_referralBonus">Бонус за препоръка</string>
+  <string name="title_requestCash">Направете заявка за парична сума </string>
   <string name="title_requestKin">Поискай Kin</string>
   <string name="title_requestTip">Поискай бакшиш</string>
   <string name="title_requireFaceID">Изискване на Face ID</string>

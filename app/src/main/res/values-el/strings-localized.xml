@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Προσθέστε μετρητά με χρεωστική κάρτα</string>
   <string name="action_allowCameraAccess">Να Επιτρέπεται η Πρόσβαση στην Κάμερα</string>
   <string name="action_allowContacts">Να Επιτρέπεται η Πρόσβαση στις Επαφές</string>
   <string name="action_allowPushNotifications">Να Επιτρέπονται οι Ειδοποιήσεις Push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Απέτυχε</string>
   <string name="title_faq">Αριθμός Τηλεφώνου</string>
   <string name="title_gaveKin">Δόθηκε</string>
+  <string name="title_getCash">Λάβετε μετρητά</string>
   <string name="title_getFriendStartedOnCode">Βρες ένα Φίλο να Ξεκινήσει στο Code</string>
   <string name="title_getKin">Λάβετε Kin</string>
   <string name="title_getMoreKin">Αποκτήστε Περισσότερα Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Πρόσφατα Νομίσματα</string>
   <string name="title_referFriend">Σύστησε ένα Φίλο, Λάβε $5</string>
   <string name="title_referralBonus">Δώρο Σύστασης Φίλου</string>
+  <string name="title_requestCash">Ζητήστε μετρητά</string>
   <string name="title_requestKin">Ζητήστε Kin</string>
   <string name="title_requestTip">Ζητήστε Φιλοδώρημα</string>
   <string name="title_requireFaceID">Απαιτείται Αναγνώριση Προσώπου</string>

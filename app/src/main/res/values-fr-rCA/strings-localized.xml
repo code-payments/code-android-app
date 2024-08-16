@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Ajouter des liquidités avec une carte de débit</string>
   <string name="action_allowCameraAccess">Autoriser l\'accès à la caméra</string>
   <string name="action_allowContacts">Autoriser l\'accès aux contacts</string>
   <string name="action_allowPushNotifications">Autoriser les notifications poussées</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Échoué</string>
   <string name="title_faq">FAQ</string>
   <string name="title_gaveKin">A donné</string>
+  <string name="title_getCash">Obtenir des liquidités</string>
   <string name="title_getFriendStartedOnCode">Faire démarrer un ami sur Code</string>
   <string name="title_getKin">Obtenez Kin</string>
   <string name="title_getMoreKin">Obtenez plus de Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Devises récentes</string>
   <string name="title_referFriend">Parrainez un ami, recevez 5 $</string>
   <string name="title_referralBonus">Prime de parrainage</string>
+  <string name="title_requestCash">Demander des liquidités</string>
   <string name="title_requestKin">Demander des Kin</string>
   <string name="title_requestTip">Demander un pourboire</string>
   <string name="title_requireFaceID">Exiger Face ID</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Adj hozzá készpént egy bankkártyával</string>
   <string name="action_allowCameraAccess">Kamera-hozzáférés engedélyezése</string>
   <string name="action_allowContacts">Hozzáférés engedélyezése a névjegyekhez</string>
   <string name="action_allowPushNotifications">Push értesítések engedélyezése</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Sikertelen</string>
   <string name="title_faq">GYIK</string>
   <string name="title_gaveKin">Adott</string>
+  <string name="title_getCash">Kapj készpénzt</string>
   <string name="title_getFriendStartedOnCode">Szerezz egy barátot elkezdte használni a Code-ot</string>
   <string name="title_getKin">Szerezz Kint</string>
   <string name="title_getMoreKin">Szerezzen több Kin-t</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Legutóbbi pénznemek</string>
   <string name="title_referFriend">Ajánlj egy barátot, kapsz 5 dollárt</string>
   <string name="title_referralBonus">Ajánlói bónusz</string>
+  <string name="title_requestCash">Kérj készpénzt</string>
   <string name="title_requestKin">Kin kérése</string>
   <string name="title_requestTip">Kérj borravalót</string>
   <string name="title_requireFaceID">Face ID-t igényel</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Aggiungi Contanti con una Carta di Debito</string>
   <string name="action_allowCameraAccess">Consenti l\'accesso alla fotocamera</string>
   <string name="action_allowContacts">Consenti l\'accesso ai contatti</string>
   <string name="action_allowPushNotifications">Consenti le notifiche push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Non riuscito</string>
   <string name="title_faq">Domande frequenti</string>
   <string name="title_gaveKin">Donati</string>
+  <string name="title_getCash">Ottieni Contanti</string>
   <string name="title_getFriendStartedOnCode">Fai iniziare un amico su Code</string>
   <string name="title_getKin">Ottieni Kin</string>
   <string name="title_getMoreKin">Ottieni più Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Valute recenti</string>
   <string name="title_referFriend">Invita un amico, ricevi 5 $</string>
   <string name="title_referralBonus">Bonus referral</string>
+  <string name="title_requestCash">Richiedi Contanti</string>
   <string name="title_requestKin">Richiedi Kin</string>
   <string name="title_requestTip">Richiedi una mancia</string>
   <string name="title_requireFaceID">Richiedi Face ID</string>

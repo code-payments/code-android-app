@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Dodaj Cash z użyciem karty debetowej</string>
   <string name="action_allowCameraAccess">Zezwól na dostęp do kamery</string>
   <string name="action_allowContacts">Zezwól na dostęp do kontaktów</string>
   <string name="action_allowPushNotifications">Zezwól na powiadomienia typu push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">NIe powiodło się</string>
   <string name="title_faq">Często zadawane pytania</string>
   <string name="title_gaveKin">Dał</string>
+  <string name="title_getCash">Otrzymaj Cash</string>
   <string name="title_getFriendStartedOnCode">Poleć znajomemu aplikację Code</string>
   <string name="title_getKin">Uzyskaj kin</string>
   <string name="title_getMoreKin">Zdobądź więcej Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Niedawne waluty</string>
   <string name="title_referFriend">Poleć znajomemu i otrzymaj 5 $</string>
   <string name="title_referralBonus">Bonus za polecenie</string>
+  <string name="title_requestCash">Poproś o Cash</string>
   <string name="title_requestKin">Poproś o Kin</string>
   <string name="title_requestTip">Poproś o napiwek</string>
   <string name="title_requireFaceID">Wymagaj Face ID</string>

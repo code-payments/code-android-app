@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Lisää rahaa pankkikortilla</string>
   <string name="action_allowCameraAccess">Salli kameran käyttöoikeudet</string>
   <string name="action_allowContacts">Salli yhteystietojen käyttöoikeudet</string>
   <string name="action_allowPushNotifications">Salli palveluilmoitukset</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Epäonnistui</string>
   <string name="title_faq">UKK</string>
   <string name="title_gaveKin">Antoi</string>
+  <string name="title_getCash">Nosta rahaa</string>
   <string name="title_getFriendStartedOnCode">Auta kaveri alkuun Coden parissa</string>
   <string name="title_getKin">Hae Kin</string>
   <string name="title_getMoreKin">Hanki lisää kinejä</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Viimeaikaiset valuutat</string>
   <string name="title_referFriend">Suosita ystävää, saat 5 $</string>
   <string name="title_referralBonus">Suositusbonus</string>
+  <string name="title_requestCash">Pyydä rahaa</string>
   <string name="title_requestKin">Pyydä kinejä</string>
   <string name="title_requestTip">Pyydä tippi</string>
   <string name="title_requireFaceID">Vaadi kasvotunnistus</string>

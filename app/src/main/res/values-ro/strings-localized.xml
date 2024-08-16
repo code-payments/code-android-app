@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Adăugați numerar cu un card de debit</string>
   <string name="action_allowCameraAccess">Permite accesul la fotocameră</string>
   <string name="action_allowContacts">Permite accesul la contacte</string>
   <string name="action_allowPushNotifications">Permite notificările push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Eșuat</string>
   <string name="title_faq">Întrebări frecvente</string>
   <string name="title_gaveKin">Trimis</string>
+  <string name="title_getCash">Obțineți numerar</string>
   <string name="title_getFriendStartedOnCode">Ajutați un prieten să înceapă cu Code</string>
   <string name="title_getKin">Obține kin</string>
   <string name="title_getMoreKin">Obține mai mulţi Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Valute folosite recent</string>
   <string name="title_referFriend">Recomandați un prieten, primiți 5 dolari</string>
   <string name="title_referralBonus">Bonus de recomandare</string>
+  <string name="title_requestCash">Solicitați numerar</string>
   <string name="title_requestKin">Solicită monede Kin</string>
   <string name="title_requestTip">Solicită un bacșiș</string>
   <string name="title_requireFaceID">Solicită Face ID</string>

@@ -186,7 +186,7 @@ fun BalanceContent(
                                 )
                             }
                         },
-                        text = stringResource(id = R.string.action_buyMoreKin)
+                        text = stringResource(id = R.string.action_addCash)
                     )
                 }
             }

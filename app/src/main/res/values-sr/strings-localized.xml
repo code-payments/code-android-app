@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Додај готовину помоћу дебитне картице</string>
   <string name="action_allowCameraAccess">Dozvoli pristup kameri</string>
   <string name="action_allowContacts">Dozvoli pristup kontaktima</string>
   <string name="action_allowPushNotifications">Dozvoli prosleđena obaveštenja</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Nije uspelo</string>
   <string name="title_faq">Najčešća pitanja</string>
   <string name="title_gaveKin">Dato</string>
+  <string name="title_getCash">Узми готовину</string>
   <string name="title_getFriendStartedOnCode">Нека пријатељ започне са Кодом</string>
   <string name="title_getKin">Прибави Кин</string>
   <string name="title_getMoreKin">Набавите још кинова</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Nedavne valute</string>
   <string name="title_referFriend">Препоручите пријатеља, узмите 5$</string>
   <string name="title_referralBonus">Бонус за препоруке</string>
+  <string name="title_requestCash">Захтевај готовину</string>
   <string name="title_requestKin">Затражи Кин</string>
   <string name="title_requestTip">Затражи напојницу</string>
   <string name="title_requireFaceID">Захтевање Face ID-ја</string>

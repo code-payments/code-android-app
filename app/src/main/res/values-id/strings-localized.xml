@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Tambahkan Uang Tunai dengan Kartu Debit</string>
   <string name="action_allowCameraAccess">Izinkan Akses Kamera</string>
   <string name="action_allowContacts">Izinkan Akses ke Kontak</string>
   <string name="action_allowPushNotifications">Izinkan Pemberitahuan Push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Gagal</string>
   <string name="title_faq">Tanya-Jawab</string>
   <string name="title_gaveKin">Memberi</string>
+  <string name="title_getCash">Dapatkan Uang Tunai</string>
   <string name="title_getFriendStartedOnCode">Ajak Teman Memulai Code</string>
   <string name="title_getKin">Dapatkan Kin</string>
   <string name="title_getMoreKin">Dapatkan Lebih Banyak Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Mata Uang Terbaru</string>
   <string name="title_referFriend">Ajak Teman, Dapatkan $5</string>
   <string name="title_referralBonus">Bonus Referensi</string>
+  <string name="title_requestCash">Minta Uang Tunai</string>
   <string name="title_requestKin">Minta Kin</string>
   <string name="title_requestTip">Minta Tip</string>
   <string name="title_requireFaceID">Memerlukan  Face ID</string>

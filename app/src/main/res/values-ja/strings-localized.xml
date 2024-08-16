@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">デビットカードで現金を追加する</string>
   <string name="action_allowCameraAccess">カメラへのアクセスを許可する</string>
   <string name="action_allowContacts">連絡先へのアクセスを許可する</string>
   <string name="action_allowPushNotifications">プッシュ通知を許可する</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">失敗しました</string>
   <string name="title_faq">よくある質問</string>
   <string name="title_gaveKin">与えた</string>
+  <string name="title_getCash">現金を得る</string>
   <string name="title_getFriendStartedOnCode">友だちにCodeを始めさせる</string>
   <string name="title_getKin">Kinを入手</string>
   <string name="title_getMoreKin">Kinをもっと入手する</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">最近の通貨</string>
   <string name="title_referFriend">友だちを紹介して5ドルもらおう</string>
   <string name="title_referralBonus">紹介ボーナス</string>
+  <string name="title_requestCash">現金を要求する</string>
   <string name="title_requestKin">Kinをリクエスト</string>
   <string name="title_requestTip">チップをリクエストする</string>
   <string name="title_requireFaceID">Face IDが必要</string>

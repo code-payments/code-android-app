@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Thêm Tiền mặt Bằng Thẻ Ghi nợ</string>
   <string name="action_allowCameraAccess">Cho phép Truy cập Camera</string>
   <string name="action_allowContacts">Cho phép Truy cập vào Danh bạ</string>
   <string name="action_allowPushNotifications">Cho phép Thông báo Đẩy</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Không thành công</string>
   <string name="title_faq">Hỏi Đáp</string>
   <string name="title_gaveKin">Đã tặng</string>
+  <string name="title_getCash">Nhận Tiền mặt</string>
   <string name="title_getFriendStartedOnCode">Mời một người bạn bắt đầu dùng Code</string>
   <string name="title_getKin">Nhận Kin</string>
   <string name="title_getMoreKin">Nhận Thêm Kin</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Đơn vị tiền tệ Gần đây</string>
   <string name="title_referFriend">Giới thiệu một người bạn - Nhận 5$</string>
   <string name="title_referralBonus">Tiền thưởng Giới thiệu</string>
+  <string name="title_requestCash">Yêu cầu Tiền mặt</string>
   <string name="title_requestKin">Yêu cầu Kin</string>
   <string name="title_requestTip">Yêu cầu Tiền boa</string>
   <string name="title_requireFaceID">Cần có Face ID</string>

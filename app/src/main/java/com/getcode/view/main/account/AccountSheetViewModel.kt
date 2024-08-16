@@ -170,7 +170,7 @@ class AccountSheetViewModel @Inject constructor(
                     when (it.type) {
                         AccountPage.BUY_KIN -> {
                             if (buyModuleEnabled) {
-                                it.copy(name = R.string.action_buyMoreKin)
+                                it.copy(name = R.string.action_addCash)
                             } else {
                                 it.copy(name = R.string.title_buySellKin)
                             }

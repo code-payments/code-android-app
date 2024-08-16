@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Navýšiť hotovosť z debetnej karty</string>
   <string name="action_allowCameraAccess">Povoliť prístup k fotoaparátu</string>
   <string name="action_allowContacts">Povoliť prístup ku kontaktom</string>
   <string name="action_allowPushNotifications">Povoliť upozornenia push</string>
@@ -322,6 +323,7 @@
   <string name="title_failed">Zlyhalo</string>
   <string name="title_faq">Často kladené otázky</string>
   <string name="title_gaveKin">Dal</string>
+  <string name="title_getCash">Získať hotovosť</string>
   <string name="title_getFriendStartedOnCode">Začnite používať kód priateľa</string>
   <string name="title_getKin">Získajte Kin</string>
   <string name="title_getMoreKin">Získajte viac Kinov</string>
@@ -344,6 +346,7 @@
   <string name="title_recentCurrencies">Najnovšie meny</string>
   <string name="title_referFriend">Odporučte priateľa a získajte 5 dolárov</string>
   <string name="title_referralBonus">Bonus za odporúčanie</string>
+  <string name="title_requestCash">Požiadať o hotovosť</string>
   <string name="title_requestKin">Požiadať o kin</string>
   <string name="title_requestTip">Požiadať o tip</string>
   <string name="title_requireFaceID">Vyžaduje Face ID</string>
