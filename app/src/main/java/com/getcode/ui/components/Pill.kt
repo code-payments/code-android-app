@@ -51,7 +51,7 @@ fun Pill(
 fun Pill(
     modifier: Modifier = Modifier,
     backgroundColor: Color = Black50,
-    contentColor: Color = Color.White,
+    contentColor: Color = CodeTheme.colors.onAction,
     shape: CornerBasedShape = CircleShape,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = CodeTheme.dimens.grid.x2,

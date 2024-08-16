@@ -23,6 +23,8 @@ private val DarkColorPalette = CodeColors(
     brandLight = BrandLight,
     brandSubtle = BrandSubtle,
     brandMuted = BrandMuted,
+    action = Gray50,
+    onAction = White,
     background = Brand,
     onBackground = White,
     surface = Brand,
@@ -82,6 +84,8 @@ class CodeColors(
     brandLight: Color,
     brandSubtle: Color,
     brandMuted: Color,
+    action: Color,
+    onAction: Color,
     background: Color,
     onBackground: Color,
     surface: Color,
@@ -98,6 +102,10 @@ class CodeColors(
     var brandSubtle by mutableStateOf(brandSubtle)
         private set
     var brandMuted by mutableStateOf(brandMuted)
+        private set
+    var action by mutableStateOf(action)
+        private set
+    var onAction by mutableStateOf(onAction)
         private set
     var background by mutableStateOf(background)
         private set
@@ -121,6 +129,7 @@ class CodeColors(
         brandLight = other.brandLight
         brandSubtle = other.brandSubtle
         brandMuted = other.brandMuted
+        action = other.action
         background = other.background
         onBackground = other.onBackground
         surface = other.surface
@@ -136,6 +145,8 @@ class CodeColors(
         brandLight = brandLight,
         brandSubtle = brandSubtle,
         brandMuted = brandMuted,
+        action = action,
+        onAction = onAction,
         background = background,
         onBackground = onBackground,
         surface = surface,
