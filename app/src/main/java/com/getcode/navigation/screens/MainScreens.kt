@@ -86,7 +86,7 @@ data object GiveKinModal : AppScreen(), MainGraph, ModalRoot {
 
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.title_giveKin)
+        @Composable get() = stringResource(id = R.string.title_giveCash)
 
     @Composable
     override fun Content() {
