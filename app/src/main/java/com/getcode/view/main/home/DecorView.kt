@@ -59,7 +59,7 @@ internal fun DecorView(
     isCameraReady: Boolean,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
-    showBottomSheet: (HomeBottomSheet) -> Unit,
+    onAction: (HomeAction) -> Unit,
 ) {
     val tips = LocalTipsEngine.current!!.tips as DefinedTips
     val tipProvider = LocalTipProvider.current
@@ -74,7 +74,7 @@ internal fun DecorView(
 
     val scope = rememberCoroutineScope()
     val openDownloadModal = {
-        showBottomSheet(HomeBottomSheet.SHARE_DOWNLOAD)
+        onAction(HomeAction.SHARE_DOWNLOAD)
         scope.launch {
             delay(300)
             tipProvider.dismiss()
@@ -113,7 +113,7 @@ internal fun DecorView(
                 .align(Alignment.TopEnd)
                 .clip(CircleShape)
                 .rememberedClickable {
-                    showBottomSheet(HomeBottomSheet.ACCOUNT)
+                    onAction(HomeAction.ACCOUNT)
                 },
             painter = painterResource(
                 R.drawable.ic_home_options
@@ -186,7 +186,7 @@ internal fun DecorView(
                     .padding(bottom = CodeTheme.dimens.grid.x3),
                 state = dataState,
                 onPress = {
-                    showBottomSheet(it)
+                    onAction(it)
                 },
             )
         }
