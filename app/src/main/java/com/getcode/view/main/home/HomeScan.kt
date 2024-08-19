@@ -52,7 +52,6 @@ import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
-import com.getcode.navigation.screens.HomeResult
 import com.getcode.navigation.screens.ShareDownloadLinkModal
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
@@ -77,7 +76,7 @@ import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
 
 
-enum class HomeBottomSheet {
+enum class HomeAction {
     NONE,
     ACCOUNT,
     GIVE_KIN,
@@ -186,22 +185,22 @@ private fun HomeScan(
         }
     }
 
-    fun showBottomSheet(bottomSheet: HomeBottomSheet) {
+    fun handleAction(action: HomeAction) {
         scope.launch {
-            when (bottomSheet) {
-                HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
-                HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
-                HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
-                HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
-                HomeBottomSheet.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
-                HomeBottomSheet.TIP_CARD -> {
+            when (action) {
+                HomeAction.GIVE_KIN -> navigator.show(GiveKinModal)
+                HomeAction.ACCOUNT -> navigator.show(AccountModal)
+                HomeAction.GET_KIN -> navigator.show(GetKinModal)
+                HomeAction.BALANCE -> navigator.show(BalanceModal)
+                HomeAction.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
+                HomeAction.TIP_CARD -> {
                     if (dataState.tipCardConnected) {
                         homeViewModel.presentShareableTipCard()
                     } else {
                         navigator.show(ConnectAccount())
                     }
                 }
-                HomeBottomSheet.NONE -> Unit
+                HomeAction.NONE -> Unit
             }
         }
     }
@@ -225,7 +224,7 @@ private fun HomeScan(
                 }
             )
         },
-        showBottomSheet = { showBottomSheet(it) },
+        onAction = { handleAction(it) },
     )
 
     OnLifecycleEvent { _, event ->
@@ -291,7 +290,7 @@ private fun BillContainer(
     homeViewModel: HomeViewModel,
     scannerView: @Composable () -> Unit,
     onStartCamera: () -> Unit,
-    showBottomSheet: (HomeBottomSheet) -> Unit,
+    onAction: (HomeAction) -> Unit,
 ) {
     val onPermissionResult =
         { isGranted: Boolean ->
@@ -377,7 +376,7 @@ private fun BillContainer(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(updatedState, isCameraReady, isPaused) { showBottomSheet(it) }
+            DecorView(updatedState, isCameraReady, isPaused) { onAction(it) }
         }
 
         var managementHeight by remember {

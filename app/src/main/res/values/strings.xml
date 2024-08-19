@@ -50,4 +50,6 @@
     <string name="subtitle_connectXAccount">Connecting your X account allows you to reveal your identity to the people you tip. To connect your account post to X.</string>
     <string name="title_useKadoSandbox">Use Kado Sandbox</string>
     <string name="title_tipCard">Tip Card</string>
+    <string name="action_give">Give</string>
+    <string name="action_receive">Receive</string>
 </resources>

@@ -150,7 +150,7 @@ data class HomeUiModel(
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
     val tips: Feature = TipCardFeature(),
-    val tipCardOnHomeScreen: Feature = TipCardOnHomeScreenFeature(),
+    val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
 
@@ -186,7 +186,6 @@ class HomeViewModel @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val cashLinkManager: CashLinkManager,
     appSettings: AppSettingsRepository,
-    betaFlags: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
@@ -208,20 +207,6 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-//        betaFlags.observe()
-//            .distinctUntilChanged()
-//            .onEach { beta ->
-//                ErrorUtils.setDisplayErrors(beta.displayErrors)
-//
-//                if (beta.establishCodeRelationship) {
-//                    val organizer = SessionManager.getOrganizer() ?: return@onEach
-//                    val domain = Domain.from("getcode.com") ?: return@onEach
-//                    if (organizer.relationshipFor(domain) == null) {
-//                        client.awaitEstablishRelationship(organizer, domain)
-//                    }
-//                }
-//            }.launchIn(viewModelScope)
-
         features.buyModule
             .onEach { module ->
                 uiFlow.update {
@@ -232,7 +217,7 @@ class HomeViewModel @Inject constructor(
         features.tipCardOnHomeScreen
             .onEach { module ->
                 uiFlow.update {
-                    it.copy(tipCardOnHomeScreen = module)
+                    it.copy(actions = buildActions(module.enabled))
                 }
             }.launchIn(viewModelScope)
 
@@ -386,6 +371,20 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    private fun buildActions(
+        tipCardOnHomeScreen: Boolean,
+    ): List<HomeAction> {
+        return listOf(
+            HomeAction.GIVE_KIN,
+            if (tipCardOnHomeScreen) {
+                HomeAction.TIP_CARD
+            } else {
+                HomeAction.GET_KIN
+            },
+            HomeAction.BALANCE
+        )
     }
 
     fun onCameraScanning(scanning: Boolean) {
