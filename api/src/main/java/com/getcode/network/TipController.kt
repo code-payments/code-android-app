@@ -1,9 +1,5 @@
 package com.getcode.network
 
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
-import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.PrefsBool
@@ -13,7 +9,6 @@ import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.BetaFlagsRepository
-import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
 import com.getcode.network.repository.base58
@@ -27,7 +22,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -50,7 +44,11 @@ class TipController @Inject constructor(
     private val client: Client,
     betaFlags: BetaFlagsRepository,
     private val prefRepository: PrefRepository,
-): LifecycleEventObserver {
+) {
+
+    companion object {
+        private const val POLL_FREQUENCY_SECS = 5L
+    }
 
     private var pollTimer: Timer? = null
     private var lastPoll: Long = 0L
@@ -62,6 +60,8 @@ class TipController @Inject constructor(
         private set
     var userMetadata: TwitterUser? = null
         private set
+
+    private var confirmedConnection = false
 
     val connectedAccount: StateFlow<TipMetadata?> = prefRepository.observeOrDefault(PrefsString.KEY_TIP_ACCOUNT, "")
         .map { runCatching { Json.decodeFromString<TwitterUser>(it) }.getOrNull() }
@@ -84,10 +84,10 @@ class TipController @Inject constructor(
     private fun startPollTimer() {
         Timber.d("twitter poll start")
         pollTimer?.cancel()
-        pollTimer = fixedRateTimer("twitterPollTimer", false, 0, 1000 * 20) {
+        pollTimer = fixedRateTimer("twitterPollTimer", false, 0, 1000 * POLL_FREQUENCY_SECS) {
             scope.launch {
                 val time = System.currentTimeMillis()
-                val isPastThrottle = time - lastPoll > 1000 * 10 || lastPoll == 0L
+                val isPastThrottle = time - lastPoll > 1000 * (POLL_FREQUENCY_SECS / 2.0) || lastPoll == 0L
 
                 if (isPastThrottle) {
                     callForConnectedUser()
@@ -105,6 +105,8 @@ class TipController @Inject constructor(
             .onSuccess {
                 Timber.d("current user twitter connected @ ${it.username}")
                 prefRepository.set(PrefsString.KEY_TIP_ACCOUNT, Json.encodeToString(it))
+                confirmedConnection = true
+                stopTimerInternal()
             }
             .onFailure {
                 when (it) {
@@ -125,6 +127,7 @@ class TipController @Inject constructor(
     }
 
     fun checkForConnection() {
+        if (confirmedConnection) return
         startPollTimer()
     }
 
@@ -172,15 +175,13 @@ class TipController @Inject constructor(
         return null
     }
 
-    private fun stopTimer() {
-        pollTimer?.cancel()
+    fun stopTimer() {
+        confirmedConnection = false
+        stopTimerInternal()
     }
 
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        when (event) {
-            Lifecycle.Event.ON_RESUME -> checkForConnection()
-            Lifecycle.Event.ON_STOP -> stopTimer()
-            else -> Unit
-        }
+    private fun stopTimerInternal() {
+        Timber.d("twitter poll stop")
+        pollTimer?.cancel()
     }
 }

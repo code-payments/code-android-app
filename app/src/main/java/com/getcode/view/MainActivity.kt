@@ -19,6 +19,7 @@ import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.ui.tips.DefinedTips
@@ -63,6 +64,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var exchange: Exchange
+
+    @Inject
+    lateinit var tipController: TipController
 
     @Inject
     lateinit var tipEngine: TipsEngine
@@ -135,11 +139,13 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         client.startTimer()
+        tipController.checkForConnection()
     }
 
     override fun onStop() {
         super.onStop()
         client.stopTimer()
+        tipController.stopTimer()
     }
 }
 
