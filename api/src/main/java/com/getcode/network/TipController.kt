@@ -47,7 +47,7 @@ class TipController @Inject constructor(
 ) {
 
     companion object {
-        private const val POLL_FREQUENCY_SECS = 5L
+        private const val POLL_FREQUENCY_LOOKING_SECS = 5L
     }
 
     private var pollTimer: Timer? = null
@@ -61,8 +61,6 @@ class TipController @Inject constructor(
     var userMetadata: TwitterUser? = null
         private set
 
-    private var confirmedConnection = false
-
     val connectedAccount: StateFlow<TipMetadata?> = prefRepository.observeOrDefault(PrefsString.KEY_TIP_ACCOUNT, "")
         .map { runCatching { Json.decodeFromString<TwitterUser>(it) }.getOrNull() }
         .distinctUntilChanged()
@@ -70,6 +68,14 @@ class TipController @Inject constructor(
             scope = scope,
             started = SharingStarted.Eagerly,
             initialValue = null
+        )
+
+    val verificationInProgress: StateFlow<Boolean> = prefRepository.observeOrDefault(PrefsBool.STARTED_TIP_CONNECT, false)
+        .distinctUntilChanged()
+        .stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = false
         )
 
     val showTwitterSplat: Flow<Boolean> =
@@ -82,18 +88,22 @@ class TipController @Inject constructor(
         }
 
     private fun startPollTimer() {
+        if (connectedAccount.value != null) return
+
         Timber.d("twitter poll start")
         pollTimer?.cancel()
-        pollTimer = fixedRateTimer("twitterPollTimer", false, 0, 1000 * POLL_FREQUENCY_SECS) {
-            scope.launch {
-                val time = System.currentTimeMillis()
-                val isPastThrottle = time - lastPoll > 1000 * (POLL_FREQUENCY_SECS / 2.0) || lastPoll == 0L
+        pollTimer =
+            fixedRateTimer("twitterPollTimer", false, 0, 1000 * POLL_FREQUENCY_LOOKING_SECS) {
+                scope.launch {
+                    val time = System.currentTimeMillis()
+                    val isPastThrottle =
+                        time - lastPoll > 1000 * (POLL_FREQUENCY_LOOKING_SECS / 2.0) || lastPoll == 0L
 
-                if (isPastThrottle) {
-                    callForConnectedUser()
+                    if (isPastThrottle) {
+                        callForConnectedUser()
+                    }
                 }
             }
-        }
     }
 
     private suspend fun callForConnectedUser() {
@@ -105,8 +115,7 @@ class TipController @Inject constructor(
             .onSuccess {
                 Timber.d("current user twitter connected @ ${it.username}")
                 prefRepository.set(PrefsString.KEY_TIP_ACCOUNT, Json.encodeToString(it))
-                confirmedConnection = true
-                stopTimerInternal()
+                stopTimer()
             }
             .onFailure {
                 when (it) {
@@ -127,7 +136,12 @@ class TipController @Inject constructor(
     }
 
     fun checkForConnection() {
-        if (confirmedConnection) return
+        if (!verificationInProgress.value) {
+            scope.launch {
+                callForConnectedUser()
+            }
+            return
+        }
         startPollTimer()
     }
 
@@ -152,6 +166,7 @@ class TipController @Inject constructor(
 
     fun clearTwitterSplat() {
         prefRepository.set(PrefsBool.SEEN_TIP_CARD, true)
+        endVerification()
     }
 
     fun generateTipVerification(): String? {
@@ -175,8 +190,15 @@ class TipController @Inject constructor(
         return null
     }
 
+    fun startVerification() {
+        prefRepository.set(PrefsBool.STARTED_TIP_CONNECT, true)
+    }
+
+    private fun endVerification() {
+        prefRepository.set(PrefsBool.STARTED_TIP_CONNECT, false)
+    }
+
     fun stopTimer() {
-        confirmedConnection = false
         stopTimerInternal()
     }
 

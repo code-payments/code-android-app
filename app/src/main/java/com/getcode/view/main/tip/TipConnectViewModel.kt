@@ -69,6 +69,7 @@ class TipConnectViewModel @Inject constructor(
             .map { IntentUtils.tweet(it) }
             .onEach {
                 dispatchEvent(Event.OpenX(it))
+                tipController.startVerification()
             }.launchIn(viewModelScope)
     }
 
