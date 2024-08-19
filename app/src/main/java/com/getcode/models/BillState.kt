@@ -70,8 +70,8 @@ data class BillState(
         }
 
         data class Cancel(override val action: () -> Unit): Action {
-            override val label: String
-                @Composable get() = stringResource(R.string.action_cancel)
+            override val label: String?
+                @Composable get() = null
 
             override val asset: Painter
                 @Composable get() = painterResource(R.drawable.ic_bill_close)
