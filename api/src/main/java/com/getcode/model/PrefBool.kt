@@ -25,6 +25,7 @@ sealed class PrefsBool(val value: String) {
     data object IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP: PrefsBool("is_eligible_give_first_kin_airdrop"), InternalRouting
     data object HAS_REMOVED_LOCAL_CURRENCY: PrefsBool("removed_local_currency"), InternalRouting
     data object SEEN_TIP_CARD : PrefsBool("seen_tip_card"), InternalRouting
+    data object STARTED_TIP_CONNECT: PrefsBool("started_tip_connect"), InternalRouting
 
     data object BUY_MODULE_AVAILABLE : PrefsBool("buy_module_available"), InternalRouting
 

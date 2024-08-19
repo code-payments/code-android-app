@@ -232,6 +232,7 @@ class HomeViewModel @Inject constructor(
             .filter { it }
             .onEach { delay(500) }
             .flatMapLatest { tipController.connectedAccount }
+            .filter { tipController.verificationInProgress.value }
             .filterNotNull()
             .distinctUntilChanged()
             .filter { uiFlow.value.isCameraScanEnabled }
