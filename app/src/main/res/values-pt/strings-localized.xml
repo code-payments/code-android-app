@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Ativar a identificação facial</string>
   <string name="action_enableTouchID">Ativar a identificação por toque</string>
   <string name="action_exit">Sair</string>
+  <string name="action_give">Dar</string>
   <string name="action_giveKin">Dar Kin</string>
   <string name="action_invite">Convidar</string>
   <string name="action_invites">Convites</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Colar a Partir da Área de Transferência</string>
   <string name="action_postToConnect">Faça uma publicação para associar conta</string>
   <string name="action_putInWallet">Por na Carteira</string>
+  <string name="action_receive">Receber</string>
   <string name="action_recoverExistingAccount">Recuperar Conta Existente</string>
   <string name="action_remind">Relembrar</string>
   <string name="action_removePhoneNumber">Remover Número de Telefone</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Enviar</string>
   <string name="action_sendVerificationCode">Enviar Código de Verificação</string>
   <string name="action_share">Partilhar</string>
+  <string name="action_shareAsURL">Partilhar como URL</string>
   <string name="action_shareDownloadLink">Partilhar Ligação de Download</string>
   <string name="action_shareVideo">Partilhar este vídeo</string>
   <string name="action_showMyTipCard">Exibir o meu Cartão de Recompensas</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Iniciar um Amigo na Code</string>
   <string name="title_getKin">Obter Kin</string>
   <string name="title_getMoreKin">Obter mais Kin</string>
+  <string name="title_giveCash">Dar dinheiro</string>
   <string name="title_giveKin">Dar Kin</string>
   <string name="title_insufficientFunds">Fundos insuficientes</string>
   <string name="title_inviteFriend">Convidar um Amigo</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Gastou</string>
   <string name="title_switchAccounts">Mudar de Conta</string>
   <string name="title_termsOfService">Termos de Serviço</string>
+  <string name="title_tipCard">Cartão de Dica</string>
   <string name="title_tipKin">Dar recompensa em Kin</string>
   <string name="title_unknown">Desconhecido</string>
   <string name="title_updateRequired">Atualização Necessária</string>

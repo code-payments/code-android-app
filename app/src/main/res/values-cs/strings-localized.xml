@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Povolit Face ID</string>
   <string name="action_enableTouchID">Povolit Touch ID</string>
   <string name="action_exit">Odejít</string>
+  <string name="action_give">Dát</string>
   <string name="action_giveKin">Darovat kin</string>
   <string name="action_invite">Přizvat</string>
   <string name="action_invites">Pozvánky</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Vložit z vývěsky</string>
   <string name="action_postToConnect">Zveřejnit příspěvek pro připojení účtu</string>
   <string name="action_putInWallet">Vložit do peněženky</string>
+  <string name="action_receive">Přijmout</string>
   <string name="action_recoverExistingAccount">Obnovit stávající účet</string>
   <string name="action_remind">Připomenout</string>
   <string name="action_removePhoneNumber">Odstranit telefonní číslo</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Odeslat</string>
   <string name="action_sendVerificationCode">Zaslat ověřovací kód</string>
   <string name="action_share">Sdílet</string>
+  <string name="action_shareAsURL">Sdílet jako adresu URL</string>
   <string name="action_shareDownloadLink">Sdílet odkaz stažení</string>
   <string name="action_shareVideo">Sdílet toto video</string>
   <string name="action_showMyTipCard">Ukázat kartu spropitného</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Začněte kamarádem používat Code</string>
   <string name="title_getKin">Získat Kin</string>
   <string name="title_getMoreKin">Získejte další Kin</string>
+  <string name="title_giveCash">Dát hotovost</string>
   <string name="title_giveKin">Darovat kin</string>
   <string name="title_insufficientFunds">Nedostatek prostředků</string>
   <string name="title_inviteFriend">Přizvat přítele</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Utraceno</string>
   <string name="title_switchAccounts">Přepnout účet</string>
   <string name="title_termsOfService">Všeobecné obchodní podmínky</string>
+  <string name="title_tipCard">Karta tipu</string>
   <string name="title_tipKin">Dát Kin spropitné</string>
   <string name="title_unknown">Neznámé</string>
   <string name="title_updateRequired">Je nutná aktualizace</string>

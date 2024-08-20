@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">启用 Face ID</string>
   <string name="action_enableTouchID">启用 Touch ID</string>
   <string name="action_exit">退出</string>
+  <string name="action_give">给出</string>
   <string name="action_giveKin">给与 Kin</string>
   <string name="action_invite">邀请</string>
   <string name="action_invites">邀请</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">从剪贴板粘贴</string>
   <string name="action_postToConnect">发布至连接的账户</string>
   <string name="action_putInWallet">放入钱包</string>
+  <string name="action_receive">接收</string>
   <string name="action_recoverExistingAccount">恢复现有账户</string>
   <string name="action_remind">提醒</string>
   <string name="action_removePhoneNumber">移除手机号码</string>
@@ -54,6 +56,7 @@
   <string name="action_send">发送</string>
   <string name="action_sendVerificationCode">发送验证码</string>
   <string name="action_share">分享</string>
+  <string name="action_shareAsURL">以 URL 形式分享</string>
   <string name="action_shareDownloadLink">分享下载链接</string>
   <string name="action_shareVideo">分享此视频</string>
   <string name="action_showMyTipCard">显示我的小费卡</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">让好友开始使用 Code</string>
   <string name="title_getKin">获取 Kin 币</string>
   <string name="title_getMoreKin">获取更多 Kin 币</string>
+  <string name="title_giveCash">给出现金</string>
   <string name="title_giveKin">给与 Kin</string>
   <string name="title_insufficientFunds">资金不足</string>
   <string name="title_inviteFriend">邀请好友</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">花费</string>
   <string name="title_switchAccounts">切换账户</string>
   <string name="title_termsOfService">服务条款</string>
+  <string name="title_tipCard">小费卡</string>
   <string name="title_tipKin">Kin 小费</string>
   <string name="title_unknown">未知</string>
   <string name="title_updateRequired">需要更新</string>

@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Enable Face ID</string>
   <string name="action_enableTouchID">Enable Touch ID</string>
   <string name="action_exit">Exit</string>
+  <string name="action_give">Give</string>
   <string name="action_giveKin">Give Kin</string>
   <string name="action_invite">Invite</string>
   <string name="action_invites">Invites</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Paste From Clipboard</string>
   <string name="action_postToConnect">Post to Connect Account</string>
   <string name="action_putInWallet">Put in Wallet</string>
+  <string name="action_receive">Receive</string>
   <string name="action_recoverExistingAccount">Recover Existing Account</string>
   <string name="action_remind">Remind</string>
   <string name="action_removePhoneNumber">Remove Phone Number</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Send</string>
   <string name="action_sendVerificationCode">Send Verification Code</string>
   <string name="action_share">Share</string>
+  <string name="action_shareAsURL">Share as a URL</string>
   <string name="action_shareDownloadLink">Share Download Link</string>
   <string name="action_shareVideo">Share this video</string>
   <string name="action_showMyTipCard">Show My Tip Card</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Get a Friend Started on Code</string>
   <string name="title_getKin">Get Kin</string>
   <string name="title_getMoreKin">Get more Kin</string>
+  <string name="title_giveCash">Give Cash</string>
   <string name="title_giveKin">Give Kin</string>
   <string name="title_insufficientFunds">Insufficient funds</string>
   <string name="title_inviteFriend">Invite a Friend</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Spent</string>
   <string name="title_switchAccounts">Switch Accounts</string>
   <string name="title_termsOfService">Terms of Service</string>
+  <string name="title_tipCard">Tip Card</string>
   <string name="title_tipKin">Tip Kin</string>
   <string name="title_unknown">Unknown</string>
   <string name="title_updateRequired">Update Required</string>

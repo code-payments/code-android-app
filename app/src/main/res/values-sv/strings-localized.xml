@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Aktivera Face ID</string>
   <string name="action_enableTouchID">Aktivera Touch ID</string>
   <string name="action_exit">Avsluta</string>
+  <string name="action_give">Ge</string>
   <string name="action_giveKin">Ge Kin</string>
   <string name="action_invite">Bjud in</string>
   <string name="action_invites">Bjuder in</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Klistra in från Urklipp</string>
   <string name="action_postToConnect">Posta för att koppla kontot</string>
   <string name="action_putInWallet">Lägg i plånboken</string>
+  <string name="action_receive">Ta emot</string>
   <string name="action_recoverExistingAccount">Återskapa befintligt konto</string>
   <string name="action_remind">Påminn</string>
   <string name="action_removePhoneNumber">Ta bort telefonnummer</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Skicka</string>
   <string name="action_sendVerificationCode">Skicka verifieringskod</string>
   <string name="action_share">Dela</string>
+  <string name="action_shareAsURL">Dela som webbadress</string>
   <string name="action_shareDownloadLink">Dela nedladdningslänk</string>
   <string name="action_shareVideo">Dela den här videon</string>
   <string name="action_showMyTipCard">Visa mitt drickskort</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Få en vän att börja med Code</string>
   <string name="title_getKin">Få Kin</string>
   <string name="title_getMoreKin">Skaffa mer Kin</string>
+  <string name="title_giveCash">Ge pengar</string>
   <string name="title_giveKin">Ge Kin</string>
   <string name="title_insufficientFunds">Otillräckliga medel</string>
   <string name="title_inviteFriend">Bjud in en vän</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Spenderat</string>
   <string name="title_switchAccounts">Byt konto</string>
   <string name="title_termsOfService">Villkor för tjänsten</string>
+  <string name="title_tipCard">Drickskort</string>
   <string name="title_tipKin">Ge Kin i dricks</string>
   <string name="title_unknown">Okänt</string>
   <string name="title_updateRequired">Uppdatering krävs</string>

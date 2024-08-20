@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Mengaktifkan ID Wajah</string>
   <string name="action_enableTouchID">Mengaktifkan ID Sentuhan</string>
   <string name="action_exit">Keluar</string>
+  <string name="action_give">Beri</string>
   <string name="action_giveKin">Beri Kin</string>
   <string name="action_invite">Ajak</string>
   <string name="action_invites">Ajakan</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Tampal Dari Papan Keratan</string>
   <string name="action_postToConnect">Siar untuk Menghubungkan Akaun</string>
   <string name="action_putInWallet">Masukkan dalam Dompet</string>
+  <string name="action_receive">Terima</string>
   <string name="action_recoverExistingAccount">Pulihkan Akaun Sedia Ada</string>
   <string name="action_remind">Ingatkan</string>
   <string name="action_removePhoneNumber">Singkirkan Nombor Telefon</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Hantar</string>
   <string name="action_sendVerificationCode">Hantar Kod Pengesahan</string>
   <string name="action_share">Kongsi</string>
+  <string name="action_shareAsURL">Kongsikan sebagai URL</string>
   <string name="action_shareDownloadLink">Kongsi Pautan Muat Turun</string>
   <string name="action_shareVideo">Kongsi Video Ini</string>
   <string name="action_showMyTipCard">Tunjuk Kad Tip Saya</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Dapatkan Rakan untuk Bermula menggunakan Code</string>
   <string name="title_getKin">Dapatkan Kin</string>
   <string name="title_getMoreKin">Dapatkan Lebih Banyak Kin</string>
+  <string name="title_giveCash">Beri Wang</string>
   <string name="title_giveKin">Beri Kin</string>
   <string name="title_insufficientFunds">Dana Tidak Mencukupi</string>
   <string name="title_inviteFriend">Ajak Kawan</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Perbelanjaan</string>
   <string name="title_switchAccounts">Tukar Akaun</string>
   <string name="title_termsOfService">Syarat Perkhidmatan</string>
+  <string name="title_tipCard">Kad Petua</string>
   <string name="title_tipKin">Tip Kin</string>
   <string name="title_unknown">Tidak diketahui</string>
   <string name="title_updateRequired">Kemas Kini Diperlukan</string>
