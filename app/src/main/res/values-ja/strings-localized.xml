@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Face IDを有効にする</string>
   <string name="action_enableTouchID">Touch IDを有効にする</string>
   <string name="action_exit">終了する</string>
+  <string name="action_give">渡す</string>
   <string name="action_giveKin">Kinを与える</string>
   <string name="action_invite">招待</string>
   <string name="action_invites">招待</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">クリップボードから貼り付ける</string>
   <string name="action_postToConnect">投稿してアカウントを接続</string>
   <string name="action_putInWallet">ウォレットに入れる</string>
+  <string name="action_receive">受け取る</string>
   <string name="action_recoverExistingAccount">既存のアカウントを復元する</string>
   <string name="action_remind">リマインド</string>
   <string name="action_removePhoneNumber">電話番号を削除する</string>
@@ -54,6 +56,7 @@
   <string name="action_send">送信</string>
   <string name="action_sendVerificationCode">確認コードを送信する</string>
   <string name="action_share">共有</string>
+  <string name="action_shareAsURL">URLとして共有する</string>
   <string name="action_shareDownloadLink">ダウンロードリンクを共有</string>
   <string name="action_shareVideo">この動画をシェアする</string>
   <string name="action_showMyTipCard">チップカードを表示する</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">友だちにCodeを始めさせる</string>
   <string name="title_getKin">Kinを入手</string>
   <string name="title_getMoreKin">Kinをもっと入手する</string>
+  <string name="title_giveCash">現金を渡す</string>
   <string name="title_giveKin">Kinを与える</string>
   <string name="title_insufficientFunds">資金不足</string>
   <string name="title_inviteFriend">友達を招待する</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">使用済み</string>
   <string name="title_switchAccounts">アカウントを切り替える</string>
   <string name="title_termsOfService">利用規約</string>
+  <string name="title_tipCard">チップカード</string>
   <string name="title_tipKin">Kinにチップを支払う</string>
   <string name="title_unknown">不明</string>
   <string name="title_updateRequired">更新が必要です</string>

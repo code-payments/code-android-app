@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Face ID चालू करें</string>
   <string name="action_enableTouchID">Touch ID चालू करें</string>
   <string name="action_exit">बाहर निकलें</string>
+  <string name="action_give">दें</string>
   <string name="action_giveKin">Kin दे</string>
   <string name="action_invite">आमंत्रित करें</string>
   <string name="action_invites">आमंत्रण</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">क्लिपबोर्ड से पेस्ट करें</string>
   <string name="action_postToConnect">अकाउंट कनेक्ट करने के लिए पोस्ट करें </string>
   <string name="action_putInWallet">वॉलेट में डालें</string>
+  <string name="action_receive">पाएँ</string>
   <string name="action_recoverExistingAccount">वर्तमान अकाउंट को पुनर्प्राप्त करें\n</string>
   <string name="action_remind">याद दिलाएं</string>
   <string name="action_removePhoneNumber">फ़ोन नंबर हटाएं</string>
@@ -54,6 +56,7 @@
   <string name="action_send">सेंड</string>
   <string name="action_sendVerificationCode">वेरिफिकेशन कोड भेजें</string>
   <string name="action_share">शेयर करें </string>
+  <string name="action_shareAsURL">URL के रूप में शेयर करें</string>
   <string name="action_shareDownloadLink">डाउनलोड लिंक शेयर करें</string>
   <string name="action_shareVideo">इस वीडियो को शेयर करें </string>
   <string name="action_showMyTipCard">मेरा टिप कार्ड दिखाएँ</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">किसी दोस्त से Code इस्तेमाल करना शुरू करवाएं</string>
   <string name="title_getKin">Kin पाएं</string>
   <string name="title_getMoreKin">अधिक Kin पाएं </string>
+  <string name="title_giveCash">कैश दें</string>
   <string name="title_giveKin">Kin दे</string>
   <string name="title_insufficientFunds">अपर्याप्त फंड</string>
   <string name="title_inviteFriend">एक दोस्त को आमंत्रित करें</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">खर्च किया</string>
   <string name="title_switchAccounts">अकाउंट स्विच करें</string>
   <string name="title_termsOfService">सेवा की शर्तें</string>
+  <string name="title_tipCard">टिप कार्ड</string>
   <string name="title_tipKin">Kin को टिप दें </string>
   <string name="title_unknown">अज्ञात</string>
   <string name="title_updateRequired">अपडेट की आवश्यकता है</string>

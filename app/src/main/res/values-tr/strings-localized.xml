@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Face ID\'yi etkinleştir</string>
   <string name="action_enableTouchID">Touch ID\'yi etkinleştir</string>
   <string name="action_exit">Çıkış</string>
+  <string name="action_give">Ver</string>
   <string name="action_giveKin">Kin Ver</string>
   <string name="action_invite">Davet Et</string>
   <string name="action_invites">Davetler</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Panodan Yapıştır</string>
   <string name="action_postToConnect">Hesabı Bağlamak için Gönder</string>
   <string name="action_putInWallet">Cüzdana Yerleştir</string>
+  <string name="action_receive">Al</string>
   <string name="action_recoverExistingAccount">Mevcut Hesabı Kurtar</string>
   <string name="action_remind">Hatırlat</string>
   <string name="action_removePhoneNumber">Telefon Numarasını Kaldır</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Gönder</string>
   <string name="action_sendVerificationCode">Doğrulama Kodu Gönder</string>
   <string name="action_share">Paylaş</string>
+  <string name="action_shareAsURL">URL olarak paylaş</string>
   <string name="action_shareDownloadLink">İndirme Bağlantısı Paylaş</string>
   <string name="action_shareVideo">Bu Videoyu Paylaş</string>
   <string name="action_showMyTipCard">Bahşiş Kartımı Göster</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Bir Arkadaşınızı Code\'a başlatın</string>
   <string name="title_getKin">Kin Al</string>
   <string name="title_getMoreKin">Daha Fazla Kin Al</string>
+  <string name="title_giveCash">Nakit Ver</string>
   <string name="title_giveKin">Kin Ver</string>
   <string name="title_insufficientFunds">Yetersiz Bakiye</string>
   <string name="title_inviteFriend">Arkadaşını Davet Et</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Harcanan</string>
   <string name="title_switchAccounts">Hesap Değiştir</string>
   <string name="title_termsOfService">Hizmet Şartları</string>
+  <string name="title_tipCard">Bahşiş Kartı</string>
   <string name="title_tipKin">Bahşiş Olarak Kin Ver</string>
   <string name="title_unknown">Bilinmeyen</string>
   <string name="title_updateRequired">Güncelleme Gerekli</string>

@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Face ID aktivieren</string>
   <string name="action_enableTouchID">Touch ID aktivieren</string>
   <string name="action_exit">Beenden</string>
+  <string name="action_give">Geben</string>
   <string name="action_giveKin">Kin überweisen</string>
   <string name="action_invite">Einladen</string>
   <string name="action_invites">Einladen</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Aus Zwischenablage einfügen</string>
   <string name="action_postToConnect">Posten, um das Konto zu verbinden</string>
   <string name="action_putInWallet">In Wallet legen</string>
+  <string name="action_receive">Erhalten</string>
   <string name="action_recoverExistingAccount">Bestehendes Konto wiederherstellen</string>
   <string name="action_remind">Erinnern</string>
   <string name="action_removePhoneNumber">Telefonnummer entfernen</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Senden</string>
   <string name="action_sendVerificationCode">Verifizierungscode senden</string>
   <string name="action_share">Teilen</string>
+  <string name="action_shareAsURL">Als URL teilen</string>
   <string name="action_shareDownloadLink">Download-Link teilen</string>
   <string name="action_shareVideo">Dieses Video teilen\n</string>
   <string name="action_showMyTipCard">Meine Trinkgeldkarte anzeigen</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Gewinne einen deiner Freunde für Code</string>
   <string name="title_getKin">Kin erhalten</string>
   <string name="title_getMoreKin">Mehr Kin erhalten\n</string>
+  <string name="title_giveCash">Geld geben</string>
   <string name="title_giveKin">Kin überweisen</string>
   <string name="title_insufficientFunds">Unzureichende Mittel\n</string>
   <string name="title_inviteFriend">Einen Freund einladen</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Ausgegeben</string>
   <string name="title_switchAccounts">Konten wechseln</string>
   <string name="title_termsOfService">Servicebedingungen</string>
+  <string name="title_tipCard">Tippkarte</string>
   <string name="title_tipKin">Kin-Trinkgeld geben</string>
   <string name="title_unknown">Unbekannt</string>
   <string name="title_updateRequired">Aktualisierung erforderlich</string>

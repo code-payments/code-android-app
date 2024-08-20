@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Bật Face ID</string>
   <string name="action_enableTouchID">Bật Touch ID</string>
   <string name="action_exit">Thoát</string>
+  <string name="action_give">Cho</string>
   <string name="action_giveKin">Tặng Kin</string>
   <string name="action_invite">Mời</string>
   <string name="action_invites">Lời mời</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Dán Từ Khay nhớ tạm</string>
   <string name="action_postToConnect">Hãy đăng bài để kết nối tài khoản</string>
   <string name="action_putInWallet">Đặt trong Ví</string>
+  <string name="action_receive">Nhận</string>
   <string name="action_recoverExistingAccount">Khôi phục Tài khoản Hiện có</string>
   <string name="action_remind">Nhắc nhở</string>
   <string name="action_removePhoneNumber">Xóa Số Điện thoại</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Gửi</string>
   <string name="action_sendVerificationCode">Gửi Mã Xác minh</string>
   <string name="action_share">Chia sẻ</string>
+  <string name="action_shareAsURL">Chia sẻ dưới dạng URL</string>
   <string name="action_shareDownloadLink">Chia sẻ đường liên kết tải xuống</string>
   <string name="action_shareVideo">Chia sẻ Video Này</string>
   <string name="action_showMyTipCard">Hiển thị Thẻ tiền boa của tôi</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Mời một người bạn bắt đầu dùng Code</string>
   <string name="title_getKin">Nhận Kin</string>
   <string name="title_getMoreKin">Nhận Thêm Kin</string>
+  <string name="title_giveCash">Cho Tiền mặt</string>
   <string name="title_giveKin">Tặng Kin</string>
   <string name="title_insufficientFunds">Không đủ Tiền</string>
   <string name="title_inviteFriend">Mời Bạn bè</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Đã chi tiêu</string>
   <string name="title_switchAccounts">Chuyển đổi Tài khoản</string>
   <string name="title_termsOfService">Điều khoản Dịch vụ</string>
+  <string name="title_tipCard">Thẻ Boa</string>
   <string name="title_tipKin">Boa Kin</string>
   <string name="title_unknown">Không xác định</string>
   <string name="title_updateRequired">Cần Cập nhật</string>

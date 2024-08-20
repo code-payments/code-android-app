@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">เปิดใช้งาน Face ID</string>
   <string name="action_enableTouchID">เปิดใช้งาน Touch ID</string>
   <string name="action_exit">ออก</string>
+  <string name="action_give">ให้</string>
   <string name="action_giveKin">ให้ Kin</string>
   <string name="action_invite">เชิญ</string>
   <string name="action_invites">เชิญ</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">วางจากคลิปบอร์ด</string>
   <string name="action_postToConnect">โพสต์เพื่อเชื่อมโยงบัญชี\n</string>
   <string name="action_putInWallet">ใส่ในกระเป๋าเงิน</string>
+  <string name="action_receive">รับ</string>
   <string name="action_recoverExistingAccount">กู้คืนบัญชีที่มีอยู่</string>
   <string name="action_remind">เตือน</string>
   <string name="action_removePhoneNumber">ลบหมายเลขโทรศัพท์</string>
@@ -54,6 +56,7 @@
   <string name="action_send">ส่ง</string>
   <string name="action_sendVerificationCode">ส่งรหัสยืนยัน</string>
   <string name="action_share">แชร์</string>
+  <string name="action_shareAsURL">แชร์เป็น URL</string>
   <string name="action_shareDownloadLink">แชร์ลิงก์ดาวน์โหลด</string>
   <string name="action_shareVideo">แชร์วิดีโอนี้</string>
   <string name="action_showMyTipCard">แสดงบัตรทิปของฉัน</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">ชวนเพื่อนมาเริ่มต้นใช้งาน Code</string>
   <string name="title_getKin">รับ Kin</string>
   <string name="title_getMoreKin">รับ Kin เพิ่มเติม</string>
+  <string name="title_giveCash">ให้เงินสด</string>
   <string name="title_giveKin">ให้ Kin</string>
   <string name="title_insufficientFunds">เงินทุนไม่เพียงพอ</string>
   <string name="title_inviteFriend">ชวนเพื่อน</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">ใช้จ่าย</string>
   <string name="title_switchAccounts">สลับบัญชี</string>
   <string name="title_termsOfService">เงื่อนไขการให้บริการ</string>
+  <string name="title_tipCard">บัตรทิป</string>
   <string name="title_tipKin">ให้ทิปเป็น Kin</string>
   <string name="title_unknown">ไม่ทราบ</string>
   <string name="title_updateRequired">จำเป็นต้องอัปเดต</string>

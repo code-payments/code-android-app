@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Habilitar identificación facial</string>
   <string name="action_enableTouchID">Habilitar identificación táctil</string>
   <string name="action_exit">Salir</string>
+  <string name="action_give">Dar</string>
   <string name="action_giveKin">Dar Kin</string>
   <string name="action_invite">Invitar</string>
   <string name="action_invites">Invitaciones</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Pegar desde el portapapeles</string>
   <string name="action_postToConnect">Publica para conectar la cuenta</string>
   <string name="action_putInWallet">Guardar en el monedero</string>
+  <string name="action_receive">Recibir</string>
   <string name="action_recoverExistingAccount">Recuperar cuenta existente</string>
   <string name="action_remind">Recordar</string>
   <string name="action_removePhoneNumber">Eliminar número de teléfono</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Enviar</string>
   <string name="action_sendVerificationCode">Enviar código de verificación</string>
   <string name="action_share">Compartir</string>
+  <string name="action_shareAsURL">Compartir como URL</string>
   <string name="action_shareDownloadLink">Compartir enlace de descarga</string>
   <string name="action_shareVideo">Compartir este vídeo</string>
   <string name="action_showMyTipCard">Mostrar mi tarjeta de propinas</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Inicia a un amigo en Code</string>
   <string name="title_getKin">Obtener Kin</string>
   <string name="title_getMoreKin">Obtenga más Kin</string>
+  <string name="title_giveCash">Dar efectivo</string>
   <string name="title_giveKin">Dar Kin</string>
   <string name="title_insufficientFunds">Fondos insuficientes</string>
   <string name="title_inviteFriend">Invitar a un amigo</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Gastado</string>
   <string name="title_switchAccounts">Cambiar de cuenta</string>
   <string name="title_termsOfService">Términos y condiciones</string>
+  <string name="title_tipCard">Tarjeta de propina</string>
   <string name="title_tipKin">Dar Kin de propina</string>
   <string name="title_unknown">Desconocido</string>
   <string name="title_updateRequired">Actualización requerida</string>

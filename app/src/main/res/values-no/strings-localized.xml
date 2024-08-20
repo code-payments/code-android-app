@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Aktiver Face ID</string>
   <string name="action_enableTouchID">Aktiver Touch ID</string>
   <string name="action_exit">Avslutt</string>
+  <string name="action_give">Gi</string>
   <string name="action_giveKin">Gi Kin</string>
   <string name="action_invite">Inviter</string>
   <string name="action_invites">Invitasjoner</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Lim inn fra utklippstavlen</string>
   <string name="action_postToConnect">Skriv et innlegg for å koble til kontoen</string>
   <string name="action_putInWallet">Legg i lommeboken</string>
+  <string name="action_receive">Motta</string>
   <string name="action_recoverExistingAccount">Gjenopprett eksisterende konto</string>
   <string name="action_remind">Påminn</string>
   <string name="action_removePhoneNumber">Fjern telefonnummer</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Send</string>
   <string name="action_sendVerificationCode">Send bekreftelseskode</string>
   <string name="action_share">Del</string>
+  <string name="action_shareAsURL">Del som nettadresse</string>
   <string name="action_shareDownloadLink">Del nedlastingslenke</string>
   <string name="action_shareVideo">Del denne videoen</string>
   <string name="action_showMyTipCard">Vis tipskortet mitt</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Få en venn i gang med Code</string>
   <string name="title_getKin">Skaff deg Kin</string>
   <string name="title_getMoreKin">Få flere Kin</string>
+  <string name="title_giveCash">Gi kontanter</string>
   <string name="title_giveKin">Gi Kin</string>
   <string name="title_insufficientFunds">Utilstrekkelige midler</string>
   <string name="title_inviteFriend">Inviter en venn</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Brukt</string>
   <string name="title_switchAccounts">Bytt konto</string>
   <string name="title_termsOfService">Brukervilkår</string>
+  <string name="title_tipCard">Tipskort</string>
   <string name="title_tipKin">Tips Kin</string>
   <string name="title_unknown">Ukjent</string>
   <string name="title_updateRequired">Oppdatering kreves</string>

@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Aktifkan Face ID</string>
   <string name="action_enableTouchID">Aktifkan Touch ID</string>
   <string name="action_exit">Keluar</string>
+  <string name="action_give">Berikan</string>
   <string name="action_giveKin">Berikan Kin</string>
   <string name="action_invite">Undang</string>
   <string name="action_invites">Undangan</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Tempel Dari Papan Klip</string>
   <string name="action_postToConnect">Post untuk Menghubungkan Akun</string>
   <string name="action_putInWallet">Masukkan ke Dompet</string>
+  <string name="action_receive">Terima</string>
   <string name="action_recoverExistingAccount">Pulihkan Akun Yang Ada</string>
   <string name="action_remind">Ingatkan</string>
   <string name="action_removePhoneNumber">Hapus Nomor Telepon</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Kirim</string>
   <string name="action_sendVerificationCode">Kirim Kode Verifikasi</string>
   <string name="action_share">Bagikan</string>
+  <string name="action_shareAsURL">Bagikan sebagai URL</string>
   <string name="action_shareDownloadLink">Bagikan Tautan Unduhan</string>
   <string name="action_shareVideo">Bagikan Video Ini</string>
   <string name="action_showMyTipCard">Tampilkan Kartu Tip Saya</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Ajak Teman Memulai Code</string>
   <string name="title_getKin">Dapatkan Kin</string>
   <string name="title_getMoreKin">Dapatkan Lebih Banyak Kin</string>
+  <string name="title_giveCash">Berikan Uang</string>
   <string name="title_giveKin">Berikan Kin</string>
   <string name="title_insufficientFunds">Dana Tidak Cukup</string>
   <string name="title_inviteFriend">Undang Teman</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Terpakai</string>
   <string name="title_switchAccounts">Beralih Akun</string>
   <string name="title_termsOfService">Ketentuan Layanan</string>
+  <string name="title_tipCard">Kartu Tip</string>
   <string name="title_tipKin">Beri Tip Kin</string>
   <string name="title_unknown">Tak Dikenal</string>
   <string name="title_updateRequired">Memerlukan Pembaruan</string>

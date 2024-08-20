@@ -24,6 +24,7 @@
   <string name="action_enableFaceID">Включить Face ID</string>
   <string name="action_enableTouchID">Включить Touch ID</string>
   <string name="action_exit">Выйти</string>
+  <string name="action_give">Дать</string>
   <string name="action_giveKin">Дать Kin</string>
   <string name="action_invite">Пригласить</string>
   <string name="action_invites">Приглашения</string>
@@ -44,6 +45,7 @@
   <string name="action_pasteFromClipboard">Вставить из буфера обмена</string>
   <string name="action_postToConnect">Опубликуйте пост, чтобы подключить аккаунт</string>
   <string name="action_putInWallet">Положить в кошелек</string>
+  <string name="action_receive">Получить</string>
   <string name="action_recoverExistingAccount">Восстановить существующую учетную запись</string>
   <string name="action_remind">Напомнить</string>
   <string name="action_removePhoneNumber">Удалить номер телефона</string>
@@ -54,6 +56,7 @@
   <string name="action_send">Отправить</string>
   <string name="action_sendVerificationCode">Отправить код проверки</string>
   <string name="action_share">Поделиться</string>
+  <string name="action_shareAsURL">Поделиться в виде URL</string>
   <string name="action_shareDownloadLink">Поделитесь ссылкой для загрузки</string>
   <string name="action_shareVideo">Поделитесь этим видео</string>
   <string name="action_showMyTipCard">Показать мою карту чаевых</string>
@@ -327,6 +330,7 @@
   <string name="title_getFriendStartedOnCode">Пригласите друга начать пользоваться Code</string>
   <string name="title_getKin">Получить Kin</string>
   <string name="title_getMoreKin">Получить больше Kin</string>
+  <string name="title_giveCash">Дать деньги</string>
   <string name="title_giveKin">Дал(-а) Kin</string>
   <string name="title_insufficientFunds">Недостаточно средств</string>
   <string name="title_inviteFriend">Пригласить друга</string>
@@ -361,6 +365,7 @@
   <string name="title_spentKin">Потрачено</string>
   <string name="title_switchAccounts">Переключить учетные записи</string>
   <string name="title_termsOfService">Условия пользования</string>
+  <string name="title_tipCard">Карточка чаевых</string>
   <string name="title_tipKin">Дать чаевые в кин</string>
   <string name="title_unknown">Неизвестный</string>
   <string name="title_updateRequired">Требуется обновление</string>
