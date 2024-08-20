@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.namespace}.common"
+    namespace = "${Android.namespace}.vendor.kin"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -32,10 +32,5 @@ android {
 }
 
 dependencies {
-    api(Libs.androidx_annotation)
-    api(Libs.kotlin_stdlib)
-    api(Libs.kotlinx_coroutines_core)
-    api(Libs.kotlinx_coroutines_rx3)
-
     api(Libs.kin_sdk)
 }
