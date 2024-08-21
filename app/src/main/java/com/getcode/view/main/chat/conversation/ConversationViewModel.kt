@@ -12,12 +12,11 @@ import androidx.paging.map
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
-import com.getcode.model.TipChatCashFeature
+import com.getcode.model.ConversationCashFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Platform
@@ -35,16 +34,13 @@ import com.getcode.utils.timestamp
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -91,7 +87,7 @@ class ConversationViewModel @Inject constructor(
             val Default = State(
                 conversationId = null,
                 reference = null,
-                tipChatCash = TipChatCashFeature(),
+                tipChatCash = ConversationCashFeature(),
                 title = "Anonymous Tipper",
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
@@ -186,7 +182,7 @@ class ConversationViewModel @Inject constructor(
             .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
-        features.tipChatCash
+        features.conversationsCash
             .onEach { dispatchEvent(Event.OnTipsChatCashChanged(it)) }
             .launchIn(viewModelScope)
 

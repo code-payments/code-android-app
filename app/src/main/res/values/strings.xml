@@ -49,4 +49,7 @@
     <string name="title_connectAccount">Connect Account</string>
     <string name="subtitle_connectXAccount">Connecting your X account allows you to reveal your identity to the people you tip. To connect your account post to X.</string>
     <string name="title_useKadoSandbox">Use Kado Sandbox</string>
+
+    <string name="action_chat">Chat</string>
+    <string name="title_chat">Chat</string>
 </resources>

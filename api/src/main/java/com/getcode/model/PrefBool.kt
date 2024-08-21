@@ -46,8 +46,8 @@ sealed class PrefsBool(val value: String) {
     data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
-    data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag
-    data object TIPS_CHAT_CASH_ENABLED: PrefsBool("tips_chat_cash_enabled"), BetaFlag
+    data object CONVERSATIONS_ENABLED: PrefsBool("conversations_enabled"), BetaFlag
+    data object CONVERSATION_CASH_ENABLED: PrefsBool("convo_cash_enabled"), BetaFlag
     data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
     data object KADO_WEBVIEW_ENABLED : PrefsBool("kado_inapp_enabled"), BetaFlag
     data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag

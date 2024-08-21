@@ -4,8 +4,7 @@ import com.getcode.mapper.ConversationMapper
 import com.getcode.mapper.ConversationMessageWithContentMapper
 import com.getcode.network.ConversationController
 import com.getcode.network.ConversationStreamController
-import com.getcode.network.HistoryController
-import com.getcode.network.client.Client
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.service.ChatServiceV2
 import dagger.Module
@@ -21,7 +20,7 @@ object DataModule {
     @Provides
     @Singleton
     fun providesConversationController(
-        historyController: HistoryController,
+        historyController: ChatHistoryController,
         chatServiceV2: ChatServiceV2,
         exchange: Exchange,
         conversationMapper: ConversationMapper,

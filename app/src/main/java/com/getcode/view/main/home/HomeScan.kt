@@ -48,6 +48,7 @@ import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
+import com.getcode.navigation.screens.ChatListModal
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
@@ -83,7 +84,8 @@ enum class HomeAction {
     GET_KIN,
     BALANCE,
     SHARE_DOWNLOAD,
-    TIP_CARD
+    TIP_CARD,
+    CHAT
 }
 
 @Composable
@@ -201,6 +203,7 @@ private fun HomeScan(
                     }
                 }
                 HomeAction.NONE -> Unit
+                HomeAction.CHAT -> navigator.show(ChatListModal)
             }
         }
     }

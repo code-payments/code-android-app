@@ -4,6 +4,8 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
+import com.getcode.utils.serializer.UUIDSerializer
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -18,8 +20,10 @@ import java.util.UUID
  * @param contents Ordered message content. A message may have more than one piece of content.
  * @param status Derived [MessageStatus] from [Pointer]'s in [ChatMember].
  */
+@Serializable
 data class ChatMessage(
     val id: ID, // time based UUID in v2
+    @Serializable(with = UUIDSerializer::class)
     val senderId: UUID?,
     val isFromSelf: Boolean,
     val cursor: Cursor,

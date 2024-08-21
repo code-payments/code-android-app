@@ -31,6 +31,7 @@ import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatServiceV2
+import com.getcode.network.service.CurrencyService
 import com.getcode.network.service.DeviceService
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
@@ -191,14 +192,12 @@ object ApiModule {
     @Singleton
     @Provides
     fun providesExchange(
-        currencyApi: CurrencyApi,
-        networkOracle: NetworkOracle,
+        currencyService: CurrencyService,
         locale: LocaleHelper,
         currencyUtils: CurrencyUtils,
         prefRepository: PrefRepository,
     ): Exchange = CodeExchange(
-        currencyApi = currencyApi,
-        networkOracle = networkOracle,
+        currencyService = currencyService,
         prefs = prefRepository,
         preferredCurrency = {
             val preferredCurrencyCode = prefRepository.get(

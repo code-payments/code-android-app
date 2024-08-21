@@ -20,14 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.error
 import com.getcode.LocalBetaFlags
-import com.getcode.R
+import com.getcode.model.Conversation
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.MessageContent
 import com.getcode.theme.BrandLight
@@ -38,7 +32,6 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils
 import com.getcode.util.formatTimeRelatively
-import java.util.UUID
 
 object ChatNodeDefaults {
     val UnreadIndicator: Color = Color(0xFF31BB00)
@@ -62,7 +55,7 @@ fun ChatNode(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (betaFlags.tipsChatEnabled) {
+        if (betaFlags.conversationsEnabled) {
             val imageModifier = Modifier
                 .size(CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape)
