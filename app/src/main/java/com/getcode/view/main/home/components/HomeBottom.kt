@@ -73,11 +73,6 @@ internal fun HomeBottom(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_balance),
                         painter = painterResource(R.drawable.ic_balance),
-                        contentPadding = PaddingValues(
-                            top = CodeTheme.dimens.grid.x2,
-                            bottom = CodeTheme.dimens.grid.x3
-                        ),
-                        imageSize = CodeTheme.dimens.staticGrid.x6,
                         onClick = { onPress(HomeAction.BALANCE) },
                         badge = {
                             Badge(
@@ -116,7 +111,7 @@ private fun BottomBarAction(
         vertical = CodeTheme.dimens.grid.x2
     ),
     painter: Painter,
-    imageSize: Dp = CodeTheme.dimens.staticGrid.x8,
+    imageSize: Dp = CodeTheme.dimens.staticGrid.x10,
     badge: @Composable () -> Unit = { },
     onClick: () -> Unit,
 ) {
@@ -125,7 +120,7 @@ private fun BottomBarAction(
         content = {
             Column(
                 modifier = Modifier
-                    .unboundedClickable { onClick() }
+                    .unboundedClickable(rippleRadius = imageSize) { onClick() }
                     .layoutId("action"),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
