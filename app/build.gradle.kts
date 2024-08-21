@@ -115,6 +115,7 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":api"))
+    implementation(project(":crypto:ed25519"))
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
     implementation(project(":vendor:tipkit:tipkit-m2"))
