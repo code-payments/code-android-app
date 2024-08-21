@@ -31,8 +31,6 @@ import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
-import com.getcode.model.TipCardFeature
-import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
 import com.getcode.models.Bill
@@ -46,7 +44,7 @@ import com.getcode.models.PaymentValuation
 import com.getcode.models.TipConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
@@ -64,6 +62,7 @@ import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
@@ -82,7 +81,6 @@ import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.base64EncodedData
 import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
@@ -149,7 +147,6 @@ data class HomeUiModel(
     val chatUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
-    val tips: Feature = TipCardFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
@@ -172,7 +169,7 @@ class HomeViewModel @Inject constructor(
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
@@ -186,6 +183,7 @@ class HomeViewModel @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val cashLinkManager: CashLinkManager,
     appSettings: AppSettingsRepository,
+    betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
@@ -208,24 +206,25 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         features.buyModule
+            .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
                     it.copy(buyModule = module)
                 }
             }.launchIn(viewModelScope)
 
-        features.tipCardOnHomeScreen
-            .onEach { module ->
-                uiFlow.update {
-                    it.copy(actions = buildActions(module.enabled))
-                }
-            }.launchIn(viewModelScope)
-
         features.requestKin
+            .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
                     it.copy(requestKin = module)
                 }
+            }.launchIn(viewModelScope)
+
+        betaFlagsRepository.observe()
+            .distinctUntilChanged()
+            .onEach { betaFlags ->
+                uiFlow.update { it.copy(actions = buildActions(betaFlags)) }
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
@@ -375,17 +374,22 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun buildActions(
-        tipCardOnHomeScreen: Boolean,
+        betaOptions: BetaOptions,
     ): List<HomeAction> {
-        return listOf(
-            HomeAction.GIVE_KIN,
-            if (tipCardOnHomeScreen) {
-                HomeAction.TIP_CARD
-            } else {
-                HomeAction.GET_KIN
-            },
-            HomeAction.BALANCE
-        )
+        val actions = mutableListOf(HomeAction.GIVE_KIN)
+        actions += if (betaOptions.tipCardOnHomeScreen) {
+            HomeAction.TIP_CARD
+        } else {
+            HomeAction.GET_KIN
+        }
+
+        if (betaOptions.conversationsEnabled) {
+            actions += HomeAction.CHAT
+        }
+
+        actions += HomeAction.BALANCE
+
+        return actions
     }
 
     fun onCameraScanning(scanning: Boolean) {

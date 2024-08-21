@@ -17,13 +17,12 @@ import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatMember
-import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Identity
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.isConversation
+import com.getcode.model.chat.isNotification
 import com.getcode.model.chat.selfId
-import com.getcode.model.description
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchChats
@@ -34,7 +33,6 @@ import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.ChatMessagePagingSource
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -42,31 +40,35 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import okhttp3.internal.toImmutableList
 import timber.log.Timber
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// TODO: See if we can merge this into [ChatController]
 @Singleton
-class HistoryController @Inject constructor(
+class ChatHistoryController @Inject constructor(
     private val client: Client,
-    private val resources: ResourceHelper,
     private val tipController: TipController,
     private val conversationMapper: ConversationMapper,
     private val conversationMessageMapper: ConversationMessageMapper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    private val _chats = MutableStateFlow<List<Chat>?>(null)
+    private val chatEntries = MutableStateFlow<List<Chat>?>(null)
+    val notifications: StateFlow<List<Chat>?>
+        get() = chatEntries
+            .map { it?.filter { entry -> entry.isNotification } }
+            .stateIn(this, SharingStarted.Eagerly, emptyList())
+
     val chats: StateFlow<List<Chat>?>
-        get() = _chats.asStateFlow()
+        get() = chatEntries
+            .map { it?.filter { entry -> entry.isConversation } }
+            .stateIn(this, SharingStarted.Eagerly, emptyList())
 
     var loadingMessages: Boolean = false
 
@@ -86,9 +88,9 @@ class HistoryController @Inject constructor(
         pagerMap[chatId] ?: ChatMessagePagingSource(
             client = client,
             owner = owner()!!,
-            chat = _chats.value?.find { it.id == chatId },
+            chat = chatEntries.value?.find { it.id == chatId },
             onMessagesFetched = { messages ->
-                val chat = _chats.value?.find { it.id == chatId } ?: return@ChatMessagePagingSource
+                val chat = chatEntries.value?.find { it.id == chatId } ?: return@ChatMessagePagingSource
                 updateChatWithMessages(chat, messages)
             }
         ).also {
@@ -99,14 +101,14 @@ class HistoryController @Inject constructor(
     fun updateChatWithMessages(chat: Chat, messages: List<ChatMessage>) {
         val updatedMessages = (chat.messages + messages).distinctBy { it.id }
         val updatedChat = chat.copy(messages = updatedMessages)
-        val chats = _chats.value?.map {
+        val chats = chatEntries.value?.map {
             if (it.id == updatedChat.id) {
                 updatedChat
             } else {
                 it
             }
         }?.sortedByDescending { it.lastMessageMillis }
-        _chats.update { chats }
+        chatEntries.update { chats }
     }
 
     fun chatFlow(chatId: ID) =
@@ -132,7 +134,7 @@ class HistoryController @Inject constructor(
         if (!update) {
             pagerMap.clear()
             chatFlows.clear()
-            _chats.value = containers
+            chatEntries.value = containers
 
             loadingMessages = true
         }
@@ -151,13 +153,13 @@ class HistoryController @Inject constructor(
         }
 
         loadingMessages = false
-        _chats.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
+        chatEntries.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
     }
 
     suspend fun advanceReadPointer(chatId: ID) {
         val owner = owner() ?: return
 
-        _chats.update {
+        chatEntries.update {
             it?.toMutableList()?.apply chats@{
                 indexOfFirst { chat -> chat.id == chatId }
                     .takeIf { index -> index >= 0 }
@@ -180,7 +182,7 @@ class HistoryController @Inject constructor(
     }
 
     fun advanceReadPointerUpTo(chatId: ID, timestamp: Long) {
-        _chats.update {
+        chatEntries.update {
             it?.toMutableList()?.apply chats@{
                 indexOfFirst { chat -> chat.id == chatId }
                     .takeIf { index -> index >= 0 }
@@ -198,7 +200,7 @@ class HistoryController @Inject constructor(
     suspend fun setMuted(chat: Chat, muted: Boolean): Result<Boolean> {
         val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
 
-        _chats.update {
+        chatEntries.update {
             it?.toMutableList()?.apply chats@{
                 indexOfFirst { item -> item.id == chat.id }
                     .takeIf { index -> index >= 0 }
@@ -216,7 +218,7 @@ class HistoryController @Inject constructor(
     suspend fun setSubscribed(chat: Chat, subscribed: Boolean): Result<Boolean> {
         val owner = owner() ?: return Result.failure(Throwable("No owner detected"))
 
-        _chats.update {
+        chatEntries.update {
             it?.toMutableList()?.apply chats@{
                 indexOfFirst { item -> item.id == chat.id }
                     .takeIf { index -> index >= 0 }
@@ -250,7 +252,6 @@ class HistoryController @Inject constructor(
                         MessageStatus.Delivered
                     )
                 }
-
             }
             .onFailure {
                 Timber.e(t = it, "Failed to fetch messages for $encodedId.")

@@ -12,7 +12,7 @@ import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.base58
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -40,7 +40,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    historyController: HistoryController,
+    historyController: ChatHistoryController,
     conversationController: ConversationController,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
@@ -87,7 +87,7 @@ class ChatViewModel @Inject constructor(
             .onEach { Timber.d("chatid=${it?.base58}") }
             .filterNotNull()
             .onEach { historyController.advanceReadPointer(it) }
-            .flatMapLatest { historyController.chats }
+            .flatMapLatest { historyController.notifications }
             .flowOn(Dispatchers.IO)
             .filterNotNull()
             .mapNotNull { chats -> chats.firstOrNull { it.id == stateFlow.value.chatId } }

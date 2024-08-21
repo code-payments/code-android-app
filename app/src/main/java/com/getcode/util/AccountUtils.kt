@@ -9,20 +9,17 @@ import android.os.HandlerThread
 import androidx.core.os.bundleOf
 import com.getcode.BuildConfig
 import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.SingleSubject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Clock
 import kotlin.coroutines.resume
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.TimeSource
 
 
 object AccountUtils {
@@ -55,7 +52,19 @@ object AccountUtils {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
-                val result = getAccountInternal(context)
+                val result = retryable(
+                    call = { getAccountNoActivity(context) },
+                    onRetry = { currentAttempt ->
+                        trace(
+                            tag = "Account",
+                            message = "Retrying call",
+                            metadata = {
+                                "count" to currentAttempt
+                            },
+                            type = TraceType.Process,
+                        )
+                    }
+                )
                 subject.onSuccess(result ?: (null to null))
             }
         }
@@ -68,45 +77,6 @@ object AccountUtils {
             setUncaughtExceptionHandler { _, e -> run { throw RuntimeException(e) } }
             start()
         }
-    }
-
-    private suspend fun getAccountInternal(
-        context: Context,
-        maxRetries: Int = 3,
-        delayDuration: Duration = 2.seconds
-    ): Pair<String?, Account?>? {
-        var currentAttempt = 0
-        val startTime = TimeSource.Monotonic.markNow()
-
-        while (currentAttempt < maxRetries) {
-            val result = try {
-                getAccountNoActivity(context)
-            } catch (e: Exception) {
-                trace(message = "Attempt $currentAttempt failed with exception: ${e.message}", error = e, type = TraceType.Error)
-                null
-            }
-
-            if (result != null) {
-                return result
-            } else {
-                currentAttempt++
-                if (currentAttempt < maxRetries) {
-                    trace(
-                        tag = "Account",
-                        message = "Retrying login",
-                        metadata = {
-                            "count" to currentAttempt
-                        },
-                        type = TraceType.Process,
-                    )
-                    trace("Retrying after ${delayDuration.inWholeMilliseconds} ms...", type = TraceType.Log)
-                    delay(delayDuration.inWholeMilliseconds)
-                }
-            }
-        }
-
-        trace("Failed to get account after $maxRetries attempts in ${startTime.elapsedNow().inWholeMilliseconds} ms", type = TraceType.Error)
-        return null
     }
 
     private suspend fun getAccountNoActivity(
@@ -152,6 +122,19 @@ object AccountUtils {
             }
         }
 
-        return getAccountInternal(context)?.first
+        return retryable(
+            call = { getAccountNoActivity(context) },
+            onRetry = { currentAttempt ->
+                trace(
+                    tag = "Account",
+                    message = "Retrying call",
+                    metadata = {
+                        "count" to currentAttempt
+                    },
+                    type = TraceType.Process,
+                )
+            }
+
+        )?.first
     }
 }

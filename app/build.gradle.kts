@@ -116,6 +116,7 @@ dependencies {
 
     implementation(project(":api"))
     implementation(project(":crypto:ed25519"))
+    implementation(project(":crypto:kin"))
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
     implementation(project(":vendor:tipkit:tipkit-m2"))

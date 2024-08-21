@@ -14,6 +14,14 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
     }
 
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.compose_compiler
+    }
+
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
@@ -37,5 +45,7 @@ dependencies {
     api(Libs.kotlinx_coroutines_core)
     api(Libs.kotlinx_coroutines_rx3)
 
-    api(Libs.kin_sdk)
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
+    implementation(Libs.compose_foundation)
 }

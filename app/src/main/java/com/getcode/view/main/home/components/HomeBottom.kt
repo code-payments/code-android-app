@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,7 +15,9 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.res.painterResource
@@ -33,6 +34,7 @@ import com.getcode.ui.components.chat.ChatNodeDefaults
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.widthOrZero
+import com.getcode.util.resources.icons.AutoMirroredMessageCircle
 import com.getcode.view.main.home.HomeAction
 import com.getcode.view.main.home.HomeUiModel
 
@@ -60,6 +62,7 @@ internal fun HomeBottom(
                         onClick = { onPress(action) }
                     )
                 }
+
                 HomeAction.GET_KIN -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
@@ -68,6 +71,7 @@ internal fun HomeBottom(
                         onClick = { onPress(action) },
                     )
                 }
+
                 HomeAction.BALANCE -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
@@ -89,6 +93,7 @@ internal fun HomeBottom(
                         }
                     )
                 }
+
                 HomeAction.TIP_CARD -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
@@ -97,7 +102,24 @@ internal fun HomeBottom(
                         onClick = { onPress(action) },
                     )
                 }
-                else -> Unit
+
+                HomeAction.CHAT -> {
+                    BottomBarAction(
+                        modifier = Modifier.weight(1f),
+                        label = stringResource(R.string.action_chat),
+                        painter = rememberVectorPainter(AutoMirroredMessageCircle),
+                        onClick = { onPress(action) },
+                    )
+                }
+
+                else -> {
+                    BottomBarAction(
+                        modifier = Modifier.weight(1f).alpha(0f),
+                        label = "",
+                        painter = painterResource(R.drawable.ic_tip_card),
+                        onClick = null,
+                    )
+                }
             }
         }
     }
@@ -113,14 +135,14 @@ private fun BottomBarAction(
     painter: Painter,
     imageSize: Dp = CodeTheme.dimens.staticGrid.x10,
     badge: @Composable () -> Unit = { },
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
 ) {
     Layout(
         modifier = modifier,
         content = {
             Column(
                 modifier = Modifier
-                    .unboundedClickable(rippleRadius = imageSize) { onClick() }
+                    .unboundedClickable(enabled = onClick != null, rippleRadius = imageSize) { onClick?.invoke() }
                     .layoutId("action"),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -149,7 +171,7 @@ private fun BottomBarAction(
             measurables.find { it.layoutId == "badge" }?.measure(constraints)
 
         val maxWidth = widthOrZero(actionPlaceable)
-        val maxHeight = heightOrZero(actionPlaceable) // + heightOrZero(badgePlaceable) / 2
+        val maxHeight = heightOrZero(actionPlaceable)
         layout(
             width = maxWidth,
             height = maxHeight,
@@ -162,3 +184,4 @@ private fun BottomBarAction(
         }
     }
 }
+

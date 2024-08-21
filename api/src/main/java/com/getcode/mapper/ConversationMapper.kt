@@ -4,7 +4,6 @@ import com.getcode.model.Conversation
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.self
-import com.getcode.network.TipController
 import com.getcode.network.localized
 import com.getcode.network.repository.base58
 import com.getcode.util.resources.ResourceHelper

@@ -9,8 +9,7 @@ import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
-import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.Kin
@@ -31,7 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
     balanceController: BalanceController,
-    historyController: HistoryController,
+    historyController: ChatHistoryController,
     prefsRepository: PrefRepository,
     features: FeatureRepository,
     networkObserver: NetworkConnectivityListener,
@@ -103,7 +102,7 @@ class BalanceSheetViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        historyController.chats
+        historyController.notifications
             .onEach {
                 if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
                     dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
@@ -126,7 +125,7 @@ class BalanceSheetViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnOpened>()
-            .filter { features.isEnabled(PrefsBool.TIPS_CHAT_ENABLED) }
+            .filter { features.isEnabled(PrefsBool.CONVERSATIONS_ENABLED) }
             .onEach { historyController.fetchChats(true) }
             .launchIn(viewModelScope)
     }

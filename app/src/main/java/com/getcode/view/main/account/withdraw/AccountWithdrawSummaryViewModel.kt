@@ -15,7 +15,7 @@ import com.getcode.model.Rate
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.WithdrawalArgs
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.client.*
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -44,7 +44,7 @@ data class AccountWithdrawSummaryUiModel(
 class AccountWithdrawSummaryViewModel @Inject constructor(
     private val analytics: AnalyticsService,
     private val client: Client,
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawSummaryUiModel())

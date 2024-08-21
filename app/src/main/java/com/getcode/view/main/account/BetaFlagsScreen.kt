@@ -96,16 +96,16 @@ fun BetaFlagsScreen(
             state.tipCardOnHomeScreen,
         ),
         BetaFeature(
-            PrefsBool.TIPS_CHAT_ENABLED,
-            R.string.beta_tipchats,
-            stringResource(id = R.string.beta_tipchats_description),
-            state.tipsChatEnabled,
+            PrefsBool.CONVERSATIONS_ENABLED,
+            R.string.beta_conversations,
+            stringResource(id = R.string.beta_conversations_description),
+            state.conversationsEnabled,
         ),
         BetaFeature(
-            PrefsBool.TIPS_CHAT_CASH_ENABLED,
-            R.string.beta_tipchats_cash,
-            stringResource(id = R.string.beta_tipchats_cash_description),
-            state.tipsChatCashEnabled,
+            PrefsBool.CONVERSATION_CASH_ENABLED,
+            R.string.beta_conversations_cash,
+            stringResource(id = R.string.beta_conversations_cash_description),
+            state.conversationCashEnabled,
         ),
         BetaFeature(
             PrefsBool.KADO_WEBVIEW_ENABLED,
@@ -161,7 +161,7 @@ private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
         PrefsBool.BUY_MODULE_ENABLED -> false
         PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
         PrefsBool.TIPS_ENABLED -> false
-        PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
+        PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }
 }

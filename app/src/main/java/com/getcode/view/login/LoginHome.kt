@@ -87,7 +87,7 @@ fun LoginHome(
             )
 
             CodeButton(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(buttonCreate) {
                         top.linkTo(logo.bottom) //possibly remove!!
@@ -99,7 +99,7 @@ fun LoginHome(
                 buttonState = ButtonState.Filled,
             )
             CodeButton(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(buttonLogin) {
                         top.linkTo(buttonCreate.bottom)

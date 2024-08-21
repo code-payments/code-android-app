@@ -38,9 +38,8 @@ enum class ButtonState {
 
 @Composable
 fun CodeButton(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
     text: String,
+    modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,
     enabled: Boolean = true,
@@ -51,6 +50,7 @@ fun CodeButton(
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
     shape: Shape = CodeTheme.shapes.small,
+    onClick: () -> Unit,
 ) {
     CodeButton(
         modifier = modifier,
