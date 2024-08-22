@@ -15,6 +15,7 @@ sealed interface InternalRouting
 sealed interface AppSetting
 sealed interface BetaFlag
 sealed interface DevSetting
+sealed interface Immutable
 
 
 sealed class PrefsBool(val value: String) {
@@ -43,15 +44,15 @@ sealed class PrefsBool(val value: String) {
     data object DISPLAY_ERRORS: PrefsBool("debug_display_errors"), BetaFlag
     data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
-    data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
+    data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag, Immutable
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
-    data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
+    data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag, Immutable
     data object CONVERSATIONS_ENABLED: PrefsBool("conversations_enabled"), BetaFlag
     data object CONVERSATION_CASH_ENABLED: PrefsBool("convo_cash_enabled"), BetaFlag
-    data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
+    data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag, Immutable
     data object KADO_WEBVIEW_ENABLED : PrefsBool("kado_inapp_enabled"), BetaFlag
     data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag
-    data object TIP_CARD_ON_HOMESCREEN: PrefsBool("tip_card_on_home_screen"), BetaFlag
+    data object TIP_CARD_ON_HOMESCREEN: PrefsBool("tip_card_on_home_screen"), BetaFlag, Immutable
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

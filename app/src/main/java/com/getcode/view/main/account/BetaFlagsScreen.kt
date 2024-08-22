@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
+import com.getcode.model.Immutable
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
@@ -158,9 +159,7 @@ fun BetaFlagsScreen(
 
 private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
-        PrefsBool.BUY_MODULE_ENABLED -> false
-        PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
-        PrefsBool.TIPS_ENABLED -> false
+        is Immutable -> false
         PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }
