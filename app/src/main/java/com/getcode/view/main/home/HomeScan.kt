@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.getcode.LocalBiometricsState
 import com.getcode.R
+import com.getcode.manager.ModalManager
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.models.DeepLinkRequest
@@ -60,6 +61,8 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
+import com.getcode.util.permissions.PermissionChecker
+import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.CameraDisabledView
 import com.getcode.view.main.home.components.CodeScanner
@@ -114,6 +117,7 @@ fun HomeScreen(
                 request = request,
             )
 
+            val notificationPermissionChecker = notificationPermissionCheck {  }
             val context = LocalContext.current
             LaunchedEffect(homeViewModel) {
                 homeViewModel.eventFlow
@@ -125,6 +129,10 @@ fun HomeScreen(
 
                             is HomeEvent.SendIntent -> {
                                 context.startActivity(it.intent)
+                            }
+
+                            HomeEvent.RequestNotificationPermissions -> {
+                                notificationPermissionChecker(true)
                             }
                         }
                     }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -36,11 +37,17 @@ import com.getcode.ui.utils.getActivityScopedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+sealed interface ModalHeightMetric {
+    data class Weight(val weight: Float) : ModalHeightMetric
+    data object WrapContent : ModalHeightMetric
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun NamedScreen.ModalContainer(
     navigator: CodeNavigator = LocalCodeNavigator.current,
     modalColor: Color = CodeTheme.colors.background,
+    modalHeightMetric: ModalHeightMetric = ModalHeightMetric.Weight(CodeTheme.dimens.modalHeightRatio),
     displayLogo: Boolean = false,
     titleString: @Composable (NamedScreen?) -> String? = { name },
     title: @Composable BoxScope.() -> Unit = { },
@@ -56,7 +63,12 @@ internal fun NamedScreen.ModalContainer(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
+            .then(
+                when (modalHeightMetric) {
+                    is ModalHeightMetric.Weight -> Modifier.fillMaxHeight(modalHeightMetric.weight)
+                    ModalHeightMetric.WrapContent -> Modifier.wrapContentHeight()
+                }
+            )
             .background(modalColor)
     ) {
         val lastItem by remember(navigator.lastModalItem) {

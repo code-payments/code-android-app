@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.biometric.BiometricManager
+import androidx.core.app.NotificationManagerCompat
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.util.AndroidLocale
@@ -90,6 +91,12 @@ object AppModule {
     fun providesClipboard(
         @ApplicationContext context: Context
     ): ClipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
+
+    @Provides
+    fun providesCNotificationManager(
+        @ApplicationContext context: Context
+    ): NotificationManagerCompat = NotificationManagerCompat.from(context)
 
     @SuppressLint("NewApi")
     @Provides

@@ -14,6 +14,7 @@ import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -34,9 +35,11 @@ import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.compositionUniqueId
+import com.getcode.manager.ModalManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -84,7 +87,13 @@ fun BottomSheetNavigator(
             BottomSheetNavigator(navigator, sheetState, coroutineScope)
         }
 
-        hideBottomSheet = bottomSheetNavigator::hide
+        hideBottomSheet = {
+            bottomSheetNavigator.hide()
+            coroutineScope.launch {
+                delay(1_000)
+                ModalManager.clear()
+            }
+        }
 
         CompositionLocalProvider(LocalBottomSheetNavigator provides bottomSheetNavigator) {
             ModalBottomSheetLayout(

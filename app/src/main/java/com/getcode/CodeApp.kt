@@ -40,6 +40,7 @@ import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.AuthCheck
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.components.ModalContainer
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.TitleBar
 import com.getcode.ui.components.bars.TopBarContainer
@@ -149,6 +150,7 @@ fun CodeApp(tipsEngine: TipsEngine) {
                             )
                         }
                     }
+                    ModalContainer(codeNavigator, appState)
                 }
             }
         }
