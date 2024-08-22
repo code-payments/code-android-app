@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Добавете парична сума  с дебитна карта</string>
   <string name="action_allowCameraAccess">Разреши достъп до камерата </string>
   <string name="action_allowContacts">Разреши достъп до контактите </string>
   <string name="action_allowPushNotifications">Разреши насочени известия </string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Разрешете лицево разпознаване</string>
   <string name="action_enableTouchID">Разрешете разпознаване чрез докосване</string>
   <string name="action_exit">Изход </string>
+  <string name="action_give">Дайте</string>
   <string name="action_giveKin">Задай член на семейството</string>
   <string name="action_invite">Покани </string>
   <string name="action_invites">Покани </string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Постави от клипборда</string>
   <string name="action_postToConnect">Публикувайте за да свържете акаунт </string>
   <string name="action_putInWallet">Постави в портфейл </string>
+  <string name="action_receive">Получете</string>
   <string name="action_recoverExistingAccount">Възстанови съществуващ профил </string>
   <string name="action_remind">Напомняне </string>
   <string name="action_removePhoneNumber">Премахване на телефонен номер </string>
@@ -53,6 +56,7 @@
   <string name="action_send">Изпращане </string>
   <string name="action_sendVerificationCode">Изпрати код за потвърждение </string>
   <string name="action_share">Сподели</string>
+  <string name="action_shareAsURL">Споделете като URL</string>
   <string name="action_shareDownloadLink">Споделете линк за сваляне</string>
   <string name="action_shareVideo">Споделете този видео клип</string>
   <string name="action_showMyTipCard">Покажи моята карта за бакшиши</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Неуспешно </string>
   <string name="title_faq">Често задавани въпроси </string>
   <string name="title_gaveKin">Даде</string>
+  <string name="title_getCash">Вземете парична сума </string>
   <string name="title_getFriendStartedOnCode">Вземете \"Приятел се присъедини\" към Code</string>
   <string name="title_getKin">Получаване на средства в Kin</string>
   <string name="title_getMoreKin">Получавайте повече Kin</string>
+  <string name="title_giveCash">Дайте кеш</string>
   <string name="title_giveKin">Посочете член на семейството </string>
   <string name="title_insufficientFunds">Недостатъчна наличност </string>
   <string name="title_inviteFriend">Покани приятел</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Последно използвани валути </string>
   <string name="title_referFriend">Препоръчай на приятел, вземи $5</string>
   <string name="title_referralBonus">Бонус за препоръка</string>
+  <string name="title_requestCash">Направете заявка за парична сума </string>
   <string name="title_requestKin">Поискай Kin</string>
   <string name="title_requestTip">Поискай бакшиш</string>
   <string name="title_requireFaceID">Изискване на Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Похарчено</string>
   <string name="title_switchAccounts">Смени акаунти </string>
   <string name="title_termsOfService">Условия на ползване </string>
+  <string name="title_tipCard">Карта за бакшиши</string>
   <string name="title_tipKin">Бакшиш Kin</string>
   <string name="title_unknown">Неизвестен</string>
   <string name="title_updateRequired">Необходимо е обновяване </string>

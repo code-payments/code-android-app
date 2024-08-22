@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Aggiungi Contanti con una Carta di Debito</string>
   <string name="action_allowCameraAccess">Consenti l\'accesso alla fotocamera</string>
   <string name="action_allowContacts">Consenti l\'accesso ai contatti</string>
   <string name="action_allowPushNotifications">Consenti le notifiche push</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Abilita Face ID</string>
   <string name="action_enableTouchID">Abilita Touch ID</string>
   <string name="action_exit">Esci</string>
+  <string name="action_give">Dare</string>
   <string name="action_giveKin">Dona Kin</string>
   <string name="action_invite">Invita</string>
   <string name="action_invites">Inviti</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Incolla dagli appunti</string>
   <string name="action_postToConnect">Pubblica per Connettere l\'Account</string>
   <string name="action_putInWallet">Metti nel portafoglio</string>
+  <string name="action_receive">Ricevere</string>
   <string name="action_recoverExistingAccount">Recupera un account esistente</string>
   <string name="action_remind">Ricorda</string>
   <string name="action_removePhoneNumber">Rimuovi numero di telefono</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Invia</string>
   <string name="action_sendVerificationCode">Invia codice di verifica</string>
   <string name="action_share">Condividi</string>
+  <string name="action_shareAsURL">Condividi come URL</string>
   <string name="action_shareDownloadLink">Condividi link per il download</string>
   <string name="action_shareVideo">Condividi questo video</string>
   <string name="action_showMyTipCard">Moatra la mia Tip Card</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Non riuscito</string>
   <string name="title_faq">Domande frequenti</string>
   <string name="title_gaveKin">Donati</string>
+  <string name="title_getCash">Ottieni Contanti</string>
   <string name="title_getFriendStartedOnCode">Fai iniziare un amico su Code</string>
   <string name="title_getKin">Ottieni Kin</string>
   <string name="title_getMoreKin">Ottieni più Kin</string>
+  <string name="title_giveCash">Dare denaro</string>
   <string name="title_giveKin">Dona Kin</string>
   <string name="title_insufficientFunds">Fondi insufficienti</string>
   <string name="title_inviteFriend">Invita un amico</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Valute recenti</string>
   <string name="title_referFriend">Invita un amico, ricevi 5 $</string>
   <string name="title_referralBonus">Bonus referral</string>
+  <string name="title_requestCash">Richiedi Contanti</string>
   <string name="title_requestKin">Richiedi Kin</string>
   <string name="title_requestTip">Richiedi una mancia</string>
   <string name="title_requireFaceID">Richiedi Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Spesi</string>
   <string name="title_switchAccounts">Cambia account</string>
   <string name="title_termsOfService">Termini di servizio</string>
+  <string name="title_tipCard">Carta suggerimento</string>
   <string name="title_tipKin">Mancia Kin</string>
   <string name="title_unknown">Sconosciuto</string>
   <string name="title_updateRequired">Aggiornamento richiesto</string>

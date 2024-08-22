@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Voeg contant geld toe met een bankpas</string>
   <string name="action_allowCameraAccess">Toegang tot camera toestaan</string>
   <string name="action_allowContacts">Toegang tot contacten toestaan</string>
   <string name="action_allowPushNotifications">Pushmeldingen toestaan</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Gezichts-ID inschakelen</string>
   <string name="action_enableTouchID">Touch-ID inschakelen</string>
   <string name="action_exit">Afsluiten</string>
+  <string name="action_give">Geven</string>
   <string name="action_giveKin">KIN schenken</string>
   <string name="action_invite">Uitnodigen</string>
   <string name="action_invites">Uitnodigingen</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Plakken van klembord</string>
   <string name="action_postToConnect">Post om het account te verbinden</string>
   <string name="action_putInWallet">In wallet plaatsen</string>
+  <string name="action_receive">Ontvangen</string>
   <string name="action_recoverExistingAccount">Bestaand account herstellen</string>
   <string name="action_remind">Herinneren</string>
   <string name="action_removePhoneNumber">Telefoonnummer verwijderen</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Verzenden</string>
   <string name="action_sendVerificationCode">Verificatiecode sturen</string>
   <string name="action_share">Delen</string>
+  <string name="action_shareAsURL">Delen als URL</string>
   <string name="action_shareDownloadLink">Downloadlink delen</string>
   <string name="action_shareVideo">Deel deze video</string>
   <string name="action_showMyTipCard">Toon mijn fooikaart</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Mislukt</string>
   <string name="title_faq">Veelgestelde Vragen</string>
   <string name="title_gaveKin">Geschonken</string>
+  <string name="title_getCash">Ontvang contant geld</string>
   <string name="title_getFriendStartedOnCode">Laat een vriend beginnen met Code</string>
   <string name="title_getKin">Krijg Kin</string>
   <string name="title_getMoreKin">Verkrijg meer Kin</string>
+  <string name="title_giveCash">Contant geven</string>
   <string name="title_giveKin">KIN schenken</string>
   <string name="title_insufficientFunds">Onvoldoende fondsen</string>
   <string name="title_inviteFriend">Een vriend uitnodigen</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Recente valuta</string>
   <string name="title_referFriend">Verwijs een vriend en ontvang $5</string>
   <string name="title_referralBonus">Verwijzingsbonus</string>
+  <string name="title_requestCash">Vraag contant geld aan</string>
   <string name="title_requestKin">Kin aanvragen</string>
   <string name="title_requestTip">Een fooi aanvragen</string>
   <string name="title_requireFaceID">Vereist gezichts-ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Besteed</string>
   <string name="title_switchAccounts">Wisselen van account</string>
   <string name="title_termsOfService">Servicevoorwaarden</string>
+  <string name="title_tipCard">Fooikaart</string>
   <string name="title_tipKin">Fooi-kin</string>
   <string name="title_unknown">Onbekend</string>
   <string name="title_updateRequired">Update vereist</string>

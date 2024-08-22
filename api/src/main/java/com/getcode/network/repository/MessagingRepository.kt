@@ -171,6 +171,7 @@ class MessagingRepository @Inject constructor(
             .build()
 
         return networkOracle.managedRequest(messagingApi.pollMessages(request))
+            .observeOn(Schedulers.io())
             .map { response ->
                 Timber.d("response=${response.messagesList}")
                 response.messagesList.mapNotNull { m -> StreamMessage.getInstance(m) }

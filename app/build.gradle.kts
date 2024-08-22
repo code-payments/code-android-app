@@ -14,6 +14,7 @@ plugins {
     id(Plugins.firebase_perf)
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
+    id(Plugins.versioning_gradle_plugin)
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -24,7 +25,7 @@ android {
 
     defaultConfig {
         applicationId = Android.namespace
-        versionCode = Packaging.versionCode
+        versionCode = versioning.getVersionCode()
         versionName = Packaging.versionName
 
         minSdk = Android.minSdkVersion
@@ -114,6 +115,8 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":api"))
+    implementation(project(":crypto:ed25519"))
+    implementation(project(":crypto:kin"))
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
     implementation(project(":vendor:tipkit:tipkit-m2"))
@@ -223,5 +226,5 @@ dependencies {
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
 
-    implementation("dev.chrisbanes.haze:haze:0.7.3")
+    implementation(Libs.haze)
 }

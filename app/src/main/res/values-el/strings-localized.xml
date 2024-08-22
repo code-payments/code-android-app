@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Προσθέστε μετρητά με χρεωστική κάρτα</string>
   <string name="action_allowCameraAccess">Να Επιτρέπεται η Πρόσβαση στην Κάμερα</string>
   <string name="action_allowContacts">Να Επιτρέπεται η Πρόσβαση στις Επαφές</string>
   <string name="action_allowPushNotifications">Να Επιτρέπονται οι Ειδοποιήσεις Push</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Ενεργοποιήστε το Face ID</string>
   <string name="action_enableTouchID">Ενεργοποιήστε το Touch ID</string>
   <string name="action_exit">Έξοδος</string>
+  <string name="action_give">Δώσε \n</string>
   <string name="action_giveKin">Δώστε Kin</string>
   <string name="action_invite">Πρόσκληση</string>
   <string name="action_invites">Προσκλήσεις</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Επικόλληση από Πρόχειρο</string>
   <string name="action_postToConnect">Στείλε Μήνυμα για Σύνδεση του Λογαριασμού </string>
   <string name="action_putInWallet">Τοποθέτηση σε Πορτοφόλι</string>
+  <string name="action_receive">Λάβε </string>
   <string name="action_recoverExistingAccount">Ανάκτηση Υπάρχοντος Λογαριασμού</string>
   <string name="action_remind">Υπενθύμιση</string>
   <string name="action_removePhoneNumber">Κατάργηση Αριθμού Τηλεφώνου</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Αποστολή</string>
   <string name="action_sendVerificationCode">Αποστολή Κωδικού Επαλήθευσης</string>
   <string name="action_share">Κοινοποίηση</string>
+  <string name="action_shareAsURL">Κοινή χρήση ως URL(Ενιαίος Εντοπιστής Πόρων)</string>
   <string name="action_shareDownloadLink">Μοιράσου το Σύνδεσμο Λήψης</string>
   <string name="action_shareVideo">Μοιραστείτε Αυτό το Βίντεο</string>
   <string name="action_showMyTipCard">Κοινοποίηση της Κάρτας Φιλοδωρημάτων μου</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Απέτυχε</string>
   <string name="title_faq">Αριθμός Τηλεφώνου</string>
   <string name="title_gaveKin">Δόθηκε</string>
+  <string name="title_getCash">Λάβετε μετρητά</string>
   <string name="title_getFriendStartedOnCode">Βρες ένα Φίλο να Ξεκινήσει στο Code</string>
   <string name="title_getKin">Λάβετε Kin</string>
   <string name="title_getMoreKin">Αποκτήστε Περισσότερα Kin</string>
+  <string name="title_giveCash">Δώσε Μετρητά </string>
   <string name="title_giveKin">Δώστε Kin</string>
   <string name="title_insufficientFunds">Ανεπαρκή Κεφάλαια</string>
   <string name="title_inviteFriend">Προσκαλέστε έναν Φίλο</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Πρόσφατα Νομίσματα</string>
   <string name="title_referFriend">Σύστησε ένα Φίλο, Λάβε $5</string>
   <string name="title_referralBonus">Δώρο Σύστασης Φίλου</string>
+  <string name="title_requestCash">Ζητήστε μετρητά</string>
   <string name="title_requestKin">Ζητήστε Kin</string>
   <string name="title_requestTip">Ζητήστε Φιλοδώρημα</string>
   <string name="title_requireFaceID">Απαιτείται Αναγνώριση Προσώπου</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Δαπανημένα</string>
   <string name="title_switchAccounts">Εναλλαγή Λογαριασμών</string>
   <string name="title_termsOfService">Όροι Χρήσης</string>
+  <string name="title_tipCard">Συμβουλή </string>
   <string name="title_tipKin">Φιλοδώρημα Kin</string>
   <string name="title_unknown">Άγνωστο</string>
   <string name="title_updateRequired">Απαιτείται Ενημέρωση</string>

@@ -17,13 +17,18 @@ data class TipCardFeature(
     override val available: Boolean = true, // always available
 ): Feature
 
-data class TipChatFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.tipsChatEnabled,
+data class TipCardOnHomeScreenFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.tipCardOnHomeScreen,
     override val available: Boolean = true, // always available
 ): Feature
 
-data class TipChatCashFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.tipsChatCashEnabled,
+data class ConversationsFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.conversationsEnabled,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class ConversationCashFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.conversationCashEnabled,
     override val available: Boolean = true, // always available
 ): Feature
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">أضف نقودًا عن طريق استخدام بطاقة الخصم</string>
   <string name="action_allowCameraAccess">السماح بإتاحة الوصول إلى الكاميرا</string>
   <string name="action_allowContacts">السماح بإتاحة الوصول إلى جهات الاتصال</string>
   <string name="action_allowPushNotifications">السماح بالإشعارات اللحظية</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">تفعيل خاصية التعرّف على الوجه</string>
   <string name="action_enableTouchID">تفعيل خاصية التعرّف على بصمة الإصبع</string>
   <string name="action_exit">الخروج</string>
+  <string name="action_give">أعط</string>
   <string name="action_giveKin">منح الأموال</string>
   <string name="action_invite">الدعوة</string>
   <string name="action_invites">الدعوات</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">اللصق من الحافظة</string>
   <string name="action_postToConnect">انشر لربط حساب </string>
   <string name="action_putInWallet">الوضع في المحفظة</string>
+  <string name="action_receive">استقبل</string>
   <string name="action_recoverExistingAccount">استعادة الحساب الموجود بالفعل</string>
   <string name="action_remind">التذكير</string>
   <string name="action_removePhoneNumber">حذف رقم الهاتف</string>
@@ -53,6 +56,7 @@
   <string name="action_send">تم الإرسال</string>
   <string name="action_sendVerificationCode">إرسال رمز التحقق</string>
   <string name="action_share">مشاركة</string>
+  <string name="action_shareAsURL">مشاركة كعنوان URL</string>
   <string name="action_shareDownloadLink">شارك رابط التنزيل</string>
   <string name="action_shareVideo">شارك مقطع الفيديو هذا</string>
   <string name="action_showMyTipCard">عرض بطاقة الإكرامية الخاصة بي</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">فشلت العملية</string>
   <string name="title_faq">الأسئلة الشائعة</string>
   <string name="title_gaveKin">الممنوحة</string>
+  <string name="title_getCash">احصل غلى نقود</string>
   <string name="title_getFriendStartedOnCode">احصل على صديق بدأ في Code</string>
   <string name="title_getKin">احصل على Kin</string>
   <string name="title_getMoreKin">احصل على المزيد من Kin</string>
+  <string name="title_giveCash">أعط النقود</string>
   <string name="title_giveKin">منح الأموال</string>
   <string name="title_insufficientFunds">الرصيد غير كافٍ</string>
   <string name="title_inviteFriend">دعوة صديق</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">العملات الأخيرة</string>
   <string name="title_referFriend">ارسل طلب إحالة لصديق, واحصل على 5 دولارات</string>
   <string name="title_referralBonus">مكافأة الإحالة</string>
+  <string name="title_requestCash">طلب نقود</string>
   <string name="title_requestKin">اطلب Kin</string>
   <string name="title_requestTip">اطلب إكرامية</string>
   <string name="title_requireFaceID">مطلوب Face ID\n\n</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">النقود المصروفة</string>
   <string name="title_switchAccounts">تبديل الحسابات</string>
   <string name="title_termsOfService">شروط الخدمة</string>
+  <string name="title_tipCard">بطاقة Tip </string>
   <string name="title_tipKin">إكرامية Kin</string>
   <string name="title_unknown">غير معروف</string>
   <string name="title_updateRequired">التحديث مطلوب</string>

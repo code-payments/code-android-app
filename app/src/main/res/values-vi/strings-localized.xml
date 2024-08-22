@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Thêm Tiền mặt Bằng Thẻ Ghi nợ</string>
   <string name="action_allowCameraAccess">Cho phép Truy cập Camera</string>
   <string name="action_allowContacts">Cho phép Truy cập vào Danh bạ</string>
   <string name="action_allowPushNotifications">Cho phép Thông báo Đẩy</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Bật Face ID</string>
   <string name="action_enableTouchID">Bật Touch ID</string>
   <string name="action_exit">Thoát</string>
+  <string name="action_give">Cho</string>
   <string name="action_giveKin">Tặng Kin</string>
   <string name="action_invite">Mời</string>
   <string name="action_invites">Lời mời</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Dán Từ Khay nhớ tạm</string>
   <string name="action_postToConnect">Hãy đăng bài để kết nối tài khoản</string>
   <string name="action_putInWallet">Đặt trong Ví</string>
+  <string name="action_receive">Nhận</string>
   <string name="action_recoverExistingAccount">Khôi phục Tài khoản Hiện có</string>
   <string name="action_remind">Nhắc nhở</string>
   <string name="action_removePhoneNumber">Xóa Số Điện thoại</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Gửi</string>
   <string name="action_sendVerificationCode">Gửi Mã Xác minh</string>
   <string name="action_share">Chia sẻ</string>
+  <string name="action_shareAsURL">Chia sẻ dưới dạng URL</string>
   <string name="action_shareDownloadLink">Chia sẻ đường liên kết tải xuống</string>
   <string name="action_shareVideo">Chia sẻ Video Này</string>
   <string name="action_showMyTipCard">Hiển thị Thẻ tiền boa của tôi</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Không thành công</string>
   <string name="title_faq">Hỏi Đáp</string>
   <string name="title_gaveKin">Đã tặng</string>
+  <string name="title_getCash">Nhận Tiền mặt</string>
   <string name="title_getFriendStartedOnCode">Mời một người bạn bắt đầu dùng Code</string>
   <string name="title_getKin">Nhận Kin</string>
   <string name="title_getMoreKin">Nhận Thêm Kin</string>
+  <string name="title_giveCash">Cho Tiền mặt</string>
   <string name="title_giveKin">Tặng Kin</string>
   <string name="title_insufficientFunds">Không đủ Tiền</string>
   <string name="title_inviteFriend">Mời Bạn bè</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Đơn vị tiền tệ Gần đây</string>
   <string name="title_referFriend">Giới thiệu một người bạn - Nhận 5$</string>
   <string name="title_referralBonus">Tiền thưởng Giới thiệu</string>
+  <string name="title_requestCash">Yêu cầu Tiền mặt</string>
   <string name="title_requestKin">Yêu cầu Kin</string>
   <string name="title_requestTip">Yêu cầu Tiền boa</string>
   <string name="title_requireFaceID">Cần có Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Đã chi tiêu</string>
   <string name="title_switchAccounts">Chuyển đổi Tài khoản</string>
   <string name="title_termsOfService">Điều khoản Dịch vụ</string>
+  <string name="title_tipCard">Thẻ Boa</string>
   <string name="title_tipKin">Boa Kin</string>
   <string name="title_unknown">Không xác định</string>
   <string name="title_updateRequired">Cần Cập nhật</string>

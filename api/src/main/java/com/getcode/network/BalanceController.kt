@@ -13,6 +13,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -38,8 +40,7 @@ data class BalanceDisplay(
     val marketValue: Double = 0.0,
     val formattedValue: String = "",
     val currency: Currency? = null,
-
-    )
+)
 
 open class BalanceController @Inject constructor(
     exchange: Exchange,
@@ -65,25 +66,34 @@ open class BalanceController @Inject constructor(
             .stateIn(scope, SharingStarted.Eagerly, BalanceDisplay())
 
     init {
-        combine(
-            exchange.observeLocalRate()
-                .flowOn(Dispatchers.IO)
-                .onEach {
-                    val display = _balanceDisplay.value ?: BalanceDisplay()
-                    _balanceDisplay.value = display.copy(currency = getCurrencyFromCode(it.currency))
+        networkObserver.state
+            .map { it.connected }
+            .onEach { connected ->
+                if (connected) {
+                    retryable({ fetchBalanceSuspend() })
                 }
-                .onEach { exchange.fetchRatesIfNeeded() },
-            balanceRepository.balanceFlow,
-            networkObserver.state
-        ) { rate, balance, _ ->
-            rate to balance.coerceAtLeast(0.0)
-        }.map { (rate, balance) ->
-            refreshBalance(balance, rate)
-        }.distinctUntilChanged().onEach { (marketValue, amountText) ->
-            val display = _balanceDisplay.value ?: BalanceDisplay()
-            _balanceDisplay.value =
-                display.copy(marketValue = marketValue, formattedValue = amountText)
-        }.launchIn(scope)
+            }
+            .flatMapLatest {
+                combine(
+                    exchange.observeLocalRate()
+                        .flowOn(Dispatchers.IO)
+                        .onEach {
+                            val display = _balanceDisplay.value ?: BalanceDisplay()
+                            _balanceDisplay.value =
+                                display.copy(currency = getCurrencyFromCode(it.currency))
+                        }
+                        .onEach { exchange.fetchRatesIfNeeded() },
+                    balanceRepository.balanceFlow,
+                ) { rate, balance ->
+                    rate to balance.coerceAtLeast(0.0)
+                }.map { (rate, balance) ->
+                    refreshBalance(balance, rate)
+                }
+            }.distinctUntilChanged().onEach { (marketValue, amountText) ->
+                val display = _balanceDisplay.value ?: BalanceDisplay()
+                _balanceDisplay.value =
+                    display.copy(marketValue = marketValue, formattedValue = amountText)
+            }.launchIn(scope)
     }
 
     fun setTray(organizer: Organizer, tray: Tray) {
@@ -155,6 +165,7 @@ open class BalanceController @Inject constructor(
 
 
     suspend fun fetchBalanceSuspend() {
+        Timber.d("fetching balance")
         if (SessionManager.isAuthenticated() != true) {
             Timber.d("FetchBalance - Not authenticated")
             return

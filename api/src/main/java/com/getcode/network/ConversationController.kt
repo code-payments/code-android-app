@@ -47,7 +47,7 @@ interface ConversationController {
 }
 
 class ConversationStreamController @Inject constructor(
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val exchange: Exchange,
     private val chatService: ChatServiceV2,
     private val conversationMapper: ConversationMapper,

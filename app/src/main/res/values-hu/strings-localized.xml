@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Adj hozzá készpént egy bankkártyával</string>
   <string name="action_allowCameraAccess">Kamera-hozzáférés engedélyezése</string>
   <string name="action_allowContacts">Hozzáférés engedélyezése a névjegyekhez</string>
   <string name="action_allowPushNotifications">Push értesítések engedélyezése</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Arc azonosítás bekapcsolása</string>
   <string name="action_enableTouchID">Érintéses azonosítás bekapcsolása</string>
   <string name="action_exit">Kilépés</string>
+  <string name="action_give">Adj</string>
   <string name="action_giveKin">Kin adása</string>
   <string name="action_invite">Meghív</string>
   <string name="action_invites">Meghívottak</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Beillesztés a vágólapról</string>
   <string name="action_postToConnect">Írj bejegyzést, hogy csatlakoztasd a fiókodat</string>
   <string name="action_putInWallet">Walletba helyez</string>
+  <string name="action_receive">Kapj</string>
   <string name="action_recoverExistingAccount">Meglévő fiók helyreállítása</string>
   <string name="action_remind">Emlékeztet</string>
   <string name="action_removePhoneNumber">Telefonszám eltávolítása</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Küldés</string>
   <string name="action_sendVerificationCode">Ellenőrző kód küldése</string>
   <string name="action_share">Megosztás</string>
+  <string name="action_shareAsURL">Megosztás URL-ként</string>
   <string name="action_shareDownloadLink">Letöltési hivatkozás megosztása</string>
   <string name="action_shareVideo">Ossza meg ezt a videót</string>
   <string name="action_showMyTipCard">Borravalós kártyám mutatása</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Sikertelen</string>
   <string name="title_faq">GYIK</string>
   <string name="title_gaveKin">Adott</string>
+  <string name="title_getCash">Kapj készpénzt</string>
   <string name="title_getFriendStartedOnCode">Szerezz egy barátot elkezdte használni a Code-ot</string>
   <string name="title_getKin">Szerezz Kint</string>
   <string name="title_getMoreKin">Szerezzen több Kin-t</string>
+  <string name="title_giveCash">Adj készpénzt</string>
   <string name="title_giveKin">Kin felvétele</string>
   <string name="title_insufficientFunds">Nincs elég tőke</string>
   <string name="title_inviteFriend">Hívd meg egy barátod</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Legutóbbi pénznemek</string>
   <string name="title_referFriend">Ajánlj egy barátot, kapsz 5 dollárt</string>
   <string name="title_referralBonus">Ajánlói bónusz</string>
+  <string name="title_requestCash">Kérj készpénzt</string>
   <string name="title_requestKin">Kin kérése</string>
   <string name="title_requestTip">Kérj borravalót</string>
   <string name="title_requireFaceID">Face ID-t igényel</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Elköltött</string>
   <string name="title_switchAccounts">Fiókcsere</string>
   <string name="title_termsOfService">Szolgáltatási feltételek</string>
+  <string name="title_tipCard">Borravalós kártya</string>
   <string name="title_tipKin">Kin borravaló</string>
   <string name="title_unknown">Ismeretlen</string>
   <string name="title_updateRequired">Frissítés szükséges</string>

@@ -17,6 +17,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@master
+        with:
+          fetch-depth: 0
 
       - name: Setup Java env
         uses: actions/setup-java@v3

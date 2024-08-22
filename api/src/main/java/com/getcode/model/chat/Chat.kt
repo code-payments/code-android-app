@@ -2,6 +2,7 @@ package com.getcode.model.chat
 
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -18,6 +19,7 @@ import java.util.UUID
  * @param cursor [Cursor] value for this chat for reference in subsequent GetChatsRequest
  * @param messages List of messages within this chat
  */
+@Serializable
 data class Chat(
     val id: ID,
     val type: ChatType,
@@ -134,6 +136,9 @@ data class Chat(
 
 val Chat.isV2: Boolean
     get() = members.isNotEmpty()
+
+val Chat.isNotification: Boolean
+    get() = type == ChatType.Notification
 
 val Chat.isConversation: Boolean
     get() = type == ChatType.TwoWay

@@ -389,7 +389,6 @@ class IdentityRepository @Inject constructor(
                     }
                 }.first()
         } catch (e: Exception) {
-            e.printStackTrace()
             ErrorUtils.handleError(e)
             Result.failure(e)
         }

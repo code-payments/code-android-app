@@ -269,6 +269,10 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun tipCardLinked() {
+        track(Name.TipCardLinked)
+    }
+
     override fun backgroundSwapInitiated() {
         track(Name.BackgroundSwap)
     }
@@ -319,11 +323,12 @@ class AnalyticsManager @Inject constructor(
         Login("Login"),
         CreateAccount("Create Account"),
         UnintentionalLogout("Unintentional Logout"),
+        TipCardLinked("Tip Card Linked"),
 
         //Bill
         Bill("Bill"),
         Request("Request Card"),
-        TipCard("TIp Card"),
+        TipCard("Tip Card"),
 
         //Transfer
         Transfer("Transfer"),

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Додај готовину помоћу дебитне картице</string>
   <string name="action_allowCameraAccess">Dozvoli pristup kameri</string>
   <string name="action_allowContacts">Dozvoli pristup kontaktima</string>
   <string name="action_allowPushNotifications">Dozvoli prosleđena obaveštenja</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Омогући Face ID  </string>
   <string name="action_enableTouchID">Омогући Touch ID  </string>
   <string name="action_exit">Izađi</string>
+  <string name="action_give">Дај</string>
   <string name="action_giveKin">Daj Kin</string>
   <string name="action_invite">Pozovi</string>
   <string name="action_invites">Pozivi</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Nalepi iz ostave</string>
   <string name="action_postToConnect">Поставите објаву да повежете налог</string>
   <string name="action_putInWallet">Stavi u novčanik</string>
+  <string name="action_receive">Прими</string>
   <string name="action_recoverExistingAccount">Oporavi postojeći nalog</string>
   <string name="action_remind">Podseti</string>
   <string name="action_removePhoneNumber">Ukloni broj telefona</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Пошаљи</string>
   <string name="action_sendVerificationCode">Pošalji verifikacioni kod</string>
   <string name="action_share">Подели</string>
+  <string name="action_shareAsURL">Дели као URL адресу</string>
   <string name="action_shareDownloadLink">Подели везу за преузимање</string>
   <string name="action_shareVideo">Дели овај видео-запис</string>
   <string name="action_showMyTipCard">Покажи моју картицу за напојнице</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Nije uspelo</string>
   <string name="title_faq">Najčešća pitanja</string>
   <string name="title_gaveKin">Dato</string>
+  <string name="title_getCash">Узми готовину</string>
   <string name="title_getFriendStartedOnCode">Нека пријатељ започне са Кодом</string>
   <string name="title_getKin">Прибави Кин</string>
   <string name="title_getMoreKin">Набавите још кинова</string>
+  <string name="title_giveCash">Давање готовине</string>
   <string name="title_giveKin">Daj Kin</string>
   <string name="title_insufficientFunds">Нема довољно средстава</string>
   <string name="title_inviteFriend">Pozovi prijatelja</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Nedavne valute</string>
   <string name="title_referFriend">Препоручите пријатеља, узмите 5$</string>
   <string name="title_referralBonus">Бонус за препоруке</string>
+  <string name="title_requestCash">Захтевај готовину</string>
   <string name="title_requestKin">Затражи Кин</string>
   <string name="title_requestTip">Затражи напојницу</string>
   <string name="title_requireFaceID">Захтевање Face ID-ја</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Потрошено</string>
   <string name="title_switchAccounts">Promeni naloge</string>
   <string name="title_termsOfService">Uslovi korišcenja usluge</string>
+  <string name="title_tipCard">Картица са саветом</string>
   <string name="title_tipKin">Дај напојницу у виду Кина</string>
   <string name="title_unknown">Непознато</string>
   <string name="title_updateRequired">Potrebno je ažuriranje</string>

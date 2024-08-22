@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Adăugați numerar cu un card de debit</string>
   <string name="action_allowCameraAccess">Permite accesul la fotocameră</string>
   <string name="action_allowContacts">Permite accesul la contacte</string>
   <string name="action_allowPushNotifications">Permite notificările push</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Activează Face ID</string>
   <string name="action_enableTouchID">Activează Touch ID</string>
   <string name="action_exit">Ieșire</string>
+  <string name="action_give">Trimite</string>
   <string name="action_giveKin">Dă Kin</string>
   <string name="action_invite">Invită</string>
   <string name="action_invites">Invitații</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Lipește din clipboard</string>
   <string name="action_postToConnect">Postează pentru a conecta contul</string>
   <string name="action_putInWallet">Pune în portofel</string>
+  <string name="action_receive">Primește</string>
   <string name="action_recoverExistingAccount">Recuperează un cont existent</string>
   <string name="action_remind">Reamintește</string>
   <string name="action_removePhoneNumber">Elimină numărul de telefon</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Trimite</string>
   <string name="action_sendVerificationCode">Trimite verificarea pentru Code</string>
   <string name="action_share">Distribuie</string>
+  <string name="action_shareAsURL">Distribuie ca adresă URL</string>
   <string name="action_shareDownloadLink">Partajați link-ul de descărcare</string>
   <string name="action_shareVideo">Partajează acest videoclip</string>
   <string name="action_showMyTipCard">Arată cardul meu de bacșiș</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Eșuat</string>
   <string name="title_faq">Întrebări frecvente</string>
   <string name="title_gaveKin">Trimis</string>
+  <string name="title_getCash">Obțineți numerar</string>
   <string name="title_getFriendStartedOnCode">Ajutați un prieten să înceapă cu Code</string>
   <string name="title_getKin">Obține kin</string>
   <string name="title_getMoreKin">Obține mai mulţi Kin</string>
+  <string name="title_giveCash">Trimite cash</string>
   <string name="title_giveKin">Trimite Kin</string>
   <string name="title_insufficientFunds">Fonduri insuficiente</string>
   <string name="title_inviteFriend">Invită un prieten</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Valute folosite recent</string>
   <string name="title_referFriend">Recomandați un prieten, primiți 5 dolari</string>
   <string name="title_referralBonus">Bonus de recomandare</string>
+  <string name="title_requestCash">Solicitați numerar</string>
   <string name="title_requestKin">Solicită monede Kin</string>
   <string name="title_requestTip">Solicită un bacșiș</string>
   <string name="title_requireFaceID">Solicită Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Cheltuiți</string>
   <string name="title_switchAccounts">Folosește alt cont</string>
   <string name="title_termsOfService">Termeni de utilizare</string>
+  <string name="title_tipCard">Card de bacșiș</string>
   <string name="title_tipKin">Trimite bacșiș monede Kin</string>
   <string name="title_unknown">Necunoscut</string>
   <string name="title_updateRequired">Este necesară actualizarea</string>

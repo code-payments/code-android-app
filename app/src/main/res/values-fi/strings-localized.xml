@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Lisää rahaa pankkikortilla</string>
   <string name="action_allowCameraAccess">Salli kameran käyttöoikeudet</string>
   <string name="action_allowContacts">Salli yhteystietojen käyttöoikeudet</string>
   <string name="action_allowPushNotifications">Salli palveluilmoitukset</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Ota kasvotunnistus käyttöön</string>
   <string name="action_enableTouchID">Ota kosketustunnistus käyttöön</string>
   <string name="action_exit">Poistu</string>
+  <string name="action_give">Anna</string>
   <string name="action_giveKin">Anna kinejä</string>
   <string name="action_invite">Kutsu</string>
   <string name="action_invites">Kutsut</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Liitä leikepöydältä</string>
   <string name="action_postToConnect">Julkaise yhdistettävälle tilille</string>
   <string name="action_putInWallet">Pane lompakkoon</string>
+  <string name="action_receive">Ota vastaan</string>
   <string name="action_recoverExistingAccount">Palauta olemassa oleva tili</string>
   <string name="action_remind">Muistuta</string>
   <string name="action_removePhoneNumber">Poista puhelinnumero</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Lähetä</string>
   <string name="action_sendVerificationCode">Lähetä vahvistuskoodi</string>
   <string name="action_share">Jaa</string>
+  <string name="action_shareAsURL">Jaa URL-osoitteena</string>
   <string name="action_shareDownloadLink">Jaa latauslinkki</string>
   <string name="action_shareVideo">Jaa tämä video</string>
   <string name="action_showMyTipCard">Näytä tippikorttini</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Epäonnistui</string>
   <string name="title_faq">UKK</string>
   <string name="title_gaveKin">Antoi</string>
+  <string name="title_getCash">Nosta rahaa</string>
   <string name="title_getFriendStartedOnCode">Auta kaveri alkuun Coden parissa</string>
   <string name="title_getKin">Hae Kin</string>
   <string name="title_getMoreKin">Hanki lisää kinejä</string>
+  <string name="title_giveCash">Anna rahaa</string>
   <string name="title_giveKin">Antoi kinejä</string>
   <string name="title_insufficientFunds">Riittämättömästi varoja</string>
   <string name="title_inviteFriend">Kutsu ystävä</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Viimeaikaiset valuutat</string>
   <string name="title_referFriend">Suosita ystävää, saat 5 $</string>
   <string name="title_referralBonus">Suositusbonus</string>
+  <string name="title_requestCash">Pyydä rahaa</string>
   <string name="title_requestKin">Pyydä kinejä</string>
   <string name="title_requestTip">Pyydä tippi</string>
   <string name="title_requireFaceID">Vaadi kasvotunnistus</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Käytetty</string>
   <string name="title_switchAccounts">Vaihda tilejä</string>
   <string name="title_termsOfService">Palveluehdot</string>
+  <string name="title_tipCard">Tippikortti</string>
   <string name="title_tipKin">Anna kinejä tippinä</string>
   <string name="title_unknown">Tuntematon</string>
   <string name="title_updateRequired">Päivitys vaaditaan</string>

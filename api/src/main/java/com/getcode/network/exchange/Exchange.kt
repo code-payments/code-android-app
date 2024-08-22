@@ -9,8 +9,12 @@ import com.getcode.model.Rate
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.repository.PrefRepository
+import com.getcode.network.service.ApiRateResult
+import com.getcode.network.service.CurrencyService
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.format
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,10 +27,12 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import kotlin.time.Duration.Companion.convert
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.DurationUnit
@@ -86,8 +92,7 @@ class ExchangeNull : Exchange {
 }
 
 class CodeExchange @Inject constructor(
-    private val currencyApi: CurrencyApi,
-    private val networkOracle: NetworkOracle,
+    private val currencyService: CurrencyService,
     prefs: PrefRepository,
     private val preferredCurrency: suspend () -> Currency?,
     private val defaultCurrency: suspend () -> Currency?,
@@ -124,6 +129,7 @@ class CodeExchange @Inject constructor(
 
     private val isStale: Boolean
         get() {
+            if (rates.rates.isEmpty()) return true
             // Remember, the exchange rates date is the server-provided
             // date-of-rate and not the time the rate was fetched. It
             // might be reasonable for the server to return a date that
@@ -143,7 +149,7 @@ class CodeExchange @Inject constructor(
                 .mapNotNull { preferred ->
                     preferred ?: CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
                 }.onEach { setEntryCurrency(it) }
-                .launchIn(this)
+                .launchIn(this@CodeExchange)
         }
 
         launch {
@@ -167,22 +173,26 @@ class CodeExchange @Inject constructor(
 
     override suspend fun fetchRatesIfNeeded() {
         if (isStale) {
-            runCatching { fetchExchangeRates() }
-                .onSuccess { (updatedRates, date) ->
-                    db?.exchangeDao()?.insert(rates = updatedRates, syncedAt = date)
-                    set(RatesBox(date, updatedRates))
-                }.onFailure {
-                    it.printStackTrace()
+            retryable(
+                call = {
+                    currencyService.getRates()
+                        .onSuccess { (updatedRates, date) ->
+                            db?.exchangeDao()?.insert(rates = updatedRates, syncedAt = date)
+                            set(RatesBox(date, updatedRates))
+                        }
                 }
+            )
         }
+
+        updateRates()
     }
 
-    private suspend fun setEntryCurrency(currency: CurrencyCode) {
+    private fun setEntryCurrency(currency: CurrencyCode) {
         entryCurrency = currency
         updateRates()
     }
 
-    private suspend fun setLocalCurrency(currency: CurrencyCode) {
+    private fun setLocalCurrency(currency: CurrencyCode) {
         localCurrency = currency
         updateRates()
     }
@@ -209,78 +219,67 @@ class CodeExchange @Inject constructor(
 
     override fun rateForUsd(): Rate? = rates.rateForUsd()
 
-    private suspend fun updateRates() {
+    private fun updateRates() {
         if (rates.isEmpty) {
             return
         }
 
         val localRate = localCurrency?.let { rates.rateFor(it) }
-        _localRate.value = if (localRate != null) {
-            trace(
-                message = "Updated the local currency: $localCurrency, " +
-                        "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
-                        "Date: ${Date(rates.dateMillis)}",
-                type = TraceType.Silent
-            )
-            localRate
-        } else {
-            trace(
-                message = "local:: Rate for $localCurrency not found. Defaulting to USD.",
-                type = TraceType.Silent
-            )
-            rates.rateForUsd()!!
+        val localChanged = _localRate.value != localRate
+        if (localChanged) {
+            _localRate.value = if (localRate != null) {
+                trace(
+                    tag = "Background",
+                    message = "Updated the local currency: $localCurrency, " +
+                            "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
+                            "Date: ${Date(rates.dateMillis)}",
+                    type = TraceType.Process
+                )
+                localRate
+            } else {
+                trace(
+                    tag = "Background",
+                    message = "local:: Rate for $localCurrency not found. Defaulting to USD.",
+                    type = TraceType.Process
+                )
+                rates.rateForUsd()!!
+            }
         }
 
 
         val entryRate = entryCurrency?.let { rates.rateFor(it) }
-        _entryRate.value = if (entryRate != null) {
-            trace(
-                message = "Updated the entry currency: $entryCurrency, " +
-                        "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
-                        "Date: ${Date(rates.dateMillis)}",
-                type = TraceType.Silent
-            )
-            entryRate
-        } else {
-            trace(
-                message = "entry:: Rate for $entryCurrency not found. Defaulting to USD.",
-                type = TraceType.Silent
-            )
-            rates.rateForUsd()!!
+        val entryChanged = _entryRate.value != entryRate
+        if (entryChanged) {
+            _entryRate.value = if (entryRate != null) {
+                trace(
+                    tag = "Background",
+                    message = "Updated the entry currency: $entryCurrency, " +
+                            "Staleness ${System.currentTimeMillis() - rates.dateMillis} ms, " +
+                            "Date: ${Date(rates.dateMillis)}",
+                    type = TraceType.Process
+                )
+                entryRate
+            } else {
+                trace(
+                    tag = "Background",
+                    message = "entry:: Rate for $entryCurrency not found. Defaulting to USD.",
+                    type = TraceType.Process
+                )
+                rates.rateForUsd()!!
+            }
         }
 
-    }
-
-    @OptIn(ExperimentalTime::class)
-    @SuppressLint("CheckResult")
-    private suspend fun fetchExchangeRates() = suspendCancellableCoroutine { cont ->
-        Timber.d("fetching rates")
-        currencyApi.getRates()
-            .let { networkOracle.managedRequest(it) }
-            .subscribe({ response ->
-                val rates = response.ratesMap.mapNotNull { (key, value) ->
-                    val currency = CurrencyCode.tryValueOf(key) ?: return@mapNotNull null
-                    Rate(fx = value, currency = currency)
-                }.toMutableList()
-
-                if (rates.none { it.currency == CurrencyCode.KIN }) {
-                    rates.add(Rate(fx = 1.0, currency = CurrencyCode.KIN))
+        if (localChanged || entryChanged) {
+            trace(tag = "Background",
+                message = "Updated rates",
+                type = TraceType.Process,
+                metadata = {
+                    "date" to Instant.fromEpochMilliseconds(rates.dateMillis)
+                        .format("yyyy-MM-dd HH:mm:ss")
                 }
-
-                cont.resume(
-                    rates.toList() to convert(
-                        value = response.asOf.seconds.toDouble(),
-                        sourceUnit = DurationUnit.SECONDS,
-                        targetUnit = DurationUnit.MILLISECONDS
-                    ).toLong()
-                )
-            }, {
-                ErrorUtils.handleError(it)
-                cont.resume(emptyList<Rate>() to System.currentTimeMillis())
-            })
+            )
+        }
     }
-
-
 }
 
 private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, Rate>) {

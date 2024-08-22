@@ -22,6 +22,7 @@ import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.withTopBorder
 
 @Composable
@@ -33,7 +34,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
 
     val context = LocalContext.current
-    val title = state.title
+    val title = state.title.localized
 
     Column(modifier = Modifier.fillMaxSize()) {
         MessageList(

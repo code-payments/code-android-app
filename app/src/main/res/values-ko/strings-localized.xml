@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">직불 카드로 현금 추가</string>
   <string name="action_allowCameraAccess">카메라 접근 허용</string>
   <string name="action_allowContacts">연락처 접근 허용</string>
   <string name="action_allowPushNotifications">푸쉬 알림 허용</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Face ID 활성화</string>
   <string name="action_enableTouchID">Touch ID 활성화</string>
   <string name="action_exit">나가기</string>
+  <string name="action_give">주기</string>
   <string name="action_giveKin">Kin 보내기</string>
   <string name="action_invite">초대</string>
   <string name="action_invites">초대</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">클립보드에서 붙여넣기</string>
   <string name="action_postToConnect">계정을 연결하려면 게시하기</string>
   <string name="action_putInWallet">지갑에 넣기</string>
+  <string name="action_receive">받기</string>
   <string name="action_recoverExistingAccount">기존 계정 복구하기 </string>
   <string name="action_remind">알림</string>
   <string name="action_removePhoneNumber">전화번호 삭제</string>
@@ -53,6 +56,7 @@
   <string name="action_send">보내기</string>
   <string name="action_sendVerificationCode">인증 코드 보내기 </string>
   <string name="action_share">공유</string>
+  <string name="action_shareAsURL">URL로 공유</string>
   <string name="action_shareDownloadLink">다운로드 링크 공유</string>
   <string name="action_shareVideo">이 동영상 공유</string>
   <string name="action_showMyTipCard">내 팁 카드 표시</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">실패함</string>
   <string name="title_faq">자주 묻는 질문</string>
   <string name="title_gaveKin">보낸 내역</string>
+  <string name="title_getCash">현금 받기</string>
   <string name="title_getFriendStartedOnCode">친구가 Code를 시작하게 만들기</string>
   <string name="title_getKin">Kin 받기</string>
   <string name="title_getMoreKin">킨 더 확보하기</string>
+  <string name="title_giveCash">현금 주기</string>
   <string name="title_giveKin">Kin 보내기</string>
   <string name="title_insufficientFunds">자금 부족</string>
   <string name="title_inviteFriend">친구 초대하기</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">최근 통화</string>
   <string name="title_referFriend">친구 추천하고 $5 받으세요</string>
   <string name="title_referralBonus">추천 보너스</string>
+  <string name="title_requestCash">현금 요청</string>
   <string name="title_requestKin">킨 요청</string>
   <string name="title_requestTip">팁 요청</string>
   <string name="title_requireFaceID">Face ID 필요</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">지출</string>
   <string name="title_switchAccounts">계정 바꾸기</string>
   <string name="title_termsOfService">서비스 약관</string>
+  <string name="title_tipCard">팁 카드</string>
   <string name="title_tipKin">팁 킨</string>
   <string name="title_unknown">알 수 없음</string>
   <string name="title_updateRequired">업데이트 요구됨</string>

@@ -24,13 +24,16 @@ import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.repository.WithdrawException
 import com.getcode.network.repository.initiateSwap
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
+import com.getcode.utils.TraceType
 import com.getcode.utils.flowInterval
+import com.getcode.utils.trace
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -257,11 +260,11 @@ fun Client.withdrawExternally(
     destination: PublicKey
 ): Completable {
     if (amount.kin.fractionalQuarks().quarks != 0L) {
-        throw TransactionRepository.WithdrawException.InvalidFractionalKinAmountException()
+        throw WithdrawException.InvalidFractionalKinAmountException()
     }
 
     if (amount.kin > organizer.availableBalance) {
-        throw TransactionRepository.WithdrawException.InsufficientFundsException()
+        throw WithdrawException.InsufficientFundsException()
     }
 
     val intent = PublicKey.generate()
@@ -336,15 +339,20 @@ fun Client.withdrawExternally(
         Completable.complete()
     }.doOnComplete {
         Timber.d(steps.joinToString("\n"))
-    }
+    }.concatWith(
         // 6. Execute withdrawal
-        .concatWith(
-            withdraw(
-                amount = amount,
-                organizer = organizer,
-                destination = destination
-            )
+        withdraw(
+            amount = amount,
+            organizer = organizer,
+            destination = destination
         )
+    ).doOnComplete {
+        trace(
+            tag = "Trx",
+            message = "Withdraw completed",
+            type = TraceType.Process
+        )
+    }
 }
 
 private fun Client.withdraw(
@@ -516,6 +524,13 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
             }
         }
         .ignoreElement()
+        .andThen {
+            trace(
+                tag = "Trx",
+                message = "Received from primary",
+                type = TraceType.Process
+            )
+        }
         .andThen { fetchLimits(true) }
 }
 

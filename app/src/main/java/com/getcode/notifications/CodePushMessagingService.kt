@@ -3,7 +3,9 @@ package com.getcode.notifications
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -15,7 +17,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
@@ -25,7 +27,10 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
+import com.getcode.utils.trace
+import com.getcode.view.MainActivity
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -68,7 +73,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var balanceController: BalanceController
 
     @Inject
-    lateinit var historyController: HistoryController
+    lateinit var historyController: ChatHistoryController
 
     @Inject
     lateinit var tipController: TipController
@@ -183,8 +188,18 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setSmallIcon(R.drawable.ic_code_logo_outline)
                 .setAutoCancel(true)
+                .setContentIntent(buildContentIntent(type))
 
         notificationManager.notify(title.hashCode(), notificationBuilder.build())
+
+        trace(
+            tag = "Push",
+            message = "Push notification shown",
+            metadata = {
+                "category" to type.name
+            },
+            type = TraceType.Process
+        )
     }
 
     private fun updateOrganizerAndSwap() = launch {
@@ -205,6 +220,19 @@ class CodePushMessagingService : FirebaseMessagingService(),
         SessionManager.update { it.copy(organizer = organizer) }
         transactionRepository.swapIfNeeded(organizer)
     }
+}
+
+private fun Context.buildContentIntent(type: NotificationType): PendingIntent {
+    val launchIntent = Intent(this, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    }
+
+    return PendingIntent.getActivity(
+        this,
+        type.ordinal,
+        launchIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 }
 
 

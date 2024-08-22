@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Внести гроші з дебетової картки</string>
   <string name="action_allowCameraAccess">Дозволити доступ до камери</string>
   <string name="action_allowContacts">Дозволити доступ до контактів</string>
   <string name="action_allowPushNotifications">Дозволити push-сповіщення</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Увімкнути Face ID</string>
   <string name="action_enableTouchID">Увімкнути Touch ID</string>
   <string name="action_exit">Вийти</string>
+  <string name="action_give">Дати</string>
   <string name="action_giveKin">Дати Кін</string>
   <string name="action_invite">Запросити</string>
   <string name="action_invites">Запрошення</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Вставити з буфера обміну</string>
   <string name="action_postToConnect">Зробіть публікацію, щоб прив’язати акаунт</string>
   <string name="action_putInWallet">Покласти в гаманець</string>
+  <string name="action_receive">Отримати</string>
   <string name="action_recoverExistingAccount">Відновити існуючий акаунт</string>
   <string name="action_remind">Нагадати</string>
   <string name="action_removePhoneNumber">Видалити номер телефону</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Надіслати</string>
   <string name="action_sendVerificationCode">Надіслати код підтвердження</string>
   <string name="action_share">Поділитися</string>
+  <string name="action_shareAsURL">Поділитися як URL-адресою</string>
   <string name="action_shareDownloadLink">Поділитись посиланням на завантаження</string>
   <string name="action_shareVideo">Поділитися цим відео</string>
   <string name="action_showMyTipCard">Показати мою картку для чайових</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Не вдалося</string>
   <string name="title_faq">Часто задавані питання</string>
   <string name="title_gaveKin">Надано</string>
+  <string name="title_getCash">Отримати гроші.</string>
   <string name="title_getFriendStartedOnCode">Запросіть друга в Code</string>
   <string name="title_getKin">Отримати Kin</string>
   <string name="title_getMoreKin">Отримати більше Kin</string>
+  <string name="title_giveCash">Дати готівку</string>
   <string name="title_giveKin">Дати Kin</string>
   <string name="title_insufficientFunds">Недостатньо коштів</string>
   <string name="title_inviteFriend">Запросити друга</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Останні валюти</string>
   <string name="title_referFriend">Порекомендуйте другу, отримайте 5 дол.</string>
   <string name="title_referralBonus">Реферальний бонус</string>
+  <string name="title_requestCash">Запросити грошовий переказ</string>
   <string name="title_requestKin">Запит на Kin</string>
   <string name="title_requestTip">Запросити чайові</string>
   <string name="title_requireFaceID">Вимагати Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Витрачено</string>
   <string name="title_switchAccounts">Змінити акаунт</string>
   <string name="title_termsOfService">Умови обслуговування</string>
+  <string name="title_tipCard">Картка з підказками</string>
   <string name="title_tipKin">Дати чайові у Kin</string>
   <string name="title_unknown">Невідомо</string>
   <string name="title_updateRequired">Потрібне оновлення</string>

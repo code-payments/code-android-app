@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
 import com.getcode.model.PrefsBool
+import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
@@ -44,7 +45,7 @@ fun BetaFlagsScreen(
             PrefsBool.VIBRATE_ON_SCAN,
             R.string.beta_vibrate_on_scan,
             stringResource(R.string.beta_vibrate_on_scan_description),
-            state.isVibrateOnScan
+            state.tickOnScan
         ),
         BetaFeature(
             PrefsBool.SHOW_CONNECTIVITY_STATUS,
@@ -62,7 +63,7 @@ fun BetaFlagsScreen(
             PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED,
             R.string.beta_balance_currency,
             stringResource(R.string.beta_balance_currency_description),
-            state.currencySelectionBalanceEnabled
+            state.balanceCurrencySelectionEnabled
         ),
         BetaFeature(
             PrefsBool.GIVE_REQUESTS_ENABLED,
@@ -74,7 +75,7 @@ fun BetaFlagsScreen(
             PrefsBool.BUY_MODULE_ENABLED,
             R.string.beta_buy_kin,
             stringResource(id = R.string.beta_buy_kin_description),
-            state.buyKinEnabled
+            state.buyModuleEnabled
         ),
         BetaFeature(
             PrefsBool.CHAT_UNSUB_ENABLED,
@@ -89,22 +90,34 @@ fun BetaFlagsScreen(
             state.tipsEnabled,
         ),
         BetaFeature(
-            PrefsBool.TIPS_CHAT_ENABLED,
-            R.string.beta_tipchats,
-            stringResource(id = R.string.beta_tipchats_description),
-            state.tipsChatEnabled,
+            PrefsBool.TIP_CARD_ON_HOMESCREEN,
+            R.string.beta_tipcard_on_homescreen,
+            stringResource(id = R.string.beta_tipcard_on_homescreen_description),
+            state.tipCardOnHomeScreen,
         ),
         BetaFeature(
-            PrefsBool.TIPS_CHAT_CASH_ENABLED,
-            R.string.beta_tipchats_cash,
-            stringResource(id = R.string.beta_tipchats_cash_description),
-            state.tipsChatCashEnabled,
+            PrefsBool.CONVERSATIONS_ENABLED,
+            R.string.beta_conversations,
+            stringResource(id = R.string.beta_conversations_description),
+            state.conversationsEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.CONVERSATION_CASH_ENABLED,
+            R.string.beta_conversations_cash,
+            stringResource(id = R.string.beta_conversations_cash_description),
+            state.conversationCashEnabled,
         ),
         BetaFeature(
             PrefsBool.KADO_WEBVIEW_ENABLED,
             R.string.beta_kado_webview,
             stringResource(id = R.string.beta_kado_webview_description),
             state.kadoWebViewEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.SHARE_TWEET_TO_TIP,
+            R.string.beta_share_tweet_tip,
+            stringResource(id = R.string.beta_share_tweet_tip_description),
+            state.shareTweetToTip,
         ),
         BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
@@ -143,12 +156,12 @@ fun BetaFlagsScreen(
     }
 }
 
-private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
+private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         PrefsBool.BUY_MODULE_ENABLED -> false
         PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
         PrefsBool.TIPS_ENABLED -> false
-        PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
+        PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }
 }

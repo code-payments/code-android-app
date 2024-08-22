@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">使用簽帳金融卡添加現金</string>
   <string name="action_allowCameraAccess">允許相機存取權</string>
   <string name="action_allowContacts">允許存取聯絡人</string>
   <string name="action_allowPushNotifications">允許推播通知</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">啟用 Face ID</string>
   <string name="action_enableTouchID">啟用 Face ID</string>
   <string name="action_exit">退出</string>
+  <string name="action_give">給予</string>
   <string name="action_giveKin">給予 Kin</string>
   <string name="action_invite">邀請</string>
   <string name="action_invites">邀請</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">從剪貼簿貼上</string>
   <string name="action_postToConnect">發文以連結帳戶</string>
   <string name="action_putInWallet">放入錢包</string>
+  <string name="action_receive">接受</string>
   <string name="action_recoverExistingAccount">恢復現有帳戶</string>
   <string name="action_remind">提醒</string>
   <string name="action_removePhoneNumber">移除電話號碼</string>
@@ -53,6 +56,7 @@
   <string name="action_send">發送</string>
   <string name="action_sendVerificationCode">傳送驗證碼</string>
   <string name="action_share">分享</string>
+  <string name="action_shareAsURL">分享網址連結</string>
   <string name="action_shareDownloadLink">分享下載連結</string>
   <string name="action_shareVideo">分享該影片</string>
   <string name="action_showMyTipCard">顯示我的 Tip Card</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">失敗</string>
   <string name="title_faq">常見問題集</string>
   <string name="title_gaveKin">已給予</string>
+  <string name="title_getCash">獲取現金</string>
   <string name="title_getFriendStartedOnCode">邀請朋友開始使用 Code 錢包</string>
   <string name="title_getKin">取得 Kin</string>
   <string name="title_getMoreKin">獲得更多 Kin</string>
+  <string name="title_giveCash">給予現金</string>
   <string name="title_giveKin">給予 Kin</string>
   <string name="title_insufficientFunds">餘額不足</string>
   <string name="title_inviteFriend">邀請朋友</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">最近使用的貨幣</string>
   <string name="title_referFriend">推薦一位朋友,可獲 5 美元獎勵</string>
   <string name="title_referralBonus">推薦獎勵</string>
+  <string name="title_requestCash">請求現金</string>
   <string name="title_requestKin">要求 Kin</string>
   <string name="title_requestTip">要求小費</string>
   <string name="title_requireFaceID">需要 Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">花費</string>
   <string name="title_switchAccounts">切換帳戶</string>
   <string name="title_termsOfService">服務條款</string>
+  <string name="title_tipCard">提示卡</string>
   <string name="title_tipKin">以 Kin 給小費</string>
   <string name="title_unknown">不明</string>
   <string name="title_updateRequired">需要更新</string>

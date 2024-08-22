@@ -45,6 +45,7 @@ interface AnalyticsService {
     fun withdrawal(amount: KinAmount, successful: Boolean)
 
     fun tipCardShown(username: String)
+    fun tipCardLinked()
 
     fun backgroundSwapInitiated()
     fun unintentionalLogout()
@@ -93,6 +94,7 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) = Unit
     override fun onBillReceived() = Unit
     override fun tipCardShown(username: String) = Unit
+    override fun tipCardLinked() = Unit
     override fun backgroundSwapInitiated() = Unit
     override fun unintentionalLogout() = Unit
     override fun appSettingToggled(setting: AppSetting, value: Boolean) = Unit

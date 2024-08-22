@@ -31,7 +31,6 @@ import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
-import com.getcode.model.TipCardFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
 import com.getcode.models.Bill
@@ -45,7 +44,7 @@ import com.getcode.models.PaymentValuation
 import com.getcode.models.TipConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
@@ -63,6 +62,7 @@ import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
@@ -80,10 +80,11 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.base64EncodedData
+import com.getcode.utils.TraceType
 import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
+import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
 import com.kik.kikx.models.ScannableKikCode
@@ -146,7 +147,7 @@ data class HomeUiModel(
     val chatUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
-    val tips: Feature = TipCardFeature(),
+    val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
 
@@ -168,7 +169,7 @@ class HomeViewModel @Inject constructor(
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
@@ -182,7 +183,7 @@ class HomeViewModel @Inject constructor(
     private val mnemonicManager: MnemonicManager,
     private val cashLinkManager: CashLinkManager,
     appSettings: AppSettingsRepository,
-    betaFlags: BetaFlagsRepository,
+    betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
@@ -204,21 +205,8 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-//        betaFlags.observe()
-//            .distinctUntilChanged()
-//            .onEach { beta ->
-//                ErrorUtils.setDisplayErrors(beta.displayErrors)
-//
-//                if (beta.establishCodeRelationship) {
-//                    val organizer = SessionManager.getOrganizer() ?: return@onEach
-//                    val domain = Domain.from("getcode.com") ?: return@onEach
-//                    if (organizer.relationshipFor(domain) == null) {
-//                        client.awaitEstablishRelationship(organizer, domain)
-//                    }
-//                }
-//            }.launchIn(viewModelScope)
-
         features.buyModule
+            .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
                     it.copy(buyModule = module)
@@ -226,22 +214,31 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         features.requestKin
+            .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
                     it.copy(requestKin = module)
                 }
             }.launchIn(viewModelScope)
 
+        betaFlagsRepository.observe()
+            .distinctUntilChanged()
+            .onEach { betaFlags ->
+                uiFlow.update { it.copy(actions = buildActions(betaFlags)) }
+            }.launchIn(viewModelScope)
+
         tipController.showTwitterSplat
             .filter { it }
             .onEach { delay(500) }
             .flatMapLatest { tipController.connectedAccount }
+            .filter { tipController.verificationInProgress.value }
             .filterNotNull()
             .distinctUntilChanged()
             .filter { uiFlow.value.isCameraScanEnabled }
             .onEach {
                 when (it) {
                     is TwitterUser -> {
+                        analytics.tipCardLinked()
                         TopBarManager.showMessage(
                             topBarMessage = TopBarManager.TopBarMessage(
                                 type = TopBarManager.TopBarMessageType.SUCCESS,
@@ -376,6 +373,25 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    private fun buildActions(
+        betaOptions: BetaOptions,
+    ): List<HomeAction> {
+        val actions = mutableListOf(HomeAction.GIVE_KIN)
+        actions += if (betaOptions.tipCardOnHomeScreen) {
+            HomeAction.TIP_CARD
+        } else {
+            HomeAction.GET_KIN
+        }
+
+        if (betaOptions.conversationsEnabled) {
+            actions += HomeAction.CHAT
+        }
+
+        actions += HomeAction.BALANCE
+
+        return actions
+    }
+
     fun onCameraScanning(scanning: Boolean) {
         uiFlow.update { it.copy(isCameraScanEnabled = scanning) }
     }
@@ -446,7 +462,19 @@ class HomeViewModel @Inject constructor(
                 )
             },
             onError = { cancelSend(style = PresentationStyle.Slide) },
-            present = { data -> presentSend(data, bill, vibrate) }
+            present = { data ->
+                if (!bill.didReceive) {
+                    trace(
+                        tag = "Bill",
+                        message = "Pull out cash",
+                        metadata = {
+                            "amount" to bill.amount
+                        },
+                        type = TraceType.User,
+                    )
+                }
+                presentSend(data, bill, vibrate)
+            }
         )
     }
 
@@ -643,13 +671,41 @@ class HomeViewModel @Inject constructor(
 
         when (codePayload.kind) {
             Kind.Cash,
-            Kind.GiftCard -> attemptReceive(organizer, codePayload)
+            Kind.GiftCard -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned cash",
+                    type = TraceType.User,
+                )
+                attemptReceive(organizer, codePayload)
+            }
 
             Kind.RequestPayment,
-            Kind.RequestPaymentV2 -> attemptPayment(codePayload)
+            Kind.RequestPaymentV2 -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned request card",
+                    type = TraceType.User,
+                )
+                attemptPayment(codePayload)
+            }
 
-            Kind.Login -> attemptLogin(codePayload)
-            Kind.Tip -> attemptTip(codePayload)
+            Kind.Login -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned login card",
+                    type = TraceType.User,
+                )
+                attemptLogin(codePayload)
+            }
+            Kind.Tip -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned tip card",
+                    type = TraceType.User,
+                )
+                attemptTip(codePayload)
+            }
         }
     }
 
@@ -685,12 +741,18 @@ class HomeViewModel @Inject constructor(
 
         tipController.clearTwitterSplat()
 
+        trace(
+            tag = "Bill",
+            message = "Show my tip card",
+            type = TraceType.User,
+        )
+
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
                     bill = Bill.Tip(code),
                     primaryAction = BillState.Action.Share { onRemoteSend() },
-                    secondaryAction = BillState.Action.Done(::cancelSend)
+                    secondaryAction = BillState.Action.Cancel(::cancelSend)
                 )
 
                 it.copy(
@@ -883,30 +945,28 @@ class HomeViewModel @Inject constructor(
 
         val isReceived = payload != null
         val presentationStyle = if (isReceived) PresentationStyle.Pop else PresentationStyle.Slide
-        withContext(Dispatchers.Main) {
-            uiFlow.update {
-                var billState = it.billState.copy(
-                    bill = Bill.Payment(amount, code, request),
-                    valuation = PaymentValuation(amount),
-                    primaryAction = null,
-                )
+        uiFlow.update {
+            var billState = it.billState.copy(
+                bill = Bill.Payment(amount, code, request),
+                valuation = PaymentValuation(amount),
+                primaryAction = null,
+            )
 
-                if (isReceived) {
-                    billState = billState.copy(
-                        paymentConfirmation = PaymentConfirmation(
-                            state = ConfirmationState.AwaitingConfirmation,
-                            payload = code,
-                            requestedAmount = amount,
-                            localAmount = amount.replacing(exchange.localRate)
-                        ),
-                    )
-                }
-
-                it.copy(
-                    presentationStyle = presentationStyle,
-                    billState = billState,
+            if (isReceived) {
+                billState = billState.copy(
+                    paymentConfirmation = PaymentConfirmation(
+                        state = ConfirmationState.AwaitingConfirmation,
+                        payload = code,
+                        requestedAmount = amount,
+                        localAmount = amount.replacing(exchange.localRate)
+                    ),
                 )
             }
+
+            it.copy(
+                presentationStyle = presentationStyle,
+                billState = billState,
+            )
         }
 
         analytics.requestShown(amount = amount)
@@ -929,17 +989,14 @@ class HomeViewModel @Inject constructor(
         cashLinkManager.cancelBillTimeout()
 
         val paymentConfirmation = uiFlow.value.billState.paymentConfirmation ?: return@launch
-        withContext(Dispatchers.Main) {
-            uiFlow.update {
-                val billState = it.billState
-                it.copy(
-                    billState = billState.copy(
-                        paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
-                    ),
-                )
-            }
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
+                ),
+            )
         }
-
         runCatching {
             paymentRepository.completePayment(
                 paymentConfirmation.requestedAmount,
@@ -1358,10 +1415,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun shareTipCard() = viewModelScope.launch {
-        val username = tipController.connectedAccount.value?.username ?: return@launch
-
+        val connectedAccount = tipController.connectedAccount.value ?: return@launch
         withContext(Dispatchers.Main) {
-            val shareIntent = IntentUtils.tipCard(username)
+            val shareIntent = IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
 
             _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
         }
@@ -1430,9 +1486,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun handleRequest(bytes: String?) {
-        val data = bytes?.base64EncodedData() ?: return
-        val request = DeepLinkRequest.from(data)
+    fun handleRequest(request: DeepLinkRequest?) {
         if (request != null) {
             if (request.paymentRequest != null) {
                 viewModelScope.launch {

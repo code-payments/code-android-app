@@ -3,10 +3,6 @@ package com.getcode.ui.components.chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,7 +21,7 @@ internal fun TipChatActions(
     showTipActions: Boolean,
     openMessageChat: () -> Unit
 ) {
-    val tipChatsEnabled = LocalBetaFlags.current.tipsChatEnabled
+    val tipChatsEnabled = LocalBetaFlags.current.conversationsEnabled
 
     if (showTipActions) {
         if (tipChatsEnabled && contents.verb is Verb.ReceivedTip) {

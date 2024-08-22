@@ -1,6 +1,7 @@
 package com.getcode.navigation.screens
 
 import android.webkit.JavascriptInterface
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -317,7 +318,7 @@ data class BuyMoreKinModal(
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.action_buyMoreKin)
+        @Composable get() = stringResource(id = R.string.action_addCash)
 
     @Composable
     override fun Content() {
@@ -366,7 +367,7 @@ data class KadoWebScreen(val url: String) : MainGraph, ModalContent {
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(id = R.string.action_buyMoreKin)
+        @Composable get() = stringResource(id = R.string.action_addCash)
 
     @Composable
     override fun Content() {
@@ -436,12 +437,19 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
                     } else {
                         navigator.progress > 0f
                     }
+                },
+                onCloseClicked = {
+                    navigator.hideWithResult(HomeResult.CancelTipEntry)
                 }
             ) {
                 EnterTipScreen(getViewModel()) { result ->
                     navigator.hideWithResult(result)
                 }
             }
+        }
+
+        BackHandler {
+            navigator.hideWithResult(HomeResult.CancelTipEntry)
         }
     }
 
@@ -458,18 +466,34 @@ data class ConnectAccount(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val viewModel = getViewModel<TipConnectViewModel>()
-        ModalContainer(
-            backButtonEnabled = {
-                if (navigator.isVisible) {
-                    it is ConnectAccount
-                } else {
-                    navigator.progress > 0f
+        when (reason) {
+            IdentityConnectionReason.TipCard -> {
+                ModalContainer(
+                    closeButtonEnabled = {
+                        if (navigator.isVisible) {
+                            it is ConnectAccount
+                        } else {
+                            navigator.progress > 0f
+                        }
+                    }
+                ) {
+                    ConnectAccountScreen(viewModel)
                 }
             }
-        ) {
-            ConnectAccountScreen(viewModel)
+            IdentityConnectionReason.IdentityReveal -> {
+                ModalContainer(
+                    backButtonEnabled = {
+                        if (navigator.isVisible) {
+                            it is ConnectAccount
+                        } else {
+                            navigator.progress > 0f
+                        }
+                    }
+                ) {
+                    ConnectAccountScreen(viewModel)
+                }
+            }
         }
-
 
         LaunchedEffect(viewModel, reason) {
             viewModel.dispatchEvent(TipConnectViewModel.Event.OnReasonChanged(reason))

@@ -1,5 +1,6 @@
 buildscript {
     repositories {
+        gradlePluginPortal()
         google()
         mavenCentral()
         maven(url = "https://plugins.gradle.org/m2/")
@@ -18,6 +19,7 @@ buildscript {
         classpath(Classpath.secrets_gradle_plugin)
         classpath(Classpath.kotlin_serialization_plugin)
         classpath(Classpath.protobuf_plugin)
+        classpath(Classpath.versioning_gradle_plugin)
     }
 }
 

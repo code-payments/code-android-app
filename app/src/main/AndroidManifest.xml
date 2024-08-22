@@ -138,7 +138,31 @@
                     android:scheme="codewallet" />
             </intent-filter>
 
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="@string/root_url_tipcard_no_protocol"
+                    android:pathPattern="/x/.*"
+                    android:scheme="https" />
+            </intent-filter>
+
         </activity>
+
+        <activity-alias
+            android:name="com.getcode.view.TweetShareHandler"
+            android:exported="true"
+            android:targetActivity="com.getcode.view.MainActivity"
+            android:enabled="false">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/plain"/>
+            </intent-filter>
+        </activity-alias>
 
         <service
             android:name="com.getcode.util.AuthenticatorService"

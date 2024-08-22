@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Banka Kartıyla Nakit Ekle</string>
   <string name="action_allowCameraAccess">Kamera Erişimine İzin Ver</string>
   <string name="action_allowContacts">Kişiler\'e Erişime İzin Ver</string>
   <string name="action_allowPushNotifications">Anlık Bildirimlere İzin Ver</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Face ID\'yi etkinleştir</string>
   <string name="action_enableTouchID">Touch ID\'yi etkinleştir</string>
   <string name="action_exit">Çıkış</string>
+  <string name="action_give">Ver</string>
   <string name="action_giveKin">Kin Ver</string>
   <string name="action_invite">Davet Et</string>
   <string name="action_invites">Davetler</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Panodan Yapıştır</string>
   <string name="action_postToConnect">Hesabı Bağlamak için Gönder</string>
   <string name="action_putInWallet">Cüzdana Yerleştir</string>
+  <string name="action_receive">Al</string>
   <string name="action_recoverExistingAccount">Mevcut Hesabı Kurtar</string>
   <string name="action_remind">Hatırlat</string>
   <string name="action_removePhoneNumber">Telefon Numarasını Kaldır</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Gönder</string>
   <string name="action_sendVerificationCode">Doğrulama Kodu Gönder</string>
   <string name="action_share">Paylaş</string>
+  <string name="action_shareAsURL">URL olarak paylaş</string>
   <string name="action_shareDownloadLink">İndirme Bağlantısı Paylaş</string>
   <string name="action_shareVideo">Bu Videoyu Paylaş</string>
   <string name="action_showMyTipCard">Bahşiş Kartımı Göster</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Başarısız</string>
   <string name="title_faq">SSS</string>
   <string name="title_gaveKin">Verdi</string>
+  <string name="title_getCash">Nakıt Al</string>
   <string name="title_getFriendStartedOnCode">Bir Arkadaşınızı Code\'a başlatın</string>
   <string name="title_getKin">Kin Al</string>
   <string name="title_getMoreKin">Daha Fazla Kin Al</string>
+  <string name="title_giveCash">Nakit Ver</string>
   <string name="title_giveKin">Kin Ver</string>
   <string name="title_insufficientFunds">Yetersiz Bakiye</string>
   <string name="title_inviteFriend">Arkadaşını Davet Et</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Son Para Birimleri</string>
   <string name="title_referFriend">Bir Arkadaş Yönlendir, $5\'ı Kazan</string>
   <string name="title_referralBonus">Yönlendirme Bonusu</string>
+  <string name="title_requestCash">Nakit Talep Et</string>
   <string name="title_requestKin">Kin Talep Et</string>
   <string name="title_requestTip">Bahşiş İste</string>
   <string name="title_requireFaceID">Face ID gerekir</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Harcanan</string>
   <string name="title_switchAccounts">Hesap Değiştir</string>
   <string name="title_termsOfService">Hizmet Şartları</string>
+  <string name="title_tipCard">Bahşiş Kartı</string>
   <string name="title_tipKin">Bahşiş Olarak Kin Ver</string>
   <string name="title_unknown">Bilinmeyen</string>
   <string name="title_updateRequired">Güncelleme Gerekli</string>

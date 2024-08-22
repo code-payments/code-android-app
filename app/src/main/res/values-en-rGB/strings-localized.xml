@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Add Cash with a Debit Card</string>
   <string name="action_allowCameraAccess">Allow Camera Access</string>
   <string name="action_allowContacts">Allow Access to Contacts</string>
   <string name="action_allowPushNotifications">Allow Push Notifications</string>
   <string name="action_balance">Balance</string>
-  <string name="action_buyKin">Add Cash with a Debit Card</string>
-  <string name="action_buyMoreKin">Add Cash with a Debit Card</string>
+  <string name="action_buyKin">Buy Kin</string>
+  <string name="action_buyMoreKin">Buy More Kin</string>
   <string name="action_cancel">Cancel</string>
   <string name="action_cancelSend">Cancel Send</string>
   <string name="action_collectCash">Collect This Cash</string>
@@ -23,7 +24,8 @@
   <string name="action_enableFaceID">Enable Face ID</string>
   <string name="action_enableTouchID">Enable Touch ID</string>
   <string name="action_exit">Exit</string>
-  <string name="action_giveKin">Give Cash</string>
+  <string name="action_give">Give</string>
+  <string name="action_giveKin">Give Kin</string>
   <string name="action_invite">Invite</string>
   <string name="action_invites">Invites</string>
   <string name="action_joinWaitlist">Join the Waitlist</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Paste From Clipboard</string>
   <string name="action_postToConnect">Post to Connect Account</string>
   <string name="action_putInWallet">Put in Wallet</string>
+  <string name="action_receive">Receive</string>
   <string name="action_recoverExistingAccount">Recover Existing Account</string>
   <string name="action_remind">Remind</string>
   <string name="action_removePhoneNumber">Remove Phone Number</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Send</string>
   <string name="action_sendVerificationCode">Send Verification Code</string>
   <string name="action_share">Share</string>
+  <string name="action_shareAsURL">Share as a URL</string>
   <string name="action_shareDownloadLink">Share Download Link</string>
   <string name="action_shareVideo">Share this video</string>
   <string name="action_showMyTipCard">Show My Tip Card</string>
@@ -68,10 +72,10 @@
   <string name="action_unsubscribe">Unsubscribe</string>
   <string name="action_update">Update</string>
   <string name="action_viewAccessKey">View Access Key</string>
-  <string name="action_withdrawKin">Withdraw Cash</string>
+  <string name="action_withdrawKin">Withdraw Kin</string>
   <string name="action_wroteThemDownInstead">Wrote the 12 Words Down Instead?</string>
   <string name="action_yes">Yes</string>
-  <string name="action_yesWithdrawConfirm">Yes, Withdraw Cash</string>
+  <string name="action_yesWithdrawConfirm">Yes, Withdraw Kin</string>
   <string name="action_yesWroteThemDown">Yes, I Wrote Them Down</string>
   <string name="core_and">and</string>
   <string name="core_kin">Kin</string>
@@ -213,9 +217,9 @@
   <string name="subtitle_accessKeySnapshotDescription">Tap the Google Lens icon to open the QR code to log into Code. Alternatively you can log in manually by entering the 12 words in the Code Log In screen.</string>
   <string name="subtitle_accessKeySnapshotWarning">Advarsel! Dette billede giver adgang til alle de funds, du har i Code. Del ikke dette billede med andre. Hold det sikkert og beskyttet.</string>
   <string name="subtitle_allowCameraAccess">Code enables you to receive Kin by pointing your camera at the digital bill on another user\'s phone</string>
-  <string name="subtitle_allowCameraSettings">You need to turn on Camera in Settings to scan Codes</string>
+  <string name="subtitle_allowCameraSettings">You need to allow camera access to be able to receive Kin</string>
   <string name="subtitle_authenticateToAccess">Authenticate to access Code.</string>
-  <string name="subtitle_buyKin">Add Cash with a Debit Card</string>
+  <string name="subtitle_buyKin">Buy Kin</string>
   <string name="subtitle_buyKinComingSoon">Buy Kin (Coming Soon)</string>
   <string name="subtitle_buySellDescription">Buying and selling Kin is currently a complex process. These processes will become simpler over time. If you would like to learn how to buy and sell Kin today, you can watch the walkthrough videos below.</string>
   <string name="subtitle_canOnlyGiveUpTo">You can only give up to %1$s</string>
@@ -322,10 +326,12 @@
   <string name="title_failed">Failed</string>
   <string name="title_faq">FAQ</string>
   <string name="title_gaveKin">Gave</string>
+  <string name="title_getCash">Get Cash</string>
   <string name="title_getFriendStartedOnCode">Get a Friend Started on Code</string>
-  <string name="title_getKin">Get Cash</string>
-  <string name="title_getMoreKin">Get more cash</string>
-  <string name="title_giveKin">Give Cash</string>
+  <string name="title_getKin">Get Kin</string>
+  <string name="title_getMoreKin">Get more Kin</string>
+  <string name="title_giveCash">Give Cash</string>
+  <string name="title_giveKin">Give Kin</string>
   <string name="title_insufficientFunds">Insufficient funds</string>
   <string name="title_inviteFriend">Invite a Friend</string>
   <string name="title_limitedTimeOffer">Limited Time Offer</string>
@@ -344,7 +350,8 @@
   <string name="title_recentCurrencies">Recent Currencies</string>
   <string name="title_referFriend">Refer a Friend and Get $5</string>
   <string name="title_referralBonus">Referral Bonus</string>
-  <string name="title_requestKin">Request Cash</string>
+  <string name="title_requestCash">Request Cash</string>
+  <string name="title_requestKin">Request Kin</string>
   <string name="title_requestTip">Request a Tip</string>
   <string name="title_requireFaceID">Require Face ID</string>
   <string name="title_requirePasscode">Require Passcode</string>
@@ -358,12 +365,13 @@
   <string name="title_spentKin">Spent</string>
   <string name="title_switchAccounts">Switch Accounts</string>
   <string name="title_termsOfService">Terms of Service</string>
-  <string name="title_tipKin">Tip Cash</string>
+  <string name="title_tipCard">Tip Card</string>
+  <string name="title_tipKin">Tip Kin</string>
   <string name="title_unknown">Unknown</string>
   <string name="title_updateRequired">Update Required</string>
   <string name="title_verifyPhoneNumber">Verify Phone Number</string>
   <string name="title_welcomeBonus">Welcome Bonus</string>
-  <string name="title_withdrawKin">Withdraw Cash</string>
+  <string name="title_withdrawKin">Withdraw Kin</string>
   <string name="title_withdrewKin">Withdrew</string>
   <string name="title_yourAccessKey">Your Access Key</string>
   <string name="tooltip_tapLogo">Tap the logo to share the app download link</string>

@@ -8,6 +8,7 @@ import com.getcode.manager.TopBarManager
 import io.grpc.StatusRuntimeException
 import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
 import io.reactivex.rxjava3.exceptions.UndeliverableException
+import kotlinx.coroutines.TimeoutCancellationException
 import timber.log.Timber
 import java.net.ConnectException
 import java.net.UnknownHostException
@@ -42,6 +43,7 @@ object ErrorUtils {
             BuildConfig.NOTIFY_ERRORS &&
             throwable !is UnknownHostException &&
             throwable !is TimeoutException &&
+            throwable !is TimeoutCancellationException &&
             throwable !is ConnectException
         ) {
             FirebaseCrashlytics.getInstance().recordException(throwable)
@@ -62,7 +64,7 @@ object ErrorUtils {
                 throwable.cause is StatusRuntimeException
 
     private fun isSuppressibleError(throwable: Throwable): Boolean =
-        throwable is SQLException || throwable is net.sqlcipher.SQLException || throwable is SuppressibleException
+        throwable is SQLException || throwable is net.sqlcipher.SQLException || throwable is SuppressibleException || throwable is TimeoutCancellationException
 }
 
 data class SuppressibleException(override val message: String): Throwable(message)

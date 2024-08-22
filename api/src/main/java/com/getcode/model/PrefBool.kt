@@ -25,6 +25,7 @@ sealed class PrefsBool(val value: String) {
     data object IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP: PrefsBool("is_eligible_give_first_kin_airdrop"), InternalRouting
     data object HAS_REMOVED_LOCAL_CURRENCY: PrefsBool("removed_local_currency"), InternalRouting
     data object SEEN_TIP_CARD : PrefsBool("seen_tip_card"), InternalRouting
+    data object STARTED_TIP_CONNECT: PrefsBool("started_tip_connect"), InternalRouting
 
     data object BUY_MODULE_AVAILABLE : PrefsBool("buy_module_available"), InternalRouting
 
@@ -43,14 +44,14 @@ sealed class PrefsBool(val value: String) {
     data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
     data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag
-
-
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
     data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag
-    data object TIPS_CHAT_ENABLED: PrefsBool("tips_chat_enabled"), BetaFlag
-    data object TIPS_CHAT_CASH_ENABLED: PrefsBool("tips_chat_cash_enabled"), BetaFlag
+    data object CONVERSATIONS_ENABLED: PrefsBool("conversations_enabled"), BetaFlag
+    data object CONVERSATION_CASH_ENABLED: PrefsBool("convo_cash_enabled"), BetaFlag
     data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag
     data object KADO_WEBVIEW_ENABLED : PrefsBool("kado_inapp_enabled"), BetaFlag
+    data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag
+    data object TIP_CARD_ON_HOMESCREEN: PrefsBool("tip_card_on_home_screen"), BetaFlag
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

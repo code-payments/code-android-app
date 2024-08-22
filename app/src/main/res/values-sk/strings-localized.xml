@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Navýšiť hotovosť z debetnej karty</string>
   <string name="action_allowCameraAccess">Povoliť prístup k fotoaparátu</string>
   <string name="action_allowContacts">Povoliť prístup ku kontaktom</string>
   <string name="action_allowPushNotifications">Povoliť upozornenia push</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">Povoliť Face ID</string>
   <string name="action_enableTouchID">Povoliť Touch ID</string>
   <string name="action_exit">Odísť</string>
+  <string name="action_give">Dať</string>
   <string name="action_giveKin">Dať Kin</string>
   <string name="action_invite">Pozvať</string>
   <string name="action_invites">Pozýva</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">Prilepiť zo schránky</string>
   <string name="action_postToConnect">Uverejniť pre prepojenie účtu</string>
   <string name="action_putInWallet">Vložiť do peňaženky</string>
+  <string name="action_receive">Dostať</string>
   <string name="action_recoverExistingAccount">Obnoviť existujúci účet</string>
   <string name="action_remind">Pripomenúť</string>
   <string name="action_removePhoneNumber">Odstrániť telefónne číslo</string>
@@ -53,6 +56,7 @@
   <string name="action_send">Odoslať</string>
   <string name="action_sendVerificationCode">Poslať overovací kód</string>
   <string name="action_share">Zdieľať</string>
+  <string name="action_shareAsURL">Zdieľať ako adresu URL</string>
   <string name="action_shareDownloadLink">Zdieľať odkaz na stiahnutie</string>
   <string name="action_shareVideo">Zdieľajte toto video</string>
   <string name="action_showMyTipCard">Zobraziť moju tipovaciu kartu</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">Zlyhalo</string>
   <string name="title_faq">Často kladené otázky</string>
   <string name="title_gaveKin">Dal</string>
+  <string name="title_getCash">Získať hotovosť</string>
   <string name="title_getFriendStartedOnCode">Začnite používať kód priateľa</string>
   <string name="title_getKin">Získajte Kin</string>
   <string name="title_getMoreKin">Získajte viac Kinov</string>
+  <string name="title_giveCash">Dať hotovosť</string>
   <string name="title_giveKin">Dať Kin</string>
   <string name="title_insufficientFunds">Nedostatok prostriedkov</string>
   <string name="title_inviteFriend">Pozvať priateľa</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">Najnovšie meny</string>
   <string name="title_referFriend">Odporučte priateľa a získajte 5 dolárov</string>
   <string name="title_referralBonus">Bonus za odporúčanie</string>
+  <string name="title_requestCash">Požiadať o hotovosť</string>
   <string name="title_requestKin">Požiadať o kin</string>
   <string name="title_requestTip">Požiadať o tip</string>
   <string name="title_requireFaceID">Vyžaduje Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">Použité</string>
   <string name="title_switchAccounts">Prepnúť účty</string>
   <string name="title_termsOfService">Podmienky služby</string>
+  <string name="title_tipCard">Karta tringeltov</string>
   <string name="title_tipKin">Tipovať kin</string>
   <string name="title_unknown">Neznámy</string>
   <string name="title_updateRequired">Vyžaduje sa aktualizácia</string>

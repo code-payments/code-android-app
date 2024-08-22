@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">הוספת כסף באמצעות כרטיס חיוב</string>
   <string name="action_allowCameraAccess">אפשר גישה למצלמה </string>
   <string name="action_allowContacts">אפשר גישה לאנשי הקשר</string>
   <string name="action_allowPushNotifications">אפשר הודעות דחיפה</string>
@@ -23,6 +24,7 @@
   <string name="action_enableFaceID">הפוך Face ID לזמין</string>
   <string name="action_enableTouchID">הפוך Touch ID לזמין</string>
   <string name="action_exit">יציאה</string>
+  <string name="action_give">תן</string>
   <string name="action_giveKin">תן קין</string>
   <string name="action_invite">הזמן</string>
   <string name="action_invites">הזמנות</string>
@@ -43,6 +45,7 @@
   <string name="action_pasteFromClipboard">הדבק מהלוח</string>
   <string name="action_postToConnect">יש להעלות פוסט כדי לחבר את החשבון</string>
   <string name="action_putInWallet">שים בארנק</string>
+  <string name="action_receive">קבל</string>
   <string name="action_recoverExistingAccount">שחזר חשבון קיים</string>
   <string name="action_remind">הזכר</string>
   <string name="action_removePhoneNumber">הסר מספר טלפון</string>
@@ -53,6 +56,7 @@
   <string name="action_send">שליחה</string>
   <string name="action_sendVerificationCode">שלח קוד אימות</string>
   <string name="action_share">שיתוף</string>
+  <string name="action_shareAsURL">שיתוף כ-URL</string>
   <string name="action_shareDownloadLink">שתף קישור להורדה</string>
   <string name="action_shareVideo">שתפו סרטון זה</string>
   <string name="action_showMyTipCard">הצג את כרטיס הטיפים שלי</string>
@@ -322,9 +326,11 @@
   <string name="title_failed">נכשל</string>
   <string name="title_faq">שאלות נפוצות</string>
   <string name="title_gaveKin">העברות שבוצעו</string>
+  <string name="title_getCash">קבלת כסף</string>
   <string name="title_getFriendStartedOnCode">עודד חבר להתחיל להשתמש ב-Code</string>
   <string name="title_getKin">השגת Kin</string>
   <string name="title_getMoreKin">השיגו עוד Kin</string>
+  <string name="title_giveCash">תן מזומן</string>
   <string name="title_giveKin">העבר קין</string>
   <string name="title_insufficientFunds">אין מספיק כספים</string>
   <string name="title_inviteFriend">הזמן חבר</string>
@@ -344,6 +350,7 @@
   <string name="title_recentCurrencies">סוגי מטבע בשימוש לאחרונה</string>
   <string name="title_referFriend">הפנה חבר, קבל 5$</string>
   <string name="title_referralBonus">בונוס הפניה</string>
+  <string name="title_requestCash">בקשת כסף</string>
   <string name="title_requestKin">בקשת Kin</string>
   <string name="title_requestTip">בקשת טיפ</string>
   <string name="title_requireFaceID">נדרש Face ID</string>
@@ -358,6 +365,7 @@
   <string name="title_spentKin">הוצאו</string>
   <string name="title_switchAccounts">החלף חשבון</string>
   <string name="title_termsOfService">תנאי שימוש</string>
+  <string name="title_tipCard">כרטיס טיפ</string>
   <string name="title_tipKin">מתן Kin כטיפ</string>
   <string name="title_unknown">לא ידוע</string>
   <string name="title_updateRequired">נדרש עדכון</string>

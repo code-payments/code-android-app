@@ -5,8 +5,9 @@ import com.getcode.model.BuyModuleFeature
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
-import com.getcode.model.TipChatCashFeature
-import com.getcode.model.TipChatFeature
+import com.getcode.model.TipCardOnHomeScreenFeature
+import com.getcode.model.ConversationCashFeature
+import com.getcode.model.ConversationsFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -15,7 +16,7 @@ import javax.inject.Inject
  * Collates [BetaOptions] with server availability (stored in [PrefRepository]).
  */
 class FeatureRepository @Inject constructor(
-    betaFlags: BetaFlagsRepository,
+    private val betaFlags: BetaFlagsRepository,
     prefRepository: PrefRepository,
 ) {
     val buyModule = combine(
@@ -24,11 +25,13 @@ class FeatureRepository @Inject constructor(
         ) { enabled, available -> BuyModuleFeature(enabled, available) }
 
     val tipCards = betaFlags.observe().map { TipCardFeature(it.tipsEnabled) }
-
-    val tipChat = betaFlags.observe().map { TipChatFeature(it.tipsChatEnabled) }
-    val tipChatCash = betaFlags.observe().map { TipChatCashFeature(it.tipsChatCashEnabled) }
+    val tipCardOnHomeScreen = betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
+    val conversations = betaFlags.observe().map { ConversationsFeature(it.conversationsEnabled) }
+    val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 
     val balanceCurrencySelection = betaFlags.observe().map { BalanceCurrencyFeature(it.balanceCurrencySelectionEnabled) }
+
+    suspend fun isEnabled(feature: PrefsBool): Boolean = betaFlags.isEnabled(feature)
 }

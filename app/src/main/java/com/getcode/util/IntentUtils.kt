@@ -5,14 +5,8 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import com.getcode.BuildConfig
-import com.getcode.R
-import com.getcode.model.Currency
-import com.getcode.model.KinAmount
-import com.getcode.model.Username
-import com.getcode.network.repository.replaceParam
-import com.getcode.network.repository.urlEncode
-import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.utils.makeE164
+
 
 object IntentUtils {
 
@@ -30,7 +24,7 @@ object IntentUtils {
     }
 
     fun tweet(message: String) = Intent(Intent.ACTION_VIEW).apply {
-        val url = "https://www.twitter.com/intent/tweet?text=${message.urlEncode()}"
+        val url = Linkify.tweet(message)
         setData(Uri.parse(url))
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
@@ -47,8 +41,8 @@ object IntentUtils {
         return shareIntent
     }
 
-    fun tipCard(username: String): Intent {
-        val url = "https://tipcard.getcode.com/x/$username"
+    fun tipCard(username: String, platform: String): Intent {
+        val url = Linkify.tipCard(username, platform)
 
         val sendIntent: Intent = Intent().apply {
             action = Intent.ACTION_SEND
@@ -67,7 +61,7 @@ object IntentUtils {
         entropy: String,
         formattedAmount: String,
     ): Intent {
-        val url = "https://cash.getcode.com/c/#/e=$entropy"
+        val url = Linkify.cashLink(entropy)
         val text = "$formattedAmount $url"
 
         val sendIntent: Intent = Intent().apply {
