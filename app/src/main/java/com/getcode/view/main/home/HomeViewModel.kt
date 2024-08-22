@@ -1,9 +1,13 @@
 package com.getcode.view.main.home
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.view.WindowManager
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.model.ScreenModel
@@ -16,6 +20,7 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.GiftCardManager
 import com.getcode.manager.MnemonicManager
+import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyModuleFeature
@@ -33,6 +38,7 @@ import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
+import com.getcode.model.notifications.NotificationType
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
@@ -76,6 +82,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.IntentUtils
 import com.getcode.util.Kin
 import com.getcode.util.formatted
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
@@ -153,6 +160,7 @@ data class HomeUiModel(
 
 sealed interface HomeEvent {
     data object PresentTipEntry : HomeEvent
+    data object RequestNotificationPermissions: HomeEvent
     data class SendIntent(val intent: Intent): HomeEvent
 }
 
@@ -182,6 +190,8 @@ class HomeViewModel @Inject constructor(
     private val giftCardManager: GiftCardManager,
     private val mnemonicManager: MnemonicManager,
     private val cashLinkManager: CashLinkManager,
+    private val permissionChecker: PermissionChecker,
+    private val notificationManager: NotificationManagerCompat,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
@@ -760,6 +770,51 @@ class HomeViewModel @Inject constructor(
                     billState = billState,
                 )
             }
+        }
+
+        showNotificationPermissionHintIfNeeded()
+    }
+
+    private suspend fun showNotificationPermissionHintIfNeeded() {
+        val isDenied = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            false
+        }
+
+        val channel = notificationManager.getNotificationChannel(NotificationType.ChatMessage.name)
+        val isChannelOff = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel?.importance == NotificationManager.IMPORTANCE_NONE
+        } else {
+            false
+        }
+
+        val show = isDenied || isChannelOff
+
+        if (show) {
+            delay(400)
+            ModalManager.showMessage(
+                ModalManager.Message(
+                    icon = R.drawable.ic_bell,
+                    title = resources.getString(R.string.modal_title_turnOnNotifications),
+                    subtitle = resources.getString(R.string.modal_description_turnOnNotifications),
+                    onPositive = {
+                        when {
+                            isDenied -> {
+                                viewModelScope.launch {
+                                    _eventFlow.emit(HomeEvent.RequestNotificationPermissions)
+                                }
+                            }
+                            else -> {
+                                @SuppressLint("NewApi")
+                                channel?.importance = NotificationManager.IMPORTANCE_DEFAULT
+                            }
+                        }
+
+                    },
+                    positiveText = resources.getString(R.string.action_allowPushNotifications)
+                )
+            )
         }
     }
 

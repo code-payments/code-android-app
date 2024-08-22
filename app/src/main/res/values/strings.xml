@@ -52,4 +52,7 @@
 
     <string name="action_chat">Chat</string>
     <string name="title_chat">Chat</string>
+
+    <string name="modal_title_turnOnNotifications">Turn On Notifications for Code</string>
+    <string name="modal_description_turnOnNotifications">Allow Code to send you notifications when you receive Tips from other Code users.</string>
 </resources>

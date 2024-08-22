@@ -7,6 +7,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.ModalManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -51,6 +52,11 @@ class CodeAppState(
                 bottomBarMessage.value = currentMessages.firstOrNull()
             }
         }
+        coroutineScope.launch {
+            ModalManager.messages.collect { currentMessages ->
+                modalMessage.value = currentMessages.firstOrNull()
+            }
+        }
     }
     // ----------------------------------------------------------
     // Navigation state source of truth
@@ -84,6 +90,7 @@ class CodeAppState(
 
     val topBarMessage = MutableStateFlow<TopBarManager.TopBarMessage?>(null)
     val bottomBarMessage = MutableStateFlow<BottomBarManager.BottomBarMessage?>(null)
+    val modalMessage = MutableStateFlow<ModalManager.Message?>(null)
 
     fun upPress() {
         if (navigator.pop().not()) {
