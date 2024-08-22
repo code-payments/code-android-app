@@ -80,7 +80,7 @@ internal fun HomeBottom(
                         onClick = { onPress(HomeAction.BALANCE) },
                         badge = {
                             Badge(
-                                modifier = Modifier.padding(top = 2.dp, end = 2.dp),
+                                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
                                 count = state.chatUnreadCount,
                                 color = ChatNodeDefaults.UnreadIndicator,
                                 enterTransition = scaleIn(
@@ -179,7 +179,7 @@ private fun BottomBarAction(
             actionPlaceable?.placeRelative(0, 0)
             badgePlaceable?.placeRelative(
                 x = maxWidth - widthOrZero(badgePlaceable),
-                y = -(heightOrZero(badgePlaceable) / 2)
+                y = -(heightOrZero(badgePlaceable) / 3)
             )
         }
     }
