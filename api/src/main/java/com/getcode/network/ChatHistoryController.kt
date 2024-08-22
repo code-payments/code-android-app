@@ -116,7 +116,7 @@ class ChatHistoryController @Inject constructor(
             chatFlows[chatId] = it
         }
 
-    val unreadCount = notifications
+    val notificationsUnreadCount = notifications
         .filterNotNull()
         // Ignore muted chats and unsubscribed chats
         .map { it.filter { c -> !c.isMuted && c.isSubscribed } }

@@ -29,8 +29,9 @@ fun Badge(
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
     AnimatedVisibility(modifier = modifier, visible = count > 0, enter = enterTransition, exit = exitTransition) {
-        val text = when {
-            count in 1..99 -> "$count"
+        val text = when (count) {
+            0 -> ""
+            in 1..99 -> "$count"
             else -> "99+"
         }
 
