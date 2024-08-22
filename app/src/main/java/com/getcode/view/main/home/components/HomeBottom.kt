@@ -107,7 +107,7 @@ internal fun HomeBottom(
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_chat),
-                        painter = rememberVectorPainter(AutoMirroredMessageCircle),
+                        painter = painterResource(R.drawable.ic_chat),
                         onClick = { onPress(action) },
                     )
                 }
