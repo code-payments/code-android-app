@@ -1,6 +1,5 @@
 package com.getcode.view.main.bill
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
@@ -43,7 +42,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -52,7 +50,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import androidx.core.content.ContextCompat
 import com.getcode.R
 import com.getcode.model.KinAmount
 import com.getcode.solana.keys.Mint
@@ -64,9 +61,6 @@ import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
 import com.getcode.ui.utils.punchRectangle
 import com.getcode.util.formattedRaw
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 

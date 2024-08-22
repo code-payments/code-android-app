@@ -1,25 +1,16 @@
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
-    id(Plugins.kotlin_serialization)
 }
 
 android {
-    namespace = "${Android.namespace}.util.resources"
+    namespace = "com.getcode.ui.components"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 
     kotlinOptions {
@@ -37,15 +28,34 @@ android {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
         }
     }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlin {
+        jvmToolchain(17)
+    }
+
+    buildFeatures {
+        buildConfig = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.compose_compiler
+    }
 }
 
 dependencies {
-    api(Libs.androidx_annotation)
-    api(Libs.kotlin_stdlib)
-    api(Libs.kotlinx_coroutines_core)
-    api(Libs.kotlinx_coroutines_rx3)
-
+    implementation(project(":common:theme"))
+    implementation(project(":common:resources"))
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
-    implementation(Libs.compose_foundation)
+    debugImplementation(Libs.compose_ui_tools)
+    implementation(Libs.compose_ui_tools_preview)
+    implementation(Libs.compose_material)
+    implementation(Libs.compose_accompanist)
+    implementation(Libs.timber)
 }

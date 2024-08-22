@@ -44,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -57,7 +56,6 @@ import androidx.compose.ui.unit.sp
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
@@ -175,7 +173,11 @@ fun CurrencySelectionSheet(
             if (state.loading) {
                 item {
                     Box(Modifier.fillParentMaxSize()) {
-                        CodeCircularProgressIndicator(Modifier.align(Alignment.TopCenter))
+                        CodeCircularProgressIndicator(
+                            Modifier.align(
+                                Alignment.TopCenter
+                            )
+                        )
                     }
                 }
             }

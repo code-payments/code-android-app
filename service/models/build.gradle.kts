@@ -28,9 +28,14 @@ kotlin {
 }
 
 android {
-    compileSdk = 34
-    buildToolsVersion = "34.0.0"
-    namespace = "io.grpc.examples.stublite"
+    namespace = "${Android.namespace}.service.models"
+    compileSdk = Android.compileSdkVersion
+    defaultConfig {
+        minSdk = Android.minSdkVersion
+        targetSdk = Android.targetSdkVersion
+        buildToolsVersion = Android.buildToolsVersion
+        testInstrumentationRunner = Android.testInstrumentationRunner
+    }
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().all {

@@ -29,7 +29,7 @@ class CashLinkManager @Inject constructor(
     fun awaitBillGrab(
         amount: KinAmount,
         organizer: Organizer,
-        owner: Ed25519.KeyPair,
+        owner: KeyPair,
         present: (List<Byte>) -> Unit,
         onGrabbed: () -> Unit,
         onTimeout: () -> Unit,

@@ -1,4 +1,4 @@
-package com.getcode.ui.components
+package com.getcode.ui.components.bars
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.MutableTransitionState
@@ -26,6 +26,7 @@ import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.manager.TopBarManager.TopBarMessageType.*
 import com.getcode.theme.*
+import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.utils.rememberedClickable
 import java.util.*
 import kotlin.concurrent.timerTask
@@ -102,7 +103,7 @@ private fun TopBarView(
             .fillMaxWidth()
     ) {
         CompositionLocalProvider(LocalContentColor provides White) {
-            Row(
+            com.getcode.ui.components.Row(
                 modifier = Modifier
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .padding(horizontal = CodeTheme.dimens.inset)
@@ -154,7 +155,7 @@ private fun TopBarView(
                     .height(CodeTheme.dimens.border)
                     .background(Black10)
             )
-            Row(modifier = Modifier
+            com.getcode.ui.components.Row(modifier = Modifier
                 .height(IntrinsicSize.Min)
                 .drawBehind {
                     val strokeWidth = Dp.Hairline.toPx()

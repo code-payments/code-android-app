@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Success
 import com.getcode.ui.components.ButtonState

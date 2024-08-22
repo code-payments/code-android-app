@@ -34,7 +34,6 @@ import com.getcode.model.Kind
 import com.getcode.model.Rate
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.ConfirmationState
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.ui.components.ButtonState

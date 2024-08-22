@@ -3,12 +3,8 @@ package com.getcode.navigation.screens
 import android.webkit.JavascriptInterface
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -17,11 +13,9 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.getStackScopedViewModel
-import com.getcode.ui.utils.toAGColor
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel
@@ -46,8 +40,6 @@ import com.getcode.view.main.tip.ConnectAccountScreen
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.IdentityConnectionReason
 import com.getcode.view.main.tip.TipConnectViewModel
-import com.kevinnzou.web.LoadingState
-import com.kevinnzou.web.WebView
 import com.kevinnzou.web.rememberWebViewNavigator
 import com.kevinnzou.web.rememberWebViewState
 import kotlinx.parcelize.IgnoredOnParcel

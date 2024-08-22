@@ -99,7 +99,10 @@ fun ChatScreen(
                         BottomBarManager.showMessage(
                             BottomBarManager.BottomBarMessage(
                                 title = context.getString(R.string.prompt_title_unsubscribe, title),
-                                subtitle = context.getString(R.string.prompt_description_unsubscribe, title),
+                                subtitle = context.getString(
+                                    R.string.prompt_description_unsubscribe,
+                                    title
+                                ),
                                 positiveText = context.getString(R.string.action_unsubscribe),
                                 negativeText = context.getString(R.string.action_nevermind),
                                 onPositive = { dispatch(ChatViewModel.Event.OnSubscribeToggled) },
@@ -108,7 +111,9 @@ fun ChatScreen(
                     },
                     shape = RectangleShape,
                     buttonState = ButtonState.Subtle,
-                    text = if (state.isSubscribed) stringResource(R.string.action_unsubscribe) else stringResource(id = R.string.action_subscribe)
+                    text = if (state.isSubscribed) stringResource(R.string.action_unsubscribe) else stringResource(
+                        id = R.string.action_subscribe
+                    )
                 )
             }
         }
