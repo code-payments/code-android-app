@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.res.painterResource
@@ -34,7 +33,6 @@ import com.getcode.ui.components.chat.ChatNodeDefaults
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.widthOrZero
-import com.getcode.util.resources.icons.AutoMirroredMessageCircle
 import com.getcode.view.main.home.HomeAction
 import com.getcode.view.main.home.HomeUiModel
 

@@ -3,7 +3,6 @@ package com.getcode.model.chat
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.utils.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.util.UUID
@@ -18,7 +17,6 @@ import java.util.UUID
  * @param cursor Cursor value for this message for reference in a paged GetMessagesRequest
  * @param dateMillis Timestamp this message was generated at
  * @param contents Ordered message content. A message may have more than one piece of content.
- * @param status Derived [MessageStatus] from [Pointer]'s in [ChatMember].
  */
 @Serializable
 data class ChatMessage(
@@ -29,7 +27,6 @@ data class ChatMessage(
     val cursor: Cursor,
     val dateMillis: Long,
     val contents: List<MessageContent>,
-//    val status: MessageStatus,
 ) {
     val hasEncryptedContent: Boolean
         get() {
@@ -40,7 +37,6 @@ data class ChatMessage(
         return ChatMessage(
             id = id,
             senderId = senderId,
-//            status = status,
             isFromSelf = isFromSelf,
             dateMillis = dateMillis,
             cursor = cursor,

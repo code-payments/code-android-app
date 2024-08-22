@@ -27,7 +27,6 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.util.Biometrics
 import com.getcode.util.BiometricsError
 import com.getcode.util.BiometricsException
-import timber.log.Timber
 
 @Composable
 internal fun BiometricsBlockingView(

@@ -71,7 +71,9 @@ fun ConfirmDeleteAccount(
                         title = context.getString(R.string.prompt_title_deleteAccount),
                         positiveText = context.getString(R.string.action_deleteAccount),
                         negativeText = context.getString(R.string.action_cancel),
-                        onPositive = { context.getActivity()?.let { viewModel.onConfirmDelete(it) } },
+                        onPositive = {
+                            context.getActivity()?.let { viewModel.onConfirmDelete(it) }
+                        },
                         onNegative = { }
                     ))
             },

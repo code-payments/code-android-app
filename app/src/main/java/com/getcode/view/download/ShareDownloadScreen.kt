@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import com.getcode.LocalDownloadQrCode
 import com.getcode.R
 import com.getcode.theme.CodeTheme
@@ -39,7 +38,6 @@ import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Row
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
-import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.shareDownloadLink
 

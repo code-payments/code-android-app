@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 
 

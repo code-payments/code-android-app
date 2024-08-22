@@ -17,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import com.getcode.theme.Black50
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.xxl
 
 @Composable
 fun Pill(
