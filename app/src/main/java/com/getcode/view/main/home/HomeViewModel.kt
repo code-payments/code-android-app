@@ -151,7 +151,8 @@ data class HomeUiModel(
     val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
-    val chatUnreadCount: Int = 0,
+    val splatTipCard: Boolean = false,
+    val notificationUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
@@ -238,6 +239,18 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
+            .onEach { splat ->
+                viewModelScope.launch {
+                    if (splat) {
+                        delay(300)
+                    } else {
+                        delay(500)
+                    }
+                    uiFlow.update {
+                        it.copy(splatTipCard = splat)
+                    }
+                }
+            }
             .filter { it }
             .onEach { delay(500) }
             .flatMapLatest { tipController.connectedAccount }
@@ -258,7 +271,7 @@ class HomeViewModel @Inject constructor(
                                 primaryAction = ::presentShareableTipCard,
                                 secondaryText = resources.getString(R.string.action_later),
                                 secondaryAction = {
-                                    tipController.clearTwitterSplat()
+                                    tipController.seenTipCardBanner()
                                 }
                             )
                         )
@@ -333,11 +346,11 @@ class HomeViewModel @Inject constructor(
             }
         }.launchIn(viewModelScope)
 
-        historyController.unreadCount
+        historyController.notificationsUnreadCount
             .distinctUntilChanged()
             .map { it }
             .onEach { count ->
-                uiFlow.update { it.copy(chatUnreadCount = count) }
+                uiFlow.update { it.copy(notificationUnreadCount = count) }
             }.launchIn(viewModelScope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)

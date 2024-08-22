@@ -79,7 +79,7 @@ internal fun HomeBottom(
                         badge = {
                             Badge(
                                 modifier = Modifier.padding(top = 6.dp, end = 1.dp),
-                                count = state.chatUnreadCount,
+                                count = state.notificationUnreadCount,
                                 color = ChatNodeDefaults.UnreadIndicator,
                                 enterTransition = scaleIn(
                                     animationSpec = tween(
@@ -98,6 +98,19 @@ internal fun HomeBottom(
                         label = stringResource(R.string.action_receive),
                         painter = painterResource(R.drawable.ic_tip_card),
                         onClick = { onPress(action) },
+                        badge = {
+                            Badge(
+                                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
+                                count = if (state.splatTipCard) 1 else 0,
+                                color = ChatNodeDefaults.UnreadIndicator,
+                                enterTransition = scaleIn(
+                                    animationSpec = tween(
+                                        durationMillis = 300,
+                                        delayMillis = 1000
+                                    )
+                                ) + fadeIn()
+                            )
+                        }
                     )
                 }
 
