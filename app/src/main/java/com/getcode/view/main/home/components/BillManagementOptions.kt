@@ -50,7 +50,8 @@ internal fun BillManagementOptions(
                 ) {
                     Box {
                         Row(
-                            modifier = Modifier.alpha(if (!isSending) 1f else 0f)
+                            modifier = Modifier.alpha(if (!isSending) 1f else 0f),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Image(
                                 painter = primaryAction.asset,
@@ -84,16 +85,20 @@ internal fun BillManagementOptions(
                     contentPadding = PaddingValues(15.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
-                    Image(
-                        painter = secondaryAction.asset,
-                        contentDescription = "",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    secondaryAction.label?.let { label ->
-                        Text(
-                            modifier = Modifier.padding(start = 10.dp),
-                            text = label
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = secondaryAction.asset,
+                            contentDescription = "",
+                            modifier = Modifier.size(18.dp)
                         )
+                        secondaryAction.label?.let { label ->
+                            Text(
+                                modifier = Modifier.padding(start = 10.dp),
+                                text = label
+                            )
+                        }
                     }
                 }
             }
