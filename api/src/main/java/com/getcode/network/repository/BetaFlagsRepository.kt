@@ -38,7 +38,7 @@ data class BetaOptions(
             conversationCashEnabled = false,
             balanceCurrencySelectionEnabled = true,
             kadoWebViewEnabled = false,
-            shareTweetToTip = false,
+            shareTweetToTip = true,
             tipCardOnHomeScreen = true,
         )
     }
@@ -108,6 +108,29 @@ class BetaFlagsRepository @Inject constructor(
     }
 
     suspend fun isEnabled(flag: PrefsBool): Boolean {
-        return prefRepository.get(flag, false)
+        return prefRepository.get(flag, default(flag))
+    }
+
+    private fun default(flag: PrefsBool): Boolean {
+        return with(BetaOptions.Defaults) {
+            when (flag) {
+                PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> balanceCurrencySelectionEnabled
+                PrefsBool.BUCKET_DEBUGGER_ENABLED -> canViewBuckets
+                PrefsBool.BUY_MODULE_ENABLED -> buyModuleEnabled
+                PrefsBool.CHAT_UNSUB_ENABLED -> chatUnsubEnabled
+                PrefsBool.CONVERSATIONS_ENABLED -> conversationsEnabled
+                PrefsBool.CONVERSATION_CASH_ENABLED -> conversationCashEnabled
+                PrefsBool.DISPLAY_ERRORS -> displayErrors
+                PrefsBool.GIVE_REQUESTS_ENABLED -> giveRequestsEnabled
+                PrefsBool.KADO_WEBVIEW_ENABLED -> kadoWebViewEnabled
+                PrefsBool.LOG_SCAN_TIMES -> debugScanTimesEnabled
+                PrefsBool.SHARE_TWEET_TO_TIP -> shareTweetToTip
+                PrefsBool.SHOW_CONNECTIVITY_STATUS -> showNetworkDropOff
+                PrefsBool.TIPS_ENABLED -> tipsEnabled
+                PrefsBool.TIP_CARD_ON_HOMESCREEN -> tipCardOnHomeScreen
+                PrefsBool.VIBRATE_ON_SCAN -> tickOnScan
+                else -> false
+            }
+        }
     }
 }

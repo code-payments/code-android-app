@@ -149,14 +149,13 @@
                     android:pathPattern="/x/.*"
                     android:scheme="https" />
             </intent-filter>
-
         </activity>
 
         <activity-alias
             android:name="com.getcode.view.TweetShareHandler"
             android:exported="true"
             android:targetActivity="com.getcode.view.MainActivity"
-            android:enabled="false">
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>
