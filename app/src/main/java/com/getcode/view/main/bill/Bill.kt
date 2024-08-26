@@ -42,6 +42,7 @@ fun Bill(
             modifier = modifier,
             username = bill.payload.username.orEmpty(),
             data = bill.data,
+            interactive = bill.canFlip
         )
     }
 }

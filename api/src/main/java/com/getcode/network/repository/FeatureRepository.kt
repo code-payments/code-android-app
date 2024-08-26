@@ -9,6 +9,7 @@ import com.getcode.model.TipCardFeature
 import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationsFeature
+import com.getcode.model.FlippableTipCardFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -27,6 +28,7 @@ class FeatureRepository @Inject constructor(
 
     val tipCards = betaFlags.observe().map { TipCardFeature(it.tipsEnabled) }
     val tipCardOnHomeScreen = betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
+    val tipCardFlippable = betaFlags.observe().map { FlippableTipCardFeature(it.canFlipTipCard) }
     val conversations = betaFlags.observe().map { ConversationsFeature(it.conversationsEnabled) }
     val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 

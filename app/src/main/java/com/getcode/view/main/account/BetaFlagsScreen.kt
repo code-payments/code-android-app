@@ -43,6 +43,42 @@ fun BetaFlagsScreen(
 
     val options = listOf(
         BetaFeature(
+            PrefsBool.KADO_WEBVIEW_ENABLED,
+            R.string.beta_kado_webview,
+            stringResource(id = R.string.beta_kado_webview_description),
+            state.kadoWebViewEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.SHARE_TWEET_TO_TIP,
+            R.string.beta_share_tweet_tip,
+            stringResource(id = R.string.beta_share_tweet_tip_description),
+            state.shareTweetToTip,
+        ),
+        BetaFeature(
+            PrefsBool.CAMERA_AF_ENABLED,
+            R.string.beta_camera_af,
+            stringResource(id = R.string.beta_camera_af_description),
+            state.cameraAFEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.CAMERA_PINCH_ZOOM,
+            R.string.beta_camera_pinch_zoom,
+            stringResource(id = R.string.beta_camera_pinch_zoom_description),
+            state.cameraPinchZoomEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.TIP_CARD_FLIPPABLE,
+            R.string.beta_tipcard_can_flip,
+            stringResource(id = R.string.beta_tipcard_can_flip_description),
+            state.canFlipTipCard,
+        ),
+        BetaFeature(
+            PrefsBool.CONVERSATIONS_ENABLED,
+            R.string.beta_conversations,
+            stringResource(id = R.string.beta_conversations_description),
+            state.conversationsEnabled,
+        ),
+        BetaFeature(
             PrefsBool.VIBRATE_ON_SCAN,
             R.string.beta_vibrate_on_scan,
             stringResource(R.string.beta_vibrate_on_scan_description),
@@ -97,40 +133,10 @@ fun BetaFlagsScreen(
             state.tipCardOnHomeScreen,
         ),
         BetaFeature(
-            PrefsBool.CONVERSATIONS_ENABLED,
-            R.string.beta_conversations,
-            stringResource(id = R.string.beta_conversations_description),
-            state.conversationsEnabled,
-        ),
-        BetaFeature(
             PrefsBool.CONVERSATION_CASH_ENABLED,
             R.string.beta_conversations_cash,
             stringResource(id = R.string.beta_conversations_cash_description),
             state.conversationCashEnabled,
-        ),
-        BetaFeature(
-            PrefsBool.KADO_WEBVIEW_ENABLED,
-            R.string.beta_kado_webview,
-            stringResource(id = R.string.beta_kado_webview_description),
-            state.kadoWebViewEnabled,
-        ),
-        BetaFeature(
-            PrefsBool.SHARE_TWEET_TO_TIP,
-            R.string.beta_share_tweet_tip,
-            stringResource(id = R.string.beta_share_tweet_tip_description),
-            state.shareTweetToTip,
-        ),
-        BetaFeature(
-            PrefsBool.CAMERA_AF_ENABLED,
-            R.string.beta_camera_af,
-            stringResource(id = R.string.beta_camera_af_description),
-            state.cameraAFEnabled,
-        ),
-        BetaFeature(
-            PrefsBool.CAMERA_PINCH_ZOOM,
-            R.string.beta_camera_pinch_zoom,
-            stringResource(id = R.string.beta_camera_pinch_zoom),
-            state.cameraPinchZoomEnabled,
         ),
         BetaFeature(
             PrefsBool.DISPLAY_ERRORS,

@@ -31,6 +31,7 @@ import com.getcode.model.Currency
 import com.getcode.model.Domain
 import com.getcode.model.Feature
 import com.getcode.model.Fiat
+import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -161,6 +162,7 @@ data class HomeUiModel(
     val requestKin: Feature = RequestKinFeature(),
     val cameraAutoFocus: Feature = CameraAFFeature(),
     val cameraPinchZoom: Feature = CameraZoomFeature(),
+    val flippableTipCard: Feature = FlippableTipCardFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
@@ -251,6 +253,14 @@ class HomeViewModel @Inject constructor(
             .onEach { module ->
                 uiFlow.update {
                     it.copy(cameraPinchZoom = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.tipCardFlippable
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(flippableTipCard = module)
                 }
             }.launchIn(viewModelScope)
 
@@ -796,7 +806,7 @@ class HomeViewModel @Inject constructor(
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
-                    bill = Bill.Tip(code),
+                    bill = Bill.Tip(code, canFlip = uiFlow.value.flippableTipCard.enabled),
                     primaryAction = BillState.Action.Share { onRemoteSend() },
                     secondaryAction = BillState.Action.Cancel(::cancelSend)
                 )

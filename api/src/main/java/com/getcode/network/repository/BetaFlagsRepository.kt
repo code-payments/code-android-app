@@ -23,6 +23,7 @@ data class BetaOptions(
     val tipCardOnHomeScreen: Boolean,
     val cameraAFEnabled: Boolean,
     val cameraPinchZoomEnabled: Boolean,
+    val canFlipTipCard: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -44,6 +45,7 @@ data class BetaOptions(
             tipCardOnHomeScreen = true,
             cameraAFEnabled = true,
             cameraPinchZoomEnabled = true,
+            canFlipTipCard = false
         )
     }
 }
@@ -83,6 +85,7 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
             observeBetaFlag(PrefsBool.CAMERA_AF_ENABLED, defaults.cameraAFEnabled),
             observeBetaFlag(PrefsBool.CAMERA_PINCH_ZOOM, defaults.cameraPinchZoomEnabled),
+            observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard)
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -101,7 +104,8 @@ class BetaFlagsRepository @Inject constructor(
                 shareTweetToTip = it[13],
                 tipCardOnHomeScreen = it[14],
                 cameraAFEnabled = it[15],
-                cameraPinchZoomEnabled = it[16]
+                cameraPinchZoomEnabled = it[16],
+                canFlipTipCard = it[17]
             )
         }
     }
