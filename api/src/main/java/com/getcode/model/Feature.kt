@@ -52,3 +52,8 @@ data class CameraZoomFeature(
     override val enabled: Boolean = BetaOptions.Defaults.cameraPinchZoomEnabled,
     override val available: Boolean = true, // always available
 ): Feature
+
+data class FlippableTipCardFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.canFlipTipCard,
+    override val available: Boolean = true, // always available
+): Feature
