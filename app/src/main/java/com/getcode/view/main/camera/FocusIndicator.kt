@@ -22,7 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val OUTLINE_WIDTH: Dp
-    @Composable get() = CodeTheme.dimens.thickBorder
+    @Composable get() = CodeTheme.dimens.border
 
 private const val BACKGROUND_ALPHA = 0.40f
 private const val OUTLINE_INITIAL_SCALE = 1.33f
