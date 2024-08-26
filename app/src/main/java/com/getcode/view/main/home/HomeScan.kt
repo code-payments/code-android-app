@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.getcode.LocalBiometricsState
 import com.getcode.R
-import com.getcode.manager.ModalManager
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.models.DeepLinkRequest
@@ -61,11 +60,10 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
-import com.getcode.util.permissions.PermissionChecker
 import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.CameraDisabledView
-import com.getcode.view.main.home.components.CodeScanner
+import com.getcode.view.main.camera.CodeScanner
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
@@ -227,6 +225,8 @@ private fun HomeScan(
         scannerView = {
             CodeScanner(
                 scanningEnabled = previewing,
+                cameraAFEnabled = dataState.cameraAutoFocus.enabled,
+                cameraPinchZoomEnabled = dataState.cameraPinchZoom.enabled,
                 onPreviewStateChanged = { previewing = it },
                 onCodeScanned = {
                     if (previewing) {

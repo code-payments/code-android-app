@@ -26,6 +26,8 @@
     <string translatable="false" name="beta_balance_currency">Currency Selection in Balance</string>
     <string translatable="false" name="beta_kado_webview">Buy Kin Internally</string>
     <string translatable="false" name="beta_share_tweet_tip">Share Tweets to Tip</string>
+    <string translatable="false" name="beta_camera_af">Camera Auto Focus</string>
+    <string translatable="false" name="beta_camera_pinch_zoom">Camera Pinch to Zoom</string>
     <string translatable="false" name="beta_display_errors">Show Errors</string>
     <string name="beta_bucket_debugger_description" translatable="false">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description" translatable="false">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
@@ -41,6 +43,8 @@
     <string name="beta_conversations_cash_description" translatable="false">If enabled, you\'ll gain the ability to send cash in conversations.</string>
     <string name="beta_kado_webview_description" translatable="false">If enabled, the Buy Kin flow will open in an internal WebView.</string>
     <string name="beta_share_tweet_tip_description" translatable="false">If enabled, you\'ll gain the ability to share tweets directly from Twitter to Code to tip the author.</string>
+    <string name="beta_camera_af_description" translatable="false">If enabled, you\'ll gain the ability to manually trigger auto focus by tapping the camera.</string>
+    <string name="beta_camera_pinch_zoom_description" translatable="false">If enabled, you\'ll gain the ability to pinch to zoom in on the camera.</string>
     <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
     <string name="beta_resetTooltips" translatable="false">Reset Tooltips</string>
 

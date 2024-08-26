@@ -21,6 +21,8 @@ data class BetaOptions(
     val kadoWebViewEnabled: Boolean,
     val shareTweetToTip: Boolean,
     val tipCardOnHomeScreen: Boolean,
+    val cameraAFEnabled: Boolean,
+    val cameraPinchZoomEnabled: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -40,6 +42,8 @@ data class BetaOptions(
             kadoWebViewEnabled = false,
             shareTweetToTip = true,
             tipCardOnHomeScreen = true,
+            cameraAFEnabled = true,
+            cameraPinchZoomEnabled = true,
         )
     }
 }
@@ -76,7 +80,9 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
             observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled),
             observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
-            observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen)
+            observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
+            observeBetaFlag(PrefsBool.CAMERA_AF_ENABLED, defaults.cameraAFEnabled),
+            observeBetaFlag(PrefsBool.CAMERA_PINCH_ZOOM, defaults.cameraPinchZoomEnabled),
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -93,7 +99,9 @@ class BetaFlagsRepository @Inject constructor(
                 displayErrors = it[11],
                 kadoWebViewEnabled = it[12],
                 shareTweetToTip = it[13],
-                tipCardOnHomeScreen = it[14]
+                tipCardOnHomeScreen = it[14],
+                cameraAFEnabled = it[15],
+                cameraPinchZoomEnabled = it[16]
             )
         }
     }
