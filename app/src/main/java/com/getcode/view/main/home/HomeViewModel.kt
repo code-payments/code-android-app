@@ -199,7 +199,6 @@ class HomeViewModel @Inject constructor(
     private val cashLinkManager: CashLinkManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
-    private val codeScanner: KikCodeScannerImpl,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
