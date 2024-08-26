@@ -2,6 +2,7 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -449,6 +450,10 @@ private fun BillContainer(
                     delay(300)
                     canCancel = true
                 }
+            }
+
+            BackHandler(updatedState.billState.bill is Bill.Tip && canCancel) {
+                homeViewModel.cancelSend()
             }
         }
 
