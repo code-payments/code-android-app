@@ -785,6 +785,7 @@ class HomeViewModel @Inject constructor(
             value = Username(username)
         )
 
+        val hasSeenTipCard = tipController.hasSeenTipCard()
         tipController.clearTwitterSplat()
 
         trace(
@@ -808,7 +809,9 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        showNotificationPermissionHintIfNeeded()
+        if (!hasSeenTipCard) {
+            showNotificationPermissionHintIfNeeded()
+        }
     }
 
     private suspend fun showNotificationPermissionHintIfNeeded() {
