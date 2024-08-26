@@ -24,6 +24,8 @@ import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyModuleFeature
+import com.getcode.model.CameraAFFeature
+import com.getcode.model.CameraZoomFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Domain
@@ -94,6 +96,8 @@ import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
+import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
@@ -155,6 +159,8 @@ data class HomeUiModel(
     val notificationUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
+    val cameraAutoFocus: Feature = CameraAFFeature(),
+    val cameraPinchZoom: Feature = CameraZoomFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
@@ -193,6 +199,7 @@ class HomeViewModel @Inject constructor(
     private val cashLinkManager: CashLinkManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
+    private val codeScanner: KikCodeScannerImpl,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
@@ -229,6 +236,22 @@ class HomeViewModel @Inject constructor(
             .onEach { module ->
                 uiFlow.update {
                     it.copy(requestKin = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.cameraAutoFocus
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(cameraAutoFocus = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.cameraPinchZoom
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(cameraPinchZoom = module)
                 }
             }.launchIn(viewModelScope)
 
@@ -271,7 +294,7 @@ class HomeViewModel @Inject constructor(
                                 primaryAction = ::presentShareableTipCard,
                                 secondaryText = resources.getString(R.string.action_later),
                                 secondaryAction = {
-                                    tipController.seenTipCardBanner()
+                                    tipController.onSeenTipCardBanner()
                                 }
                             )
                         )
@@ -762,6 +785,7 @@ class HomeViewModel @Inject constructor(
             value = Username(username)
         )
 
+        val hasSeenTipCard = tipController.hasSeenTipCard()
         tipController.clearTwitterSplat()
 
         trace(
@@ -785,7 +809,9 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        showNotificationPermissionHintIfNeeded()
+        if (!hasSeenTipCard) {
+            showNotificationPermissionHintIfNeeded()
+        }
     }
 
     private suspend fun showNotificationPermissionHintIfNeeded() {
@@ -1556,62 +1582,66 @@ class HomeViewModel @Inject constructor(
 
     fun handleRequest(request: DeepLinkRequest?) {
         if (request != null) {
-            if (request.paymentRequest != null) {
-                viewModelScope.launch {
-                    if (uiFlow.value.balance == null) {
-                        balanceController.fetchBalanceSuspend()
-                        uiFlow.update {
-                            val amount = KinAmount.newInstance(
-                                Kin.fromKin(balanceController.rawBalance), exchange.localRate
-                            )
-                            it.copy(balance = amount)
+            when {
+                request.paymentRequest != null -> {
+                    viewModelScope.launch {
+                        if (uiFlow.value.balance == null) {
+                            balanceController.fetchBalanceSuspend()
+                            uiFlow.update {
+                                val amount = KinAmount.newInstance(
+                                    Kin.fromKin(balanceController.rawBalance), exchange.localRate
+                                )
+                                it.copy(balance = amount)
+                            }
                         }
+                        val fiat = request.paymentRequest.fiat
+                        val kind =
+                            if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                        val payload = CodePayload(
+                            kind = kind,
+                            value = fiat,
+                            nonce = request.clientSecret
+                        )
+
+                        if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                            Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                            return@launch
+                        }
+
+                        scannedRendezvous.add(payload.rendezvous.publicKey)
+                        attemptPayment(payload, request)
                     }
-                    val fiat = request.paymentRequest.fiat
-                    val kind =
-                        if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                }
+                request.loginRequest != null -> {
                     val payload = CodePayload(
-                        kind = kind,
-                        value = fiat,
-                        nonce = request.clientSecret
+                        kind = Kind.Login,
+                        value = Kin.fromKin(0),
+                        nonce = request.clientSecret,
                     )
 
                     if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
                         Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                        return@launch
+                        return
                     }
 
                     scannedRendezvous.add(payload.rendezvous.publicKey)
-                    attemptPayment(payload, request)
+                    attemptLogin(payload, request)
                 }
-            } else if (request.loginRequest != null) {
-                val payload = CodePayload(
-                    kind = Kind.Login,
-                    value = Kin.fromKin(0),
-                    nonce = request.clientSecret,
-                )
+                request.tipRequest != null -> {
+                    val payload = CodePayload(
+                        kind = Kind.Tip,
+                        value = Username(request.tipRequest.username)
+                    )
 
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
+                    if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                        Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                        return
+                    }
+
+                    scannedRendezvous.add(payload.rendezvous.publicKey)
+
+                    attemptTip(payload, request)
                 }
-
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-                attemptLogin(payload, request)
-            } else if (request.tipRequest != null) {
-                val payload = CodePayload(
-                    kind = Kind.Tip,
-                    value = Username(request.tipRequest.username)
-                )
-
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
-                }
-
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-
-                attemptTip(payload, request)
             }
         }
     }

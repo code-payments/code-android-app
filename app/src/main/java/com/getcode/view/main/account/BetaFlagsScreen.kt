@@ -121,6 +121,18 @@ fun BetaFlagsScreen(
             state.shareTweetToTip,
         ),
         BetaFeature(
+            PrefsBool.CAMERA_AF_ENABLED,
+            R.string.beta_camera_af,
+            stringResource(id = R.string.beta_camera_af_description),
+            state.cameraAFEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.CAMERA_PINCH_ZOOM,
+            R.string.beta_camera_pinch_zoom,
+            stringResource(id = R.string.beta_camera_pinch_zoom),
+            state.cameraPinchZoomEnabled,
+        ),
+        BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
             R.string.beta_display_errors,
             "",
