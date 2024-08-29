@@ -11,11 +11,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
@@ -125,7 +129,9 @@ internal fun HomeBottom(
 
                 else -> {
                     BottomBarAction(
-                        modifier = Modifier.weight(1f).alpha(0f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .alpha(0f),
                         label = "",
                         painter = painterResource(R.drawable.ic_tip_card),
                         onClick = null,
@@ -153,7 +159,10 @@ private fun BottomBarAction(
         content = {
             Column(
                 modifier = Modifier
-                    .unboundedClickable(enabled = onClick != null, rippleRadius = imageSize) { onClick?.invoke() }
+                    .unboundedClickable(
+                        enabled = onClick != null,
+                        rippleRadius = imageSize
+                    ) { onClick?.invoke() }
                     .layoutId("action"),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

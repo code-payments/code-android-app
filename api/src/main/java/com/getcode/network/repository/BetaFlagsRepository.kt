@@ -23,6 +23,7 @@ data class BetaOptions(
     val tipCardOnHomeScreen: Boolean,
     val cameraGesturesEnabled: Boolean,
     val canFlipTipCard: Boolean,
+    val galleryEnabled: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -43,7 +44,8 @@ data class BetaOptions(
             shareTweetToTip = true,
             tipCardOnHomeScreen = true,
             cameraGesturesEnabled = true,
-            canFlipTipCard = false
+            canFlipTipCard = false,
+            galleryEnabled = false
         )
     }
 }
@@ -82,7 +84,8 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
             observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
             observeBetaFlag(PrefsBool.CAMERA_GESTURES_ENABLED, defaults.cameraGesturesEnabled),
-            observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard)
+            observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard),
+            observeBetaFlag(PrefsBool.GALLERY_ENABLED, defaults.galleryEnabled),
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -102,6 +105,8 @@ class BetaFlagsRepository @Inject constructor(
                 tipCardOnHomeScreen = it[14],
                 cameraGesturesEnabled = it[15],
                 canFlipTipCard = it[16],
+                galleryEnabled = it[17],
+
             )
         }
     }
@@ -125,19 +130,33 @@ class BetaFlagsRepository @Inject constructor(
                 PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> balanceCurrencySelectionEnabled
                 PrefsBool.BUCKET_DEBUGGER_ENABLED -> canViewBuckets
                 PrefsBool.BUY_MODULE_ENABLED -> buyModuleEnabled
+                PrefsBool.CAMERA_GESTURES_ENABLED -> cameraGesturesEnabled
                 PrefsBool.CHAT_UNSUB_ENABLED -> chatUnsubEnabled
                 PrefsBool.CONVERSATIONS_ENABLED -> conversationsEnabled
                 PrefsBool.CONVERSATION_CASH_ENABLED -> conversationCashEnabled
                 PrefsBool.DISPLAY_ERRORS -> displayErrors
+                PrefsBool.GALLERY_ENABLED -> galleryEnabled
                 PrefsBool.GIVE_REQUESTS_ENABLED -> giveRequestsEnabled
                 PrefsBool.KADO_WEBVIEW_ENABLED -> kadoWebViewEnabled
                 PrefsBool.LOG_SCAN_TIMES -> debugScanTimesEnabled
                 PrefsBool.SHARE_TWEET_TO_TIP -> shareTweetToTip
                 PrefsBool.SHOW_CONNECTIVITY_STATUS -> showNetworkDropOff
                 PrefsBool.TIPS_ENABLED -> tipsEnabled
+                PrefsBool.TIP_CARD_FLIPPABLE -> canFlipTipCard
                 PrefsBool.TIP_CARD_ON_HOMESCREEN -> tipCardOnHomeScreen
                 PrefsBool.VIBRATE_ON_SCAN -> tickOnScan
-                else -> false
+                PrefsBool.BUY_MODULE_AVAILABLE -> false
+                PrefsBool.CAMERA_START_BY_DEFAULT -> false
+                PrefsBool.DISMISSED_TIP_CARD_BANNER -> false
+                PrefsBool.ESTABLISH_CODE_RELATIONSHIP -> false
+                PrefsBool.HAS_REMOVED_LOCAL_CURRENCY -> false
+                PrefsBool.IS_DEBUG_ACTIVE -> false
+                PrefsBool.IS_DEBUG_ALLOWED -> false
+                PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP -> false
+                PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP -> false
+                PrefsBool.REQUIRE_BIOMETRICS -> false
+                PrefsBool.SEEN_TIP_CARD -> false
+                PrefsBool.STARTED_TIP_CONNECT -> false
             }
         }
     }

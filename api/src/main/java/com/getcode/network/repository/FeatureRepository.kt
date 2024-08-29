@@ -10,6 +10,7 @@ import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationsFeature
 import com.getcode.model.FlippableTipCardFeature
+import com.getcode.model.GalleryFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -24,7 +25,7 @@ class FeatureRepository @Inject constructor(
     val buyModule = combine(
         betaFlags.observe().map { it.buyModuleEnabled },
         prefRepository.observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
-        ) { enabled, available -> BuyModuleFeature(enabled, available) }
+    ) { enabled, available -> BuyModuleFeature(enabled, available) }
 
     val tipCards = betaFlags.observe().map { TipCardFeature(it.tipsEnabled) }
     val tipCardOnHomeScreen = betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
@@ -33,6 +34,8 @@ class FeatureRepository @Inject constructor(
     val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 
     val cameraGestures = betaFlags.observe().map { CameraGesturesFeature(it.cameraGesturesEnabled) }
+
+    val galleryEnabled = betaFlags.observe().map { GalleryFeature(it.galleryEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 

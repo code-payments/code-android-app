@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.view.WindowManager
 import androidx.core.app.NotificationManagerCompat
@@ -31,6 +32,7 @@ import com.getcode.model.Domain
 import com.getcode.model.Feature
 import com.getcode.model.Fiat
 import com.getcode.model.FlippableTipCardFeature
+import com.getcode.model.GalleryFeature
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -96,6 +98,7 @@ import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
+import com.kik.kikx.kikcodes.KikCodeScanner
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
@@ -160,6 +163,7 @@ data class HomeUiModel(
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
     val cameraGestures: Feature = CameraGesturesFeature(),
+    val gallery: Feature = GalleryFeature(),
     val flippableTipCard: Feature = FlippableTipCardFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
@@ -199,6 +203,7 @@ class HomeViewModel @Inject constructor(
     private val cashLinkManager: CashLinkManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
+    private val codeAnalyzer: KikCodeAnalyzer,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
@@ -243,6 +248,14 @@ class HomeViewModel @Inject constructor(
             .onEach { module ->
                 uiFlow.update {
                     it.copy(cameraGestures = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.galleryEnabled
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(gallery = module)
                 }
             }.launchIn(viewModelScope)
 
@@ -1436,6 +1449,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onImageSelected(
+        uri: Uri
+    ) {
+        codeAnalyzer.onCodeScanned = { onCodeScan(it) }
+        codeAnalyzer.onNoCodeFound = {
+            TopBarManager.showMessage(
+                TopBarManager.TopBarMessage(
+                    title = resources.getString(R.string.title_noCodeFound),
+                    message = resources.getString(R.string.subtitle_noCodeFound)
+                )
+            )
+        }
+        codeAnalyzer.analyze(uri)
+    }
+
     fun onCodeScan(
         code: ScannableKikCode,
     ) {
@@ -1640,6 +1668,10 @@ class HomeViewModel @Inject constructor(
                     scannedRendezvous.add(payload.rendezvous.publicKey)
 
                     attemptTip(payload, request)
+                }
+
+                request.imageRequest != null -> {
+                    onImageSelected(request.imageRequest.uri)
                 }
             }
         }

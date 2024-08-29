@@ -97,9 +97,7 @@ fun CodeScanner(
     var camera by remember { mutableStateOf<Camera?>(null) }
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
 
-    val kikCodeAnalyzer = remember(scanner, onCodeScanned) {
-        KikCodeAnalyzer(scanner, onCodeScanned)
-    }
+    val kikCodeAnalyzer = rememberKikCodeAnalyzer(context, scanner, onCodeScanned)
 
     val biometricsState = LocalBiometricsState.current
 
