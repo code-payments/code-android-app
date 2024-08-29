@@ -17,7 +17,7 @@ private val Avenir = FontFamily(
     Font(R.font.avenir_next_regular, FontWeight.ExtraLight),
     Font(R.font.avenir_next_regular, FontWeight.Light),
     Font(R.font.avenir_next_regular, FontWeight.Normal),
-    Font(R.font.avenir_next_medium, FontWeight.Medium),
+    Font(R.font.avenir_next_demi, FontWeight.Medium),
     Font(R.font.avenir_next_demi, FontWeight.SemiBold),
     Font(R.font.avenir_next_demi, FontWeight.Bold),
     Font(R.font.avenir_next_demi, FontWeight.ExtraBold),
