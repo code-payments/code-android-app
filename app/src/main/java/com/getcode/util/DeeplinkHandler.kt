@@ -1,8 +1,11 @@
 package com.getcode.util
 
+import android.content.ContentResolver.MimeTypeInfo
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Parcelable
+import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.model.PrefsBool
@@ -60,6 +63,9 @@ class DeeplinkHandler @Inject constructor(
                 val sharedLink = intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri() ?: return null
                 sharedLink.resolveSharedEntity()
             }
+            (intent?.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri != null) -> {
+                intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as Uri
+            }
 
             else -> null
         } ?: return null
@@ -86,6 +92,17 @@ class DeeplinkHandler @Inject constructor(
                 DeeplinkResult(
                     type,
                     listOf(HomeScreen(request = request)),
+                )
+            }
+
+            is Type.Image -> {
+                DeeplinkResult(
+                    type,
+                    listOf(
+                        HomeScreen(
+                            request = DeepLinkRequest.fromImage(type.uri)
+                        )
+                    )
                 )
             }
 
@@ -128,6 +145,12 @@ class DeeplinkHandler @Inject constructor(
 
     private val Uri.deeplinkType: Type
         get() {
+            // check if image
+            val isImage = context.contentResolver.getType(this)?.startsWith("image/") == true
+            if (isImage) {
+                return Type.Image(uri = this)
+            }
+
             // check for tipcard URLs
             val components = pathSegments
             if (components.count() >= 2 && components[0] == "x" && components[1].isNotEmpty()) {
@@ -174,6 +197,7 @@ class DeeplinkHandler @Inject constructor(
                 val regex = Regex("^(login|payment|tip)?-?request-(modal|page)-(mobile|desktop)\$")
             }
         }
+        data class Image(val uri: Uri): Type
 
         data class Unknown(val path: String?) : Type
     }

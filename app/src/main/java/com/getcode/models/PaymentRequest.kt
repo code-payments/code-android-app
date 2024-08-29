@@ -1,5 +1,6 @@
 package com.getcode.models
 
+import android.net.Uri
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Domain
 import com.getcode.model.Fee
@@ -22,6 +23,7 @@ data class DeepLinkRequest(
     val paymentRequest: PaymentRequest? = null,
     val loginRequest: LoginRequest? = null,
     val tipRequest: TipRequest? = null,
+    val imageRequest: ImageRequest? = null,
     val successUrl: String?,
     val cancelUrl: String?,
 
@@ -32,9 +34,20 @@ data class DeepLinkRequest(
         @SerialName("donation") Donation,
         @SerialName("login") Login,
         @SerialName("tip") Tip,
+        @SerialName("internal:image") Image,
     }
 
     companion object {
+        fun fromImage(uri: Uri): DeepLinkRequest {
+            return DeepLinkRequest(
+                mode = Mode.Image,
+                clientSecret = emptyList(),
+                imageRequest = ImageRequest(uri),
+                cancelUrl = null,
+                successUrl = null,
+            )
+        }
+
         fun fromTipCardUsername(platform: String, username: String): DeepLinkRequest {
             return DeepLinkRequest(
                 mode = Mode.Tip,
@@ -138,6 +151,10 @@ data class DeepLinkRequest(
                         tipRequest = TipRequest(platform.name, platform.username)
                     )
                 }
+
+                Mode.Image -> {
+                    return baseRequest
+                }
             }
         }
     }
@@ -156,6 +173,10 @@ data class LoginRequest(
 data class TipRequest(
     val platformName: String,
     val username: String,
+)
+
+data class ImageRequest(
+    val uri: Uri
 )
 
 private inline fun <reified T> JsonObject.decode(key: String): T? {

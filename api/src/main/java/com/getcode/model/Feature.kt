@@ -52,3 +52,8 @@ data class FlippableTipCardFeature(
     override val enabled: Boolean = BetaOptions.Defaults.canFlipTipCard,
     override val available: Boolean = true, // always available
 ): Feature
+
+data class GalleryFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.galleryEnabled,
+    override val available: Boolean = true, // always available
+): Feature

@@ -3,6 +3,9 @@ package com.getcode.view.main.home
 import android.Manifest
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -87,7 +90,8 @@ enum class HomeAction {
     BALANCE,
     SHARE_DOWNLOAD,
     TIP_CARD,
-    CHAT
+    CHAT,
+    GALLERY
 }
 
 @Composable
@@ -194,9 +198,16 @@ private fun HomeScan(
         }
     }
 
+    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            homeViewModel.onImageSelected(uri)
+        }
+    }
+
     fun handleAction(action: HomeAction) {
         scope.launch {
             when (action) {
+                HomeAction.NONE -> Unit
                 HomeAction.GIVE_KIN -> navigator.show(GiveKinModal)
                 HomeAction.ACCOUNT -> navigator.show(AccountModal)
                 HomeAction.GET_KIN -> navigator.show(GetKinModal)
@@ -209,8 +220,13 @@ private fun HomeScan(
                         navigator.show(ConnectAccount())
                     }
                 }
-                HomeAction.NONE -> Unit
+
                 HomeAction.CHAT -> navigator.show(ChatListModal)
+                HomeAction.GALLERY -> {
+                    pickPhoto.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
             }
         }
     }

@@ -86,6 +86,7 @@ fun AuthCheck(
                     is DeeplinkHandler.Type.Login -> true
                     is DeeplinkHandler.Type.Cash,
                     is DeeplinkHandler.Type.Tip,
+                    is DeeplinkHandler.Type.Image,
                     is DeeplinkHandler.Type.Sdk -> {
                         val hasAuth = state.isAuthenticated == true
                         if (!hasAuth) {

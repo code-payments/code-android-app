@@ -26,6 +26,8 @@ import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.Api24NetworkObserver
 import com.getcode.utils.network.Api29NetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -120,4 +122,8 @@ object AppModule {
     fun providesBiometricsManager(
         @ApplicationContext context: Context
     ): BiometricManager = BiometricManager.from(context)
+
+    @Provides
+    @Singleton
+    fun providesCodeScanner(): KikCodeScanner = KikCodeScannerImpl()
 }
