@@ -226,7 +226,8 @@ private fun setupInteractionControls(
     var shouldIgnoreScroll = false
     val handler = Handler(Looper.getMainLooper())
     var resetIgnore: Runnable? = null
-
+    var initialZoomLevel = 0f
+    var accumulatedDelta = 0f
     // Pinch-to-zoom gesture detector
     val scaleGestureDetector = ScaleGestureDetector(
         previewView.context,
@@ -254,6 +255,7 @@ private fun setupInteractionControls(
             }
 
             override fun onScaleEnd(detector: ScaleGestureDetector) {
+                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                 resetIgnore = Runnable { shouldIgnoreScroll = false }
                 previewView.postDelayed(resetIgnore, 500)
             }
@@ -263,9 +265,10 @@ private fun setupInteractionControls(
     val gestureDetector = GestureDetector(
         previewView.context,
         object : GestureDetector.OnGestureListener {
-            private var accumulatedDelta = 0f
+
 
             override fun onDown(e: MotionEvent): Boolean {
+                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                 accumulatedDelta = 0f
                 return true
             }
@@ -292,7 +295,6 @@ private fun setupInteractionControls(
                     accumulatedDelta += distanceY
 
                     val deltaZoom = accumulatedDelta / 1000f
-                    val initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                     val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
                     val minZoom = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
 
@@ -321,6 +323,7 @@ private fun setupInteractionControls(
 
             if (event.action == MotionEvent.ACTION_UP) {
                 animateZoomReset(cameraInfo, cameraControl)
+                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
             }
         }
         true
