@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">購買更多 Kin</string>
   <string name="action_cancel">取消</string>
   <string name="action_cancelSend">取消發送</string>
+  <string name="action_chat">聊天</string>
   <string name="action_collectCash">收取這筆現金</string>
   <string name="action_confirm">確認</string>
   <string name="action_connectToX">連結至 X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">將 Kin 傳送至下方的存款位址,存入至您的 Code 錢包中。輕觸即可複製。</string>
   <string name="subtitle_insufficientFundsDescription">請獲得更多 Kin 之後再嘗試付款</string>
   <string name="subtitle_invalidTokenAccount">無效的終端帳戶</string>
+  <string name="subtitle_invalidTokenAccountDescription">請確認您要將所提領款項轉入的地址已由您的錢包提供者初始化。達成這個目的的捷徑是先在您要將款項轉入的錢包中將少量的 SOL 換成 Kin。</string>
   <string name="subtitle_inviteCode">邀請碼</string>
   <string name="subtitle_inviteCodeDescription">Code 只可透過邀請使用。您需要一個邀請碼來存取此應用程式。</string>
   <string name="subtitle_inviteCount">%1$d 個邀請</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">您需要啟用相機以掃描 Codes</string>
   <string name="subtitle_tipCardForX">您的 Tip Card 可讓您從世界各地的 Code 使用者接收小費。想使用您的 Tip Card,請連結您的 X 身分。</string>
   <string name="subtitle_tipCardTwitterDescription">您的小費卡可讓您接收來自世界各地的 Code 使用者的小費。要存取您的小費卡,請發文至 X。</string>
+  <string name="subtitle_turnOnNotifications">當您收到來自其他 Code 使用者的小費時,允許 Code 傳送通知給您。</string>
   <string name="subtitle_typeDelete">輸入「%1$s」</string>
   <string name="subtitle_updateRequiredDescription">我們進行了一些變更來改善體驗。您需要更新應用程式才能夠繼續使用 Code。</string>
   <string name="subtitle_validOwnerAccount">有效的所有人帳戶</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">隱私權政策</string>
   <string name="title_purchased">已購買</string>
   <string name="title_push_twitterAccountConnected">已成功連結 X 帳戶</string>
+  <string name="title_receiveTips">收取小費</string>
   <string name="title_received">已收到</string>
   <string name="title_recentCurrencies">最近使用的貨幣</string>
   <string name="title_referFriend">推薦一位朋友,可獲 5 美元獎勵</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">服務條款</string>
   <string name="title_tipCard">提示卡</string>
   <string name="title_tipKin">以 Kin 給小費</string>
+  <string name="title_turnOnNotifications">開啟 Code 通知</string>
   <string name="title_unknown">不明</string>
   <string name="title_updateRequired">需要更新</string>
   <string name="title_verifyPhoneNumber">驗證電話號碼</string>

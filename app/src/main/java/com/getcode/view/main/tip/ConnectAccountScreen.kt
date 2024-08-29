@@ -87,7 +87,7 @@ fun ConnectAccountScreen(
 private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick: () -> Unit) {
     Text(
         text = when(state.reason) {
-            IdentityConnectionReason.TipCard -> stringResource(id = R.string.title_receiveTip)
+            IdentityConnectionReason.TipCard -> stringResource(id = R.string.title_receiveTips)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.title_connectAccount)
             null -> ""
         },

@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">ซื้อ Kin เพิ่มเติม</string>
   <string name="action_cancel">ยกเลิก</string>
   <string name="action_cancelSend">ยกเลิกการส่ง</string>
+  <string name="action_chat">แชท</string>
   <string name="action_collectCash">รับเงินสดนี้</string>
   <string name="action_confirm">ยืนยัน</string>
   <string name="action_connectToX">เชื่อมต่อกับ X\n</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">ฝาก Kin ลงในกระเป๋าเงิน Code ของคุณโดยส่ง Kin ไปยังที่อยู่ฝากเงินของคุณด้านล่าง แตะเพื่อคัดลอก</string>
   <string name="subtitle_insufficientFundsDescription">โปรดรับ Kin เพิ่มแล้วลองชำระเงินอีกครั้ง</string>
   <string name="subtitle_invalidTokenAccount">บัญชีปลายทางไม่ถูกต้อง</string>
+  <string name="subtitle_invalidTokenAccountDescription">โปรดตรวจสอบให้แน่ใจว่าที่อยู่ที่คุณกำลังถอนเงินไปนั้นได้รับการตั้งค่าโดยผู้ให้บริการกระเป๋าเงินของคุณแล้ว วิธีลัดในการตรวจสอบคือการแลกเปลี่ยน SOL จำนวนเล็กน้อยเป็น Kin ในกระเป๋าเงินที่คุณกำลังจะส่งไป</string>
   <string name="subtitle_inviteCode">รหัสเชิญ</string>
   <string name="subtitle_inviteCodeDescription">ขณะนี้ Code ใช้ระบบเชิญเท่านั้น คุณจะต้องมีรหัสเชิญเพื่อเข้าถึงแอป</string>
   <string name="subtitle_inviteCount">%1$d คำเชิญ</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">คุณต้องเปิดใช้งานกล้องเพื่อสแกน Code</string>
   <string name="subtitle_tipCardForX">บัตรทิปของคุณช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้เชื่อมต่อข้อมูลประจำตัว X ของคุณ</string>
   <string name="subtitle_tipCardTwitterDescription">บัตรทิปช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้โพสต์บน X</string>
+  <string name="subtitle_turnOnNotifications">อนุญาตให้ Code ส่งการแจ้งเตือนถึงคุณเมื่อคุณได้รับทิปจากผู้ใช้ Code รายอื่น</string>
   <string name="subtitle_typeDelete">พิมพ์  \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">เราได้ทำการเปลี่ยนแปลงบางอย่างเพื่อปรับปรุงประสบการณ์ หากต้องการใช้ Code ต่อไปคุณจะต้องอัปเดตแอป</string>
   <string name="subtitle_validOwnerAccount">บัญชีเจ้าของที่ถูกต้อง</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">นโยบายความเป็นส่วนตัว</string>
   <string name="title_purchased">ซื้อแล้ว</string>
   <string name="title_push_twitterAccountConnected">เชื่อมต่อบัญชี X สำเร็จ</string>
+  <string name="title_receiveTips">รับทิป</string>
   <string name="title_received">ได้รับแล้ว</string>
   <string name="title_recentCurrencies">สกุลเงินล่าสุด</string>
   <string name="title_referFriend">แนะนำเพื่อน รับ $5</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">เงื่อนไขการให้บริการ</string>
   <string name="title_tipCard">บัตรทิป</string>
   <string name="title_tipKin">ให้ทิปเป็น Kin</string>
+  <string name="title_turnOnNotifications">เปิดการแจ้งเตือนสำหรับ Code</string>
   <string name="title_unknown">ไม่ทราบ</string>
   <string name="title_updateRequired">จำเป็นต้องอัปเดต</string>
   <string name="title_verifyPhoneNumber">ยืนยันหมายเลขโทรศัพท์</string>

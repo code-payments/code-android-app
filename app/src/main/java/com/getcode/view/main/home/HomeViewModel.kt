@@ -834,8 +834,8 @@ class HomeViewModel @Inject constructor(
             ModalManager.showMessage(
                 ModalManager.Message(
                     icon = R.drawable.ic_bell,
-                    title = resources.getString(R.string.modal_title_turnOnNotifications),
-                    subtitle = resources.getString(R.string.modal_description_turnOnNotifications),
+                    title = resources.getString(R.string.title_turnOnNotifications),
+                    subtitle = resources.getString(R.string.subtitle_turnOnNotifications),
                     onPositive = {
                         when {
                             isDenied -> {

@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Mua thêm Kin</string>
   <string name="action_cancel">Hủy</string>
   <string name="action_cancelSend">Hủy Gửi</string>
+  <string name="action_chat">Trò chuyện</string>
   <string name="action_collectCash">Thu Số tiền Này</string>
   <string name="action_confirm">Xác nhận</string>
   <string name="action_connectToX">Kết nối với X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Gửi Kin đến Địa chỉ Nạp tiền của bạn ở bên dưới để nạp Kin vào ví Mã của bạn. Nhấn để sao chép.</string>
   <string name="subtitle_insufficientFundsDescription">Vui lòng nhận thêm Kin rồi thử thanh toán lại</string>
   <string name="subtitle_invalidTokenAccount">Tài khoản đích không hợp lệ</string>
+  <string name="subtitle_invalidTokenAccountDescription">Vui lòng đảm bảo rằng địa chỉ bạn đang rút tiền về đã được nhà cung cấp ví của bạn khởi tạo. Một cách nhanh chóng để thực hiện điều này là trước tiên hãy đổi một khoản nhỏ SOL sang Kin trong ví mà bạn đang cố gắng gửi đến.</string>
   <string name="subtitle_inviteCode">Mã Mời</string>
   <string name="subtitle_inviteCodeDescription">Chúng tôi hiện chỉ cung cấp Mã thông qua hình thức mời. Bạn sẽ cần Mã Mời để truy cập ứng dụng này.</string>
   <string name="subtitle_inviteCount">%1$d Lời mời</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Bạn cần bật camera để quét Mã</string>
   <string name="subtitle_tipCardForX">Thẻ Tiền boa của bạn giúp bạn có thể nhận tiền boa từ người dùng Code trên toàn thế giới. Để truy cập Thẻ Tiền boa, hãy kết nối danh tính X của bạn.</string>
   <string name="subtitle_tipCardTwitterDescription">Thẻ Tip cho phép bạn nhận tiền tip từ người dùng Code trên toàn thế giới. Để sử dụng Thẻ Tip của mình, hãy đăng bài trên X.</string>
+  <string name="subtitle_turnOnNotifications">Cho phép Code gửi thông báo cho bạn khi bạn nhận được tiền típ từ những người dùng Code khác.</string>
   <string name="subtitle_typeDelete">Gõ \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Chúng tôi đã thực hiện một số thay đổi để cải thiện trải nghiệm. Bạn sẽ cần cập nhật ứng dụng để tiếp tục sử dụng Mã.</string>
   <string name="subtitle_validOwnerAccount">Tài khoản chủ sở hữu hợp lệ</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Chính sách Quyền riêng tư</string>
   <string name="title_purchased">Đã mua</string>
   <string name="title_push_twitterAccountConnected">Tài khoản X được kết nối thành công</string>
+  <string name="title_receiveTips">Nhận tiền típ</string>
   <string name="title_received">Đã nhận</string>
   <string name="title_recentCurrencies">Đơn vị tiền tệ Gần đây</string>
   <string name="title_referFriend">Giới thiệu một người bạn - Nhận 5$</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Điều khoản Dịch vụ</string>
   <string name="title_tipCard">Thẻ Boa</string>
   <string name="title_tipKin">Boa Kin</string>
+  <string name="title_turnOnNotifications">Bật thông báo cho Code</string>
   <string name="title_unknown">Không xác định</string>
   <string name="title_updateRequired">Cần Cập nhật</string>
   <string name="title_verifyPhoneNumber">Xác minh Số Điện thoại</string>

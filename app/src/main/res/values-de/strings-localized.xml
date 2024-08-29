@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="action_addCash">Bargeld mit einer Debitkarte hinzufügen\n</string>
+  <string name="action_addCash">Bargeld mit einer Debitkarte hinzufügen</string>
   <string name="action_allowCameraAccess">Kamera-Zugriff erlauben</string>
   <string name="action_allowContacts">Zugriff auf Kontakte zulassen</string>
   <string name="action_allowPushNotifications">Push-Benachrichtigungen zulassen</string>
@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Mehr Kin kaufen</string>
   <string name="action_cancel">Abbrechen</string>
   <string name="action_cancelSend">Senden abbrechen</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Erhalten Sie Ihr Guthaben</string>
   <string name="action_confirm">Bestätigen</string>
   <string name="action_connectToX">Mit X verbinden</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Sie können Code-Wallet mit Kin aufladen, indem Sie Kin an Ihre unten angegebene Einzahlungsadresse senden. Zum Kopieren einfach Tippen.</string>
   <string name="subtitle_insufficientFundsDescription">Bitte mehr Kin besorgen und dann erneut versuchen zu bezahlen.</string>
   <string name="subtitle_invalidTokenAccount">Ungültiges Empfängerkonto</string>
+  <string name="subtitle_invalidTokenAccountDescription">Bitte vergewissern Sie sich, dass die Adresse, an die Sie abheben wollen, von Ihrem Wallet-Anbieter initialisiert wurde. Sie können dies schneller erreichen, wenn Sie zuerst eine kleine Menge SOL gegen Kin in der Wallet tauschen, an die Sie senden möchten.</string>
   <string name="subtitle_inviteCode">Einladungscode</string>
   <string name="subtitle_inviteCodeDescription">Code ist derzeit nur mit Einladung nutzbar. Sie benötigen einen Einladungscode, um auf die App zuzugreifen.</string>
   <string name="subtitle_inviteCount">%1$d Einladungen</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Starten Sie für einen Codes-Scan bitte Ihre Kamera</string>
   <string name="subtitle_tipCardForX">Mit Ihrer Trinkgeldkarte können Sie von Code-Nutzerinnen und -Nutzern auf der ganzen Welt Trinkgeld erhalten. Verbinden Sie Ihr X-Konto, um auf Ihre Trinkgeldkarte zuzugreifen.</string>
   <string name="subtitle_tipCardTwitterDescription">Mit Ihrer Tipp-Karte können Sie Tipps von Code-Benutzern aus der ganzen Welt erhalten. Um auf Ihre Tipp-Karte zuzugreifen, posten Sie an X.</string>
+  <string name="subtitle_turnOnNotifications">Erlauben Sie Code, Ihnen Benachrichtigungen zu senden, wenn Sie Tipps von anderen Code-Nutzern erhalten.</string>
   <string name="subtitle_typeDelete">Geben Sie „%1$s\" ein</string>
   <string name="subtitle_updateRequiredDescription">Wir haben einige Änderungen vorgenommen, um das Nutzererlebnis zu verbessern. Die App muss aktualisiert werden, um Code weiterhin nutzen zu können.</string>
   <string name="subtitle_validOwnerAccount">Gültiges Inhaberkonto</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Datenschutzrichtlinien</string>
   <string name="title_purchased">Gekauft</string>
   <string name="title_push_twitterAccountConnected">X-Konto erfolgreich verbunden</string>
+  <string name="title_receiveTips">Tipps erhalten</string>
   <string name="title_received">Empfangen</string>
   <string name="title_recentCurrencies">Letzte Währungen</string>
   <string name="title_referFriend">Empfehle Sie uns an einen Freund oder eine Freundin weiter und erhalten Sie 5 $ dafür</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Servicebedingungen</string>
   <string name="title_tipCard">Tippkarte</string>
   <string name="title_tipKin">Kin-Trinkgeld geben</string>
+  <string name="title_turnOnNotifications">Benachrichtigungen für Code einschalten</string>
   <string name="title_unknown">Unbekannt</string>
   <string name="title_updateRequired">Aktualisierung erforderlich</string>
   <string name="title_verifyPhoneNumber">Telefonnummer verifizieren</string>

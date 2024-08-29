@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">购买更多 Kin</string>
   <string name="action_cancel">取消</string>
   <string name="action_cancelSend">取消发送</string>
+  <string name="action_chat">聊天</string>
   <string name="action_collectCash">收取此现金</string>
   <string name="action_confirm">确认</string>
   <string name="action_connectToX">连接 X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">将 Kin 发送到下面的存款地址,以便将 Kin 存入您的 Code 钱包。轻点复制。</string>
   <string name="subtitle_insufficientFundsDescription">请获取更多 Kin 币,然后再次尝试付款</string>
   <string name="subtitle_invalidTokenAccount">无效的目标账户</string>
+  <string name="subtitle_invalidTokenAccountDescription">请确保您要提现到的地址已由您的钱包提供商初始化。要达成此要求有一个简便方法,即先将您要发送到的钱包中的少量 SOL 兑换为 Kin。</string>
   <string name="subtitle_inviteCode">邀请码</string>
   <string name="subtitle_inviteCodeDescription">Code 目前仅限邀请可用。您需要邀请码才能访问该应用。</string>
   <string name="subtitle_inviteCount">%1$d 次邀请机会</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">您需要启动相机以扫描Code</string>
   <string name="subtitle_tipCardForX">您的小费卡可让您接收来自世界各地的 Code 用户的小费。要访问您的小费卡,请连接您的 X 身份。</string>
   <string name="subtitle_tipCardTwitterDescription">您的小费卡可让您收到来自世界各地 Code 用户的小费。要访问您的小费卡,请发帖至 X。</string>
+  <string name="subtitle_turnOnNotifications">允许 Code 在您收到其他 Code 用户的小费时向您发送通知。</string>
   <string name="subtitle_typeDelete">输入\"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">我们进行了一些更改以改善体验。您需要更新应用才能继续使用 Code。</string>
   <string name="subtitle_validOwnerAccount">有效的所有者账户</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">隐私政策</string>
   <string name="title_purchased">已购买</string>
   <string name="title_push_twitterAccountConnected">X 账户连接成功</string>
+  <string name="title_receiveTips">接收小费</string>
   <string name="title_received">已接收</string>
   <string name="title_recentCurrencies">最近的货币</string>
   <string name="title_referFriend">推荐好友,获得 $5</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">服务条款</string>
   <string name="title_tipCard">小费卡</string>
   <string name="title_tipKin">Kin 小费</string>
+  <string name="title_turnOnNotifications">打开 Code 通知</string>
   <string name="title_unknown">未知</string>
   <string name="title_updateRequired">需要更新</string>
   <string name="title_verifyPhoneNumber">验证手机号码</string>

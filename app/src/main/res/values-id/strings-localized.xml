@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Beli Lebih Banyak Kin</string>
   <string name="action_cancel">Batal</string>
   <string name="action_cancelSend">Batal Kirim</string>
+  <string name="action_chat">Mengobrol</string>
   <string name="action_collectCash">Ambil Uang Ini</string>
   <string name="action_confirm">Konfirmasi</string>
   <string name="action_connectToX">Sambungkan ke X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Setor Kin ke dompet Code Anda dengan mengirim Kin ke Alamat Setoran Anda di bawah ini. Ketuk untuk menyalin.</string>
   <string name="subtitle_insufficientFundsDescription">Dapatkan lebih banyak Kin dan kemudian coba bayar lagi</string>
   <string name="subtitle_invalidTokenAccount">Akun tujuan tidak valid</string>
+  <string name="subtitle_invalidTokenAccountDescription">Pastikan alamat penarikan Anda sudah diinisialisasi oleh penyedia dompet Anda. Jalan pintas untuk mencapai in adalah dengan menukar sedikit SOL dengan Kin di dompet tujuan pengiriman Anda.\n</string>
   <string name="subtitle_inviteCode">Kode Undangan</string>
   <string name="subtitle_inviteCodeDescription">Code saat ini hanya untuk undangan. Anda perlu Kode Undangan untuk mengakses aplikasi.</string>
   <string name="subtitle_inviteCount">%1$d Undangan</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Anda perlu memulai kamera Anda untuk memindai Code</string>
   <string name="subtitle_tipCardForX">Kartu Tip Anda memungkinkan Anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kartu Tip Anda, hubungkan identitas X Anda.</string>
   <string name="subtitle_tipCardTwitterDescription">Kartu Tip Anda memungkinkan Anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kartu Tip, kirim postingan ke X.</string>
+  <string name="subtitle_turnOnNotifications">Izinkan Code mengirimi Anda pemberitahuan saat Anda menerima Tip dari pengguna Code lainnya.</string>
   <string name="subtitle_typeDelete">Tikkan \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Kami telah melakukan beberapa perubahan untuk meningkatkan pengalaman. Anda harus memperbarui aplikasi untuk tetap menggunakan Code.</string>
   <string name="subtitle_validOwnerAccount">Akun pemilik yang valid</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Kebijakan Privasi</string>
   <string name="title_purchased">Dibeli</string>
   <string name="title_push_twitterAccountConnected">Akun X Berhasil Tersambung</string>
+  <string name="title_receiveTips">Terima Tip</string>
   <string name="title_received">Menerima</string>
   <string name="title_recentCurrencies">Mata Uang Terbaru</string>
   <string name="title_referFriend">Ajak Teman, Dapatkan $5</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Ketentuan Layanan</string>
   <string name="title_tipCard">Kartu Tip</string>
   <string name="title_tipKin">Beri Tip Kin</string>
+  <string name="title_turnOnNotifications">Nyalakan Notifikasi untuk Code</string>
   <string name="title_unknown">Tak Dikenal</string>
   <string name="title_updateRequired">Memerlukan Pembaruan</string>
   <string name="title_verifyPhoneNumber">Verifikasi Nomor Telepon</string>

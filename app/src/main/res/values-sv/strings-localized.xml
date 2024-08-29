@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Köp mer Kin</string>
   <string name="action_cancel">Avbryt</string>
   <string name="action_cancelSend">Avbryt skicka</string>
+  <string name="action_chat">Chatt</string>
   <string name="action_collectCash">Ta emot pengarna</string>
   <string name="action_confirm">Bekräfta</string>
   <string name="action_connectToX">Anslut till X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Sätt in Kin i din Code wallet genom att skicka Kin till din insättningsadress nedan. Tryck på för att kopiera.</string>
   <string name="subtitle_insufficientFundsDescription">Skaffa mer Kin och försök sedan att betala igen</string>
   <string name="subtitle_invalidTokenAccount">Ogiltigt mottagarkonto</string>
+  <string name="subtitle_invalidTokenAccountDescription">Kontrollera att adressen du gör uttag till har initialiserats av din plånboksleverantör. En genväg är att först växla en liten mängd SOL mot Kin i den plånbok du försöker skicka till.</string>
   <string name="subtitle_inviteCode">Inbjudningskod</string>
   <string name="subtitle_inviteCodeDescription">Code är i nuläget endast för inbjudna. Du behöver en inbjudningskod för att komma åt appen.</string>
   <string name="subtitle_inviteCount">%1$d bjuder in</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Du måste starta kameran för att skanna koder</string>
   <string name="subtitle_tipCardForX">Med ditt drickskort kan du ta emot tips från Code-användare över hela världen. Koppla din profil på X för att få tillgång till ditt tipskort.</string>
   <string name="subtitle_tipCardTwitterDescription">Med ditt drickskort kan du ta emot dricks från Code-användare världen över. Posta på X för att få tillgång till ditt drickskort.</string>
+  <string name="subtitle_turnOnNotifications">Tillåt Code att skicka meddelanden till dig när du får dricks från andra Code-användare.</string>
   <string name="subtitle_typeDelete">Skriv \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Vi har gjort några ändringar för att förbättra upplevelsen. Du måste uppdatera appen för att fortsätta använda Code.</string>
   <string name="subtitle_validOwnerAccount">Giltigt ägarkonto</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Integritetspolicy</string>
   <string name="title_purchased">Köpt</string>
   <string name="title_push_twitterAccountConnected">X-kontot är nu kopplat</string>
+  <string name="title_receiveTips">Få dricks</string>
   <string name="title_received">Mottagen</string>
   <string name="title_recentCurrencies">Senaste valutorna</string>
   <string name="title_referFriend">Värva en vän, få 5 USD</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Villkor för tjänsten</string>
   <string name="title_tipCard">Drickskort</string>
   <string name="title_tipKin">Ge Kin i dricks</string>
+  <string name="title_turnOnNotifications">Aktivera aviseringar för Code</string>
   <string name="title_unknown">Okänt</string>
   <string name="title_updateRequired">Uppdatering krävs</string>
   <string name="title_verifyPhoneNumber">Verifiera telefonnummer</string>

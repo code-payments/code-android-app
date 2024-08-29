@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Køb flere Kin</string>
   <string name="action_cancel">Slet</string>
   <string name="action_cancelSend">Annuller send</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Indsaml disse kontanter</string>
   <string name="action_confirm">Bekræft</string>
   <string name="action_connectToX">Opret forbindelse til X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Indsæt Kin i din Code wallet ved at sende Kin til din deponeringsadresse nedenfor. Tap for at kopiere.</string>
   <string name="subtitle_insufficientFundsDescription">Få venligst flere Kin, og prøv derefter at betale igen</string>
   <string name="subtitle_invalidTokenAccount">Ugyldig destinationskonto</string>
+  <string name="subtitle_invalidTokenAccountDescription">Sørg for, at den adresse, du hæver til, er blevet initialiseret af din tegnebogsudbyder. En genvej til at opnå dette er først at veksle en lille smule SOL til Kin i den tegnebog, du prøver at sende til.</string>
   <string name="subtitle_inviteCode">Invitationskode</string>
   <string name="subtitle_inviteCodeDescription">Koden kan i øjeblikket kun fås ved invitation. Du skal bruge en invitationskode for at få adgang til appen.</string>
   <string name="subtitle_inviteCount">%1$d invitationer</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Du skal starte dit kamera for at scanne koder</string>
   <string name="subtitle_tipCardForX">Med dit drikkepengekort kan du modtage drikkepenge fra Code-brugere over hele verden. For at få adgang til dit drikkepengekort skal du forbinde din X-identitet.\n</string>
   <string name="subtitle_tipCardTwitterDescription">Dit Tip Card lader dig modtage donationer fra Code-brugere over hele verden. Slå noget op på X for at tilgå dit Tip Card.</string>
+  <string name="subtitle_turnOnNotifications">Tillad, at Code sender dig notifikationer, når du modtager tip fra andre Code-brugere.</string>
   <string name="subtitle_typeDelete">Tast \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Vi har foretaget nogle ændringer for at forbedre oplevelsen. Du skal opdatere appen for at fortsætte med at anvende Code.</string>
   <string name="subtitle_validOwnerAccount">Gyldig ejerkonto</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Privatlivspolitik</string>
   <string name="title_purchased">Købt</string>
   <string name="title_push_twitterAccountConnected">X-konto forbundet</string>
+  <string name="title_receiveTips">Modtag tips</string>
   <string name="title_received">Modtog</string>
   <string name="title_recentCurrencies">Seneste valutaer</string>
   <string name="title_referFriend">Henvis en ven, få $5</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Servicebetingelser</string>
   <string name="title_tipCard">Tipkort</string>
   <string name="title_tipKin">Giv drikkepenge i Kin</string>
+  <string name="title_turnOnNotifications">Slå notifikationer for Code til</string>
   <string name="title_unknown">Ukendt </string>
   <string name="title_updateRequired">Opdatering nødvendig </string>
   <string name="title_verifyPhoneNumber">Bekræft telefonnummer</string>
