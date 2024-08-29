@@ -51,6 +51,10 @@
     <string name="title_useKadoSandbox">Use Kado Sandbox</string>
 
     <string name="title_chat">Chat</string>
+    <string name="title_whatsTheirUsername">What\'s Their Username?</string>
+    <string name="subtitle_xUsername">X Username</string>
+    <string name="error_title_usernameNotFound">Username not found</string>
+    <string name="error_description_usernameNotFound">This X username isn\'t on Code yet. Please try a different username.</string>
 
     <string name="title_tipCardBack">Don\'t have cash?\nTip me with Code!</string>
     <string name="subtitle_tipCardBack">Scan to download the app, and then scan the code on the other side to tip</string>

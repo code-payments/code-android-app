@@ -4,6 +4,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BubbleChart
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -11,15 +12,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.Lifecycle
+import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
+import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.model.chat.Reference
 import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.SheetTitleDefaults
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.utils.trace
@@ -28,13 +33,17 @@ import com.getcode.view.main.account.AccountHome
 import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceScreen
 import com.getcode.view.main.balance.BalanceSheetViewModel
+import com.getcode.view.main.chat.ChatScreen
+import com.getcode.view.main.chat.ChatViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.home.HomeScreen
 import com.getcode.view.main.home.HomeViewModel
 import com.getcode.view.main.requestKin.RequestKinScreen
 import com.google.firebase.encoders.annotations.Encodable.Ignore
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
@@ -294,6 +303,40 @@ data object BalanceModal : ChatGraph, ModalRoot {
     }
 }
 
+@Parcelize
+data class ChatScreen(val chatId: ID) : MainGraph, ModalContent {
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val vm = getViewModel<ChatViewModel>()
+        val state by vm.stateFlow.collectAsState()
+        val navigator = LocalCodeNavigator.current
+
+        ModalContainer(
+            titleString = { state.title.localized },
+            backButtonEnabled = { it is ChatScreen },
+        ) {
+            val messages = vm.chatMessages.collectAsLazyPagingItems()
+            ChatScreen(state = state, messages = messages, dispatch = vm::dispatchEvent)
+        }
+
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ChatViewModel.Event.OpenMessageChat>()
+                .map { it.reference }
+                .filterIsInstance<Reference.IntentId>()
+                .map { it.id }
+                .onEach { navigator.push(ChatMessageConversationScreen(intentId = it)) }
+                .launchIn(this)
+        }
+
+        LaunchedEffect(chatId) {
+            vm.dispatchEvent(ChatViewModel.Event.OnChatIdChanged(chatId))
+        }
+    }
+}
 
 @Composable
 fun <T> AppScreen.OnScreenResult(block: (T) -> Unit) {

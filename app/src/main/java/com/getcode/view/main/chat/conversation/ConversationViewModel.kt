@@ -65,7 +65,6 @@ class ConversationViewModel @Inject constructor(
     data class State(
         val conversationId: ID?,
         val reference: Reference.IntentId?,
-        val title: String,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
@@ -88,7 +87,6 @@ class ConversationViewModel @Inject constructor(
                 conversationId = null,
                 reference = null,
                 tipChatCash = ConversationCashFeature(),
-                title = "Anonymous Tipper",
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
                 identityRevealed = null,
@@ -114,7 +112,6 @@ class ConversationViewModel @Inject constructor(
         data class OnTipsChatCashChanged(val module: Feature) : Event
 
         data class OnUserActivity(val activity: Instant) : Event
-        data class OnTitleChanged(val title: String) : Event
         data object SendCash : Event
         data object SendMessage : Event
         data object RevealIdentity : Event
@@ -335,7 +332,6 @@ class ConversationViewModel @Inject constructor(
 
                     state.copy(
                         conversationId = conversation.id,
-                        title = conversation.name ?: "Anonymous Tipper",
                         identityRevealed = conversation.hasRevealedIdentity,
                         pointers = event.conversationWithPointers.pointers,
                         users = members.map {
@@ -351,12 +347,6 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnTipsChatCashChanged -> { state ->
                     state.copy(
                         tipChatCash = event.module
-                    )
-                }
-
-                is Event.OnTitleChanged -> { state ->
-                    state.copy(
-                        title = event.title
                     )
                 }
 
