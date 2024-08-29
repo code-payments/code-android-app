@@ -24,8 +24,7 @@ import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyModuleFeature
-import com.getcode.model.CameraAFFeature
-import com.getcode.model.CameraZoomFeature
+import com.getcode.model.CameraGesturesFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Domain
@@ -160,8 +159,7 @@ data class HomeUiModel(
     val notificationUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
-    val cameraAutoFocus: Feature = CameraAFFeature(),
-    val cameraPinchZoom: Feature = CameraZoomFeature(),
+    val cameraGestures: Feature = CameraGesturesFeature(),
     val flippableTipCard: Feature = FlippableTipCardFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
@@ -240,19 +238,11 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        features.cameraAutoFocus
+        features.cameraGestures
             .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
-                    it.copy(cameraAutoFocus = module)
-                }
-            }.launchIn(viewModelScope)
-
-        features.cameraPinchZoom
-            .distinctUntilChanged()
-            .onEach { module ->
-                uiFlow.update {
-                    it.copy(cameraPinchZoom = module)
+                    it.copy(cameraGestures = module)
                 }
             }.launchIn(viewModelScope)
 

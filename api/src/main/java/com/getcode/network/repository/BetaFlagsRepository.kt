@@ -21,8 +21,7 @@ data class BetaOptions(
     val kadoWebViewEnabled: Boolean,
     val shareTweetToTip: Boolean,
     val tipCardOnHomeScreen: Boolean,
-    val cameraAFEnabled: Boolean,
-    val cameraPinchZoomEnabled: Boolean,
+    val cameraGesturesEnabled: Boolean,
     val canFlipTipCard: Boolean,
 ) {
     companion object {
@@ -43,8 +42,7 @@ data class BetaOptions(
             kadoWebViewEnabled = false,
             shareTweetToTip = true,
             tipCardOnHomeScreen = true,
-            cameraAFEnabled = true,
-            cameraPinchZoomEnabled = true,
+            cameraGesturesEnabled = true,
             canFlipTipCard = false
         )
     }
@@ -83,8 +81,7 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled),
             observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
             observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
-            observeBetaFlag(PrefsBool.CAMERA_AF_ENABLED, defaults.cameraAFEnabled),
-            observeBetaFlag(PrefsBool.CAMERA_PINCH_ZOOM, defaults.cameraPinchZoomEnabled),
+            observeBetaFlag(PrefsBool.CAMERA_GESTURES_ENABLED, defaults.cameraGesturesEnabled),
             observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard)
         ) {
             BetaOptions(
@@ -103,9 +100,8 @@ class BetaFlagsRepository @Inject constructor(
                 kadoWebViewEnabled = it[12],
                 shareTweetToTip = it[13],
                 tipCardOnHomeScreen = it[14],
-                cameraAFEnabled = it[15],
-                cameraPinchZoomEnabled = it[16],
-                canFlipTipCard = it[17]
+                cameraGesturesEnabled = it[15],
+                canFlipTipCard = it[16],
             )
         }
     }

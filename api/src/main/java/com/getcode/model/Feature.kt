@@ -43,13 +43,8 @@ data class BalanceCurrencyFeature(
     override val available: Boolean = true, // always available
 ): Feature
 
-data class CameraAFFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.cameraAFEnabled,
-    override val available: Boolean = true, // always available
-): Feature
-
-data class CameraZoomFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.cameraPinchZoomEnabled,
+data class CameraGesturesFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.cameraGesturesEnabled,
     override val available: Boolean = true, // always available
 ): Feature
 

@@ -1,6 +1,8 @@
 package com.getcode.view.main.camera
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -57,8 +59,7 @@ import java.util.concurrent.TimeUnit
 @Composable
 fun CodeScanner(
     scanningEnabled: Boolean,
-    cameraAFEnabled: Boolean,
-    cameraPinchZoomEnabled: Boolean,
+    cameraGesturesEnabled: Boolean,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (ScannableKikCode) -> Unit
 ) {
@@ -92,14 +93,14 @@ fun CodeScanner(
 
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
+    var camera by remember { mutableStateOf<Camera?>(null) }
+    var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
+
     val kikCodeAnalyzer = remember(scanner, onCodeScanned) {
         KikCodeAnalyzer(scanner, onCodeScanned)
     }
 
     val biometricsState = LocalBiometricsState.current
-
-    var camera by remember { mutableStateOf<Camera?>(null) }
-    var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
 
     val scope = rememberCoroutineScope()
     LaunchedEffect(scanner, biometricsState.isAwaitingAuthentication, Biometrics.promptActive) {
@@ -143,7 +144,7 @@ fun CodeScanner(
         }
     }
 
-    LaunchedEffect(camera, cameraAFEnabled, cameraPinchZoomEnabled) {
+    LaunchedEffect(camera, cameraGesturesEnabled) {
         camera?.let {
             val cameraControl = it.cameraControl
             val cameraInfo = it.cameraInfo
@@ -152,8 +153,7 @@ fun CodeScanner(
                 previewView,
                 cameraControl,
                 cameraInfo,
-                cameraAFEnabled,
-                cameraPinchZoomEnabled
+                cameraGesturesEnabled,
             ) { point ->
                 autoFocusPoint = point
             }
@@ -219,13 +219,20 @@ private fun setupInteractionControls(
     previewView: PreviewView,
     cameraControl: CameraControl,
     cameraInfo: CameraInfo,
-    autoFocusEnabled: Boolean,
-    pinchZoomEnabled: Boolean,
+    cameraGesturesEnabled: Boolean,
     onTap: (Offset) -> Unit,
 ) {
+    var isPinchZooming = false
+
+    // Pinch-to-zoom gesture detector
     val scaleGestureDetector = ScaleGestureDetector(
         previewView.context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                isPinchZooming = true
+                return true
+            }
+
             override fun onScale(detector: ScaleGestureDetector): Boolean {
                 val currentZoomRatio = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                 val delta = detector.scaleFactor
@@ -241,38 +248,102 @@ private fun setupInteractionControls(
                 cameraControl.setZoomRatio(clampedZoomRatio)
                 return true
             }
+
+            override fun onScaleEnd(detector: ScaleGestureDetector) {
+                isPinchZooming = false
+            }
         })
 
-    // Create a gesture detector to detect tap gestures
-    val gestureDetector =
-        GestureDetector(previewView.context, object : GestureDetector.SimpleOnGestureListener() {
+    // Gesture detector for tap and drag-to-zoom
+    val gestureDetector = GestureDetector(
+        previewView.context,
+        object : GestureDetector.OnGestureListener {
+            private var initialZoomLevel = 0f
+            private var accumulatedDelta = 0f
+
+            override fun onDown(e: MotionEvent): Boolean {
+                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
+                accumulatedDelta = 0f
+                return true
+            }
+
             override fun onSingleTapUp(event: MotionEvent): Boolean {
-                // Get the tap location
                 val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
                 onTap(Offset(event.x, event.y))
 
-                // Prepare focus action
                 val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
-                    .setAutoCancelDuration(
-                        5,
-                        TimeUnit.SECONDS
-                    ) // Optional: Auto-cancel after 5 seconds
+                    .setAutoCancelDuration(5, TimeUnit.SECONDS)
                     .build()
 
-                // Trigger focus and metering at the tapped location
                 cameraControl.startFocusAndMetering(action)
-
                 return true
+            }
+
+            override fun onScroll(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                distanceX: Float,
+                distanceY: Float
+            ): Boolean {
+                if (!isPinchZooming) {
+                    accumulatedDelta += distanceY
+
+                    val deltaZoom = accumulatedDelta / 1000f
+
+                    val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
+                    val minZoom = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
+
+                    val newZoom = (initialZoomLevel + deltaZoom).coerceIn(minZoom, maxZoom)
+                    cameraControl.setZoomRatio(newZoom)
+                }
+                return true
+            }
+
+            override fun onShowPress(e: MotionEvent) {}
+            override fun onLongPress(e: MotionEvent) {}
+            override fun onFling(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                velocityX: Float,
+                velocityY: Float
+            ): Boolean {
+                return false
             }
         })
 
     previewView.setOnTouchListener { _, event ->
-        if (pinchZoomEnabled) {
+        if (cameraGesturesEnabled) {
             scaleGestureDetector.onTouchEvent(event)
-        }
-        if (autoFocusEnabled) {
             gestureDetector.onTouchEvent(event)
+
+            if (event.action == MotionEvent.ACTION_UP) {
+                animateZoomReset(cameraInfo, cameraControl)
+            }
         }
         true
     }
+}
+
+private fun animateZoomReset(cameraInfo: CameraInfo, cameraControl: CameraControl) {
+    val handler = Handler(Looper.getMainLooper())
+    val durationMs = 300L
+    val frameInterval = 16L
+    val maxSteps = durationMs / frameInterval
+    val currentZoomLevel = cameraInfo.zoomState.value?.linearZoom ?: 0f
+
+    val decrement = currentZoomLevel / maxSteps
+
+    var currentStep = 0L
+    handler.post(object : Runnable {
+        override fun run() {
+            if (currentStep < maxSteps) {
+                val newZoomLevel = currentZoomLevel - (decrement * currentStep)
+                cameraControl.setLinearZoom(newZoomLevel.coerceIn(0f, 1f))
+                currentStep++
+                handler.postDelayed(this, frameInterval)
+            } else {
+                cameraControl.setLinearZoom(0f)
+            }
+        }
+    })
 }
