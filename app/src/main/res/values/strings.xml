@@ -50,13 +50,7 @@
     <string name="subtitle_connectXAccount">Connecting your X account allows you to reveal your identity to the people you tip. To connect your account post to X.</string>
     <string name="title_useKadoSandbox">Use Kado Sandbox</string>
 
-    <string name="action_chat">Chat</string>
     <string name="title_chat">Chat</string>
-
-    <string name="modal_title_turnOnNotifications">Turn On Notifications for Code</string>
-    <string name="modal_description_turnOnNotifications">Allow Code to send you notifications when you receive Tips from other Code users.</string>
-
-    <string name="title_receiveTip">Receive Tips</string>
 
     <string name="title_tipCardBack">Don\'t have cash?\nTip me with Code!</string>
     <string name="subtitle_tipCardBack">Scan to download the app, and then scan the code on the other side to tip</string>
