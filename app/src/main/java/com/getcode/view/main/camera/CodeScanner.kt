@@ -45,7 +45,6 @@ import com.getcode.util.Biometrics
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
-import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
