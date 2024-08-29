@@ -226,8 +226,7 @@ private fun HomeScan(
         scannerView = {
             CodeScanner(
                 scanningEnabled = previewing,
-                cameraAFEnabled = dataState.cameraAutoFocus.enabled,
-                cameraPinchZoomEnabled = dataState.cameraPinchZoom.enabled,
+                cameraGesturesEnabled = dataState.cameraGestures.enabled,
                 onPreviewStateChanged = { previewing = it },
                 onCodeScanned = {
                     if (previewing) {

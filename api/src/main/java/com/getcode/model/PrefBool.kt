@@ -61,8 +61,7 @@ sealed class PrefsBool(val value: String) {
     data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag, Immutable
     data object TIP_CARD_ON_HOMESCREEN: PrefsBool("tip_card_on_home_screen"), BetaFlag, Immutable
     data object TIP_CARD_FLIPPABLE: PrefsBool("tipcard_flippable"), BetaFlag
-    data object CAMERA_AF_ENABLED: PrefsBool("camera_af_enabled"), BetaFlag
-    data object CAMERA_PINCH_ZOOM: PrefsBool("camera_pinch_zoom_enabled"), BetaFlag
+    data object CAMERA_GESTURES_ENABLED: PrefsBool("camera_gestures_enabled"), BetaFlag
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

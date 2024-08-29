@@ -2,7 +2,7 @@ package com.getcode.network.repository
 
 import com.getcode.model.BalanceCurrencyFeature
 import com.getcode.model.BuyModuleFeature
-import com.getcode.model.CameraAFFeature
+import com.getcode.model.CameraGesturesFeature
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
@@ -32,8 +32,7 @@ class FeatureRepository @Inject constructor(
     val conversations = betaFlags.observe().map { ConversationsFeature(it.conversationsEnabled) }
     val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 
-    val cameraAutoFocus = betaFlags.observe().map { CameraAFFeature(it.cameraAFEnabled) }
-    val cameraPinchZoom = betaFlags.observe().map { CameraAFFeature(it.cameraPinchZoomEnabled) }
+    val cameraGestures = betaFlags.observe().map { CameraGesturesFeature(it.cameraGesturesEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 
