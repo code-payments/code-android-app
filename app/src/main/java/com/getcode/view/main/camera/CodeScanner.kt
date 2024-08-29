@@ -45,6 +45,7 @@ import com.getcode.util.Biometrics
 import com.getcode.utils.trace
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
+import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -222,14 +223,17 @@ private fun setupInteractionControls(
     cameraGesturesEnabled: Boolean,
     onTap: (Offset) -> Unit,
 ) {
-    var isPinchZooming = false
+    var shouldIgnoreScroll = false
+    val handler = Handler(Looper.getMainLooper())
+    var resetIgnore: Runnable? = null
 
     // Pinch-to-zoom gesture detector
     val scaleGestureDetector = ScaleGestureDetector(
         previewView.context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                isPinchZooming = true
+                shouldIgnoreScroll = true
+                resetIgnore?.let { handler.removeCallbacks(it) }
                 return true
             }
 
@@ -250,7 +254,8 @@ private fun setupInteractionControls(
             }
 
             override fun onScaleEnd(detector: ScaleGestureDetector) {
-                isPinchZooming = false
+                resetIgnore = Runnable { shouldIgnoreScroll = false }
+                previewView.postDelayed(resetIgnore, 500)
             }
         })
 
@@ -258,11 +263,9 @@ private fun setupInteractionControls(
     val gestureDetector = GestureDetector(
         previewView.context,
         object : GestureDetector.OnGestureListener {
-            private var initialZoomLevel = 0f
             private var accumulatedDelta = 0f
 
             override fun onDown(e: MotionEvent): Boolean {
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                 accumulatedDelta = 0f
                 return true
             }
@@ -285,11 +288,11 @@ private fun setupInteractionControls(
                 distanceX: Float,
                 distanceY: Float
             ): Boolean {
-                if (!isPinchZooming) {
+                if (!shouldIgnoreScroll) {
                     accumulatedDelta += distanceY
 
                     val deltaZoom = accumulatedDelta / 1000f
-
+                    val initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                     val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
                     val minZoom = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
 
