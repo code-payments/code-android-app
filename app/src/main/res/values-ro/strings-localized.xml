@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Cumpără mai multe monede Kin</string>
   <string name="action_cancel">Anulare</string>
   <string name="action_cancelSend">Anulează trimiterea</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Colectați acești bani</string>
   <string name="action_confirm">Confirmare</string>
   <string name="action_connectToX">Conectează-te la X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Depozitează Kin în portofelul tău Code trimițând o sumă în Kin la adresa ta de depozit de mai jos. Apasă pentru a copia.</string>
   <string name="subtitle_insufficientFundsDescription">Te rugăm să obții mai mulţi Kin și apoi să încerci să plătești din nou</string>
   <string name="subtitle_invalidTokenAccount">Cont de destinație nevalid</string>
+  <string name="subtitle_invalidTokenAccountDescription">Asigură-te că adresa la care retragi bani a fost inițializată de furnizorul portofelului tău. O scurtătură pentru a realiza aceasta este să schimbi mai întâi o cantitate mică de SOL pentru Kin în portofelul către care încerci să transferi.</string>
   <string name="subtitle_inviteCode">Cod de invitație</string>
   <string name="subtitle_inviteCodeDescription">Momentan Code este accesibil doar pe bază de invitație. Vei avea nevoie de un cod de invitație pentru a accesa aplicația.</string>
   <string name="subtitle_inviteCount">%1$d invitații</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Trebuie să pornești camera foto pentru a scana Coduri</string>
   <string name="subtitle_tipCardForX">Cardul tău de bacșiș îți permite să primești bacșișuri de la utilizatorii Code din întreaga lume. Pentru a accesa Cardul tău de bacșiș, conectează-te cu contul tău X.</string>
   <string name="subtitle_tipCardTwitterDescription">Cardul tău de bacșișuri îți permite să primești bacșișuri de la utilizatorii Code din întreaga lume. Pentru a-ți accesa Cardul de bacșișuri, postează pe X.</string>
+  <string name="subtitle_turnOnNotifications">Permite Code să-ți trimită notificări atunci când primești Sugestii de la alți utilizatori Code.</string>
   <string name="subtitle_typeDelete">Scrie „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Am făcut unele modificări pentru a îmbunătăți experiența de utilizare. Va fi nevoie să actualizezi aplicația pentru a putea folosi mai departe Code.</string>
   <string name="subtitle_validOwnerAccount">Cont de proprietar valid</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Politică de confidențialitate</string>
   <string name="title_purchased">Achiziționat</string>
   <string name="title_push_twitterAccountConnected">Contul X a fost conectat cu succes</string>
+  <string name="title_receiveTips">Primește Sugestii</string>
   <string name="title_received">Primit</string>
   <string name="title_recentCurrencies">Valute folosite recent</string>
   <string name="title_referFriend">Recomandați un prieten, primiți 5 dolari</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Termeni de utilizare</string>
   <string name="title_tipCard">Card de bacșiș</string>
   <string name="title_tipKin">Trimite bacșiș monede Kin</string>
+  <string name="title_turnOnNotifications">Activează notificările pentru Code</string>
   <string name="title_unknown">Necunoscut</string>
   <string name="title_updateRequired">Este necesară actualizarea</string>
   <string name="title_verifyPhoneNumber">Verifică numărul de telefon</string>

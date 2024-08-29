@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Acquista altri Kin</string>
   <string name="action_cancel">Annulla</string>
   <string name="action_cancelSend">Cancella invio</string>
+  <string name="action_chat">Chatta</string>
   <string name="action_collectCash">Ritira questi soldi</string>
   <string name="action_confirm">Conferma</string>
   <string name="action_connectToX">Connetti a X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Deposita Kin nel tuo portafoglio Code inviando Kin al tuo indirizzo di deposito qui sotto. Tocca per copiare.</string>
   <string name="subtitle_insufficientFundsDescription">Ottieni più Kin e poi prova a pagare di nuovo</string>
   <string name="subtitle_invalidTokenAccount">Conto di destinazione non valido</string>
+  <string name="subtitle_invalidTokenAccountDescription">Assicurati che l\'indirizzo da cui stai effettuando il ritiro sia stato inizializzato dal fornitore del tuo portafoglio. Una scorciatoia per raggiungere questo obiettivo è scambiare prima una piccola quantità di SOL con Kin nel portafoglio a cui stai tentando di inviare.</string>
   <string name="subtitle_inviteCode">Codice di Invito</string>
   <string name="subtitle_inviteCodeDescription">Code è attualmente solo su invito. Avrai bisogno di un Codice di Invito per accedere all\'app.</string>
   <string name="subtitle_inviteCount">%1$d inviti</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">È necessario aprire la fotocamera per scansionare i codici</string>
   <string name="subtitle_tipCardForX">La tua Tip Card ti consente di ricevere mance dagli utenti di Code in tutto il mondo. Per accedere alla tua Tip Card collega la tua identità X.</string>
   <string name="subtitle_tipCardTwitterDescription">La tua Tip Card ti consente di ricevere mance dagli utenti di Code in tutto il mondo. Per accedere alla tua Tip Card, pubblica su X.</string>
+  <string name="subtitle_turnOnNotifications">Consenti a Code di inviarti notifiche quando ricevi mance da altri utenti di Code.</string>
   <string name="subtitle_typeDelete">Digita \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Abbiamo apportato alcune modifiche per migliorare l\'esperienza. Dovrai aggiornare l\'app per poter continuare a utilizzare Code.</string>
   <string name="subtitle_validOwnerAccount">Account proprietario valido</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Informativa sulla privacy</string>
   <string name="title_purchased">Acquisti</string>
   <string name="title_push_twitterAccountConnected">Account X connesso con successo</string>
+  <string name="title_receiveTips">Ricevi mance</string>
   <string name="title_received">Ricevuti</string>
   <string name="title_recentCurrencies">Valute recenti</string>
   <string name="title_referFriend">Invita un amico, ricevi 5 $</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Termini di servizio</string>
   <string name="title_tipCard">Carta suggerimento</string>
   <string name="title_tipKin">Mancia Kin</string>
+  <string name="title_turnOnNotifications">Attiva le notifiche per Code</string>
   <string name="title_unknown">Sconosciuto</string>
   <string name="title_updateRequired">Aggiornamento richiesto</string>
   <string name="title_verifyPhoneNumber">Verifica numero di telefono</string>

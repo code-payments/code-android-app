@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Kupite više valuta Kin</string>
   <string name="action_cancel">Otkaži</string>
   <string name="action_cancelSend">Откажи слање</string>
+  <string name="action_chat">Ћаскај</string>
   <string name="action_collectCash">Покупите овај новац</string>
   <string name="action_confirm">Potvrdi</string>
   <string name="action_connectToX">Повежи се на X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Uložite Kin u svoj Code novčanik tako što ćete poslati Kin na svoju adresu za ulaganje ispod. Dodirnite da biste kopirali.</string>
   <string name="subtitle_insufficientFundsDescription">Набавите још кинова, а затим покушајте поново да платите</string>
   <string name="subtitle_invalidTokenAccount">Неважећи одредишни налог</string>
+  <string name="subtitle_invalidTokenAccountDescription">Уверите се да је добављач новчаника покренуо адресу на коју повлачите. Да бисте ово брже постигли, прво размените мањи износ сола за кин у новчанику у који покушавате да пошаљете.</string>
   <string name="subtitle_inviteCode">Позивни Код</string>
   <string name="subtitle_inviteCodeDescription">Код је тренутно само позив. Биће вам потребан позивни Код да бисте приступили апликацији.</string>
   <string name="subtitle_inviteCount">%1$d poziva</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Морате да покренете камеру да бисте скенирали кодове</string>
   <string name="subtitle_tipCardForX">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице повежите се са својим X идентитетом.</string>
   <string name="subtitle_tipCardTwitterDescription">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице поставите објаву на X платформи.</string>
+  <string name="subtitle_turnOnNotifications">Дозволите апликацији Code да вам шаље обавештења кад добијете савете од других корисника апликације Code.</string>
   <string name="subtitle_typeDelete">Откуцајте \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Napravili smo neke izmene da bismo poboljšali iskustvo. Moraćete da ažurirate aplikaciju da biste nastavili da koristite Code.</string>
   <string name="subtitle_validOwnerAccount">Важећи налог власника</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Pravila o privatnosti</string>
   <string name="title_purchased">Kupljeno</string>
   <string name="title_push_twitterAccountConnected">X налог успешно повезан</string>
+  <string name="title_receiveTips">Добијте савете</string>
   <string name="title_received">Primljeno</string>
   <string name="title_recentCurrencies">Nedavne valute</string>
   <string name="title_referFriend">Препоручите пријатеља, узмите 5$</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Uslovi korišcenja usluge</string>
   <string name="title_tipCard">Картица са саветом</string>
   <string name="title_tipKin">Дај напојницу у виду Кина</string>
+  <string name="title_turnOnNotifications">Укључите обавештења за Code</string>
   <string name="title_unknown">Непознато</string>
   <string name="title_updateRequired">Potrebno je ažuriranje</string>
   <string name="title_verifyPhoneNumber">Potvrdi broj telefona</string>

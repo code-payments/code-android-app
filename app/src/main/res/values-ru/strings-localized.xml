@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Купить больше Kin</string>
   <string name="action_cancel">Отменить</string>
   <string name="action_cancelSend">Отменить отправку</string>
+  <string name="action_chat">Общаться</string>
   <string name="action_collectCash">Заберите эти деньги</string>
   <string name="action_confirm">Подтвердить</string>
   <string name="action_connectToX">Подключиться к X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Внесите Kin на свой кошелек Code, отправив Kin на свой депозитный адрес ниже. Коснитесь, чтобы скопировать.</string>
   <string name="subtitle_insufficientFundsDescription">Получите больше Kin и попробуйте заплатить еще раз</string>
   <string name="subtitle_invalidTokenAccount">Неверный целевой счет</string>
+  <string name="subtitle_invalidTokenAccountDescription">Пожалуйста, убедитесь, что адрес, на который вы выводите средства, был инициализирован провайдером вашего кошелька. Для этого можно сначала обменять небольшое количество SOL на Kin в кошельке, на который вы пытаетесь отправить средства.</string>
   <string name="subtitle_inviteCode">Пригласительный код</string>
   <string name="subtitle_inviteCodeDescription">В настоящее время Code только по приглашению. Для доступа к приложению вам понадобится пригласительный код.</string>
   <string name="subtitle_inviteCount">%1$d приглашений</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Вам нужно запустить камеру для сканирования кодов</string>
   <string name="subtitle_tipCardForX">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к своей карте чаевых, подключите свою личность X.</string>
   <string name="subtitle_tipCardTwitterDescription">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к карточке чаевых, опублиуйте пост в X.</string>
+  <string name="subtitle_turnOnNotifications">Разрешите Code отправлять вам уведомления, когда вы получаете советы от других пользователей Code.</string>
   <string name="subtitle_typeDelete">Введите «%1$s‎»</string>
   <string name="subtitle_updateRequiredDescription">Мы кое-что изменили, чтобы улучшить ваш опыт пользования. Вам придется обновить приложение, чтобы продолжить пользоваться Code.</string>
   <string name="subtitle_validOwnerAccount">Действительный счет владельца</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Политика конфиденциальности</string>
   <string name="title_purchased">Куплено</string>
   <string name="title_push_twitterAccountConnected">Аккаунт X успешно подключен</string>
+  <string name="title_receiveTips">Получать советы</string>
   <string name="title_received">Получил(-а)</string>
   <string name="title_recentCurrencies">Недавние валюты</string>
   <string name="title_referFriend">Приведите друга, получите 5 долл. США</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Условия пользования</string>
   <string name="title_tipCard">Карточка чаевых</string>
   <string name="title_tipKin">Дать чаевые в кин</string>
+  <string name="title_turnOnNotifications">Включить уведомления от Code</string>
   <string name="title_unknown">Неизвестный</string>
   <string name="title_updateRequired">Требуется обновление</string>
   <string name="title_verifyPhoneNumber">Подтвердить номер телефона</string>

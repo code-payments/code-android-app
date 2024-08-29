@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Daha Fazla Kin Satın Al</string>
   <string name="action_cancel">İptal et</string>
   <string name="action_cancelSend">Göndermeyi İptal Et</string>
+  <string name="action_chat">Sohbet</string>
   <string name="action_collectCash">Bu Parayı Topla</string>
   <string name="action_confirm">Onayla</string>
   <string name="action_connectToX">X\'e Bağlan</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Aşağıda bulunan Para Yatırma Adresine göndererek Code cüzdanına Kin yatır. Kopyalamak için dokun.</string>
   <string name="subtitle_insufficientFundsDescription">Lütfen daha fazla Kin alın ve tekrar ödeme yapmayı deneyin</string>
   <string name="subtitle_invalidTokenAccount">Geçersiz hedef hesabı</string>
+  <string name="subtitle_invalidTokenAccountDescription">Lütfen çekim yapacağınız adresin cüzdan sağlayıcınız tarafından başlatıldığından emin olun. Bunu başarmanın bir kestirmesi, gönderim yapmayı düşündüğünüz cüzdanda küçük bir miktar SOL\'u Kin ile takas etmektir. </string>
   <string name="subtitle_inviteCode">Davet Kodu</string>
   <string name="subtitle_inviteCodeDescription">Şu anda Code\'a katılım sadece davetledir. Uygulamaya erişmek için bir Davet Koduna ihtiyacınız olacak.</string>
   <string name="subtitle_inviteCount">%1$d Davet</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Code\'ları taramak için kameranızı başlatmanız gerekir</string>
   <string name="subtitle_tipCardForX">Bahşiş Kartın, dünyanın dört bir yanındaki Code kullanıcılarından bahşişler almana olanak tanır. Tip Kartına erişmek için X kimliğini bağla.</string>
   <string name="subtitle_tipCardTwitterDescription">Bahşiş Kartınız, dünyanın her yerindeki Code kullanıcılarından ipuçları almanızı sağlar. Bahşiş Kartınıza erişmek için X\'e gönderin.</string>
+  <string name="subtitle_turnOnNotifications">Diğer Code kullanıcılarından ipuçları aldığınızda Code\'un size bildirim göndermesine izin verin.\n\n\n\n\n\n\n</string>
   <string name="subtitle_typeDelete">\"%1$s\" yaz</string>
   <string name="subtitle_updateRequiredDescription">Deneyimi iyileştirmek için bazı değişiklikler yaptık. Code\'u kullanmaya devam etmek için uygulamayı güncellemen gerekiyor.</string>
   <string name="subtitle_validOwnerAccount">Geçerli sahip hesabı</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Gizlilik Politikası</string>
   <string name="title_purchased">Satın alındı</string>
   <string name="title_push_twitterAccountConnected">X Hesabı Başarıyla Bağlandı</string>
+  <string name="title_receiveTips">İpuçları Alın</string>
   <string name="title_received">Aldı</string>
   <string name="title_recentCurrencies">Son Para Birimleri</string>
   <string name="title_referFriend">Bir Arkadaş Yönlendir, $5\'ı Kazan</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Hizmet Şartları</string>
   <string name="title_tipCard">Bahşiş Kartı</string>
   <string name="title_tipKin">Bahşiş Olarak Kin Ver</string>
+  <string name="title_turnOnNotifications">Code için Bildirimleri Açın</string>
   <string name="title_unknown">Bilinmeyen</string>
   <string name="title_updateRequired">Güncelleme Gerekli</string>
   <string name="title_verifyPhoneNumber">Telefon Numarasını Doğrula</string>

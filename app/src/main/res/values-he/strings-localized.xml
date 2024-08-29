@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">לקנות kin יותר</string>
   <string name="action_cancel">ביטול</string>
   <string name="action_cancelSend">בטל שליחה</string>
+  <string name="action_chat">צ\'אט</string>
   <string name="action_collectCash">אסוף את המזומן הזה</string>
   <string name="action_confirm">אישור</string>
   <string name="action_connectToX">התחבר ל-X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">הפקד קין לארנק הקוד שלך על ידי שליחת קין לכתובת ההפקדות שלך המצוינת מטה. הקש להעתקה.</string>
   <string name="subtitle_insufficientFundsDescription">אנא השיגו עוד Kin ואז נסו לשלם שוב</string>
   <string name="subtitle_invalidTokenAccount">חשבון יעד לא חוקי</string>
+  <string name="subtitle_invalidTokenAccountDescription">נא ודאו שהכתובת שאליה אתם מושכים אותחלה על ידי ספק הארנק שלכם. דרך קצרה לעשות זאת היא להחליף תחילה כמות קטנה של SOL ל-Kin בארנק שאליו אתם מנסים לשלוח.</string>
   <string name="subtitle_inviteCode">קוד הזמנה</string>
   <string name="subtitle_inviteCodeDescription">Code היא כרגע בהזמנה בלבד. תזדקק לקוד הזמנה כדי לגשת לאפליקציה.</string>
   <string name="subtitle_inviteCount">%1$d הזמנות</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">עליך להפעיל את המצלמה כדי לסרוק קודים</string>
   <string name="subtitle_tipCardForX">כרטיס הטיפים שלכם מאפשר לכם לקבל טיפים ממשתמשי Code מכל רחבי העולם. כדי לגשת לכרטיס הטיפים שלכם חברו את זהות X שלכם.</string>
   <string name="subtitle_tipCardTwitterDescription">ה\"טיפקארד\" שלך מאפשר לך לקבל טיפים ממשתמשי קוד בכל רחבי העולם. כדי לגשת ל\"טיפקארד\" שלך, עליך להעלות פוסט ל-X.</string>
+  <string name="subtitle_turnOnNotifications">אפשרו ל-Code לשלוח לכם הודעות כשאתם מקבלים טיפים ממשתמשי Code אחרים.</string>
   <string name="subtitle_typeDelete">יש להקליד \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">עשינו כמה שינויים כדי לשפר את חווית המשתמש. תצטרך לעדכן את האפליקציה כדי להמשיך להשתמש בקוד.</string>
   <string name="subtitle_validOwnerAccount">חשבון בעלים תקף</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">מדיניות פרטיות</string>
   <string name="title_purchased">נרכש</string>
   <string name="title_push_twitterAccountConnected">חשבון X חובר בהצלחה</string>
+  <string name="title_receiveTips">קבלו טיפים</string>
   <string name="title_received">הפקדות שהתקבלו</string>
   <string name="title_recentCurrencies">סוגי מטבע בשימוש לאחרונה</string>
   <string name="title_referFriend">הפנה חבר, קבל 5$</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">תנאי שימוש</string>
   <string name="title_tipCard">כרטיס טיפ</string>
   <string name="title_tipKin">מתן Kin כטיפ</string>
+  <string name="title_turnOnNotifications">הפעילו הודעות עבור Code</string>
   <string name="title_unknown">לא ידוע</string>
   <string name="title_updateRequired">נדרש עדכון</string>
   <string name="title_verifyPhoneNumber">אימות מספר טלפון</string>

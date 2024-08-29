@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,35 +67,56 @@ fun AccountWithdrawAddress(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column {
             dataState.isValid?.let { isValid ->
-                Image(
-                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
-                    painter = painterResource(
-                        if (isValid) R.drawable.ic_checked_green else R.drawable.ic_xmark_red
-                    ),
-                    contentDescription = ""
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x4),
+                        painter = painterResource(
+                            if (isValid) R.drawable.ic_checked_green else R.drawable.ic_xmark_red
+                        ),
+                        colorFilter = ColorFilter.tint(
+                            if (isValid) Success else CodeTheme.colors.errorText
+                        ),
+                        contentDescription = ""
+                    )
 
-                val text =
-                    if (isValid) {
-                        if (dataState.hasResolvedDestination) {
-                            stringResource(id = R.string.subtitle_validOwnerAccount)
-                        } else stringResource(id = R.string.subtitle_validTokenAccount)
-                    } else {
-                        stringResource(id = R.string.subtitle_invalidTokenAccount)
+                    val text =
+                        if (isValid) {
+                            if (dataState.hasResolvedDestination) {
+                                stringResource(id = R.string.subtitle_validOwnerAccount)
+                            } else stringResource(id = R.string.subtitle_validTokenAccount)
+                        } else {
+                            stringResource(id = R.string.subtitle_invalidTokenAccount)
+                        }
+
+                    Text(
+                        modifier = Modifier
+                            .padding(start = CodeTheme.dimens.grid.x2),
+                        text = text,
+                        color = if (isValid) Success else CodeTheme.colors.errorText,
+                        style = CodeTheme.typography.caption
+                    )
+                }
+
+                if (!isValid) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Spacer(Modifier.size(CodeTheme.dimens.staticGrid.x4))
+                        Text(
+                            modifier = Modifier
+                                .padding(start = CodeTheme.dimens.grid.x2),
+                            text = stringResource(R.string.subtitle_invalidTokenAccountDescription),
+                            color = CodeTheme.colors.errorText,
+                            style = CodeTheme.typography.caption
+                        )
                     }
-
-                Text(
-                    modifier = Modifier
-                        .padding(start = CodeTheme.dimens.grid.x2),
-                    text = text,
-                    color = if (isValid) Success else Color.Red,
-                    style = CodeTheme.typography.caption
-                )
+                }
             }
         }
 
