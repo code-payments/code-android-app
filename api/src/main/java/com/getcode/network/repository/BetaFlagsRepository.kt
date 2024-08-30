@@ -22,6 +22,7 @@ data class BetaOptions(
     val shareTweetToTip: Boolean,
     val tipCardOnHomeScreen: Boolean,
     val cameraGesturesEnabled: Boolean,
+    val invertedDragZoom: Boolean,
     val canFlipTipCard: Boolean,
     val galleryEnabled: Boolean,
 ) {
@@ -44,6 +45,7 @@ data class BetaOptions(
             shareTweetToTip = true,
             tipCardOnHomeScreen = true,
             cameraGesturesEnabled = true,
+            invertedDragZoom = false,
             canFlipTipCard = false,
             galleryEnabled = false
         )
@@ -84,6 +86,7 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
             observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
             observeBetaFlag(PrefsBool.CAMERA_GESTURES_ENABLED, defaults.cameraGesturesEnabled),
+            observeBetaFlag(PrefsBool.CAMERA_DRAG_INVERTED, defaults.invertedDragZoom),
             observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard),
             observeBetaFlag(PrefsBool.GALLERY_ENABLED, defaults.galleryEnabled),
         ) {
@@ -104,9 +107,9 @@ class BetaFlagsRepository @Inject constructor(
                 shareTweetToTip = it[13],
                 tipCardOnHomeScreen = it[14],
                 cameraGesturesEnabled = it[15],
-                canFlipTipCard = it[16],
-                galleryEnabled = it[17],
-
+                invertedDragZoom = it[16],
+                canFlipTipCard = it[17],
+                galleryEnabled = it[18],
             )
         }
     }
@@ -131,6 +134,7 @@ class BetaFlagsRepository @Inject constructor(
                 PrefsBool.BUCKET_DEBUGGER_ENABLED -> canViewBuckets
                 PrefsBool.BUY_MODULE_ENABLED -> buyModuleEnabled
                 PrefsBool.CAMERA_GESTURES_ENABLED -> cameraGesturesEnabled
+                PrefsBool.CAMERA_DRAG_INVERTED -> invertedDragZoom
                 PrefsBool.CHAT_UNSUB_ENABLED -> chatUnsubEnabled
                 PrefsBool.CONVERSATIONS_ENABLED -> conversationsEnabled
                 PrefsBool.CONVERSATION_CASH_ENABLED -> conversationCashEnabled
