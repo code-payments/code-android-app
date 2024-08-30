@@ -119,7 +119,7 @@ internal fun DecorView(
                 .padding(horizontal = CodeTheme.dimens.grid.x3)
                 .align(Alignment.TopEnd),
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x6)
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
         ) {
             Image(
                 modifier = Modifier
@@ -127,24 +127,18 @@ internal fun DecorView(
                     .unboundedClickable {
                         onAction(HomeAction.ACCOUNT)
                     },
-                painter = painterResource(
-                    R.drawable.ic_home_options
-                ),
+                painter = painterResource(R.drawable.ic_home_options),
                 contentDescription = "",
             )
 
             if (dataState.gallery.enabled) {
                 Image(
                     modifier = Modifier
-                        .size(CodeTheme.dimens.grid.x8)
-                        .border(CodeTheme.dimens.border, Color.White.copy(0.50f), CircleShape)
                         .clip(CircleShape)
-                        .padding(CodeTheme.dimens.grid.x2)
                         .unboundedClickable {
                             onAction(HomeAction.GALLERY)
                         },
-                    imageVector = Icons.Default.PhotoLibrary,
-                    colorFilter = ColorFilter.tint(Color.White),
+                    painter = painterResource(R.drawable.ic_gallery),
                     contentDescription = "",
                 )
             }
