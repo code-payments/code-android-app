@@ -1,16 +1,8 @@
 package com.getcode.view.main.camera
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.view.ScaleGestureDetector
 import androidx.camera.core.Camera
-import androidx.camera.core.CameraControl
-import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -54,7 +46,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 @Composable
 fun CodeScanner(
@@ -96,6 +87,8 @@ fun CodeScanner(
 
     var camera by remember { mutableStateOf<Camera?>(null) }
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
+
+    var gestureController by remember { mutableStateOf<CameraGestureController?>(null) }
 
     val kikCodeAnalyzer = remember(scanner, onCodeScanned) {
         KikCodeAnalyzer(scanner, onCodeScanned)
@@ -145,20 +138,25 @@ fun CodeScanner(
         }
     }
 
-    LaunchedEffect(camera, cameraGesturesEnabled) {
+    LaunchedEffect(camera, cameraGesturesEnabled, invertedDragZoomEnabled) {
         camera?.let {
-            val cameraControl = it.cameraControl
-            val cameraInfo = it.cameraInfo
-
-            setupInteractionControls(
-                previewView,
-                cameraControl,
-                cameraInfo,
-                cameraGesturesEnabled,
-                invertedDragZoomEnabled,
-            ) { point ->
-                autoFocusPoint = point
+            gestureController = CameraGestureController(
+                context = context,
+                cameraControl = it.cameraControl,
+                cameraInfo = it.cameraInfo,
+                gesturesEnabled = cameraGesturesEnabled,
+                invertedDragEnabled = invertedDragZoomEnabled
+            ) { touchedAt ->
+                autoFocusPoint = touchedAt
+                previewView.meteringPointFactory.createPoint(touchedAt.x, touchedAt.y)
             }
+        }
+    }
+
+    LaunchedEffect(previewView) {
+        previewView.setOnTouchListener { _, event ->
+            gestureController?.onTouchEvent(event)
+            true
         }
     }
 
@@ -215,147 +213,4 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider {
     return withContext(Dispatchers.IO) {
         ProcessCameraProvider.getInstance(this@getCameraProvider).get()
     }
-}
-
-private fun setupInteractionControls(
-    previewView: PreviewView,
-    cameraControl: CameraControl,
-    cameraInfo: CameraInfo,
-    cameraGesturesEnabled: Boolean,
-    invertedDragZoomEnabled: Boolean,
-    onTap: (Offset) -> Unit,
-) {
-    var shouldIgnoreScroll = false
-    val handler = Handler(Looper.getMainLooper())
-    var resetIgnore: Runnable? = null
-    var initialZoomLevel = 0f
-    var accumulatedDelta = 0f
-    // Pinch-to-zoom gesture detector
-    val scaleGestureDetector = ScaleGestureDetector(
-        previewView.context,
-        object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                shouldIgnoreScroll = true
-                resetIgnore?.let { handler.removeCallbacks(it) }
-                return true
-            }
-
-            override fun onScale(detector: ScaleGestureDetector): Boolean {
-                val currentZoomRatio = cameraInfo.zoomState.value?.zoomRatio ?: 1f
-                val delta = detector.scaleFactor
-                val newZoomRatio = currentZoomRatio * delta
-
-                // Clamp the new zoom ratio between the minimum and maximum zoom ratio
-                val clampedZoomRatio = newZoomRatio.coerceIn(
-                    cameraInfo.zoomState.value?.minZoomRatio ?: 1f,
-                    cameraInfo.zoomState.value?.maxZoomRatio ?: currentZoomRatio
-                )
-
-                // Apply the zoom to the camera control
-                cameraControl.setZoomRatio(clampedZoomRatio)
-                return true
-            }
-
-            override fun onScaleEnd(detector: ScaleGestureDetector) {
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
-                resetIgnore = Runnable { shouldIgnoreScroll = false }
-                previewView.postDelayed(resetIgnore, 500)
-            }
-        })
-
-    // Gesture detector for tap and drag-to-zoom
-    val gestureDetector = GestureDetector(
-        previewView.context,
-        object : GestureDetector.OnGestureListener {
-
-
-            override fun onDown(e: MotionEvent): Boolean {
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
-                accumulatedDelta = 0f
-                return true
-            }
-
-            override fun onSingleTapUp(event: MotionEvent): Boolean {
-                val point = previewView.meteringPointFactory.createPoint(event.x, event.y)
-                onTap(Offset(event.x, event.y))
-
-                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
-                    .setAutoCancelDuration(5, TimeUnit.SECONDS)
-                    .build()
-
-                cameraControl.startFocusAndMetering(action)
-                return true
-            }
-
-            override fun onScroll(
-                e1: MotionEvent?,
-                e2: MotionEvent,
-                distanceX: Float,
-                distanceY: Float
-            ): Boolean {
-                if (!shouldIgnoreScroll) {
-                    accumulatedDelta = if (invertedDragZoomEnabled) {
-                        accumulatedDelta + distanceY
-                    } else {
-                        accumulatedDelta - distanceY
-                    }
-
-                    val deltaZoom = accumulatedDelta / 1000f
-                    val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
-                    val minZoom = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
-
-                    val newZoom = (initialZoomLevel + deltaZoom).coerceIn(minZoom, maxZoom)
-                    cameraControl.setZoomRatio(newZoom)
-                }
-                return true
-            }
-
-            override fun onShowPress(e: MotionEvent) {}
-            override fun onLongPress(e: MotionEvent) {}
-            override fun onFling(
-                e1: MotionEvent?,
-                e2: MotionEvent,
-                velocityX: Float,
-                velocityY: Float
-            ): Boolean {
-                return false
-            }
-        })
-
-    previewView.setOnTouchListener { _, event ->
-        if (cameraGesturesEnabled) {
-            scaleGestureDetector.onTouchEvent(event)
-            gestureDetector.onTouchEvent(event)
-
-            if (event.action == MotionEvent.ACTION_UP) {
-                animateZoomReset(cameraInfo, cameraControl)
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
-            }
-        }
-        true
-    }
-}
-
-private fun animateZoomReset(cameraInfo: CameraInfo, cameraControl: CameraControl) {
-    val handler = Handler(Looper.getMainLooper())
-    val durationMs = 300L
-    val frameInterval = 16L
-    val maxSteps = durationMs / frameInterval
-    val currentZoomLevel = cameraInfo.zoomState.value?.linearZoom ?: 0f
-
-    val decrement = currentZoomLevel / maxSteps
-
-    var currentStep = 0L
-    handler.post(object : Runnable {
-        override fun run() {
-            if (currentStep < maxSteps) {
-                val newZoomLevel = currentZoomLevel - (decrement * currentStep)
-                cameraControl.setLinearZoom(newZoomLevel.coerceIn(0f, 1f))
-                currentStep++
-                handler.postDelayed(this, frameInterval)
-            } else {
-                cameraControl.setLinearZoom(0f)
-            }
-        }
-    })
 }
