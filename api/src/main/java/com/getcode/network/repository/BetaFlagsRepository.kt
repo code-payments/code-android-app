@@ -22,6 +22,7 @@ data class BetaOptions(
     val shareTweetToTip: Boolean,
     val tipCardOnHomeScreen: Boolean,
     val cameraGesturesEnabled: Boolean,
+    val invertedDragZoom: Boolean,
     val canFlipTipCard: Boolean,
 ) {
     companion object {
@@ -43,6 +44,7 @@ data class BetaOptions(
             shareTweetToTip = true,
             tipCardOnHomeScreen = true,
             cameraGesturesEnabled = true,
+            invertedDragZoom = false,
             canFlipTipCard = false
         )
     }
@@ -82,6 +84,7 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
             observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
             observeBetaFlag(PrefsBool.CAMERA_GESTURES_ENABLED, defaults.cameraGesturesEnabled),
+            observeBetaFlag(PrefsBool.CAMERA_DRAG_INVERTED, defaults.invertedDragZoom),
             observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard)
         ) {
             BetaOptions(
@@ -101,7 +104,8 @@ class BetaFlagsRepository @Inject constructor(
                 shareTweetToTip = it[13],
                 tipCardOnHomeScreen = it[14],
                 cameraGesturesEnabled = it[15],
-                canFlipTipCard = it[16],
+                invertedDragZoom = it[16],
+                canFlipTipCard = it[17],
             )
         }
     }

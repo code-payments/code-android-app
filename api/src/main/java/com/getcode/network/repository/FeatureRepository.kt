@@ -10,6 +10,7 @@ import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationsFeature
 import com.getcode.model.FlippableTipCardFeature
+import com.getcode.model.InvertedDragZoomFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -33,6 +34,7 @@ class FeatureRepository @Inject constructor(
     val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 
     val cameraGestures = betaFlags.observe().map { CameraGesturesFeature(it.cameraGesturesEnabled) }
+    val invertedDragZoom = betaFlags.observe().map { InvertedDragZoomFeature(it.invertedDragZoom) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 

@@ -61,6 +61,12 @@ fun BetaFlagsScreen(
             state.cameraGesturesEnabled,
         ),
         BetaFeature(
+            PrefsBool.CAMERA_DRAG_INVERTED,
+            R.string.beta_camera_invert_drag,
+            stringResource(id = R.string.beta_camera_invert_drag_description),
+            state.invertedDragZoom,
+        ),
+        BetaFeature(
             PrefsBool.TIP_CARD_FLIPPABLE,
             R.string.beta_tipcard_can_flip,
             stringResource(id = R.string.beta_tipcard_can_flip_description),
