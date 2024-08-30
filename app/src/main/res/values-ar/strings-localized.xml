@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">اشترِ مزيدًا من عملات Kin</string>
   <string name="action_cancel">إلغاء</string>
   <string name="action_cancelSend">إلغاء الإرسال</string>
+  <string name="action_chat">الدردشة</string>
   <string name="action_collectCash">اجمع هذه النقود</string>
   <string name="action_confirm">تأكيد</string>
   <string name="action_connectToX">الربط بحساب X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">قم بإيداع الأموال في محفظة Code الخاصة بك عن طريق إرسالها إلى عنوان الإيداع الخاص بك أدناه. انقر للنسخ.</string>
   <string name="subtitle_insufficientFundsDescription">يُرجى الحصول على المزيد من Kin ثم محاولة الدفع مرة أخرى</string>
   <string name="subtitle_invalidTokenAccount">حساب المستلم غير صحيح</string>
+  <string name="subtitle_invalidTokenAccountDescription">يرجى التأكد من أن العنوان الذي تقوم بالسحب إليه قد تمت تهيئته بواسطة مزود المحفظة الخاص بك. هناك طريقة مختصرة لتحقيق ذلك وهي استبدال مبلغ صغير من SOL بعملة Kin في المحفظة التي تحاول الإرسال إليها.</string>
   <string name="subtitle_inviteCode">رمز الدعوة</string>
   <string name="subtitle_inviteCodeDescription">الوصول إلى Code حاليًا بالدعوة فقط. ستحتاج إلى رمز دعوة للوصول إلى التطبيق.</string>
   <string name="subtitle_inviteCount">%1$d دعوات</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">أنت بحاجة إلى تشغيل الكاميرا لمسح الرموز ضوئيًا</string>
   <string name="subtitle_tipCardForX">تتيح لك بطاقة الإكرامية الخاصة بك تلقي الإكراميات من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة الإكرامية الخاصة بك, قم بتوصيل هوية X الخاصة بك.</string>
   <string name="subtitle_tipCardTwitterDescription">تتيح لك بطاقة النصائح تلقي نصائح من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة النصائح انشر على X.</string>
+  <string name="subtitle_turnOnNotifications">اسمح لـ Code بإرسال إشعارات إليك عندما تتلقى نصائح من مستخدمي Code الآخرين.</string>
   <string name="subtitle_typeDelete">اكتب \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">لقد أجرينا بعض التغييرات لتحسين التجربة. ستحتاج إلى تحديث التطبيق للاستمرار في استخدام Code.</string>
   <string name="subtitle_validOwnerAccount">حساب المالك صحيح</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">سياسة الخصوصية</string>
   <string name="title_purchased">تم الشراء</string>
   <string name="title_push_twitterAccountConnected">تم ربط حساب X بنجاح</string>
+  <string name="title_receiveTips">تلقي النصائح</string>
   <string name="title_received">المستلمة</string>
   <string name="title_recentCurrencies">العملات الأخيرة</string>
   <string name="title_referFriend">ارسل طلب إحالة لصديق, واحصل على 5 دولارات</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">شروط الخدمة</string>
   <string name="title_tipCard">بطاقة Tip </string>
   <string name="title_tipKin">إكرامية Kin</string>
+  <string name="title_turnOnNotifications">تشغيل الإشعارات لـ Code</string>
   <string name="title_unknown">غير معروف</string>
   <string name="title_updateRequired">التحديث مطلوب</string>
   <string name="title_verifyPhoneNumber">التحقق من رقم الهاتف</string>

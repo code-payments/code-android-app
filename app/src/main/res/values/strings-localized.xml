@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Buy More Kin</string>
   <string name="action_cancel">Cancel</string>
   <string name="action_cancelSend">Cancel Send</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Collect This Cash</string>
   <string name="action_confirm">Confirm</string>
   <string name="action_connectToX">Connect to X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Deposit Kin into your Code wallet by sending Kin to your Deposit Address below. Tap to copy.</string>
   <string name="subtitle_insufficientFundsDescription">Please get more Kin and then try paying again</string>
   <string name="subtitle_invalidTokenAccount">Invalid destination account</string>
+  <string name="subtitle_invalidTokenAccountDescription">Please make sure the address you\'re withdrawing to has been initialized by your wallet provider. A shortcut to achieve this is to first swap a tiny amount of SOL for Kin in the wallet you\'re trying to send to.</string>
   <string name="subtitle_inviteCode">Invite Code</string>
   <string name="subtitle_inviteCodeDescription">Code is currently invite only. You will need an Invite Code to access the app.</string>
   <string name="subtitle_inviteCount">%1$d Invites</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">You need to start your camera to scan Codes</string>
   <string name="subtitle_tipCardForX">Your Tip Card lets you to receive tips from Code users all over the world. To access your Tip Card connect your X identity.</string>
   <string name="subtitle_tipCardTwitterDescription">Your Tip Card lets you receive tips from Code users all over the world. To access your Tip Card post to X.</string>
+  <string name="subtitle_turnOnNotifications">Allow Code to send you notifications when you receive Tips from other Code users.</string>
   <string name="subtitle_typeDelete">Type \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">We\'ve made some changes to improve the experience. You\'ll need to update the app to keep using Code.</string>
   <string name="subtitle_validOwnerAccount">Valid owner account</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Privacy Policy</string>
   <string name="title_purchased">Purchased</string>
   <string name="title_push_twitterAccountConnected">X Account Successfully Connected</string>
+  <string name="title_receiveTips">Receive Tips</string>
   <string name="title_received">Received</string>
   <string name="title_recentCurrencies">Recent Currencies</string>
   <string name="title_referFriend">Refer a Friend, Get $5</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Terms of Service</string>
   <string name="title_tipCard">Tip Card</string>
   <string name="title_tipKin">Tip Kin</string>
+  <string name="title_turnOnNotifications">Turn On Notifications for Code</string>
   <string name="title_unknown">Unknown</string>
   <string name="title_updateRequired">Update Required</string>
   <string name="title_verifyPhoneNumber">Verify Phone Number</string>

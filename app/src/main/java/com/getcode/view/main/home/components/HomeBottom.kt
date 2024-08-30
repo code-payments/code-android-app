@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.res.painterResource
@@ -34,7 +33,6 @@ import com.getcode.ui.components.chat.ChatNodeDefaults
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.widthOrZero
-import com.getcode.util.resources.icons.AutoMirroredMessageCircle
 import com.getcode.view.main.home.HomeAction
 import com.getcode.view.main.home.HomeUiModel
 
@@ -81,7 +79,7 @@ internal fun HomeBottom(
                         badge = {
                             Badge(
                                 modifier = Modifier.padding(top = 6.dp, end = 1.dp),
-                                count = state.chatUnreadCount,
+                                count = state.notificationUnreadCount,
                                 color = ChatNodeDefaults.UnreadIndicator,
                                 enterTransition = scaleIn(
                                     animationSpec = tween(
@@ -100,6 +98,19 @@ internal fun HomeBottom(
                         label = stringResource(R.string.action_receive),
                         painter = painterResource(R.drawable.ic_tip_card),
                         onClick = { onPress(action) },
+                        badge = {
+                            Badge(
+                                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
+                                count = if (state.splatTipCard) 1 else 0,
+                                color = ChatNodeDefaults.UnreadIndicator,
+                                enterTransition = scaleIn(
+                                    animationSpec = tween(
+                                        durationMillis = 300,
+                                        delayMillis = 1000
+                                    )
+                                ) + fadeIn()
+                            )
+                        }
                     )
                 }
 
@@ -107,7 +118,7 @@ internal fun HomeBottom(
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_chat),
-                        painter = rememberVectorPainter(AutoMirroredMessageCircle),
+                        painter = painterResource(R.drawable.ic_chat),
                         onClick = { onPress(action) },
                     )
                 }

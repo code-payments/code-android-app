@@ -17,11 +17,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.getcode.models.BillState
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.Gray50
 import com.getcode.theme.White
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Pill
-import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
 
 @Composable
@@ -52,7 +50,8 @@ internal fun BillManagementOptions(
                 ) {
                     Box {
                         Row(
-                            modifier = Modifier.alpha(if (!isSending) 1f else 0f)
+                            modifier = Modifier.alpha(if (!isSending) 1f else 0f),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Image(
                                 painter = primaryAction.asset,
@@ -86,16 +85,20 @@ internal fun BillManagementOptions(
                     contentPadding = PaddingValues(15.dp),
                     backgroundColor = CodeTheme.colors.action,
                 ) {
-                    Image(
-                        painter = secondaryAction.asset,
-                        contentDescription = "",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    secondaryAction.label?.let { label ->
-                        Text(
-                            modifier = Modifier.padding(start = 10.dp),
-                            text = label
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = secondaryAction.asset,
+                            contentDescription = "",
+                            modifier = Modifier.size(18.dp)
                         )
+                        secondaryAction.label?.let { label ->
+                            Text(
+                                modifier = Modifier.padding(start = 10.dp),
+                                text = label
+                            )
+                        }
                     }
                 }
             }

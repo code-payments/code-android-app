@@ -2,6 +2,7 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -60,9 +61,10 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
+import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.CameraDisabledView
-import com.getcode.view.main.home.components.CodeScanner
+import com.getcode.view.main.camera.CodeScanner
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
@@ -114,6 +116,7 @@ fun HomeScreen(
                 request = request,
             )
 
+            val notificationPermissionChecker = notificationPermissionCheck {  }
             val context = LocalContext.current
             LaunchedEffect(homeViewModel) {
                 homeViewModel.eventFlow
@@ -125,6 +128,10 @@ fun HomeScreen(
 
                             is HomeEvent.SendIntent -> {
                                 context.startActivity(it.intent)
+                            }
+
+                            HomeEvent.RequestNotificationPermissions -> {
+                                notificationPermissionChecker(true)
                             }
                         }
                     }
@@ -219,6 +226,7 @@ private fun HomeScan(
         scannerView = {
             CodeScanner(
                 scanningEnabled = previewing,
+                cameraGesturesEnabled = dataState.cameraGestures.enabled,
                 onPreviewStateChanged = { previewing = it },
                 onCodeScanned = {
                     if (previewing) {
@@ -441,6 +449,10 @@ private fun BillContainer(
                     delay(300)
                     canCancel = true
                 }
+            }
+
+            BackHandler(updatedState.billState.bill is Bill.Tip && canCancel) {
+                homeViewModel.cancelSend()
             }
         }
 

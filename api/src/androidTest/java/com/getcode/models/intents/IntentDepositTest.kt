@@ -53,7 +53,7 @@ class IntentDepositTest {
 
         // Ensure the funds have been moved out of the
         // primary accounts and into the tray slots
-        Assert.assertEquals(0.0, resultTray.owner.partialBalance.toKinValueDouble(), 0.0)
+        assertEquals(0.0, resultTray.owner.partialBalance.toKinValueDouble(), 0.0)
 
         assertEquals(1_000_000.0, resultTray.availableBalance.toKinValueDouble(), 0.0)
 

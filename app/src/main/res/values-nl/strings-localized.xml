@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Koop meer Kin</string>
   <string name="action_cancel">Annuleren</string>
   <string name="action_cancelSend">Verzenden Annuleren</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Claim dit geld</string>
   <string name="action_confirm">Bevestigen</string>
   <string name="action_connectToX">Verbinden met X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Stort KIN in je Code-wallet door KIN naar je stortingsadres hieronder te sturen. Tik om te kopiëren.</string>
   <string name="subtitle_insufficientFundsDescription">Verkrijg meer Kin en probeer opnieuw te betalen</string>
   <string name="subtitle_invalidTokenAccount">Ongeldig bestemmingsaccount</string>
+  <string name="subtitle_invalidTokenAccountDescription">Zorg ervoor dat het adres waarnaar je geld opneemt is geïnitialiseerd door je portefeuille-provider. Een kortere weg om dit te bereiken is door eerst een kleine hoeveelheid SOL om te ruilen voor Kin in de portefeuille waarnaar je probeert te versturen.</string>
   <string name="subtitle_inviteCode">Uitnodigingscode</string>
   <string name="subtitle_inviteCodeDescription">Code is momenteel alleen op uitnodiging. Je hebt een uitnodigingscode nodig om toegang te krijgen tot de app.</string>
   <string name="subtitle_inviteCount">%1$d uitnodigingen</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Je moet je camera opstarten om Codes te scannen.</string>
   <string name="subtitle_tipCardForX">Met je fooikaart kunt je fooien ontvangen van codegebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, verbind je X-identiteit.</string>
   <string name="subtitle_tipCardTwitterDescription">Met je fooikaart kunt je fooien ontvangen van Code-gebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, post op X.</string>
+  <string name="subtitle_turnOnNotifications">Code toestaan om je meldingen te sturen wanneer je Fooi van andere Code-gebruikers ontvangt.</string>
   <string name="subtitle_typeDelete">Typ \'%1$s\'</string>
   <string name="subtitle_updateRequiredDescription">We hebben enkele wijzigingen doorgevoerd om de ervaring te verbeteren. Je dient de app te updaten om Code te blijven gebruiken.</string>
   <string name="subtitle_validOwnerAccount">Geldig eigenaarsaccount</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Privacybeleid</string>
   <string name="title_purchased">Aangeschaft</string>
   <string name="title_push_twitterAccountConnected">Het X-account is met succes verbonden</string>
+  <string name="title_receiveTips">Fooi ontvangen</string>
   <string name="title_received">Ontvangen</string>
   <string name="title_recentCurrencies">Recente valuta</string>
   <string name="title_referFriend">Verwijs een vriend en ontvang $5</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Servicevoorwaarden</string>
   <string name="title_tipCard">Fooikaart</string>
   <string name="title_tipKin">Fooi-kin</string>
+  <string name="title_turnOnNotifications">Schakel meldingen in voor Code</string>
   <string name="title_unknown">Onbekend</string>
   <string name="title_updateRequired">Update vereist</string>
   <string name="title_verifyPhoneNumber">Telefoonnummer verifiëren</string>

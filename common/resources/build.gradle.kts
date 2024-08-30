@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.namespace}.common"
+    namespace = "${Android.namespace}.util.resources"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

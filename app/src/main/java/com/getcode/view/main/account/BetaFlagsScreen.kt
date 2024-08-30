@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
+import com.getcode.model.Immutable
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
@@ -41,6 +42,36 @@ fun BetaFlagsScreen(
     val tipsEngine = LocalTipsEngine.current
 
     val options = listOf(
+        BetaFeature(
+            PrefsBool.KADO_WEBVIEW_ENABLED,
+            R.string.beta_kado_webview,
+            stringResource(id = R.string.beta_kado_webview_description),
+            state.kadoWebViewEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.SHARE_TWEET_TO_TIP,
+            R.string.beta_share_tweet_tip,
+            stringResource(id = R.string.beta_share_tweet_tip_description),
+            state.shareTweetToTip,
+        ),
+        BetaFeature(
+            PrefsBool.CAMERA_GESTURES_ENABLED,
+            R.string.beta_camera_gestures,
+            stringResource(id = R.string.beta_camera_gestures_description),
+            state.cameraGesturesEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.TIP_CARD_FLIPPABLE,
+            R.string.beta_tipcard_can_flip,
+            stringResource(id = R.string.beta_tipcard_can_flip_description),
+            state.canFlipTipCard,
+        ),
+        BetaFeature(
+            PrefsBool.CONVERSATIONS_ENABLED,
+            R.string.beta_conversations,
+            stringResource(id = R.string.beta_conversations_description),
+            state.conversationsEnabled,
+        ),
         BetaFeature(
             PrefsBool.VIBRATE_ON_SCAN,
             R.string.beta_vibrate_on_scan,
@@ -96,28 +127,10 @@ fun BetaFlagsScreen(
             state.tipCardOnHomeScreen,
         ),
         BetaFeature(
-            PrefsBool.CONVERSATIONS_ENABLED,
-            R.string.beta_conversations,
-            stringResource(id = R.string.beta_conversations_description),
-            state.conversationsEnabled,
-        ),
-        BetaFeature(
             PrefsBool.CONVERSATION_CASH_ENABLED,
             R.string.beta_conversations_cash,
             stringResource(id = R.string.beta_conversations_cash_description),
             state.conversationCashEnabled,
-        ),
-        BetaFeature(
-            PrefsBool.KADO_WEBVIEW_ENABLED,
-            R.string.beta_kado_webview,
-            stringResource(id = R.string.beta_kado_webview_description),
-            state.kadoWebViewEnabled,
-        ),
-        BetaFeature(
-            PrefsBool.SHARE_TWEET_TO_TIP,
-            R.string.beta_share_tweet_tip,
-            stringResource(id = R.string.beta_share_tweet_tip_description),
-            state.shareTweetToTip,
         ),
         BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
@@ -158,9 +171,7 @@ fun BetaFlagsScreen(
 
 private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
-        PrefsBool.BUY_MODULE_ENABLED -> false
-        PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
-        PrefsBool.TIPS_ENABLED -> false
+        is Immutable -> false
         PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }

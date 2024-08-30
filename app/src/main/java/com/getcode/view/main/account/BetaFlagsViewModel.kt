@@ -1,6 +1,8 @@
 package com.getcode.view.main.account
 
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewModelScope
+import com.getcode.R
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions

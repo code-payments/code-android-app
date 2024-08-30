@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">さらにKinを購入</string>
   <string name="action_cancel">キャンセル</string>
   <string name="action_cancelSend">送信をキャンセル</string>
+  <string name="action_chat">チャット</string>
   <string name="action_collectCash">このお金を受け取る</string>
   <string name="action_confirm">確認する</string>
   <string name="action_connectToX">Xに接続する</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">以下の入金アドレスにKinを送信することによって,KinをCodeウォレットに入金します。タップしてコピーしてください。</string>
   <string name="subtitle_insufficientFundsDescription">Kinをもっと入手してから再度お支払いをお試しください</string>
   <string name="subtitle_invalidTokenAccount">無効な送金先アカウント</string>
+  <string name="subtitle_invalidTokenAccountDescription">引き出し先のアドレスがウォレットプロバイダーによりイニシャライズされていることをご確認ください。これを行うための近道は,まず送信先のウォレットで少額のSOLをKinに交換することです。</string>
   <string name="subtitle_inviteCode">招待コード</string>
   <string name="subtitle_inviteCodeDescription">Codeは現在招待制です。 アプリにアクセスするには招待コードが必要です。</string>
   <string name="subtitle_inviteCount">%1$dの招待</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">カメラを起動してコードをスキャンする必要があります</string>
   <string name="subtitle_tipCardForX">チップカードを使用すると,世界中のCodeユーザーからチップを受け取ることができます。チップカードにアクセスするには,XのIDを接続してください。</string>
   <string name="subtitle_tipCardTwitterDescription">チップカードを使用すると世界中のCodeユーザーからチップを受け取れます。チップカードにアクセスするにはXに投稿してください。</string>
+  <string name="subtitle_turnOnNotifications">他のCodeユーザーからTipをもらった時にCodeからの通知を受け取れるようにしてください。</string>
   <string name="subtitle_typeDelete">\"%1$s\"と入力</string>
   <string name="subtitle_updateRequiredDescription">エクスペリエンスを向上させるために,いくつかの変更を行いました。Codeを使い続けるには,アプリを更新する必要があります。</string>
   <string name="subtitle_validOwnerAccount">有効なオーナーアカウント</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">プライバシーポリシー</string>
   <string name="title_purchased">購入済み</string>
   <string name="title_push_twitterAccountConnected">Xアカウントが正常に接続されました</string>
+  <string name="title_receiveTips">Tipを受け取る</string>
   <string name="title_received">受信済み</string>
   <string name="title_recentCurrencies">最近の通貨</string>
   <string name="title_referFriend">友だちを紹介して5ドルもらおう</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">利用規約</string>
   <string name="title_tipCard">チップカード</string>
   <string name="title_tipKin">Kinにチップを支払う</string>
+  <string name="title_turnOnNotifications">Codeの通知をオンにしてください</string>
   <string name="title_unknown">不明</string>
   <string name="title_updateRequired">更新が必要です</string>
   <string name="title_verifyPhoneNumber">電話番号を確認する</string>

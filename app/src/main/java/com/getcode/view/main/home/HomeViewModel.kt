@@ -1,9 +1,13 @@
 package com.getcode.view.main.home
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Intent
+import android.os.Build
 import android.view.WindowManager
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.model.ScreenModel
@@ -16,14 +20,17 @@ import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.GiftCardManager
 import com.getcode.manager.MnemonicManager
+import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.BuyModuleFeature
+import com.getcode.model.CameraGesturesFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Domain
 import com.getcode.model.Feature
 import com.getcode.model.Fiat
+import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -33,6 +40,7 @@ import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
+import com.getcode.model.notifications.NotificationType
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
@@ -76,6 +84,7 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.IntentUtils
 import com.getcode.util.Kin
 import com.getcode.util.formatted
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
@@ -87,6 +96,8 @@ import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
+import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
@@ -144,15 +155,19 @@ data class HomeUiModel(
     val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
-    val chatUnreadCount: Int = 0,
+    val splatTipCard: Boolean = false,
+    val notificationUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
+    val cameraGestures: Feature = CameraGesturesFeature(),
+    val flippableTipCard: Feature = FlippableTipCardFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
 
 sealed interface HomeEvent {
     data object PresentTipEntry : HomeEvent
+    data object RequestNotificationPermissions: HomeEvent
     data class SendIntent(val intent: Intent): HomeEvent
 }
 
@@ -182,6 +197,8 @@ class HomeViewModel @Inject constructor(
     private val giftCardManager: GiftCardManager,
     private val mnemonicManager: MnemonicManager,
     private val cashLinkManager: CashLinkManager,
+    private val permissionChecker: PermissionChecker,
+    private val notificationManager: NotificationManagerCompat,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
@@ -221,6 +238,22 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
+        features.cameraGestures
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(cameraGestures = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.tipCardFlippable
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(flippableTipCard = module)
+                }
+            }.launchIn(viewModelScope)
+
         betaFlagsRepository.observe()
             .distinctUntilChanged()
             .onEach { betaFlags ->
@@ -228,6 +261,18 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
+            .onEach { splat ->
+                viewModelScope.launch {
+                    if (splat) {
+                        delay(300)
+                    } else {
+                        delay(500)
+                    }
+                    uiFlow.update {
+                        it.copy(splatTipCard = splat)
+                    }
+                }
+            }
             .filter { it }
             .onEach { delay(500) }
             .flatMapLatest { tipController.connectedAccount }
@@ -248,7 +293,7 @@ class HomeViewModel @Inject constructor(
                                 primaryAction = ::presentShareableTipCard,
                                 secondaryText = resources.getString(R.string.action_later),
                                 secondaryAction = {
-                                    tipController.clearTwitterSplat()
+                                    tipController.onSeenTipCardBanner()
                                 }
                             )
                         )
@@ -323,11 +368,11 @@ class HomeViewModel @Inject constructor(
             }
         }.launchIn(viewModelScope)
 
-        historyController.unreadCount
+        historyController.notificationsUnreadCount
             .distinctUntilChanged()
             .map { it }
             .onEach { count ->
-                uiFlow.update { it.copy(chatUnreadCount = count) }
+                uiFlow.update { it.copy(notificationUnreadCount = count) }
             }.launchIn(viewModelScope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
@@ -739,6 +784,7 @@ class HomeViewModel @Inject constructor(
             value = Username(username)
         )
 
+        val hasSeenTipCard = tipController.hasSeenTipCard()
         tipController.clearTwitterSplat()
 
         trace(
@@ -750,7 +796,7 @@ class HomeViewModel @Inject constructor(
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
-                    bill = Bill.Tip(code),
+                    bill = Bill.Tip(code, canFlip = uiFlow.value.flippableTipCard.enabled),
                     primaryAction = BillState.Action.Share { onRemoteSend() },
                     secondaryAction = BillState.Action.Cancel(::cancelSend)
                 )
@@ -760,6 +806,53 @@ class HomeViewModel @Inject constructor(
                     billState = billState,
                 )
             }
+        }
+
+        if (!hasSeenTipCard) {
+            showNotificationPermissionHintIfNeeded()
+        }
+    }
+
+    private suspend fun showNotificationPermissionHintIfNeeded() {
+        val isDenied = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            false
+        }
+
+        val channel = notificationManager.getNotificationChannel(NotificationType.ChatMessage.name)
+        val isChannelOff = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel?.importance == NotificationManager.IMPORTANCE_NONE
+        } else {
+            false
+        }
+
+        val show = isDenied || isChannelOff
+
+        if (show) {
+            delay(400)
+            ModalManager.showMessage(
+                ModalManager.Message(
+                    icon = R.drawable.ic_bell,
+                    title = resources.getString(R.string.title_turnOnNotifications),
+                    subtitle = resources.getString(R.string.subtitle_turnOnNotifications),
+                    onPositive = {
+                        when {
+                            isDenied -> {
+                                viewModelScope.launch {
+                                    _eventFlow.emit(HomeEvent.RequestNotificationPermissions)
+                                }
+                            }
+                            else -> {
+                                @SuppressLint("NewApi")
+                                channel?.importance = NotificationManager.IMPORTANCE_DEFAULT
+                            }
+                        }
+
+                    },
+                    positiveText = resources.getString(R.string.action_allowPushNotifications)
+                )
+            )
         }
     }
 
@@ -1488,62 +1581,66 @@ class HomeViewModel @Inject constructor(
 
     fun handleRequest(request: DeepLinkRequest?) {
         if (request != null) {
-            if (request.paymentRequest != null) {
-                viewModelScope.launch {
-                    if (uiFlow.value.balance == null) {
-                        balanceController.fetchBalanceSuspend()
-                        uiFlow.update {
-                            val amount = KinAmount.newInstance(
-                                Kin.fromKin(balanceController.rawBalance), exchange.localRate
-                            )
-                            it.copy(balance = amount)
+            when {
+                request.paymentRequest != null -> {
+                    viewModelScope.launch {
+                        if (uiFlow.value.balance == null) {
+                            balanceController.fetchBalanceSuspend()
+                            uiFlow.update {
+                                val amount = KinAmount.newInstance(
+                                    Kin.fromKin(balanceController.rawBalance), exchange.localRate
+                                )
+                                it.copy(balance = amount)
+                            }
                         }
+                        val fiat = request.paymentRequest.fiat
+                        val kind =
+                            if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                        val payload = CodePayload(
+                            kind = kind,
+                            value = fiat,
+                            nonce = request.clientSecret
+                        )
+
+                        if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                            Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                            return@launch
+                        }
+
+                        scannedRendezvous.add(payload.rendezvous.publicKey)
+                        attemptPayment(payload, request)
                     }
-                    val fiat = request.paymentRequest.fiat
-                    val kind =
-                        if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                }
+                request.loginRequest != null -> {
                     val payload = CodePayload(
-                        kind = kind,
-                        value = fiat,
-                        nonce = request.clientSecret
+                        kind = Kind.Login,
+                        value = Kin.fromKin(0),
+                        nonce = request.clientSecret,
                     )
 
                     if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
                         Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                        return@launch
+                        return
                     }
 
                     scannedRendezvous.add(payload.rendezvous.publicKey)
-                    attemptPayment(payload, request)
+                    attemptLogin(payload, request)
                 }
-            } else if (request.loginRequest != null) {
-                val payload = CodePayload(
-                    kind = Kind.Login,
-                    value = Kin.fromKin(0),
-                    nonce = request.clientSecret,
-                )
+                request.tipRequest != null -> {
+                    val payload = CodePayload(
+                        kind = Kind.Tip,
+                        value = Username(request.tipRequest.username)
+                    )
 
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
+                    if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                        Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                        return
+                    }
+
+                    scannedRendezvous.add(payload.rendezvous.publicKey)
+
+                    attemptTip(payload, request)
                 }
-
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-                attemptLogin(payload, request)
-            } else if (request.tipRequest != null) {
-                val payload = CodePayload(
-                    kind = Kind.Tip,
-                    value = Username(request.tipRequest.username)
-                )
-
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
-                }
-
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-
-                attemptTip(payload, request)
             }
         }
     }

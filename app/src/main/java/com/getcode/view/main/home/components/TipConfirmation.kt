@@ -25,7 +25,6 @@ import com.getcode.R
 import com.getcode.model.TwitterUser
 import com.getcode.models.ConfirmationState
 import com.getcode.models.TipConfirmation
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.theme.bolded

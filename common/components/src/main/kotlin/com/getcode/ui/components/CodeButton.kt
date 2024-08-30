@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.isUnspecified
-import com.getcode.R
 import com.getcode.theme.*
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured

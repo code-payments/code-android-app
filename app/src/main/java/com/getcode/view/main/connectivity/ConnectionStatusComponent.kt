@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.utils.network.ConnectionType
 import com.getcode.utils.network.NetworkState
@@ -20,7 +19,11 @@ fun ConnectionStatus(state: NetworkState) {
     Row {
         when  {
             !state.connected && state.type != ConnectionType.Unknown -> {
-                CodeCircularProgressIndicator(modifier = Modifier.height(CodeTheme.dimens.grid.x2))
+                CodeCircularProgressIndicator(
+                    modifier = Modifier.height(
+                        CodeTheme.dimens.grid.x2
+                    )
+                )
                 Text(
                     modifier = Modifier.align(Alignment.CenterVertically),
                     text = "Loading",

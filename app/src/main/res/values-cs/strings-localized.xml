@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">Kupte další Kiny</string>
   <string name="action_cancel">Zrušit</string>
   <string name="action_cancelSend">Zrušit odeslání</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Vybrat tuto hotovost</string>
   <string name="action_confirm">Potvrdit</string>
   <string name="action_connectToX">Připojení k X</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Uložit kin do kódové peněženky odesláním kinu na níže uvedenou ukládací adresu. Klepnutím zkopírujete.</string>
   <string name="subtitle_insufficientFundsDescription">Získejte další Kin a pak zkuste zaplatit znovu</string>
   <string name="subtitle_invalidTokenAccount">Neplatný cílový účet</string>
+  <string name="subtitle_invalidTokenAccountDescription">Prosím ujistěte se, že adresa, na kterou vybíráte, byla inicializována poskytovatelem peněženky. Rychlá cesta, jak toho dosáhnout, je nejprve vyměnit malé množství SOL za Kin v peněžence, na kterou se snažíte poslat.</string>
   <string name="subtitle_inviteCode">Kód pozvánky</string>
   <string name="subtitle_inviteCodeDescription">Code je v současné době pouze pro zvané. K přístupu do aplikace budete potřebovat pozvánku.</string>
   <string name="subtitle_inviteCount">%1$d přizvání</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Pro naskenování kódů musíte spustit svůj fotoaparát</string>
   <string name="subtitle_tipCardForX">Vaše karta spropitného vám umožňuje přijímat spropitné od uživatelů služby Code z celého světa. Pro přístup ke kartě Tip Card připojte svou identitu X.</string>
   <string name="subtitle_tipCardTwitterDescription">Tip Card vám umožňuje přijímat spropitné od uživatelů Code z celého světa. Přístup k Tip Card získáte po zveřejnění příspěvku na X. </string>
+  <string name="subtitle_turnOnNotifications">Povolte aplikaci Code, aby vám zasílala oznámení, když obdržíte spropitné od jiných uživatelů aplikace Code.</string>
   <string name="subtitle_typeDelete">Napište \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Udělali jsme jistá zdokonalení užívání. Abyste mohli kód i nadále využívat, budete si muset aktualizovat aplikaci.</string>
   <string name="subtitle_validOwnerAccount">Platný účet vlastníka</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Ochrana soukromí</string>
   <string name="title_purchased">Zakoupeno</string>
   <string name="title_push_twitterAccountConnected">X Účet úspěšně připojen</string>
+  <string name="title_receiveTips">Získat spropitné</string>
   <string name="title_received">Obdrženo</string>
   <string name="title_recentCurrencies">Poslední měny</string>
   <string name="title_referFriend">Doporučte kamaráda a získejte 5 USD</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Všeobecné obchodní podmínky</string>
   <string name="title_tipCard">Karta tipu</string>
   <string name="title_tipKin">Dát Kin spropitné</string>
+  <string name="title_turnOnNotifications">Zapnutí oznámení pro Code</string>
   <string name="title_unknown">Neznámé</string>
   <string name="title_updateRequired">Je nutná aktualizace</string>
   <string name="title_verifyPhoneNumber">Ověřit telefonní číslo</string>

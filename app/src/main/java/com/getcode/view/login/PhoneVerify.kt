@@ -95,7 +95,7 @@ internal fun PhoneVerify(
             .padding(horizontal = CodeTheme.dimens.inset)
             .imePadding()
     ) {
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.weight(1f), contentAlignment = Center) {
             Column(
                 modifier = Modifier.align(Center),
                 horizontalAlignment = Alignment.CenterHorizontally,

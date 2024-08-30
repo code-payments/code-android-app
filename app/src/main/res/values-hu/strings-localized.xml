@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">További Kinek vásárlása</string>
   <string name="action_cancel">Mégsem</string>
   <string name="action_cancelSend">Küldés törlése</string>
+  <string name="action_chat">Csevegés</string>
   <string name="action_collectCash">Gyűjtsd össze ezt a pénzt</string>
   <string name="action_confirm">Megerősít</string>
   <string name="action_connectToX">Csatlakozás X-hez</string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">Fizesse be Kint Code tárcájába úgy, hogy elküldi a Kint az alábbi befizetési címére. Koppintson a másoláshoz.</string>
   <string name="subtitle_insufficientFundsDescription">Kérjük, szerezzen több Kin-t, majd próbáljon újra fizetni</string>
   <string name="subtitle_invalidTokenAccount">Érvénytelen célfiók</string>
+  <string name="subtitle_invalidTokenAccountDescription">Kérjük, győződjön meg róla, hogy a cím, amelyre a kifizetést végzi, inicializálva lett a pénztárca szolgáltatója által. Ezt úgy érheti el, ha először egy kevés SOL-t Kin-re vált a tárcában, ahová küldeni szeretne.</string>
   <string name="subtitle_inviteCode">Meghívó kód</string>
   <string name="subtitle_inviteCodeDescription">A kód jelenleg csak meghívásra használható. Az alkalmazás eléréséhez meghívókódra lesz szüksége.</string>
   <string name="subtitle_inviteCount">%1$d meghívó</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">El kell indítania a fényképezőgépet a Code-ok beolvasásához.</string>
   <string name="subtitle_tipCardForX">A Borravalós kártya lehetővé teszi, hogy borravalót kapj a Code felhasználóitól a világ minden tájáról. A Borravalós kártyához való hozzáféréshez csatlakoztasd az X azonosítódat.</string>
   <string name="subtitle_tipCardTwitterDescription">A Borravalós kártyával borravalót kaphatsz a Code felhasználóitól a világ minden tájáról. A Borravalós kártyát eléréséhez írj az X-re.</string>
+  <string name="subtitle_turnOnNotifications">Engedélyezze, hogy a Code értesítést küldjön, amikor borravalót kap más Code felhasználóktól.</string>
   <string name="subtitle_typeDelete">Írd be: \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Néhány változtatást eszközöltünk az élmény javítása érdekében. A Code használatának folytatásához frissítenie kell az alkalmazást.</string>
   <string name="subtitle_validOwnerAccount">Érvényes tulajdonosi fiók</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">Adatvédelmi irányelvek</string>
   <string name="title_purchased">Megvásárolva</string>
   <string name="title_push_twitterAccountConnected">X-fiók sikeresen csatlakoztatva</string>
+  <string name="title_receiveTips">Kapjon borravalót</string>
   <string name="title_received">Fogadva</string>
   <string name="title_recentCurrencies">Legutóbbi pénznemek</string>
   <string name="title_referFriend">Ajánlj egy barátot, kapsz 5 dollárt</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">Szolgáltatási feltételek</string>
   <string name="title_tipCard">Borravalós kártya</string>
   <string name="title_tipKin">Kin borravaló</string>
+  <string name="title_turnOnNotifications">Értesítések bekapcsolása a Code-hoz</string>
   <string name="title_unknown">Ismeretlen</string>
   <string name="title_updateRequired">Frissítés szükséges</string>
   <string name="title_verifyPhoneNumber">Telefonszám ellenőrzése</string>

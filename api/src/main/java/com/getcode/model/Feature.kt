@@ -42,3 +42,13 @@ data class BalanceCurrencyFeature(
     override val enabled: Boolean = BetaOptions.Defaults.balanceCurrencySelectionEnabled,
     override val available: Boolean = true, // always available
 ): Feature
+
+data class CameraGesturesFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.cameraGesturesEnabled,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class FlippableTipCardFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.canFlipTipCard,
+    override val available: Boolean = true, // always available
+): Feature

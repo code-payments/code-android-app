@@ -2,12 +2,14 @@ package com.getcode.network.repository
 
 import com.getcode.model.BalanceCurrencyFeature
 import com.getcode.model.BuyModuleFeature
+import com.getcode.model.CameraGesturesFeature
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
 import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationsFeature
+import com.getcode.model.FlippableTipCardFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -26,8 +28,11 @@ class FeatureRepository @Inject constructor(
 
     val tipCards = betaFlags.observe().map { TipCardFeature(it.tipsEnabled) }
     val tipCardOnHomeScreen = betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
+    val tipCardFlippable = betaFlags.observe().map { FlippableTipCardFeature(it.canFlipTipCard) }
     val conversations = betaFlags.observe().map { ConversationsFeature(it.conversationsEnabled) }
     val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
+
+    val cameraGestures = betaFlags.observe().map { CameraGesturesFeature(it.cameraGesturesEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 

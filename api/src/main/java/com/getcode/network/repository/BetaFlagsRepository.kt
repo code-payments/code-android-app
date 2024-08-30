@@ -21,6 +21,8 @@ data class BetaOptions(
     val kadoWebViewEnabled: Boolean,
     val shareTweetToTip: Boolean,
     val tipCardOnHomeScreen: Boolean,
+    val cameraGesturesEnabled: Boolean,
+    val canFlipTipCard: Boolean,
 ) {
     companion object {
         // Default states for various beta flags in app.
@@ -38,8 +40,10 @@ data class BetaOptions(
             conversationCashEnabled = false,
             balanceCurrencySelectionEnabled = true,
             kadoWebViewEnabled = false,
-            shareTweetToTip = false,
+            shareTweetToTip = true,
             tipCardOnHomeScreen = true,
+            cameraGesturesEnabled = true,
+            canFlipTipCard = false
         )
     }
 }
@@ -76,7 +80,9 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
             observeBetaFlag(PrefsBool.KADO_WEBVIEW_ENABLED, default = defaults.kadoWebViewEnabled),
             observeBetaFlag(PrefsBool.SHARE_TWEET_TO_TIP, default = defaults.shareTweetToTip),
-            observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen)
+            observeBetaFlag(PrefsBool.TIP_CARD_ON_HOMESCREEN, defaults.tipCardOnHomeScreen),
+            observeBetaFlag(PrefsBool.CAMERA_GESTURES_ENABLED, defaults.cameraGesturesEnabled),
+            observeBetaFlag(PrefsBool.TIP_CARD_FLIPPABLE, defaults.canFlipTipCard)
         ) {
             BetaOptions(
                 showNetworkDropOff = it[0],
@@ -93,7 +99,9 @@ class BetaFlagsRepository @Inject constructor(
                 displayErrors = it[11],
                 kadoWebViewEnabled = it[12],
                 shareTweetToTip = it[13],
-                tipCardOnHomeScreen = it[14]
+                tipCardOnHomeScreen = it[14],
+                cameraGesturesEnabled = it[15],
+                canFlipTipCard = it[16],
             )
         }
     }
@@ -108,6 +116,29 @@ class BetaFlagsRepository @Inject constructor(
     }
 
     suspend fun isEnabled(flag: PrefsBool): Boolean {
-        return prefRepository.get(flag, false)
+        return prefRepository.get(flag, default(flag))
+    }
+
+    private fun default(flag: PrefsBool): Boolean {
+        return with(BetaOptions.Defaults) {
+            when (flag) {
+                PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> balanceCurrencySelectionEnabled
+                PrefsBool.BUCKET_DEBUGGER_ENABLED -> canViewBuckets
+                PrefsBool.BUY_MODULE_ENABLED -> buyModuleEnabled
+                PrefsBool.CHAT_UNSUB_ENABLED -> chatUnsubEnabled
+                PrefsBool.CONVERSATIONS_ENABLED -> conversationsEnabled
+                PrefsBool.CONVERSATION_CASH_ENABLED -> conversationCashEnabled
+                PrefsBool.DISPLAY_ERRORS -> displayErrors
+                PrefsBool.GIVE_REQUESTS_ENABLED -> giveRequestsEnabled
+                PrefsBool.KADO_WEBVIEW_ENABLED -> kadoWebViewEnabled
+                PrefsBool.LOG_SCAN_TIMES -> debugScanTimesEnabled
+                PrefsBool.SHARE_TWEET_TO_TIP -> shareTweetToTip
+                PrefsBool.SHOW_CONNECTIVITY_STATUS -> showNetworkDropOff
+                PrefsBool.TIPS_ENABLED -> tipsEnabled
+                PrefsBool.TIP_CARD_ON_HOMESCREEN -> tipCardOnHomeScreen
+                PrefsBool.VIBRATE_ON_SCAN -> tickOnScan
+                else -> false
+            }
+        }
     }
 }

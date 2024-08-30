@@ -164,9 +164,17 @@ class TipController @Inject constructor(
         userMetadata = null
     }
 
+    fun onSeenTipCardBanner() {
+        prefRepository.set(PrefsBool.DISMISSED_TIP_CARD_BANNER, true)
+        endVerification()
+    }
+
+    suspend fun hasSeenTipCard(): Boolean {
+        return prefRepository.get(PrefsBool.SEEN_TIP_CARD, false)
+    }
+
     fun clearTwitterSplat() {
         prefRepository.set(PrefsBool.SEEN_TIP_CARD, true)
-        endVerification()
     }
 
     fun generateTipVerification(): String? {

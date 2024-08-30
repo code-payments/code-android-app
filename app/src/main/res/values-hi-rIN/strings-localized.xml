@@ -9,6 +9,7 @@
   <string name="action_buyMoreKin">ज्यादा Kin खरीदें</string>
   <string name="action_cancel">कैंसिल करें</string>
   <string name="action_cancelSend">सेंड करना कैंसिल करें</string>
+  <string name="action_chat">चैट </string>
   <string name="action_collectCash">यह नकदी इकट्ठा कर लें</string>
   <string name="action_confirm">कन्फर्म करें</string>
   <string name="action_connectToX">X से कनेक्ट करें </string>
@@ -248,6 +249,7 @@
   <string name="subtitle_howToDeposit">नीचे अपने जमा पते पर Kin को भेजकर Kin को अपने कोड वॉलेट में जमा करें. कॉपी करने के लिए टैप करें.</string>
   <string name="subtitle_insufficientFundsDescription">कृपया अधिक Kin पाएं और फिर दोबारा भुगतान करने का प्रयास करें</string>
   <string name="subtitle_invalidTokenAccount">अमान्य डेस्टिनेशन अकाउंट</string>
+  <string name="subtitle_invalidTokenAccountDescription">कृपया सुनिश्चित करें कि जिस एड्रेस पर आप पैसे निकाल रहे हैं, उसे आपके वॉलेट प्रोवाइडर द्वारा आरंभीकृत किया गया है. इसे पाने का एक शॉर्टकट यह है कि आप जिस वॉलेट में पैसे भेजने की कोशिश कर रहे हैं, उसमें पहले SOL की एक छोटी राशि को Kin में स्वैप करें.</string>
   <string name="subtitle_inviteCode">आमंत्रण कोड</string>
   <string name="subtitle_inviteCodeDescription">Code को केवल आमंत्रण पाने वाले लोग ही उपयोग कर सकते हैं. ऐप को ऐक्सेस करने के लिए आपके पास एक आमंत्रण कोड होना चाहिए.</string>
   <string name="subtitle_inviteCount">%1$d आमंत्रित करें</string>
@@ -282,6 +284,7 @@
   <string name="subtitle_startCameraToScan">कोड्स स्कैन करने के लिए आपको अपना कैमरा शुरू करना होगा</string>
   <string name="subtitle_tipCardForX">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से टिप्स प्राप्त करने की सुविधा देता है. अपने टिप कार्ड को एक्सेस करने के लिए अपनी X की पहचान को कनेक्ट करें.</string>
   <string name="subtitle_tipCardTwitterDescription">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से सुझाव प्राप्त करने देता है. अपने टिप कार्ड को एक्सेस करने के लिए X पर पोस्ट करें.</string>
+  <string name="subtitle_turnOnNotifications">जब आप अन्य Code यूज़र से सुझाव प्राप्त करते हैं तो Code को आपको सूचनाएं भेजने की अनुमति दें.</string>
   <string name="subtitle_typeDelete">टाइप करें \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">अनुभव को बेहतर बनाने के लिए हमने कुछ बदलाव किए हैं. कोड का उपयोग जारी रखने के लिए आपको ऐप को अपडेट करना होगा.</string>
   <string name="subtitle_validOwnerAccount">वैलिड मालिक अकाउंट</string>
@@ -346,6 +349,7 @@
   <string name="title_privacyPolicy">गोपनीयता नीति</string>
   <string name="title_purchased">खरीदा</string>
   <string name="title_push_twitterAccountConnected">X अकाउंट सफलतापूर्वक कनेक्ट हो गया</string>
+  <string name="title_receiveTips">सुझाव प्राप्त करें</string>
   <string name="title_received">रिसीव हुआ</string>
   <string name="title_recentCurrencies">हाल की मुद्राएं </string>
   <string name="title_referFriend">किसी दोस्त को रेफ़र करें, $5 प्राप्त करें</string>
@@ -367,6 +371,7 @@
   <string name="title_termsOfService">सेवा की शर्तें</string>
   <string name="title_tipCard">टिप कार्ड</string>
   <string name="title_tipKin">Kin को टिप दें </string>
+  <string name="title_turnOnNotifications">Code के लिए नोटिफ़िकेशन चालू करें</string>
   <string name="title_unknown">अज्ञात</string>
   <string name="title_updateRequired">अपडेट की आवश्यकता है</string>
   <string name="title_verifyPhoneNumber">फोन नंबर की पुष्टि करें</string>
