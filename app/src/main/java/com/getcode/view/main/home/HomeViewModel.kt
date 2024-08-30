@@ -32,6 +32,7 @@ import com.getcode.model.Feature
 import com.getcode.model.Fiat
 import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.IntentMetadata
+import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
@@ -160,6 +161,7 @@ data class HomeUiModel(
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
     val cameraGestures: Feature = CameraGesturesFeature(),
+    val invertedDragZoom: Feature = InvertedDragZoomFeature(),
     val flippableTipCard: Feature = FlippableTipCardFeature(),
     val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
@@ -243,6 +245,14 @@ class HomeViewModel @Inject constructor(
             .onEach { module ->
                 uiFlow.update {
                     it.copy(cameraGestures = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.invertedDragZoom
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(invertedDragZoom = module)
                 }
             }.launchIn(viewModelScope)
 

@@ -60,6 +60,7 @@ import java.util.concurrent.TimeUnit
 fun CodeScanner(
     scanningEnabled: Boolean,
     cameraGesturesEnabled: Boolean,
+    invertedDragZoomEnabled: Boolean,
     onPreviewStateChanged: (Boolean) -> Unit,
     onCodeScanned: (ScannableKikCode) -> Unit
 ) {
@@ -154,6 +155,7 @@ fun CodeScanner(
                 cameraControl,
                 cameraInfo,
                 cameraGesturesEnabled,
+                invertedDragZoomEnabled,
             ) { point ->
                 autoFocusPoint = point
             }
@@ -220,6 +222,7 @@ private fun setupInteractionControls(
     cameraControl: CameraControl,
     cameraInfo: CameraInfo,
     cameraGesturesEnabled: Boolean,
+    invertedDragZoomEnabled: Boolean,
     onTap: (Offset) -> Unit,
 ) {
     var shouldIgnoreScroll = false
@@ -291,7 +294,11 @@ private fun setupInteractionControls(
                 distanceY: Float
             ): Boolean {
                 if (!shouldIgnoreScroll) {
-                    accumulatedDelta -= distanceY
+                    accumulatedDelta = if (invertedDragZoomEnabled) {
+                        accumulatedDelta + distanceY
+                    } else {
+                        accumulatedDelta - distanceY
+                    }
 
                     val deltaZoom = accumulatedDelta / 1000f
                     val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
