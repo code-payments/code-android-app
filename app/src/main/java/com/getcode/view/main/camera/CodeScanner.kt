@@ -291,7 +291,7 @@ private fun setupInteractionControls(
                 distanceY: Float
             ): Boolean {
                 if (!shouldIgnoreScroll) {
-                    accumulatedDelta += distanceY
+                    accumulatedDelta -= distanceY
 
                     val deltaZoom = accumulatedDelta / 1000f
                     val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
