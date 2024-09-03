@@ -1,6 +1,9 @@
 package com.getcode.util
 
 import android.graphics.Bitmap
+import com.getcode.utils.ErrorUtils
+import java.io.File
+import java.io.FileOutputStream
 
 fun Bitmap.toByteArray(): ByteArray = getLuminanceData()
 
@@ -28,4 +31,24 @@ private fun Bitmap.getLuminanceData(): ByteArray {
     }
 
     return luminanceData
+}
+
+internal fun Bitmap.save(destination: File, name: () -> String): Boolean {
+    val filename = name()
+    if (!destination.exists()) {
+        destination.mkdirs()
+    }
+    val dest = File(destination, filename)
+
+    try {
+        val out = FileOutputStream(dest)
+        compress(Bitmap.CompressFormat.PNG, 90, out)
+        out.flush()
+        out.close()
+    } catch (e: Exception) {
+        e.printStackTrace()
+        ErrorUtils.handleError(e)
+        return false
+    }
+    return true
 }
