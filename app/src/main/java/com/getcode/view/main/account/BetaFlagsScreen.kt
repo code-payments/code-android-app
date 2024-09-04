@@ -61,10 +61,22 @@ fun BetaFlagsScreen(
             state.cameraGesturesEnabled,
         ),
         BetaFeature(
+            PrefsBool.CAMERA_DRAG_INVERTED,
+            R.string.beta_camera_invert_drag,
+            stringResource(id = R.string.beta_camera_invert_drag_description),
+            state.invertedDragZoom,
+        ),
+        BetaFeature(
             PrefsBool.TIP_CARD_FLIPPABLE,
             R.string.beta_tipcard_can_flip,
             stringResource(id = R.string.beta_tipcard_can_flip_description),
             state.canFlipTipCard,
+        ),
+        BetaFeature(
+            PrefsBool.GALLERY_ENABLED,
+            R.string.beta_photo_gallery,
+            stringResource(id = R.string.beta_photo_gallery_description),
+            state.galleryEnabled,
         ),
         BetaFeature(
             PrefsBool.CONVERSATIONS_ENABLED,

@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.scanner.views
 
 import android.Manifest
 import android.content.Context

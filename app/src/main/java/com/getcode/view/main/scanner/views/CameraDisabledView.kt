@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.scanner.views
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box

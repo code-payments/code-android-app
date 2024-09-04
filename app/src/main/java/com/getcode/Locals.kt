@@ -9,13 +9,14 @@ import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.repository.BetaOptions
+import com.getcode.ui.utils.BiometricsState
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.NetworkObserverStub
-import com.getcode.view.main.home.components.BiometricsState
 
+val LocalSession: ProvidableCompositionLocal<Session?> = staticCompositionLocalOf { null }
 val LocalAnalytics: ProvidableCompositionLocal<AnalyticsService> = staticCompositionLocalOf { AnalyticsServiceNull() }
 val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener> = staticCompositionLocalOf { NetworkObserverStub() }
 val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }

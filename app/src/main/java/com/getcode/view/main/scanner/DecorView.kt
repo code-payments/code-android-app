@@ -1,4 +1,4 @@
-package com.getcode.view.main.home
+package com.getcode.view.main.scanner
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -39,14 +39,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.getcode.SessionState
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
-import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.Pill
 import com.getcode.ui.tips.DefinedTips
-import com.getcode.view.main.home.components.HomeBottom
+import com.getcode.ui.utils.unboundedClickable
+import com.getcode.view.main.scanner.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 import dev.bmcreations.tipkit.popoverTip
@@ -55,11 +56,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun DecorView(
-    dataState: HomeUiModel,
+    dataState: SessionState,
     isCameraReady: Boolean,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
-    onAction: (HomeAction) -> Unit,
+    onAction: (UiElement) -> Unit,
 ) {
     val tips = LocalTipsEngine.current!!.tips as DefinedTips
     val tipProvider = LocalTipProvider.current
@@ -74,7 +75,7 @@ internal fun DecorView(
 
     val scope = rememberCoroutineScope()
     val openDownloadModal = {
-        onAction(HomeAction.SHARE_DOWNLOAD)
+        onAction(UiElement.SHARE_DOWNLOAD)
         scope.launch {
             delay(300)
             tipProvider.dismiss()
@@ -105,21 +106,37 @@ internal fun DecorView(
             contentDescription = "",
         )
 
-        Image(
+        Column(
             modifier = Modifier
                 .statusBarsPadding()
                 .padding(vertical = CodeTheme.dimens.grid.x2)
                 .padding(horizontal = CodeTheme.dimens.grid.x3)
-                .align(Alignment.TopEnd)
-                .clip(CircleShape)
-                .rememberedClickable {
-                    onAction(HomeAction.ACCOUNT)
-                },
-            painter = painterResource(
-                R.drawable.ic_home_options
-            ),
-            contentDescription = "",
-        )
+                .align(Alignment.TopEnd),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+        ) {
+            Image(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .unboundedClickable {
+                        onAction(UiElement.ACCOUNT)
+                    },
+                painter = painterResource(R.drawable.ic_home_options),
+                contentDescription = "",
+            )
+
+            if (dataState.gallery.enabled) {
+                Image(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .unboundedClickable {
+                            onAction(UiElement.GALLERY)
+                        },
+                    painter = painterResource(R.drawable.ic_gallery),
+                    contentDescription = "",
+                )
+            }
+        }
 
         Column(modifier = Modifier.align(Alignment.BottomCenter)) {
             AnimatedVisibility(

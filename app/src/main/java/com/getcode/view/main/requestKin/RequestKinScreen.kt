@@ -15,11 +15,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalNetworkObserver
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
-import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -43,6 +44,8 @@ fun RequestKinScreen(
 
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsState()
+
+    val session = LocalSession.currentOrThrow
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -97,8 +100,8 @@ fun RequestKinScreen(
 
                 composeScope.launch {
                     val amount = viewModel.onSubmit() ?: return@launch
-                    val result = HomeResult.Request(amount)
-                    navigator.hideWithResult(result)
+                    session.presentRequest(amount = amount, payload = null, request = null)
+                    navigator.hide()
                 }
             },
             enabled = dataState.continueEnabled,

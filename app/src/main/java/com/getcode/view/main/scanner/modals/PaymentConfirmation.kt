@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.scanner.modals
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -41,6 +41,7 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Modal
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.components.SlideToConfirmDefaults
+import com.getcode.view.main.scanner.components.PriceWithFlag
 import kotlinx.coroutines.delay
 
 @Composable

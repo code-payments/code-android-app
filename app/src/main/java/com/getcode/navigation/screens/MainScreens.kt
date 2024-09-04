@@ -17,9 +17,10 @@ import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import cafe.adriel.voyager.navigator.currentOrThrow
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.model.ID
-import com.getcode.model.KinAmount
 import com.getcode.model.chat.Reference
 import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -36,10 +37,8 @@ import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.chat.ChatScreen
 import com.getcode.view.main.chat.ChatViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen
-import com.getcode.view.main.home.HomeScreen
-import com.getcode.view.main.home.HomeViewModel
 import com.getcode.view.main.requestKin.RequestKinScreen
-import com.google.firebase.encoders.annotations.Encodable.Ignore
+import com.getcode.view.main.scanner.ScanScreen
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
@@ -49,16 +48,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
-sealed interface HomeResult {
-    data class Bill(val bill: com.getcode.models.Bill) : HomeResult
-    data class Request(val amount: KinAmount) : HomeResult
-    data class ConfirmTip(val amount: KinAmount) : HomeResult
-    data object ShowTipCard : HomeResult
-    data object CancelTipEntry: HomeResult
-}
-
 @Parcelize
-data class HomeScreen(
+data class ScanScreen(
     val seed: String? = null,
     val cashLink: String? = null,
     @IgnoredOnParcel
@@ -69,34 +60,10 @@ data class HomeScreen(
 
     @Composable
     override fun Content() {
-        val vm = getViewModel<HomeViewModel>()
-
         trace("home rendered")
-        HomeScreen(vm, cashLink, request)
+        val session = LocalSession.currentOrThrow
 
-        OnScreenResult<HomeResult> { result ->
-            when (result) {
-                is HomeResult.Bill -> {
-                    vm.showBill(result.bill)
-                }
-
-                is HomeResult.Request -> {
-                    vm.presentRequest(amount = result.amount, payload = null, request = null)
-                }
-
-                is HomeResult.ConfirmTip -> {
-                    vm.presentTipConfirmation(result.amount)
-                }
-
-                is HomeResult.ShowTipCard -> {
-                    vm.presentShareableTipCard()
-                }
-
-                is HomeResult.CancelTipEntry -> {
-                    vm.cancelTipEntry()
-                }
-            }
-        }
+        ScanScreen(session, cashLink, request)
     }
 }
 

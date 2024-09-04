@@ -11,7 +11,7 @@ import com.getcode.manager.MnemonicManager
 import com.getcode.media.MediaScanner
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58
@@ -84,7 +84,7 @@ class AccessKeyViewModel @Inject constructor(
         } else {
             if (Build.VERSION.SDK_INT < 33) {
                 analytics.action(Action.CompletedOnboarding)
-                navigator.replaceAll(HomeScreen())
+                navigator.replaceAll(ScanScreen())
             } else {
                 val notificationsPermissionDenied = permissions.isDenied(
                     Manifest.permission.POST_NOTIFICATIONS
@@ -94,7 +94,7 @@ class AccessKeyViewModel @Inject constructor(
                     navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, true))
                 } else {
                     analytics.action(Action.CompletedOnboarding)
-                    navigator.replaceAll(HomeScreen())
+                    navigator.replaceAll(ScanScreen())
                 }
             }
         }

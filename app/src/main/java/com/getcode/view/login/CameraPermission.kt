@@ -14,7 +14,7 @@ import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.theme.CodeTheme
@@ -33,7 +33,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current, from
                 if (fromOnboarding) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(HomeScreen())
+                navigator.replaceAll(ScanScreen())
             } else {
                 navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, fromOnboarding))
             }

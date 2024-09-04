@@ -10,6 +10,8 @@ import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationsFeature
 import com.getcode.model.FlippableTipCardFeature
+import com.getcode.model.GalleryFeature
+import com.getcode.model.InvertedDragZoomFeature
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -24,19 +26,25 @@ class FeatureRepository @Inject constructor(
     val buyModule = combine(
         betaFlags.observe().map { it.buyModuleEnabled },
         prefRepository.observeOrDefault(PrefsBool.BUY_MODULE_AVAILABLE, false)
-        ) { enabled, available -> BuyModuleFeature(enabled, available) }
+    ) { enabled, available -> BuyModuleFeature(enabled, available) }
 
     val tipCards = betaFlags.observe().map { TipCardFeature(it.tipsEnabled) }
-    val tipCardOnHomeScreen = betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
+    val tipCardOnHomeScreen =
+        betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
     val tipCardFlippable = betaFlags.observe().map { FlippableTipCardFeature(it.canFlipTipCard) }
     val conversations = betaFlags.observe().map { ConversationsFeature(it.conversationsEnabled) }
-    val conversationsCash = betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
+    val conversationsCash =
+        betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 
     val cameraGestures = betaFlags.observe().map { CameraGesturesFeature(it.cameraGesturesEnabled) }
+    val invertedDragZoom = betaFlags.observe().map { InvertedDragZoomFeature(it.invertedDragZoom) }
+
+    val galleryEnabled = betaFlags.observe().map { GalleryFeature(it.galleryEnabled) }
 
     val requestKin = betaFlags.observe().map { RequestKinFeature(it.giveRequestsEnabled) }
 
-    val balanceCurrencySelection = betaFlags.observe().map { BalanceCurrencyFeature(it.balanceCurrencySelectionEnabled) }
+    val balanceCurrencySelection =
+        betaFlags.observe().map { BalanceCurrencyFeature(it.balanceCurrencySelectionEnabled) }
 
     suspend fun isEnabled(feature: PrefsBool): Boolean = betaFlags.isEnabled(feature)
 }

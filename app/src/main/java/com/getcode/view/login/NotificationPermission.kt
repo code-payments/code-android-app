@@ -13,7 +13,7 @@ import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
@@ -27,7 +27,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             if (fromOnboarding) {
                 analytics.action(Action.CompletedOnboarding)
             }
-            navigator.replaceAll(HomeScreen())
+            navigator.replaceAll(ScanScreen())
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })

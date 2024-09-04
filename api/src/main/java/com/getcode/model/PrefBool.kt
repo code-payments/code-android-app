@@ -4,6 +4,7 @@ package com.getcode.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import dagger.internal.Beta
 
 @Entity
 data class PrefBool(
@@ -19,9 +20,12 @@ sealed interface AppSetting
 sealed interface BetaFlag
 // Dev settings
 sealed interface DevSetting
-// Once a feature behind a beta flag is made public, it becomes immutable
 // This removes it from the UI in Settings -> Beta Flags
 sealed interface Immutable
+// Once a feature behind a beta flag is made public, it becomes immutable
+sealed interface Launched: Immutable
+// A feature flag can also be deemed deprecated and is also then immutable
+sealed interface Deprecated : Immutable
 
 
 sealed class PrefsBool(val value: String) {
@@ -51,17 +55,19 @@ sealed class PrefsBool(val value: String) {
     data object DISPLAY_ERRORS: PrefsBool("debug_display_errors"), BetaFlag
     data object SHOW_CONNECTIVITY_STATUS: PrefsBool("debug_no_network"), BetaFlag
     data object GIVE_REQUESTS_ENABLED: PrefsBool("give_requests_enabled"), BetaFlag
-    data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag, Immutable
+    data object BUY_MODULE_ENABLED : PrefsBool("buy_kin_enabled"), BetaFlag, Launched
     data object CHAT_UNSUB_ENABLED: PrefsBool("chat_unsub_enabled"), BetaFlag
-    data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag, Immutable
+    data object TIPS_ENABLED : PrefsBool("tips_enabled"), BetaFlag, Launched
     data object CONVERSATIONS_ENABLED: PrefsBool("conversations_enabled"), BetaFlag
     data object CONVERSATION_CASH_ENABLED: PrefsBool("convo_cash_enabled"), BetaFlag
-    data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag, Immutable
+    data object BALANCE_CURRENCY_SELECTION_ENABLED: PrefsBool("balance_currency_enabled"), BetaFlag, Launched
     data object KADO_WEBVIEW_ENABLED : PrefsBool("kado_inapp_enabled"), BetaFlag
-    data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag, Immutable
-    data object TIP_CARD_ON_HOMESCREEN: PrefsBool("tip_card_on_home_screen"), BetaFlag, Immutable
+    data object SHARE_TWEET_TO_TIP : PrefsBool("share_tweet_to_tip"), BetaFlag, Launched
+    data object TIP_CARD_ON_HOMESCREEN: PrefsBool("tip_card_on_home_screen"), BetaFlag, Launched
     data object TIP_CARD_FLIPPABLE: PrefsBool("tipcard_flippable"), BetaFlag
-    data object CAMERA_GESTURES_ENABLED: PrefsBool("camera_gestures_enabled"), BetaFlag
+    data object CAMERA_GESTURES_ENABLED: PrefsBool("camera_gestures_enabled"), BetaFlag, Launched
+    data object CAMERA_DRAG_INVERTED: PrefsBool("camera_drag_inverted"), BetaFlag, Deprecated
+    data object GALLERY_ENABLED: PrefsBool("gallery_enabled"), BetaFlag
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)

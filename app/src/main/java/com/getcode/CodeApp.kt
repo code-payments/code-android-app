@@ -47,9 +47,9 @@ import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.measured
+import com.getcode.ui.utils.rememberBiometricsState
 import com.getcode.util.BiometricsError
-import com.getcode.view.main.home.components.BiometricsBlockingView
-import com.getcode.view.main.home.components.rememberBiometricsState
+import com.getcode.view.main.scanner.views.BiometricsBlockingView
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 

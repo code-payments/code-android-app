@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.bill
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement

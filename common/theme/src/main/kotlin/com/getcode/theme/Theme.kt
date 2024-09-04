@@ -199,17 +199,17 @@ fun debugColors(
 fun inputColors(
     textColor: Color = Color.White,
     disabledTextColor: Color = Color.White,
+    borderColor: Color = BrandLight,
+    unfocusedBorderColor: Color = borderColor,
     backgroundColor: Color = White05,
     placeholderColor: Color = White50,
-    focusedIndicatorColor: Color = Color.Transparent,
-    unfocusedIndicatorColor: Color = Color.Transparent,
     cursorColor: Color = Color.White,
-) = TextFieldDefaults.textFieldColors(
+) = TextFieldDefaults.outlinedTextFieldColors(
     textColor = textColor,
     disabledTextColor = disabledTextColor,
     backgroundColor = backgroundColor,
     placeholderColor = placeholderColor,
-    focusedIndicatorColor = focusedIndicatorColor,
-    unfocusedIndicatorColor = unfocusedIndicatorColor,
+    focusedBorderColor = borderColor,
+    unfocusedBorderColor = unfocusedBorderColor,
     cursorColor = cursorColor,
 )

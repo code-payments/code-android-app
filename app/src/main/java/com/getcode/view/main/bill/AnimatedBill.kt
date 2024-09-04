@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.bill
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.getcode.models.Bill
 import com.getcode.ui.components.CustomSwipeToDismiss
-import com.getcode.view.main.bill.Bill
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
