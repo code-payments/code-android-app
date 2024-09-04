@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.scanner.components
 
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -11,15 +11,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
@@ -37,15 +33,15 @@ import com.getcode.ui.components.chat.ChatNodeDefaults
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.widthOrZero
-import com.getcode.view.main.home.HomeAction
-import com.getcode.view.main.home.HomeUiModel
+import com.getcode.view.main.scanner.UiElement
+import com.getcode.SessionState
 
 @Preview
 @Composable
 internal fun HomeBottom(
     modifier: Modifier = Modifier,
-    state: HomeUiModel = HomeUiModel(),
-    onPress: (homeBottomSheet: HomeAction) -> Unit = {},
+    state: SessionState = SessionState(),
+    onPress: (homeBottomSheet: UiElement) -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -54,9 +50,9 @@ internal fun HomeBottom(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.SpaceAround,
     ) {
-        state.actions.fastForEach { action ->
+        state.scannerElements.fastForEach { action ->
             when (action) {
-                HomeAction.GIVE_KIN -> {
+                UiElement.GIVE_KIN -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_give),
@@ -66,7 +62,7 @@ internal fun HomeBottom(
                     )
                 }
 
-                HomeAction.GET_KIN -> {
+                UiElement.GET_KIN -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_receive),
@@ -76,17 +72,17 @@ internal fun HomeBottom(
                     )
                 }
 
-                HomeAction.BALANCE -> {
+                UiElement.BALANCE -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_balance),
                         painter = painterResource(R.drawable.ic_balance),
                         badgeCount = state.notificationUnreadCount,
-                        onClick = { onPress(HomeAction.BALANCE) },
+                        onClick = { onPress(UiElement.BALANCE) },
                     )
                 }
 
-                HomeAction.TIP_CARD -> {
+                UiElement.TIP_CARD -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_receive),
@@ -96,7 +92,7 @@ internal fun HomeBottom(
                     )
                 }
 
-                HomeAction.CHAT -> {
+                UiElement.CHAT -> {
                     BottomBarAction(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_chat),
@@ -112,7 +108,7 @@ internal fun HomeBottom(
                             .weight(1f)
                             .alpha(0f),
                         label = "",
-                        painter = painterResource(R.drawable.ic_tip_card),
+                        painter = painterResource(R.drawable.ic_empty_bottom_action),
                         badgeCount = 0,
                         onClick = null,
                     )

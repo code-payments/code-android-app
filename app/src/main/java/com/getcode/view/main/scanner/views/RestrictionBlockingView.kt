@@ -1,4 +1,4 @@
-package com.getcode.view.main.home
+package com.getcode.view.main.scanner.views
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import com.getcode.R
+import com.getcode.RestrictionType
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White

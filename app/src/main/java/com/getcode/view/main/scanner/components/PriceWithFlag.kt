@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.scanner.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -20,7 +20,6 @@ import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
 import com.getcode.util.flagResId
 import com.getcode.util.formatted
-import timber.log.Timber
 
 object PriceWithFlagDefaults {
 

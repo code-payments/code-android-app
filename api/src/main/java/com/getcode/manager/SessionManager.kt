@@ -18,6 +18,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 
+// TODO: figure out a better naming paradigm b/w this and Session
 @Singleton
 class SessionManager @Inject constructor(
     private val client: Client,

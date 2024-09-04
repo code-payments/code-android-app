@@ -11,13 +11,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.LocalDeeplinks
-import com.getcode.MainRoot
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.util.DeeplinkHandler
@@ -137,7 +136,7 @@ fun AuthCheck(
                 if (authenticated) {
                     if (!deeplinkRouted) {
                         trace("Navigating to home")
-                        onNavigate(listOf(HomeScreen()))
+                        onNavigate(listOf(ScanScreen()))
                     }
                 } else {
                     if (!deeplinkRouted) {
@@ -158,7 +157,7 @@ private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
             trace("mapping entropy to home screen")
             // send the user to home screen
             val entropy = (screens.first() as? LoginScreen)?.seed
-            val updatedData = data.copy(stack = listOf(HomeScreen(seed = entropy)))
+            val updatedData = data.copy(stack = listOf(ScanScreen(seed = entropy)))
             updatedData to auth
         } else {
             data to auth
@@ -173,7 +172,7 @@ private fun Flow<DeeplinkResult>.showLogoutConfirmationIfNeeded(
     onCancel: () -> Unit
 ): Flow<DeeplinkResult> = onEach { (type, screens) ->
     if (type is DeeplinkHandler.Type.Login) {
-        val entropy = (screens.first() as? HomeScreen)?.seed
+        val entropy = (screens.first() as? ScanScreen)?.seed
         if (entropy != null) {
             trace("showing logout confirm")
             showLogoutMessage(

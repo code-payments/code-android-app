@@ -21,7 +21,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.decodeBase64
@@ -42,7 +42,7 @@ fun SeedDeepLink(
     val authState by SessionManager.authState.collectAsState()
 
     fun navigateMain() {
-        navigator.replaceAll(HomeScreen())
+        navigator.replaceAll(ScanScreen())
     }
     fun navigateLogin() = navigator.replace(LoginScreen())
 

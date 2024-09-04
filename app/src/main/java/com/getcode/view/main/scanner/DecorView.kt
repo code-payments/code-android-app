@@ -1,4 +1,4 @@
-package com.getcode.view.main.home
+package com.getcode.view.main.scanner
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -8,7 +8,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,15 +19,11 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,20 +35,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.getcode.SessionState
 import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
-import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.Pill
 import com.getcode.ui.tips.DefinedTips
 import com.getcode.ui.utils.unboundedClickable
-import com.getcode.view.main.home.components.HomeBottom
+import com.getcode.view.main.scanner.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 import dev.bmcreations.tipkit.popoverTip
@@ -62,11 +56,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 internal fun DecorView(
-    dataState: HomeUiModel,
+    dataState: SessionState,
     isCameraReady: Boolean,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
-    onAction: (HomeAction) -> Unit,
+    onAction: (UiElement) -> Unit,
 ) {
     val tips = LocalTipsEngine.current!!.tips as DefinedTips
     val tipProvider = LocalTipProvider.current
@@ -81,7 +75,7 @@ internal fun DecorView(
 
     val scope = rememberCoroutineScope()
     val openDownloadModal = {
-        onAction(HomeAction.SHARE_DOWNLOAD)
+        onAction(UiElement.SHARE_DOWNLOAD)
         scope.launch {
             delay(300)
             tipProvider.dismiss()
@@ -125,7 +119,7 @@ internal fun DecorView(
                 modifier = Modifier
                     .clip(CircleShape)
                     .unboundedClickable {
-                        onAction(HomeAction.ACCOUNT)
+                        onAction(UiElement.ACCOUNT)
                     },
                 painter = painterResource(R.drawable.ic_home_options),
                 contentDescription = "",
@@ -136,7 +130,7 @@ internal fun DecorView(
                     modifier = Modifier
                         .clip(CircleShape)
                         .unboundedClickable {
-                            onAction(HomeAction.GALLERY)
+                            onAction(UiElement.GALLERY)
                         },
                     painter = painterResource(R.drawable.ic_gallery),
                     contentDescription = "",

@@ -13,7 +13,7 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.client.*
@@ -121,7 +121,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
 
                 analytics.withdrawal(amount = amount, successful = true)
 
-                navigator.replaceAll(HomeScreen())
+                navigator.replaceAll(ScanScreen())
 
                 uiFlow.value = uiFlow.value.copy(isSuccess = true)
             }, {
