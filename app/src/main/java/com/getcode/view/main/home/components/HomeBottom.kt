@@ -61,6 +61,7 @@ internal fun HomeBottom(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_give),
                         painter = painterResource(R.drawable.ic_kin_white_small),
+                        badgeCount = 0,
                         onClick = { onPress(action) }
                     )
                 }
@@ -70,6 +71,7 @@ internal fun HomeBottom(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_receive),
                         painter = painterResource(R.drawable.ic_wallet),
+                        badgeCount = 0,
                         onClick = { onPress(action) },
                     )
                 }
@@ -79,20 +81,8 @@ internal fun HomeBottom(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_balance),
                         painter = painterResource(R.drawable.ic_balance),
+                        badgeCount = state.notificationUnreadCount,
                         onClick = { onPress(HomeAction.BALANCE) },
-                        badge = {
-                            Badge(
-                                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
-                                count = state.notificationUnreadCount,
-                                color = ChatNodeDefaults.UnreadIndicator,
-                                enterTransition = scaleIn(
-                                    animationSpec = tween(
-                                        durationMillis = 300,
-                                        delayMillis = 1000
-                                    )
-                                ) + fadeIn()
-                            )
-                        }
                     )
                 }
 
@@ -102,19 +92,7 @@ internal fun HomeBottom(
                         label = stringResource(R.string.action_receive),
                         painter = painterResource(R.drawable.ic_tip_card),
                         onClick = { onPress(action) },
-                        badge = {
-                            Badge(
-                                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
-                                count = if (state.splatTipCard) 1 else 0,
-                                color = ChatNodeDefaults.UnreadIndicator,
-                                enterTransition = scaleIn(
-                                    animationSpec = tween(
-                                        durationMillis = 300,
-                                        delayMillis = 1000
-                                    )
-                                ) + fadeIn()
-                            )
-                        }
+                        badgeCount = if (state.splatTipCard) 1 else 0,
                     )
                 }
 
@@ -123,6 +101,7 @@ internal fun HomeBottom(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_chat),
                         painter = painterResource(R.drawable.ic_chat),
+                        badgeCount = 0,
                         onClick = { onPress(action) },
                     )
                 }
@@ -134,12 +113,48 @@ internal fun HomeBottom(
                             .alpha(0f),
                         label = "",
                         painter = painterResource(R.drawable.ic_tip_card),
+                        badgeCount = 0,
                         onClick = null,
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun BottomBarAction(
+    modifier: Modifier = Modifier,
+    label: String,
+    contentPadding: PaddingValues = PaddingValues(
+        vertical = CodeTheme.dimens.grid.x2
+    ),
+    painter: Painter,
+    imageSize: Dp = CodeTheme.dimens.staticGrid.x10,
+    badgeCount: Int = 0,
+    onClick: (() -> Unit)?,
+) {
+    BottomBarAction(
+        modifier = modifier,
+        label = label,
+        contentPadding = contentPadding,
+        painter = painter,
+        imageSize = imageSize,
+        badge = {
+            Badge(
+                modifier = Modifier.padding(top = 6.dp, end = 1.dp),
+                count = badgeCount,
+                color = ChatNodeDefaults.UnreadIndicator,
+                enterTransition = scaleIn(
+                    animationSpec = tween(
+                        durationMillis = 300,
+                        delayMillis = 1000
+                    )
+                ) + fadeIn()
+            )
+        },
+        onClick = onClick
+    )
 }
 
 @Composable
