@@ -63,10 +63,12 @@ import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
+import com.getcode.ui.components.FullScreenProgressSpinner
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.ui.utils.KeepScreenOn
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
 import com.getcode.view.login.notificationPermissionCheck
@@ -260,6 +262,9 @@ private fun ScannerContent(
         },
         onAction = { handleAction(it) },
     )
+
+    FullScreenProgressSpinner(dataState.fullScreenLoading)
+    KeepScreenOn(dataState.fullScreenLoading)
 
     OnLifecycleEvent { _, event ->
         when (event) {

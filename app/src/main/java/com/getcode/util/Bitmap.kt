@@ -19,12 +19,10 @@ private fun Bitmap.getLuminanceData(): ByteArray {
         for (x in 0 until width) {
             val pixel = pixelData[y * width + x]
 
-            // Extract RGB values from the pixel
             val r = (pixel shr 16) and 0xFF
             val g = (pixel shr 8) and 0xFF
             val b = pixel and 0xFF
 
-            // Calculate luminance (grayscale) using a common formula
             val luminance = (0.299 * r + 0.587 * g + 0.114 * b).toInt()
             luminanceData[y * width + x] = luminance.toByte()
         }

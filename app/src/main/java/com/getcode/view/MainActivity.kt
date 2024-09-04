@@ -21,7 +21,6 @@ import com.getcode.LocalPhoneFormatter
 import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.Session
-import com.getcode.SessionState
 import com.getcode.analytics.AnalyticsService
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
