@@ -1,16 +1,14 @@
 package com.getcode.util
 
-import android.content.ContentResolver.MimeTypeInfo
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Parcelable
-import android.webkit.MimeTypeMap
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.model.PrefsBool
 import com.getcode.models.DeepLinkRequest
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.urlDecode
@@ -82,7 +80,7 @@ class DeeplinkHandler @Inject constructor(
                 Timber.d("cash=${type.link}")
                 DeeplinkResult(
                     type,
-                    listOf(HomeScreen(cashLink = type.link)),
+                    listOf(ScanScreen(cashLink = type.link)),
                 )
             }
 
@@ -91,7 +89,7 @@ class DeeplinkHandler @Inject constructor(
                 val request = type.payload?.base64EncodedData()?.let { DeepLinkRequest.from(it) }
                 DeeplinkResult(
                     type,
-                    listOf(HomeScreen(request = request)),
+                    listOf(ScanScreen(request = request)),
                 )
             }
 
@@ -99,7 +97,7 @@ class DeeplinkHandler @Inject constructor(
                 DeeplinkResult(
                     type,
                     listOf(
-                        HomeScreen(
+                        ScanScreen(
                             request = DeepLinkRequest.fromImage(type.uri)
                         )
                     )
@@ -111,7 +109,7 @@ class DeeplinkHandler @Inject constructor(
                 DeeplinkResult(
                     type,
                     listOf(
-                        HomeScreen(
+                        ScanScreen(
                             request = DeepLinkRequest.fromTipCardUsername(
                                 type.platform,
                                 type.username

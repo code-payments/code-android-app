@@ -1,4 +1,4 @@
-package com.getcode.view.main.camera
+package com.getcode.view.main.scanner.camera
 
 import android.content.Context
 import androidx.camera.core.Camera
@@ -35,7 +35,6 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.util.Biometrics
 import com.getcode.utils.trace
-import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode

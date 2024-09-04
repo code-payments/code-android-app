@@ -22,7 +22,7 @@ import com.getcode.model.chat.Verb
 import com.getcode.model.orOneToOne
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.view.main.home.components.PriceWithFlag
+import com.getcode.view.main.scanner.components.PriceWithFlag
 import kotlinx.datetime.Instant
 
 @Composable

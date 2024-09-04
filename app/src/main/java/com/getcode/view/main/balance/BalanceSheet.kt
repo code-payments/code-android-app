@@ -33,6 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.navigator.currentOrThrow
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.Currency
@@ -64,8 +66,7 @@ fun BalanceScreen(
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
-
-
+    val session = LocalSession.currentOrThrow
     AnimatedContent(
         targetState = state.isBucketDebuggerVisible,
         label = "show/hide buckets",

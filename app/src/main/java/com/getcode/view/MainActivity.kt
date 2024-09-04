@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.res.stringResource
@@ -17,7 +18,10 @@ import com.getcode.LocalDownloadQrCode
 import com.getcode.LocalExchange
 import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
+import com.getcode.LocalSession
 import com.getcode.R
+import com.getcode.Session
+import com.getcode.SessionState
 import com.getcode.analytics.AnalyticsService
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
@@ -74,6 +78,8 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var tipDefinitions: DefinedTips
 
+    private val session by viewModels<Session>()
+
     /**
      * The compose navigation controller does not play nice with single task activities.
      * Invoking the navigation controller here will cause the intent to be fired
@@ -116,6 +122,7 @@ class MainActivity : FragmentActivity() {
                 )
 
                 CompositionLocalProvider(
+                    LocalSession provides session,
                     LocalAnalytics provides analyticsManager,
                     LocalDeeplinks provides deeplinkHandler,
                     LocalNetworkObserver provides networkObserver,

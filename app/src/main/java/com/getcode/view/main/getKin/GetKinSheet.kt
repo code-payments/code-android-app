@@ -36,14 +36,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.navigator.currentOrThrow
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
-import com.getcode.navigation.screens.HomeResult
-import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.navigation.screens.ConnectAccount
+import com.getcode.navigation.screens.RequestKinModal
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.CodeTheme
@@ -77,6 +78,8 @@ fun GetKinSheet(
     viewModel: GetKinSheetViewModel,
 ) {
     val navigator = LocalCodeNavigator.current
+    val session = LocalSession.currentOrThrow
+
     val dataState by viewModel.stateFlow.collectAsState()
 
     var sheetAnimatedIn by rememberSaveable(viewModel) {
@@ -112,7 +115,8 @@ fun GetKinSheet(
             isVisible = dataState.tips.enabled,
             onClick = {
                 if (dataState.isTipCardConnected) {
-                    navigator.hideWithResult(HomeResult.ShowTipCard)
+                    session.presentShareableTipCard()
+                    navigator.hide()
                 } else {
                     navigator.push(ConnectAccount())
                 }
@@ -174,7 +178,8 @@ fun GetKinSheet(
             delay(400)
             val result = snackbarHostState.showSnackbar(it)
             if (result == SnackbarResult.ActionPerformed) {
-                navigator.hideWithResult(HomeResult.ShowTipCard)
+                session.presentShareableTipCard()
+                navigator.hide()
             }
             viewModel.dispatchEvent(GetKinSheetViewModel.Event.ClearSnackbar)
         }

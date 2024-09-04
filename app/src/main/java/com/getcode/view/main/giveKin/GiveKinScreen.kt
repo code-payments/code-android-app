@@ -17,20 +17,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalNetworkObserver
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
-import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.util.showNetworkError
-import com.getcode.utils.ErrorUtils
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
+import com.getcode.util.showNetworkError
+import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.launch
 
 @Preview
@@ -45,6 +46,8 @@ fun GiveKinScreen(
 
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsState()
+
+    val session = LocalSession.currentOrThrow
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -107,12 +110,13 @@ fun GiveKinScreen(
 
                 composeScope.launch {
                     val amount = viewModel.onSubmit() ?: return@launch
-                    val result = if (dataState.giveRequestsEnabled) {
-                        HomeResult.Request(amount)
+                   if (dataState.giveRequestsEnabled) {
+                       session.presentRequest(amount = amount, payload = null, request = null)
                     } else {
-                        HomeResult.Bill(Bill.Cash(amount))
+                        session.showBill(Bill.Cash(amount))
                     }
-                    navigator.hideWithResult(result)
+
+                    navigator.hide()
                 }
             },
             enabled = dataState.continueEnabled,

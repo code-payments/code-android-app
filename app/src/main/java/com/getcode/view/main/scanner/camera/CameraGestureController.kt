@@ -1,4 +1,4 @@
-package com.getcode.view.main.camera
+package com.getcode.view.main.scanner.camera
 
 import android.content.Context
 import android.os.Handler

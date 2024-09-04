@@ -1,4 +1,4 @@
-package com.getcode.view.main.camera
+package com.getcode.view.main.scanner.camera
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
