@@ -28,7 +28,9 @@ internal class CameraGestureController(
     private var initialZoomLevel = 0f
     private var accumulatedDelta = 0f
 
-    // Pinch-to-zoom gesture detector
+    private val minZoom get() = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
+    private val maxZoom get() = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
+
     private val scaleGestureDetector = ScaleGestureDetector(
         context,
         object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -43,13 +45,8 @@ internal class CameraGestureController(
                 val delta = detector.scaleFactor
                 val newZoomRatio = currentZoomRatio * delta
 
-                // Clamp the new zoom ratio between the minimum and maximum zoom ratio
-                val clampedZoomRatio = newZoomRatio.coerceIn(
-                    cameraInfo.zoomState.value?.minZoomRatio ?: 1f,
-                    cameraInfo.zoomState.value?.maxZoomRatio ?: currentZoomRatio
-                )
+                val clampedZoomRatio = newZoomRatio.coerceIn(minZoom, maxZoom)
 
-                // Apply the zoom to the camera control
                 cameraControl.setZoomRatio(clampedZoomRatio)
                 return true
             }
@@ -61,7 +58,6 @@ internal class CameraGestureController(
             }
         })
 
-    // Gesture detector for tap and drag-to-zoom
     private val gestureDetector = GestureDetector(
         context,
         object : GestureDetector.OnGestureListener {
@@ -94,16 +90,14 @@ internal class CameraGestureController(
                         accumulatedDelta - distanceY * 0.5f
                     }
 
+                    val zoomRange = maxZoom - minZoom
                     val zoomDelta = ease(
                         value = accumulatedDelta,
                         fromRange = 0f..250f,
-                        toRange = 0f..10f,
+                        toRange = 0f..zoomRange,
                         easeIn = true,
                         easeOut = false
                     )
-
-                    val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
-                    val minZoom = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
 
                     val newZoom = (initialZoomLevel + zoomDelta).coerceIn(minZoom, maxZoom)
                     cameraControl.setZoomRatio(newZoom)
@@ -140,20 +134,20 @@ internal class CameraGestureController(
         val durationMs = 300L
         val frameInterval = 16L
         val maxSteps = durationMs / frameInterval
-        val currentZoomLevel = cameraInfo?.zoomState?.value?.linearZoom ?: 0f
+        val currentZoomRatio = cameraInfo?.zoomState?.value?.zoomRatio ?: 1f
 
-        val decrement = currentZoomLevel / maxSteps
+        val decrement = (currentZoomRatio - minZoom) / maxSteps
 
         var currentStep = 0L
         handler.post(object : Runnable {
             override fun run() {
                 if (currentStep < maxSteps) {
-                    val newZoomLevel = currentZoomLevel - (decrement * currentStep)
-                    cameraControl?.setLinearZoom(newZoomLevel.coerceIn(0f, 1f))
+                    val newZoomRatio = currentZoomRatio - (decrement * currentStep)
+                    cameraControl?.setZoomRatio(newZoomRatio.coerceIn(minZoom, maxZoom))
                     currentStep++
                     handler.postDelayed(this, frameInterval)
                 } else {
-                    cameraControl?.setLinearZoom(0f)
+                    cameraControl?.setZoomRatio(minZoom)
                 }
             }
         })
