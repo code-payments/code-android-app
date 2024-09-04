@@ -20,11 +20,10 @@ class TimelockProgram_BurnDustWithAuthority(
     val payer: PublicKey,
     val bump: Byte,
     val maxAmount: Kin,
-    val legacy: Boolean = false,
 ) : InstructionType {
     override fun instruction(): Instruction {
         return Instruction(
-            program = if (legacy) TimelockProgram.legacyAddress else TimelockProgram.address,
+            program = TimelockProgram.address,
             accounts = listOf(
                 AccountMeta.writable(publicKey = timelock),
                 AccountMeta.writable(publicKey = vault),
