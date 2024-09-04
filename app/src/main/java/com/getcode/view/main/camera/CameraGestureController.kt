@@ -11,8 +11,8 @@ import androidx.camera.core.CameraInfo
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.MeteringPoint
 import androidx.compose.ui.geometry.Offset
+import com.getcode.ui.utils.AnimationUtils
 import java.util.concurrent.TimeUnit
-import kotlin.math.pow
 
 internal class CameraGestureController(
     context: Context,
@@ -25,8 +25,23 @@ internal class CameraGestureController(
     private val handler = Handler(Looper.getMainLooper())
     private var shouldIgnoreScroll = false
     private var resetIgnore: Runnable? = null
-    private var initialZoomLevel = 0f
+    private var initialZoomRatio = 0f
+    private var initialZoomLevel = -1f
     private var accumulatedDelta = 0f
+
+    private val maxZoom: Float
+        get() = maxZoomOrNull ?: 1f
+    private val minZoom: Float
+        get() = minZoomOrNull ?: 1f
+
+    private val maxZoomOrNull: Float?
+        get() = cameraInfo.zoomState.value?.maxZoomRatio
+
+    private val minZoomOrNull: Float?
+        get() = cameraInfo.zoomState.value?.minZoomRatio
+
+    private val currentZoom: Float
+        get() = cameraInfo.zoomState.value?.zoomRatio ?: 1f
 
     // Pinch-to-zoom gesture detector
     private val scaleGestureDetector = ScaleGestureDetector(
@@ -39,14 +54,13 @@ internal class CameraGestureController(
             }
 
             override fun onScale(detector: ScaleGestureDetector): Boolean {
-                val currentZoomRatio = cameraInfo.zoomState.value?.zoomRatio ?: 1f
                 val delta = detector.scaleFactor
-                val newZoomRatio = currentZoomRatio * delta
+                val newZoomRatio = currentZoom * delta
 
                 // Clamp the new zoom ratio between the minimum and maximum zoom ratio
                 val clampedZoomRatio = newZoomRatio.coerceIn(
-                    cameraInfo.zoomState.value?.minZoomRatio ?: 1f,
-                    cameraInfo.zoomState.value?.maxZoomRatio ?: currentZoomRatio
+                    minZoom,
+                    maxZoomOrNull ?: currentZoom
                 )
 
                 // Apply the zoom to the camera control
@@ -55,7 +69,7 @@ internal class CameraGestureController(
             }
 
             override fun onScaleEnd(detector: ScaleGestureDetector) {
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
+                initialZoomRatio = currentZoom
                 resetIgnore = Runnable { shouldIgnoreScroll = false }
                 resetIgnore?.let { handler.postDelayed(it, 500) }
             }
@@ -66,7 +80,7 @@ internal class CameraGestureController(
         context,
         object : GestureDetector.OnGestureListener {
             override fun onDown(e: MotionEvent): Boolean {
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
+                initialZoomRatio = currentZoom
                 accumulatedDelta = 0f
                 return true
             }
@@ -94,7 +108,7 @@ internal class CameraGestureController(
                         accumulatedDelta - distanceY * 0.5f
                     }
 
-                    val zoomDelta = ease(
+                    val zoomDelta = AnimationUtils.ease(
                         value = accumulatedDelta,
                         fromRange = 0f..250f,
                         toRange = 0f..10f,
@@ -102,10 +116,7 @@ internal class CameraGestureController(
                         easeOut = false
                     )
 
-                    val maxZoom = cameraInfo.zoomState.value?.maxZoomRatio ?: 1f
-                    val minZoom = cameraInfo.zoomState.value?.minZoomRatio ?: 1f
-
-                    val newZoom = (initialZoomLevel + zoomDelta).coerceIn(minZoom, maxZoom)
+                    val newZoom = (initialZoomRatio + zoomDelta).coerceIn(minZoom, maxZoom)
                     cameraControl.setZoomRatio(newZoom)
                 }
                 return true
@@ -126,12 +137,16 @@ internal class CameraGestureController(
 
     fun onTouchEvent(event: MotionEvent) {
         if (gesturesEnabled) {
+            if (initialZoomLevel == -1f) {
+                initialZoomLevel = cameraInfo.zoomState.value?.linearZoom ?: 0f
+            }
+
             scaleGestureDetector.onTouchEvent(event)
             gestureDetector.onTouchEvent(event)
 
             if (event.action == MotionEvent.ACTION_UP) {
                 animateZoomReset(cameraInfo, cameraControl)
-                initialZoomLevel = cameraInfo.zoomState.value?.zoomRatio ?: 1f
+                initialZoomRatio = currentZoom
             }
         }
     }
@@ -149,7 +164,7 @@ internal class CameraGestureController(
             override fun run() {
                 if (currentStep < maxSteps) {
                     val newZoomLevel = currentZoomLevel - (decrement * currentStep)
-                    cameraControl?.setLinearZoom(newZoomLevel.coerceIn(0f, 1f))
+                    cameraControl?.setLinearZoom(newZoomLevel.coerceIn(initialZoomLevel, 1f))
                     currentStep++
                     handler.postDelayed(this, frameInterval)
                 } else {
@@ -157,31 +172,5 @@ internal class CameraGestureController(
                 }
             }
         })
-    }
-
-    private fun ease(
-        value: Float,
-        fromRange: ClosedFloatingPointRange<Float>,
-        toRange: ClosedFloatingPointRange<Float>,
-        easeIn: Boolean,
-        easeOut: Boolean
-    ): Float {
-        val normalizedValue = (value - fromRange.start) / (fromRange.endInclusive - fromRange.start)
-
-        val easedValue: Float = if (easeIn && easeOut) {
-            if (normalizedValue < 0.5f) {
-                4 * normalizedValue * normalizedValue * normalizedValue
-            } else {
-                1 - (-2 * normalizedValue + 2).toDouble().pow(3.0).toFloat() / 2
-            }
-        } else if (easeIn) {
-            normalizedValue * normalizedValue * normalizedValue
-        } else if (easeOut) {
-            1 - (1 - normalizedValue).toDouble().pow(3.0).toFloat()
-        } else {
-            normalizedValue
-        }
-
-        return easedValue * (toRange.endInclusive - toRange.start) + toRange.start
     }
 }
