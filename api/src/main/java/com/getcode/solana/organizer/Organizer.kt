@@ -8,7 +8,9 @@ import com.getcode.model.Kin
 import com.getcode.model.unusable
 import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.solana.keys.*
+import com.getcode.utils.TraceType
 import com.getcode.utils.timedTrace
+import com.getcode.utils.trace
 import timber.log.Timber
 
 class Organizer(
@@ -59,6 +61,15 @@ class Organizer(
         this.accountInfos = infos
         tray.createRelationships(infos)
         propagateBalances()
+
+        trace(
+            tag = "Organizer",
+            message = "Fetched account infos",
+            type = TraceType.Process,
+            metadata = {
+                "tray" to tray.reportableRepresentation()
+            }
+        )
     }
 
     fun getAccountInfo() = accountInfos

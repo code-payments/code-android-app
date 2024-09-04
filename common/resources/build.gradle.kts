@@ -5,13 +5,21 @@ plugins {
 }
 
 android {
-    namespace = "${Android.namespace}.common"
+    namespace = "${Android.namespace}.util.resources"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 
     kotlinOptions {
@@ -32,13 +40,12 @@ android {
 }
 
 dependencies {
-    api(project(":model"))
-    api(project(":ed25519"))
-
     api(Libs.androidx_annotation)
     api(Libs.kotlin_stdlib)
     api(Libs.kotlinx_coroutines_core)
     api(Libs.kotlinx_coroutines_rx3)
 
-    api(Libs.kin_sdk)
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
+    implementation(Libs.compose_foundation)
 }

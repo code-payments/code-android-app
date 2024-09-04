@@ -5,11 +5,10 @@ import android.annotation.SuppressLint
 import android.os.Build
 import com.getcode.analytics.Action
 import com.getcode.analytics.ActionSource
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
-import com.getcode.media.MediaScanner
 import com.getcode.manager.MnemonicManager
+import com.getcode.media.MediaScanner
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.screens.HomeScreen

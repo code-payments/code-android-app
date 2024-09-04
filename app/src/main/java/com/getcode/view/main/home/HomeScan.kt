@@ -2,6 +2,10 @@ package com.getcode.view.main.home
 
 import android.Manifest
 import android.app.Activity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -31,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -42,12 +45,15 @@ import com.getcode.LocalBiometricsState
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
+import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.BuySellScreen
+import com.getcode.navigation.screens.ChatListModal
+import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
@@ -58,9 +64,10 @@ import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
+import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.home.components.BillManagementOptions
 import com.getcode.view.main.home.components.CameraDisabledView
-import com.getcode.view.main.home.components.CodeScanner
+import com.getcode.view.main.camera.CodeScanner
 import com.getcode.view.main.home.components.HomeBill
 import com.getcode.view.main.home.components.LoginConfirmation
 import com.getcode.view.main.home.components.PaymentConfirmation
@@ -68,7 +75,6 @@ import com.getcode.view.main.home.components.PermissionsBlockingView
 import com.getcode.view.main.home.components.ReceivedKinConfirmation
 import com.getcode.view.main.home.components.TipConfirmation
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -76,20 +82,23 @@ import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
 
 
-enum class HomeBottomSheet {
+enum class HomeAction {
     NONE,
     ACCOUNT,
     GIVE_KIN,
     GET_KIN,
     BALANCE,
-    SHARE_DOWNLOAD
+    SHARE_DOWNLOAD,
+    TIP_CARD,
+    CHAT,
+    GALLERY
 }
 
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
-    deepLink: String? = null,
-    requestPayload: String? = null,
+    cashLink: String? = null,
+    request: DeepLinkRequest? = null,
 ) {
     val navigator = LocalCodeNavigator.current
     val dataState by homeViewModel.uiFlow.collectAsState()
@@ -107,10 +116,11 @@ fun HomeScreen(
             HomeScan(
                 homeViewModel = homeViewModel,
                 dataState = dataState,
-                deepLink = deepLink,
-                requestPayload = requestPayload,
+                cashLink = cashLink,
+                request = request,
             )
 
+            val notificationPermissionChecker = notificationPermissionCheck {  }
             val context = LocalContext.current
             LaunchedEffect(homeViewModel) {
                 homeViewModel.eventFlow
@@ -123,17 +133,12 @@ fun HomeScreen(
                             is HomeEvent.SendIntent -> {
                                 context.startActivity(it.intent)
                             }
+
+                            HomeEvent.RequestNotificationPermissions -> {
+                                notificationPermissionChecker(true)
+                            }
                         }
                     }
-                    .launchIn(this)
-            }
-
-            LaunchedEffect(navigator) {
-                // reset tip entry state when tip entry is manually dismissed
-                // without advancing next
-                snapshotFlow { navigator.progress }
-                    .filter { it == 0f && navigator.lastModalItem is EnterTipModal }
-                    .onEach { homeViewModel.cancelTipEntry() }
                     .launchIn(this)
             }
         }
@@ -144,8 +149,8 @@ fun HomeScreen(
 private fun HomeScan(
     homeViewModel: HomeViewModel,
     dataState: HomeUiModel,
-    deepLink: String?,
-    requestPayload: String?,
+    cashLink: String?,
+    request: DeepLinkRequest?,
 ) {
     val navigator = LocalCodeNavigator.current
     val scope = rememberCoroutineScope()
@@ -161,43 +166,67 @@ private fun HomeScan(
         mutableStateOf(dataState.autoStartCamera == true)
     }
 
-    val focusManager = LocalFocusManager.current
-
-    var deepLinkSaved by remember(deepLink) {
-        mutableStateOf(deepLink)
+    LaunchedEffect(previewing) {
+        homeViewModel.onCameraScanning(previewing)
     }
 
-    var requestPayloadSaved by remember(requestPayload) {
-        mutableStateOf(requestPayload)
+    val focusManager = LocalFocusManager.current
+
+    var cashLinkSaved by remember(cashLink) {
+        mutableStateOf(cashLink)
+    }
+
+    var requestPayloadSaved by remember(request) {
+        mutableStateOf(request)
     }
 
     val biometricsState = LocalBiometricsState.current
-    LaunchedEffect(biometricsState, previewing, dataState.balance, deepLinkSaved, requestPayloadSaved) {
+    LaunchedEffect(biometricsState, previewing, dataState.balance, cashLinkSaved, requestPayloadSaved) {
         if (previewing) {
             focusManager.clearFocus()
         }
 
-        if (biometricsState.passed && !deepLinkSaved.isNullOrBlank()) {
-            homeViewModel.openCashLink(deepLink)
-            deepLinkSaved = null
+        if (biometricsState.passed && !cashLinkSaved.isNullOrBlank()) {
+            homeViewModel.openCashLink(cashLink)
+            cashLinkSaved = null
         }
 
-        if (biometricsState.passed && !requestPayloadSaved.isNullOrBlank() && dataState.balance != null) {
+        if (biometricsState.passed && requestPayloadSaved != null && dataState.balance != null) {
             delay(500.milliseconds)
-            homeViewModel.handleRequest(requestPayload)
+            homeViewModel.handleRequest(request)
             requestPayloadSaved = null
         }
     }
 
-    fun showBottomSheet(bottomSheet: HomeBottomSheet) {
+    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            homeViewModel.onImageSelected(uri)
+        }
+    }
+
+    fun handleAction(action: HomeAction) {
         scope.launch {
-            when (bottomSheet) {
-                HomeBottomSheet.GIVE_KIN -> navigator.show(GiveKinModal)
-                HomeBottomSheet.ACCOUNT -> navigator.show(AccountModal)
-                HomeBottomSheet.GET_KIN -> navigator.show(GetKinModal)
-                HomeBottomSheet.BALANCE -> navigator.show(BalanceModal)
-                HomeBottomSheet.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
-                HomeBottomSheet.NONE -> Unit
+            when (action) {
+                HomeAction.NONE -> Unit
+                HomeAction.GIVE_KIN -> navigator.show(GiveKinModal)
+                HomeAction.ACCOUNT -> navigator.show(AccountModal)
+                HomeAction.GET_KIN -> navigator.show(GetKinModal)
+                HomeAction.BALANCE -> navigator.show(BalanceModal)
+                HomeAction.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
+                HomeAction.TIP_CARD -> {
+                    if (dataState.tipCardConnected) {
+                        homeViewModel.presentShareableTipCard()
+                    } else {
+                        navigator.show(ConnectAccount())
+                    }
+                }
+
+                HomeAction.CHAT -> navigator.show(ChatListModal)
+                HomeAction.GALLERY -> {
+                    pickPhoto.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
             }
         }
     }
@@ -213,6 +242,8 @@ private fun HomeScan(
         scannerView = {
             CodeScanner(
                 scanningEnabled = previewing,
+                cameraGesturesEnabled = dataState.cameraGestures.enabled,
+                invertedDragZoomEnabled = dataState.invertedDragZoom.enabled,
                 onPreviewStateChanged = { previewing = it },
                 onCodeScanned = {
                     if (previewing) {
@@ -221,7 +252,7 @@ private fun HomeScan(
                 }
             )
         },
-        showBottomSheet = { showBottomSheet(it) },
+        onAction = { handleAction(it) },
     )
 
     OnLifecycleEvent { _, event ->
@@ -287,7 +318,7 @@ private fun BillContainer(
     homeViewModel: HomeViewModel,
     scannerView: @Composable () -> Unit,
     onStartCamera: () -> Unit,
-    showBottomSheet: (HomeBottomSheet) -> Unit,
+    onAction: (HomeAction) -> Unit,
 ) {
     val onPermissionResult =
         { isGranted: Boolean ->
@@ -373,7 +404,7 @@ private fun BillContainer(
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize()
         ) {
-            DecorView(updatedState, isCameraReady, isPaused) { showBottomSheet(it) }
+            DecorView(updatedState, isCameraReady, isPaused) { onAction(it) }
         }
 
         var managementHeight by remember {
@@ -435,6 +466,10 @@ private fun BillContainer(
                     delay(300)
                     canCancel = true
                 }
+            }
+
+            BackHandler(updatedState.billState.bill is Bill.Tip && canCancel) {
+                homeViewModel.cancelSend()
             }
         }
 

@@ -1,10 +1,12 @@
 package com.getcode.ui.components
 
+import android.graphics.Paint.Align
 import android.view.ViewTreeObserver
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +26,7 @@ import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldColors
+import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -41,6 +44,8 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
@@ -52,7 +57,7 @@ import com.getcode.theme.inputColors
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun TextInput(
     modifier: Modifier = Modifier,
@@ -78,6 +83,12 @@ fun TextInput(
     val backgroundColor by colors.backgroundColor(enabled = enabled)
     val textColor by colors.textColor(enabled = enabled)
     val placeholderColor by colors.placeholderColor(enabled = enabled)
+    val borderColor by colors.indicatorColor(
+        enabled = enabled,
+        isError = false,
+        interactionSource = remember { MutableInteractionSource() }
+    )
+
     BasicTextField2(
         modifier = modifier
             .background(backgroundColor, shape)
@@ -100,79 +111,10 @@ fun TextInput(
                 placeholder = placeholder,
                 placeholderStyle = placeholderStyle,
                 placeholderColor = placeholderColor,
+                borderColor = borderColor,
                 leadingIcon = leadingIcon,
                 trailingIcon = trailingIcon,
-                shape = shape,
-                innerTextField = {
-                    Box(modifier = Modifier.padding(contentPadding)) {
-                        it()
-                    }
-                }
-            )
-        },
-        scrollState = scrollState
-    )
-
-    LaunchedEffect(Unit) {
-        state.textAsFlow()
-            .onEach { onStateChanged() }
-            .launchIn(this)
-    }
-
-    val focusManager = LocalFocusManager.current
-    val keyboardState by keyboardAsState()
-    LaunchedEffect(keyboardState) {
-        if (!keyboardState) {
-            focusManager.clearFocus(true)
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun SecureTextInput(
-    modifier: Modifier = Modifier,
-    placeholder: String = "",
-    state: TextFieldState,
-    onStateChanged: () -> Unit = { },
-    style: TextStyle = CodeTheme.typography.textLarge,
-    placeholderStyle: TextStyle = CodeTheme.typography.textLarge,
-    shape: Shape = RectangleShape,
-    colors: TextFieldColors = inputColors(),
-    enabled: Boolean = true,
-    leadingIcon: (@Composable () -> Unit)? = null,
-    trailingIcon: (@Composable () -> Unit)? = null,
-    scrollState: ScrollState = rememberScrollState(),
-    textObfuscationMode: TextObfuscationMode = TextObfuscationMode.RevealLastTyped,
-    onSubmit: () -> Unit = { },
-) {
-    val backgroundColor by colors.backgroundColor(enabled = enabled)
-    val textColor by colors.textColor(enabled = enabled)
-    val placeholderColor by colors.placeholderColor(enabled = enabled)
-
-    BasicSecureTextField(
-        modifier = modifier
-            .background(backgroundColor, shape)
-            .defaultMinSize(minHeight = 56.dp),
-        enabled = enabled,
-        state = state,
-        textStyle = style.copy(color = textColor),
-        textObfuscationMode = textObfuscationMode,
-        onSubmit = {
-            if (it == ImeAction.Go) {
-                onSubmit()
-                return@BasicSecureTextField true
-            }
-            false
-        },
-        decorator = {
-            DecoratorBox(
-                state = state,
-                placeholder = placeholder,
-                placeholderStyle = placeholderStyle,
-                placeholderColor = placeholderColor,
-                leadingIcon = leadingIcon,
-                trailingIcon = trailingIcon,
+                contentPadding = contentPadding,
                 shape = shape,
                 innerTextField = it
             )
@@ -202,18 +144,19 @@ private fun DecoratorBox(
     placeholder: String,
     placeholderStyle: TextStyle,
     placeholderColor: Color,
+    borderColor: Color = BrandLight,
+    contentPadding: PaddingValues,
     leadingIcon: (@Composable () -> Unit)?,
     trailingIcon: (@Composable () -> Unit)?,
     shape: Shape,
     innerTextField: @Composable () -> Unit,
-
-    ) {
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .border(
                 width = CodeTheme.dimens.border,
-                color = BrandLight,
+                color = borderColor,
                 shape = shape,
             ),
         verticalAlignment = Alignment.CenterVertically,
@@ -226,9 +169,12 @@ private fun DecoratorBox(
                 .padding(horizontal = CodeTheme.dimens.staticGrid.x2),
             contentAlignment = Alignment.CenterStart
         ) {
-            innerTextField()
+            Box(modifier = Modifier.padding(contentPadding)) {
+                innerTextField()
+            }
             if (state.text.isEmpty() && placeholder.isNotEmpty()) {
                 Text(
+                    modifier = Modifier.then(Modifier.padding(contentPadding)),
                     text = placeholder,
                     style = placeholderStyle.copy(color = placeholderColor),
                     maxLines = 1,

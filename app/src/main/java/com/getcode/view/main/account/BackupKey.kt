@@ -38,8 +38,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.isSpecified
 import com.getcode.R
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.utils.measured
 import com.getcode.ui.components.SelectionContainer
@@ -56,7 +54,6 @@ import com.getcode.util.launchAppSettings
 fun BackupKey(
     viewModel: AccountAccessKeyViewModel,
 ) {
-    val navigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
 
     val context = LocalContext.current
@@ -83,7 +80,7 @@ fun BackupKey(
     val launcher = getPermissionLauncher(onPermissionResult)
 
     if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navigator)
+        viewModel.onSubmit()
         isExportSeedRequested = false
     }
 

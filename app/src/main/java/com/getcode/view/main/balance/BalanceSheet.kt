@@ -2,7 +2,6 @@ package com.getcode.view.main.balance
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -39,10 +37,8 @@ import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
-import com.getcode.model.ID
 import com.getcode.model.Rate
 import com.getcode.model.chat.Chat
-import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.isConversation
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
@@ -50,7 +46,6 @@ import com.getcode.navigation.screens.ChatMessageConversationScreen
 import com.getcode.navigation.screens.ChatScreen
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.ui.components.ButtonState
@@ -58,12 +53,8 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.chat.ChatNode
 import com.getcode.util.Kin
-import com.getcode.util.NumberInputHelper
-import com.getcode.utils.network.NetworkState
-import com.getcode.utils.trace
 import com.getcode.view.main.account.BucketDebugger
 import com.getcode.view.main.currency.CurrencySelectKind
-import com.getcode.view.main.giveKin.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountArea
 
 
@@ -186,7 +177,7 @@ fun BalanceContent(
                                 )
                             }
                         },
-                        text = stringResource(id = R.string.action_buyMoreKin)
+                        text = stringResource(id = R.string.action_addCash)
                     )
                 }
             }

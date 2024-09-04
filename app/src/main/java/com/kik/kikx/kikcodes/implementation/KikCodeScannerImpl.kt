@@ -1,8 +1,5 @@
 package com.kik.kikx.kikcodes.implementation
 
-import android.graphics.ImageFormat
-import android.graphics.Rect
-import android.graphics.YuvImage
 import android.util.Base64
 import com.kik.kikx.kikcodes.KikCodeScanner
 import com.kik.kikx.models.GroupInviteCode
@@ -12,7 +9,6 @@ import com.kik.scan.KikCode
 import com.kik.scan.RemoteKikCode
 import com.kik.scan.Scanner
 import com.kik.scan.UsernameKikCode
-import java.io.ByteArrayOutputStream
 
 class KikCodeScannerImpl : KikCodeScanner {
 

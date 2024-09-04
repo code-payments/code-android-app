@@ -5,27 +5,26 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Environment
-import androidmads.library.qrgenearator.QRGContents
-import androidmads.library.qrgenearator.QRGEncoder
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.media.MediaScanner
 import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
+import com.getcode.media.MediaScanner
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.repository.TransactionRepository.DeniedReason
+import com.getcode.network.repository.DeniedReason
+import com.getcode.network.repository.ErrorSubmitIntent
+import com.getcode.network.repository.ErrorSubmitIntentException
 import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.Alert
-import com.getcode.theme.R as themeR
 import com.getcode.theme.Brand
-import com.getcode.theme.Transparent
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.generateQrCode
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.save
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
@@ -41,6 +40,7 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.getcode.theme.R as themeR
 
 
 data class AccessKeyUiModel(
@@ -119,24 +119,20 @@ abstract class BaseAccessKeyViewModel(
 
     internal fun saveBitmapToFile(): Boolean {
         val bitmap = uiFlow.value.accessKeyBitmap ?: return false
-        val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+        val destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        val result = bitmap.save(
+            destination = destination,
+            name = {
+                val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+                "Code-Recovery-${date.format(Date())}.png"
+            },
+        )
 
-        val filename = "Code-Recovery-${date.format(Date())}.png"
-        val sd: File =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        val dest = File(sd, filename)
-
-        try {
-            val out = FileOutputStream(dest)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
-            out.flush()
-            out.close()
-        } catch (e: Exception) {
-            ErrorUtils.handleError(e)
-            return false
+        if (result) {
+            mediaScanner.scan(destination)
         }
-        mediaScanner.scan(sd)
-        return true
+
+        return result
     }
 
     private fun createBitmapForExport(
@@ -167,7 +163,7 @@ abstract class BaseAccessKeyViewModel(
                 drawPaint(paintBackground)
             }
 
-            val topTextChunks = getString(R.string.title_accessKeySnapshotDescription)
+            val topTextChunks = getString(R.string.subtitle_accessKeySnapshotWarning)
                 .split(" ", "\n")
                 .chunked(7)
                 .map { it.joinToString(" ") }
@@ -302,9 +298,9 @@ abstract class BaseAccessKeyViewModel(
 
     internal fun onSubmitError(e: Throwable) {
         when (e) {
-            is TransactionRepository.ErrorSubmitIntentException -> {
+            is ErrorSubmitIntentException -> {
                 when (val intent = e.errorSubmitIntent) {
-                    is TransactionRepository.ErrorSubmitIntent.Denied -> {
+                    is ErrorSubmitIntent.Denied -> {
                         if (intent.reasons.isEmpty() || intent.reasons.first() == DeniedReason.Unspecified) {
                             getSomethingWentWrongError()
                         } else {

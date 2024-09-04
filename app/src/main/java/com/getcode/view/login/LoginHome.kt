@@ -13,10 +13,7 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -30,11 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.LocalAnalytics
 import com.getcode.R
-import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.AccessKeyLoginScreen
-import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.theme.Brand
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.util.ChromeTabsUtils
 import com.getcode.ui.components.ButtonState
@@ -87,7 +80,7 @@ fun LoginHome(
             )
 
             CodeButton(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(buttonCreate) {
                         top.linkTo(logo.bottom) //possibly remove!!
@@ -99,7 +92,7 @@ fun LoginHome(
                 buttonState = ButtonState.Filled,
             )
             CodeButton(
-                Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .constrainAs(buttonLogin) {
                         top.linkTo(buttonCreate.bottom)

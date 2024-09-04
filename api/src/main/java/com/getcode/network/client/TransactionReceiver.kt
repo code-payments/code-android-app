@@ -76,7 +76,23 @@ class TransactionReceiver @Inject constructor(
                         organizer = organizer
                     ).blockingGet()
 
+                    trace(
+                        tag = "Trx",
+                        message = "Received from relationship",
+                        type = TraceType.Process,
+                        metadata = {
+                            "domain" to relationship.domain.relationshipHost
+                            "kin" to relationship.partialBalance
+                        }
+                    )
+
                     receivedTotal += relationship.partialBalance
+
+                    trace(
+                        tag = "Trx",
+                        message = "Received from incoming",
+                        type = TraceType.Process
+                    )
 
                     if (intent is IntentPublicTransfer) {
                         setTray(organizer, intent.resultTray)

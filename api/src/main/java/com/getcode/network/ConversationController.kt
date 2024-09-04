@@ -15,15 +15,17 @@ import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.OutgoingMessageContent
+import com.getcode.model.chat.Platform
+import com.getcode.model.chat.isConversation
 import com.getcode.model.chat.selfId
-import com.getcode.model.uuid
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.timestamp
+import com.getcode.utils.bytes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -38,14 +40,14 @@ interface ConversationController {
     fun openChatStream(scope: CoroutineScope, conversation: Conversation)
     fun closeChatStream()
     suspend fun hasInteracted(messageId: ID): Boolean
-    suspend fun revealIdentity(messageId: ID)
+    suspend fun revealIdentity(conversationId: ID, platform: Platform, username: String): Result<Unit>
     suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus)
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID>
     fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessageWithContent>>
 }
 
 class ConversationStreamController @Inject constructor(
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val exchange: Exchange,
     private val chatService: ChatServiceV2,
     private val conversationMapper: ConversationMapper,
@@ -136,6 +138,28 @@ class ConversationStreamController @Inject constructor(
                     messageWithContentMapper.map(chat.id to it)
                 }
 
+                val identityRevealed = messages
+                    .flatMap { it.contents }
+                    .filterIsInstance<MessageContent.IdentityRevealed>()
+                    .firstOrNull()
+                    .takeIf { chat.isConversation }
+
+                if (identityRevealed != null && conversation.members.isNotEmpty()) {
+                    val members = conversation.members.map {
+                        if (identityRevealed.memberId == it.id.bytes) {
+                            it.copy(identity = identityRevealed.identity)
+                        } else {
+                            it
+                        }
+                    }
+                    scope.launch(Dispatchers.IO) {
+                        db.conversationDao()
+                            .upsertConversations(
+                                conversation.copy(members = members)
+                            )
+                    }
+                }
+
                 println("chat messages: ${messages.count()}, pointers=${pointers.count()}")
 
                 scope.launch(Dispatchers.IO) {
@@ -169,7 +193,19 @@ class ConversationStreamController @Inject constructor(
         return false
     }
 
-    override suspend fun revealIdentity(messageId: ID) {
+    override suspend fun revealIdentity(conversationId: ID, platform: Platform, username: String): Result<Unit> {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return Result.failure(Throwable("owner not found"))
+        val chat = historyController.chats.value?.firstOrNull {
+            it.id == conversationId
+        } ?: return Result.failure(Throwable("Chat not found"))
+
+        val memberId = chat.selfId ?: return Result.failure(Throwable("Not member of chat"))
+
+        return chatService.revealIdentity(owner, chat, memberId, platform, username)
+            .map { }
+            .onSuccess {
+                db.conversationDao().revealIdentity(conversationId)
+            }
     }
 
     override suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus) {

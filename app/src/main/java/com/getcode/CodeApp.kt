@@ -38,11 +38,12 @@ import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.AuthCheck
-import com.getcode.ui.components.BottomBarContainer
+import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.components.ModalContainer
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.TitleBar
-import com.getcode.ui.components.TopBarContainer
+import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.measured
@@ -149,6 +150,7 @@ fun CodeApp(tipsEngine: TipsEngine) {
                             )
                         }
                     }
+                    ModalContainer(codeNavigator, appState)
                 }
             }
         }

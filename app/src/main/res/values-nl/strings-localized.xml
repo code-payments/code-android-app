@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Voeg contant geld toe met een bankpas</string>
   <string name="action_allowCameraAccess">Toegang tot camera toestaan</string>
   <string name="action_allowContacts">Toegang tot contacten toestaan</string>
   <string name="action_allowPushNotifications">Pushmeldingen toestaan</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Koop meer Kin</string>
   <string name="action_cancel">Annuleren</string>
   <string name="action_cancelSend">Verzenden Annuleren</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Claim dit geld</string>
   <string name="action_confirm">Bevestigen</string>
   <string name="action_connectToX">Verbinden met X</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Gezichts-ID inschakelen</string>
   <string name="action_enableTouchID">Touch-ID inschakelen</string>
   <string name="action_exit">Afsluiten</string>
+  <string name="action_give">Geven</string>
   <string name="action_giveKin">KIN schenken</string>
   <string name="action_invite">Uitnodigen</string>
   <string name="action_invites">Uitnodigingen</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Plakken van klembord</string>
   <string name="action_postToConnect">Post om het account te verbinden</string>
   <string name="action_putInWallet">In wallet plaatsen</string>
+  <string name="action_receive">Ontvangen</string>
   <string name="action_recoverExistingAccount">Bestaand account herstellen</string>
   <string name="action_remind">Herinneren</string>
   <string name="action_removePhoneNumber">Telefoonnummer verwijderen</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Verzenden</string>
   <string name="action_sendVerificationCode">Verificatiecode sturen</string>
   <string name="action_share">Delen</string>
+  <string name="action_shareAsURL">Delen als URL</string>
   <string name="action_shareDownloadLink">Downloadlink delen</string>
   <string name="action_shareVideo">Deel deze video</string>
   <string name="action_showMyTipCard">Toon mijn fooikaart</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Je toegangscode is de enige manier om toegang te krijgen tot je geld. Gelieve ze privé te houden en veilig op te slaan.</string>
   <string name="subtitle_accessKeyFaceID">Je identiteit verifiëren om je toegangscode te zien.</string>
   <string name="subtitle_accessKeySnapshotDescription">Tik op het Google Lens-pictogram om de QR-code te openen om je aan te melden bij Code. Je kunt ook handmatig inloggen door de twaalf woorden in te voeren in het inlogscherm van Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Opgepast! Deze afbeelding geeft toegang tot alle fondsen die je hebt in Code. Deel deze afbeelding met niemand. Houd deze veilig en zeker.</string>
   <string name="subtitle_allowCameraAccess">Met Code kun je KIN ontvangen door je camera op de digitale rekening op de telefoon van een andere gebruiker te richten</string>
   <string name="subtitle_allowCameraSettings">Je dient toegang tot de camera toe te staan om KIN te kunnen ontvangen</string>
   <string name="subtitle_authenticateToAccess">Verifieer voor toegang tot Code.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Stort KIN in je Code-wallet door KIN naar je stortingsadres hieronder te sturen. Tik om te kopiëren.</string>
   <string name="subtitle_insufficientFundsDescription">Verkrijg meer Kin en probeer opnieuw te betalen</string>
   <string name="subtitle_invalidTokenAccount">Ongeldig bestemmingsaccount</string>
+  <string name="subtitle_invalidTokenAccountDescription">Zorg ervoor dat het adres waarnaar je geld opneemt is geïnitialiseerd door je portefeuille-provider. Een kortere weg om dit te bereiken is door eerst een kleine hoeveelheid SOL om te ruilen voor Kin in de portefeuille waarnaar je probeert te versturen.</string>
   <string name="subtitle_inviteCode">Uitnodigingscode</string>
   <string name="subtitle_inviteCodeDescription">Code is momenteel alleen op uitnodiging. Je hebt een uitnodigingscode nodig om toegang te krijgen tot de app.</string>
   <string name="subtitle_inviteCount">%1$d uitnodigingen</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Je moet je camera opstarten om Codes te scannen.</string>
   <string name="subtitle_tipCardForX">Met je fooikaart kunt je fooien ontvangen van codegebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, verbind je X-identiteit.</string>
   <string name="subtitle_tipCardTwitterDescription">Met je fooikaart kunt je fooien ontvangen van Code-gebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, post op X.</string>
+  <string name="subtitle_turnOnNotifications">Code toestaan om je meldingen te sturen wanneer je Fooi van andere Code-gebruikers ontvangt.</string>
   <string name="subtitle_typeDelete">Typ \'%1$s\'</string>
   <string name="subtitle_updateRequiredDescription">We hebben enkele wijzigingen doorgevoerd om de ervaring te verbeteren. Je dient de app te updaten om Code te blijven gebruiken.</string>
   <string name="subtitle_validOwnerAccount">Geldig eigenaarsaccount</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Mislukt</string>
   <string name="title_faq">Veelgestelde Vragen</string>
   <string name="title_gaveKin">Geschonken</string>
+  <string name="title_getCash">Ontvang contant geld</string>
   <string name="title_getFriendStartedOnCode">Laat een vriend beginnen met Code</string>
   <string name="title_getKin">Krijg Kin</string>
   <string name="title_getMoreKin">Verkrijg meer Kin</string>
+  <string name="title_giveCash">Contant geven</string>
   <string name="title_giveKin">KIN schenken</string>
   <string name="title_insufficientFunds">Onvoldoende fondsen</string>
   <string name="title_inviteFriend">Een vriend uitnodigen</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Privacybeleid</string>
   <string name="title_purchased">Aangeschaft</string>
   <string name="title_push_twitterAccountConnected">Het X-account is met succes verbonden</string>
+  <string name="title_receiveTips">Fooi ontvangen</string>
   <string name="title_received">Ontvangen</string>
   <string name="title_recentCurrencies">Recente valuta</string>
   <string name="title_referFriend">Verwijs een vriend en ontvang $5</string>
   <string name="title_referralBonus">Verwijzingsbonus</string>
+  <string name="title_requestCash">Vraag contant geld aan</string>
   <string name="title_requestKin">Kin aanvragen</string>
   <string name="title_requestTip">Een fooi aanvragen</string>
   <string name="title_requireFaceID">Vereist gezichts-ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Besteed</string>
   <string name="title_switchAccounts">Wisselen van account</string>
   <string name="title_termsOfService">Servicevoorwaarden</string>
+  <string name="title_tipCard">Fooikaart</string>
   <string name="title_tipKin">Fooi-kin</string>
+  <string name="title_turnOnNotifications">Schakel meldingen in voor Code</string>
   <string name="title_unknown">Onbekend</string>
   <string name="title_updateRequired">Update vereist</string>
   <string name="title_verifyPhoneNumber">Telefoonnummer verifiëren</string>

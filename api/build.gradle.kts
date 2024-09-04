@@ -1,3 +1,5 @@
+import com.google.protobuf.gradle.protobuf
+
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
@@ -70,10 +72,14 @@ android {
 
 dependencies {
     implementation(project(":common:resources"))
+    api(project(":service:models"))
+    implementation(project(":crypto:ed25519"))
+    implementation(project(":crypto:kin"))
 
     implementation(Libs.rxjava)
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)
+    implementation(Libs.kotlinx_datetime)
     implementation(Libs.inject)
 
     implementation(Libs.grpc_okhttp)

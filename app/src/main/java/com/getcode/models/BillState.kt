@@ -47,7 +47,7 @@ data class BillState(
 
     sealed interface Action {
 
-        val label: String
+        val label: String?
             @Composable get
         val asset: Painter
             @Composable get
@@ -63,15 +63,15 @@ data class BillState(
 
         data class Share(override val action: () -> Unit): Action {
             override val label: String
-                @Composable get() = stringResource(R.string.action_share)
+                @Composable get() = stringResource(R.string.action_shareAsURL)
 
             override val asset: Painter
                 @Composable get() = painterResource(id = R.drawable.ic_remote_send)
         }
 
         data class Cancel(override val action: () -> Unit): Action {
-            override val label: String
-                @Composable get() = stringResource(R.string.action_cancel)
+            override val label: String?
+                @Composable get() = null
 
             override val asset: Painter
                 @Composable get() = painterResource(R.drawable.ic_bill_close)
@@ -104,6 +104,8 @@ sealed interface Bill {
             is Tip -> true
         }
 
+    val canFlip: Boolean
+
     val metadata: Metadata
         get() {
             return when (this) {
@@ -135,8 +137,10 @@ sealed interface Bill {
         override val amount: KinAmount,
         override val didReceive: Boolean = false,
         override val data: List<Byte> = emptyList(),
-        val kind: Kind = Kind.cash
-    ) : Bill
+        val kind: Kind = Kind.cash,
+    ) : Bill {
+        override val canFlip: Boolean = false
+    }
 
     data class Payment(
         override val amount: KinAmount,
@@ -145,6 +149,7 @@ sealed interface Bill {
     ) : Bill {
         override val didReceive: Boolean = false
         override val data: List<Byte> = payload.codeData.toList()
+        override val canFlip: Boolean = false
     }
 
     data class Login(
@@ -154,11 +159,13 @@ sealed interface Bill {
     ) : Bill {
         override val didReceive: Boolean = false
         override val data: List<Byte> = payload.codeData.toList()
+        override val canFlip: Boolean = false
     }
 
     data class Tip(
         val payload: CodePayload,
-        val request: DeepLinkRequest? = null
+        val request: DeepLinkRequest? = null,
+        override val canFlip: Boolean = false
     ) : Bill {
         override val amount: KinAmount = KinAmount.newInstance(Kin.fromKin(0), Rate.oneToOne)
         override val didReceive: Boolean = false

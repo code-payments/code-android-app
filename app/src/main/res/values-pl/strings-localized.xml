@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Dodaj Cash z użyciem karty debetowej</string>
   <string name="action_allowCameraAccess">Zezwól na dostęp do kamery</string>
   <string name="action_allowContacts">Zezwól na dostęp do kontaktów</string>
   <string name="action_allowPushNotifications">Zezwól na powiadomienia typu push</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Kup więcej Kin</string>
   <string name="action_cancel">Anuluj</string>
   <string name="action_cancelSend">Anuluj wysyłanie</string>
+  <string name="action_chat">Czat</string>
   <string name="action_collectCash">Odbierz te pieniądze</string>
   <string name="action_confirm">Potwierdź</string>
   <string name="action_connectToX">Połącz z X</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Włącz funkcję Face ID</string>
   <string name="action_enableTouchID">Włącz funkcję Touch ID</string>
   <string name="action_exit">Wyjdź</string>
+  <string name="action_give">Podaruj</string>
   <string name="action_giveKin">Daj Kin</string>
   <string name="action_invite">Zaproś</string>
   <string name="action_invites">Zaproszenia</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Wklej ze schowka</string>
   <string name="action_postToConnect">Wyślij post, aby podłączyć konto</string>
   <string name="action_putInWallet">Umieść w portfelu</string>
+  <string name="action_receive">Otrzymaj</string>
   <string name="action_recoverExistingAccount">Odzyskaj istniejące konto</string>
   <string name="action_remind">Przypomnij</string>
   <string name="action_removePhoneNumber">Usuń numer telefonu</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Wyślij</string>
   <string name="action_sendVerificationCode">Wyślij kod weryfikacyjny</string>
   <string name="action_share">Udostępnij</string>
+  <string name="action_shareAsURL">Udostępnij URL</string>
   <string name="action_shareDownloadLink">Udostępnij odnośnik do pobrania</string>
   <string name="action_shareVideo">Udostępnij ten film</string>
   <string name="action_showMyTipCard">Pokaż moją kartę napiwków</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Twój klucz dostępu to jedyny sposób uzyskania dostępu do Twoich środków. Nie przekazuj go nikomu i trzymaj go w bezpiecznym miejscu.</string>
   <string name="subtitle_accessKeyFaceID">Zweryfikuj tożsamość, żeby zobaczyć Klucz dostępu.</string>
   <string name="subtitle_accessKeySnapshotDescription">Stuknij ikonę Google Lens, żeby otworzyć kod QR do logowania się do Code. Alternatywnie możesz się zalogować ręcznie, wpisując 12 słów w Code Log na ekranie.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Ostrzeżenie! Ten obraz daje dostęp do wszystkich środków, które posiadasz w Code. Nie udostępniaj tego obrazu nikomu innemu. Przechowuj go w bezpiecznym miejscu.</string>
   <string name="subtitle_allowCameraAccess">Code umożliwia otrzymywanie Kin poprzez wskazywanie kamerą na banknot cyfrowy na telefonie innego użytkownika</string>
   <string name="subtitle_allowCameraSettings">Żeby móc otrzymywać Kin, trzeba zezwolić na dostęp do kamery</string>
   <string name="subtitle_authenticateToAccess">Uwierzytelnij, aby uzyskać dostęp do Code.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Zdeponuj Kin w swoim portfelu Code, wysyłając Kin na poniższy adres depozytowy. Stuknij, żeby skopiować.</string>
   <string name="subtitle_insufficientFundsDescription">Zdobądź więcej Kin, a następnie spróbuj zapłacić ponownie</string>
   <string name="subtitle_invalidTokenAccount">Nieprawidłowe konto docelowe</string>
+  <string name="subtitle_invalidTokenAccountDescription">Upewnij się, że wycofywany adres został inicjalizowany przez dostawcę Twojego portfela. Można to osiągnąć na skróty, najpierw wymieniając małą ilość SOL na Kin w portfelu, na który chcesz przesłać środki.</string>
   <string name="subtitle_inviteCode">Kod zaproszenia</string>
   <string name="subtitle_inviteCodeDescription">Kod jest obecnie dostępny wyłącznie na zaproszenie. Żeby uzyskać dostęp do aplikacji, będziesz potrzebować kodu zaproszenia.</string>
   <string name="subtitle_inviteCount">%1$d zaproszenia</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Aby skanować Code, musisz uruchomić kamerę</string>
   <string name="subtitle_tipCardForX">Twoja karta napiwków umożliwia otrzymywanie napiwków od użytkowników Code na całym świecie. Aby uzyskać dostęp do karty napiwków, połącz swoją tożsamość X.</string>
   <string name="subtitle_tipCardTwitterDescription">Twoja karta napiwkowa pozwala Ci otrzymywać napiwki od użytkowników Code na całym świecie.  Aby uzyskać dostęp do karty napiwkowej, wyślij post do X. </string>
+  <string name="subtitle_turnOnNotifications">Zezwól aplikacji Code na wysyłanie Ci powiadomień, gdy otrzymasz wskazówki od innych użytkowników aplikacji.</string>
   <string name="subtitle_typeDelete">Wpisz „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Dokonaliśmy paru zmian, żeby usprawnić korzystanie z usługi. Żeby nadal używać Code, musisz zaktualizować aplikację.</string>
   <string name="subtitle_validOwnerAccount">Prawidłowe konto właściciela</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">NIe powiodło się</string>
   <string name="title_faq">Często zadawane pytania</string>
   <string name="title_gaveKin">Dał</string>
+  <string name="title_getCash">Otrzymaj Cash</string>
   <string name="title_getFriendStartedOnCode">Poleć znajomemu aplikację Code</string>
   <string name="title_getKin">Uzyskaj kin</string>
   <string name="title_getMoreKin">Zdobądź więcej Kin</string>
+  <string name="title_giveCash">Podaruj gotówkę</string>
   <string name="title_giveKin">Daj Kin</string>
   <string name="title_insufficientFunds">Niewystarczające środki</string>
   <string name="title_inviteFriend">Zaproś znajomego</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Zasady prywatności</string>
   <string name="title_purchased">Kupione</string>
   <string name="title_push_twitterAccountConnected">Pomyślnie połączono konto X</string>
+  <string name="title_receiveTips">Otrzymaj wskazówki</string>
   <string name="title_received">Otrzymane</string>
   <string name="title_recentCurrencies">Niedawne waluty</string>
   <string name="title_referFriend">Poleć znajomemu i otrzymaj 5 $</string>
   <string name="title_referralBonus">Bonus za polecenie</string>
+  <string name="title_requestCash">Poproś o Cash</string>
   <string name="title_requestKin">Poproś o Kin</string>
   <string name="title_requestTip">Poproś o napiwek</string>
   <string name="title_requireFaceID">Wymagaj Face ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Wydano</string>
   <string name="title_switchAccounts">Przełącz konta</string>
   <string name="title_termsOfService">Warunki świadczenia usług</string>
+  <string name="title_tipCard">Karta napiwkowa</string>
   <string name="title_tipKin">Napiwek Kin</string>
+  <string name="title_turnOnNotifications">Włącz powiadomienia dla aplikacji Code</string>
   <string name="title_unknown">Nieznane</string>
   <string name="title_updateRequired">Wymagana aktualizacja</string>
   <string name="title_verifyPhoneNumber">Zweryfikuj numer telefonu</string>

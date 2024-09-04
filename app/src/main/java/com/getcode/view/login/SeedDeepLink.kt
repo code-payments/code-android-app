@@ -8,7 +8,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -18,7 +17,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
-import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -28,12 +26,8 @@ import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
-import com.getcode.ui.utils.getActivity
 import com.getcode.vendor.Base58
 import com.getcode.ui.components.CodeCircularProgressIndicator
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @Preview

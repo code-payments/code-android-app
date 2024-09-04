@@ -5,6 +5,7 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
 import com.getcode.annotations.DevManagedChannel
+import com.getcode.api.KadoApi
 import com.getcode.manager.MnemonicManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
@@ -29,6 +30,7 @@ import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatServiceV2
+import com.getcode.network.service.CurrencyService
 import com.getcode.network.service.DeviceService
 import com.getcode.util.AccountAuthenticator
 import com.getcode.util.CurrencyUtils
@@ -46,8 +48,14 @@ import io.grpc.android.AndroidChannelBuilder
 import io.reactivex.rxjava3.core.Scheduler
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.create
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -113,6 +121,37 @@ object ApiModule {
 
     @Singleton
     @Provides
+    fun providesHttpLoggingInterceptor() = HttpLoggingInterceptor()
+        .apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+    @Singleton
+    @Provides
+    fun providesOkHttpClient(httpLoggingInterceptor: HttpLoggingInterceptor): OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .addInterceptor(httpLoggingInterceptor)
+            .build()
+
+    @Singleton
+    @Provides
+    @Named("kado-retrofit")
+    fun provideKadoRetrofit(okHttpClient: OkHttpClient): Retrofit = Retrofit.Builder()
+        .addConverterFactory(GsonConverterFactory.create())
+        .baseUrl("https://api.kado.money/")
+        .client(okHttpClient)
+        .build()
+
+    @Singleton
+    @Provides
+    fun providesKadoApi(
+        @Named("kado-retrofit")
+        retrofit: Retrofit
+    ): KadoApi = retrofit.create(KadoApi::class.java)
+
+    @Singleton
+    @Provides
     fun provideBalanceRepository(
     ): BalanceRepository {
         return BalanceRepository()
@@ -155,14 +194,12 @@ object ApiModule {
     @Singleton
     @Provides
     fun providesExchange(
-        currencyApi: CurrencyApi,
-        networkOracle: NetworkOracle,
+        currencyService: CurrencyService,
         locale: LocaleHelper,
         currencyUtils: CurrencyUtils,
         prefRepository: PrefRepository,
     ): Exchange = CodeExchange(
-        currencyApi = currencyApi,
-        networkOracle = networkOracle,
+        currencyService = currencyService,
         prefs = prefRepository,
         preferredCurrency = {
             val preferredCurrencyCode = prefRepository.get(

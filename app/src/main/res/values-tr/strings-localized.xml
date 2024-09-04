@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Banka Kartıyla Nakit Ekle</string>
   <string name="action_allowCameraAccess">Kamera Erişimine İzin Ver</string>
   <string name="action_allowContacts">Kişiler\'e Erişime İzin Ver</string>
   <string name="action_allowPushNotifications">Anlık Bildirimlere İzin Ver</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Daha Fazla Kin Satın Al</string>
   <string name="action_cancel">İptal et</string>
   <string name="action_cancelSend">Göndermeyi İptal Et</string>
+  <string name="action_chat">Sohbet</string>
   <string name="action_collectCash">Bu Parayı Topla</string>
   <string name="action_confirm">Onayla</string>
   <string name="action_connectToX">X\'e Bağlan</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Face ID\'yi etkinleştir</string>
   <string name="action_enableTouchID">Touch ID\'yi etkinleştir</string>
   <string name="action_exit">Çıkış</string>
+  <string name="action_give">Ver</string>
   <string name="action_giveKin">Kin Ver</string>
   <string name="action_invite">Davet Et</string>
   <string name="action_invites">Davetler</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Panodan Yapıştır</string>
   <string name="action_postToConnect">Hesabı Bağlamak için Gönder</string>
   <string name="action_putInWallet">Cüzdana Yerleştir</string>
+  <string name="action_receive">Al</string>
   <string name="action_recoverExistingAccount">Mevcut Hesabı Kurtar</string>
   <string name="action_remind">Hatırlat</string>
   <string name="action_removePhoneNumber">Telefon Numarasını Kaldır</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Gönder</string>
   <string name="action_sendVerificationCode">Doğrulama Kodu Gönder</string>
   <string name="action_share">Paylaş</string>
+  <string name="action_shareAsURL">URL olarak paylaş</string>
   <string name="action_shareDownloadLink">İndirme Bağlantısı Paylaş</string>
   <string name="action_shareVideo">Bu Videoyu Paylaş</string>
   <string name="action_showMyTipCard">Bahşiş Kartımı Göster</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Erişim Anahtarın, paralarına erişmenin tek yoludur. Lütfen kişisel ve güvenli olarak sakla.</string>
   <string name="subtitle_accessKeyFaceID">Erişim Anahtarını görüntülemek için kimliğini doğrula.</string>
   <string name="subtitle_accessKeySnapshotDescription">Code\'da oturum açmak amacıyla QR kodunu açmak için Google Lens simgesine dokunun. Alternatif olarak Code Oturum Açma ekranında 12 kelimeyi girerek manuel olarak oturum açabilirsiniz.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Uyarı! Bu görüntü, Code\'da sahip olduğunuz tüm fonlara erişim sağlar. Bu görüntüyü başka kimseyle paylaşmayın. Emniyetli bir şekilde saklayın.</string>
   <string name="subtitle_allowCameraAccess">Code, kameranı başka bir kullanıcının telefonundaki dijital faturaya doğrultarak Kin almanı sağlar.</string>
   <string name="subtitle_allowCameraSettings">Kin alabilmek için kamera erişimine izin vermen gerekiyor</string>
   <string name="subtitle_authenticateToAccess">Code\'a erişmek için kimlik doğrulaması yapın.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Aşağıda bulunan Para Yatırma Adresine göndererek Code cüzdanına Kin yatır. Kopyalamak için dokun.</string>
   <string name="subtitle_insufficientFundsDescription">Lütfen daha fazla Kin alın ve tekrar ödeme yapmayı deneyin</string>
   <string name="subtitle_invalidTokenAccount">Geçersiz hedef hesabı</string>
+  <string name="subtitle_invalidTokenAccountDescription">Lütfen çekim yapacağınız adresin cüzdan sağlayıcınız tarafından başlatıldığından emin olun. Bunu başarmanın bir kestirmesi, gönderim yapmayı düşündüğünüz cüzdanda küçük bir miktar SOL\'u Kin ile takas etmektir. </string>
   <string name="subtitle_inviteCode">Davet Kodu</string>
   <string name="subtitle_inviteCodeDescription">Şu anda Code\'a katılım sadece davetledir. Uygulamaya erişmek için bir Davet Koduna ihtiyacınız olacak.</string>
   <string name="subtitle_inviteCount">%1$d Davet</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Code\'ları taramak için kameranızı başlatmanız gerekir</string>
   <string name="subtitle_tipCardForX">Bahşiş Kartın, dünyanın dört bir yanındaki Code kullanıcılarından bahşişler almana olanak tanır. Tip Kartına erişmek için X kimliğini bağla.</string>
   <string name="subtitle_tipCardTwitterDescription">Bahşiş Kartınız, dünyanın her yerindeki Code kullanıcılarından ipuçları almanızı sağlar. Bahşiş Kartınıza erişmek için X\'e gönderin.</string>
+  <string name="subtitle_turnOnNotifications">Diğer Code kullanıcılarından ipuçları aldığınızda Code\'un size bildirim göndermesine izin verin.\n\n\n\n\n\n\n</string>
   <string name="subtitle_typeDelete">\"%1$s\" yaz</string>
   <string name="subtitle_updateRequiredDescription">Deneyimi iyileştirmek için bazı değişiklikler yaptık. Code\'u kullanmaya devam etmek için uygulamayı güncellemen gerekiyor.</string>
   <string name="subtitle_validOwnerAccount">Geçerli sahip hesabı</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Başarısız</string>
   <string name="title_faq">SSS</string>
   <string name="title_gaveKin">Verdi</string>
+  <string name="title_getCash">Nakıt Al</string>
   <string name="title_getFriendStartedOnCode">Bir Arkadaşınızı Code\'a başlatın</string>
   <string name="title_getKin">Kin Al</string>
   <string name="title_getMoreKin">Daha Fazla Kin Al</string>
+  <string name="title_giveCash">Nakit Ver</string>
   <string name="title_giveKin">Kin Ver</string>
   <string name="title_insufficientFunds">Yetersiz Bakiye</string>
   <string name="title_inviteFriend">Arkadaşını Davet Et</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Gizlilik Politikası</string>
   <string name="title_purchased">Satın alındı</string>
   <string name="title_push_twitterAccountConnected">X Hesabı Başarıyla Bağlandı</string>
+  <string name="title_receiveTips">İpuçları Alın</string>
   <string name="title_received">Aldı</string>
   <string name="title_recentCurrencies">Son Para Birimleri</string>
   <string name="title_referFriend">Bir Arkadaş Yönlendir, $5\'ı Kazan</string>
   <string name="title_referralBonus">Yönlendirme Bonusu</string>
+  <string name="title_requestCash">Nakit Talep Et</string>
   <string name="title_requestKin">Kin Talep Et</string>
   <string name="title_requestTip">Bahşiş İste</string>
   <string name="title_requireFaceID">Face ID gerekir</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Harcanan</string>
   <string name="title_switchAccounts">Hesap Değiştir</string>
   <string name="title_termsOfService">Hizmet Şartları</string>
+  <string name="title_tipCard">Bahşiş Kartı</string>
   <string name="title_tipKin">Bahşiş Olarak Kin Ver</string>
+  <string name="title_turnOnNotifications">Code için Bildirimleri Açın</string>
   <string name="title_unknown">Bilinmeyen</string>
   <string name="title_updateRequired">Güncelleme Gerekli</string>
   <string name="title_verifyPhoneNumber">Telefon Numarasını Doğrula</string>

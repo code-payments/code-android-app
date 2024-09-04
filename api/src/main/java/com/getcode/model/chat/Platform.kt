@@ -10,5 +10,9 @@ enum class Platform {
         operator fun invoke(proto: ChatService.Platform): Platform {
             return runCatching { entries[proto.ordinal] }.getOrNull() ?: Unknown
         }
+
+        fun named(name: String): Platform {
+            return entries.firstOrNull { it.name.lowercase() == name.lowercase() } ?: Unknown
+        }
     }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Tambah Wang Tunai dengan Kad Debit</string>
   <string name="action_allowCameraAccess">Benarkan Akses Kamera</string>
   <string name="action_allowContacts">Benarkan Akses kepada Kenalan</string>
   <string name="action_allowPushNotifications">Benarkan Notifikasi Tolak</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Beli Lagi Kin</string>
   <string name="action_cancel">Batal</string>
   <string name="action_cancelSend">Batal Hantar</string>
+  <string name="action_chat">Sembang</string>
   <string name="action_collectCash">Kumpul Wang Tunai Ini</string>
   <string name="action_confirm">Sahkan</string>
   <string name="action_connectToX">Berhubung kepada X</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Mengaktifkan ID Wajah</string>
   <string name="action_enableTouchID">Mengaktifkan ID Sentuhan</string>
   <string name="action_exit">Keluar</string>
+  <string name="action_give">Beri</string>
   <string name="action_giveKin">Beri Kin</string>
   <string name="action_invite">Ajak</string>
   <string name="action_invites">Ajakan</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Tampal Dari Papan Keratan</string>
   <string name="action_postToConnect">Siar untuk Menghubungkan Akaun</string>
   <string name="action_putInWallet">Masukkan dalam Dompet</string>
+  <string name="action_receive">Terima</string>
   <string name="action_recoverExistingAccount">Pulihkan Akaun Sedia Ada</string>
   <string name="action_remind">Ingatkan</string>
   <string name="action_removePhoneNumber">Singkirkan Nombor Telefon</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Hantar</string>
   <string name="action_sendVerificationCode">Hantar Kod Pengesahan</string>
   <string name="action_share">Kongsi</string>
+  <string name="action_shareAsURL">Kongsikan sebagai URL</string>
   <string name="action_shareDownloadLink">Kongsi Pautan Muat Turun</string>
   <string name="action_shareVideo">Kongsi Video Ini</string>
   <string name="action_showMyTipCard">Tunjuk Kad Tip Saya</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Kunci Akses anda adalah satu-satunya cara untuk mengakses dana anda. Sila pastikan ia peribadi dan selamat.</string>
   <string name="subtitle_accessKeyFaceID">Sahkan identiti anda untuk melihat Kunci Akses anda.</string>
   <string name="subtitle_accessKeySnapshotDescription">Tekan ikon Google Lens untuk membuka kod QR untuk mendaftar masuk ke dalam Code. Alternatif lain adalah anda boleh mendaftar masuk secara manual dengan memasukkan 12 perkataan dalam skrin Daftar Masuk Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Amaran! Imej ini memberi akses kepada semua dana yang anda ada di dalam Code. Jangan kongsi imej ini dengan sesiapa. Pastikan ia dilindungi dan selamat.</string>
   <string name="subtitle_allowCameraAccess">Code membolehkan anda menerima Kin dengan menghalakan kamera anda ke bil digital pada telefon pengguna lain</string>
   <string name="subtitle_allowCameraSettings">Anda perlu membenarkan akses kamera untuk menerima Kin</string>
   <string name="subtitle_authenticateToAccess">Sahkan untuk mengakses Code.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Depositkan Kin ke dompet Code anda dengan menghantar Kin ke Alamat Deposit anda di bawah. Ketik untuk salin.</string>
   <string name="subtitle_insufficientFundsDescription">Sila dapatkan lebih banyak Kin dan kemudian cuba bayar sekali lagi</string>
   <string name="subtitle_invalidTokenAccount">Akaun destinasi tidak sah</string>
+  <string name="subtitle_invalidTokenAccountDescription">Sila pastikan alamat yang anda tarik balik telah diparamkan oleh pembekal dompet anda. Jalan pintas untuk mencapai ini adalah dengan menukar sejumlah kecil SOL untuk Kin dahulu dalam dompet yang anda cuba hantar.</string>
   <string name="subtitle_inviteCode">Kod Jemputan</string>
   <string name="subtitle_inviteCodeDescription">Kod pada masa ini adalah jemputan sahaja. Anda memerlukan Kod Jemputan untuk mengakses aplikasi itu.</string>
   <string name="subtitle_inviteCount">%1$d Ajakan</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Anda perlu memulakan kamera anda untuk mengimbas Codes</string>
   <string name="subtitle_tipCardForX">Kad Tip anda membolehkan anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kad Tip anda sila hubungkan identiti X anda.</string>
   <string name="subtitle_tipCardTwitterDescription">Kad Tip anda membolehkan anda menerima tip dari pengguna Kod di serata dunia. Untuk mengakses ke Kad Tip anda sila siarkan ke X.</string>
+  <string name="subtitle_turnOnNotifications">Benarkan Code untuk menghantar pemberitahuan kepada anda apabila anda menerima Petua daripada pengguna Code lain. </string>
   <string name="subtitle_typeDelete">Jenis \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Kami telah melakukan beberapa perubahan untuk meningkatkan pengalaman. Anda perlu mengemas kini aplikasi untuk terus menggunakan Code.</string>
   <string name="subtitle_validOwnerAccount">Akaun pemilik sah</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Gagal</string>
   <string name="title_faq">FAQ</string>
   <string name="title_gaveKin">Beri</string>
+  <string name="title_getCash">Dapatkan Wang Tunai</string>
   <string name="title_getFriendStartedOnCode">Dapatkan Rakan untuk Bermula menggunakan Code</string>
   <string name="title_getKin">Dapatkan Kin</string>
   <string name="title_getMoreKin">Dapatkan Lebih Banyak Kin</string>
+  <string name="title_giveCash">Beri Wang</string>
   <string name="title_giveKin">Beri Kin</string>
   <string name="title_insufficientFunds">Dana Tidak Mencukupi</string>
   <string name="title_inviteFriend">Ajak Kawan</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Dasar Privasi</string>
   <string name="title_purchased">Dibeli</string>
   <string name="title_push_twitterAccountConnected">Akaun X Berjaya Dihubungkan</string>
+  <string name="title_receiveTips">Terima Petua</string>
   <string name="title_received">Diterima</string>
   <string name="title_recentCurrencies">Mata Wang Baru</string>
   <string name="title_referFriend">Rujuk Rakan, Dapat $5</string>
   <string name="title_referralBonus">Bonus Rujukan</string>
+  <string name="title_requestCash">Minta Wang Tunai</string>
   <string name="title_requestKin">Minta Kin</string>
   <string name="title_requestTip">Minta Tip</string>
   <string name="title_requireFaceID">Perlukan ID Muka</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Perbelanjaan</string>
   <string name="title_switchAccounts">Tukar Akaun</string>
   <string name="title_termsOfService">Syarat Perkhidmatan</string>
+  <string name="title_tipCard">Kad Petua</string>
   <string name="title_tipKin">Tip Kin</string>
+  <string name="title_turnOnNotifications">Hidupkan Pemberitahuan untuk Code</string>
   <string name="title_unknown">Tidak diketahui</string>
   <string name="title_updateRequired">Kemas Kini Diperlukan</string>
   <string name="title_verifyPhoneNumber">Sahkan Nombor Telefon</string>

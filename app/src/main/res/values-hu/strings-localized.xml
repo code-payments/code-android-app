@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Adj hozzá készpént egy bankkártyával</string>
   <string name="action_allowCameraAccess">Kamera-hozzáférés engedélyezése</string>
   <string name="action_allowContacts">Hozzáférés engedélyezése a névjegyekhez</string>
   <string name="action_allowPushNotifications">Push értesítések engedélyezése</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">További Kinek vásárlása</string>
   <string name="action_cancel">Mégsem</string>
   <string name="action_cancelSend">Küldés törlése</string>
+  <string name="action_chat">Csevegés</string>
   <string name="action_collectCash">Gyűjtsd össze ezt a pénzt</string>
   <string name="action_confirm">Megerősít</string>
   <string name="action_connectToX">Csatlakozás X-hez</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Arc azonosítás bekapcsolása</string>
   <string name="action_enableTouchID">Érintéses azonosítás bekapcsolása</string>
   <string name="action_exit">Kilépés</string>
+  <string name="action_give">Adj</string>
   <string name="action_giveKin">Kin adása</string>
   <string name="action_invite">Meghív</string>
   <string name="action_invites">Meghívottak</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Beillesztés a vágólapról</string>
   <string name="action_postToConnect">Írj bejegyzést, hogy csatlakoztasd a fiókodat</string>
   <string name="action_putInWallet">Walletba helyez</string>
+  <string name="action_receive">Kapj</string>
   <string name="action_recoverExistingAccount">Meglévő fiók helyreállítása</string>
   <string name="action_remind">Emlékeztet</string>
   <string name="action_removePhoneNumber">Telefonszám eltávolítása</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Küldés</string>
   <string name="action_sendVerificationCode">Ellenőrző kód küldése</string>
   <string name="action_share">Megosztás</string>
+  <string name="action_shareAsURL">Megosztás URL-ként</string>
   <string name="action_shareDownloadLink">Letöltési hivatkozás megosztása</string>
   <string name="action_shareVideo">Ossza meg ezt a videót</string>
   <string name="action_showMyTipCard">Borravalós kártyám mutatása</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">A hozzáférési kulcs az egyetlen módja annak, hogy hozzáférjen pénzeszközeihez. Kérjük, tartsa privátban és legyen óvatos.</string>
   <string name="subtitle_accessKeyFaceID">A hozzáférési kulcs megtekintéséhez igazolja személyazonosságát.</string>
   <string name="subtitle_accessKeySnapshotDescription">Koppintson a Google Lens ikonra a QR-kód megnyitásához a Code-ba való bejelentkezéshez. Alternatív megoldásként manuálisan is bejelentkezhet úgy, hogy beírja a 12 szót a Kódbejelentkezés képernyőn.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Figyelem! Ez a kép hozzáférést biztosít a Code-ban lévő összes pénzeszközéhez. Ne ossza meg ezt a képet senki mással. Tartsa biztonságban.</string>
   <string name="subtitle_allowCameraAccess">A Code lehetővé teszi a Kin fogadását, ha kameráját egy másik felhasználó telefonján lévő digitális számlára irányítja</string>
   <string name="subtitle_allowCameraSettings">A Kin fogadásához engedélyeznie kell a kamerához való hozzáférést</string>
   <string name="subtitle_authenticateToAccess">Azonosítsa magát a Code eléréséhez.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Fizesse be Kint Code tárcájába úgy, hogy elküldi a Kint az alábbi befizetési címére. Koppintson a másoláshoz.</string>
   <string name="subtitle_insufficientFundsDescription">Kérjük, szerezzen több Kin-t, majd próbáljon újra fizetni</string>
   <string name="subtitle_invalidTokenAccount">Érvénytelen célfiók</string>
+  <string name="subtitle_invalidTokenAccountDescription">Kérjük, győződjön meg róla, hogy a cím, amelyre a kifizetést végzi, inicializálva lett a pénztárca szolgáltatója által. Ezt úgy érheti el, ha először egy kevés SOL-t Kin-re vált a tárcában, ahová küldeni szeretne.</string>
   <string name="subtitle_inviteCode">Meghívó kód</string>
   <string name="subtitle_inviteCodeDescription">A kód jelenleg csak meghívásra használható. Az alkalmazás eléréséhez meghívókódra lesz szüksége.</string>
   <string name="subtitle_inviteCount">%1$d meghívó</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">El kell indítania a fényképezőgépet a Code-ok beolvasásához.</string>
   <string name="subtitle_tipCardForX">A Borravalós kártya lehetővé teszi, hogy borravalót kapj a Code felhasználóitól a világ minden tájáról. A Borravalós kártyához való hozzáféréshez csatlakoztasd az X azonosítódat.</string>
   <string name="subtitle_tipCardTwitterDescription">A Borravalós kártyával borravalót kaphatsz a Code felhasználóitól a világ minden tájáról. A Borravalós kártyát eléréséhez írj az X-re.</string>
+  <string name="subtitle_turnOnNotifications">Engedélyezze, hogy a Code értesítést küldjön, amikor borravalót kap más Code felhasználóktól.</string>
   <string name="subtitle_typeDelete">Írd be: \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Néhány változtatást eszközöltünk az élmény javítása érdekében. A Code használatának folytatásához frissítenie kell az alkalmazást.</string>
   <string name="subtitle_validOwnerAccount">Érvényes tulajdonosi fiók</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Sikertelen</string>
   <string name="title_faq">GYIK</string>
   <string name="title_gaveKin">Adott</string>
+  <string name="title_getCash">Kapj készpénzt</string>
   <string name="title_getFriendStartedOnCode">Szerezz egy barátot elkezdte használni a Code-ot</string>
   <string name="title_getKin">Szerezz Kint</string>
   <string name="title_getMoreKin">Szerezzen több Kin-t</string>
+  <string name="title_giveCash">Adj készpénzt</string>
   <string name="title_giveKin">Kin felvétele</string>
   <string name="title_insufficientFunds">Nincs elég tőke</string>
   <string name="title_inviteFriend">Hívd meg egy barátod</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Adatvédelmi irányelvek</string>
   <string name="title_purchased">Megvásárolva</string>
   <string name="title_push_twitterAccountConnected">X-fiók sikeresen csatlakoztatva</string>
+  <string name="title_receiveTips">Kapjon borravalót</string>
   <string name="title_received">Fogadva</string>
   <string name="title_recentCurrencies">Legutóbbi pénznemek</string>
   <string name="title_referFriend">Ajánlj egy barátot, kapsz 5 dollárt</string>
   <string name="title_referralBonus">Ajánlói bónusz</string>
+  <string name="title_requestCash">Kérj készpénzt</string>
   <string name="title_requestKin">Kin kérése</string>
   <string name="title_requestTip">Kérj borravalót</string>
   <string name="title_requireFaceID">Face ID-t igényel</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Elköltött</string>
   <string name="title_switchAccounts">Fiókcsere</string>
   <string name="title_termsOfService">Szolgáltatási feltételek</string>
+  <string name="title_tipCard">Borravalós kártya</string>
   <string name="title_tipKin">Kin borravaló</string>
+  <string name="title_turnOnNotifications">Értesítések bekapcsolása a Code-hoz</string>
   <string name="title_unknown">Ismeretlen</string>
   <string name="title_updateRequired">Frissítés szükséges</string>
   <string name="title_verifyPhoneNumber">Telefonszám ellenőrzése</string>

@@ -1,9 +1,14 @@
 package com.getcode.view.main.home
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.NotificationManager
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.view.WindowManager
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.model.ScreenModel
@@ -11,29 +16,34 @@ import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
+import com.getcode.domain.CashLinkManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.GiftCardManager
 import com.getcode.manager.MnemonicManager
+import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.AppSetting
 import com.getcode.model.BuyModuleFeature
+import com.getcode.model.CameraGesturesFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Domain
 import com.getcode.model.Feature
 import com.getcode.model.Fiat
+import com.getcode.model.FlippableTipCardFeature
+import com.getcode.model.GalleryFeature
 import com.getcode.model.IntentMetadata
+import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
-import com.getcode.model.TipCardFeature
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
+import com.getcode.model.notifications.NotificationType
 import com.getcode.models.Bill
 import com.getcode.models.BillState
 import com.getcode.models.BillToast
@@ -45,7 +55,7 @@ import com.getcode.models.PaymentValuation
 import com.getcode.models.TipConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
@@ -61,17 +71,15 @@ import com.getcode.network.client.requestFirstKinAirdrop
 import com.getcode.network.client.sendRemotely
 import com.getcode.network.client.sendRequestToReceiveBill
 import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.AppSettings
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
+import com.getcode.network.repository.BetaOptions
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
-import com.getcode.network.repository.SendTransactionRepository
 import com.getcode.network.repository.StatusRepository
 import com.getcode.network.repository.hexEncodedString
-import com.getcode.network.repository.replaceParam
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
@@ -79,20 +87,24 @@ import com.getcode.util.CurrencyUtils
 import com.getcode.util.IntentUtils
 import com.getcode.util.Kin
 import com.getcode.util.formatted
+import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.base64EncodedData
+import com.getcode.utils.TraceType
 import com.getcode.utils.catchSafely
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
+import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
+import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.disposables.Disposable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -147,15 +159,21 @@ data class HomeUiModel(
     val billState: BillState = BillState.Default,
     val restrictionType: RestrictionType? = null,
     val isRemoteSendLoading: Boolean = false,
-    val chatUnreadCount: Int = 0,
+    val splatTipCard: Boolean = false,
+    val notificationUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
-    val tips: Feature = TipCardFeature(),
+    val cameraGestures: Feature = CameraGesturesFeature(),
+    val invertedDragZoom: Feature = InvertedDragZoomFeature(),
+    val gallery: Feature = GalleryFeature(),
+    val flippableTipCard: Feature = FlippableTipCardFeature(),
+    val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
     val tipCardConnected: Boolean = false,
 )
 
 sealed interface HomeEvent {
     data object PresentTipEntry : HomeEvent
+    data object RequestNotificationPermissions: HomeEvent
     data class SendIntent(val intent: Intent): HomeEvent
 }
 
@@ -169,11 +187,10 @@ enum class RestrictionType {
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val client: Client,
-    private val sendTransactionRepository: SendTransactionRepository,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
@@ -185,8 +202,12 @@ class HomeViewModel @Inject constructor(
     private val exchange: Exchange,
     private val giftCardManager: GiftCardManager,
     private val mnemonicManager: MnemonicManager,
+    private val cashLinkManager: CashLinkManager,
+    private val permissionChecker: PermissionChecker,
+    private val notificationManager: NotificationManagerCompat,
+    private val codeAnalyzer: KikCodeAnalyzer,
     appSettings: AppSettingsRepository,
-    betaFlags: BetaFlagsRepository,
+    betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
     val uiFlow = MutableStateFlow(HomeUiModel())
@@ -194,9 +215,7 @@ class HomeViewModel @Inject constructor(
     private val _eventFlow: MutableSharedFlow<HomeEvent> = MutableSharedFlow()
     val eventFlow: SharedFlow<HomeEvent> = _eventFlow.asSharedFlow()
 
-    private var billDismissTimer: TimerTask? = null
     private var sheetDismissTimer: TimerTask? = null
-    private var sendTransactionDisposable: Disposable? = null
 
     init {
         onDrawn()
@@ -210,21 +229,8 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-        betaFlags.observe()
-            .distinctUntilChanged()
-            .onEach { beta ->
-                ErrorUtils.setDisplayErrors(beta.displayErrors)
-
-                if (beta.establishCodeRelationship) {
-                    val organizer = SessionManager.getOrganizer() ?: return@onEach
-                    val domain = Domain.from("getcode.com") ?: return@onEach
-                    if (organizer.relationshipFor(domain) == null) {
-                        client.awaitEstablishRelationship(organizer, domain)
-                    }
-                }
-            }.launchIn(viewModelScope)
-
         features.buyModule
+            .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
                     it.copy(buyModule = module)
@@ -232,21 +238,75 @@ class HomeViewModel @Inject constructor(
             }.launchIn(viewModelScope)
 
         features.requestKin
+            .distinctUntilChanged()
             .onEach { module ->
                 uiFlow.update {
                     it.copy(requestKin = module)
                 }
             }.launchIn(viewModelScope)
 
+        features.cameraGestures
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(cameraGestures = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.invertedDragZoom
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(invertedDragZoom = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.galleryEnabled
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(gallery = module)
+                }
+            }.launchIn(viewModelScope)
+
+        features.tipCardFlippable
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(flippableTipCard = module)
+                }
+            }.launchIn(viewModelScope)
+
+        betaFlagsRepository.observe()
+            .distinctUntilChanged()
+            .onEach { betaFlags ->
+                uiFlow.update { it.copy(actions = buildActions(betaFlags)) }
+            }.launchIn(viewModelScope)
+
         tipController.showTwitterSplat
+            .onEach { splat ->
+                viewModelScope.launch {
+                    if (splat) {
+                        delay(300)
+                    } else {
+                        delay(500)
+                    }
+                    uiFlow.update {
+                        it.copy(splatTipCard = splat)
+                    }
+                }
+            }
             .filter { it }
             .onEach { delay(500) }
             .flatMapLatest { tipController.connectedAccount }
+            .filter { tipController.verificationInProgress.value }
             .filterNotNull()
             .distinctUntilChanged()
+            .filter { uiFlow.value.isCameraScanEnabled }
             .onEach {
                 when (it) {
                     is TwitterUser -> {
+                        analytics.tipCardLinked()
                         TopBarManager.showMessage(
                             topBarMessage = TopBarManager.TopBarMessage(
                                 type = TopBarManager.TopBarMessageType.SUCCESS,
@@ -256,7 +316,7 @@ class HomeViewModel @Inject constructor(
                                 primaryAction = ::presentShareableTipCard,
                                 secondaryText = resources.getString(R.string.action_later),
                                 secondaryAction = {
-                                    tipController.clearTwitterSplat()
+                                    tipController.onSeenTipCardBanner()
                                 }
                             )
                         )
@@ -331,11 +391,11 @@ class HomeViewModel @Inject constructor(
             }
         }.launchIn(viewModelScope)
 
-        historyController.unreadCount
+        historyController.notificationsUnreadCount
             .distinctUntilChanged()
             .map { it }
             .onEach { count ->
-                uiFlow.update { it.copy(chatUnreadCount = count) }
+                uiFlow.update { it.copy(notificationUnreadCount = count) }
             }.launchIn(viewModelScope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
@@ -379,6 +439,29 @@ class HomeViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    private fun buildActions(
+        betaOptions: BetaOptions,
+    ): List<HomeAction> {
+        val actions = mutableListOf(HomeAction.GIVE_KIN)
+        actions += if (betaOptions.tipCardOnHomeScreen) {
+            HomeAction.TIP_CARD
+        } else {
+            HomeAction.GET_KIN
+        }
+
+        if (betaOptions.conversationsEnabled) {
+            actions += HomeAction.CHAT
+        }
+
+        actions += HomeAction.BALANCE
+
+        return actions
+    }
+
+    fun onCameraScanning(scanning: Boolean) {
+        uiFlow.update { it.copy(isCameraScanEnabled = scanning) }
     }
 
     fun onCameraPermissionChanged(isGranted: Boolean) {
@@ -426,127 +509,131 @@ class HomeViewModel @Inject constructor(
             else -> Unit
         }
 
-        // this should not be in the view model
-        sendTransactionDisposable?.dispose()
-        sendTransactionRepository.init(amountFloor, organizer, owner)
-        sendTransactionDisposable =
-            sendTransactionRepository.startTransaction()
-                .subscribe({
-                    cancelSend(PresentationStyle.Pop)
-                    vibrator.vibrate()
+        cashLinkManager.awaitBillGrab(
+            amount = amountFloor,
+            organizer = organizer,
+            owner = owner,
+            onGrabbed = {
+                cancelSend(PresentationStyle.Pop)
+                vibrator.vibrate()
 
-                    viewModelScope.launch {
-                        balanceController.fetchBalanceSuspend()
-                        client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
-                    }
-                }, {
-                    ErrorUtils.handleError(it)
-                    cancelSend(style = PresentationStyle.Slide)
-                })
-
-        presentSend(sendTransactionRepository.payloadData, bill, vibrate)
-    }
-
-    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) =
-        viewModelScope.launch {
-            billDismissTimer?.cancel()
-            billDismissTimer = Timer().schedule((1000 * 50).toLong()) {
-                cancelSend()
+                viewModelScope.launch {
+                    client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
+                }
+            },
+            onTimeout = {
+                cancelSend(style = PresentationStyle.Slide)
                 analytics.billTimeoutReached(
                     bill.amount.kin,
                     bill.amount.rate.currency,
                     AnalyticsManager.BillPresentationStyle.Slide
                 )
-            }
-
-            if (bill.didReceive) {
-                withContext(Dispatchers.Main) {
-                    uiFlow.update {
-                        val billState = it.billState
-                        it.copy(
-                            billState = billState.copy(
-                                valuation = PaymentValuation(
-                                    bill.amount
-                                ),
-                            )
-                        )
-                    }
-                }
-            }
-
-            val style: PresentationStyle =
-                if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
-
-            withContext(Dispatchers.Main) {
-                uiFlow.update {
-                    val billState = it.billState
-                    it.copy(
-                        presentationStyle = style,
-                        billState = billState.copy(
-                            bill = Bill.Cash(
-                                data = data,
-                                amount = bill.amount,
-                                didReceive = bill.didReceive
-                            ),
-                            valuation = PaymentValuation(bill.amount),
-                            showToast = bill.didReceive
-                        )
+            },
+            onError = { cancelSend(style = PresentationStyle.Slide) },
+            present = { data ->
+                if (!bill.didReceive) {
+                    trace(
+                        tag = "Bill",
+                        message = "Pull out cash",
+                        metadata = {
+                            "amount" to bill.amount
+                        },
+                        type = TraceType.User,
                     )
                 }
+                presentSend(data, bill, vibrate)
             }
+        )
+    }
 
-            if (style is PresentationStyle.Visible) {
-                analytics.billShown(
-                    bill.amountFloored.kin,
-                    bill.amountFloored.rate.currency,
-                    when (style) {
-                        PresentationStyle.Pop -> AnalyticsManager.BillPresentationStyle.Pop
-                        PresentationStyle.Slide -> AnalyticsManager.BillPresentationStyle.Slide
-                    }
+    private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
+        println("present send")
+        if (bill.didReceive) {
+            uiFlow.update {
+                val billState = it.billState
+                it.copy(
+                    billState = billState.copy(
+                        valuation = PaymentValuation(
+                            bill.amount
+                        ),
+                    )
                 )
-            }
-
-            if (isVibrate) {
-                vibrator.vibrate()
             }
         }
 
-    fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
-        billDismissTimer?.cancel()
-        sendTransactionDisposable?.dispose()
-        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
+        val style: PresentationStyle =
+            if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
 
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                presentationStyle = style,
+                billState = billState.copy(
+                    bill = Bill.Cash(
+                        data = data,
+                        amount = bill.amount,
+                        didReceive = bill.didReceive
+                    ),
+                    valuation = PaymentValuation(bill.amount),
+                    showToast = bill.didReceive
+                )
+            )
+        }
+
+        if (style is PresentationStyle.Visible) {
+            analytics.billShown(
+                bill.amountFloored.kin,
+                bill.amountFloored.rate.currency,
+                when (style) {
+                    PresentationStyle.Pop -> AnalyticsManager.BillPresentationStyle.Pop
+                    PresentationStyle.Slide -> AnalyticsManager.BillPresentationStyle.Slide
+                }
+            )
+        }
+
+        if (isVibrate) {
+            vibrator.vibrate()
+        }
+    }
+
+    fun cancelSend(style: PresentationStyle = PresentationStyle.Slide) {
+        cashLinkManager.cancelSend()
+        BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
         viewModelScope.launch {
             val shown = showToastIfNeeded(style)
-
-            uiFlow.update {
-                it.copy(
-                    presentationStyle = style,
-                    billState = it.billState.copy(
-                        bill = null,
-                        valuation = null,
-                        primaryAction = null,
-                        secondaryAction = null,
+            withContext(Dispatchers.Main) {
+                uiFlow.update {
+                    it.copy(
+                        presentationStyle = style,
                     )
-                )
+                }
+
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(
+                            bill = null,
+                            valuation = null,
+                            primaryAction = null,
+                            secondaryAction = null,
+                        )
+                    )
+                }
             }
 
             historyController.fetchChats()
             balanceController.fetchBalanceSuspend()
 
             if (shown) {
-                delay(300)
-            }
-
-            if (shown) {
                 delay(5.seconds.inWholeMilliseconds)
             }
+            withContext(Dispatchers.Main) {
             uiFlow.update {
                 it.copy(
                     billState = it.billState.copy(showToast = false)
                 )
             }
+                }
         }
     }
 
@@ -652,13 +739,41 @@ class HomeViewModel @Inject constructor(
 
         when (codePayload.kind) {
             Kind.Cash,
-            Kind.GiftCard -> attemptReceive(organizer, codePayload)
+            Kind.GiftCard -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned cash",
+                    type = TraceType.User,
+                )
+                attemptReceive(organizer, codePayload)
+            }
 
             Kind.RequestPayment,
-            Kind.RequestPaymentV2 -> attemptPayment(codePayload)
+            Kind.RequestPaymentV2 -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned request card",
+                    type = TraceType.User,
+                )
+                attemptPayment(codePayload)
+            }
 
-            Kind.Login -> attemptLogin(codePayload)
-            Kind.Tip -> attemptTip(codePayload)
+            Kind.Login -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned login card",
+                    type = TraceType.User,
+                )
+                attemptLogin(codePayload)
+            }
+            Kind.Tip -> {
+                trace(
+                    tag = "Bill",
+                    message = "Scanned tip card",
+                    type = TraceType.User,
+                )
+                attemptTip(codePayload)
+            }
         }
     }
 
@@ -692,14 +807,21 @@ class HomeViewModel @Inject constructor(
             value = Username(username)
         )
 
+        val hasSeenTipCard = tipController.hasSeenTipCard()
         tipController.clearTwitterSplat()
+
+        trace(
+            tag = "Bill",
+            message = "Show my tip card",
+            type = TraceType.User,
+        )
 
         withContext(Dispatchers.Main) {
             uiFlow.update {
                 val billState = it.billState.copy(
-                    bill = Bill.Tip(code),
+                    bill = Bill.Tip(code, canFlip = uiFlow.value.flippableTipCard.enabled),
                     primaryAction = BillState.Action.Share { onRemoteSend() },
-                    secondaryAction = BillState.Action.Done(::cancelSend)
+                    secondaryAction = BillState.Action.Cancel(::cancelSend)
                 )
 
                 it.copy(
@@ -707,6 +829,53 @@ class HomeViewModel @Inject constructor(
                     billState = billState,
                 )
             }
+        }
+
+        if (!hasSeenTipCard) {
+            showNotificationPermissionHintIfNeeded()
+        }
+    }
+
+    private suspend fun showNotificationPermissionHintIfNeeded() {
+        val isDenied = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionChecker.isDenied(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            false
+        }
+
+        val channel = notificationManager.getNotificationChannel(NotificationType.ChatMessage.name)
+        val isChannelOff = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel?.importance == NotificationManager.IMPORTANCE_NONE
+        } else {
+            false
+        }
+
+        val show = isDenied || isChannelOff
+
+        if (show) {
+            delay(400)
+            ModalManager.showMessage(
+                ModalManager.Message(
+                    icon = R.drawable.ic_bell,
+                    title = resources.getString(R.string.title_turnOnNotifications),
+                    subtitle = resources.getString(R.string.subtitle_turnOnNotifications),
+                    onPositive = {
+                        when {
+                            isDenied -> {
+                                viewModelScope.launch {
+                                    _eventFlow.emit(HomeEvent.RequestNotificationPermissions)
+                                }
+                            }
+                            else -> {
+                                @SuppressLint("NewApi")
+                                channel?.importance = NotificationManager.IMPORTANCE_DEFAULT
+                            }
+                        }
+
+                    },
+                    positiveText = resources.getString(R.string.action_allowPushNotifications)
+                )
+            )
         }
     }
 
@@ -892,30 +1061,28 @@ class HomeViewModel @Inject constructor(
 
         val isReceived = payload != null
         val presentationStyle = if (isReceived) PresentationStyle.Pop else PresentationStyle.Slide
-        withContext(Dispatchers.Main) {
-            uiFlow.update {
-                var billState = it.billState.copy(
-                    bill = Bill.Payment(amount, code, request),
-                    valuation = PaymentValuation(amount),
-                    primaryAction = null,
-                )
+        uiFlow.update {
+            var billState = it.billState.copy(
+                bill = Bill.Payment(amount, code, request),
+                valuation = PaymentValuation(amount),
+                primaryAction = null,
+            )
 
-                if (isReceived) {
-                    billState = billState.copy(
-                        paymentConfirmation = PaymentConfirmation(
-                            state = ConfirmationState.AwaitingConfirmation,
-                            payload = code,
-                            requestedAmount = amount,
-                            localAmount = amount.replacing(exchange.localRate)
-                        ),
-                    )
-                }
-
-                it.copy(
-                    presentationStyle = presentationStyle,
-                    billState = billState,
+            if (isReceived) {
+                billState = billState.copy(
+                    paymentConfirmation = PaymentConfirmation(
+                        state = ConfirmationState.AwaitingConfirmation,
+                        payload = code,
+                        requestedAmount = amount,
+                        localAmount = amount.replacing(exchange.localRate)
+                    ),
                 )
             }
+
+            it.copy(
+                presentationStyle = presentationStyle,
+                billState = billState,
+            )
         }
 
         analytics.requestShown(amount = amount)
@@ -935,20 +1102,17 @@ class HomeViewModel @Inject constructor(
 
     fun completePayment() = viewModelScope.launch {
         // keep bill active while sending
-        billDismissTimer?.cancel()
+        cashLinkManager.cancelBillTimeout()
 
         val paymentConfirmation = uiFlow.value.billState.paymentConfirmation ?: return@launch
-        withContext(Dispatchers.Main) {
-            uiFlow.update {
-                val billState = it.billState
-                it.copy(
-                    billState = billState.copy(
-                        paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
-                    ),
-                )
-            }
+        uiFlow.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
+                ),
+            )
         }
-
         runCatching {
             paymentRepository.completePayment(
                 paymentConfirmation.requestedAmount,
@@ -1295,6 +1459,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onImageSelected(
+        uri: Uri
+    ) {
+        codeAnalyzer.onCodeScanned = { onCodeScan(it) }
+        codeAnalyzer.onNoCodeFound = {
+            TopBarManager.showMessage(
+                TopBarManager.TopBarMessage(
+                    title = resources.getString(R.string.title_noCodeFound),
+                    message = resources.getString(R.string.subtitle_noCodeFound)
+                )
+            )
+        }
+        codeAnalyzer.analyze(uri)
+    }
+
     fun onCodeScan(
         code: ScannableKikCode,
     ) {
@@ -1328,7 +1507,7 @@ class HomeViewModel @Inject constructor(
 
     private fun shareGiftCard() {
         val giftCard = giftCardManager.createGiftCard()
-        val amount = sendTransactionRepository.getAmount()
+        val amount = cashLinkManager.amount
         var loadingIndicatorTimer: TimerTask? = null
 
         if (!networkObserver.isConnected) {
@@ -1338,7 +1517,7 @@ class HomeViewModel @Inject constructor(
 
         client.sendRemotely(
             amount = amount,
-            rendezvousKey = sendTransactionRepository.getRendezvous().publicKeyBytes.toPublicKey(),
+            rendezvousKey = cashLinkManager.rendezvous.publicKeyBytes.toPublicKey(),
             giftCard = giftCard
         )
             .doOnSubscribe {
@@ -1367,19 +1546,9 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun shareTipCard() = viewModelScope.launch {
-        val username = tipController.connectedAccount.value?.username ?: return@launch
-
-        val url = "https://tipcard.getcode.com/x/$username"
-
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, url)
-            type = "text/plain"
-        }
+        val connectedAccount = tipController.connectedAccount.value ?: return@launch
         withContext(Dispatchers.Main) {
-            val shareIntent = Intent.createChooser(sendIntent, null).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
-            }
+            val shareIntent = IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
 
             _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
         }
@@ -1402,32 +1571,21 @@ class HomeViewModel @Inject constructor(
         giftCard: GiftCardAccount,
         amount: KinAmount
     ) {
-        val url = "https://cash.getcode.com/c/#/e=" + giftCardManager.getEntropy(giftCard)
-        val text = getString(R.string.subtitle_remoteSendText)
-            .replaceParam(
-                amount.formatted(
-                    currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
-                    resources = resources
-                ),
-                url
+        val shareIntent = IntentUtils.cashLink(
+            entropy = giftCardManager.getEntropy(giftCard),
+            formattedAmount = amount.formatted(
+                currency = currencyUtils.getCurrency(amount.rate.currency.name) ?: Currency.Kin,
+                resources = resources
             )
-
-        val sendIntent: Intent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, text)
-            type = "text/plain"
-        }
-        val shareIntent = Intent.createChooser(sendIntent, null).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
+        )
 
         CoroutineScope(Dispatchers.IO).launch {
-            viewModelScope.launch {
+            withContext(Dispatchers.Main) {
                 _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
             }
             delay(2500)
 
-            billDismissTimer?.cancel()
+            cashLinkManager.cancelBillTimeout()
 
             BottomBarManager.showMessage(
                 BottomBarManager.BottomBarMessage(
@@ -1459,66 +1617,72 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun handleRequest(bytes: String?) {
-        val data = bytes?.base64EncodedData() ?: return
-        val request = DeepLinkRequest.from(data)
+    fun handleRequest(request: DeepLinkRequest?) {
         if (request != null) {
-            if (request.paymentRequest != null) {
-                viewModelScope.launch {
-                    if (uiFlow.value.balance == null) {
-                        balanceController.fetchBalanceSuspend()
-                        uiFlow.update {
-                            val amount = KinAmount.newInstance(
-                                Kin.fromKin(balanceController.rawBalance), exchange.localRate
-                            )
-                            it.copy(balance = amount)
+            when {
+                request.paymentRequest != null -> {
+                    viewModelScope.launch {
+                        if (uiFlow.value.balance == null) {
+                            balanceController.fetchBalanceSuspend()
+                            uiFlow.update {
+                                val amount = KinAmount.newInstance(
+                                    Kin.fromKin(balanceController.rawBalance), exchange.localRate
+                                )
+                                it.copy(balance = amount)
+                            }
                         }
+                        val fiat = request.paymentRequest.fiat
+                        val kind =
+                            if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                        val payload = CodePayload(
+                            kind = kind,
+                            value = fiat,
+                            nonce = request.clientSecret
+                        )
+
+                        if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                            Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                            return@launch
+                        }
+
+                        scannedRendezvous.add(payload.rendezvous.publicKey)
+                        attemptPayment(payload, request)
                     }
-                    val fiat = request.paymentRequest.fiat
-                    val kind =
-                        if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                }
+                request.loginRequest != null -> {
                     val payload = CodePayload(
-                        kind = kind,
-                        value = fiat,
-                        nonce = request.clientSecret
+                        kind = Kind.Login,
+                        value = Kin.fromKin(0),
+                        nonce = request.clientSecret,
                     )
 
                     if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
                         Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                        return@launch
+                        return
                     }
 
                     scannedRendezvous.add(payload.rendezvous.publicKey)
-                    attemptPayment(payload, request)
+                    attemptLogin(payload, request)
                 }
-            } else if (request.loginRequest != null) {
-                val payload = CodePayload(
-                    kind = Kind.Login,
-                    value = Kin.fromKin(0),
-                    nonce = request.clientSecret,
-                )
+                request.tipRequest != null -> {
+                    val payload = CodePayload(
+                        kind = Kind.Tip,
+                        value = Username(request.tipRequest.username)
+                    )
 
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
-                }
+                    if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
+                        Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
+                        return
+                    }
 
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-                attemptLogin(payload, request)
-            } else if (request.tipRequest != null) {
-                val payload = CodePayload(
-                    kind = Kind.Tip,
-                    value = Username(request.tipRequest.username)
-                )
+                    scannedRendezvous.add(payload.rendezvous.publicKey)
 
-                if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
-                    Timber.d("Nonce previously received: ${payload.nonce.hexEncodedString()}")
-                    return
+                    attemptTip(payload, request)
                 }
 
-                scannedRendezvous.add(payload.rendezvous.publicKey)
-
-                attemptTip(payload, request)
+                request.imageRequest != null -> {
+                    onImageSelected(request.imageRequest.uri)
+                }
             }
         }
     }
@@ -1614,7 +1778,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun onDrawn() {
+    private fun onDrawn() {
         analytics.onAppStarted()
     }
 

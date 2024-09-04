@@ -1,6 +1,7 @@
 package com.getcode.view.main.account
 
 import android.annotation.SuppressLint
+import androidx.lifecycle.viewModelScope
 import com.getcode.media.MediaScanner
 import com.getcode.manager.MnemonicManager
 import com.getcode.navigation.core.CodeNavigator
@@ -10,7 +11,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 
 @HiltViewModel
@@ -20,7 +25,7 @@ class AccountAccessKeyViewModel @Inject constructor(
     mediaScanner: MediaScanner,
 ) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
     @SuppressLint("CheckResult")
-    fun onSubmit(navigator: CodeNavigator) {
+    fun onSubmit() {
         Completable.create {
             val result = saveBitmapToFile()
             if (result) it.onComplete() else it.onError(IllegalStateException())
@@ -28,15 +33,28 @@ class AccountAccessKeyViewModel @Inject constructor(
             .observeOn(AndroidSchedulers.mainThread())
             .subscribeOn(Schedulers.computation())
             .doOnSubscribe {
-                uiFlow.value = uiFlow.value.copy(isLoading = true, isEnabled = false)
+                uiFlow.update {
+                    it.copy(isLoading = true, isEnabled = false)
+                }
             }
             .doOnComplete {
-                uiFlow.value =
-                    uiFlow.value.copy(isLoading = false, isEnabled = false, isSuccess = true)
+                viewModelScope.launch {
+                    uiFlow.update {
+                        it.copy(isLoading = false, isEnabled = false, isSuccess = true)
+                    }
+                    // wait 2s and reset button state
+                    delay(2.seconds)
+
+                    uiFlow.update {
+                        it.copy(isSuccess = false, isEnabled = true)
+                    }
+
+                }
             }
             .doOnError {
-                uiFlow.value =
-                    uiFlow.value.copy(isLoading = false, isEnabled = true, isSuccess = false)
+                uiFlow.update {
+                    it.copy(isLoading = false, isEnabled = true, isSuccess = false)
+                }
             }
             .subscribe({}, ::onSubmitError)
     }

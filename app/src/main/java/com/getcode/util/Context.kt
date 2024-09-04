@@ -1,15 +1,20 @@
 package com.getcode.util
 
 import android.content.Context
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
-import androidx.biometric.BiometricPrompt.AuthenticationError
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.provider.MediaStore.Images.Media
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 import com.getcode.R
-import com.getcode.network.repository.TransactionRepository.ErrorSubmitIntent
-import timber.log.Timber
-import java.util.concurrent.Executors
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStream
+import kotlin.math.floor
+
 
 fun Context.launchAppSettings() {
     val intent = IntentUtils.appSettings()
@@ -26,4 +31,15 @@ fun Context.shareDownloadLink() {
     val url = getString(R.string.app_download_link_with_ref, shareRef)
     val intent = IntentUtils.share(url)
     ContextCompat.startActivity(this, intent, null)
+}
+
+fun Context.uriToBitmap(uri: Uri): Bitmap? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        val source = ImageDecoder.createSource(contentResolver, uri)
+        ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+            decoder.isMutableRequired = true
+        }
+    } else {
+        MediaStore.Images.Media.getBitmap(contentResolver, uri)
+    }
 }

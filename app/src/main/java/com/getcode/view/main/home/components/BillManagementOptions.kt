@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.getcode.models.BillState
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.Gray50
 import com.getcode.theme.White
 import com.getcode.ui.components.CodeCircularProgressIndicator
 import com.getcode.ui.components.Pill
@@ -45,24 +44,26 @@ internal fun BillManagementOptions(
             if (primaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = !isSending) { primaryAction.action() }
-                        .padding(vertical = 15.dp, horizontal = 20.dp),
-                    contentPadding = PaddingValues(),
-                    backgroundColor = Gray50,
+                        .rememberedClickable(enabled = !isSending) { primaryAction.action() },
+                    contentPadding = PaddingValues(15.dp),
+                    backgroundColor = CodeTheme.colors.action,
                 ) {
                     Box {
                         Row(
-                            modifier = Modifier.alpha(if (!isSending) 1f else 0f)
+                            modifier = Modifier.alpha(if (!isSending) 1f else 0f),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Image(
                                 painter = primaryAction.asset,
                                 contentDescription = "",
                                 modifier = Modifier.width(22.dp)
                             )
-                            Text(
-                                modifier = Modifier.padding(start = 10.dp),
-                                text = primaryAction.label
-                            )
+                            primaryAction.label?.let { label ->
+                                Text(
+                                    modifier = Modifier.padding(start = 10.dp),
+                                    text = label
+                                )
+                            }
                         }
 
                         if (isSending) {
@@ -80,20 +81,25 @@ internal fun BillManagementOptions(
             if (secondaryAction != null) {
                 Pill(
                     modifier = Modifier
-                        .rememberedClickable(enabled = isInteractable) { secondaryAction.action() }
-                        .padding(vertical = 15.dp, horizontal = 20.dp),
-                    contentPadding = PaddingValues(),
-                    backgroundColor = Gray50,
+                        .rememberedClickable(enabled = isInteractable) { secondaryAction.action() },
+                    contentPadding = PaddingValues(15.dp),
+                    backgroundColor = CodeTheme.colors.action,
                 ) {
-                    Image(
-                        painter = secondaryAction.asset,
-                        contentDescription = "",
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Text(
-                        modifier = Modifier.padding(start = 10.dp),
-                        text = secondaryAction.label
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = secondaryAction.asset,
+                            contentDescription = "",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        secondaryAction.label?.let { label ->
+                            Text(
+                                modifier = Modifier.padding(start = 10.dp),
+                                text = label
+                            )
+                        }
+                    }
                 }
             }
         }

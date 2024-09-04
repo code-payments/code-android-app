@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,11 +20,15 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +52,7 @@ import com.getcode.theme.xxl
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.components.Pill
 import com.getcode.ui.tips.DefinedTips
+import com.getcode.ui.utils.unboundedClickable
 import com.getcode.view.main.home.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
@@ -59,7 +66,7 @@ internal fun DecorView(
     isCameraReady: Boolean,
     isPaused: Boolean,
     modifier: Modifier = Modifier,
-    showBottomSheet: (HomeBottomSheet) -> Unit,
+    onAction: (HomeAction) -> Unit,
 ) {
     val tips = LocalTipsEngine.current!!.tips as DefinedTips
     val tipProvider = LocalTipProvider.current
@@ -74,7 +81,7 @@ internal fun DecorView(
 
     val scope = rememberCoroutineScope()
     val openDownloadModal = {
-        showBottomSheet(HomeBottomSheet.SHARE_DOWNLOAD)
+        onAction(HomeAction.SHARE_DOWNLOAD)
         scope.launch {
             delay(300)
             tipProvider.dismiss()
@@ -105,21 +112,37 @@ internal fun DecorView(
             contentDescription = "",
         )
 
-        Image(
+        Column(
             modifier = Modifier
                 .statusBarsPadding()
                 .padding(vertical = CodeTheme.dimens.grid.x2)
                 .padding(horizontal = CodeTheme.dimens.grid.x3)
-                .align(Alignment.TopEnd)
-                .clip(CircleShape)
-                .rememberedClickable {
-                    showBottomSheet(HomeBottomSheet.ACCOUNT)
-                },
-            painter = painterResource(
-                R.drawable.ic_home_options
-            ),
-            contentDescription = "",
-        )
+                .align(Alignment.TopEnd),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+        ) {
+            Image(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .unboundedClickable {
+                        onAction(HomeAction.ACCOUNT)
+                    },
+                painter = painterResource(R.drawable.ic_home_options),
+                contentDescription = "",
+            )
+
+            if (dataState.gallery.enabled) {
+                Image(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .unboundedClickable {
+                            onAction(HomeAction.GALLERY)
+                        },
+                    painter = painterResource(R.drawable.ic_gallery),
+                    contentDescription = "",
+                )
+            }
+        }
 
         Column(modifier = Modifier.align(Alignment.BottomCenter)) {
             AnimatedVisibility(
@@ -186,7 +209,7 @@ internal fun DecorView(
                     .padding(bottom = CodeTheme.dimens.grid.x3),
                 state = dataState,
                 onPress = {
-                    showBottomSheet(it)
+                    onAction(it)
                 },
             )
         }

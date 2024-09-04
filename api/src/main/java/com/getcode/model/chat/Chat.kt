@@ -2,6 +2,7 @@ package com.getcode.model.chat
 
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -18,6 +19,7 @@ import java.util.UUID
  * @param cursor [Cursor] value for this chat for reference in subsequent GetChatsRequest
  * @param messages List of messages within this chat
  */
+@Serializable
 data class Chat(
     val id: ID,
     val type: ChatType,
@@ -31,6 +33,25 @@ data class Chat(
     val cursor: Cursor,
     val messages: List<ChatMessage>
 ) {
+    val imageData: Any
+        get() {
+            return when (type) {
+                ChatType.Unknown -> id
+                ChatType.Notification -> id
+                ChatType.TwoWay -> {
+                    members
+                        .filterNot { it.isSelf }
+                        .firstNotNullOf {
+                            if (it.identity != null) {
+                                it.identity.imageUrl.orEmpty()
+                            } else {
+                                it.id
+                            }
+                        }
+                }
+            }
+        }
+
     val unreadCount: Int
         get() {
             if (!isV2) return _unreadCount
@@ -115,6 +136,9 @@ data class Chat(
 
 val Chat.isV2: Boolean
     get() = members.isNotEmpty()
+
+val Chat.isNotification: Boolean
+    get() = type == ChatType.Notification
 
 val Chat.isConversation: Boolean
     get() = type == ChatType.TwoWay

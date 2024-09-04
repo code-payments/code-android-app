@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Ajouter des liquidités avec une carte de débit</string>
   <string name="action_allowCameraAccess">Autoriser l\'accès à la caméra</string>
   <string name="action_allowContacts">Autoriser l\'accès aux contacts</string>
   <string name="action_allowPushNotifications">Autoriser les notifications push</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Acheter davantage de Kin</string>
   <string name="action_cancel">Annuler</string>
   <string name="action_cancelSend">Annuler l’envoi</string>
+  <string name="action_chat">Discussion</string>
   <string name="action_collectCash">Collecter cet argent</string>
   <string name="action_confirm">Confirmer</string>
   <string name="action_connectToX">Se connecter à X</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Activez Face ID</string>
   <string name="action_enableTouchID">Activez Touch ID</string>
   <string name="action_exit">Quitter</string>
+  <string name="action_give">Donner</string>
   <string name="action_giveKin">Donner Kin</string>
   <string name="action_invite">Inviter</string>
   <string name="action_invites">Invitations</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Coller depuis le presse-papiers</string>
   <string name="action_postToConnect">Publier sur le compte connecté</string>
   <string name="action_putInWallet">Mettre dans le portefeuille</string>
+  <string name="action_receive">Recevoir</string>
   <string name="action_recoverExistingAccount">Récupérer le compte existant</string>
   <string name="action_remind">Rappeler</string>
   <string name="action_removePhoneNumber">Supprimer le numéro de téléphone</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Envoyer</string>
   <string name="action_sendVerificationCode">Envoyer le code de vérification</string>
   <string name="action_share">Partager</string>
+  <string name="action_shareAsURL">Partager comme URL</string>
   <string name="action_shareDownloadLink">Partagez le lien de téléchargement</string>
   <string name="action_shareVideo">Partager cette vidéo</string>
   <string name="action_showMyTipCard">Afficher ma carte de pourboires</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Votre clé d\'accès est le seul moyen d\'accéder à vos fonds. Veuillez la conserver en toute confidentialité et en toute sécurité.</string>
   <string name="subtitle_accessKeyFaceID">Vérifier votre identité pour afficher votre clé d\'accès.</string>
   <string name="subtitle_accessKeySnapshotDescription">Appuyez sur l\'icône de Google Lens pour ouvrir le code QR et vous connecter à Code. Vous pouvez également vous connecter manuellement en saisissant les 12 mots dans l\'écran de connexion de Code.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Attention ! Cette image permet d\'accéder à vos fonds dans Code. Ne partagez pas cette image avec d\'autres personnes. Gardez-la en toute sécurité.</string>
   <string name="subtitle_allowCameraAccess">Code vous permet de recevoir Kin en pointant votre appareil photo sur la facture numérique du téléphone d\'un autre utilisateur</string>
   <string name="subtitle_allowCameraSettings">Vous devez autoriser l\'accès à la caméra pour pouvoir recevoir des Kin</string>
   <string name="subtitle_authenticateToAccess">Authentifiez-vous pour accéder à Code.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Déposer Kin dans votre porte-monnaie Code en envoyant Kin à votre adresse de dépôt ci-dessous. Taper pour copier.</string>
   <string name="subtitle_insufficientFundsDescription">Veuillez obtenir plus de Kin et essayez de payer à nouveau</string>
   <string name="subtitle_invalidTokenAccount">Compte de destination invalide</string>
+  <string name="subtitle_invalidTokenAccountDescription">Assurez-vous que l\'adresse de retrait a été validée par votre fournisseur de portefeuille. Pour ce faire, il suffit d\'échanger un peu de SOL contre du kin dans le portefeuille vers lequel vous essayez d\'envoyer de l\'argent.</string>
   <string name="subtitle_inviteCode">Code d\'invitation</string>
   <string name="subtitle_inviteCodeDescription">Le code est actuellement réservé aux invités. Vous aurez besoin d\'un code d\'invitation pour accéder à l\'application.</string>
   <string name="subtitle_inviteCount">%1$d d\'invitations</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Vous devez activer votre caméra pour scanner les Codes</string>
   <string name="subtitle_tipCardForX">Votre carte de pourboires vous permet de recevoir des pourboires de la part des utilisateurs de Code dans le monde entier. Pour accéder à votre carte de pourboires, connectez votre identifiant X.</string>
   <string name="subtitle_tipCardTwitterDescription">Votre Tip Card vous permet de recevoir des conseils d\'utilisateurs de Code du monde entier. Publiez sur X pour accéder à Tip Card.</string>
+  <string name="subtitle_turnOnNotifications">Autoriser Code à vous envoyer des notifications lorsque vous recevez des conseils d\'autres utilisateurs de l\'application.</string>
   <string name="subtitle_typeDelete">Saisissez « %1$s »</string>
   <string name="subtitle_updateRequiredDescription">Nous avons effectué quelques changements pour améliorer l\'expérience. Vous devrez mettre à jour l\'application pour continuer à utiliser Code.</string>
   <string name="subtitle_validOwnerAccount">Propriétaire du compte invalide</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Échoué</string>
   <string name="title_faq">FAQ</string>
   <string name="title_gaveKin">Donné</string>
+  <string name="title_getCash">Obtenir des liquidités</string>
   <string name="title_getFriendStartedOnCode">Invitez un ami à s\'inscrire sur Code</string>
   <string name="title_getKin">Obtenir des Kin</string>
   <string name="title_getMoreKin">Obtenir plus de Kin</string>
+  <string name="title_giveCash">Donner de l\'argent</string>
   <string name="title_giveKin">Donner Kin</string>
   <string name="title_insufficientFunds">Fonds insuffisants</string>
   <string name="title_inviteFriend">Inviter un ami</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Politique de confidentialité</string>
   <string name="title_purchased">Acheté</string>
   <string name="title_push_twitterAccountConnected">Compte X connecté avec succès</string>
+  <string name="title_receiveTips">Obtenir des conseils</string>
   <string name="title_received">Reçu</string>
   <string name="title_recentCurrencies">Devises récentes</string>
   <string name="title_referFriend">Parrainez un ami, recevez 5 $</string>
   <string name="title_referralBonus">Bonus de parrainage</string>
+  <string name="title_requestCash">Demander des liquidités</string>
   <string name="title_requestKin">Demander des Kin</string>
   <string name="title_requestTip">Demander un pourboire</string>
   <string name="title_requireFaceID">Nécessite Face ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Dépensé</string>
   <string name="title_switchAccounts">Échanger des comptes</string>
   <string name="title_termsOfService">Conditions d\'utilisation</string>
+  <string name="title_tipCard">Carte conseil</string>
   <string name="title_tipKin">Donner un pourboire en Kin</string>
+  <string name="title_turnOnNotifications">Activer les notifications de Code</string>
   <string name="title_unknown">Inconnu</string>
   <string name="title_updateRequired">Mise à jour requise</string>
   <string name="title_verifyPhoneNumber">Vérifier le numéro de téléphone</string>

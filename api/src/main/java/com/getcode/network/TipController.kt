@@ -1,8 +1,5 @@
 package com.getcode.network
 
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.PrefsBool
@@ -11,6 +8,7 @@ import com.getcode.model.TipMetadata
 import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
 import com.getcode.network.repository.base58
@@ -44,8 +42,13 @@ typealias TipUser = Pair<String, CodePayload>
 @Singleton
 class TipController @Inject constructor(
     private val client: Client,
+    betaFlags: BetaFlagsRepository,
     private val prefRepository: PrefRepository,
-): LifecycleEventObserver {
+) {
+
+    companion object {
+        private const val POLL_FREQUENCY_LOOKING_SECS = 5L
+    }
 
     private var pollTimer: Timer? = null
     private var lastPoll: Long = 0L
@@ -67,28 +70,40 @@ class TipController @Inject constructor(
             initialValue = null
         )
 
+    val verificationInProgress: StateFlow<Boolean> = prefRepository.observeOrDefault(PrefsBool.STARTED_TIP_CONNECT, false)
+        .distinctUntilChanged()
+        .stateIn(
+            scope = scope,
+            started = SharingStarted.Eagerly,
+            initialValue = false
+        )
+
     val showTwitterSplat: Flow<Boolean> =
         combine(
             connectedAccount,
-            prefRepository.observeOrDefault(PrefsBool.TIPS_ENABLED, false),
+            betaFlags.observe().map { it.tipsEnabled },
             prefRepository.observeOrDefault(PrefsBool.SEEN_TIP_CARD, false)
         ) { connected, tipsEnabled, seen ->
             connected != null && !seen && tipsEnabled
         }
 
     private fun startPollTimer() {
+        if (connectedAccount.value != null) return
+
         Timber.d("twitter poll start")
         pollTimer?.cancel()
-        pollTimer = fixedRateTimer("twitterPollTimer", false, 0, 1000 * 20) {
-            scope.launch {
-                val time = System.currentTimeMillis()
-                val isPastThrottle = time - lastPoll > 1000 * 10 || lastPoll == 0L
+        pollTimer =
+            fixedRateTimer("twitterPollTimer", false, 0, 1000 * POLL_FREQUENCY_LOOKING_SECS) {
+                scope.launch {
+                    val time = System.currentTimeMillis()
+                    val isPastThrottle =
+                        time - lastPoll > 1000 * (POLL_FREQUENCY_LOOKING_SECS / 2.0) || lastPoll == 0L
 
-                if (isPastThrottle) {
-                    callForConnectedUser()
+                    if (isPastThrottle) {
+                        callForConnectedUser()
+                    }
                 }
             }
-        }
     }
 
     private suspend fun callForConnectedUser() {
@@ -100,6 +115,7 @@ class TipController @Inject constructor(
             .onSuccess {
                 Timber.d("current user twitter connected @ ${it.username}")
                 prefRepository.set(PrefsString.KEY_TIP_ACCOUNT, Json.encodeToString(it))
+                stopTimer()
             }
             .onFailure {
                 when (it) {
@@ -120,6 +136,12 @@ class TipController @Inject constructor(
     }
 
     fun checkForConnection() {
+        if (!verificationInProgress.value) {
+            scope.launch {
+                callForConnectedUser()
+            }
+            return
+        }
         startPollTimer()
     }
 
@@ -140,6 +162,15 @@ class TipController @Inject constructor(
     fun reset() {
         scannedUserData = null
         userMetadata = null
+    }
+
+    fun onSeenTipCardBanner() {
+        prefRepository.set(PrefsBool.DISMISSED_TIP_CARD_BANNER, true)
+        endVerification()
+    }
+
+    suspend fun hasSeenTipCard(): Boolean {
+        return prefRepository.get(PrefsBool.SEEN_TIP_CARD, false)
     }
 
     fun clearTwitterSplat() {
@@ -167,15 +198,20 @@ class TipController @Inject constructor(
         return null
     }
 
-    private fun stopTimer() {
-        pollTimer?.cancel()
+    fun startVerification() {
+        prefRepository.set(PrefsBool.STARTED_TIP_CONNECT, true)
     }
 
-    override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
-        when (event) {
-            Lifecycle.Event.ON_RESUME -> checkForConnection()
-            Lifecycle.Event.ON_STOP -> stopTimer()
-            else -> Unit
-        }
+    private fun endVerification() {
+        prefRepository.set(PrefsBool.STARTED_TIP_CONNECT, false)
+    }
+
+    fun stopTimer() {
+        stopTimerInternal()
+    }
+
+    private fun stopTimerInternal() {
+        Timber.d("twitter poll stop")
+        pollTimer?.cancel()
     }
 }

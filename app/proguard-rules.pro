@@ -56,10 +56,24 @@
 }
 
 -keep public class * extends java.lang.Exception
+-keep public class * extends com.getcode.network.repository.ErrorSubmitIntent
+-keep public class * extends com.getcode.network.repository.ErrorSubmitIntentException
+-keep public class * extends com.getcode.network.repository.WithdrawException
+-keep public class * extends com.getcode.network.repository.FetchUpgradeableIntentsException
+-keep public class * extends com.getcode.network.repository.AirdropException
 
 # https://github.com/firebase/firebase-android-sdk/issues/3688
 -keep class org.json.** { *; }
 -keepclassmembers class org.json.** { *; }
+
+# Keep generic signature of Call, Response (R8 full mode strips signatures from non-kept items).
+ -keep,allowobfuscation,allowshrinking interface retrofit2.Call
+ -keep,allowobfuscation,allowshrinking class retrofit2.Response
+
+ # With R8 full mode generic signatures are stripped for classes that are not
+ # kept. Suspend functions are wrapped in continuations where the type argument
+ # is used.
+ -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
 
 # libsodium
 -keep class com.ionspin.kotlin.crypto.** { *; }

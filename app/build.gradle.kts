@@ -14,6 +14,7 @@ plugins {
     id(Plugins.firebase_perf)
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
+    id(Plugins.versioning_gradle_plugin)
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -24,8 +25,8 @@ android {
 
     defaultConfig {
         applicationId = Android.namespace
-        versionCode = Android.versionCode
-        versionName = "1.1.$versionCode"
+        versionCode = versioning.getVersionCode()
+        versionName = Packaging.versionName
 
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
@@ -114,6 +115,9 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":api"))
+    implementation(project(":crypto:ed25519"))
+    implementation(project(":crypto:kin"))
+    implementation(project(":common:components"))
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
     implementation(project(":vendor:tipkit:tipkit-m2"))
@@ -131,6 +135,7 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
+    implementation("androidx.webkit:webkit:1.11.0")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
     androidTestImplementation(Libs.hilt)
@@ -159,8 +164,11 @@ dependencies {
     implementation(Libs.compose_voyager_navigation_transitions)
     implementation(Libs.compose_voyager_navigation_bottomsheet)
     implementation(Libs.compose_voyager_navigation_hilt)
+    implementation(Libs.compose_webview)
 
     implementation(Libs.androidx_biometrics)
+
+    implementation(Libs.androidx_activity)
 
     // cameraX
     implementation(Libs.androidx_camerax_core)
@@ -188,9 +196,12 @@ dependencies {
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)
     implementation(Libs.mp_android_chart)
-    implementation(Libs.qr_generator)
     implementation(Libs.zxing)
     implementation(Libs.mixpanel)
+
+    implementation(Libs.retrofit)
+    implementation(Libs.retrofit_converter)
+    implementation(Libs.okhttp_logging_interceptor)
 
     implementation(Libs.cloudy)
 
@@ -218,5 +229,5 @@ dependencies {
     implementation(Libs.timber)
     implementation(Libs.bugsnag)
 
-    implementation("dev.chrisbanes.haze:haze:0.7.3")
+    implementation(Libs.haze)
 }

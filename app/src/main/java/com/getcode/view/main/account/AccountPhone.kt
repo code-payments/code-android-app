@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -18,7 +17,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
-import com.getcode.App
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
@@ -80,7 +78,12 @@ fun AccountPhone(
                 if (!dataState.isLinked) {
                     val entropyB64 = SessionManager.authState.value?.entropyB64
                     if (!entropyB64.isNullOrBlank()) {
-                        navigator.push(PhoneVerificationScreen(signInEntropy = entropyB64.urlEncode(), isPhoneLinking = true))
+                        navigator.push(
+                            PhoneVerificationScreen(
+                                signInEntropy = entropyB64.urlEncode(),
+                                isPhoneLinking = true
+                            )
+                        )
                     }
                 } else {
                     BottomBarManager.showMessage(
@@ -95,7 +98,9 @@ fun AccountPhone(
                     )
                 }
             },
-            text = if (!dataState.isLinked) stringResource(R.string.action_linkPhoneNumber) else stringResource(R.string.action_removeYourPhoneNumber),
+            text = if (!dataState.isLinked) stringResource(R.string.action_linkPhoneNumber) else stringResource(
+                R.string.action_removeYourPhoneNumber
+            ),
             buttonState = if (!dataState.isLinked) ButtonState.Filled else ButtonState.Filled10,
             modifier = Modifier
                 .fillMaxWidth()

@@ -22,6 +22,7 @@ import com.getcode.ui.components.VerticalDivider
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.withTopBorder
 
 @Composable
@@ -33,7 +34,7 @@ fun ChatScreen(
     val listState = rememberLazyListState()
 
     val context = LocalContext.current
-    val title = state.title
+    val title = state.title.localized
 
     Column(modifier = Modifier.fillMaxSize()) {
         MessageList(
@@ -98,7 +99,10 @@ fun ChatScreen(
                         BottomBarManager.showMessage(
                             BottomBarManager.BottomBarMessage(
                                 title = context.getString(R.string.prompt_title_unsubscribe, title),
-                                subtitle = context.getString(R.string.prompt_description_unsubscribe, title),
+                                subtitle = context.getString(
+                                    R.string.prompt_description_unsubscribe,
+                                    title
+                                ),
                                 positiveText = context.getString(R.string.action_unsubscribe),
                                 negativeText = context.getString(R.string.action_nevermind),
                                 onPositive = { dispatch(ChatViewModel.Event.OnSubscribeToggled) },
@@ -107,7 +111,9 @@ fun ChatScreen(
                     },
                     shape = RectangleShape,
                     buttonState = ButtonState.Subtle,
-                    text = if (state.isSubscribed) stringResource(R.string.action_unsubscribe) else stringResource(id = R.string.action_subscribe)
+                    text = if (state.isSubscribed) stringResource(R.string.action_unsubscribe) else stringResource(
+                        id = R.string.action_subscribe
+                    )
                 )
             }
         }

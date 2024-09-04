@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">הוספת כסף באמצעות כרטיס חיוב</string>
   <string name="action_allowCameraAccess">אפשר גישה למצלמה </string>
   <string name="action_allowContacts">אפשר גישה לאנשי הקשר</string>
   <string name="action_allowPushNotifications">אפשר הודעות דחיפה</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">לקנות kin יותר</string>
   <string name="action_cancel">ביטול</string>
   <string name="action_cancelSend">בטל שליחה</string>
+  <string name="action_chat">צ\'אט</string>
   <string name="action_collectCash">אסוף את המזומן הזה</string>
   <string name="action_confirm">אישור</string>
   <string name="action_connectToX">התחבר ל-X</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">הפוך Face ID לזמין</string>
   <string name="action_enableTouchID">הפוך Touch ID לזמין</string>
   <string name="action_exit">יציאה</string>
+  <string name="action_give">תן</string>
   <string name="action_giveKin">תן קין</string>
   <string name="action_invite">הזמן</string>
   <string name="action_invites">הזמנות</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">הדבק מהלוח</string>
   <string name="action_postToConnect">יש להעלות פוסט כדי לחבר את החשבון</string>
   <string name="action_putInWallet">שים בארנק</string>
+  <string name="action_receive">קבל</string>
   <string name="action_recoverExistingAccount">שחזר חשבון קיים</string>
   <string name="action_remind">הזכר</string>
   <string name="action_removePhoneNumber">הסר מספר טלפון</string>
@@ -53,6 +57,7 @@
   <string name="action_send">שליחה</string>
   <string name="action_sendVerificationCode">שלח קוד אימות</string>
   <string name="action_share">שיתוף</string>
+  <string name="action_shareAsURL">שיתוף כ-URL</string>
   <string name="action_shareDownloadLink">שתף קישור להורדה</string>
   <string name="action_shareVideo">שתפו סרטון זה</string>
   <string name="action_showMyTipCard">הצג את כרטיס הטיפים שלי</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">מפתח הגישה שלך הוא הדרך היחידה לגשת לכספים שלך. אנא שמור אותו בסוד ובמקום בטוח.</string>
   <string name="subtitle_accessKeyFaceID">אמת את הזהות שלך כדי לצפות במפתח הגישה שלך.</string>
   <string name="subtitle_accessKeySnapshotDescription"/>
+  <string name="subtitle_accessKeySnapshotWarning">אזהרה! תמונה זו מעניקה גישה לכל הכספים שיש לך ב-Code. אין לשתף תמונה זו עם אף אחד אחר. יש לשמור אותה מאובטחת ובטוחה.</string>
   <string name="subtitle_allowCameraAccess">קוד מאפשרת לך לקבל קין באמצעות כיוון המצלמה שלך לשטר דיגיטלי בטלפון של משתמש אחר</string>
   <string name="subtitle_allowCameraSettings">אתה צריך לאפשר גישה למצלמה כדי שתוכל לקבל קין.</string>
   <string name="subtitle_authenticateToAccess">יש לאמת כדי לגשת ל-Code.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">הפקד קין לארנק הקוד שלך על ידי שליחת קין לכתובת ההפקדות שלך המצוינת מטה. הקש להעתקה.</string>
   <string name="subtitle_insufficientFundsDescription">אנא השיגו עוד Kin ואז נסו לשלם שוב</string>
   <string name="subtitle_invalidTokenAccount">חשבון יעד לא חוקי</string>
+  <string name="subtitle_invalidTokenAccountDescription">נא ודאו שהכתובת שאליה אתם מושכים אותחלה על ידי ספק הארנק שלכם. דרך קצרה לעשות זאת היא להחליף תחילה כמות קטנה של SOL ל-Kin בארנק שאליו אתם מנסים לשלוח.</string>
   <string name="subtitle_inviteCode">קוד הזמנה</string>
   <string name="subtitle_inviteCodeDescription">Code היא כרגע בהזמנה בלבד. תזדקק לקוד הזמנה כדי לגשת לאפליקציה.</string>
   <string name="subtitle_inviteCount">%1$d הזמנות</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">עליך להפעיל את המצלמה כדי לסרוק קודים</string>
   <string name="subtitle_tipCardForX">כרטיס הטיפים שלכם מאפשר לכם לקבל טיפים ממשתמשי Code מכל רחבי העולם. כדי לגשת לכרטיס הטיפים שלכם חברו את זהות X שלכם.</string>
   <string name="subtitle_tipCardTwitterDescription">ה\"טיפקארד\" שלך מאפשר לך לקבל טיפים ממשתמשי קוד בכל רחבי העולם. כדי לגשת ל\"טיפקארד\" שלך, עליך להעלות פוסט ל-X.</string>
+  <string name="subtitle_turnOnNotifications">אפשרו ל-Code לשלוח לכם הודעות כשאתם מקבלים טיפים ממשתמשי Code אחרים.</string>
   <string name="subtitle_typeDelete">יש להקליד \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">עשינו כמה שינויים כדי לשפר את חווית המשתמש. תצטרך לעדכן את האפליקציה כדי להמשיך להשתמש בקוד.</string>
   <string name="subtitle_validOwnerAccount">חשבון בעלים תקף</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">נכשל</string>
   <string name="title_faq">שאלות נפוצות</string>
   <string name="title_gaveKin">העברות שבוצעו</string>
+  <string name="title_getCash">קבלת כסף</string>
   <string name="title_getFriendStartedOnCode">עודד חבר להתחיל להשתמש ב-Code</string>
   <string name="title_getKin">השגת Kin</string>
   <string name="title_getMoreKin">השיגו עוד Kin</string>
+  <string name="title_giveCash">תן מזומן</string>
   <string name="title_giveKin">העבר קין</string>
   <string name="title_insufficientFunds">אין מספיק כספים</string>
   <string name="title_inviteFriend">הזמן חבר</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">מדיניות פרטיות</string>
   <string name="title_purchased">נרכש</string>
   <string name="title_push_twitterAccountConnected">חשבון X חובר בהצלחה</string>
+  <string name="title_receiveTips">קבלו טיפים</string>
   <string name="title_received">הפקדות שהתקבלו</string>
   <string name="title_recentCurrencies">סוגי מטבע בשימוש לאחרונה</string>
   <string name="title_referFriend">הפנה חבר, קבל 5$</string>
   <string name="title_referralBonus">בונוס הפניה</string>
+  <string name="title_requestCash">בקשת כסף</string>
   <string name="title_requestKin">בקשת Kin</string>
   <string name="title_requestTip">בקשת טיפ</string>
   <string name="title_requireFaceID">נדרש Face ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">הוצאו</string>
   <string name="title_switchAccounts">החלף חשבון</string>
   <string name="title_termsOfService">תנאי שימוש</string>
+  <string name="title_tipCard">כרטיס טיפ</string>
   <string name="title_tipKin">מתן Kin כטיפ</string>
+  <string name="title_turnOnNotifications">הפעילו הודעות עבור Code</string>
   <string name="title_unknown">לא ידוע</string>
   <string name="title_updateRequired">נדרש עדכון</string>
   <string name="title_verifyPhoneNumber">אימות מספר טלפון</string>

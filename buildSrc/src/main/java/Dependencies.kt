@@ -2,12 +2,19 @@
 
 object Android {
     const val namespace = "com.getcode"
-    const val versionCode = 408
     const val compileSdkVersion = 34
     const val minSdkVersion = 24
-    const val targetSdkVersion = 33
+    const val targetSdkVersion = 34
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
+}
+
+object Packaging {
+    private const val majorVersion = 2
+    private const val minorVersion = 1
+    private const val patchVersion = 10
+
+    const val versionName = "$majorVersion.$minorVersion.$patchVersion"
 }
 
 object Versions {
@@ -19,6 +26,7 @@ object Versions {
     const val android_gradle_build_tools = "8.4.0"
     const val google_services = "4.3.15"
 
+    const val androidx_activity = "1.7.2"
     const val androidx_annotation = "1.7.1"
     const val androidx_biometrics = "1.2.0-alpha05"
     const val androidx_camerax = "1.3.2"
@@ -32,6 +40,7 @@ object Versions {
     const val sqlcipher = "4.5.1@aar"
 
     const val compose = "2024.05.00"
+
     // compose compiler is tied to [Versions.kotlin]
     // See compatibility mapping here:
     // https://developer.android.com/jetpack/androidx/releases/compose-compiler
@@ -40,10 +49,12 @@ object Versions {
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
     const val compose_paging = "3.3.0-alpha02"
+    const val compose_webview = "0.33.6"
 
     const val hilt = "2.50"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
+    const val retrofit = "2.6.0"
     const val rxjava: String = "3.1.3"
     const val rxandroid: String = "3.0.0"
 
@@ -57,14 +68,15 @@ object Versions {
     const val play_service_auth = "20.7.0"
     const val play_service_auth_phone = "18.0.2"
 
+    const val grpc: String = "1.62.2"
     const val grpc_okhttp: String = "1.33.1"
-    const val grpc_kotlin: String = "1.0.0"
+    const val grpc_kotlin: String = "1.4.1"
+    const val protobuf: String = "3.25.3"
 
     const val mp_android_chart: String = "v3.1.0"
     const val lib_phone_number_port: String = "8.12.43"
     const val lib_phone_number_google: String = "8.12.54"
     const val hilt_nav_compose: String = "1.1.0-alpha02"
-    const val qr_generator: String = "1.0.1"
     const val zxing: String = "3.3.2"
 
     const val androidx_test_runner = "1.4.0"
@@ -76,24 +88,31 @@ object Versions {
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
     const val voyager = "1.0.0"
-    const val protobuf_plugin = "0.8.14"
+    const val protobuf_plugin = "0.9.4"
 
     const val sodium_bindings = "0.9.0"
 }
 
 object Classpath {
-    const val android_gradle_build_tools = "com.android.tools.build:gradle:${Versions.android_gradle_build_tools}"
+    const val android_gradle_build_tools =
+        "com.android.tools.build:gradle:${Versions.android_gradle_build_tools}"
     const val kotlin_hilt_plugin = "com.google.dagger:hilt-android-gradle-plugin:${Versions.hilt}"
-    const val androidx_navigation_safeargs = "androidx.navigation:navigation-safe-args-gradle-plugin:${Versions.androidx_navigation}"
+    const val androidx_navigation_safeargs =
+        "androidx.navigation:navigation-safe-args-gradle-plugin:${Versions.androidx_navigation}"
     const val kotlin_gradle_plugin = "org.jetbrains.kotlin:kotlin-gradle-plugin:${Versions.kotlin}"
-    const val kotlin_serialization_plugin = "org.jetbrains.kotlin:kotlin-serialization:${Versions.kotlin}"
+    const val kotlin_serialization_plugin =
+        "org.jetbrains.kotlin:kotlin-serialization:${Versions.kotlin}"
     const val google_services = "com.google.gms:google-services:${Versions.google_services}"
-    const val protobuf_plugin = "com.google.protobuf:protobuf-gradle-plugin:${Versions.protobuf_plugin}"
+    const val protobuf_plugin =
+        "com.google.protobuf:protobuf-gradle-plugin:${Versions.protobuf_plugin}"
 
-    const val crashlytics_gradle = "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
+    const val crashlytics_gradle =
+        "com.google.firebase:firebase-crashlytics-gradle:${Versions.crashlytics_gradle}"
     const val bugsnag = "com.bugsnag:bugsnag-android-gradle-plugin:8.+"
     const val firebase_perf = "com.google.firebase:perf-plugin:1.4.2"
-    const val secrets_gradle_plugin = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
+    const val secrets_gradle_plugin =
+        "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
+    const val versioning_gradle_plugin = "de.nanogiants:android-versioning:2.4.0"
 }
 
 object Plugins {
@@ -109,18 +128,21 @@ object Plugins {
     const val firebase_crashlytics = "com.google.firebase.crashlytics"
     const val firebase_perf = "com.google.firebase.firebase-perf"
     const val bugsnag = "com.bugsnag.android.gradle"
-    const val secrets_gradle_plugin = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
+    const val secrets_gradle_plugin =
+        "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
+    const val versioning_gradle_plugin = "de.nanogiants.android-versioning"
 }
 
 object Libs {
-
-
+    const val androidx_activity = "androidx.activity:activity-ktx:{${Versions.androidx_activity}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
     const val androidx_biometrics = "androidx.biometric:biometric:${Versions.androidx_biometrics}"
     const val androidx_camerax_core = "androidx.camera:camera-core:${Versions.androidx_camerax}"
-    const val androidx_camerax_camera2 = "androidx.camera:camera-camera2:${Versions.androidx_camerax}"
-    const val androidx_camerax_lifecycle = "androidx.camera:camera-lifecycle:${Versions.androidx_camerax}"
-    const val androidx_camerax_view =  "androidx.camera:camera-view:${Versions.androidx_camerax}"
+    const val androidx_camerax_camera2 =
+        "androidx.camera:camera-camera2:${Versions.androidx_camerax}"
+    const val androidx_camerax_lifecycle =
+        "androidx.camera:camera-lifecycle:${Versions.androidx_camerax}"
+    const val androidx_camerax_view = "androidx.camera:camera-view:${Versions.androidx_camerax}"
     const val androidx_core = "androidx.core:core-ktx:${Versions.androidx_core}"
     const val androidx_constraint_layout =
         "androidx.constraintlayout:constraintlayout:${Versions.androidx_constraint_layout}"
@@ -131,7 +153,8 @@ object Libs {
     const val androidx_navigation_ui =
         "androidx.navigation:navigation-ui-ktx:${Versions.androidx_navigation}"
     const val androidx_browser = "androidx.browser:browser:${Versions.androidx_browser}"
-    const val androidx_paging_runtime = "androidx.paging:paging-runtime-ktx:${Versions.androidx_paging}"
+    const val androidx_paging_runtime =
+        "androidx.paging:paging-runtime-ktx:${Versions.androidx_paging}"
 
     const val androidx_room_runtime = "androidx.room:room-runtime:${Versions.androidx_room}"
     const val androidx_room_rxjava3 = "androidx.room:room-rxjava3:${Versions.androidx_room}"
@@ -155,10 +178,14 @@ object Libs {
         "org.jetbrains.kotlinx:kotlinx-coroutines-rx3:${Versions.kotlinx_coroutines}"
     const val kotlinx_coroutines_test =
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:${Versions.kotlinx_coroutines}"
-    const val kotlinx_collections_immutable = "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
-    const val kotlinx_datetime = "org.jetbrains.kotlinx:kotlinx-datetime:${Versions.kotlinx_datetime}"
-    const val kotlinx_serialization_core = "org.jetbrains.kotlinx:kotlinx-serialization-core:${Versions.kotlinx_serialization}"
-    const val kotlinx_serialization_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinx_serialization}"
+    const val kotlinx_collections_immutable =
+        "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.6"
+    const val kotlinx_datetime =
+        "org.jetbrains.kotlinx:kotlinx-datetime:${Versions.kotlinx_datetime}"
+    const val kotlinx_serialization_core =
+        "org.jetbrains.kotlinx:kotlinx-serialization-core:${Versions.kotlinx_serialization}"
+    const val kotlinx_serialization_json =
+        "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.kotlinx_serialization}"
 
     const val okhttp = "com.squareup.okhttp3:okhttp:${Versions.okhttp}"
     const val okhttp_logging_interceptor =
@@ -167,7 +194,8 @@ object Libs {
     const val androidx_datastore = "androidx.datastore:datastore-preferences:1.1.1"
     const val androidx_constraint_layout_compose =
         "androidx.constraintlayout:constraintlayout-compose:1.0.1"
-    const val androidx_lifecycle_viewmodel = "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.androidx_lifecycle}"
+    const val androidx_lifecycle_viewmodel =
+        "androidx.lifecycle:lifecycle-viewmodel-ktx:${Versions.androidx_lifecycle}"
 
     const val compose_bom = "androidx.compose:compose-bom:${Versions.compose}"
     const val compose_accompanist =
@@ -180,7 +208,8 @@ object Libs {
         "androidx.compose.ui:ui-tooling-preview"
     const val compose_foundation = "androidx.compose.foundation:foundation"
     const val compose_material = "androidx.compose.material:material"
-    const val compose_materialIconsExtended = "androidx.compose.material:material-icons-extended-android"
+    const val compose_materialIconsExtended =
+        "androidx.compose.material:material-icons-extended-android"
     const val compose_activities =
         "androidx.activity:activity-compose:${Versions.compose_activities}"
     const val compose_view_models =
@@ -189,10 +218,15 @@ object Libs {
     const val compose_navigation =
         "androidx.navigation:navigation-compose:${Versions.compose_navigation}"
     const val compose_paging = "androidx.paging:paging-compose:${Versions.compose_paging}"
-    const val compose_voyager_navigation = "cafe.adriel.voyager:voyager-navigator:${Versions.voyager}"
-    const val compose_voyager_navigation_hilt = "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
-    const val compose_voyager_navigation_bottomsheet = "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
-    const val compose_voyager_navigation_transitions = "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
+    const val compose_voyager_navigation =
+        "cafe.adriel.voyager:voyager-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_hilt =
+        "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
+    const val compose_voyager_navigation_bottomsheet =
+        "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_transitions =
+        "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
+    const val compose_webview = "io.github.kevinnzou:compose-webview:${Versions.compose_webview}"
 
     const val rxjava = "io.reactivex.rxjava3:rxjava:${Versions.rxjava}"
     const val rxandroid = "io.reactivex.rxjava3:rxandroid:${Versions.rxandroid}"
@@ -209,20 +243,31 @@ object Libs {
     const val firebase_perf = "com.google.firebase:firebase-perf"
 
     const val play_integrity = "com.google.android.play:integrity:1.3.0"
-    const val play_service_auth = "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
-    const val play_service_auth_phone = "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
+    const val play_service_auth =
+        "com.google.android.gms:play-services-auth:${Versions.play_service_auth}"
+    const val play_service_auth_phone =
+        "com.google.android.gms:play-services-auth-api-phone:${Versions.play_service_auth_phone}"
 
     const val grpc_okhttp = "io.grpc:grpc-okhttp:${Versions.grpc_okhttp}"
-    const val grpc_kotlin = "io.grpc:grpc-kotlin-stub-lite:${Versions.grpc_kotlin}"
+    const val grpc_kotlin = "io.grpc:grpc-kotlin-stub:${Versions.grpc_kotlin}"
+    const val grpc_protobuf = "io.grpc:grpc-protobuf:${Versions.grpc}"
+    const val grpc_protobuf_lite = "io.grpc:grpc-protobuf-lite:${Versions.grpc}"
+    const val grpc_stub = "io.grpc:grpc-stub:${Versions.grpc}"
+    const val protobuf_java = "com.google.protobuf:protobuf-java:${Versions.protobuf}"
+    const val protobuf_kotlin_lite = "com.google.protobuf:protobuf-kotlin-lite:${Versions.protobuf}"
 
     const val inject = "javax.inject:javax.inject:1"
 
     const val mp_android_chart = "com.github.PhilJay:MPAndroidChart:${Versions.mp_android_chart}"
-    const val lib_phone_number_port = "io.michaelrocks:libphonenumber-android:${Versions.lib_phone_number_port}"
-    const val lib_phone_number_google = "com.googlecode.libphonenumber:libphonenumber:${Versions.lib_phone_number_google}"
+    const val lib_phone_number_port =
+        "io.michaelrocks:libphonenumber-android:${Versions.lib_phone_number_port}"
+    const val lib_phone_number_google =
+        "com.googlecode.libphonenumber:libphonenumber:${Versions.lib_phone_number_google}"
     const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:1.1.0-alpha01"
-    const val qr_generator = "com.github.androidmads:QRGenerator:${Versions.qr_generator}"
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
+
+    const val retrofit = "com.squareup.retrofit2:retrofit:${Versions.retrofit}"
+    const val retrofit_converter = "com.squareup.retrofit2:converter-gson:${Versions.retrofit}"
 
     const val androidx_test_runner =
         "androidx.test:runner:${Versions.androidx_test_runner}"
@@ -244,7 +289,11 @@ object Libs {
 
     const val cloudy = "com.github.skydoves:cloudy:0.1.2"
 
-    const val sodium_bindings = "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
+    const val sodium_bindings =
+        "com.ionspin.kotlin:multiplatform-crypto-libsodium-bindings-android:${Versions.sodium_bindings}"
 
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
+
+    const val haze = "dev.chrisbanes.haze:haze:0.7.3"
+    const val process_phoenix = "com.jakewharton:process-phoenix:3.0.0"
 }

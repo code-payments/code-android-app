@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">เติมเงินสดด้วยบัตรเดบิต</string>
   <string name="action_allowCameraAccess">อนุญาตให้เข้าถึงกล้อง</string>
   <string name="action_allowContacts">อนุญาตให้เข้าถึงรายชื่อติดต่อ</string>
   <string name="action_allowPushNotifications">อนุญาตให้แจ้งเตือนแบบพุช</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">ซื้อ Kin เพิ่มเติม</string>
   <string name="action_cancel">ยกเลิก</string>
   <string name="action_cancelSend">ยกเลิกการส่ง</string>
+  <string name="action_chat">แชท</string>
   <string name="action_collectCash">รับเงินสดนี้</string>
   <string name="action_confirm">ยืนยัน</string>
   <string name="action_connectToX">เชื่อมต่อกับ X\n</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">เปิดใช้งาน Face ID</string>
   <string name="action_enableTouchID">เปิดใช้งาน Touch ID</string>
   <string name="action_exit">ออก</string>
+  <string name="action_give">ให้</string>
   <string name="action_giveKin">ให้ Kin</string>
   <string name="action_invite">เชิญ</string>
   <string name="action_invites">เชิญ</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">วางจากคลิปบอร์ด</string>
   <string name="action_postToConnect">โพสต์เพื่อเชื่อมโยงบัญชี\n</string>
   <string name="action_putInWallet">ใส่ในกระเป๋าเงิน</string>
+  <string name="action_receive">รับ</string>
   <string name="action_recoverExistingAccount">กู้คืนบัญชีที่มีอยู่</string>
   <string name="action_remind">เตือน</string>
   <string name="action_removePhoneNumber">ลบหมายเลขโทรศัพท์</string>
@@ -53,6 +57,7 @@
   <string name="action_send">ส่ง</string>
   <string name="action_sendVerificationCode">ส่งรหัสยืนยัน</string>
   <string name="action_share">แชร์</string>
+  <string name="action_shareAsURL">แชร์เป็น URL</string>
   <string name="action_shareDownloadLink">แชร์ลิงก์ดาวน์โหลด</string>
   <string name="action_shareVideo">แชร์วิดีโอนี้</string>
   <string name="action_showMyTipCard">แสดงบัตรทิปของฉัน</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">คีย์การเข้าถึงของคุณเป็นวิธีเดียวที่จะเข้าถึงเงินของคุณ โปรดรักษาให้เป็นส่วนตัวและปลอดภัย</string>
   <string name="subtitle_accessKeyFaceID">ยืนยันตัวตนของคุณเพื่อดูคีย์การเข้าถึงของคุณ</string>
   <string name="subtitle_accessKeySnapshotDescription">แตะไอคอน Google Lens เพื่อเปิดรหัส QR เพื่อเข้าสู่ระบบ Code หรืออีกทางเลือกหนึ่ง คุณสามารถเข้าสู่ระบบได้ด้วยตนเองโดยป้อนคำ 12 คำในหน้าจอเข้าสู่ระบบ Code</string>
+  <string name="subtitle_accessKeySnapshotWarning">คำเตือน! รูปภาพนี้จะให้การเข้าถึงเงินทุนทั้งหมดที่คุณมีอยู่ใน Code อย่าได้แชร์รูปภาพนี้กับคนอื่น และโปรดเก็บรักษาให้ปลอดภัย</string>
   <string name="subtitle_allowCameraAccess">Code ช่วยให้คุณสามารถรับ Kin โดยการชี้กล้องของคุณไปที่ใบเรียกเก็บเงินดิจิทัลบนโทรศัพท์ของผู้ใช้อื่น</string>
   <string name="subtitle_allowCameraSettings">คุณต้องอนุญาตให้เข้าถึงกล้องจึงจะรับ Kin ได้</string>
   <string name="subtitle_authenticateToAccess">รับรองความถูกต้องเพื่อเข้าถึง Code</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">ฝาก Kin ลงในกระเป๋าเงิน Code ของคุณโดยส่ง Kin ไปยังที่อยู่ฝากเงินของคุณด้านล่าง แตะเพื่อคัดลอก</string>
   <string name="subtitle_insufficientFundsDescription">โปรดรับ Kin เพิ่มแล้วลองชำระเงินอีกครั้ง</string>
   <string name="subtitle_invalidTokenAccount">บัญชีปลายทางไม่ถูกต้อง</string>
+  <string name="subtitle_invalidTokenAccountDescription">โปรดตรวจสอบให้แน่ใจว่าที่อยู่ที่คุณกำลังถอนเงินไปนั้นได้รับการตั้งค่าโดยผู้ให้บริการกระเป๋าเงินของคุณแล้ว วิธีลัดในการตรวจสอบคือการแลกเปลี่ยน SOL จำนวนเล็กน้อยเป็น Kin ในกระเป๋าเงินที่คุณกำลังจะส่งไป</string>
   <string name="subtitle_inviteCode">รหัสเชิญ</string>
   <string name="subtitle_inviteCodeDescription">ขณะนี้ Code ใช้ระบบเชิญเท่านั้น คุณจะต้องมีรหัสเชิญเพื่อเข้าถึงแอป</string>
   <string name="subtitle_inviteCount">%1$d คำเชิญ</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">คุณต้องเปิดใช้งานกล้องเพื่อสแกน Code</string>
   <string name="subtitle_tipCardForX">บัตรทิปของคุณช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้เชื่อมต่อข้อมูลประจำตัว X ของคุณ</string>
   <string name="subtitle_tipCardTwitterDescription">บัตรทิปช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้โพสต์บน X</string>
+  <string name="subtitle_turnOnNotifications">อนุญาตให้ Code ส่งการแจ้งเตือนถึงคุณเมื่อคุณได้รับทิปจากผู้ใช้ Code รายอื่น</string>
   <string name="subtitle_typeDelete">พิมพ์  \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">เราได้ทำการเปลี่ยนแปลงบางอย่างเพื่อปรับปรุงประสบการณ์ หากต้องการใช้ Code ต่อไปคุณจะต้องอัปเดตแอป</string>
   <string name="subtitle_validOwnerAccount">บัญชีเจ้าของที่ถูกต้อง</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">ล้มเหลว</string>
   <string name="title_faq">คำถามที่พบบ่อย</string>
   <string name="title_gaveKin">ให้</string>
+  <string name="title_getCash">รับเงินสด</string>
   <string name="title_getFriendStartedOnCode">ชวนเพื่อนมาเริ่มต้นใช้งาน Code</string>
   <string name="title_getKin">รับ Kin</string>
   <string name="title_getMoreKin">รับ Kin เพิ่มเติม</string>
+  <string name="title_giveCash">ให้เงินสด</string>
   <string name="title_giveKin">ให้ Kin</string>
   <string name="title_insufficientFunds">เงินทุนไม่เพียงพอ</string>
   <string name="title_inviteFriend">ชวนเพื่อน</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">นโยบายความเป็นส่วนตัว</string>
   <string name="title_purchased">ซื้อแล้ว</string>
   <string name="title_push_twitterAccountConnected">เชื่อมต่อบัญชี X สำเร็จ</string>
+  <string name="title_receiveTips">รับทิป</string>
   <string name="title_received">ได้รับแล้ว</string>
   <string name="title_recentCurrencies">สกุลเงินล่าสุด</string>
   <string name="title_referFriend">แนะนำเพื่อน รับ $5</string>
   <string name="title_referralBonus">โบนัสการแนะนำ</string>
+  <string name="title_requestCash">ขอรับเงินสด</string>
   <string name="title_requestKin">ขอรับ Kin</string>
   <string name="title_requestTip">ขอรับทิป</string>
   <string name="title_requireFaceID">ต้องใช้ Face ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">ใช้จ่าย</string>
   <string name="title_switchAccounts">สลับบัญชี</string>
   <string name="title_termsOfService">เงื่อนไขการให้บริการ</string>
+  <string name="title_tipCard">บัตรทิป</string>
   <string name="title_tipKin">ให้ทิปเป็น Kin</string>
+  <string name="title_turnOnNotifications">เปิดการแจ้งเตือนสำหรับ Code</string>
   <string name="title_unknown">ไม่ทราบ</string>
   <string name="title_updateRequired">จำเป็นต้องอัปเดต</string>
   <string name="title_verifyPhoneNumber">ยืนยันหมายเลขโทรศัพท์</string>

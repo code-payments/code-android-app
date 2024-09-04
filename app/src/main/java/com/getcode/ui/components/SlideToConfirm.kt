@@ -3,6 +3,7 @@
 package com.getcode.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -66,7 +67,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
-import androidx.compose.ui.util.lerp
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White50
@@ -178,7 +178,7 @@ fun SlideToConfirm(
 
     val hapticFeedback = LocalHapticFeedback.current
     val swipeState = rememberSwipeableState(
-        initialValue = if (loading) Anchor.End else Anchor.Start,
+        initialValue = Anchor.Start,
     )
 
     val composeScope = rememberCoroutineScope()
@@ -217,7 +217,6 @@ fun SlideToConfirm(
             hint(swipeFraction, PaddingValues(horizontal = Thumb.Size + CodeTheme.dimens.grid.x2), label)
         }
 
-
         if (isSuccess) {
             Image(
                 painter = painterResource(id = R.drawable.ic_check),
@@ -227,9 +226,13 @@ fun SlideToConfirm(
                     .align(Alignment.Center),
             )
         } else {
+            val loadingColor by animateColorAsState(
+                targetValue = if (loading) Color.White else Color.Transparent
+            )
+
             CodeCircularProgressIndicator(
                 strokeWidth = CodeTheme.dimens.thickBorder,
-                color = calculateLoadingColor(swipeFraction),
+                color = loadingColor,
                 modifier = Modifier
                     .size(CodeTheme.dimens.grid.x4)
                     .align(Alignment.Center),
@@ -362,10 +365,6 @@ private fun calculateHintTextColor(swipeFraction: Float): Color {
     return lerp(Color.White, Color.White.copy(alpha = 0f), fraction)
 }
 
-private fun calculateLoadingColor(swipeFraction: Float): Color {
-    if (swipeFraction < 0.1f) return Color.White.copy(0f)
-    return Color.White
-}
 
 @Preview
 @Composable

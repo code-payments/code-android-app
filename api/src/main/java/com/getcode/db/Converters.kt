@@ -4,7 +4,9 @@ import androidx.room.TypeConverter
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
+import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.Pointer
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
 import kotlinx.serialization.decodeFromString
@@ -44,4 +46,28 @@ class Converters {
 
     @TypeConverter
     fun stringToKinAmount(value: String) = Json.decodeFromString(KinAmount.serializer(), value)
+
+    @TypeConverter
+    fun chatMemberToString(member: ChatMember) = Json.encodeToString(ChatMember.serializer(), member)
+
+    @TypeConverter
+    fun stringToChatMember(value: String) = Json.decodeFromString(ChatMember.serializer(), value)
+
+    @TypeConverter
+    fun chatMembersToString(members: List<ChatMember>) = Json.encodeToString(members)
+
+    @TypeConverter
+    fun stringToChatMembers(value: String) = Json.decodeFromString<List<ChatMember>>(value)
+
+    @TypeConverter
+    fun pointerToString(pointer: Pointer) = Json.encodeToString(pointer)
+
+    @TypeConverter
+    fun stringToPointer(value: String) = Json.decodeFromString<Pointer>(value)
+
+    @TypeConverter
+    fun pointersToString(pointer: List<Pointer>) = Json.encodeToString(pointer)
+
+    @TypeConverter
+    fun stringToPointers(value: String) = Json.decodeFromString<List<Pointer>>(value)
 }

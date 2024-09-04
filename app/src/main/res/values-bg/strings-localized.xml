@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Добавете парична сума  с дебитна карта</string>
   <string name="action_allowCameraAccess">Разреши достъп до камерата </string>
   <string name="action_allowContacts">Разреши достъп до контактите </string>
   <string name="action_allowPushNotifications">Разреши насочени известия </string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Закупете повече Kin</string>
   <string name="action_cancel">Откажи</string>
   <string name="action_cancelSend">Отмени изпращането </string>
+  <string name="action_chat">Чат</string>
   <string name="action_collectCash">Вземете парите</string>
   <string name="action_confirm">Потвърди </string>
   <string name="action_connectToX">Свържи се с Х</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Разрешете лицево разпознаване</string>
   <string name="action_enableTouchID">Разрешете разпознаване чрез докосване</string>
   <string name="action_exit">Изход </string>
+  <string name="action_give">Дайте</string>
   <string name="action_giveKin">Задай член на семейството</string>
   <string name="action_invite">Покани </string>
   <string name="action_invites">Покани </string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Постави от клипборда</string>
   <string name="action_postToConnect">Публикувайте за да свържете акаунт </string>
   <string name="action_putInWallet">Постави в портфейл </string>
+  <string name="action_receive">Получете</string>
   <string name="action_recoverExistingAccount">Възстанови съществуващ профил </string>
   <string name="action_remind">Напомняне </string>
   <string name="action_removePhoneNumber">Премахване на телефонен номер </string>
@@ -53,6 +57,7 @@
   <string name="action_send">Изпращане </string>
   <string name="action_sendVerificationCode">Изпрати код за потвърждение </string>
   <string name="action_share">Сподели</string>
+  <string name="action_shareAsURL">Споделете като URL</string>
   <string name="action_shareDownloadLink">Споделете линк за сваляне</string>
   <string name="action_shareVideo">Споделете този видео клип</string>
   <string name="action_showMyTipCard">Покажи моята карта за бакшиши</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Вашият ключ за достъп е единственият начин за достъп до вашите сметки. Моля, съхранявате ги поверително и в безопасност. </string>
   <string name="subtitle_accessKeyFaceID">Потвърдете вашата идентичност, за да видите вашия ключ за достъп. </string>
   <string name="subtitle_accessKeySnapshotDescription">Докоснете иконата на Google Lens, за да отворите QR кода, за да влезете в Code. Като алтернатива можете да влезете ръчно, като въведете 12-те думи на екрана за влизане с код.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Внимание! Това изображение дава достъп до всички средства, с които разполагате в Code. Не споделяйте това изображение с никой друг. Съхранявайте го на сигурно и безопасно място.</string>
   <string name="subtitle_allowCameraAccess">Кодът ви позволява да получавате член на семейството като насочите камерата към дигиталната касова бележка на телефона на друг потребител </string>
   <string name="subtitle_allowCameraSettings">Трябва да позволите достъп до камерата, за да получавате член на семейството </string>
   <string name="subtitle_authenticateToAccess">Удостоверете се за достъп до кода.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Депозирайте член на семейството към вашия кодиран портфейл като изпратите член на семейството към вашия адрес на депозиране по - долу. Натиснете, за да копирате. </string>
   <string name="subtitle_insufficientFundsDescription">Моля, вземете повече Kin и след това опитайте да платите отново</string>
   <string name="subtitle_invalidTokenAccount">Невалидна сметка на получателя</string>
+  <string name="subtitle_invalidTokenAccountDescription">Моля, уверете се, че адресът, на който теглите, е инициализиран от Вашия доставчик на портфейл. Пряк път за постигане на това е първо да размените малко количество SOL за Kin в портфейла, до който се опитвате да изпратите.</string>
   <string name="subtitle_inviteCode">Покана Code</string>
   <string name="subtitle_inviteCodeDescription">Code към момента е само с покани. Ще ви е необходима покана Code, за да получите достъп до приложението.</string>
   <string name="subtitle_inviteCount">%1$d покани </string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Трябва да стартирате камерата си, за да сканирате кодове</string>
   <string name="subtitle_tipCardForX">Вашата карта за бакшиши ви позволява да получавате бакшиши от потребители на Code от целия свят. За достъп до вашата карта за бакшиши, свържете своята идентичност в Х. </string>
   <string name="subtitle_tipCardTwitterDescription">С вашата карта за бакшиши може да получавате подаръци от потребители на Code по цял свят. За достъп до картата за бакшиши публикувайте в социалната мрежа X.</string>
+  <string name="subtitle_turnOnNotifications">Позволете на Code да Ви изпраща известия, когато получавате съвети от други потребители на Code.</string>
   <string name="subtitle_typeDelete">Напишете \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Направихме някои промени, за да подобрим качеството. Трябва да подновите приложението, за да използвате кода. </string>
   <string name="subtitle_validOwnerAccount">Валидна сметка на собственика</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Неуспешно </string>
   <string name="title_faq">Често задавани въпроси </string>
   <string name="title_gaveKin">Даде</string>
+  <string name="title_getCash">Вземете парична сума </string>
   <string name="title_getFriendStartedOnCode">Вземете \"Приятел се присъедини\" към Code</string>
   <string name="title_getKin">Получаване на средства в Kin</string>
   <string name="title_getMoreKin">Получавайте повече Kin</string>
+  <string name="title_giveCash">Дайте кеш</string>
   <string name="title_giveKin">Посочете член на семейството </string>
   <string name="title_insufficientFunds">Недостатъчна наличност </string>
   <string name="title_inviteFriend">Покани приятел</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Политика за поверителност</string>
   <string name="title_purchased">Закупено</string>
   <string name="title_push_twitterAccountConnected">Профилът в Хе свързан успешно</string>
+  <string name="title_receiveTips">Получаване на съвети</string>
   <string name="title_received">Получено </string>
   <string name="title_recentCurrencies">Последно използвани валути </string>
   <string name="title_referFriend">Препоръчай на приятел, вземи $5</string>
   <string name="title_referralBonus">Бонус за препоръка</string>
+  <string name="title_requestCash">Направете заявка за парична сума </string>
   <string name="title_requestKin">Поискай Kin</string>
   <string name="title_requestTip">Поискай бакшиш</string>
   <string name="title_requireFaceID">Изискване на Face ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Похарчено</string>
   <string name="title_switchAccounts">Смени акаунти </string>
   <string name="title_termsOfService">Условия на ползване </string>
+  <string name="title_tipCard">Карта за бакшиши</string>
   <string name="title_tipKin">Бакшиш Kin</string>
+  <string name="title_turnOnNotifications">Включете известия за Code</string>
   <string name="title_unknown">Неизвестен</string>
   <string name="title_updateRequired">Необходимо е обновяване </string>
   <string name="title_verifyPhoneNumber">Потвърди телефонен номер </string>

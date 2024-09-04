@@ -2,6 +2,7 @@ package com.getcode.navigation.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalOverscrollConfiguration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -18,8 +19,8 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.LocalBetaFlags
@@ -36,43 +37,17 @@ import com.getcode.ui.utils.getActivityScopedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-
-@Composable
-internal fun NamedScreen.ModalContainer(
-    closeButton: (Screen?) -> Boolean = { false },
-    screenContent: @Composable () -> Unit
-) {
-    ModalContainer(
-        navigator = LocalCodeNavigator.current,
-        displayLogo = false,
-        backButtonEnabled = { false },
-        onLogoClicked = {},
-        closeButtonEnabled = closeButton,
-        screenContent = screenContent,
-    )
-}
-
-@Composable
-internal fun NamedScreen.ModalContainer(
-    displayLogo: Boolean = false,
-    onLogoClicked: () -> Unit = { },
-    closeButton: (Screen?) -> Boolean = { false },
-    screenContent: @Composable () -> Unit
-) {
-    ModalContainer(
-        navigator = LocalCodeNavigator.current,
-        displayLogo = displayLogo,
-        backButtonEnabled = { false },
-        onLogoClicked = onLogoClicked,
-        closeButtonEnabled = closeButton,
-        screenContent = screenContent,
-    )
+sealed interface ModalHeightMetric {
+    data class Weight(val weight: Float) : ModalHeightMetric
+    data object WrapContent : ModalHeightMetric
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun NamedScreen.ModalContainer(
     navigator: CodeNavigator = LocalCodeNavigator.current,
+    modalColor: Color = CodeTheme.colors.background,
+    modalHeightMetric: ModalHeightMetric = ModalHeightMetric.Weight(CodeTheme.dimens.modalHeightRatio),
     displayLogo: Boolean = false,
     titleString: @Composable (NamedScreen?) -> String? = { name },
     title: @Composable BoxScope.() -> Unit = { },
@@ -83,12 +58,18 @@ internal fun NamedScreen.ModalContainer(
     closeButtonEnabled: (Screen?) -> Boolean = { false },
     onCloseClicked: (() -> Unit)? = null,
     onLogoClicked: () -> Unit = { },
-    screenContent: @Composable () -> Unit
+    screenContent: @Composable BoxScope.() -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(CodeTheme.dimens.modalHeightRatio)
+            .then(
+                when (modalHeightMetric) {
+                    is ModalHeightMetric.Weight -> Modifier.fillMaxHeight(modalHeightMetric.weight)
+                    ModalHeightMetric.WrapContent -> Modifier.wrapContentHeight()
+                }
+            )
+            .background(modalColor)
     ) {
         val lastItem by remember(navigator.lastModalItem) {
             derivedStateOf { navigator.lastModalItem }
@@ -117,6 +98,7 @@ internal fun NamedScreen.ModalContainer(
         }
         SheetTitle(
             modifier = Modifier,
+            color = modalColor,
             title = {
                 titleString(this@ModalContainer)?.let {
                     SheetTitleText(text = it)

@@ -42,5 +42,19 @@
     <string name="error_title_missingBiometrics">Biometrics Removed</string>
     <string name="error_description_missingBiometrics">Biometrics are no longer available on your device.</string>
 
-    <string name="title_accessKeySnapshotDescription">Warning! This image gives access to all the funds you have in Code. Do not share this image with anyone else.\nKeep it secure and safe.</string>
+    <string name="prompt_title_revealIdentity">Reveal your identity?</string>
+    <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
+
+    <string name="subtitle_linkingTwitterToRevealIdentity">I\'m connecting my X account with @getcode</string>
+    <string name="title_connectAccount">Connect Account</string>
+    <string name="subtitle_connectXAccount">Connecting your X account allows you to reveal your identity to the people you tip. To connect your account post to X.</string>
+    <string name="title_useKadoSandbox">Use Kado Sandbox</string>
+
+    <string name="title_chat">Chat</string>
+
+    <string name="title_tipCardBack">Don\'t have cash?\nTip me with Code!</string>
+    <string name="subtitle_tipCardBack">Scan to download the app, and then scan the code on the other side to tip</string>
+
+    <string name="title_noCodeFound">No Code Found</string>
+    <string name="subtitle_noCodeFound">Please select a different image with a Code, or try to get an image that shows the Code more clearly.</string>
 </resources>

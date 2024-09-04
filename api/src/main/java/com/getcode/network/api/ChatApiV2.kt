@@ -1,15 +1,20 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.chat.v2.ChatService
+import com.codeinc.gen.chat.v2.ChatService.ChatMemberIdentity
 import com.codeinc.gen.chat.v2.ChatService.Content
 import com.codeinc.gen.chat.v2.ChatService.PointerType
+import com.codeinc.gen.chat.v2.ChatService.RevealIdentityRequest
+import com.codeinc.gen.chat.v2.ChatService.RevealIdentityResponse
 import com.codeinc.gen.chat.v2.ChatService.SendMessageRequest
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.chat.Chat
 import com.getcode.model.chat.OutgoingMessageContent
+import com.getcode.model.chat.Platform
 import com.getcode.model.chat.StartChatRequest
 import com.getcode.model.chat.StartChatResponse
 import com.getcode.model.description
@@ -225,31 +230,32 @@ class ChatApiV2 @Inject constructor(
             .apply { setSignature(sign(owner)) }
             .build()
 
-
-//        val observer = object : StreamObserver<SendMessageResponse> {
-//            override fun onNext(value: SendMessageResponse?) {
-//                val result = value?.result
-//                if (result == null) {
-//                    trace(
-//                        message = "SendMessage Server sent empty message. This is unexpected.",
-//                        type = TraceType.Error
-//                    )
-//                    onResult(Result.failure(Throwable()))
-//                    return
-//                }
-//
-//                onResult(Res)
-//            }
-//
-//            override fun onError(t: Throwable?) {
-//                TODO("Not yet implemented")
-//            }
-//
-//            override fun onCompleted() {
-//                TODO("Not yet implemented")
-//            }
-//
-//        }
         api.sendMessage(request, observer)
+    }
+
+    fun revealIdentity(
+        owner: KeyPair,
+        chatId: ID,
+        memberId: UUID,
+        platform: Platform,
+        username: String,
+        observer: StreamObserver<RevealIdentityResponse>
+    ) {
+        val request = RevealIdentityRequest.newBuilder()
+            .setChatId(ChatId.newBuilder()
+                .setValue(chatId.toByteArray().toByteString())
+            )
+            .setMemberId(ChatService.ChatMemberId.newBuilder()
+                .setValue(memberId.bytes.toByteString())
+            )
+            .setIdentity(ChatMemberIdentity.newBuilder()
+                .setPlatformValue(platform.ordinal)
+                .setUsername(username)
+            )
+            .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .apply { setSignature(sign(owner)) }
+            .build()
+
+        api.revealIdentity(request, observer)
     }
 }

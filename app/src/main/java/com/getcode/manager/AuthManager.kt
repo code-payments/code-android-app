@@ -1,7 +1,6 @@
 package com.getcode.manager
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.BuildConfig
@@ -13,7 +12,7 @@ import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
-import com.getcode.network.HistoryController
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.IdentityRepository
@@ -56,7 +55,7 @@ class AuthManager @Inject constructor(
     private val betaFlags: BetaFlagsRepository,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
-    private val historyController: HistoryController,
+    private val historyController: ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
     private val mnemonicManager: MnemonicManager,

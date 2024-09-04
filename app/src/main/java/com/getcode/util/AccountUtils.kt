@@ -9,6 +9,7 @@ import android.os.HandlerThread
 import androidx.core.os.bundleOf
 import com.getcode.BuildConfig
 import com.getcode.utils.TraceType
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Single
@@ -51,7 +52,19 @@ object AccountUtils {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
-                val result = getAccountNoActivity(context)
+                val result = retryable(
+                    call = { getAccountNoActivity(context) },
+                    onRetry = { currentAttempt ->
+                        trace(
+                            tag = "Account",
+                            message = "Retrying call",
+                            metadata = {
+                                "count" to currentAttempt
+                            },
+                            type = TraceType.Process,
+                        )
+                    }
+                )
                 subject.onSuccess(result ?: (null to null))
             }
         }
@@ -71,10 +84,10 @@ object AccountUtils {
     ): Pair<String?, Account?>? = suspendCancellableCoroutine { cont ->
         trace("getAuthToken", type = TraceType.Silent)
         val am: AccountManager = AccountManager.get(context)
-        val account = am.accounts.getOrNull(0)
+        val account = am.getAccountsByType(ACCOUNT_TYPE).firstOrNull()
         if (account == null) {
             trace("no associated account found", type = TraceType.Error)
-            cont.resume(null to null)
+            cont.resume(null)
             return@suspendCancellableCoroutine
         }
         val start = Clock.System.now()
@@ -90,9 +103,8 @@ object AccountUtils {
 
                     cont.resume(authToken.orEmpty() to account)
                 } catch (e: AuthenticatorException) {
-                    e.printStackTrace()
                     trace(message = "failed to read account", error = e, type = TraceType.Error)
-                    cont.resume(null to null)
+                    cont.resume(null)
                 }
             }, handler
         )
@@ -110,6 +122,19 @@ object AccountUtils {
             }
         }
 
-        return getAccountNoActivity(context)?.first
+        return retryable(
+            call = { getAccountNoActivity(context) },
+            onRetry = { currentAttempt ->
+                trace(
+                    tag = "Account",
+                    message = "Retrying call",
+                    metadata = {
+                        "count" to currentAttempt
+                    },
+                    type = TraceType.Process,
+                )
+            }
+
+        )?.first
     }
 }

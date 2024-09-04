@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
+import com.getcode.model.Immutable
 import com.getcode.model.PrefsBool
+import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
@@ -30,7 +32,9 @@ fun BetaFlagsScreen(
         val titleResId: Int,
         val subtitleText: String,
         val dataState: Boolean,
-        val onChange: (Boolean) -> Unit
+        val onChange: (Boolean) -> Unit = { value ->
+            viewModel.dispatchEvent(BetaFlagsViewModel.Event.Toggle(flag, value))
+        }
     )
 
     val state by viewModel.stateFlow.collectAsState()
@@ -39,77 +43,113 @@ fun BetaFlagsScreen(
 
     val options = listOf(
         BetaFeature(
+            PrefsBool.KADO_WEBVIEW_ENABLED,
+            R.string.beta_kado_webview,
+            stringResource(id = R.string.beta_kado_webview_description),
+            state.kadoWebViewEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.SHARE_TWEET_TO_TIP,
+            R.string.beta_share_tweet_tip,
+            stringResource(id = R.string.beta_share_tweet_tip_description),
+            state.shareTweetToTip,
+        ),
+        BetaFeature(
+            PrefsBool.CAMERA_GESTURES_ENABLED,
+            R.string.beta_camera_gestures,
+            stringResource(id = R.string.beta_camera_gestures_description),
+            state.cameraGesturesEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.CAMERA_DRAG_INVERTED,
+            R.string.beta_camera_invert_drag,
+            stringResource(id = R.string.beta_camera_invert_drag_description),
+            state.invertedDragZoom,
+        ),
+        BetaFeature(
+            PrefsBool.TIP_CARD_FLIPPABLE,
+            R.string.beta_tipcard_can_flip,
+            stringResource(id = R.string.beta_tipcard_can_flip_description),
+            state.canFlipTipCard,
+        ),
+        BetaFeature(
+            PrefsBool.GALLERY_ENABLED,
+            R.string.beta_photo_gallery,
+            stringResource(id = R.string.beta_photo_gallery_description),
+            state.galleryEnabled,
+        ),
+        BetaFeature(
+            PrefsBool.CONVERSATIONS_ENABLED,
+            R.string.beta_conversations,
+            stringResource(id = R.string.beta_conversations_description),
+            state.conversationsEnabled,
+        ),
+        BetaFeature(
             PrefsBool.VIBRATE_ON_SCAN,
             R.string.beta_vibrate_on_scan,
             stringResource(R.string.beta_vibrate_on_scan_description),
-            state.isVibrateOnScan
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.SetVibrateOnScan(it)) },
+            state.tickOnScan
+        ),
         BetaFeature(
             PrefsBool.SHOW_CONNECTIVITY_STATUS,
             R.string.beta_network_dropoff,
             stringResource(R.string.beta_network_connectivity_description),
             state.showNetworkDropOff
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowNetworkDropOff(it)) },
+        ),
         BetaFeature(
             PrefsBool.BUCKET_DEBUGGER_ENABLED,
             R.string.beta_bucket_debugger,
             stringResource(R.string.beta_bucket_debugger_description),
             state.canViewBuckets
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.UseDebugBuckets(it)) },
+        ),
         BetaFeature(
             PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED,
             R.string.beta_balance_currency,
             stringResource(R.string.beta_balance_currency_description),
-            state.currencySelectionBalanceEnabled
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableCurrencySelectionInBalance(it)) },
+            state.balanceCurrencySelectionEnabled
+        ),
         BetaFeature(
             PrefsBool.GIVE_REQUESTS_ENABLED,
             R.string.beta_give_requests_mode,
             stringResource(id = R.string.beta_give_requests_description),
             state.giveRequestsEnabled
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableGiveRequests(it)) },
+        ),
         BetaFeature(
             PrefsBool.BUY_MODULE_ENABLED,
             R.string.beta_buy_kin,
             stringResource(id = R.string.beta_buy_kin_description),
-            state.buyKinEnabled
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableBuyKin(it)) },
-        BetaFeature(
-            PrefsBool.ESTABLISH_CODE_RELATIONSHIP,
-            R.string.beta_code_relationship,
-            stringResource(id = R.string.beta_code_relationship_description),
-            state.establishCodeRelationship,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableCodeRelationshipEstablish(it)) },
+            state.buyModuleEnabled
+        ),
         BetaFeature(
             PrefsBool.CHAT_UNSUB_ENABLED,
             R.string.beta_chat_unsub,
             stringResource(id = R.string.beta_chat_unsub_description),
             state.chatUnsubEnabled,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableChatUnsubscribe(it)) },
+        ),
         BetaFeature(
             PrefsBool.TIPS_ENABLED,
             R.string.beta_tipcard,
             stringResource(id = R.string.beta_tipcard_description),
             state.tipsEnabled,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipCard(it)) },
+        ),
         BetaFeature(
-            PrefsBool.TIPS_CHAT_ENABLED,
-            R.string.beta_tipchats,
-            stringResource(id = R.string.beta_tipchats_description),
-            state.tipsChatEnabled,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipChats(it)) },
+            PrefsBool.TIP_CARD_ON_HOMESCREEN,
+            R.string.beta_tipcard_on_homescreen,
+            stringResource(id = R.string.beta_tipcard_on_homescreen_description),
+            state.tipCardOnHomeScreen,
+        ),
         BetaFeature(
-            PrefsBool.TIPS_CHAT_CASH_ENABLED,
-            R.string.beta_tipchats_cash,
-            stringResource(id = R.string.beta_tipchats_cash_description),
-            state.tipsChatCashEnabled,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.EnableTipsChatCash(it)) },
+            PrefsBool.CONVERSATION_CASH_ENABLED,
+            R.string.beta_conversations_cash,
+            stringResource(id = R.string.beta_conversations_cash_description),
+            state.conversationCashEnabled,
+        ),
         BetaFeature(
             PrefsBool.DISPLAY_ERRORS,
             R.string.beta_display_errors,
             "",
             state.displayErrors,
-        ) { viewModel.dispatchEvent(BetaFlagsViewModel.Event.ShowErrors(it)) }
+        )
     ).filter { state.canMutate(it.flag) }
 
     LazyColumn {
@@ -141,11 +181,10 @@ fun BetaFlagsScreen(
     }
 }
 
-private fun BetaFlagsViewModel.State.canMutate(flag: PrefsBool): Boolean {
+private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
-        PrefsBool.BUY_MODULE_ENABLED -> false
-        PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED -> false
-        PrefsBool.TIPS_CHAT_CASH_ENABLED -> tipsChatEnabled
+        is Immutable -> false
+        PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }
 }

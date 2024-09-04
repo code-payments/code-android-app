@@ -17,13 +17,18 @@ data class TipCardFeature(
     override val available: Boolean = true, // always available
 ): Feature
 
-data class TipChatFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.tipsChatEnabled,
+data class TipCardOnHomeScreenFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.tipCardOnHomeScreen,
     override val available: Boolean = true, // always available
 ): Feature
 
-data class TipChatCashFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.tipsChatCashEnabled,
+data class ConversationsFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.conversationsEnabled,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class ConversationCashFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.conversationCashEnabled,
     override val available: Boolean = true, // always available
 ): Feature
 
@@ -35,5 +40,25 @@ data class RequestKinFeature(
 
 data class BalanceCurrencyFeature(
     override val enabled: Boolean = BetaOptions.Defaults.balanceCurrencySelectionEnabled,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class CameraGesturesFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.cameraGesturesEnabled,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class InvertedDragZoomFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.invertedDragZoom,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class FlippableTipCardFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.canFlipTipCard,
+    override val available: Boolean = true, // always available
+): Feature
+
+data class GalleryFeature(
+    override val enabled: Boolean = BetaOptions.Defaults.galleryEnabled,
     override val available: Boolean = true, // always available
 ): Feature

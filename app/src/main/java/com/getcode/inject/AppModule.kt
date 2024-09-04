@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.biometric.BiometricManager
+import androidx.core.app.NotificationManagerCompat
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.util.AndroidLocale
@@ -25,6 +26,8 @@ import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.network.Api24NetworkObserver
 import com.getcode.utils.network.Api29NetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -91,6 +94,12 @@ object AppModule {
         @ApplicationContext context: Context
     ): ClipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+
+    @Provides
+    fun providesCNotificationManager(
+        @ApplicationContext context: Context
+    ): NotificationManagerCompat = NotificationManagerCompat.from(context)
+
     @SuppressLint("NewApi")
     @Provides
     @Singleton
@@ -113,4 +122,8 @@ object AppModule {
     fun providesBiometricsManager(
         @ApplicationContext context: Context
     ): BiometricManager = BiometricManager.from(context)
+
+    @Provides
+    @Singleton
+    fun providesCodeScanner(): KikCodeScanner = KikCodeScannerImpl()
 }

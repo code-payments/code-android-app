@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+  <string name="action_addCash">Sett inn penger med et debetkort</string>
   <string name="action_allowCameraAccess">Tillat kameratilgang</string>
   <string name="action_allowContacts">Gi tilgang til kontakter</string>
   <string name="action_allowPushNotifications">Tillat push-varsler</string>
@@ -8,6 +9,7 @@
   <string name="action_buyMoreKin">Kjøp mer Kin</string>
   <string name="action_cancel">Kanseller</string>
   <string name="action_cancelSend">Kanseller sending</string>
+  <string name="action_chat">Chat</string>
   <string name="action_collectCash">Ta i mot disse pengene</string>
   <string name="action_confirm">Bekreft</string>
   <string name="action_connectToX">Koble til X</string>
@@ -23,6 +25,7 @@
   <string name="action_enableFaceID">Aktiver Face ID</string>
   <string name="action_enableTouchID">Aktiver Touch ID</string>
   <string name="action_exit">Avslutt</string>
+  <string name="action_give">Gi</string>
   <string name="action_giveKin">Gi Kin</string>
   <string name="action_invite">Inviter</string>
   <string name="action_invites">Invitasjoner</string>
@@ -43,6 +46,7 @@
   <string name="action_pasteFromClipboard">Lim inn fra utklippstavlen</string>
   <string name="action_postToConnect">Skriv et innlegg for å koble til kontoen</string>
   <string name="action_putInWallet">Legg i lommeboken</string>
+  <string name="action_receive">Motta</string>
   <string name="action_recoverExistingAccount">Gjenopprett eksisterende konto</string>
   <string name="action_remind">Påminn</string>
   <string name="action_removePhoneNumber">Fjern telefonnummer</string>
@@ -53,6 +57,7 @@
   <string name="action_send">Send</string>
   <string name="action_sendVerificationCode">Send bekreftelseskode</string>
   <string name="action_share">Del</string>
+  <string name="action_shareAsURL">Del som nettadresse</string>
   <string name="action_shareDownloadLink">Del nedlastingslenke</string>
   <string name="action_shareVideo">Del denne videoen</string>
   <string name="action_showMyTipCard">Vis tipskortet mitt</string>
@@ -211,6 +216,7 @@
   <string name="subtitle_accessKeyDescription">Tilgangsnøkkelen din er den eneste måten å få tilgang til pengene dine på. Bevar den privat og trygt.</string>
   <string name="subtitle_accessKeyFaceID">Bekreft identiteten din for å se tilgangsnøkkelen din.</string>
   <string name="subtitle_accessKeySnapshotDescription">Trykk på Google Lens-ikonet for å åpne QR-koden for innlogging i Code.  Du kan eventuelt logge inn manuelt ved å skrive inn de 12 ordene på Kodeinnlogging-skjermen.</string>
+  <string name="subtitle_accessKeySnapshotWarning">Advarsel! Dette bildet gir tilgang til alle midlene du har i Code. Ikke del dette bildet med noen andre. Oppbevar det trygt og sikkert.</string>
   <string name="subtitle_allowCameraAccess">Med koden kan du motta Kin ved å rette kameraet mot den digitale regningen på en annen brukers telefon</string>
   <string name="subtitle_allowCameraSettings">Du må tillate kameratilgang for å kunne motta Kin</string>
   <string name="subtitle_authenticateToAccess">Autentiser for å få tilgang til Code.</string>
@@ -243,6 +249,7 @@
   <string name="subtitle_howToDeposit">Deponer Kin i kodelommeboken din ved å sende Kin til innskuddsadressen din nedenfor. Trykk for å kopiere.</string>
   <string name="subtitle_insufficientFundsDescription">Få deg flere Kin og prøv deretter å betale på nytt</string>
   <string name="subtitle_invalidTokenAccount">Ugyldig destinasjonskonto</string>
+  <string name="subtitle_invalidTokenAccountDescription">Sørg for at adressen du vil overføre til er initialisert av leverandøren av den elektroniske lommeboken. En snarvei for å oppnå dette er å først veksle en liten mengde SOL om til Kin i den elektroniske lommeboken du vil overføre til.</string>
   <string name="subtitle_inviteCode">Invitasjonskode</string>
   <string name="subtitle_inviteCodeDescription">Code er for øyeblikket kun tilgjengelig med en invitasjon. Du trenger en invitasjonskode for å få tilgang til appen.</string>
   <string name="subtitle_inviteCount">%1$d invitasjoner</string>
@@ -277,6 +284,7 @@
   <string name="subtitle_startCameraToScan">Du må starte kameraet ditt for å skanne koder</string>
   <string name="subtitle_tipCardForX">Tipskortet ditt lar deg motta tips fra Code-brukere over hele verden. For tilgang til tipskortet ditt koble deg opp til X-identiteten din.</string>
   <string name="subtitle_tipCardTwitterDescription">Tipskortet ditt lar deg motta tips fra Code-brukere over hele verden. Skriv et innlegg til X for å få tilgang til tipskortet ditt.</string>
+  <string name="subtitle_turnOnNotifications">Tillat at Code sender varsler når du mottar tips fra andre Code-brukere.</string>
   <string name="subtitle_typeDelete">Skriv \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Vi har gjort noen endringer for å forbedre opplevelsen. Du må oppdatere appen for å fortsette å bruke koden.</string>
   <string name="subtitle_validOwnerAccount">Gyldig eierkonto</string>
@@ -321,9 +329,11 @@
   <string name="title_failed">Mislyktes</string>
   <string name="title_faq">Vanlige spørsmål</string>
   <string name="title_gaveKin">Ga</string>
+  <string name="title_getCash">Få penger</string>
   <string name="title_getFriendStartedOnCode">Få en venn i gang med Code</string>
   <string name="title_getKin">Skaff deg Kin</string>
   <string name="title_getMoreKin">Få flere Kin</string>
+  <string name="title_giveCash">Gi kontanter</string>
   <string name="title_giveKin">Gi Kin</string>
   <string name="title_insufficientFunds">Utilstrekkelige midler</string>
   <string name="title_inviteFriend">Inviter en venn</string>
@@ -339,10 +349,12 @@
   <string name="title_privacyPolicy">Personvernerklæring</string>
   <string name="title_purchased">Kjøpt</string>
   <string name="title_push_twitterAccountConnected">X-kontoen koblet opp</string>
+  <string name="title_receiveTips">Motta tips</string>
   <string name="title_received">Mottok</string>
   <string name="title_recentCurrencies">Nylige valutaer</string>
   <string name="title_referFriend">Henvis en venn, få USD 5</string>
   <string name="title_referralBonus">Henvisningsbonus</string>
+  <string name="title_requestCash">Be om penger</string>
   <string name="title_requestKin">Be om Kin</string>
   <string name="title_requestTip">Be om tips</string>
   <string name="title_requireFaceID">Krev ansikts-ID</string>
@@ -357,7 +369,9 @@
   <string name="title_spentKin">Brukt</string>
   <string name="title_switchAccounts">Bytt konto</string>
   <string name="title_termsOfService">Brukervilkår</string>
+  <string name="title_tipCard">Tipskort</string>
   <string name="title_tipKin">Tips Kin</string>
+  <string name="title_turnOnNotifications">Aktiver varsler for Code</string>
   <string name="title_unknown">Ukjent</string>
   <string name="title_updateRequired">Oppdatering kreves</string>
   <string name="title_verifyPhoneNumber">Bekreft telefonnummer</string>

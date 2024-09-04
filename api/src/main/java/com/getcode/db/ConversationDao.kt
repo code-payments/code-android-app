@@ -1,5 +1,7 @@
 package com.getcode.db
 
+import androidx.paging.PagingData
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -18,6 +20,10 @@ interface ConversationDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertConversations(vararg conversation: Conversation)
+
+    @RewriteQueriesToDropUnusedColumns
+    @Query("SELECT * FROM conversations")
+    fun observeConversations(): PagingSource<Int, Conversation>
 
     @RewriteQueriesToDropUnusedColumns
     @Query("SELECT * FROM conversations LEFT JOIN conversation_pointers ON conversations.idBase58 = conversation_pointers.conversationIdBase58 WHERE conversations.idBase58 = :id")
@@ -43,6 +49,13 @@ interface ConversationDao {
 
     suspend fun hasInteracted(conversationId: ID): Boolean {
         return hasInteracted(conversationId.base58)
+    }
+
+    @Query("UPDATE conversations SET hasRevealedIdentity = 1 WHERE idBase58 = :conversationId")
+    suspend fun revealIdentity(conversationId: String)
+
+    suspend fun revealIdentity(conversationId: ID) {
+        revealIdentity(conversationId.base58)
     }
 
 //    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")

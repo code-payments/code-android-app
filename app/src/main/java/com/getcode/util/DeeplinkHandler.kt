@@ -1,13 +1,23 @@
 package com.getcode.util
 
+import android.content.ContentResolver.MimeTypeInfo
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Parcelable
+import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
+import com.getcode.model.PrefsBool
+import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.screens.HomeScreen
 import com.getcode.navigation.screens.LoginScreen
+import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.urlDecode
 import com.getcode.utils.TraceType
+import com.getcode.utils.base64EncodedData
 import com.getcode.utils.trace
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
 import javax.inject.Inject
@@ -17,6 +27,7 @@ data class DeeplinkResult(
     val type: DeeplinkHandler.Type,
     val stack: List<Screen>,
 )
+
 /**
  * This class is used to manage intent state across navigation.
  *
@@ -31,7 +42,10 @@ data class DeeplinkResult(
  * in favour of the latest request in the navigation graph.
  */
 @Singleton
-class DeeplinkHandler @Inject constructor() {
+class DeeplinkHandler @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val betaFlags: BetaFlagsRepository
+) {
     var debounceIntent: Intent? = null
         set(value) {
             intent.value = value
@@ -41,8 +55,21 @@ class DeeplinkHandler @Inject constructor() {
 
     val intent = MutableStateFlow(debounceIntent)
 
-    fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
-        val uri = intent?.data ?: return null
+    suspend fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
+        println(intent)
+        val uri = when {
+            intent?.data != null -> intent.data
+            intent?.getStringExtra(Intent.EXTRA_TEXT) != null -> {
+                val sharedLink = intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri() ?: return null
+                sharedLink.resolveSharedEntity()
+            }
+            (intent?.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri != null) -> {
+                intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as Uri
+            }
+
+            else -> null
+        } ?: return null
+
         return when (val type = uri.deeplinkType) {
             is Type.Login -> {
                 DeeplinkResult(
@@ -61,9 +88,36 @@ class DeeplinkHandler @Inject constructor() {
 
             is Type.Sdk -> {
                 Timber.d("sdk=${type.payload}")
+                val request = type.payload?.base64EncodedData()?.let { DeepLinkRequest.from(it) }
                 DeeplinkResult(
                     type,
-                    listOf(HomeScreen(requestPayload = type.payload)),
+                    listOf(HomeScreen(request = request)),
+                )
+            }
+
+            is Type.Image -> {
+                DeeplinkResult(
+                    type,
+                    listOf(
+                        HomeScreen(
+                            request = DeepLinkRequest.fromImage(type.uri)
+                        )
+                    )
+                )
+            }
+
+            is Type.Tip -> {
+                Timber.d("tipcard for ${type.username} on ${type.platform}")
+                DeeplinkResult(
+                    type,
+                    listOf(
+                        HomeScreen(
+                            request = DeepLinkRequest.fromTipCardUsername(
+                                type.platform,
+                                type.username
+                            )
+                        )
+                    ),
                 )
             }
 
@@ -71,21 +125,54 @@ class DeeplinkHandler @Inject constructor() {
         }
     }
 
-    private val Uri.deeplinkType: Type
-        get() = when (val segment = lastPathSegment) {
-            "login" -> {
-                var entropy = fragments[Key.entropy]
-                if (entropy == null) {
-                    entropy = this.getQueryParameter("data")
+    /**
+     * Handles converting inbound shared content with possible deeplinks
+     * e.g sharing a tweet to trigger a tipcard flow
+     */
+    private suspend fun Uri.resolveSharedEntity(): Uri {
+        when {
+            this.host == "x.com" || this.host == "twitter.com" -> {
+                // https://x.com/<username>/status/<tweetId>
+                if (betaFlags.isEnabled(PrefsBool.SHARE_TWEET_TO_TIP)) {
+                    // convert shared tweets to owner's tip card
+                    val username = pathSegments.firstOrNull() ?: return this
+                    return Uri.parse(Linkify.tipCard(username, "x"))
                 }
+            }
+        }
+        return this
+    }
 
-                Type.Login(entropy.also { Timber.d("entropy=$it") })
+    private val Uri.deeplinkType: Type
+        get() {
+            // check if image
+            val isImage = context.contentResolver.getType(this)?.startsWith("image/") == true
+            if (isImage) {
+                return Type.Image(uri = this)
             }
 
-            "cash", "c" -> Type.Cash(fragments[Key.entropy])
-            // support all variations of SDK request triggers
-            in Type.Sdk.regex -> Type.Sdk(fragments[Key.payload]?.urlDecode())
-            else -> Type.Unknown(path = segment)
+            // check for tipcard URLs
+            val components = pathSegments
+            if (components.count() >= 2 && components[0] == "x" && components[1].isNotEmpty()) {
+                return Type.Tip(components[0], components[1])
+            }
+
+            return when (val segment = lastPathSegment) {
+                "login" -> {
+                    var entropy = fragments[Key.entropy]
+                    if (entropy == null) {
+                        entropy = this.getQueryParameter("data")
+                    }
+
+                    Type.Login(entropy.also { Timber.d("entropy=$it") })
+                }
+
+                "cash", "c" -> Type.Cash(fragments[Key.entropy])
+
+                // support all variations of SDK request triggers
+                in Type.Sdk.regex -> Type.Sdk(fragments[Key.payload]?.urlDecode())
+                else -> Type.Unknown(path = segment)
+            }
         }
 
     private val Uri.fragments: Map<Key, String>
@@ -104,11 +191,14 @@ class DeeplinkHandler @Inject constructor() {
     sealed interface Type {
         data class Login(val link: String?) : Type
         data class Cash(val link: String?) : Type
+        data class Tip(val platform: String, val username: String) : Type
         data class Sdk(val payload: String?) : Type {
             companion object {
                 val regex = Regex("^(login|payment|tip)?-?request-(modal|page)-(mobile|desktop)\$")
             }
         }
+        data class Image(val uri: Uri): Type
+
         data class Unknown(val path: String?) : Type
     }
 
@@ -140,4 +230,5 @@ class DeeplinkHandler @Inject constructor() {
     }
 }
 
-private operator fun Regex.contains(text: String?): Boolean = text?.let { this.matches(it) } ?: false
+private operator fun Regex.contains(text: String?): Boolean =
+    text?.let { this.matches(it) } ?: false
