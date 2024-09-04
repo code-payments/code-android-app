@@ -3,6 +3,8 @@ package com.kik.kikx.kikcodes.implementation
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
+import android.icu.text.DateFormat
+import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.os.Environment
 import androidx.camera.core.ImageAnalysis
@@ -22,8 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.DateFormat
-import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
@@ -99,7 +99,6 @@ class KikCodeAnalyzer @Inject constructor(
 
     private suspend fun detectCodeInImage(
         bitmap: Bitmap,
-        minSectionSize: Int = 100,
         scan: suspend (Bitmap) -> Result<ScannableKikCode>
     ): Result<ScannableKikCode> = withContext(Dispatchers.Default) {
         val destinationRoot =
@@ -111,18 +110,101 @@ class KikCodeAnalyzer @Inject constructor(
         }
 
         // Start the recursive division and scanning process
-        return@withContext divideAndScan(bitmap, destination, minSectionSize, scan)
+        return@withContext search(bitmap, destination, 100, scan)
     }
 
-    private suspend fun divideAndScan(
+    private suspend fun search(
         bitmap: Bitmap,
         destination: File,
         minSectionSize: Int,
         scan: suspend (Bitmap) -> Result<ScannableKikCode>,
     ): Result<ScannableKikCode> {
-        val zoomLevels = listOf(1.0, 2.0, 5.0, 10.0)
+        // try scanning raw
+        val raw = scan(bitmap)
+        if (raw.isSuccess) {
+            debugPrint("Code found raw")
+            bitmap.recycle()
+            return raw
+        } else {
+            debugPrint("No Code found via raw")
+        }
 
-        return processBitmapRecursively(bitmap, destination, minSectionSize, scan, zoomLevels)
+        // attempt quick lookup by recursively splitting image into quadrants, with increasing zoom levels
+        val zoomLevels = listOf(1.0, 2.0, 5.0, 10.0)
+        val recursiveSearch = processBitmapRecursively(
+            bitmap,
+            destination,
+            minSectionSize,
+            scan,
+            zoomLevels,
+            ""
+        )
+
+        if (recursiveSearch.isSuccess) {
+            debugPrint("Code found via recursive lookup")
+            bitmap.recycle()
+            return recursiveSearch
+        } else {
+            debugPrint("No Code found via recursive lookup")
+        }
+
+        val result = slidingWindowSearch(
+            bitmap = bitmap,
+            windowSize = 300,
+            stepSize = 150,
+            scan = scan,
+            zoomLevels = zoomLevels
+        )
+
+        if (result.isSuccess) {
+            debugPrint("Code found via sliding window")
+        }
+
+        bitmap.recycle()
+        return result
+    }
+
+    private suspend fun slidingWindowSearch(
+        bitmap: Bitmap,
+        windowSize: Int,
+        stepSize: Int,
+        scan: suspend (Bitmap) -> Result<ScannableKikCode>,
+        zoomLevels: List<Double>
+    ): Result<ScannableKikCode> {
+        val w = bitmap.width
+        val h = bitmap.height
+
+        debugPrint("search: original ${w}x${h}")
+
+        for (zoomLevel in zoomLevels) {
+            val windowWidth = (windowSize * zoomLevel).toInt()
+            val windowHeight = (windowSize * zoomLevel).toInt()
+
+            for (i in 0 until w step stepSize) {
+                for (j in 0 until h step stepSize) {
+                    val x = i.coerceAtMost(w - windowWidth)
+                    val y = j.coerceAtMost(h - windowHeight)
+                    val width = windowWidth.coerceAtMost(w - x)
+                    val height = windowHeight.coerceAtMost(h - y)
+                    val windowBitmap = Bitmap.createBitmap(
+                        bitmap,
+                        x, y,
+                        width, height
+                    )
+
+                    debugPrint("search: checking {x: $x, y: $y, w: $width, h: $height} @ $zoomLevel")
+                    val result = scan(windowBitmap)
+                    windowBitmap.recycle()
+
+                    if (result.isSuccess) {
+                        debugPrint("search: SUCCESS in {x: $x, y: $y, w: $width, h: $height} @ $zoomLevel")
+                        return result
+                    }
+                }
+            }
+        }
+
+        return Result.failure(KikCodeScanner.NoKikCodeFoundException())
     }
 
     private suspend fun processBitmapRecursively(
@@ -130,56 +212,75 @@ class KikCodeAnalyzer @Inject constructor(
         destination: File,
         minSectionSize: Int,
         scan: suspend (Bitmap) -> Result<ScannableKikCode>,
-        zoomLevels: List<Double>
+        zoomLevels: List<Double>,
+        regionName: String
     ): Result<ScannableKikCode> {
         val width = bitmap.width
         val height = bitmap.height
 
         // Base case: If the bitmap is smaller than the minimum section size, process it directly
         if (width <= minSectionSize || height <= minSectionSize) {
-            return scanWithZoomLevels(bitmap, destination, scan, zoomLevels)
+            return scanWithZoomLevels(bitmap, destination, scan, zoomLevels, regionName)
         }
 
-        // Scan the center section first
         val centerRect = calculateCenterRect(width, height)
         val centerBitmap = Bitmap.createBitmap(bitmap, centerRect.left, centerRect.top, centerRect.width(), centerRect.height())
 
-        val centerResult = scanWithZoomLevels(centerBitmap, destination, scan, zoomLevels)
+        val centerResult = scanWithZoomLevels(centerBitmap, destination, scan, zoomLevels, "center")
         centerBitmap.recycle()
 
         if (centerResult.isSuccess) {
             return centerResult
         }
 
-        // Divide the bitmap into left and right halves and process recursively
-        val leftHalf = Bitmap.createBitmap(bitmap, 0, 0, width / 2, height)
-        val rightHalf = Bitmap.createBitmap(bitmap, width / 2, 0, width / 2, height)
+        val quadrants = splitIntoQuadrants(bitmap)
 
-        val leftResult = processBitmapRecursively(leftHalf, destination, minSectionSize, scan, zoomLevels)
-        leftHalf.recycle()
+        // Process each quadrant recursively
+        for ((quadrantBitmap, name) in quadrants) {
+            val quadrantResult = processBitmapRecursively(quadrantBitmap, destination, minSectionSize, scan, zoomLevels, name)
+            quadrantBitmap.recycle()
 
-        if (leftResult.isSuccess) {
-            rightHalf.recycle()
-            return leftResult
+            if (quadrantResult.isSuccess) {
+                return quadrantResult
+            }
         }
 
-        val rightResult = processBitmapRecursively(rightHalf, destination, minSectionSize, scan, zoomLevels)
-        rightHalf.recycle()
+        return Result.failure(KikCodeScanner.NoKikCodeFoundException())
+    }
 
-        return rightResult
+    private fun splitIntoQuadrants(bitmap: Bitmap): List<Pair<Bitmap, String>> {
+        val width = bitmap.width
+        val height = bitmap.height
+        val halfWidth = width / 2
+        val halfHeight = height / 2
+
+        val topLeft = Bitmap.createBitmap(bitmap, 0, 0, halfWidth, halfHeight)
+        val topRight = Bitmap.createBitmap(bitmap, halfWidth, 0, halfWidth, halfHeight)
+        val bottomLeft = Bitmap.createBitmap(bitmap, 0, halfHeight, halfWidth, halfHeight)
+        val bottomRight = Bitmap.createBitmap(bitmap, halfWidth, halfHeight, halfWidth, halfHeight)
+
+        return listOf(
+            topLeft to "topLeft",
+            topRight to "topRight",
+            bottomLeft to "bottomLeft",
+            bottomRight to "bottomRight"
+        )
     }
 
     private suspend fun scanWithZoomLevels(
         bitmap: Bitmap,
         destination: File,
         scan: suspend (Bitmap) -> Result<ScannableKikCode>,
-        zoomLevels: List<Double>
+        zoomLevels: List<Double>,
+        regionName: String // Use the region name to give unique filenames
     ): Result<ScannableKikCode> {
         for (zoomLevel in zoomLevels) {
             val zoomedBitmap = zoomBitmap(bitmap, zoomLevel)
             saveSegment(zoomedBitmap, destination) {
-                "section_${zoomedBitmap.width}x${zoomedBitmap.height}_zoom${zoomLevel}.png"
+                val prefix = regionName.ifEmpty { null }?.let { "${it}_"}
+                "$prefix${zoomedBitmap.width}x${zoomedBitmap.height}_zoom${zoomLevel}.png"
             }
+
             val result = scan(zoomedBitmap)
 
             zoomedBitmap.recycle()
@@ -224,6 +325,10 @@ class KikCodeAnalyzer @Inject constructor(
             centerHeight + centerHeight / 2
         )
     }
+}
+
+private fun debugPrint(message: String) {
+    if (DEBUG) println(message)
 }
 
 private const val DEBUG = false

@@ -170,6 +170,7 @@ data class SessionState(
         UiElement.BALANCE
     ),
     val tipCardConnected: Boolean = false,
+    val fullScreenLoading: Boolean = false,
 )
 
 sealed interface SessionEvent {
@@ -1463,8 +1464,17 @@ class Session @Inject constructor(
     fun onImageSelected(
         uri: Uri
     ) {
-        codeAnalyzer.onCodeScanned = { onCodeScan(it) }
+        var scanning = false
+        codeAnalyzer.onCodeScanned = {
+            scanning = false
+
+            uiFlow.update { state -> state.copy(fullScreenLoading = false) }
+            onCodeScan(it)
+        }
         codeAnalyzer.onNoCodeFound = {
+            scanning = false
+            uiFlow.update { state -> state.copy(fullScreenLoading = false) }
+
             TopBarManager.showMessage(
                 TopBarManager.TopBarMessage(
                     title = resources.getString(R.string.title_noCodeFound),
@@ -1472,7 +1482,16 @@ class Session @Inject constructor(
                 )
             )
         }
+
         codeAnalyzer.analyze(uri)
+        scanning = true
+
+        viewModelScope.launch {
+            delay(300)
+            if (scanning) {
+                uiFlow.update { it.copy(fullScreenLoading = true) }
+            }
+        }
     }
 
     fun onCodeScan(
