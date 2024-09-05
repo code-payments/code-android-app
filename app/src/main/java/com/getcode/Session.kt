@@ -170,13 +170,12 @@ data class SessionState(
         UiElement.BALANCE
     ),
     val tipCardConnected: Boolean = false,
-    val fullScreenLoading: Boolean = false,
 )
 
 sealed interface SessionEvent {
     data object PresentTipEntry : SessionEvent
-    data object RequestNotificationPermissions: SessionEvent
-    data class SendIntent(val intent: Intent): SessionEvent
+    data object RequestNotificationPermissions : SessionEvent
+    data class SendIntent(val intent: Intent) : SessionEvent
 }
 
 enum class RestrictionType {
@@ -225,7 +224,7 @@ class Session @Inject constructor(
         appSettings.observe()
             .map { it.cameraStartByDefault }
             .distinctUntilChanged()
-            .onEach {cameraAutoStart ->
+            .onEach { cameraAutoStart ->
                 uiFlow.update {
                     it.copy(autoStartCamera = cameraAutoStart)
                 }
@@ -630,12 +629,12 @@ class Session @Inject constructor(
                 delay(5.seconds.inWholeMilliseconds)
             }
             withContext(Dispatchers.Main) {
-            uiFlow.update {
-                it.copy(
-                    billState = it.billState.copy(showToast = false)
-                )
-            }
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(showToast = false)
+                    )
                 }
+            }
         }
     }
 
@@ -768,6 +767,7 @@ class Session @Inject constructor(
                 )
                 attemptLogin(codePayload)
             }
+
             Kind.Tip -> {
                 trace(
                     tag = "Bill",
@@ -868,6 +868,7 @@ class Session @Inject constructor(
                                     _eventFlow.emit(SessionEvent.RequestNotificationPermissions)
                                 }
                             }
+
                             else -> {
                                 @SuppressLint("NewApi")
                                 channel?.importance = NotificationManager.IMPORTANCE_DEFAULT
@@ -1464,16 +1465,18 @@ class Session @Inject constructor(
     fun onImageSelected(
         uri: Uri
     ) {
-        var scanning = false
-        codeAnalyzer.onCodeScanned = {
-            scanning = false
+        fun onScanningStop() {
+            codeAnalyzer.onCodeScanned = {}
+            codeAnalyzer.onNoCodeFound = {}
+        }
 
-            uiFlow.update { state -> state.copy(fullScreenLoading = false) }
+        codeAnalyzer.onCodeScanned = {
+            onScanningStop()
             onCodeScan(it)
         }
+
         codeAnalyzer.onNoCodeFound = {
-            scanning = false
-            uiFlow.update { state -> state.copy(fullScreenLoading = false) }
+            onScanningStop()
 
             TopBarManager.showMessage(
                 TopBarManager.TopBarMessage(
@@ -1484,14 +1487,6 @@ class Session @Inject constructor(
         }
 
         codeAnalyzer.analyze(uri)
-        scanning = true
-
-        viewModelScope.launch {
-            delay(300)
-            if (scanning) {
-                uiFlow.update { it.copy(fullScreenLoading = true) }
-            }
-        }
     }
 
     fun onCodeScan(
@@ -1568,7 +1563,8 @@ class Session @Inject constructor(
     private fun shareTipCard() = viewModelScope.launch {
         val connectedAccount = tipController.connectedAccount.value ?: return@launch
         withContext(Dispatchers.Main) {
-            val shareIntent = IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
+            val shareIntent =
+                IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
 
             _eventFlow.emit(SessionEvent.SendIntent(shareIntent))
         }
@@ -1669,6 +1665,7 @@ class Session @Inject constructor(
                         attemptPayment(payload, request)
                     }
                 }
+
                 request.loginRequest != null -> {
                     val payload = CodePayload(
                         kind = Kind.Login,
@@ -1684,6 +1681,7 @@ class Session @Inject constructor(
                     scannedRendezvous.add(payload.rendezvous.publicKey)
                     attemptLogin(payload, request)
                 }
+
                 request.tipRequest != null -> {
                     val payload = CodePayload(
                         kind = Kind.Tip,

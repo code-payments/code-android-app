@@ -128,7 +128,7 @@ fun ScanScreen(
                 request = request,
             )
 
-            val notificationPermissionChecker = notificationPermissionCheck {  }
+            val notificationPermissionChecker = notificationPermissionCheck { }
             val context = LocalContext.current
             LaunchedEffect(session) {
                 session.eventFlow
@@ -189,7 +189,13 @@ private fun ScannerContent(
     }
 
     val biometricsState = LocalBiometricsState.current
-    LaunchedEffect(biometricsState, previewing, dataState.balance, cashLinkSaved, requestPayloadSaved) {
+    LaunchedEffect(
+        biometricsState,
+        previewing,
+        dataState.balance,
+        cashLinkSaved,
+        requestPayloadSaved
+    ) {
         if (previewing) {
             focusManager.clearFocus()
         }
@@ -206,11 +212,12 @@ private fun ScannerContent(
         }
     }
 
-    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) {
-            session.onImageSelected(uri)
+    val pickPhoto =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                session.onImageSelected(uri)
+            }
         }
-    }
 
     fun handleAction(action: UiElement) {
         scope.launch {
@@ -262,9 +269,6 @@ private fun ScannerContent(
         },
         onAction = { handleAction(it) },
     )
-
-    FullScreenProgressSpinner(dataState.fullScreenLoading)
-    KeepScreenOn(dataState.fullScreenLoading)
 
     OnLifecycleEvent { _, event ->
         when (event) {
@@ -358,6 +362,7 @@ private fun BillContainer(
             LocalBiometricsState.current.isAwaitingAuthentication -> {
                 // waiting for result
             }
+
             dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null -> {
                 if (dataState.autoStartCamera == null) {
                     // waiting for result
@@ -369,6 +374,7 @@ private fun BillContainer(
                     scannerView()
                 }
             }
+
             else -> {
                 PermissionsBlockingView(
                     modifier = Modifier.fillMaxSize(),
@@ -408,7 +414,7 @@ private fun BillContainer(
             }
         }
 
-        // Composable animation for the side bar sheet
+        // Composable animation for the decor
         AnimatedVisibility(
             visible = updatedState.billState.bill == null || billDismissState.targetValue != DismissValue.Default,
             enter = fadeIn(),
