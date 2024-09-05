@@ -183,7 +183,7 @@ open class BalanceController @Inject constructor(
             transactionReceiver.receiveFromIncoming(organizer)
             transactionRepository.swapIfNeeded(organizer)
         } catch (ex: Exception) {
-            Timber.i("Error: ${ex.javaClass.simpleName} ${ex.cause}")
+            Timber.i("Error: ${ex.javaClass.simpleName} ${ex.message}")
             val organizer =
                 SessionManager.getOrganizer() ?: throw IllegalStateException("Missing Organizer")
 

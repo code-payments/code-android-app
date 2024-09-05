@@ -26,7 +26,7 @@ internal fun CameraDisabledView(
     onClick: () -> Unit
 ) {
     Box(
-        modifier = modifier.background(Color.Black),
+        modifier = modifier.background(CodeTheme.colors.background),
         contentAlignment = Alignment.Center
     ) {
         Column(Modifier.fillMaxWidth(0.85f)) {
