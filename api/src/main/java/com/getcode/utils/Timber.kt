@@ -29,7 +29,7 @@ suspend fun <T> timberTimerSuspend(message: String, block: suspend () -> T): T {
         val result = block()
         Timber.d(
             "$message took ${
-                (System.nanoTime() - start).toDouble().div(1000000).roundToLong()
+                (System.nanoTime() - start).toDouble().div(1_000_000).roundToLong()
             }ms",
         )
         result

@@ -110,8 +110,37 @@ fun <T> timedTrace(
         result = block()
     }
 
-    val newMessage = "$message took ${time.inWholeMilliseconds}ms"
-    trace(newMessage, tag, type, metadata, error)
+    val timedMetadata: MetadataBuilder.() -> Unit = {
+        // Add the original metadata
+        metadata()
+        "duration" to time.inWholeMilliseconds
+    }
+
+    trace(message, tag, type, timedMetadata, error)
+
+    return result
+}
+
+suspend fun <T> timedTraceSuspend(
+    message: String,
+    tag: String? = null,
+    type: TraceType = TraceType.Log,
+    metadata: MetadataBuilder.() -> Unit = {},
+    error: Throwable? = null,
+    block: suspend () -> T
+): T {
+    var result: T
+    val time = measureTime {
+        result = block()
+    }
+
+    val timedMetadata: MetadataBuilder.() -> Unit = {
+        // Add the original metadata
+        metadata()
+        "duration" to time.inWholeMilliseconds
+    }
+
+    trace(message, tag, type, timedMetadata, error)
 
     return result
 }

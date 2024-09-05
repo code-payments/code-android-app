@@ -60,5 +60,5 @@
     <string name="subtitle_tipCardBack">Scan to download the app, and then scan the code on the other side to tip</string>
 
     <string name="title_noCodeFound">No Code Found</string>
-    <string name="subtitle_noCodeFound">Please select a different image with a Code, or try to get an image that shows the Code more clearly.</string>
+    <string name="subtitle_noCodeFound">Try to get an image that shows the Code more clearly.</string>
 </resources>
