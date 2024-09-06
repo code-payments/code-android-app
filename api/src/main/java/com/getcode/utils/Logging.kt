@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import com.bugsnag.android.BreadcrumbType
 import com.bugsnag.android.Bugsnag
 import timber.log.Timber
+import kotlin.time.Duration
 import kotlin.time.measureTime
 
 sealed interface TraceType {
@@ -103,6 +104,7 @@ fun <T> timedTrace(
     type: TraceType = TraceType.Log,
     metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null,
+    onComplete: (T, Duration) -> Unit = { _, _ -> },
     block: () -> T
 ): T {
     var result: T
@@ -117,7 +119,7 @@ fun <T> timedTrace(
     }
 
     trace(message, tag, type, timedMetadata, error)
-
+    onComplete(result, time)
     return result
 }
 
@@ -127,6 +129,7 @@ suspend fun <T> timedTraceSuspend(
     type: TraceType = TraceType.Log,
     metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null,
+    onComplete: (T, Duration) -> Unit = { _, _ -> },
     block: suspend () -> T
 ): T {
     var result: T
@@ -141,7 +144,7 @@ suspend fun <T> timedTraceSuspend(
     }
 
     trace(message, tag, type, timedMetadata, error)
-
+    onComplete(result, time)
     return result
 }
 

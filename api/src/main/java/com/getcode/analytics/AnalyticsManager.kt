@@ -289,6 +289,14 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
+    override fun photoScanned(successful: Boolean, timeToScanInMillis: Long) {
+        track(
+            Name.PhotoScanned,
+            Property.Result to successful.toString(),
+            Property.Time to timeToScanInMillis.toInt().toString()
+        )
+    }
+
     override fun action(action: Action, source: ActionSource?) {
         track(
             action = action,
@@ -343,6 +351,7 @@ class AnalyticsManager @Inject constructor(
         PrivacyMigration("Privacy Migration"),
         BackgroundSwap("Background Swap Initiated"),
         Withdrawal("Withdrawal"),
+        PhotoScanned("Photo Scanned"),
 
         // Errors
         ErrorRequest("Error Request"),
@@ -365,6 +374,7 @@ class AnalyticsManager @Inject constructor(
         Result("Result"),
         MillisecondsToConfirm("Milliseconds to confirm"),
         GrabTime("Grab Time"),
+        Time("Time"),
 
         // Bill
         State("State"),
