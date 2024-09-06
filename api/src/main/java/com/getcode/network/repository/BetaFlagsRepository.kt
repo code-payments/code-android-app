@@ -47,7 +47,7 @@ data class BetaOptions(
             cameraGesturesEnabled = true,
             invertedDragZoom = false,
             canFlipTipCard = false,
-            galleryEnabled = false
+            galleryEnabled = true
         )
     }
 }

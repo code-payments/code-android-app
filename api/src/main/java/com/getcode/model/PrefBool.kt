@@ -67,7 +67,7 @@ sealed class PrefsBool(val value: String) {
     data object TIP_CARD_FLIPPABLE: PrefsBool("tipcard_flippable"), BetaFlag
     data object CAMERA_GESTURES_ENABLED: PrefsBool("camera_gestures_enabled"), BetaFlag, Launched
     data object CAMERA_DRAG_INVERTED: PrefsBool("camera_drag_inverted"), BetaFlag, Deprecated
-    data object GALLERY_ENABLED: PrefsBool("gallery_enabled"), BetaFlag
+    data object GALLERY_ENABLED: PrefsBool("gallery_enabled"), BetaFlag, Launched
 }
 
 val APP_SETTINGS: List<AppSetting> = listOf(PrefsBool.CAMERA_START_BY_DEFAULT, PrefsBool.REQUIRE_BIOMETRICS)
