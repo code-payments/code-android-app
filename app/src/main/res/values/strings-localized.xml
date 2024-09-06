@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Sorry, we experienced a network issue. Please try inviting your friend again.</string>
   <string name="error_description_linkExpired">This Kin was automatically returned to the sender because it wasn\'t collected within 24 hours. Please ask them to send the Kin again.</string>
   <string name="error_description_maxAttemptsReached">Please re-enter your phone number and try again.</string>
+  <string name="error_description_noCodeFound">Please try to get an image that shows the code more clearly.</string>
   <string name="error_description_noInternet">Please check your internet connection or try again later.</string>
   <string name="error_description_noInvitesLeft">Code is currently invite-only. We will notify you when there are more invites available.</string>
   <string name="error_description_notInvitedYet">To join the waitlist go to %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Invitation Failed</string>
   <string name="error_title_linkExpired">Link Expired</string>
   <string name="error_title_maxAttemptsReached">Maximum Attempts Reached</string>
+  <string name="error_title_noCodeFound">No Code Found</string>
   <string name="error_title_noInternet">No Internet Connection</string>
   <string name="error_title_noInvitesLeft">You Have No Invites</string>
   <string name="error_title_notInvitedYet">You Haven\'t Been Invited Yet</string>

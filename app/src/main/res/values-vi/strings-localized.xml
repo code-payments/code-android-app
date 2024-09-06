@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Rất tiếc, chúng tôi đã gặp sự cố mạng. Hãy thử mời lại bạn bè của bạn.</string>
   <string name="error_description_linkExpired">Kin này đã tự động được trả lại cho người gửi vì đã không được thu thập trong vòng 24 giờ. Xin vui lòng yêu cầu họ gửi Kin một lần nữa.</string>
   <string name="error_description_maxAttemptsReached">Xin vui lòng nhập lại số điện thoại của bạn và thử lại.</string>
+  <string name="error_description_noCodeFound">Xin vui lòng cố gắng lấy một hình ảnh cho thấy mã rõ ràng hơn.</string>
   <string name="error_description_noInternet">Xin vui lòng kiểm tra kết nối internet của bạn hoặc thử lại sau.</string>
   <string name="error_description_noInvitesLeft">Mã hiện chỉ dành cho người được mời. Chúng tôi sẽ thông báo cho bạn khi có thêm lời mời.</string>
   <string name="error_description_notInvitedYet">Để tham gia danh sách chờ, hãy truy cập %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Lời mời Không thành công</string>
   <string name="error_title_linkExpired">Liên kết Đã hết hạn</string>
   <string name="error_title_maxAttemptsReached">Đã đạt đến Số lần Thử Tối đa</string>
+  <string name="error_title_noCodeFound">Không tìm thấy mã nào</string>
   <string name="error_title_noInternet">Không có Kết nối Internet</string>
   <string name="error_title_noInvitesLeft">Bạn Không Có Lời mời</string>
   <string name="error_title_notInvitedYet">Bạn Vẫn Chưa Được Mời</string>

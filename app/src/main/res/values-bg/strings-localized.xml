@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Съжаляваме, но имаме проблем с връзката. Моля, опитайте да поканите вашия приятел отново. </string>
   <string name="error_description_linkExpired">Тези средства в Kin бяха автоматично върнати на подателя, защото не бяха взети в рамките на 24 часа. Моля, помолете ги да ги изпратят отново.</string>
   <string name="error_description_maxAttemptsReached">Моля, въведете отново вашия телефонен номер и опитайте отново. </string>
+  <string name="error_description_noCodeFound">Моля, опитайте да вземете изображение, което показва кода по-ясно.</string>
   <string name="error_description_noInternet">Моля, проверете вашата връзка с Интернет или опитайте отново по - късно. </string>
   <string name="error_description_noInvitesLeft">Кодът временно е само с покана. Ще бъдете известени, когато има налични покани. </string>
   <string name="error_description_notInvitedYet">Отидете на %1$s, за да се включите в изчакващи. </string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Неуспешна покана </string>
   <string name="error_title_linkExpired">Връзката е изтекла</string>
   <string name="error_title_maxAttemptsReached">Максималният брой опити е достигнат </string>
+  <string name="error_title_noCodeFound">Не е намерен код</string>
   <string name="error_title_noInternet">Нямате връзка с Интернет </string>
   <string name="error_title_noInvitesLeft">Нямате покани </string>
   <string name="error_title_notInvitedYet">Все още нямате покана </string>

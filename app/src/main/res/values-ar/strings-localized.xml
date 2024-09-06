@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">عذرًا, لقد واجهنا مشكلة في الشبكة. يُرجى محاولة دعوة صديقك مرة أخرى.</string>
   <string name="error_description_linkExpired">تمت إعادة عملة Kin هذه تلقائيًا إلى المرسل لأنه لم يتم جمعها في غضون 24 ساعة. من فضلك اطلب منهم إرسال Kin مرة أخرى.</string>
   <string name="error_description_maxAttemptsReached">يُرجى إعادة إدخال رقم هاتفك والمحاولة مرة أخرى.</string>
+  <string name="error_description_noCodeFound">يُرجى محاولة التقاط صورة توضح الرمز بشكل أكثر وضوحاً.</string>
   <string name="error_description_noInternet">يُرجى التحقق من اتصالك بالإنترنت أو المحاولة مرة أخرى لاحقًا.</string>
   <string name="error_description_noInvitesLeft">Code حاليًا بالدعوة فقط. سنخطرك عند توفر المزيد من الدعوات.</string>
   <string name="error_description_notInvitedYet">للانضمام إلى قائمة الانتظار, اذهب إلى %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">فشلت الدعوة</string>
   <string name="error_title_linkExpired">انتهت صلاحية الرابط</string>
   <string name="error_title_maxAttemptsReached">تم بلوغ الحد الأقصى من المحاولات</string>
+  <string name="error_title_noCodeFound">لم نعثر على الرمز</string>
   <string name="error_title_noInternet">لا توجد اتصال بشبكة الإنترنت</string>
   <string name="error_title_noInvitesLeft">لا توجد لديك دعوات</string>
   <string name="error_title_notInvitedYet">لم تتم دعوتك بعد</string>

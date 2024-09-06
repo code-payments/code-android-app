@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Üzgünüz, bir ağ sorunu yaşadık. Lütfen arkadaşını tekrar davet etmeyi dene.</string>
   <string name="error_description_linkExpired">Bu Kin, 24 saat içinde alınmadığı için otomatik olarak gönderene iade edildi. Lütfen Kin\'i tekrar göndermelerini iste.</string>
   <string name="error_description_maxAttemptsReached">Lütfen telefon numaranı yeniden gir ve tekrar dene.</string>
+  <string name="error_description_noCodeFound">Lütfen kodu daha net gösteren bir görsel elde etmeye çalışın.</string>
   <string name="error_description_noInternet">Lütfen internet bağlantını kontrol et veya daha sonra tekrar dene.</string>
   <string name="error_description_noInvitesLeft">Şu anda Code\'a yalnızca davetle katılınabilir. Daha fazla davetiye olduğunda seni haberdar edeceğiz.</string>
   <string name="error_description_notInvitedYet">Bekleme listesine girmek için %1$s adresine git</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Davet Başarısız</string>
   <string name="error_title_linkExpired">Bağlantının Süresi Doldu</string>
   <string name="error_title_maxAttemptsReached">Maksimum Denemeye Ulaşıldı</string>
+  <string name="error_title_noCodeFound">Kod Bulunamadı</string>
   <string name="error_title_noInternet">İnternet Bağlantısı Yok</string>
   <string name="error_title_noInvitesLeft">Davetin Yok</string>
   <string name="error_title_notInvitedYet">Henüz Davet Edilmedin</string>

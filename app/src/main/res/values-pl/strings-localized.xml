@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Przepraszamy, wystąpił problem z siecią. Spróbuj jeszcze raz zaprosić znajomego.</string>
   <string name="error_description_linkExpired">Kin został automatycznie zwrócony do nadawcy, ponieważ nie został odebrany w ciągu 24 godzin. Poproś go o ponowne wysłanie tej kryptowaluty.</string>
   <string name="error_description_maxAttemptsReached">Wpisz ponownie numer telefonu i spróbuj jeszcze raz.</string>
+  <string name="error_description_noCodeFound">Spróbuj uzyskać obraz, na którym będzie wyraźniej widać kod.</string>
   <string name="error_description_noInternet">Sprawdź połączenie z Internetem lub spróbuj ponownie później.</string>
   <string name="error_description_noInvitesLeft">Code jest aktualnie wyłącznie na zaproszenie. Powiadomimy Cię, kiedy będzie dostępnych więcej zaproszeń.</string>
   <string name="error_description_notInvitedYet">Żeby dołączyć do listy oczekujących, przejdź do %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Zaproszenie nie powiodło się</string>
   <string name="error_title_linkExpired">Odnośnik wygasł</string>
   <string name="error_title_maxAttemptsReached">Osiągnięto maksymalną liczbę prób</string>
+  <string name="error_title_noCodeFound">Nie znaleziono kodu</string>
   <string name="error_title_noInternet">Brak połączenia z Internetem</string>
   <string name="error_title_noInvitesLeft">Nie masz zaproszeń</string>
   <string name="error_title_notInvitedYet">Nie zaproszono Cię jeszcze</string>

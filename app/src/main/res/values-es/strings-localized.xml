@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Lo sentimos, hemos tenido un problema con la red. Intenta invitar de nuevo a tu amigo.</string>
   <string name="error_description_linkExpired">Este Kin fue devuelto automáticamente al remitente porque no fue recogido en 24 horas. Pídeles que vuelvan a enviar el Kin.</string>
   <string name="error_description_maxAttemptsReached">Vuelve a introducir tu número de teléfono e inténtalo de nuevo.</string>
+  <string name="error_description_noCodeFound">Intenta conseguir una imagen que muestre el código de forma más clara.</string>
   <string name="error_description_noInternet">Comprueba tu conexión a internet o inténtalo más tarde.</string>
   <string name="error_description_noInvitesLeft">Actualmente, Code está disponible solo mediante invitación. Te avisaremos cuando haya más invitaciones disponibles.</string>
   <string name="error_description_notInvitedYet">Para unirte a la lista de espera, ve a %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Invitación fallida</string>
   <string name="error_title_linkExpired">Enlace caducado</string>
   <string name="error_title_maxAttemptsReached">Se ha alcanzado el número máximo de intentos</string>
+  <string name="error_title_noCodeFound">No se encuentra ningún código</string>
   <string name="error_title_noInternet">No hay conexión a internet</string>
   <string name="error_title_noInvitesLeft">No tienes invitaciones</string>
   <string name="error_title_notInvitedYet">Aún no te han invitado</string>

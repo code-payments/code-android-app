@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">क्षमा करें, हमें एक नेटवर्क समस्या का सामना करना पड़ा. कृपया अपने मित्र को फिर से आमंत्रित करने का प्रयास करें.</string>
   <string name="error_description_linkExpired">यह Kin आपने आप हीं सेन्डर को वापिस चला गया क्योंकि इसे 24 घंटे के भीतर कलेक्ट नहीं किया गया था. कृपया उन्हें Kin को फिर से भेजने के लिए बोलें.</string>
   <string name="error_description_maxAttemptsReached">कृपया अपना फ़ोन नंबर पुनः  एंटर करें और पुनः प्रयास करें.</string>
+  <string name="error_description_noCodeFound">कृपया ऐसी तस्वीर प्राप्त करने का प्रयास करें जो कोड को अधिक स्पष्ट रूप से दिखाए.</string>
   <string name="error_description_noInternet">कृपया अपना इंटरनेट कनेक्शन चेक करें या बाद में पुन: प्रयास करें.</string>
   <string name="error_description_noInvitesLeft">कोड वर्तमान में केवल आमंत्रण पर ही उपलब्ध है. अधिक आमंत्रण उपलब्ध होने पर हम आपको सूचित करेंगे.</string>
   <string name="error_description_notInvitedYet">प्रतीक्षा सूची में शामिल होने के लिए %1$s पर जाएं</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">आमंत्रण विफल रहा </string>
   <string name="error_title_linkExpired">लिंक एक्सपायर हो गया गया है </string>
   <string name="error_title_maxAttemptsReached">अधिकतम प्रयास हो गया </string>
+  <string name="error_title_noCodeFound">कोई कोड नहीं मिला </string>
   <string name="error_title_noInternet">कोई इंटरनेट कनेक्शन नहीं</string>
   <string name="error_title_noInvitesLeft">आपको कोई आमंत्रण नहीं है</string>
   <string name="error_title_notInvitedYet">आपको अब तक आमंत्रित नहीं किया गया है</string>

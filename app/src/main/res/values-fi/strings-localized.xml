@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Kärsimme valitettavasti verkko-ongelmasta. Kokeile ystäväsi kutsumista uudestaan.</string>
   <string name="error_description_linkExpired">Tämä kin palautettiin automaattisesti lähettäjälle, koska sitä ei lunastettu 24 tunnin kuluessa. Pyydä häntä lähettämään kin uudelleen.</string>
   <string name="error_description_maxAttemptsReached">Syötä puhelinnumerosi uudelleen ja yritä taas.</string>
+  <string name="error_description_noCodeFound">Koeta ottaa kuva, jossa koodi näkyisi selvemmin.</string>
   <string name="error_description_noInternet">Tarkista Internet-yhteytesi tai yritä myöhemmin uudestaan.</string>
   <string name="error_description_noInvitesLeft">Code on tällä hetkellä käytettävissä vain kutsusta. Ilmoitamme sinulle, kun lisää kutsuja on saatavilla.</string>
   <string name="error_description_notInvitedYet">Jos haluat liittyä odotuslistalle, mene tänne: %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Kutsu epäonnistui</string>
   <string name="error_title_linkExpired">Linkki vanhentunut</string>
   <string name="error_title_maxAttemptsReached">Yritysten enimmäismäärä täyttynyt</string>
+  <string name="error_title_noCodeFound">Koodia ei löytynyt</string>
   <string name="error_title_noInternet">Ei Internet-yhteyttä</string>
   <string name="error_title_noInvitesLeft">Sinulla ei ole kutsuja</string>
   <string name="error_title_notInvitedYet">Sinua ei ole vielä kutsuttu</string>

@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Litujeme, ale nastal problém v síti. Zkuste přítele přizvat znovu.</string>
   <string name="error_description_linkExpired">Tento druh byl automaticky vrácen odesílateli, protože nebyl vyzvednut do 24 hodin. Požádejte je, aby Kin poslali znovu.</string>
   <string name="error_description_maxAttemptsReached">Zadejte znovu telefonní číslo a zkuste to znovu.</string>
+  <string name="error_description_noCodeFound">Zkuste získat snímek, který zobrazuje kód jasněji.</string>
   <string name="error_description_noInternet">Zkontrolujte připojení k internetu nebo to zkuste později.</string>
   <string name="error_description_noInvitesLeft">Kód momentálně funguje jen na přizvání. Jakmile bude k dispozici více pozvánek, dáme vám vědět. </string>
   <string name="error_description_notInvitedYet">Pokud se chcete zapsat na čekací listinu, jděte na %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Přizvání se nezdařilo</string>
   <string name="error_title_linkExpired">Platnost odkazu vypršela</string>
   <string name="error_title_maxAttemptsReached">Byl dosažen maximální počet pokusů</string>
+  <string name="error_title_noCodeFound">Kód nebyl nalezen</string>
   <string name="error_title_noInternet">Chybí internetové připojení</string>
   <string name="error_title_noInvitesLeft">Nemáte žádná přizvání</string>
   <string name="error_title_notInvitedYet">Dosud jste nebyli přizváni.</string>

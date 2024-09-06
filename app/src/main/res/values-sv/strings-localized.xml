@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Tyvärr hade vi ett nätverksproblem. Försök att bjuda in din vän igen.</string>
   <string name="error_description_linkExpired">Dessa Kin skickades automatiskt tillbaka till avsändaren för att de ej blev mottagna inom 24 timmar. Vänligen be dem skicka Kin igen.</string>
   <string name="error_description_maxAttemptsReached">Ange ditt telefonnummer på nytt och försök igen.</string>
+  <string name="error_description_noCodeFound">Försök att få fram en bild som visar koden tydligare.</string>
   <string name="error_description_noInternet">Kontrollera din internetuppkoppling eller försök igen senare.</string>
   <string name="error_description_noInvitesLeft">Koden är för närvarande endast tillgänglig för inbjudna. Vi meddelar dig när fler inbjudningar är tillgängliga.</string>
   <string name="error_description_notInvitedYet">Om du vill ansluta dig till väntelistan kan du gå till %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Inbjudan misslyckades</string>
   <string name="error_title_linkExpired">Länk har utgått</string>
   <string name="error_title_maxAttemptsReached">Maximalt antal försök som uppnåtts</string>
+  <string name="error_title_noCodeFound">Ingen kod hittades</string>
   <string name="error_title_noInternet">Ingen internetanslutning</string>
   <string name="error_title_noInvitesLeft">Du har inga inbjudningar</string>
   <string name="error_title_notInvitedYet">Du har inte blivit inbjuden ännu</string>

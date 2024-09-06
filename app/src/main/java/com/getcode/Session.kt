@@ -1480,8 +1480,8 @@ class Session @Inject constructor(
 
             TopBarManager.showMessage(
                 TopBarManager.TopBarMessage(
-                    title = resources.getString(R.string.title_noCodeFound),
-                    message = resources.getString(R.string.subtitle_noCodeFound)
+                    title = resources.getString(R.string.error_title_noCodeFound),
+                    message = resources.getString(R.string.error_description_noCodeFound)
                 )
             )
         }

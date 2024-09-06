@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Žao nam je, došlo je do problema sa mrežom. Pokušajte ponovo da pozovete svog prijatelja.</string>
   <string name="error_description_linkExpired">Овај Кин је аутоматски враћен пошиљаоцу јер није преузет у року од 24 сата. Замолите их да поново пошаљу Кин.</string>
   <string name="error_description_maxAttemptsReached">Ponovo unesite broj telefona i pokušajte ponovo.</string>
+  <string name="error_description_noCodeFound">Покушајте да добијете слику на којој је код јасније приказан.</string>
   <string name="error_description_noInternet">Proverite svoju internet konekciju ili pokušajte ponovo kasnije.</string>
   <string name="error_description_noInvitesLeft">Code je trenutno samo za pozvane. Obavestićemo vas kada bude dostupno više poziva.</string>
   <string name="error_description_notInvitedYet">Da biste se pridružili listi čekanja idite na %1$s\n</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Poziv nije uspeo</string>
   <string name="error_title_linkExpired">Веза је истекла</string>
   <string name="error_title_maxAttemptsReached">Dostignut je maksimalan broj pokušaja</string>
+  <string name="error_title_noCodeFound">Није пронађен код</string>
   <string name="error_title_noInternet">Nema internet konekcije</string>
   <string name="error_title_noInvitesLeft">Nemate pozivnice</string>
   <string name="error_title_notInvitedYet">Još uvek niste pozvani</string>
