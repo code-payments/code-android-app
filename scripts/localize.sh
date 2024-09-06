@@ -32,8 +32,7 @@ function traverse_and_clean {
         ruby "${root}"/scripts/convert-strings.rb $fileName
         rm "$fileName"
         # grab access key android value and replace iOS
-        androidValue=$(xmlstarlet sel -t -v '//string[@name="subtitle.accessKeySnapshotDescriptionAndroid"]' strings.xml)
-        xmlstarlet ed -L -u '//string[@name="subtitle_accessKeySnapshotDescription"]' -v "$androidValue" strings-localized.xml
+        grab_android_string "subtitle.accessKeySnapshotDescriptionAndroid" "subtitle_accessKeySnapshotDescription"
         rm strings.xml
         cd - || exit
       fi
@@ -71,6 +70,31 @@ function traverse_and_clean {
        fi
     fi
   done
+}
+
+function grab_android_string {
+    androidStringName=$1
+    if [ -z "$2" ]; then
+        replaceWith=${androidStringName//./_}
+    else
+        replaceWith=$2
+    fi
+
+    # Fetch the value for the provided androidStringName from strings.xml
+    androidValue=$(xmlstarlet sel -t -v "//string[@name=\"$androidStringName\"]" strings.xml)
+
+    # Check if the string exists in strings-localized.xml
+    stringExists=$(xmlstarlet sel -t -v "count(//string[@name=\"$replaceWith\"])" strings-localized.xml)
+
+    if [ "$stringExists" -eq 0 ]; then
+        # If the string does not exist, add it
+        xmlstarlet ed -L -s "/resources" -t elem -n "string" -v "$androidValue" \
+            -i "//string[not(@name)]" -t attr -n "name" -v "$replaceWith" \
+            strings-localized.xml
+    else
+        # If the string exists, update its value
+        xmlstarlet ed -L -u "//string[@name=\"$replaceWith\"]" -v "$androidValue" strings-localized.xml
+    fi
 }
 
 function copy_strings {
