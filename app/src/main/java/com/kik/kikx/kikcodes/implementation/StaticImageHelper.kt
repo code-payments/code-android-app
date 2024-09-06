@@ -7,6 +7,7 @@ import android.icu.text.DateFormat
 import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.os.Environment
+import com.getcode.analytics.AnalyticsService
 import com.getcode.util.save
 import com.getcode.util.toByteArray
 import com.getcode.util.uriToBitmap
@@ -26,6 +27,7 @@ class StaticImageHelper @Inject constructor(
     @ApplicationContext
     private val context: Context,
     private val scanner: KikCodeScanner,
+    private val analytics: AnalyticsService,
 ) {
     suspend fun analyze(uri: Uri): Result<ScannableKikCode> {
         val bitmap = context.uriToBitmap(uri)
@@ -66,7 +68,10 @@ class StaticImageHelper @Inject constructor(
         return timedTraceSuspend(
             message = "analyzing image",
             tag = "Image Analysis",
-            type = TraceType.Process
+            type = TraceType.Process,
+            onComplete = { result, time ->
+                analytics.photoScanned(result.isSuccess, time.inWholeMilliseconds)
+            }
         ) {
             // try scanning raw
             val raw = scan(bitmap)
