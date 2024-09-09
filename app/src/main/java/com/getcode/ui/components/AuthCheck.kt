@@ -23,6 +23,7 @@ import com.getcode.util.DeeplinkHandler
 import com.getcode.util.DeeplinkResult
 import com.getcode.ui.utils.getActivity
 import com.getcode.utils.trace
+import dev.bmcreations.tipkit.engines.LocalTipsEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -45,6 +46,7 @@ fun AuthCheck(
     onSwitchAccounts: (String) -> Unit,
 ) {
     val deeplinkHandler = LocalDeeplinks.current
+    val tipsEngine = LocalTipsEngine.current
     val dataState by SessionManager.authState.collectAsState()
 
     val isAuthenticated = dataState.isAuthenticated
@@ -139,6 +141,7 @@ fun AuthCheck(
                         onNavigate(listOf(ScanScreen()))
                     }
                 } else {
+                    tipsEngine?.invalidateAllTips()
                     if (!deeplinkRouted) {
                         trace("Navigating to login")
                         onNavigate(listOf(LoginScreen()))
