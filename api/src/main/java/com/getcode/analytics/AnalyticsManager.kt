@@ -17,12 +17,17 @@ import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
-enum class Action(val value: String) {
-    CreateAccount("Action: Create Account"),
-    EnterPhone("Action: Enter Phone"),
-    VerifyPhone("Action: Verify Phone"),
-    ConfirmAccessKey("Action: Confirm Access Key"),
-    CompletedOnboarding("Action: Completed Onboarding"),
+sealed class Action(private val _value: String) {
+    data object CreateAccount : Action("Create Account")
+    data object EnterPhone : Action("Enter Phone")
+    data object VerifyPhone : Action("Verify Phone")
+    data object ConfirmAccessKey : Action("Confirm Access Key")
+    data object CompletedOnboarding : Action("Completed Onboarding")
+    data object OpenConnectAccount: Action("Open Connect X Screen")
+    data object MessageCodeOnX: Action("Message Code on X")
+
+    val value: String
+        get() = "Action: $_value"
 }
 
 enum class ActionSource(val value: String) {

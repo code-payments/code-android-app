@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.getcode.LocalAnalytics
@@ -12,7 +13,7 @@ import com.getcode.ui.utils.RepeatOnLifecycle
 
 @Composable
 fun AnalyticsWatcher(
-    lifecycleOwner: LifecycleOwner,
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     onEvent: (AnalyticsService, Context) -> Unit,
     onDispose: (AnalyticsService, Context) -> Unit = { _, _ -> },
 ) {

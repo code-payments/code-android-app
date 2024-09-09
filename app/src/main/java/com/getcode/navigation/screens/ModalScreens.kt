@@ -13,6 +13,9 @@ import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalSession
 import com.getcode.R
+import com.getcode.analytics.Action
+import com.getcode.analytics.AnalyticsManager
+import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
@@ -495,6 +498,10 @@ data class ConnectAccount(
 
         LaunchedEffect(viewModel, reason) {
             viewModel.dispatchEvent(TipConnectViewModel.Event.OnReasonChanged(reason))
+        }
+
+        if (reason == IdentityConnectionReason.TipCard) {
+            AnalyticsScreenWatcher(action = Action.OpenConnectAccount)
         }
     }
 }
