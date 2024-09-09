@@ -32,9 +32,11 @@ import kotlinx.coroutines.flow.onEach
  * centered horizontally, whereas [Alignment.TopStart] implies that the tip will render above and to the left
  * of the anchor.
  * @param padding The space between the anchor and aligned tip.
+ * @param visible If the tip should be visible, this can be used to temporarily hide an active tip.
  */
 fun Modifier.popoverTip(
     tip: Tip,
+    visible: Boolean = true,
     alignment: Alignment = TipDefaultAlignment,
     padding: PaddingValues = TipDefaultPadding,
 ) = composed {
@@ -77,7 +79,12 @@ fun Modifier.popoverTip(
             .filter { it }
             .onEach { tipProvider.show(data) }
             .launchIn(this)
+    }
 
+    LaunchedEffect(tip, visible) {
+        if (!visible) {
+            tipProvider.dismiss(eventDriven = false)
+        }
     }
 
     return@composed Modifier.onPlaced {

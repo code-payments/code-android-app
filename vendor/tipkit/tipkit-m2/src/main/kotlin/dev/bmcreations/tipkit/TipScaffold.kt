@@ -219,11 +219,13 @@ fun TipScaffold(
                 emission = data
             }
 
-            override fun dismiss() {
+            override fun dismiss(eventDriven: Boolean) {
                 composeScope.launch {
                     val tip = emission?.tip
                     emission = null
-                    tip?.dismiss()
+                    if (eventDriven) {
+                        tip?.dismiss()
+                    }
                 }
             }
 
