@@ -9,7 +9,7 @@ val LocalTipProvider =
 
 abstract class TipProvider {
     abstract fun show(data: TipPresentation)
-    abstract fun dismiss()
+    abstract fun dismiss(eventDriven: Boolean = true)
     abstract fun onActionClicked(action: TipAction)
 
     open val isTipShowing: Boolean = false
@@ -26,7 +26,7 @@ abstract class TipProvider {
 
 class NoOpTipProvider : TipProvider() {
     override fun show(data: TipPresentation) = Unit
-    override fun dismiss() = Unit
+    override fun dismiss(eventDriven: Boolean) = Unit
 
     override fun onActionClicked(action: TipAction) = Unit
 }
