@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.screens.ChatByUsernameScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
@@ -13,8 +15,9 @@ import com.getcode.ui.components.CodeScaffold
 
 @Composable
 fun ChatListScreen(
-    dispatch: (ChatListViewModel.Event) -> Unit,
+    viewModel: ChatListViewModel,
 ) {
+    val navigator = LocalCodeNavigator.current
     CodeScaffold(
         bottomBar = {
             Box(modifier = Modifier.fillMaxWidth()) {
@@ -23,7 +26,7 @@ fun ChatListScreen(
                     buttonState = ButtonState.Filled,
                     text = "Start a New Chat"
                 ) {
-
+                    navigator.push(ChatByUsernameScreen)
                 }
             }
         }

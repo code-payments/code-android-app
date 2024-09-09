@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">申し訳ありませんが,ネットワークの問題が発生しました。もう一度お友達を招待してみてください。</string>
   <string name="error_description_linkExpired">このKinは24時間以内に収集されなかったため,自動的に送信者に返送されました。もう一度Kinを送ってもらうようリクエストしてください。</string>
   <string name="error_description_maxAttemptsReached">電話番号を再入力して,再試行してください。</string>
+  <string name="error_description_noCodeFound">コードがもっとはっきり見える画像を入手してください。</string>
   <string name="error_description_noInternet">インターネット接続を確認するか,後で再試行してください。</string>
   <string name="error_description_noInvitesLeft">Codeは現在招待制です。利用できる追加の招待がありましたら,お知らせいたします。</string>
   <string name="error_description_notInvitedYet">順番待ちリストに参加するには,%1$sにアクセスします</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">招待に失敗しました</string>
   <string name="error_title_linkExpired">リンクの有効期限が切れています</string>
   <string name="error_title_maxAttemptsReached">最大試行回数に達しました</string>
+  <string name="error_title_noCodeFound">コードが見つかりません</string>
   <string name="error_title_noInternet">インターネット接続なし</string>
   <string name="error_title_noInvitesLeft">お客様には招待がありません</string>
   <string name="error_title_notInvitedYet">お客様はまだ招待されていません</string>

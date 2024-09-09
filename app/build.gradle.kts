@@ -168,6 +168,8 @@ dependencies {
 
     implementation(Libs.androidx_biometrics)
 
+    implementation(Libs.androidx_activity)
+
     // cameraX
     implementation(Libs.androidx_camerax_core)
     implementation(Libs.androidx_camerax_camera2)

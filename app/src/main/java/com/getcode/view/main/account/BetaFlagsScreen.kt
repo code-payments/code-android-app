@@ -73,6 +73,12 @@ fun BetaFlagsScreen(
             state.canFlipTipCard,
         ),
         BetaFeature(
+            PrefsBool.GALLERY_ENABLED,
+            R.string.beta_photo_gallery,
+            stringResource(id = R.string.beta_photo_gallery_description),
+            state.galleryEnabled,
+        ),
+        BetaFeature(
             PrefsBool.CONVERSATIONS_ENABLED,
             R.string.beta_conversations,
             stringResource(id = R.string.beta_conversations_description),

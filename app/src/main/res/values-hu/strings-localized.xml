@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Sajnáljuk, hálózati problémát tapasztaltunk. Kérjük, próbálja meg újra meghívni barátját.</string>
   <string name="error_description_linkExpired">Ez a Kin automatikusan visszaérkezett a küldőhöz, mert 24 órán belül nem vették fel. Légyszíves kérdezd meg őket, hogy elküldjed-e ismét.</string>
   <string name="error_description_maxAttemptsReached">Kérjük, adja meg újra a telefonszámát, és próbálja újra.</string>
+  <string name="error_description_noCodeFound">Próbáljon meg egy olyan képet szerezni, amin jobban látszik a kód.</string>
   <string name="error_description_noInternet">Kérjük, ellenőrizze internetkapcsolatát, vagy próbálja újra később.</string>
   <string name="error_description_noInvitesLeft">A Code-ra jelenleg csak meghívni lehet embereket. Értesíteni fogjuk, ha további meghívók elérhetővé válnak.</string>
   <string name="error_description_notInvitedYet">A várólistához való csatlakozáshoz menjen a %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Meghívás sikertelen</string>
   <string name="error_title_linkExpired">A link lejárt</string>
   <string name="error_title_maxAttemptsReached">Elérte a kísérletek maximális számát</string>
+  <string name="error_title_noCodeFound">Nem található kód</string>
   <string name="error_title_noInternet">Nincs internetkapcsolat</string>
   <string name="error_title_noInvitesLeft">Nincsenek meghívói</string>
   <string name="error_title_notInvitedYet">Még nem kapott meghívást</string>

@@ -29,6 +29,7 @@
     <string translatable="false" name="beta_camera_gestures">Camera Gestures</string>
     <string translatable="false" name="beta_camera_invert_drag">Invert Camera Drag-to-Zoom</string>
     <string translatable="false" name="beta_tipcard_can_flip">Tap Tip Card to See Back</string>
+    <string translatable="false" name="beta_photo_gallery">Photo Gallery</string>
     <string translatable="false" name="beta_display_errors">Show Errors</string>
     <string name="beta_bucket_debugger_description" translatable="false">If enabled, you\'ll gain the ability to tap the balance on the Balance screen to inspect individual bucket balances.</string>
     <string name="beta_network_connectivity_description" translatable="false">If enabled, a \"No Connection\" badge will show on the scan screen when no internet is detected.</string>
@@ -47,6 +48,8 @@
     <string name="beta_camera_gestures_description" translatable="false">If enabled, you\'ll gain the ability to pinch-to-zoom, drag-to-zoom, and tap to auto focus on the camera screen.</string>
     <string name="beta_camera_invert_drag_description" translatable="false">If enabled, drag-to-zoom will operate in reverse (drag up to zoom instead of down).</string>
     <string name="beta_tipcard_can_flip_description" translatable="false">If enabled, you\'ll gain the ability to tap your own Tip Card to see the back.</string>
+    <string name="beta_photo_gallery_description" translatable="false">If enabled, you\'ll gain the ability to select Tip Cards from the on-device photo gallery.</string>
+
     <string name="subtitle_remoteSendText" translatable="false">%1$s %2$s</string>
     <string name="beta_resetTooltips" translatable="false">Reset Tooltips</string>
 

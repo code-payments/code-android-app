@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">ขออภัย เราประสบปัญหาเกี่ยวกับเครือข่าย โปรดลองเชิญเพื่อนของคุณอีกครั้ง</string>
   <string name="error_description_linkExpired">Kin นี้ได้ถูกส่งคืนให้กับผู้ส่งโดยอัตโนมัติเพราะมันไม่ถูกเก็บภายใน 24 ชั่วโมง โปรดขอให้พวกเขาส่ง Kin อีกครั้ง</string>
   <string name="error_description_maxAttemptsReached">โปรดป้อนหมายเลขโทรศัพท์ใหม่แล้วลองอีกครั้ง</string>
+  <string name="error_description_noCodeFound">โปรดพยายาม\nหาภาพที่แสดง code ได้ชัดเจนกว่านี้l</string>
   <string name="error_description_noInternet">โปรดตรวจสอบการเชื่อมต่อทางอินเทอร์เน็ตหรือลองอีกครั้งในภายหลัง!</string>
   <string name="error_description_noInvitesLeft">ปัจจุบันใช้ Code ได้เฉพาะผู้ที่ได้รับเชิญเท่านั้น เราจะแจ้งให้คุณทราบเมื่อมีคำเชิญเพิ่มเติม</string>
   <string name="error_description_notInvitedYet">หากต้องการเข้าร่วมรายการรอให้ไปที่ %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">การเชิญล้มเหลว</string>
   <string name="error_title_linkExpired">ลิงก์หมดอายุแล้ว</string>
   <string name="error_title_maxAttemptsReached">ถึงจำนวนการพยายามสูงสุดแล้ว</string>
+  <string name="error_title_noCodeFound">ไม่พบ Code</string>
   <string name="error_title_noInternet">ไม่มีการเชื่อมต่อทางอินเทอร์เน็ต</string>
   <string name="error_title_noInvitesLeft">คุณไม่มีคำเชิญ</string>
   <string name="error_title_notInvitedYet">คุณยังไม่ได้รับเชิญ</string>

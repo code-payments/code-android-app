@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Maaf, kami mengalami masalah rangkaian. Sila cuba mengajak rakan anda sekali lagi.</string>
   <string name="error_description_linkExpired">Kin ini telah dikembalikan secara automatik kepada pengirim kerana ia tidak dikumpulkan dalam masa 24 jam. Sila minta mereka menghantar Kin sekali lagi.</string>
   <string name="error_description_maxAttemptsReached">Sila masukkan semula nombor telefon anda dan cuba lagi.</string>
+  <string name="error_description_noCodeFound">Sila cuba untuk mendapatkan imej yang menunjukkan kod itu lebih jelas.</string>
   <string name="error_description_noInternet">Sila periksa sambungan internet anda atau cuba lagi kemudian.</string>
   <string name="error_description_noInvitesLeft">Pada masa ini Code hanya atas ajakan sahaja. Kami akan memberitahu anda apabila lebih banyak ajakan boleh didapati.</string>
   <string name="error_description_notInvitedYet">Untuk menyertai senarai tunggu pergi ke %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Ajakan Gagal</string>
   <string name="error_title_linkExpired">Pautan Tamat Tempoh</string>
   <string name="error_title_maxAttemptsReached">Percubaan Maksimum Dicapai </string>
+  <string name="error_title_noCodeFound">Tiada Kod Ditemui</string>
   <string name="error_title_noInternet">Tiada Sambungan Internet</string>
   <string name="error_title_noInvitesLeft">Anda Tiada Ajakan</string>
   <string name="error_title_notInvitedYet">Anda Belum Lagi Diajak</string>

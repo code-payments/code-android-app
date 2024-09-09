@@ -4,7 +4,9 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
@@ -30,17 +32,14 @@ import com.getcode.model.chat.Reference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.UserAvatar
-import com.getcode.ui.components.chat.utils.localized
 import com.getcode.util.formatDateRelatively
-import com.getcode.view.main.chat.ChatScreen
-import com.getcode.view.main.chat.ChatViewModel
 import com.getcode.view.main.chat.conversation.ChatConversationScreen
 import com.getcode.view.main.chat.conversation.ConversationViewModel
+import com.getcode.view.main.chat.create.byusername.ChatByUsernameScreen
 import com.getcode.view.main.chat.list.ChatListScreen
 import com.getcode.view.main.chat.list.ChatListViewModel
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
@@ -61,48 +60,32 @@ data object ChatListModal: ChatGraph, ModalRoot {
         ) {
             val viewModel = getViewModel<ChatListViewModel>()
 //            val conversations = viewModel.conversations.collectAsLazyPagingItems()
-            ChatListScreen(dispatch = {})
+            ChatListScreen(viewModel)
         }
     }
 }
 
 @Parcelize
-data class ChatScreen(val chatId: ID) : ChatGraph, ModalContent {
+data object ChatByUsernameScreen: ChatGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
+    override val name: String
+        @Composable get() = stringResource(id = R.string.title_whatsTheirUsername)
+
     @Composable
     override fun Content() {
-        val vm = getViewModel<ChatViewModel>()
-        val state by vm.stateFlow.collectAsState()
-        val navigator = LocalCodeNavigator.current
-
         ModalContainer(
-            titleString = { state.title.localized },
-            backButtonEnabled = { it is ChatScreen },
+            backButtonEnabled = { it is ChatByUsernameScreen },
         ) {
-            val messages = vm.chatMessages.collectAsLazyPagingItems()
-            ChatScreen(state = state, messages = messages, dispatch = vm::dispatchEvent)
-        }
-
-        LaunchedEffect(vm) {
-            vm.eventFlow
-                .filterIsInstance<ChatViewModel.Event.OpenMessageChat>()
-                .map { it.reference }
-                .filterIsInstance<Reference.IntentId>()
-                .map { it.id }
-                .onEach { navigator.push(ChatMessageConversationScreen(intentId = it)) }
-                .launchIn(this)
-        }
-
-        LaunchedEffect(chatId) {
-            vm.dispatchEvent(ChatViewModel.Event.OnChatIdChanged(chatId))
+            ChatByUsernameScreen(getViewModel())
         }
     }
 }
 
 @Parcelize
 data class ChatMessageConversationScreen(
+    val username: String? = null,
     val chatId: ID? = null,
     val intentId: ID? = null
 ) : AppScreen(), ChatGraph, ModalContent {
@@ -143,6 +126,10 @@ data class ChatMessageConversationScreen(
                                     user.memberId
                                 }
                             )
+                        }
+
+                        if (state.users.isEmpty()) {
+                            Spacer(modifier = Modifier.requiredWidth(CodeTheme.dimens.grid.x3))
                         }
                     }
 

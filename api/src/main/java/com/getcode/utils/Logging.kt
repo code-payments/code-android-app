@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import com.bugsnag.android.BreadcrumbType
 import com.bugsnag.android.Bugsnag
 import timber.log.Timber
+import kotlin.time.Duration
 import kotlin.time.measureTime
 
 sealed interface TraceType {
@@ -103,6 +104,7 @@ fun <T> timedTrace(
     type: TraceType = TraceType.Log,
     metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null,
+    onComplete: (T, Duration) -> Unit = { _, _ -> },
     block: () -> T
 ): T {
     var result: T
@@ -110,9 +112,39 @@ fun <T> timedTrace(
         result = block()
     }
 
-    val newMessage = "$message took ${time.inWholeMilliseconds}ms"
-    trace(newMessage, tag, type, metadata, error)
+    val timedMetadata: MetadataBuilder.() -> Unit = {
+        // Add the original metadata
+        metadata()
+        "duration" to time.inWholeMilliseconds
+    }
 
+    trace(message, tag, type, timedMetadata, error)
+    onComplete(result, time)
+    return result
+}
+
+suspend fun <T> timedTraceSuspend(
+    message: String,
+    tag: String? = null,
+    type: TraceType = TraceType.Log,
+    metadata: MetadataBuilder.() -> Unit = {},
+    error: Throwable? = null,
+    onComplete: (T, Duration) -> Unit = { _, _ -> },
+    block: suspend () -> T
+): T {
+    var result: T
+    val time = measureTime {
+        result = block()
+    }
+
+    val timedMetadata: MetadataBuilder.() -> Unit = {
+        // Add the original metadata
+        metadata()
+        "duration" to time.inWholeMilliseconds
+    }
+
+    trace(message, tag, type, timedMetadata, error)
+    onComplete(result, time)
     return result
 }
 

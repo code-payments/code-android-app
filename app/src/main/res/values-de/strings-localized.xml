@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Leider ist ein Netzwerkproblem aufgetreten. Bitte versuchen Sie erneut, Ihre Freunde einzuladen.</string>
   <string name="error_description_linkExpired">Dieses Kin wurde automatisch an den Absender zurückgeschickt, weil es nicht innerhalb von 24 Stunden abgeholt wurde. Bitte bitten Sie den Absender, das Kin erneut zu senden.</string>
   <string name="error_description_maxAttemptsReached">Bitte geben Sie Ihre Telefonnummer erneut ein und versuchen Sie es noch einmal.</string>
+  <string name="error_description_noCodeFound">Bitte versuchen Sie, ein Bild zu bekommen, das den Code deutlicher zeigt.</string>
   <string name="error_description_noInternet">Bitte überprüfen Sie Ihre Internetverbindung oder versuchen Sie es später noch einmal.</string>
   <string name="error_description_noInvitesLeft">Code kann momentan nur mit Einladung genutzt werden. Wir werden Sie benachrichtigen, sobald weitere Einladungen vorhanden sind.</string>
   <string name="error_description_notInvitedYet">Gehen Sie zu %1$s, um sich in die Warteliste eintragen zu lassen.</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Einladung fehlgeschlagen</string>
   <string name="error_title_linkExpired">Link Abgelaufen</string>
   <string name="error_title_maxAttemptsReached">Maximale Anzahl an Versuchen erreicht</string>
+  <string name="error_title_noCodeFound">Kein Code gefunden</string>
   <string name="error_title_noInternet">Keine Internetverbindung</string>
   <string name="error_title_noInvitesLeft">Sie haben keine Einladungen</string>
   <string name="error_title_notInvitedYet">Sie haben noch keine Einladung erhalten</string>

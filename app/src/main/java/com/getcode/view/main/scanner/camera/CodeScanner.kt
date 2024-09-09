@@ -1,4 +1,4 @@
-package com.getcode.view.main.camera
+package com.getcode.view.main.scanner.camera
 
 import android.content.Context
 import androidx.camera.core.Camera
@@ -35,8 +35,8 @@ import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.util.Biometrics
 import com.getcode.utils.trace
-import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
+import com.kik.kikx.kikcodes.implementation.rememberKikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -87,12 +87,9 @@ fun CodeScanner(
 
     var camera by remember { mutableStateOf<Camera?>(null) }
     var autoFocusPoint by remember { mutableStateOf(Offset.Unspecified) }
-
     var gestureController by remember { mutableStateOf<CameraGestureController?>(null) }
 
-    val kikCodeAnalyzer = remember(scanner, onCodeScanned) {
-        KikCodeAnalyzer(scanner, onCodeScanned)
-    }
+    val kikCodeAnalyzer = rememberKikCodeAnalyzer(scanner, onCodeScanned)
 
     val biometricsState = LocalBiometricsState.current
 

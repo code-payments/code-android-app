@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Ľutujeme, vyskytol sa problém so sieťou. Skúste znova pozvať svojho priateľa.</string>
   <string name="error_description_linkExpired">Tento Kin bol automaticky vrátený odosielateľovi, pretože nebol vyzdvihnutý do 24 hodín. Požiadajte ho, aby znovu poslali Kin.</string>
   <string name="error_description_maxAttemptsReached">Znova zadajte svoje telefónne číslo a skúste to znova.</string>
+  <string name="error_description_noCodeFound">Skúste získať obrázok, ktorý zobrazuje kód jasnejšie.</string>
   <string name="error_description_noInternet">Skontrolujte svoje internetové pripojenie alebo to skúste znova neskôr.</string>
   <string name="error_description_noInvitesLeft">Kód je momentálne len na pozvanie. Keď budú k dispozícii ďalšie pozvánky, budeme vás informovať.</string>
   <string name="error_description_notInvitedYet">Ak sa chcete pridať do zoznamu čakateľov, prejdite na %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Pozvanie zlyhalo</string>
   <string name="error_title_linkExpired">Platnosť odkazu vypršala</string>
   <string name="error_title_maxAttemptsReached">Maximálny dosiahnutý počet pokusov</string>
+  <string name="error_title_noCodeFound">Nenašiel sa žiaden kód</string>
   <string name="error_title_noInternet">Žiadne internetové pripojenie</string>
   <string name="error_title_noInvitesLeft">Nemáte žiadne pozvánky</string>
   <string name="error_title_notInvitedYet">Zatiaľ ste neboli pozvaný</string>

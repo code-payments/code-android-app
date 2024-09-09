@@ -5,10 +5,8 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.codeinc.gen.user.v1.IdentityService
-import com.getcode.App
 import com.getcode.R
 import com.getcode.analytics.Action
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.MnemonicManager
@@ -16,7 +14,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.AccessKeyScreen
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.PhoneNumberScreen
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
@@ -352,7 +350,7 @@ class PhoneConfirmViewModel @Inject constructor(
                             )
                         }
 
-                        else -> navigator?.replaceAll(HomeScreen())
+                        else -> navigator?.replaceAll(ScanScreen())
                     }
                 }, {
                     setIsLoading(false)

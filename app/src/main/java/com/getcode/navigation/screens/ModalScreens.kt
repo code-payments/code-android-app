@@ -10,6 +10,8 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import cafe.adriel.voyager.navigator.currentOrThrow
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -407,6 +409,8 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val session = LocalSession.currentOrThrow
+
         if (isInChat) {
             ModalContainer(
                 backButtonEnabled = {
@@ -417,8 +421,8 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
                     }
                 }
             ) {
-                EnterTipScreen(getViewModel()) { result ->
-                    navigator.popWithResult(result)
+                EnterTipScreen(getViewModel()) {
+                    navigator.pop()
                 }
             }
         } else {
@@ -431,17 +435,19 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
                     }
                 },
                 onCloseClicked = {
-                    navigator.hideWithResult(HomeResult.CancelTipEntry)
+                    session.cancelTipEntry()
+                    navigator.hide()
                 }
             ) {
-                EnterTipScreen(getViewModel()) { result ->
-                    navigator.hideWithResult(result)
+                EnterTipScreen(getViewModel()) {
+                    navigator.hide()
                 }
             }
         }
 
         BackHandler {
-            navigator.hideWithResult(HomeResult.CancelTipEntry)
+            session.cancelTipEntry()
+            navigator.hide()
         }
     }
 

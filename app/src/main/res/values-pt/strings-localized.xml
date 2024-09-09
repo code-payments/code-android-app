@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Desculpe, surgiu um erro de rede. Tente convidar o seu amigo novamente.</string>
   <string name="error_description_linkExpired">Este Kin foi automaticamente devolvido ao remetente por não ter sido recebido no prazo de 24 horas. Peça ao remetente que envie o Kin de novo.</string>
   <string name="error_description_maxAttemptsReached">Reintroduza o seu número de telemóvel e tente novamente.</string>
+  <string name="error_description_noCodeFound">Tente obter uma imagem que mostre o código mais claramente.</string>
   <string name="error_description_noInternet">Verifique a sua ligação de internet ou tente novamente mais tarde.</string>
   <string name="error_description_noInvitesLeft">A Code neste momento só pode ser acedida por convite. Iremos notificá-lo quando estiverem disponíveis mais convites.</string>
   <string name="error_description_notInvitedYet">Para se juntar à lista de espera vá a %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">O Convite Falhou</string>
   <string name="error_title_linkExpired">Hiperligação expirada</string>
   <string name="error_title_maxAttemptsReached">Número Máximo de Tentativas Atingido</string>
+  <string name="error_title_noCodeFound">Não foi encontrado nenhum código</string>
   <string name="error_title_noInternet">Sem Ligação à Internet</string>
   <string name="error_title_noInvitesLeft">Não Tem Convites</string>
   <string name="error_title_notInvitedYet">Ainda Não Foi Convidado</string>

@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">抱歉,我們遇到了網路問題。請嘗試再次邀請您的朋友。</string>
   <string name="error_description_linkExpired">這個 Kin 自動歸還給了發送者,因為 24 小時内沒被領取。請要求他們再次發送 Kin。</string>
   <string name="error_description_maxAttemptsReached">請重新輸入您的電話號碼,然後再試一次。</string>
+  <string name="error_description_noCodeFound">請嘗試取得可以更清楚顯示代碼的圖像。</string>
   <string name="error_description_noInternet">請檢查您的網路連線,或是稍後再試一次。</string>
   <string name="error_description_noInvitesLeft">Code 目前僅限邀請。我們會在有更多邀請可用時通知您。</string>
   <string name="error_description_notInvitedYet">要加入候補名單,請前往 %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">邀請失敗</string>
   <string name="error_title_linkExpired">連結過期</string>
   <string name="error_title_maxAttemptsReached">已達到最大嘗試次數</string>
+  <string name="error_title_noCodeFound">找不到代碼</string>
   <string name="error_title_noInternet">沒有網路連線</string>
   <string name="error_title_noInvitesLeft">您沒有邀請次數了</string>
   <string name="error_title_notInvitedYet">您尚未受到邀請</string>

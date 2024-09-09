@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Spiacenti, si è verificato un errore di rete. Prova a invitare di nuovo il tuo amico.</string>
   <string name="error_description_linkExpired">Questo Kin è stato automaticamente rimandato al mittente perché non è stato riscosso entro le 24 ore. Chiedi di inviare di nuovo il Kin.</string>
   <string name="error_description_maxAttemptsReached">Inserisci nuovamente il tuo numero di telefono e riprova.</string>
+  <string name="error_description_noCodeFound">Cerca di ottenere un\'immagine che mostri il codice più chiaramente.</string>
   <string name="error_description_noInternet">Controlla la tua connessione Internet o riprova più tardi.</string>
   <string name="error_description_noInvitesLeft">Code è attualmente solo a invito. Ti avviseremo quando ci saranno altri inviti disponibili.</string>
   <string name="error_description_notInvitedYet">Per unirti alla lista d\'attesa, vai su %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Invito non riuscito</string>
   <string name="error_title_linkExpired">Link scaduto</string>
   <string name="error_title_maxAttemptsReached">Limite di tentativi raggiunto</string>
+  <string name="error_title_noCodeFound">Nessun codice trovato</string>
   <string name="error_title_noInternet">Nessuna connessione Internet</string>
   <string name="error_title_noInvitesLeft">Non hai nessun invito</string>
   <string name="error_title_notInvitedYet">Non sei stato ancora invitato</string>

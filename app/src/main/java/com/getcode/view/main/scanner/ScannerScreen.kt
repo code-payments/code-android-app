@@ -1,8 +1,11 @@
-package com.getcode.view.main.home
+package com.getcode.view.main.scanner
 
 import android.Manifest
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
@@ -38,8 +41,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import com.getcode.SessionEvent
+import com.getcode.SessionState
+import com.getcode.Session
 import com.getcode.LocalBiometricsState
+import com.getcode.PresentationStyle
 import com.getcode.R
+import com.getcode.RestrictionType
 import com.getcode.manager.TopBarManager
 import com.getcode.models.Bill
 import com.getcode.models.DeepLinkRequest
@@ -55,22 +63,25 @@ import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
+import com.getcode.ui.components.FullScreenProgressSpinner
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.PermissionCheck
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.utils.AnimationUtils
+import com.getcode.ui.utils.KeepScreenOn
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
 import com.getcode.view.login.notificationPermissionCheck
-import com.getcode.view.main.home.components.BillManagementOptions
-import com.getcode.view.main.home.components.CameraDisabledView
-import com.getcode.view.main.camera.CodeScanner
-import com.getcode.view.main.home.components.HomeBill
-import com.getcode.view.main.home.components.LoginConfirmation
-import com.getcode.view.main.home.components.PaymentConfirmation
-import com.getcode.view.main.home.components.PermissionsBlockingView
-import com.getcode.view.main.home.components.ReceivedKinConfirmation
-import com.getcode.view.main.home.components.TipConfirmation
+import com.getcode.view.main.bill.BillManagementOptions
+import com.getcode.view.main.scanner.views.CameraDisabledView
+import com.getcode.view.main.scanner.camera.CodeScanner
+import com.getcode.view.main.bill.HomeBill
+import com.getcode.view.main.scanner.modals.LoginConfirmation
+import com.getcode.view.main.scanner.modals.PaymentConfirmation
+import com.getcode.view.main.scanner.views.PermissionsBlockingView
+import com.getcode.view.main.scanner.modals.ReceivedKinConfirmation
+import com.getcode.view.main.scanner.modals.TipConfirmation
+import com.getcode.view.main.scanner.views.HomeRestricted
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -79,7 +90,7 @@ import timber.log.Timber
 import kotlin.time.Duration.Companion.milliseconds
 
 
-enum class HomeAction {
+enum class UiElement {
     NONE,
     ACCOUNT,
     GIVE_KIN,
@@ -87,50 +98,51 @@ enum class HomeAction {
     BALANCE,
     SHARE_DOWNLOAD,
     TIP_CARD,
-    CHAT
+    CHAT,
+    GALLERY
 }
 
 @Composable
-fun HomeScreen(
-    homeViewModel: HomeViewModel,
+fun ScanScreen(
+    session: Session,
     cashLink: String? = null,
     request: DeepLinkRequest? = null,
 ) {
     val navigator = LocalCodeNavigator.current
-    val dataState by homeViewModel.uiFlow.collectAsState()
+    val dataState by session.uiFlow.collectAsState()
 
     when (val restrictionType = dataState.restrictionType) {
         RestrictionType.ACCESS_EXPIRED,
         RestrictionType.FORCE_UPGRADE,
         RestrictionType.TIMELOCK_UNLOCKED -> {
             HomeRestricted(restrictionType) {
-                homeViewModel.logout(it)
+                session.logout(it)
             }
         }
 
         null -> {
-            HomeScan(
-                homeViewModel = homeViewModel,
+            ScannerContent(
+                session = session,
                 dataState = dataState,
                 cashLink = cashLink,
                 request = request,
             )
 
-            val notificationPermissionChecker = notificationPermissionCheck {  }
+            val notificationPermissionChecker = notificationPermissionCheck { }
             val context = LocalContext.current
-            LaunchedEffect(homeViewModel) {
-                homeViewModel.eventFlow
+            LaunchedEffect(session) {
+                session.eventFlow
                     .onEach {
                         when (it) {
-                            HomeEvent.PresentTipEntry -> {
+                            SessionEvent.PresentTipEntry -> {
                                 navigator.show(EnterTipModal())
                             }
 
-                            is HomeEvent.SendIntent -> {
+                            is SessionEvent.SendIntent -> {
                                 context.startActivity(it.intent)
                             }
 
-                            HomeEvent.RequestNotificationPermissions -> {
+                            SessionEvent.RequestNotificationPermissions -> {
                                 notificationPermissionChecker(true)
                             }
                         }
@@ -142,9 +154,9 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeScan(
-    homeViewModel: HomeViewModel,
-    dataState: HomeUiModel,
+private fun ScannerContent(
+    session: Session,
+    dataState: SessionState,
     cashLink: String?,
     request: DeepLinkRequest?,
 ) {
@@ -163,7 +175,7 @@ private fun HomeScan(
     }
 
     LaunchedEffect(previewing) {
-        homeViewModel.onCameraScanning(previewing)
+        session.onCameraScanning(previewing)
     }
 
     val focusManager = LocalFocusManager.current
@@ -177,40 +189,59 @@ private fun HomeScan(
     }
 
     val biometricsState = LocalBiometricsState.current
-    LaunchedEffect(biometricsState, previewing, dataState.balance, cashLinkSaved, requestPayloadSaved) {
+    LaunchedEffect(
+        biometricsState,
+        previewing,
+        dataState.balance,
+        cashLinkSaved,
+        requestPayloadSaved
+    ) {
         if (previewing) {
             focusManager.clearFocus()
         }
 
         if (biometricsState.passed && !cashLinkSaved.isNullOrBlank()) {
-            homeViewModel.openCashLink(cashLink)
+            session.openCashLink(cashLink)
             cashLinkSaved = null
         }
 
         if (biometricsState.passed && requestPayloadSaved != null && dataState.balance != null) {
             delay(500.milliseconds)
-            homeViewModel.handleRequest(request)
+            session.handleRequest(request)
             requestPayloadSaved = null
         }
     }
 
-    fun handleAction(action: HomeAction) {
+    val pickPhoto =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                session.onImageSelected(uri)
+            }
+        }
+
+    fun handleAction(action: UiElement) {
         scope.launch {
             when (action) {
-                HomeAction.GIVE_KIN -> navigator.show(GiveKinModal)
-                HomeAction.ACCOUNT -> navigator.show(AccountModal)
-                HomeAction.GET_KIN -> navigator.show(GetKinModal)
-                HomeAction.BALANCE -> navigator.show(BalanceModal)
-                HomeAction.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
-                HomeAction.TIP_CARD -> {
+                UiElement.NONE -> Unit
+                UiElement.GIVE_KIN -> navigator.show(GiveKinModal)
+                UiElement.ACCOUNT -> navigator.show(AccountModal)
+                UiElement.GET_KIN -> navigator.show(GetKinModal)
+                UiElement.BALANCE -> navigator.show(BalanceModal)
+                UiElement.SHARE_DOWNLOAD -> navigator.show(ShareDownloadLinkModal)
+                UiElement.TIP_CARD -> {
                     if (dataState.tipCardConnected) {
-                        homeViewModel.presentShareableTipCard()
+                        session.presentShareableTipCard()
                     } else {
                         navigator.show(ConnectAccount())
                     }
                 }
-                HomeAction.NONE -> Unit
-                HomeAction.CHAT -> navigator.show(ChatListModal)
+
+                UiElement.CHAT -> navigator.show(ChatListModal)
+                UiElement.GALLERY -> {
+                    pickPhoto.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }
             }
         }
     }
@@ -221,7 +252,7 @@ private fun HomeScan(
         isCameraReady = previewing,
         isCameraStarted = cameraStarted,
         dataState = dataState,
-        homeViewModel = homeViewModel,
+        session = session,
         onStartCamera = { cameraStarted = true },
         scannerView = {
             CodeScanner(
@@ -231,7 +262,7 @@ private fun HomeScan(
                 onPreviewStateChanged = { previewing = it },
                 onCodeScanned = {
                     if (previewing) {
-                        homeViewModel.onCodeScan(it)
+                        session.onCodeScan(it)
                     }
                 }
             )
@@ -256,7 +287,7 @@ private fun HomeScan(
             Lifecycle.Event.ON_PAUSE -> {
                 Timber.d("onPause")
                 isPaused = true
-                homeViewModel.startSheetDismissTimer {
+                session.startSheetDismissTimer {
                     Timber.d("hiding from timeout")
                     navigator.hide()
                 }
@@ -265,7 +296,7 @@ private fun HomeScan(
             Lifecycle.Event.ON_RESUME -> {
                 Timber.d("onResume")
                 isPaused = false
-                homeViewModel.stopSheetDismissTimer()
+                session.stopSheetDismissTimer()
             }
 
             else -> Unit
@@ -286,7 +317,7 @@ private fun HomeScan(
         if (dataState.billState.bill != null) {
             navigator.hide()
         }
-        homeViewModel.resetScreenTimeout(context as Activity)
+        session.resetScreenTimeout(context as Activity)
     }
 }
 
@@ -298,15 +329,15 @@ private fun BillContainer(
     isCameraReady: Boolean,
     isCameraStarted: Boolean,
     isPaused: Boolean,
-    dataState: HomeUiModel,
-    homeViewModel: HomeViewModel,
+    dataState: SessionState,
+    session: Session,
     scannerView: @Composable () -> Unit,
     onStartCamera: () -> Unit,
-    onAction: (HomeAction) -> Unit,
+    onAction: (UiElement) -> Unit,
 ) {
     val onPermissionResult =
         { isGranted: Boolean ->
-            homeViewModel.onCameraPermissionChanged(isGranted = isGranted)
+            session.onCameraPermissionChanged(isGranted = isGranted)
         }
 
     val launcher = getPermissionLauncher(onPermissionResult)
@@ -331,6 +362,7 @@ private fun BillContainer(
             LocalBiometricsState.current.isAwaitingAuthentication -> {
                 // waiting for result
             }
+
             dataState.isCameraPermissionGranted == true || dataState.isCameraPermissionGranted == null -> {
                 if (dataState.autoStartCamera == null) {
                     // waiting for result
@@ -342,6 +374,7 @@ private fun BillContainer(
                     scannerView()
                 }
             }
+
             else -> {
                 PermissionsBlockingView(
                     modifier = Modifier.fillMaxSize(),
@@ -366,7 +399,7 @@ private fun BillContainer(
                     val canDismiss =
                         it == DismissValue.DismissedToEnd && updatedState.billState.canSwipeToDismiss
                     if (canDismiss) {
-                        homeViewModel.cancelSend()
+                        session.cancelSend()
                         dismissed = true
                     }
                     canDismiss
@@ -381,7 +414,7 @@ private fun BillContainer(
             }
         }
 
-        // Composable animation for the side bar sheet
+        // Composable animation for the decor
         AnimatedVisibility(
             visible = updatedState.billState.bill == null || billDismissState.targetValue != DismissValue.Default,
             enter = fadeIn(),
@@ -453,7 +486,7 @@ private fun BillContainer(
             }
 
             BackHandler(updatedState.billState.bill is Bill.Tip && canCancel) {
-                homeViewModel.cancelSend()
+                session.cancelSend()
             }
         }
 
@@ -470,7 +503,7 @@ private fun BillContainer(
                 ) {
                     ReceivedKinConfirmation(
                         bill = updatedState.billState.bill as Bill.Cash,
-                        onClaim = { homeViewModel.cancelSend() }
+                        onClaim = { session.cancelSend() }
                     )
                 }
             }
@@ -492,7 +525,7 @@ private fun BillContainer(
                         confirmation = updatedState.billState.paymentConfirmation,
                         balance = updatedState.balance,
                         onAddKin = {
-                            homeViewModel.rejectPayment()
+                            session.rejectPayment()
                             if (updatedState.buyModule.enabled) {
                                 if (updatedState.buyModule.available) {
                                     navigator.show(BuyMoreKinModal(showClose = true))
@@ -509,9 +542,9 @@ private fun BillContainer(
                                 navigator.show(BuySellScreen)
                             }
                         },
-                        onSend = { homeViewModel.completePayment() },
+                        onSend = { session.completePayment() },
                         onCancel = {
-                            homeViewModel.rejectPayment()
+                            session.rejectPayment()
                         }
                     )
                 }
@@ -531,9 +564,9 @@ private fun BillContainer(
                 ) {
                     LoginConfirmation(
                         confirmation = updatedState.billState.loginConfirmation,
-                        onSend = { homeViewModel.completeLogin() },
+                        onSend = { session.completeLogin() },
                         onCancel = {
-                            homeViewModel.rejectLogin()
+                            session.rejectLogin()
                         }
                     )
                 }
@@ -553,8 +586,8 @@ private fun BillContainer(
                 ) {
                     TipConfirmation(
                         confirmation = updatedState.billState.tipConfirmation,
-                        onSend = { homeViewModel.completeTipPayment() },
-                        onCancel = { homeViewModel.cancelTip() }
+                        onSend = { session.completeTipPayment() },
+                        onCancel = { session.cancelTip() }
                     )
                 }
             }

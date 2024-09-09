@@ -52,6 +52,8 @@ interface AnalyticsService {
 
     fun appSettingToggled(setting: AppSetting, value: Boolean)
 
+    fun photoScanned(successful: Boolean, timeToScanInMillis: Long)
+
     fun action(action: Action, source: ActionSource? = null)
 }
 
@@ -98,5 +100,7 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun backgroundSwapInitiated() = Unit
     override fun unintentionalLogout() = Unit
     override fun appSettingToggled(setting: AppSetting, value: Boolean) = Unit
+    override fun photoScanned(successful: Boolean, timeToScanInMillis: Long) = Unit
+
     override fun action(action: Action, source: ActionSource?) = Unit
 }

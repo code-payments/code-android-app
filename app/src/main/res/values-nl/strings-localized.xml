@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Het spijt ons, er is een netwerkprobleem opgetreden. Probeer je vriend opnieuw uit te nodigen.</string>
   <string name="error_description_linkExpired">Deze Kin is automatisch teruggestuurd naar de afzender omdat deze niet binnen 24 uur is opgehaald. Vraag ze alsjeblieft om de Kin opnieuw te sturen.</string>
   <string name="error_description_maxAttemptsReached">Voer je telefoonnummer opnieuw in en probeer het opnieuw.</string>
+  <string name="error_description_noCodeFound">Probeer een afbeelding te vinden waarop de code duidelijker te zien is.</string>
   <string name="error_description_noInternet">Controleer je internetverbinding of probeer het later opnieuw.</string>
   <string name="error_description_noInvitesLeft">Code is momenteel alleen op uitnodiging. We laten het je weten als er meer uitnodigingen beschikbaar zijn.</string>
   <string name="error_description_notInvitedYet">Ga naar %1$s om je in te schrijven op de wachtlijst</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Uitnodiging mislukt</string>
   <string name="error_title_linkExpired">Link Verlopen</string>
   <string name="error_title_maxAttemptsReached">Maximum aantal pogingen bereikt</string>
+  <string name="error_title_noCodeFound">Geen code gevonden</string>
   <string name="error_title_noInternet">Geen internetverbinding</string>
   <string name="error_title_noInvitesLeft">Je hebt geen uitnodigingen</string>
   <string name="error_title_notInvitedYet">Je hebt nog geen uitnodiging ontvangen</string>

@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">מצטערים, חווינו בעיית תקשורת. אנא נסה שנית להזמין את חברך.</string>
   <string name="error_description_linkExpired">Kin זה הוחזר אוטומטית לשולח מכיוון שהוא לא נאסף תוך 24 שעות. נא לבקש מהם לשלוח שוב את ה-Kin.</string>
   <string name="error_description_maxAttemptsReached">אנא הכנס מחדש את מספר הטלפון שלך ונסה שנית.</string>
+  <string name="error_description_noCodeFound">אנא נסו לצלם תמונה שמראה את הקוד יותר בבירור.</string>
   <string name="error_description_noInternet">אנא בדוק את חיבור האינטרנט שלך או נסה שנית מאוחר יותר.</string>
   <string name="error_description_noInvitesLeft">קוד היא כרגע בהזמנה בלבד. נודיע לך כשיהיו הזמנות פנויות נוספות.</string>
   <string name="error_description_notInvitedYet">כדי להצטרף לרשימת ההמתנה עבור ל-%1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">ההזמנה נכשלה</string>
   <string name="error_title_linkExpired">פג תוקף הקישור</string>
   <string name="error_title_maxAttemptsReached">מספר הניסיונות הגיע לערך המקסימלי האפשרי</string>
+  <string name="error_title_noCodeFound">לא נמצא קוד</string>
   <string name="error_title_noInternet">אין חיבור לאינטרנט</string>
   <string name="error_title_noInvitesLeft">אין לך הזמנות</string>
   <string name="error_title_notInvitedYet">עדיין לא הוזמנת</string>

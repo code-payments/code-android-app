@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Beklager, vi har et netværksproblem. Prøv at invitere din ven igen.</string>
   <string name="error_description_linkExpired">Denne Kin blev automatisk returneret til afsenderen, fordi den ikke blev afhentet inden for 24 timer. Bed dem venligst om at sende Kin igen.</string>
   <string name="error_description_maxAttemptsReached">Genindtast dit telefonnummer, og prøv igen</string>
+  <string name="error_description_noCodeFound">Prøv at tage et billede, der viser koden mere tydeligt.</string>
   <string name="error_description_noInternet">Tjek din internetforbindelse eller prøv igen senere</string>
   <string name="error_description_noInvitesLeft">Code er i øjeblikket kun pr invitation. Vi giver dig besked, når der er flere tilgængelige invitationer.</string>
   <string name="error_description_notInvitedYet">For at komme på ventelisten, gå til %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Invitation mislykkedes</string>
   <string name="error_title_linkExpired">Link udløbet</string>
   <string name="error_title_maxAttemptsReached">Maksimalt antal forsøg nået</string>
+  <string name="error_title_noCodeFound">Ingen kode fundet</string>
   <string name="error_title_noInternet">Ingen internetforbindelse</string>
   <string name="error_title_noInvitesLeft">Du har ingen invitationer</string>
   <string name="error_title_notInvitedYet">Du er endnu ikke blevet inviteret</string>

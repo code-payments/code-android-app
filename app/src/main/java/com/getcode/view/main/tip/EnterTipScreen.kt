@@ -16,11 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalNetworkObserver
+import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
-import com.getcode.navigation.screens.HomeResult
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
@@ -35,7 +36,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun EnterTipScreen(
     viewModel: TipPaymentViewModel = hiltViewModel(),
-    onSendTip: (HomeResult.ConfirmTip) -> Unit,
+    onSendTip: () -> Unit,
 ) {
     val context = LocalContext.current
     val navigator = LocalCodeNavigator.current
@@ -44,6 +45,8 @@ fun EnterTipScreen(
 
     val networkObserver = LocalNetworkObserver.current
     val networkState by networkObserver.state.collectAsState()
+
+    val session = LocalSession.currentOrThrow
 
     Column(
         modifier = Modifier
@@ -106,8 +109,8 @@ fun EnterTipScreen(
 
                 composeScope.launch {
                     val amount = viewModel.onSubmit() ?: return@launch
-                    val result = HomeResult.ConfirmTip(amount)
-                    onSendTip(result)
+                    session.presentTipConfirmation(amount)
+                    onSendTip()
                 }
             },
             enabled = dataState.continueEnabled,

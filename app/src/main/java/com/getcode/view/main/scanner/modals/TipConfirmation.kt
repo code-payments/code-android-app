@@ -1,4 +1,4 @@
-package com.getcode.view.main.home.components
+package com.getcode.view.main.scanner.modals
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +33,7 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Modal
 import com.getcode.ui.components.SlideToConfirm
 import com.getcode.ui.components.TwitterUsernameDisplay
+import com.getcode.view.main.scanner.components.PriceWithFlag
 
 @Composable
 internal fun TipConfirmation(

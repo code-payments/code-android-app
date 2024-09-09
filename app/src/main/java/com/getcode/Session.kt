@@ -1,18 +1,17 @@
-package com.getcode.view.main.home
+package com.getcode
 
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationManager
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.view.WindowManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import cafe.adriel.voyager.core.model.ScreenModel
-import com.getcode.BuildConfig
-import com.getcode.R
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.domain.CashLinkManager
@@ -31,6 +30,7 @@ import com.getcode.model.Domain
 import com.getcode.model.Feature
 import com.getcode.model.Fiat
 import com.getcode.model.FlippableTipCardFeature
+import com.getcode.model.GalleryFeature
 import com.getcode.model.IntentMetadata
 import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
@@ -97,8 +97,8 @@ import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
+import com.getcode.view.main.scanner.UiElement
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
-import com.kik.kikx.kikcodes.implementation.KikCodeScannerImpl
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
@@ -144,7 +144,7 @@ sealed interface PresentationStyle {
     data object Slide : PresentationStyle, Visible
 }
 
-data class HomeUiModel(
+data class SessionState(
     val isCameraPermissionGranted: Boolean? = null,
     val vibrateOnScan: Boolean = false,
     val balance: KinAmount? = null,
@@ -162,15 +162,20 @@ data class HomeUiModel(
     val requestKin: Feature = RequestKinFeature(),
     val cameraGestures: Feature = CameraGesturesFeature(),
     val invertedDragZoom: Feature = InvertedDragZoomFeature(),
+    val gallery: Feature = GalleryFeature(),
     val flippableTipCard: Feature = FlippableTipCardFeature(),
-    val actions: List<HomeAction> = listOf(HomeAction.GIVE_KIN, HomeAction.TIP_CARD, HomeAction.BALANCE),
+    val scannerElements: List<UiElement> = listOf(
+        UiElement.GIVE_KIN,
+        UiElement.TIP_CARD,
+        UiElement.BALANCE
+    ),
     val tipCardConnected: Boolean = false,
 )
 
-sealed interface HomeEvent {
-    data object PresentTipEntry : HomeEvent
-    data object RequestNotificationPermissions: HomeEvent
-    data class SendIntent(val intent: Intent): HomeEvent
+sealed interface SessionEvent {
+    data object PresentTipEntry : SessionEvent
+    data object RequestNotificationPermissions : SessionEvent
+    data class SendIntent(val intent: Intent) : SessionEvent
 }
 
 enum class RestrictionType {
@@ -181,7 +186,7 @@ enum class RestrictionType {
 
 @SuppressLint("CheckResult")
 @HiltViewModel
-class HomeViewModel @Inject constructor(
+class Session @Inject constructor(
     private val client: Client,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
@@ -201,14 +206,15 @@ class HomeViewModel @Inject constructor(
     private val cashLinkManager: CashLinkManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
+    private val codeAnalyzer: KikCodeAnalyzer,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
 ) : BaseViewModel(resources), ScreenModel {
-    val uiFlow = MutableStateFlow(HomeUiModel())
+    val uiFlow = MutableStateFlow(SessionState())
 
-    private val _eventFlow: MutableSharedFlow<HomeEvent> = MutableSharedFlow()
-    val eventFlow: SharedFlow<HomeEvent> = _eventFlow.asSharedFlow()
+    private val _eventFlow: MutableSharedFlow<SessionEvent> = MutableSharedFlow()
+    val eventFlow: SharedFlow<SessionEvent> = _eventFlow.asSharedFlow()
 
     private var sheetDismissTimer: TimerTask? = null
 
@@ -218,7 +224,7 @@ class HomeViewModel @Inject constructor(
         appSettings.observe()
             .map { it.cameraStartByDefault }
             .distinctUntilChanged()
-            .onEach {cameraAutoStart ->
+            .onEach { cameraAutoStart ->
                 uiFlow.update {
                     it.copy(autoStartCamera = cameraAutoStart)
                 }
@@ -256,6 +262,14 @@ class HomeViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
+        features.galleryEnabled
+            .distinctUntilChanged()
+            .onEach { module ->
+                uiFlow.update {
+                    it.copy(gallery = module)
+                }
+            }.launchIn(viewModelScope)
+
         features.tipCardFlippable
             .distinctUntilChanged()
             .onEach { module ->
@@ -267,7 +281,7 @@ class HomeViewModel @Inject constructor(
         betaFlagsRepository.observe()
             .distinctUntilChanged()
             .onEach { betaFlags ->
-                uiFlow.update { it.copy(actions = buildActions(betaFlags)) }
+                uiFlow.update { it.copy(scannerElements = buildScannerElements(betaFlags)) }
             }.launchIn(viewModelScope)
 
         tipController.showTwitterSplat
@@ -428,21 +442,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun buildActions(
+    private fun buildScannerElements(
         betaOptions: BetaOptions,
-    ): List<HomeAction> {
-        val actions = mutableListOf(HomeAction.GIVE_KIN)
+    ): List<UiElement> {
+        val actions = mutableListOf(UiElement.GIVE_KIN)
         actions += if (betaOptions.tipCardOnHomeScreen) {
-            HomeAction.TIP_CARD
+            UiElement.TIP_CARD
         } else {
-            HomeAction.GET_KIN
+            UiElement.GET_KIN
         }
 
         if (betaOptions.conversationsEnabled) {
-            actions += HomeAction.CHAT
+            actions += UiElement.CHAT
         }
 
-        actions += HomeAction.BALANCE
+        actions += UiElement.BALANCE
 
         return actions
     }
@@ -615,12 +629,12 @@ class HomeViewModel @Inject constructor(
                 delay(5.seconds.inWholeMilliseconds)
             }
             withContext(Dispatchers.Main) {
-            uiFlow.update {
-                it.copy(
-                    billState = it.billState.copy(showToast = false)
-                )
-            }
+                uiFlow.update {
+                    it.copy(
+                        billState = it.billState.copy(showToast = false)
+                    )
                 }
+            }
         }
     }
 
@@ -753,6 +767,7 @@ class HomeViewModel @Inject constructor(
                 )
                 attemptLogin(codePayload)
             }
+
             Kind.Tip -> {
                 trace(
                     tag = "Bill",
@@ -850,9 +865,10 @@ class HomeViewModel @Inject constructor(
                         when {
                             isDenied -> {
                                 viewModelScope.launch {
-                                    _eventFlow.emit(HomeEvent.RequestNotificationPermissions)
+                                    _eventFlow.emit(SessionEvent.RequestNotificationPermissions)
                                 }
                             }
+
                             else -> {
                                 @SuppressLint("NewApi")
                                 channel?.importance = NotificationManager.IMPORTANCE_DEFAULT
@@ -905,7 +921,7 @@ class HomeViewModel @Inject constructor(
                                 )
                             )
                             viewModelScope.launch {
-                                _eventFlow.emit(HomeEvent.SendIntent(intent))
+                                _eventFlow.emit(SessionEvent.SendIntent(intent))
                             }
                             cancelTip()
                         },
@@ -915,7 +931,7 @@ class HomeViewModel @Inject constructor(
                 )
             }.onSuccess {
                 delay(300.milliseconds)
-                _eventFlow.emit(HomeEvent.PresentTipEntry)
+                _eventFlow.emit(SessionEvent.PresentTipEntry)
                 analytics.tipCardShown(username)
             }
     }
@@ -1181,7 +1197,7 @@ class HomeViewModel @Inject constructor(
                         ).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
-                        _eventFlow.emit(HomeEvent.SendIntent(intent))
+                        _eventFlow.emit(SessionEvent.SendIntent(intent))
                     }
                 }
             } else {
@@ -1195,7 +1211,7 @@ class HomeViewModel @Inject constructor(
                         ).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
-                        _eventFlow.emit(HomeEvent.SendIntent(intent))
+                        _eventFlow.emit(SessionEvent.SendIntent(intent))
                     }
                 }
             }
@@ -1348,7 +1364,7 @@ class HomeViewModel @Inject constructor(
                     ).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
-                    _eventFlow.emit(HomeEvent.SendIntent(intent))
+                    _eventFlow.emit(SessionEvent.SendIntent(intent))
                 }
             } else {
                 request?.successUrl?.let { url ->
@@ -1358,7 +1374,7 @@ class HomeViewModel @Inject constructor(
                     ).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
-                    _eventFlow.emit(HomeEvent.SendIntent(intent))
+                    _eventFlow.emit(SessionEvent.SendIntent(intent))
                 }
             }
         }
@@ -1446,6 +1462,33 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onImageSelected(
+        uri: Uri
+    ) {
+        fun onScanningStop() {
+            codeAnalyzer.onCodeScanned = {}
+            codeAnalyzer.onNoCodeFound = {}
+        }
+
+        codeAnalyzer.onCodeScanned = {
+            onScanningStop()
+            onCodeScan(it)
+        }
+
+        codeAnalyzer.onNoCodeFound = {
+            onScanningStop()
+
+            TopBarManager.showMessage(
+                TopBarManager.TopBarMessage(
+                    title = resources.getString(R.string.error_title_noCodeFound),
+                    message = resources.getString(R.string.error_description_noCodeFound)
+                )
+            )
+        }
+
+        codeAnalyzer.analyze(uri)
+    }
+
     fun onCodeScan(
         code: ScannableKikCode,
     ) {
@@ -1520,9 +1563,10 @@ class HomeViewModel @Inject constructor(
     private fun shareTipCard() = viewModelScope.launch {
         val connectedAccount = tipController.connectedAccount.value ?: return@launch
         withContext(Dispatchers.Main) {
-            val shareIntent = IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
+            val shareIntent =
+                IntentUtils.tipCard(connectedAccount.username, connectedAccount.platform)
 
-            _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
+            _eventFlow.emit(SessionEvent.SendIntent(shareIntent))
         }
     }
 
@@ -1553,7 +1597,7 @@ class HomeViewModel @Inject constructor(
 
         CoroutineScope(Dispatchers.IO).launch {
             withContext(Dispatchers.Main) {
-                _eventFlow.emit(HomeEvent.SendIntent(shareIntent))
+                _eventFlow.emit(SessionEvent.SendIntent(shareIntent))
             }
             delay(2500)
 
@@ -1621,6 +1665,7 @@ class HomeViewModel @Inject constructor(
                         attemptPayment(payload, request)
                     }
                 }
+
                 request.loginRequest != null -> {
                     val payload = CodePayload(
                         kind = Kind.Login,
@@ -1636,6 +1681,7 @@ class HomeViewModel @Inject constructor(
                     scannedRendezvous.add(payload.rendezvous.publicKey)
                     attemptLogin(payload, request)
                 }
+
                 request.tipRequest != null -> {
                     val payload = CodePayload(
                         kind = Kind.Tip,
@@ -1650,6 +1696,10 @@ class HomeViewModel @Inject constructor(
                     scannedRendezvous.add(payload.rendezvous.publicKey)
 
                     attemptTip(payload, request)
+                }
+
+                request.imageRequest != null -> {
+                    onImageSelected(request.imageRequest.uri)
                 }
             }
         }

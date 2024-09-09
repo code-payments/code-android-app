@@ -12,7 +12,7 @@ object Android {
 object Packaging {
     private const val majorVersion = 2
     private const val minorVersion = 1
-    private const val patchVersion = 9
+    private const val patchVersion = 10
 
     const val versionName = "$majorVersion.$minorVersion.$patchVersion"
 }
@@ -26,6 +26,7 @@ object Versions {
     const val android_gradle_build_tools = "8.4.0"
     const val google_services = "4.3.15"
 
+    const val androidx_activity = "1.7.2"
     const val androidx_annotation = "1.7.1"
     const val androidx_biometrics = "1.2.0-alpha05"
     const val androidx_camerax = "1.3.2"
@@ -133,8 +134,7 @@ object Plugins {
 }
 
 object Libs {
-
-
+    const val androidx_activity = "androidx.activity:activity-ktx:{${Versions.androidx_activity}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
     const val androidx_biometrics = "androidx.biometric:biometric:${Versions.androidx_biometrics}"
     const val androidx_camerax_core = "androidx.camera:camera-core:${Versions.androidx_camerax}"

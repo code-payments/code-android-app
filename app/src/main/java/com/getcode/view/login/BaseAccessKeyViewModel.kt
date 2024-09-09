@@ -24,6 +24,7 @@ import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.generateQrCode
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.save
 import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
@@ -118,24 +119,20 @@ abstract class BaseAccessKeyViewModel(
 
     internal fun saveBitmapToFile(): Boolean {
         val bitmap = uiFlow.value.accessKeyBitmap ?: return false
-        val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+        val destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        val result = bitmap.save(
+            destination = destination,
+            name = {
+                val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+                "Code-Recovery-${date.format(Date())}.png"
+            },
+        )
 
-        val filename = "Code-Recovery-${date.format(Date())}.png"
-        val sd: File =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        val dest = File(sd, filename)
-
-        try {
-            val out = FileOutputStream(dest)
-            bitmap.compress(Bitmap.CompressFormat.PNG, 90, out)
-            out.flush()
-            out.close()
-        } catch (e: Exception) {
-            ErrorUtils.handleError(e)
-            return false
+        if (result) {
+            mediaScanner.scan(destination)
         }
-        mediaScanner.scan(sd)
-        return true
+
+        return result
     }
 
     private fun createBitmapForExport(

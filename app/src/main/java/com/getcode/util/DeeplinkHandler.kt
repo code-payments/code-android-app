@@ -3,11 +3,12 @@ package com.getcode.util
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Parcelable
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.model.PrefsBool
 import com.getcode.models.DeepLinkRequest
-import com.getcode.navigation.screens.HomeScreen
+import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.urlDecode
@@ -60,6 +61,9 @@ class DeeplinkHandler @Inject constructor(
                 val sharedLink = intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri() ?: return null
                 sharedLink.resolveSharedEntity()
             }
+            (intent?.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as? Uri != null) -> {
+                intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM) as Uri
+            }
 
             else -> null
         } ?: return null
@@ -76,7 +80,7 @@ class DeeplinkHandler @Inject constructor(
                 Timber.d("cash=${type.link}")
                 DeeplinkResult(
                     type,
-                    listOf(HomeScreen(cashLink = type.link)),
+                    listOf(ScanScreen(cashLink = type.link)),
                 )
             }
 
@@ -85,7 +89,18 @@ class DeeplinkHandler @Inject constructor(
                 val request = type.payload?.base64EncodedData()?.let { DeepLinkRequest.from(it) }
                 DeeplinkResult(
                     type,
-                    listOf(HomeScreen(request = request)),
+                    listOf(ScanScreen(request = request)),
+                )
+            }
+
+            is Type.Image -> {
+                DeeplinkResult(
+                    type,
+                    listOf(
+                        ScanScreen(
+                            request = DeepLinkRequest.fromImage(type.uri)
+                        )
+                    )
                 )
             }
 
@@ -94,7 +109,7 @@ class DeeplinkHandler @Inject constructor(
                 DeeplinkResult(
                     type,
                     listOf(
-                        HomeScreen(
+                        ScanScreen(
                             request = DeepLinkRequest.fromTipCardUsername(
                                 type.platform,
                                 type.username
@@ -128,6 +143,12 @@ class DeeplinkHandler @Inject constructor(
 
     private val Uri.deeplinkType: Type
         get() {
+            // check if image
+            val isImage = context.contentResolver.getType(this)?.startsWith("image/") == true
+            if (isImage) {
+                return Type.Image(uri = this)
+            }
+
             // check for tipcard URLs
             val components = pathSegments
             if (components.count() >= 2 && components[0] == "x" && components[1].isNotEmpty()) {
@@ -174,6 +195,7 @@ class DeeplinkHandler @Inject constructor(
                 val regex = Regex("^(login|payment|tip)?-?request-(modal|page)-(mobile|desktop)\$")
             }
         }
+        data class Image(val uri: Uri): Type
 
         data class Unknown(val path: String?) : Type
     }

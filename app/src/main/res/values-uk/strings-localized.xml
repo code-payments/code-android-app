@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">На жаль, у нас виникла проблема з мережею. Будь ласка, спробуйте запросити свого друга ще раз.</string>
   <string name="error_description_linkExpired">Цей Kin був автоматично повернутий відправнику, оскільки його не було забрано протягом 24 годин. Будь ласка, попросіть відправника надіслати Kin знову.</string>
   <string name="error_description_maxAttemptsReached">Будь ласка, введіть номер свого телефону повторно та спробуйте ще раз.</string>
+  <string name="error_description_noCodeFound">Будь ласка, спробуйте отримати зображення, на якому код видно більш чітко.</string>
   <string name="error_description_noInternet">Будь ласка, перевірте своє підключення до інтернету або повторіть спробу пізніше.</string>
   <string name="error_description_noInvitesLeft">Наразі Code доступний лише за запрошенням. Ми повідомимо вам, коли буде більше доступних запрошень.</string>
   <string name="error_description_notInvitedYet">Щоб приєднатися до списку очікування, перейдіть до %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Запрошення не спрацювало</string>
   <string name="error_title_linkExpired">Посилання прострочено</string>
   <string name="error_title_maxAttemptsReached">Досягнуто максимальної кількості спроб</string>
+  <string name="error_title_noCodeFound">Код не знайдено</string>
   <string name="error_title_noInternet">Немає підключення до інтернету</string>
   <string name="error_title_noInvitesLeft">У вас немає запрошень</string>
   <string name="error_title_notInvitedYet">Вас ще не запросили</string>

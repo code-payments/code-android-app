@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Ne pare rău, avem probleme de rețea. Te rugăm să încerci din nou să-ți inviți prietenul.</string>
   <string name="error_description_linkExpired">Acest kin a fost returnat automat expeditorului deoarece nu a fost colectat în termen de 24 de ore. Roagă-l să trimită din nou kin-ul.</string>
   <string name="error_description_maxAttemptsReached">Introdu din nou numărul de telefon și încearcă din nou.</string>
+  <string name="error_description_noCodeFound">Vă rugăm să încercați să obțineți o imagine care să prezinte codul mai clar.</string>
   <string name="error_description_noInternet">Verifică-ți conexiunea la internet sau încearcă din nou mai târziu.</string>
   <string name="error_description_noInvitesLeft">Code este în prezent doar pe bază de invitație. Îți vom da de știre când vor fi disponibile alte invitații.</string>
   <string name="error_description_notInvitedYet">Alătură-te la lista de așteptare pentru %1$s</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Invitația a eșuat.</string>
   <string name="error_title_linkExpired">Linkul a expirat</string>
   <string name="error_title_maxAttemptsReached">Ai atins numărul maxim de tentative</string>
+  <string name="error_title_noCodeFound">Nu s-a găsit niciun Code</string>
   <string name="error_title_noInternet">Fără conexiune la internet</string>
   <string name="error_title_noInvitesLeft">Nu ai nicio invitație.</string>
   <string name="error_title_notInvitedYet">Nu ai fost încă invitat</string>

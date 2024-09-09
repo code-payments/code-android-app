@@ -112,6 +112,7 @@
   <string name="error_description_invitationFailed">Désolé, nous avons rencontré un problème de réseau. Veuillez réessayer d\'inviter votre ami.</string>
   <string name="error_description_linkExpired">Ce Kin a été automatiquement renvoyé à l’expéditeur car il n’a pas été retiré dans les 24 heures. Veuillez lui demander d’envoyer à nouveau le Kin.</string>
   <string name="error_description_maxAttemptsReached">Veuillez saisir à nouveau votre numéro de téléphone et réessayer.</string>
+  <string name="error_description_noCodeFound">Veuillez essayer d\'obtenir une image qui montre le code plus clairement.</string>
   <string name="error_description_noInternet">Veuillez vérifier votre connexion Internet ou réessayer plus tard.</string>
   <string name="error_description_noInvitesLeft">Code n\'est actuellement disponible que sur invitation. Nous vous informerons lorsque d\'autres invitations seront disponibles.</string>
   <string name="error_description_notInvitedYet">Pour rejoindre la liste d\'attente, rendez-vous sur %1$s.</string>
@@ -149,6 +150,7 @@
   <string name="error_title_invitationFailed">Échec de l\'invitation</string>
   <string name="error_title_linkExpired">Le lien a expiré</string>
   <string name="error_title_maxAttemptsReached">Nombre maximal de tentatives atteint</string>
+  <string name="error_title_noCodeFound">Aucun code trouvé</string>
   <string name="error_title_noInternet">Pas de connexion Internet</string>
   <string name="error_title_noInvitesLeft">Vous n\'avez pas d\'invitations</string>
   <string name="error_title_notInvitedYet">Vous n\'avez pas encore été invité(e)</string>
