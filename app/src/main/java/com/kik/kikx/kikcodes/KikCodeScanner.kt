@@ -11,7 +11,7 @@ sealed class ScanQuality(val headerValue: Int) {
     data object Best : ScanQuality(10)
 
     companion object {
-        private val values = listOf(Best, High, Medium, Low)
+        private val values = listOf(Low, Medium, High, Best)
 
         fun iterator(): Iterator<ScanQuality> {
             return values.iterator()
