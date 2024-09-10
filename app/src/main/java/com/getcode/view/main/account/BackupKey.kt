@@ -39,15 +39,16 @@ import androidx.compose.ui.unit.isSpecified
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.utils.measured
-import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.Cloudy
 import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.PermissionResult
+import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.getPermissionLauncher
+import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.measured
 import com.getcode.util.launchAppSettings
 
 @Composable
@@ -61,8 +62,8 @@ fun BackupKey(
     var isStoragePermissionGranted by remember { mutableStateOf(false) }
     val isAccessKeyVisible = remember { MutableTransitionState(false) }
 
-    val onPermissionResult = { isSuccess: Boolean ->
-        isStoragePermissionGranted = isSuccess
+    val onPermissionResult = { result: PermissionResult ->
+        isStoragePermissionGranted = result == PermissionResult.Granted
 
         if (!isStoragePermissionGranted) {
             TopBarManager.showMessage(
@@ -77,8 +78,8 @@ fun BackupKey(
         }
     }
 
-    val launcher = getPermissionLauncher(onPermissionResult)
-
+    val launcher = getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
+    val permissionChecker = rememberPermissionChecker()
     if (isExportSeedRequested && isStoragePermissionGranted) {
         viewModel.onSubmit()
         isExportSeedRequested = false
@@ -90,10 +91,8 @@ fun BackupKey(
         if (Build.VERSION.SDK_INT > 29) {
             isStoragePermissionGranted = true
         } else {
-            PermissionCheck.requestPermission(
-                context = context,
+            permissionChecker.request(
                 permission = Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                shouldRequest = true,
                 onPermissionResult = onPermissionResult,
                 launcher = launcher
             )
