@@ -44,8 +44,7 @@ fun SeedInput(
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
-    val context = LocalContext.current
-    val launcher = getPermissionLauncher {}
+    val notificationPermissionCheck = notificationPermissionCheck(isShowError = false) {  }
 
     Column(
         modifier = Modifier
@@ -123,13 +122,7 @@ fun SeedInput(
         }
 
         if (dataState.isSuccess) {
-            PermissionCheck.requestPermission(
-                context = context,
-                permission = Manifest.permission.POST_NOTIFICATIONS,
-                shouldRequest = true,
-                onPermissionResult = {},
-                launcher = launcher
-            )
+            notificationPermissionCheck(true)
         }
 
         CodeButton(

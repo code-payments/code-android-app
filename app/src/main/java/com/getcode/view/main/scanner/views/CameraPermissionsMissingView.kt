@@ -1,7 +1,5 @@
 package com.getcode.view.main.scanner.views
 
-import android.Manifest
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +19,11 @@ import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.PermissionCheck
-import com.getcode.ui.components.PermissionsLauncher
 
 @Composable
-internal fun PermissionsBlockingView(
+internal fun CameraPermissionsMissingView(
     modifier: Modifier = Modifier,
-    context: Context,
-    onPermissionResult: (Boolean) -> Unit,
-    launcher: PermissionsLauncher,
+    onClick: () -> Unit,
 ) {
     Box(
         modifier = modifier.background(Color.Black),
@@ -44,15 +38,7 @@ internal fun PermissionsBlockingView(
                 text = stringResource(R.string.subtitle_allowCameraAccess)
             )
             CodeButton(
-                onClick = {
-                    PermissionCheck.requestPermission(
-                        context = context,
-                        permission = Manifest.permission.CAMERA,
-                        shouldRequest = true,
-                        onPermissionResult = onPermissionResult,
-                        launcher = launcher
-                    )
-                },
+                onClick = onClick,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 contentPadding = PaddingValues(),
                 text = stringResource(id = R.string.action_allowCameraAccess),

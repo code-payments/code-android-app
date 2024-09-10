@@ -81,6 +81,7 @@ import com.getcode.network.repository.hexEncodedString
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.ui.components.PermissionResult
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.IntentUtils
 import com.getcode.util.Kin
@@ -465,8 +466,8 @@ class Session @Inject constructor(
         uiFlow.update { it.copy(isCameraScanEnabled = scanning) }
     }
 
-    fun onCameraPermissionChanged(isGranted: Boolean) {
-        uiFlow.update { it.copy(isCameraPermissionGranted = isGranted) }
+    fun onCameraPermissionResult(result: PermissionResult) {
+        uiFlow.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
     }
 
     fun showBill(
