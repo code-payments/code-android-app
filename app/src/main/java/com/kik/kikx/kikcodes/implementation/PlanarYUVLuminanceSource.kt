@@ -33,8 +33,16 @@ import kotlin.experimental.and
  * jmeyer: NOTE
  * This class used to extend LuminanceSource. It has been trimmed down to not require a ZXing import
  */
-class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dataWidth: Int, private val _dataHeight: Int, private val _left: Int, private val _top: Int, private val width: Int, private val height: Int, reverseHorizontal: Boolean) {
-
+class PlanarYUVLuminanceSource(
+    private val yuvData: ByteArray,
+    private val width: Int,
+    private val height: Int,
+    private val left: Int = 0,
+    private val top: Int = 0,
+    private val dataWidth: Int = width,
+    private val dataHeight: Int = height,
+    reverseHorizontal: Boolean = false
+) {
     // If the caller asks for the entire underlying image, save the copy and give them the
     // original data. The docs specifically warn that result.length must be ignored.
     // If the width matches the full width of the underlying data, perform a single copy.
@@ -43,22 +51,22 @@ class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dat
         get() {
             val width = width
             val height = height
-            if (width == _dataWidth && height == _dataHeight) {
-                return _yuvData
+            if (width == dataWidth && height == dataHeight) {
+                return yuvData
             }
 
             val area = width * height
             val matrix = ByteArray(area)
-            var inputOffset = _top * _dataWidth + _left
-            if (width == _dataWidth) {
-                System.arraycopy(_yuvData, inputOffset, matrix, 0, area)
+            var inputOffset = top * dataWidth + left
+            if (width == dataWidth) {
+                System.arraycopy(yuvData, inputOffset, matrix, 0, area)
                 return matrix
             }
-            val yuv = _yuvData
+            val yuv = yuvData
             for (y in 0 until height) {
                 val outputOffset = y * width
                 System.arraycopy(yuv, inputOffset, matrix, outputOffset, width)
-                inputOffset += _dataWidth
+                inputOffset += dataWidth
             }
             return matrix
         }
@@ -68,7 +76,7 @@ class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dat
 
     init {
 
-        if (_left + width > _dataWidth || _top + height > _dataHeight) {
+        if (left + width > dataWidth || top + height > dataHeight) {
 //            LogUtils.throwOrLog(IllegalArgumentException("Crop rectangle does not fit within image data."))
         }
         if (reverseHorizontal) {
@@ -85,21 +93,21 @@ class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dat
         if (row == null || row.size < width) {
             row = ByteArray(width)
         }
-        val offset = (y + _top) * _dataWidth + _left
-        System.arraycopy(_yuvData, offset, row, 0, width)
+        val offset = (y + top) * dataWidth + left
+        System.arraycopy(yuvData, offset, row, 0, width)
         return row
     }
 
-    fun crop(left: Int, top: Int, width: Int, height: Int): PlanarYUVLuminanceSource {
-        return PlanarYUVLuminanceSource(_yuvData, _dataWidth, _dataHeight, this._left + left, this._top + top, width, height, false)
+    fun crop(left: Int = 0, top: Int = 0, width: Int, height: Int): PlanarYUVLuminanceSource {
+        return PlanarYUVLuminanceSource(yuvData, dataWidth, dataHeight, this.left + left, this.top + top, width, height, false)
     }
 
     fun renderCroppedGreyscaleBitmap(): Bitmap {
         val width = width
         val height = height
         val pixels = IntArray(width * height)
-        val yuv = _yuvData
-        var inputOffset = _top * _dataWidth + _left
+        val yuv = yuvData
+        var inputOffset = top * dataWidth + left
 
         for (y in 0 until height) {
             val outputOffset = y * width
@@ -107,7 +115,7 @@ class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dat
                 val grey = yuv[inputOffset + x] and 0xff.toByte()
                 pixels[outputOffset + x] = -0x1000000 or grey * 0x00010101
             }
-            inputOffset += _dataWidth
+            inputOffset += dataWidth
         }
 
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -116,9 +124,9 @@ class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dat
     }
 
     private fun reverseHorizontal(width: Int, height: Int) {
-        val yuvData = this._yuvData
+        val yuvData = this.yuvData
         var y = 0
-        var rowStart = _top * _dataWidth + _left
+        var rowStart = top * dataWidth + left
         while (y < height) {
             val middle = rowStart + width / 2
             var x1 = rowStart
@@ -131,7 +139,7 @@ class PlanarYUVLuminanceSource(private val _yuvData: ByteArray, private val _dat
                 x2--
             }
             y++
-            rowStart += _dataWidth
+            rowStart += dataWidth
         }
     }
 }
