@@ -91,8 +91,8 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
 
                                 expected?.diff(produced)
                             }
-                            TransactionService.ErrorDetails.TypeCase.INTENT_DENIED -> {
-                                errors.add("Denied: ${error.intentDenied.reason.name}")
+                            TransactionService.ErrorDetails.TypeCase.DENIED -> {
+                                errors.add("Denied: ${error.denied.reason}")
                             }
                             else -> Unit
                         }

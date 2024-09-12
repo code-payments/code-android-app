@@ -15,14 +15,12 @@ service PhoneVerification {
     // GetAssociatedPhoneNumber gets the latest verified phone number linked to an owner account.
     rpc GetAssociatedPhoneNumber(GetAssociatedPhoneNumberRequest) returns (GetAssociatedPhoneNumberResponse);
 }
-
 message SendVerificationCodeRequest {
     // The phone number to send a verification code over SMS to.
     common.v1.PhoneNumber phone_number = 1;
     // Device token for antispam measures against fake devices
     common.v1.DeviceToken device_token = 2;
 }
-
 message SendVerificationCodeResponse {
     Result result = 1;
     enum Result {
@@ -39,21 +37,21 @@ message SendVerificationCodeResponse {
         // The phone number is not real because it fails Twilio lookup.
         INVALID_PHONE_NUMBER = 3;
         // The phone number is valid, but it maps to an unsupported type of phone
-        // like a landline or ESIM.
+        // like a landline or eSIM.
         UNSUPPORTED_PHONE_TYPE = 4;
         // The country associated with the phone number is not supported (eg. it
         // is on the sanctioned list).
         UNSUPPORTED_COUNTRY = 5;
+        // The device is not supported (eg. it fails device attestation checks)
+        UNSUPPORTED_DEVICE = 6;
     }
 }
-
 message CheckVerificationCodeRequest {
     // The phone number being verified.
     common.v1.PhoneNumber phone_number = 1;
     // The verification code received via SMS.
     VerificationCode code = 2;
 }
-
 message CheckVerificationCodeResponse {
     Result result = 1;
     enum Result {
@@ -71,12 +69,10 @@ message CheckVerificationCodeResponse {
         // not verified.
         RATE_LIMITED = 3;
     }
-
     // The token used to associate an owner account to a user using the verified
     // phone number.
     PhoneLinkingToken linking_token = 2;
 }
-
 message GetAssociatedPhoneNumberRequest {
     // The public key of the owner account that is being queried for a linked
     // phone number.
@@ -86,7 +82,6 @@ message GetAssociatedPhoneNumberRequest {
     // an authentication mechanism to the RPC.
     common.v1.Signature signature = 2;
 }
-
 message GetAssociatedPhoneNumberResponse {
     Result result = 1;
     enum Result {
@@ -98,7 +93,6 @@ message GetAssociatedPhoneNumberResponse {
         // The phone number exists, but at least one timelock account is unlocked
         UNLOCKED_TIMELOCK_ACCOUNT = 3;
     }
-
     // The latest phone number associated with the owner account.
     common.v1.PhoneNumber phone_number = 2;
     // State that determines whether a phone number is linked to the owner
@@ -107,12 +101,10 @@ message GetAssociatedPhoneNumberResponse {
     // of whether the number was linked at any point in time.
     bool is_linked = 3;
 }
-
 message VerificationCode {
     // A 4-10 digit numerical code.
-    string value = 2;
+    string value = 2 ;
 }
-
 // A one-time use token that can be provided to the Identity service to link an
 // owner account to a user with the verified phone number. The client should
 // treat this token as opaque.
@@ -122,4 +114,3 @@ message PhoneLinkingToken {
     // The code that verified the phone number.
     VerificationCode code = 2;
 }
-

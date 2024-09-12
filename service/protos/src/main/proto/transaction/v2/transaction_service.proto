@@ -1,14 +1,10 @@
 syntax = "proto3";
-
 package code.transaction.v2;
-
 option go_package = "github.com/code-payments/code-protobuf-api/generated/go/transaction/v2;transaction";
 option java_package = "com.codeinc.gen.transaction.v2";
 option objc_class_prefix = "APBTransactionV2";
-
 import "common/v1/model.proto";
 import "google/protobuf/timestamp.proto";
-
 service Transaction {
     // SubmitIntent is the mechanism for client and server to agree upon a set of
     // client actions to execute on the blockchain using the Code sequencer for
@@ -43,36 +39,28 @@ service Transaction {
     //   * Server will return SubmitIntentResponse.Error and close the stream
     //   * Client will close the stream
     rpc SubmitIntent(stream SubmitIntentRequest) returns (stream SubmitIntentResponse);
-
     // GetIntentMetadata gets basic metadata on an intent. It can also be used
     // to fetch the status of submitted intents. Metadata exists only for intents
     // that have been successfully submitted.
     rpc GetIntentMetadata(GetIntentMetadataRequest) returns (GetIntentMetadataResponse);
-
     // GetPrivacyUpgradeStatus gets the status of a private transaction and the
     // ability to upgrade it to permanent privacy.
     rpc GetPrivacyUpgradeStatus(GetPrivacyUpgradeStatusRequest) returns (GetPrivacyUpgradeStatusResponse);
-
     // GetPrioritizedIntentsForPrivacyUpgrade allows clients to get private
     // intent actions that can be upgraded in a secure and verifiable manner.
     rpc GetPrioritizedIntentsForPrivacyUpgrade(GetPrioritizedIntentsForPrivacyUpgradeRequest) returns (GetPrioritizedIntentsForPrivacyUpgradeResponse);
-
     // GetLimits gets limits for money moving intents for an owner account in an
     // identity-aware manner
     rpc GetLimits(GetLimitsRequest) returns (GetLimitsResponse);
-
     // GetPaymentHistory gets an owner account's payment history inferred from intents
     //
     // Deprecated: Payment history has migrated to chats
     rpc GetPaymentHistory(GetPaymentHistoryRequest) returns (GetPaymentHistoryResponse);
-
     // CanWithdrawToAccount provides hints to clients for submitting withdraw intents.
     // The RPC indicates if a withdrawal is possible, and how it should be performed.
     rpc CanWithdrawToAccount(CanWithdrawToAccountRequest) returns (CanWithdrawToAccountResponse);
-
     // Airdrop airdrops Kin to the requesting account
     rpc Airdrop(AirdropRequest) returns (AirdropResponse);
-
     // Swap performs an on-chain swap. The high-level flow mirrors SubmitIntent
     // closely. However, due to the time-sensitive nature and unreliability of
     // swaps, they do not fit within the broader intent system. This results in
@@ -92,109 +80,63 @@ service Transaction {
     // Note: Currently limited to swapping USDC to Kin.
     // Note: Kin is deposited into the primary account.
     rpc Swap(stream SwapRequest) returns (stream SwapResponse);
-
     // DeclareFiatOnrampPurchaseAttempt is called whenever a user attempts to use a fiat
     // onramp to purchase crypto for use in Code.
     rpc DeclareFiatOnrampPurchaseAttempt(DeclareFiatOnrampPurchaseAttemptRequest) returns (DeclareFiatOnrampPurchaseAttemptResponse);
 }
-
-message DeclareFiatOnrampPurchaseAttemptRequest {
-    // The owner account invoking the buy module
-    common.v1.SolanaAccountId owner = 1;
-
-    // The amount being purchased
-    ExchangeDataWithoutRate purchase_amount = 2;
-
-    // A nonce value unique to the purchase. If it's included in a memo for the
-    // transaction for the deposit to the owner, then purchase_amount will be used
-    // for display values. Otherwise, the amount will be inferred from the transaction.
-    common.v1.UUID nonce = 3;
-
-    // The signature is of serialize(DeclareFiatOnrampPurchaseAttemptRequest) without
-    // this field set using the private key of the owner account. This provides an
-    // authentication mechanism to the RPC.
-    common.v1.Signature signature = 4;
-}
-
-message DeclareFiatOnrampPurchaseAttemptResponse {
-    Result result = 1;
-    enum Result {
-        OK = 0;
-        // The owner account is not valid (ie. it isn't a Code account)
-        INVALID_OWNER = 1;
-        // The currency isn't supported
-        UNSUPPORTED_CURRENCY = 2;
-        // The amount specified exceeds limits
-        AMOUNT_EXCEEDS_MAXIMUM = 3;
-    }
-}
-
 //
 // Request and Response Definitions
 //
-
 message SubmitIntentRequest {
     oneof request {
         SubmitActions submit_actions = 1;
         SubmitSignatures submit_signatures = 2;
     }
-
     message SubmitActions {
         // The globally unique client generated intent ID. Use the original intent
         // ID when operating on actions that mutate the intent.
         common.v1.IntentId id = 1;
-
+        
         // The verified owner account public key
         common.v1.SolanaAccountId owner = 2;
-
         // Additional metadata that describes the high-level intention
         Metadata metadata = 3;
-
         // The set of all ordered actions required to fulfill the intent
-        repeated Action actions = 4;
-
+        repeated Action actions = 4 ;
         // The signature is of serialize(SubmitActions) without this field set using the
         // private key of the owner account. This provides an authentication mechanism
         // to the RPC.
         common.v1.Signature signature = 5;
-
         // Device token for antispam measures against fake devices
         common.v1.DeviceToken device_token = 6;
     }
-
     message SubmitSignatures {
         // The set of all signatures for each transaction requiring signature from the
         // authority accounts.
-        repeated common.v1.Signature signatures = 1;
+        repeated common.v1.Signature signatures = 1 ;
     }
 }
-
 message SubmitIntentResponse {
     oneof response {
-        
         ServerParameters server_parameters = 1;
         Success          success = 2;
         Error            error = 3;
     }
-
     message ServerParameters {
         // The set of all server paremeters required to fill missing transaction
         // details. Server guarantees to provide a message for each client action
-        // in an order consistent with the received action list.
-        repeated ServerParameter server_parameters = 1;
+        // in an order consistent with the received action list. 
+        repeated ServerParameter server_parameters = 1 ;
     }
-
     message Success {
         Code code = 1;
         enum Code {
             // The intent was successfully created and is now scheduled.
             OK = 0;
         }
-
-        // todo: Revisit if we need side-effects. Clients are effecitively doing
-        //       local simulation now with the privacy solution.
+       // todo: Revisit if we need side-effects. Clients are effecitively doing
+       //       local simulation now with the privacy solution.
     }
-
     message Error {
         Code code = 1;
         enum Code {
@@ -207,43 +149,34 @@ message SubmitIntentResponse {
             // Server detected client has stale state.
             STALE_STATE = 3;
         }
-
         repeated ErrorDetails error_details = 2;
     }
 }
-
 message GetIntentMetadataRequest {
     // The intent ID to query
     common.v1.IntentId intent_id = 1;
-
     // The verified owner account public key when not signing with the rendezvous
     // key. Only owner accounts involved in the intent can access the metadata.
     common.v1.SolanaAccountId owner = 2;
-
     // The signature is of serialize(GetIntentStatusRequest) without this field set
     // using the private key of the rendezvous or owner account. This provides an
     // authentication mechanism to the RPC.
     common.v1.Signature signature = 3;
 }
-
 message GetIntentMetadataResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         NOT_FOUND = 1;
     }
-
     Metadata metadata = 2;
 }
-
 message GetPrivacyUpgradeStatusRequest {
     // The intent ID
     common.v1.IntentId intent_id = 1;
-
     // The action ID for private transaction
     uint32 action_id = 2;
 }
-
 message GetPrivacyUpgradeStatusResponse {
     Result result = 1;
     enum Result {
@@ -255,7 +188,6 @@ message GetPrivacyUpgradeStatusResponse {
         // The provided action doesn't map to a private transaction
         INVALID_ACTION = 3;
     }
-
     Status status = 2;
     enum Status {
         UNKNOWN = 0;
@@ -271,106 +203,83 @@ message GetPrivacyUpgradeStatusResponse {
         ALREADY_UPGRADED = 4;
     }
 }
-
 message GetPrioritizedIntentsForPrivacyUpgradeRequest {
     // The owner account to query against for upgradeable intents.
     common.v1.SolanaAccountId owner = 1;
-
     // The maximum number of intents to return in the response. Default is 10.
     uint32 limit = 2;
-
     // The signature is of serialize(GetPrioritizedIntentsForPrivacyUpgradeRequest)
     // without this field set using the private key of the owner account. This
     // provides an authentication mechanism to the RPC.
     common.v1.Signature signature = 3;
 }
-
 message GetPrioritizedIntentsForPrivacyUpgradeResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         NOT_FOUND = 1;
     }
-
     // Ordered from highest to lowest priority
-    repeated UpgradeableIntent items = 2;
+    repeated UpgradeableIntent items = 2 ;
 }
-
 message GetLimitsRequest {
     // The owner account whose limits will be calculated. Any other owner accounts
     // linked with the same identity of the owner will also be applied.
     common.v1.SolanaAccountId owner = 1;
-
     // The signature is of serialize(GetLimitsRequest) without this field set
     // using the private key of the owner account. This provides an authentication
     // mechanism to the RPC.
     common.v1.Signature signature = 2;
-
     // All transactions starting at this time will be incorporated into the consumed
     // limit calculation. Clients should set this to the start of the current day in
     // the client's current time zone (because server has no knowledge of this atm).
     google.protobuf.Timestamp consumed_since = 3;
 }
-
 message GetLimitsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
     // Send limits keyed by currency
     map<string, SendLimit> send_limits_by_currency = 2;
-
     // Deposit limits
     DepositLimit deposit_limit = 3;
-
     // Micro payment limits keyed by currency
     map<string, MicroPaymentLimit> micro_payment_limits_by_currency = 4;
-
     // Buy module limits keyed by currency
     map<string, BuyModuleLimit> buy_module_limits_by_currency = 5;
 }
-
 message GetPaymentHistoryRequest {
     // The owner account to get payment history for
     common.v1.SolanaAccountId owner = 1;
-
     // An optional history cursor indicating where in the history to resume from.
     Cursor cursor = 2;
-
     // The number of results to return per request. Default is 100.
     uint32 page_size = 3;
-
     // The order in which to return history items from the cursor.
     Direction direction = 4;
     enum Direction {
         // ASC direction returns all history items in ascending order.
         ASC  = 0;
-
         // DESC direction returns all history items in descending order.
         DESC = 1;
     }
-
     // The signature is of serialize(GetPaymentHistoryRequest) without this field set
     // using the private key of the owner account. This provides an authentication
     // mechanism to the RPC.
     common.v1.Signature signature = 5;
 }
-
 message GetPaymentHistoryResponse {
     Result result = 1;
     enum Result {
         OK        = 0;
         NOT_FOUND = 1;
     }
-
-    repeated PaymentHistoryItem items = 2;
+    repeated PaymentHistoryItem items = 2 ;
 }
-
 message CanWithdrawToAccountRequest {
-    common.v1.SolanaAccountId account = 1;
+   common.v1.SolanaAccountId account = 1;
 }
-
 message CanWithdrawToAccountResponse {
     // Metadata so the client knows how to withdraw to the account. Server cannot
     // provide precalculated addresses in this response to maintain non-custodial
@@ -381,7 +290,6 @@ message CanWithdrawToAccountResponse {
         TokenAccount = 1; // Client uses the address as is in SubmitIntent
         OwnerAccount = 2; // Client locally derives the ATA to use in SubmitIntent
     }
-
     // Server-controlled flag to indicate if the account can be withdrawn to.
     // There are several reasons server may deny it, including:
     //  - Wrong type of Code account
@@ -389,26 +297,21 @@ message CanWithdrawToAccountResponse {
     //  - Unsupported external account type (eg. token account but of the wrong mint)
     // This is guaranteed to be false when account_type = Unknown.
     bool is_valid_payment_destination = 1;
-
     // Token account requires initialization before the withdrawal can occur.
     // Server has chosen not to subsidize the fees. The response is guaranteed
     // to have set is_valid_payment_destination = false in this case.
     bool requires_initialization = 3;
 }
-
 message AirdropRequest {
     // The type of airdrop to claim
-    AirdropType airdrop_type = 1;
-
+    AirdropType airdrop_type = 1 ;
     // The owner account to airdrop Kin to
     common.v1.SolanaAccountId owner = 2;
-
     // The signature is of serialize(AirdropRequest) without this field set
     // using the private key of the owner account. This provides an authentication
     // mechanism to the RPC.
     common.v1.Signature signature = 3;
 }
-
 message AirdropResponse {
     Result result = 1;
     enum Result {
@@ -418,94 +321,72 @@ message AirdropResponse {
         // The airdrop has already been claimed by the owner
         ALREADY_CLAIMED = 2;
     }
-
     // Exchange data for the amount of Kin airdropped when successful
     ExchangeData exchange_data = 2;
 }
-
 message SwapRequest {
     oneof request {
-        
         Initiate        initiate         = 1;
         SubmitSignature submit_signature = 2;
     }
-
     message Initiate {
         // The verified owner account public key
         common.v1.SolanaAccountId owner = 1;
-
         // The user authority account that will sign to authorize the swap. Ideally,
         // this is an account derived off the owner account that is solely responsible
         // for swapping.
         common.v1.SolanaAccountId swap_authority = 2;
-
         // Maximum amount to swap from the source mint, in quarks. If value is set to zero,
         // the entire amount will be swapped.
         uint64 limit = 3;
-
         // Whether the client wants the RPC to wait for blockchain status. If false,
         // then the RPC will return Success when the swap is submitted to the blockchain.
-        // Otherwise, the RPC will observe and report back the status of the transaction.
+        // Otherwise, the RPC will observe and report back the status of the transaction. 
         bool wait_for_blockchain_status = 4;
-
         // The signature is of serialize(Initiate) without this field set using the
         // private key of the owner account. This provides an authentication mechanism
         // to the RPC.
         common.v1.Signature signature = 5;
     }
-
     message SubmitSignature {
         // The signature for the locally constructed swap transaction
         common.v1.Signature signature = 1;
     }
 }
-
 message SwapResponse {
     oneof response {
-        
         ServerParameters server_parameters  = 1;
         Success          success            = 2;
         Error            error              = 3;
     }
-
     message ServerParameters {
         // Subisdizer account that will be paying for the swap
         common.v1.SolanaAccountId payer = 1;
-
         // Recent blockhash
         common.v1.Blockhash recent_blockhash = 2;
-
         // Compute unit limit provided to the ComputeBudget::SetComputeUnitLimit
         // instruction. If the value is 0, then the instruction can be omitted.
         uint32 compute_unit_limit = 3;
-
         // Compute unit price provided in the ComputeBudget::SetComputeUnitPrice
         // instruction. If the value is 0, then the instruction can be omitted.
         uint64 compute_unit_price = 4;
-
         // On-chain program that will be performing the swap
         common.v1.SolanaAccountId swap_program = 5;
-
         // Accounts provided to the swap instruction
-        repeated common.v1.InstructionAccount swap_ixn_accounts = 6;
-
+        repeated common.v1.InstructionAccount swap_ixn_accounts = 6 ;
         // Instruction data for the swap instruction
-        bytes swap_ixn_data = 7;
-
+        bytes swap_ixn_data = 7 ;
         // Maximum quarks that will be sent out of the source account after
         // executing the swap. If not, the validation instruction will cause
         // the transaction to fail.
         uint64 max_to_send = 8;
-
         // Minimum quarks that will be received into the destination account
         // after executing the swap. If not, the validation instruction will
         // cause the transaction to fail.
         uint64 min_to_receive = 9;
-
         // Nonce to use in swap validator state account PDA
         common.v1.SolanaAccountId nonce = 10;
     }
-
     message Success {
         Code code = 1;
         enum Code {
@@ -515,7 +396,6 @@ message SwapResponse {
             SWAP_FINALIZED = 1;
         }
     }
-
     message Error {
         Code code = 1;
         enum Code {
@@ -528,19 +408,41 @@ message SwapResponse {
             // The submitted swap transaction failed. Attempt the swap again.
             SWAP_FAILED = 4;
         }
-
         repeated ErrorDetails error_details = 2;
     }
 }
-
+message DeclareFiatOnrampPurchaseAttemptRequest {
+    // The owner account invoking the buy module
+    common.v1.SolanaAccountId owner = 1;
+    // The amount being purchased
+    ExchangeDataWithoutRate purchase_amount = 2;
+    // A nonce value unique to the purchase. If it's included in a memo for the
+    // transaction for the deposit to the owner, then purchase_amount will be used
+    // for display values. Otherwise, the amount will be inferred from the transaction.
+    common.v1.UUID nonce = 3;
+    // The signature is of serialize(DeclareFiatOnrampPurchaseAttemptRequest) without
+    // this field set using the private key of the owner account. This provides an
+    // authentication mechanism to the RPC.
+    common.v1.Signature signature = 4;
+}
+message DeclareFiatOnrampPurchaseAttemptResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+        // The owner account is not valid (ie. it isn't a Code account)
+        INVALID_OWNER = 1;
+        // The currency isn't supported
+        UNSUPPORTED_CURRENCY = 2;
+        // The amount specified exceeds limits
+        AMOUNT_EXCEEDS_MAXIMUM = 3;
+    }
+}
 //
 // Metadata definitions
 //
-
 // Metadata describes the high-level details of an intent
 message Metadata {
     oneof type {
-        
         OpenAccountsMetadata             open_accounts              = 1;
         SendPrivatePaymentMetadata       send_private_payment       = 2;
         ReceivePaymentsPrivatelyMetadata receive_payments_privately = 3;
@@ -551,7 +453,6 @@ message Metadata {
         EstablishRelationshipMetadata    establish_relationship     = 8;
     }
 }
-
 // Open a set of accounts. Currently, clients should only use this for new users
 // to open all required accounts up front (buckets, incoming, and outgoing).
 //
@@ -564,12 +465,11 @@ message Metadata {
 message OpenAccountsMetadata {
     // Nothing is currently required
 }
-
 // Sends a payment to a destination account with initial temporary privacy. Clients
 // should also reorganize their bucket accounts and rotate their temporary outgoing
 // account.
 //
-// Action Spec (In Person Cash Payment or Withdrawal or Tio):
+// Action Spec (In Person Cash Payment or Withdrawal or Tip):
 //
 // actions = [
 //   // Section 1: Transfer ExchangeData.Quarks from BUCKET_X_KIN accounts to TEMPORARY_OUTGOING account with reogranizations
@@ -645,24 +545,18 @@ message OpenAccountsMetadata {
 message SendPrivatePaymentMetadata {
     // The destination token account to send funds to
     common.v1.SolanaAccountId destination = 1;
-
     // The exchange data of total funds being sent to the destination
     ExchangeData exchange_data = 2;
-
     // Is the payment a withdrawal? For destinations that are not Code temporary
     // accounts, this must be set to true.
     bool is_withdrawal = 3;
-
     // Is the payment for a remote send?
     bool is_remote_send = 4;
-
     // Is the payment for a tip?
     bool is_tip = 5;
-
     // If is_tip is true, the user being tipped
     TippedUser tipped_user = 6;
 }
-
 // Send a payment to a destination account publicly.
 //
 // Action Spec:
@@ -674,18 +568,14 @@ message SendPublicPaymentMetadata {
     // account is assumed if this field is not set for backwards compatibility with
     // old clients.
     common.v1.SolanaAccountId source = 4;
-
     // The destination token account to send funds to. This cannot be a Code
     // temporary account.
     common.v1.SolanaAccountId destination = 1;
-
     // The exchange data of total funds being sent to the destination
     ExchangeData exchange_data = 2;
-
     // Is the payment a withdrawal? Currently, this is always true.
     bool is_withdrawal = 3;
 }
-
 // Receive funds into an organizer with initial temporary privacy. Clients should
 // also reorganize their bucket accounts and rotate their temporary incoming account
 // as applicable. Only accounts owned and derived by a user's 12 words should operate
@@ -723,16 +613,13 @@ message SendPublicPaymentMetadata {
 message ReceivePaymentsPrivatelyMetadata {
     // The temporary incoming, primary or relationship account to receive funds from
     common.v1.SolanaAccountId source = 1;
-
     // The exact amount of Kin in quarks being received
     uint64 quarks = 2;
-
     // Is the receipt of funds from a deposit? If true, the source account must
     // be a primary or relationship account. Otherwise, it must be from a temporary
     // incoming account.
     bool is_deposit = 3;
 }
-
 // Receive funds into a user-owned account publicly. All use cases of this intent
 // close the account, so all funds must be moved. Use this intent to receive payments
 // from an account not owned by a user's 12 words into a temporary incoming account,
@@ -744,31 +631,25 @@ message ReceivePaymentsPrivatelyMetadata {
 message ReceivePaymentsPubliclyMetadata {
     // The remote send gift card to receive funds from
     common.v1.SolanaAccountId source = 1;
-
     // The exact amount of Kin in quarks being received
     uint64 quarks = 2;
-
     // Is the receipt of funds from a remote send gift card? Currently, this is
     // the only use case for this intent and validation enforces the flag to true.
     bool is_remote_send = 3;
-
     // If is_remote_send is true, is the gift card being voided? The user owner
     // account's 12 words that issued the gift card may only set this flag to true.
     // Functionally, this doesn't affect the intent, but rather if we decide to show
     // it in a user-friendly payment history.
     bool is_issuer_voiding_gift_card = 4;
-
     // If is_remote_send is true, the original exchange data that was provided as
     // part of creating the gift card account. This is purely a server-provided value.
     // SubmitIntent will disallow this being set.
     ExchangeData exchange_data = 5;
 }
-
 // Upgrade existing private transactions from temporary to permanent privacy.
 message UpgradePrivacyMetadata {
     // Nothing is currently required
 }
-
 // Migrates existing users prior to the privacy implementation by:
 //  1. If there are funds in the LEGACY_PRIMARY_2022 account, then move them
 //     to the new PRIMARY account, so the client can later simulate a deposit
@@ -790,7 +671,6 @@ message MigrateToPrivacy2022Metadata {
     // the account is empty.
     uint64 quarks = 1;
 }
-
 // Establishes a long-lived private relationship between a user and another
 // entity.
 //
@@ -801,13 +681,11 @@ message MigrateToPrivacy2022Metadata {
 //
 // actions = [OpenAccountAction(RELATIONSHIP)]
 message EstablishRelationshipMetadata {
-    common.v1.Relationship relationship = 1;
+   common.v1.Relationship relationship = 1;
 }
-
 //
 // Action Definitions
 //
-
 // Action is a well-defined, ordered and small set of transactions for a unit of work
 // that the client wants to perform on the blockchain. Clients provide parameters known
 // to them in the action.
@@ -815,10 +693,8 @@ message Action {
     // The ID of this action, which is unique within an intent. It must match
     // the index of the action's location in the SubmitAction's actions field.
     uint32 id = 1;
-
     // The type of action to perform.
     oneof type {
-        
         OpenAccountAction              open_account               = 2;
         CloseEmptyAccountAction        close_empty_account        = 3;
         CloseDormantAccountAction      close_dormant_account      = 4;
@@ -830,7 +706,6 @@ message Action {
         FeePaymentAction               fee_payment                = 10;
     }
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -842,27 +717,21 @@ message Action {
 message OpenAccountAction {
     // The type of account, which will dictate its intended use
     common.v1.AccountType account_type = 1;
-
     // The owner of the account. For accounts liked to a user's 12 words, this is
     // the verified parent owner account public key. All other account types should
     // set this to the authority value.
     common.v1.SolanaAccountId owner = 2;
-
     // The index used to for accounts that are derived from owner
     uint64 index = 3;
-
     // The public key of the private key that has authority over the opened token account
     common.v1.SolanaAccountId authority = 4;
-
     // The token account being opened
     common.v1.SolanaAccountId token = 5;
-
     // The signature is of serialize(OpenAccountAction) without this field set
     // using the private key of the authority account. This provides a proof
     // of authorization to link authority to owner.
     common.v1.Signature authority_signature = 6;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -872,15 +741,12 @@ message OpenAccountAction {
 message CloseEmptyAccountAction {
     // The type of account being closed
     common.v1.AccountType account_type = 1;
-
     // The public key of the private key that has authority over the token account
     // that should be closed
     common.v1.SolanaAccountId authority = 2;
-
     // The token account being closed
     common.v1.SolanaAccountId token = 3;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -893,18 +759,14 @@ message CloseEmptyAccountAction {
 message CloseDormantAccountAction {
     // The type of account being closed
     common.v1.AccountType account_type = 1;
-
     // The public key of the private key that has authority over the token account
     // that should be closed
     common.v1.SolanaAccountId authority = 2;
-
     // The token account being closed
     common.v1.SolanaAccountId token = 3;
-
     // The destination where funds are withdrawn to
     common.v1.SolanaAccountId destination = 4 ;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -914,17 +776,13 @@ message CloseDormantAccountAction {
 message NoPrivacyTransferAction {
     // The public key of the private key that has authority over source
     common.v1.SolanaAccountId authority = 1;
-
     // The source account where funds are transferred from
     common.v1.SolanaAccountId source = 2;
-
     // The destination account where funds are transferred to
     common.v1.SolanaAccountId destination = 3;
-
     // The Kin quark amount to transfer
     uint64 amount = 4;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -937,22 +795,17 @@ message NoPrivacyTransferAction {
 message NoPrivacyWithdrawAction {
     // The public key of the private key that has authority over source
     common.v1.SolanaAccountId authority = 1;
-
     // The source account where funds are transferred from
     common.v1.SolanaAccountId source = 2;
-
     // The destination account where funds are transferred to
     common.v1.SolanaAccountId destination = 3;
-
     // The intended Kin quark amount to withdraw
     uint64 amount = 4;
-
+    
     // Whether the account is closed afterwards. This is always true, since there
     // are no current se cases to leave it open.
     bool should_close = 5;
 }
-
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -969,17 +822,13 @@ message NoPrivacyWithdrawAction {
 message TemporaryPrivacyTransferAction {
     // The public key of the private key that has authority over source
     common.v1.SolanaAccountId authority = 1;
-
     // The source account where funds are transferred from
     common.v1.SolanaAccountId source = 2;
-
     // The destination account where funds are transferred to
     common.v1.SolanaAccountId destination = 3;
-
-    // The Kin quark amount to transfer
+     // The Kin quark amount to transfer
     uint64 amount = 4;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -996,17 +845,13 @@ message TemporaryPrivacyTransferAction {
 message TemporaryPrivacyExchangeAction {
     // The public key of the private key that has authority over source
     common.v1.SolanaAccountId authority = 1;
-
     // The source account where funds are exchanged from
     common.v1.SolanaAccountId source = 2;
-
     // The destination account where funds are exchanged to
     common.v1.SolanaAccountId destination = 3;
-
-    // The Kin quark amount to exchange
+     // The Kin quark amount to exchange
     uint64 amount = 4;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -1017,7 +862,6 @@ message PermanentPrivacyUpgradeAction {
     // The action ID of the temporary private transfer or exchange to upgrade
     uint32 action_id = 1;
 }
-
 // Transaction 1
 //  Instructions:
 //    1. system::AdvanceNonce
@@ -1034,25 +878,19 @@ message FeePaymentAction {
         CODE        = 0; // Hardcoded $0.01 USD fee to a dynamic fee account specified by server
         THIRD_PARTY = 1; // Third party fee specified at time of payment request
     }
-
     // The public key of the private key that has authority over source
     common.v1.SolanaAccountId authority = 1;
-
     // The source account where funds are transferred from
     common.v1.SolanaAccountId source = 2;
-
     // The Kin quark amount to transfer
     uint64 amount = 3;
-
     // The destination where the fee payment is being made for fees outside of
     // Code.
     common.v1.SolanaAccountId destination = 5;
 }
-
 //
 // Server Parameter Definitions
 //
-
 // ServerParameter are a set of parameters known and returned by server that
 // enables clients to complete transaction construction. Any necessary proofs,
 // which are required to be locally verifiable, are also provided to ensure
@@ -1060,14 +898,11 @@ message FeePaymentAction {
 message ServerParameter {
     // The action the server parameters belong to
     uint32 action_id = 1;
-
     // The set of nonces used for the action. Server will only provide values
     // for transactions requiring client signatures.
-    repeated NoncedTransactionMetadata nonces = 2;
-
+    repeated NoncedTransactionMetadata nonces = 2 ;
     // The type of server parameter which maps to the type of action requested
     oneof type {
-        
         OpenAccountServerParameter              open_account               = 3;
         CloseEmptyAccountServerParameter        close_empty_account        = 4;
         CloseDormantAccountServerParameter      close_dormant_account      = 5;
@@ -1079,114 +914,89 @@ message ServerParameter {
         FeePaymentServerParameter               fee_payment                = 11;
     }
 }
-
 message NoncedTransactionMetadata {
     // The nonce account to use in the system::AdvanceNonce instruction
     common.v1.SolanaAccountId nonce = 1;
-
     // The blockhash to set in the transaction
     common.v1.Blockhash blockhash = 2;
 }
-
 message OpenAccountServerParameter {
     // There are no transactions requiring client signatures
 }
-
 message CloseEmptyAccountServerParameter {
     // There are no action-specific server parameters
 }
-
 message CloseDormantAccountServerParameter {
-    // There are no action-specific server parameters
+     // There are no action-specific server parameters
 }
-
 message NoPrivacyTransferServerParameter {
     // There are no action-specific server parameters
 }
-
 message NoPrivacyWithdrawServerParameter {
     // There are no action-specific server parameters
 }
-
 message TemporaryPrivacyTransferServerParameter {
     // The treasury that will be used to split payments and provide a level of privacy
     common.v1.SolanaAccountId treasury = 1;
-
     // A recent root server observed from the treasury
     common.v1.Hash recent_root = 2;
 }
-
 message TemporaryPrivacyExchangeServerParameter {
     // The treasury that will be used to split payments and provide a level of privacy
     common.v1.SolanaAccountId treasury = 1;
-
     // A recent root server observed from the treasury
     common.v1.Hash recent_root = 2;
 }
-
 message PermanentPrivacyUpgradeServerParameter {
     // The new commitment that is being paid
     common.v1.SolanaAccountId new_commitment = 1;
-
     // The new commitment account's transcript. This is purely needed by client
     // to validate merkle_root with commitment PDA logic.
     common.v1.Hash new_commitment_transcript = 2;
-
     // The new commitment account's destination. This is purely needed by client
     // to validate merkle_root with commitment PDA logic.
     common.v1.SolanaAccountId new_commitment_destination = 3;
-
     // The new commitment account's payment amount. This is purely needed by client
     // to validate merkle_root with commitment PDA logic.
     uint64 new_commitment_amount = 4;
-
     // The merkle root, which was the recent root used in the new commitment account
     common.v1.Hash merkle_root = 5;
-
     // The merkle proof that validates the original commitment occurred prior to
     // the new commitment server is asking client to pay
-    repeated common.v1.Hash merkle_proof = 6;
+    repeated common.v1.Hash merkle_proof = 6 ;
 }
-
 message FeePaymentServerParameter {
     // The destination account where Code fee payments should be sent. This will
     // only be set when the corresponding FeePaymentAction Type is CODE.
     common.v1.SolanaAccountId code_destination = 1;
 }
-
 //
 // Structured Error Definitions
 //
-
 message ErrorDetails {
     oneof type {
         ReasonStringErrorDetails     reason_string     = 1;
         InvalidSignatureErrorDetails invalid_signature = 2;
-        IntentDeniedErrorDetails     intent_denied     = 3; // Set when SubmitIntentResponse.Error.Code = DENIED
+        DeniedErrorDetails           denied            = 3;
     }
 }
-
 message ReasonStringErrorDetails {
     // Human readable string indicating the failure.
-    string reason = 1;
+    string reason = 1 ;
 }
-
 message InvalidSignatureErrorDetails {
-    // The action whose signature mismatched
-    uint32 action_id = 1;
-
+    // The action whose signature mismatched 
+    uint32 action_id = 1; 
     // The transaction the server expected to have signed.
     common.v1.Transaction expected_transaction = 2;
-
     // The signature that was provided by the client.
     common.v1.Signature provided_signature = 3;
 }
-
-message IntentDeniedErrorDetails {
-    Reason reason = 1;
-    enum Reason {
-        // Reason not given and is obscured from client
-        UNKNOWN = 0;
+message DeniedErrorDetails {
+    Code code = 1;
+    enum Code {
+        // Reason code not yet defined
+        UNSPECIFIED = 0;
         // Phone number has exceeded its free account allocation
         TOO_MANY_FREE_ACCOUNTS_FOR_PHONE_NUMBER = 1;
         // Device has exceeded its free account allocation
@@ -1197,61 +1007,49 @@ message IntentDeniedErrorDetails {
         // The device is not supported (eg. it fails device attestation checks)
         UNSUPPORTED_DEVICE = 4;
     }
+    // Human readable string indicating the failure.
+    string reason = 2 ;
 }
-
 //
 // Other Model Definitions
 //
-
 // UpgradeableIntent is an intent whose actions can be upgraded.
 message UpgradeableIntent {
     // The intent ID
     common.v1.IntentId id = 1;
-
     // The set of private actions that can be upgraded
-    repeated UpgradeablePrivateAction actions = 2;
-
+    repeated UpgradeablePrivateAction actions = 2 ;
     message UpgradeablePrivateAction {
         // The transaction blob that was signed by the client. Clients *MUST* use
         // the source and destination account in the timelock::TransferWithAuthority
         // instruction to validate all fields provided by server by locally computing
         // the expected addresses.
         common.v1.Transaction transaction_blob = 1;
-
         // The client's signature for the transaction. Clients MUST use this to
         // locally validate the transaction blob provided by server.
         common.v1.Signature client_signature = 2;
-
         // The action ID of this transaction
         uint32 action_id = 3;
-
         // The source account's type, which hints how to efficiently derive source
         common.v1.AccountType source_account_type = 4;
-
+;
         // The source account's derivation index, which hints how to efficiently derive source
         uint64 source_derivation_index = 5;
-
         // The original destination account that was paid by the treasury
         common.v1.SolanaAccountId original_destination = 6;
-
         // The original quark amount for the action
         uint64 original_amount = 7;
-
         // The treasury used for this the private action
         common.v1.SolanaAccountId treasury = 8;
-
         // The recent root observed at the time of intent creation for this private action
         common.v1.Hash recent_root = 9;
     }
 }
-
 message PaymentHistoryItem {
     // The cursor position of this item.
     Cursor cursor = 1;
-
     // Exchange data related to the payment
     ExchangeData exchange_data = 2;
-
     // Is this payment a send or receive?
     PaymentType payment_type = 3;
     enum PaymentType {
@@ -1259,82 +1057,61 @@ message PaymentHistoryItem {
         SEND  = 1;
         RECEIVE = 2;
     }
-
     // If the payment was a SEND, was it a withdraw?
     bool is_withdraw = 4;
-
     // If the payment was a RECEIVE, was it a deposit?
     bool is_deposit = 5;
-
     // The timestamp of the payment
     google.protobuf.Timestamp timestamp = 6;
-
     // Was the payment involved in a remote send?
     bool is_remote_send = 7;
-
     // If payment_type is RECEIVE and is_remote_send is true, was the funds being
     // returned back to the issuer?
     bool is_returned = 8;
-
     // If payment_type is RECEIVE, is this receive an airdrop part of a reward, incentive, etc.?
     bool is_airdrop = 9;
-
     // If is_airdrop is true, the type of airdrop received.
     AirdropType airdrop_type = 10;
-
-    // Is this a micro payment?
+    // Is this a micro payment? 
     bool is_micro_payment = 11;
-
     // The intent ID associated with this history item
     common.v1.IntentId intent_id = 12;
 }
-
 // ExchangeData defines an amount of Kin with currency exchange data
 message ExchangeData {
     // ISO 4217 alpha-3 currency code.
     string currency = 1;
-
     // The agreed upon exchange rate. This might not be the same as the
     // actual exchange rate at the time of intent or fund transfer.
     double exchange_rate = 2;
-
     // The agreed upon transfer amount in the currency the payment was made
     // in.
     double native_amount = 3;
-
     // The exact amount of quarks to send. This will be used as the source of
     // truth for validating transaction transfer amounts.
     uint64 quarks = 4;
 }
-
 message ExchangeDataWithoutRate {
     // ISO 4217 alpha-3 currency code.
     string currency = 1;
-
     // The agreed upon transfer amount in the currency the payment was made
     // in.
     double native_amount = 2;
 }
-
 message AdditionalFeePayment {
     // Destination Kin token account where the fee payment will be made
     common.v1.SolanaAccountId destination = 1;
-
     // Fee percentage, in basis points, of the total quark amount of a payment.
-    uint32 fee_bps = 2;
+    uint32 fee_bps = 2 ;
 }
-
 message SendLimit {
     // Remaining limit to apply on the next transaction
     float next_transaction = 1;
-
     // Maximum allowed on a per-transaction basis
     float max_per_transaction = 2;
-
     // Maximum allowed on a per-day basis
     float max_per_day = 3;
 }
-
 message DepositLimit {
     // Maximum quarks that may be deposited at any time. Server will guarantee
     // this threshold will be below enforced dollar value limits, while also
@@ -1342,38 +1119,29 @@ message DepositLimit {
     // max payment sends. Total dollar value limits may be spread across many deposits.
     uint64 max_quarks = 1;
 }
-
 message MicroPaymentLimit {
     // Maximum native amount that can be applied per micro payment transaction
     float max_per_transaction = 1;
-
     // Minimum native amount that can be applied per micro payment transaction
     float min_per_transaction = 2;
 }
-
 message BuyModuleLimit {
     // Minimum amount that can be purchased through the buy module
     float min_per_transaction = 1;
-
     // Maximum amount that can be purchased through the buy module
     float max_per_transaction = 2;
 }
-
 message TippedUser {
-    Platform platform = 1;
+    Platform platform = 1 ;
     enum Platform {
         UNKNOWN = 0;
         TWITTER = 1;
     }
-
-    string username = 2;
+    string username = 2 ;
 }
-
-
 message Cursor {
-    bytes value = 1;
+    bytes value = 1 ;
 }
-
 enum AirdropType {
     UNKNOWN = 0;
     // Reward for giving someone else their first Kin

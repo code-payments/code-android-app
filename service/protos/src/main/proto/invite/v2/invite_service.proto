@@ -14,33 +14,27 @@ service Invite {
     // GetInvitationStatus gets a phone number's invitation status.
     rpc GetInvitationStatus(GetInvitationStatusRequest) returns (GetInvitationStatusResponse);
 }
-
 message GetInviteCountRequest {
     // The user to query for their invite count
     common.v1.UserId user_id = 1;
 }
-
 message GetInviteCountResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
     // The number of invites the user is allowed to issue.
     uint32 invite_count = 2;
 }
-
 message InvitePhoneNumberRequest {
     // The source for the invite. One of these values must be present
     oneof source {
         common.v1.UserId user = 1;
         InviteCode invite_code = 3;
     }
-
     // The phone number receiving the invite.
     common.v1.PhoneNumber receiver = 2;
 }
-
 message InvitePhoneNumberResponse {
     Result result = 1;
     enum Result {
@@ -63,33 +57,26 @@ message InvitePhoneNumberResponse {
         // The invite code has expired.
         INVITE_CODE_EXPIRED = 7;
     }
-
 }
-
 message GetInvitationStatusRequest {
     // The user being queried for their invitation status.
     common.v1.UserId user_id = 1;
 }
-
 message GetInvitationStatusResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
     // The user's invitation status
     InvitationStatus status = 2;
 }
-
 message InviteCode {
     // Regex for invite codes
-    string value = 1;
+    string value = 1 ;
 }
-
 message PageToken {
-    bytes value = 1;
+    bytes value = 1 ;
 }
-
 enum InvitationStatus {
     // The phone number has never been invited.
     NOT_INVITED = 0;
@@ -101,4 +88,3 @@ enum InvitationStatus {
     // The phone number was invited, but revoked at a later time.
     REVOKED = 3;
 }
-
