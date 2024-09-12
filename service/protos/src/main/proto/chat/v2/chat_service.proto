@@ -6,6 +6,7 @@ option objc_class_prefix = "CPBChatV2";
 import "common/v1/model.proto";
 import "transaction/v2/transaction_service.proto";
 import "google/protobuf/timestamp.proto";
+
 service Chat {
     // GetChats gets the set of chats for an owner account using a paged API.
     // This RPC is aware of all identities tied to the owner account.
@@ -143,28 +144,50 @@ message StreamChatEventsResponse {
 message StartChatRequest {
     common.v1.SolanaAccountId owner = 1;
     common.v1.Signature signature = 2;
+    ChatMemberIdentity self = 3;
     oneof parameters {
-        StartTipChatParameters tip_chat = 3;
+        StartTwoWayChatParameters two_way_chat = 4;
         // GroupChatParameters group_chat  = 4;
     }
 }
-// Starts a two-way chat between a tipper and tippee. Chat members are
-// inferred from the 12 word public keys involved in the intent. Only
-// the tippee can start the chat, and the tipper is anonymous if this
-// is the first between the involved Code users.
-message StartTipChatParameters {
-    // The tip's intent ID, which can be extracted from the reference in
-    // an ExchangeDataContent message content where the verb is RECEIVED_TIP.
-    common.v1.IntentId intent_id = 1;
+// StartTwoWayChatParameters contains the parameters required to start
+// or recover a two way chat between the caller and the specified 'other_user'.
+//
+// The 'other_user' is currently the 'tip_address', normally retrieved from
+// user.Identity.GetTwitterUser(username).
+message StartTwoWayChatParameters {
+    // The account id of the user the caller wishes to chat with.
+    //
+    // This will be the `tip` (or equivalent) address.
+    common.v1.SolanaAccountId other_user = 1;
+    // The intent_id of the payment that initiated the chat/friendship.
+    //
+    // This field is optional. It is used as an optimization when the server has not
+    // yet observed the establishment of a friendship. In this case, the server will
+    // use the provided intent_id to verify the friendship.
+    //
+    // This is most likely to occur when initiating a chat with a user for the first
+    // time.
+    common.v1.IntentId intent_id = 2;
+    // The identity of the other user.
+    //
+    // Note: This can/should be removed with proper intent plumbing.
+    ChatMemberIdentity identity = 3;
 }
 message StartChatResponse {
     Result result = 1;
     enum Result {
-        OK                = 0;
-        DENIED            = 1;
+        OK = 0;
+        // DENIED indicates the caller is not allowed to start/join the chat.
+        DENIED = 1;
+        // INVALID_PRAMETER indicates one of the parameters is invalid.
         INVALID_PARAMETER = 2;
+        // PENDING indicates that the payment (for chat) intent is pending confirmation
+        // before the service will permit the creation of the chat. This can happen in
+        // cases where the block chain is particularly slow (beyond our RPC timeouts).
+        PENDING = 3;
     }
-    // The chat to use if the RPC was successful
+    // The chat to use if the RPC was successful.
     ChatMetadata chat = 2;
 }
 message SendMessageRequest {

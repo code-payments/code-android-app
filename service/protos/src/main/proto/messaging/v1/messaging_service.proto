@@ -5,6 +5,7 @@ option java_package = "com.codeinc.gen.messaging.v1";
 option objc_class_prefix = "CPBMessagingV1";
 import "common/v1/model.proto";
 import "transaction/v2/transaction_service.proto";
+
 import "google/protobuf/timestamp.proto";
 service Messaging {
     // OpenMessageStream opens a stream of messages. Messages are routed using the
