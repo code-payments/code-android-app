@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Привязать номер телефона</string>
   <string name="action_logIn">Войти</string>
   <string name="action_logout">Выйти</string>
+  <string name="action_messageGetCode">Отправьте сообщение @getcode для привязки</string>
   <string name="action_mute">Отключить звук</string>
   <string name="action_next">Далее</string>
   <string name="action_noTryAgain">Нет, попробовать еще раз</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Приветственный бонус</string>
   <string name="subtitle_chooseCountry">Выбрать страну</string>
   <string name="subtitle_comingSoon">Скоро выйдет</string>
+  <string name="subtitle_connectXTweetText">\@getcode Я хотел бы привязать свой аккаунт X, чтобы получать советы от людей со всего мира</string>
   <string name="subtitle_delete">Удалить</string>
   <string name="subtitle_deleteAccountDescription">Убедитесь, что вы сохранили у себя свою секретную фразу восстановления, а затем введите «‎Удалить», чтобы удалить свою учетную запись Code. Это действие невозможно отменить.</string>
   <string name="subtitle_didntGetCode">Не получили код на %1$s?</string>

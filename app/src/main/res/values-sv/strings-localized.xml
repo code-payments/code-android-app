@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Länka ett telefonnummer</string>
   <string name="action_logIn">Logga in</string>
   <string name="action_logout">Logga ut</string>
+  <string name="action_messageGetCode">Skriv till @getcode för att upprätta kontakt</string>
   <string name="action_mute">Stäng av ljud</string>
   <string name="action_next">Nästa</string>
   <string name="action_noTryAgain">Nej, försök igen</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Välkomstbonus</string>
   <string name="subtitle_chooseCountry">Välj ett land</string>
   <string name="subtitle_comingSoon">Kommer snart</string>
+  <string name="subtitle_connectXTweetText">\@getcode Jag skulle vilja koppla mitt X-konto så att jag kan få tips från människor över hela världen</string>
   <string name="subtitle_delete">Radera</string>
   <string name="subtitle_deleteAccountDescription">Se till att du har sparat din hemliga återställningsfras och skriv sedan \"Radera\" för att ta bort ditt Code-konto. Denna åtgärd kan inte ångras.</string>
   <string name="subtitle_didntGetCode">Fick du ingen kod på %1$s?</string>

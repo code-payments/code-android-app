@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Telefon Numarası Bağla</string>
   <string name="action_logIn">Giriş Yap</string>
   <string name="action_logout">Çıkış Yap</string>
+  <string name="action_messageGetCode">Bağlamak için @getcode\'a mesaj gönder</string>
   <string name="action_mute">Sesi kapat</string>
   <string name="action_next">İleri</string>
   <string name="action_noTryAgain">Hayır, Tekrar Dene</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Hoş Geldiniz Bonusu</string>
   <string name="subtitle_chooseCountry">Ülke seç</string>
   <string name="subtitle_comingSoon">Çok Yakında</string>
+  <string name="subtitle_connectXTweetText">\@getcode Dünyanın her yerindeki insanlardan ipuçları alabilmek için X hesabımı bağlamak istiyorum</string>
   <string name="subtitle_delete">Sil</string>
   <string name="subtitle_deleteAccountDescription">Gizli Kurtarma İfadeni kaydettiğinden emin ol ve sonra Code hesabını silmek için \"Sil\"e bas. Bu eylem geri alınamaz.</string>
   <string name="subtitle_didntGetCode">%1$s\'de bir kod almadın mı?</string>

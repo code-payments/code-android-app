@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Koble til et telefonnummer</string>
   <string name="action_logIn">Logg inn</string>
   <string name="action_logout">Logg ut</string>
+  <string name="action_messageGetCode">Send @getcode for å koble til</string>
   <string name="action_mute">Slå av lyden</string>
   <string name="action_next">Neste</string>
   <string name="action_noTryAgain">Nei, prøv igjen</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Velkomstbonus</string>
   <string name="subtitle_chooseCountry">Velg et land</string>
   <string name="subtitle_comingSoon">Kommer snart</string>
+  <string name="subtitle_connectXTweetText">\@getcode Jeg vil gjerne koble til X-kontoen min slik at jeg kan motta tips fra folk fra hele verden</string>
   <string name="subtitle_delete">Slett</string>
   <string name="subtitle_deleteAccountDescription">Sørg for at du har den hemmelige gjenopprettings-setningen din lagret, og velg deretter «Slett» for å slette Code-kontoen din. Denne handlingen er irreversibel.</string>
   <string name="subtitle_didntGetCode">Fikk du ikke en kode på %1$s?</string>

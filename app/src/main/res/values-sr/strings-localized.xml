@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Poveži broj telefona</string>
   <string name="action_logIn">Prijavi se</string>
   <string name="action_logout">Odjavi se</string>
+  <string name="action_messageGetCode">Пoшаљите поруку @getcode за повезивање</string>
   <string name="action_mute">Искључи звук</string>
   <string name="action_next">Sledeći</string>
   <string name="action_noTryAgain">Не, покушајте поново</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus dobrodošlice</string>
   <string name="subtitle_chooseCountry">Izaberi zemlju</string>
   <string name="subtitle_comingSoon">Долази ускоро</string>
+  <string name="subtitle_connectXTweetText">\@getcode Желим да повежем свој X налог да бих добијао/ла савете од особа из целог света</string>
   <string name="subtitle_delete">Избриши</string>
   <string name="subtitle_deleteAccountDescription">Проверите да ли је сачувана ваша тајна фраза за опоравак, а онда унесите \"Обриши\" да бисте обрисали свој Code налог. Ова радња се не може поништити.</string>
   <string name="subtitle_didntGetCode">Niste dobili kod na %1$s?</string>
