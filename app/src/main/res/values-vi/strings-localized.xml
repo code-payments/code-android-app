@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Liên kết Số Điện thoại</string>
   <string name="action_logIn">Đăng nhập</string>
   <string name="action_logout">Đăng xuất</string>
+  <string name="action_messageGetCode">Nhắn @getcode để kết nối</string>
   <string name="action_mute">Tắt tiếng</string>
   <string name="action_next">Tiếp theo</string>
   <string name="action_noTryAgain">Không, Thử Lại</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Thưởng chào mừng</string>
   <string name="subtitle_chooseCountry">Chọn một quốc gia</string>
   <string name="subtitle_comingSoon">Sắp ra mắt</string>
+  <string name="subtitle_connectXTweetText">\@getcode Tôi muốn kết nối tài khoản X của mình để có thể nhận được tiền típ từ mọi người trên khắp thế giới</string>
   <string name="subtitle_delete">Xóa</string>
   <string name="subtitle_deleteAccountDescription">Bạn nhớ lưu Cụm từ Khôi phục Bí mật, sau đó nhập \"Xóa\" để xóa tài khoản Code của mình. Bạn không thể đảo ngược hành động này.</string>
   <string name="subtitle_didntGetCode">Bạn không nhận được mã xác minh tại %1$s?</string>

@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Associar um Número de Telefone</string>
   <string name="action_logIn">Iniciar Sessão</string>
   <string name="action_logout">Terminar Sessão</string>
+  <string name="action_messageGetCode">Enviar mensagem a @getcode para Conectar</string>
   <string name="action_mute">Silenciar</string>
   <string name="action_next">Próximo</string>
   <string name="action_noTryAgain">Não, tentar de novo</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bónus de boas-vindas</string>
   <string name="subtitle_chooseCountry">Escolher um país</string>
   <string name="subtitle_comingSoon">Brevemente</string>
+  <string name="subtitle_connectXTweetText">\@getcode Gostava de ligar a minha conta X para poder receber dicas de pessoas de todo o mundo</string>
   <string name="subtitle_delete">Eliminar</string>
   <string name="subtitle_deleteAccountDescription">Certifique-se de que guardou a sua frase de recuperação secreta, e depois selecione \"Eliminar\" para eliminar a sua conta da Code. Esta ação é irreversível.</string>
   <string name="subtitle_didntGetCode">Não recebeu um código em %1$s?</string>

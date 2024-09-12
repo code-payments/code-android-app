@@ -10,6 +10,7 @@ import com.getcode.media.MediaScanner
 import com.getcode.util.toByteArray
 import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.ScannerError
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -55,7 +56,7 @@ class KikCodeAnalyzer @Inject constructor(
 
             }.onFailure { error ->
                 when (error) {
-                    is KikCodeScanner.NoKikCodeFoundException -> Unit
+                    is ScannerError -> Unit
                     else -> ErrorUtils.handleError(error)
                 }
                 imageProxy.close()
@@ -70,7 +71,7 @@ class KikCodeAnalyzer @Inject constructor(
                     onCodeScanned(result)
                 }.onFailure { error ->
                     when (error) {
-                        is KikCodeScanner.NoKikCodeFoundException -> onNoCodeFound()
+                        is ScannerError -> onNoCodeFound()
                         else -> ErrorUtils.handleError(error)
                     }
                 }

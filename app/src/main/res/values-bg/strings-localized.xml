@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Свързване на телефонен номер </string>
   <string name="action_logIn">Вход </string>
   <string name="action_logout">Изход </string>
+  <string name="action_messageGetCode">Изпратете съобщение @getcode за свързване</string>
   <string name="action_mute">Изключване на звука </string>
   <string name="action_next">Следващ </string>
   <string name="action_noTryAgain">Не, опитайте отново</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Бонус за донре дошли</string>
   <string name="subtitle_chooseCountry">Изберете държава </string>
   <string name="subtitle_comingSoon">Предстоящо</string>
+  <string name="subtitle_connectXTweetText">\@getcode Искам да свържа моя акаунт в X, за да мога да получавам съвети от хора по цял свят</string>
   <string name="subtitle_delete">Изтриване</string>
   <string name="subtitle_deleteAccountDescription">Уверете се, че сте запазили своята Тайна фраза за възстановяване и след това въведете \"Изтриване\", за за изтриете своя профил в Код. Това действие е необратимо.</string>
   <string name="subtitle_didntGetCode">Не получихте код на %1$s? </string>

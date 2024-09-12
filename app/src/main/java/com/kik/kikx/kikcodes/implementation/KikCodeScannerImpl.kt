@@ -2,6 +2,7 @@ package com.kik.kikx.kikcodes.implementation
 
 import android.util.Base64
 import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.ScanQuality
 import com.kik.kikx.models.GroupInviteCode
 import com.kik.kikx.models.ScannableKikCode
 import com.kik.scan.GroupKikCode
@@ -11,10 +12,6 @@ import com.kik.scan.Scanner
 import com.kik.scan.UsernameKikCode
 
 class KikCodeScannerImpl : KikCodeScanner {
-
-    companion object {
-        private const val SCAN_QUALITY = 3
-    }
 
     private fun KikCode.toModelKikCode(): ScannableKikCode {
         return when (this) {
@@ -27,16 +24,23 @@ class KikCodeScannerImpl : KikCodeScanner {
             }
             is UsernameKikCode -> ScannableKikCode.UsernameKikCode(username, nonce, colour)
             is RemoteKikCode -> ScannableKikCode.RemoteKikCode(payloadId, colour)
-            else -> throw Exception("Unsupported Kik code type")
+            else -> throw KikCodeScanner.UnsupportedKikCodeFoundException(this)
         }
     }
 
-    override suspend fun scanKikCode(imageData: ByteArray, width: Int, height: Int): Result<ScannableKikCode> {
-        val source = PlanarYUVLuminanceSource(imageData, width, height, 0, 0, width, height, false)
+    override suspend fun scanKikCode(imageData: ByteArray, width: Int, height: Int, quality: ScanQuality): Result<ScannableKikCode> {
+        val source = PlanarYUVLuminanceSource(imageData, width, height)
 
-        return try {
-            val scanResult = Scanner.scan(source.matrix, width, height, SCAN_QUALITY) ?: throw KikCodeScanner.NoKikCodeFoundException()
-            runCatching { KikCode.parse(scanResult.data)?.toModelKikCode() ?: throw KikCodeScanner.NoKikCodeFoundException() }
+        try {
+            val scanResult = Scanner.scan(source.matrix, width, height, quality.headerValue)
+                ?: return Result.failure(KikCodeScanner.NoKikCodeFoundException())
+
+            val kikCode = KikCode.parse(scanResult.data)
+                ?: return Result.failure(KikCodeScanner.FailedToParseCodeException(scanResult))
+
+            val scannable = kikCode.toModelKikCode() // will throw UnsupportedKikCodeFoundException
+
+            return Result.success(scannable)
         } catch (e: Exception) {
             return Result.failure(e)
         }

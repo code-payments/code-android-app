@@ -2,6 +2,7 @@ package com.getcode.model
 
 import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
+import com.codeinc.gen.user.v1.friendshipCostOrNull
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
@@ -21,7 +22,9 @@ data class TwitterUser(
     override val imageUrl: String?,
     val displayName: String,
     val followerCount: Int,
-    val verificationStatus: VerificationStatus
+    val verificationStatus: VerificationStatus,
+    val costOfFriendship: Fiat,
+    val isFriend: Boolean,
 ): TipMetadata {
 
     override val platform: String = "X"
@@ -52,7 +55,10 @@ data class TwitterUser(
                 imageUrl = avatarUrl,
                 followerCount = proto.followerCount,
                 tipAddress = tipAddress,
-                verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown
+                verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown,
+//                costOfFriendship = kotlin.runCatching { proto.friendshipCostOrNull }.getOrNull()
+                costOfFriendship = Fiat(currency = CurrencyCode.USD, amount = 1.00),
+                isFriend = runCatching { proto.isFriend }.getOrNull() ?: false
             )
         }
     }

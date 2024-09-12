@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">एक फोन को नंबर लिंक करें</string>
   <string name="action_logIn">लॉग इन करें</string>
   <string name="action_logout">लॉग आउट करें</string>
+  <string name="action_messageGetCode">कनेक्ट करने के लिए @getcode पर मेसेज भेजें</string>
   <string name="action_mute">म्यूट करें</string>
   <string name="action_next">अगला</string>
   <string name="action_noTryAgain">नहीं, दोबारा कोशिश करें</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">वेलकम बोनस</string>
   <string name="subtitle_chooseCountry">एक कंट्री चुनें</string>
   <string name="subtitle_comingSoon">जल्द आ रहा है</string>
+  <string name="subtitle_connectXTweetText">\@getcode मैं अपना X अकाउंट कनेक्ट करना चाहता हूं ताकि मैं दुनिया भर के लोगों से टिप्स प्राप्त कर सकूं</string>
   <string name="subtitle_delete">मिटाएं</string>
   <string name="subtitle_deleteAccountDescription">सुनिश्चित करें कि आपके पास अपना सीक्रेट रिकवरी फ्रेज सेव है. इसके बाद अपना Code खाता मिटाने के लिए \"Delete\" टाइप करें. इस कार्रवाई को पहले जैसा नहीं किया जा सकता.</string>
   <string name="subtitle_didntGetCode">%1$s पर कोड प्राप्त नहीं हुआ?</string>

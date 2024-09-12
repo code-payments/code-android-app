@@ -6,16 +6,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.paging.compose.LazyPagingItems
+import com.getcode.model.chat.Chat
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ChatByUsernameScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.components.chat.ChatNode
 
 @Composable
 fun ChatListScreen(
     viewModel: ChatListViewModel,
+    conversations: LazyPagingItems<Chat>
 ) {
     val navigator = LocalCodeNavigator.current
     CodeScaffold(
@@ -32,11 +36,11 @@ fun ChatListScreen(
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-//            items(conversations.itemCount) { index ->
-//                conversations[index]?.let { chat ->
-//                    ChatNode(chat = chat) { }
-//                }
-//            }
+            items(conversations.itemCount) { index ->
+                conversations[index]?.let { chat ->
+                    ChatNode(chat = chat) { }
+                }
+            }
         }
     }
 }

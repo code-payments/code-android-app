@@ -28,8 +28,6 @@ service Account {
     rpc LinkAdditionalAccounts(LinkAdditionalAccountsRequest) returns (LinkAdditionalAccountsResponse);
 }
 
-
-
 message IsCodeAccountRequest {
     // The owner account to check against.
     common.v1.SolanaAccountId owner = 1;
@@ -42,8 +40,6 @@ message IsCodeAccountRequest {
 
 }
 
-
-
 message IsCodeAccountResponse {
     Result result = 1;
     enum Result {
@@ -54,11 +50,7 @@ message IsCodeAccountResponse {
         // The account exists, but at least one timelock account is unlocked.
         UNLOCKED_TIMELOCK_ACCOUNT = 2;
     }
-
-
 }
-
-
 
 message GetTokenAccountInfosRequest {
     // The owner account, which can also be thought of as a parent account for this
@@ -73,8 +65,6 @@ message GetTokenAccountInfosRequest {
 
 }
 
-
-
 message GetTokenAccountInfosResponse {
     Result result = 1;
     enum Result {
@@ -82,12 +72,8 @@ message GetTokenAccountInfosResponse {
         NOT_FOUND = 1;
     }
 
-
-
     map<string, TokenAccountInfo> token_account_infos = 2;
 }
-
-
 
 message LinkAdditionalAccountsRequest {
     // The owner account to link to
@@ -104,11 +90,9 @@ message LinkAdditionalAccountsRequest {
     // must be generated without this array set. The expected ordering of signatures:
     //  1. owner
     //  2. swap_authority
-    repeated common.v1.Signature signatures = 3;
+    repeated common.v1.Signature signatures = 3 ;
 
 }
-
-
 
 message LinkAdditionalAccountsResponse {
     Result result = 1;
@@ -121,11 +105,7 @@ message LinkAdditionalAccountsResponse {
         // An account being linked is not valid
         INVALID_ACCOUNT = 2;
     }
-
-
 }
-
-
 
 message TokenAccountInfo {
     // The token account's address
@@ -164,8 +144,6 @@ message TokenAccountInfo {
         BALANCE_SOURCE_CACHE = 2;
     }
 
-
-
     // The balance in quarks, as observed by Code. This may not reflect the value
     // on the blockchain and could be non-zero even if the account hasn't been created.
     // Use balance_source to determine how this value was calculated.
@@ -197,8 +175,6 @@ message TokenAccountInfo {
         MANAGEMENT_STATE_CLOSED = 7;
     }
 
-
-
     // The state of the account on the blockchain.
     BlockchainState blockchain_state = 9;
     enum BlockchainState {
@@ -210,8 +186,6 @@ message TokenAccountInfo {
         // The account is created and exists on the blockchain.
         BLOCKCHAIN_STATE_EXISTS = 2;
     }
-
-
 
     // For temporary incoming accounts only. Flag indicates whether client must
     // actively try rotating it by issuing a ReceivePaymentsPrivately intent. In
@@ -234,8 +208,6 @@ message TokenAccountInfo {
         // back to the issuer. Attempting to claim it will fail.
         CLAIM_STATE_EXPIRED = 3;
     }
-
-
 
     // For account types used as an intermediary for sending money between two
     // users (eg. REMOTE_SEND_GIFT_CARD), this represents the original exchange
@@ -265,5 +237,3 @@ message TokenAccountInfo {
     // the tiem created on the blockchain.
     google.protobuf.Timestamp created_at = 17;
 }
-
-

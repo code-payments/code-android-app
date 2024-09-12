@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
+import com.codeinc.gen.user.v1.user
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
@@ -17,13 +18,18 @@ import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.ConversationCashFeature
+import com.getcode.model.CurrencyCode
+import com.getcode.model.Fiat
+import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
+import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
 import com.getcode.network.TipController
+import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ConversationMessageIndice
@@ -50,12 +56,14 @@ import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.math.cos
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
     private val conversationController: ConversationController,
     features: FeatureRepository,
     tipController: TipController,
+    exchange: Exchange,
     resources: ResourceHelper,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
@@ -64,6 +72,8 @@ class ConversationViewModel @Inject constructor(
 
     data class State(
         val conversationId: ID?,
+        val twitterUser: TwitterUser?,
+        val costToChat: KinAmount,
         val reference: Reference.IntentId?,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
@@ -84,6 +94,8 @@ class ConversationViewModel @Inject constructor(
 
         companion object {
             val Default = State(
+                twitterUser = null,
+                costToChat = KinAmount.Zero,
                 conversationId = null,
                 reference = null,
                 tipChatCash = ConversationCashFeature(),
@@ -98,6 +110,9 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
+        data class OnTwitterUserChanged(val user: TwitterUser?) : Event
+        data class OnCostToChatChanged(val cost: KinAmount): Event
+        data class OnMembersChanged(val members: List<State.User>): Event
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnReferenceChanged(val reference: Reference.IntentId?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithLastPointers) :
@@ -137,6 +152,31 @@ class ConversationViewModel @Inject constructor(
             }.onEach {
                 dispatchEvent(Event.OnConversationChanged(it))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnTwitterUserChanged>()
+            .map { it.user }
+            .filterNotNull()
+            .mapNotNull { user ->
+                val currencySymbol = user.costOfFriendship.currency
+                val rate = exchange.rateFor(currencySymbol) ?: exchange.rateForUsd()!!
+
+                user to KinAmount.fromFiatAmount(fiat = user.costOfFriendship, rate = rate)
+            }.map { (user, cost) ->
+                dispatchEvent(Event.OnCostToChatChanged(cost))
+                user
+            }.onEach { user ->
+                val member = user.let {
+                    State.User(
+                        memberId = UUID.randomUUID(),
+                        username = user.username,
+                        imageUrl = user.imageUrl
+                    )
+                }
+
+                dispatchEvent(Event.OnMembersChanged(listOf(member)))
+            }
+            .launchIn(viewModelScope)
 
         // reference ID is used to create a chat that is non-existent if needed
         eventFlow
@@ -350,6 +390,14 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
+                is Event.OnCostToChatChanged -> { state ->
+                    state.copy(costToChat = event.cost)
+                }
+
+                is Event.OnMembersChanged -> { state ->
+                    state.copy(users = event.members)
+                }
+
                 is Event.OnPointersUpdated -> { state ->
                     state.copy(pointers = event.pointers)
                 }
@@ -358,6 +406,9 @@ class ConversationViewModel @Inject constructor(
                     state.copy(identityAvailable = event.available)
                 }
 
+                is Event.OnTwitterUserChanged -> { state ->
+                    state.copy(twitterUser = event.user)
+                }
                 is Event.OnChatIdChanged,
                 is Event.Error,
                 Event.RevealIdentity,

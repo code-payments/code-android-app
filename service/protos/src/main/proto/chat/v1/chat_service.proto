@@ -6,6 +6,8 @@ option objc_class_prefix = "CPBChatV1";
 import "common/v1/model.proto";
 import "transaction/v2/transaction_service.proto";
 import "google/protobuf/timestamp.proto";
+
+// Deprecated: Use the v2 service
 service Chat {
     // GetChats gets the set of chats for an owner account
     rpc GetChats(GetChatsRequest) returns (GetChatsResponse);
@@ -17,8 +19,12 @@ service Chat {
     rpc SetMuteState(SetMuteStateRequest) returns (SetMuteStateResponse);
     // SetSubscriptionState configures the susbscription state of a chat
     rpc SetSubscriptionState(SetSubscriptionStateRequest) returns (SetSubscriptionStateResponse);
+    //
+    // Experimental PoC two-way chat APIs below
+    //
+    rpc StreamChatEvents(stream StreamChatEventsRequest) returns (stream StreamChatEventsResponse);
+    rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
 }
-
 message GetChatsRequest {
     common.v1.SolanaAccountId owner = 1;
     common.v1.Signature signature = 2;
@@ -29,19 +35,15 @@ message GetChatsRequest {
         ASC  = 0;
         DESC = 1;
     }
-
 }
-
 message GetChatsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         NOT_FOUND = 1;
     }
-
-    repeated ChatMetadata chats = 2;
+    repeated ChatMetadata chats = 2 ;
 }
-
 message GetMessagesRequest {
     ChatId chat_id = 1;
     common.v1.SolanaAccountId owner = 2;
@@ -53,26 +55,21 @@ message GetMessagesRequest {
         ASC  = 0;
         DESC = 1;
     }
-
 }
-
 message GetMessagesResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         NOT_FOUND = 1;
     }
-
-    repeated ChatMessage messages = 2;
+    repeated ChatMessage messages = 2 ;
 }
-
 message AdvancePointerRequest {
     ChatId chat_id = 1;
     Pointer pointer = 2;
     common.v1.SolanaAccountId owner = 3;
     common.v1.Signature signature = 4;
 }
-
 message AdvancePointerResponse {
     Result result = 1;
     enum Result {
@@ -80,16 +77,13 @@ message AdvancePointerResponse {
         CHAT_NOT_FOUND = 1;
         MESSAGE_NOT_FOUND = 2;
     }
-
 }
-
 message SetMuteStateRequest {
     ChatId chat_id = 1;
     bool is_muted = 2;
     common.v1.SolanaAccountId owner = 3;
     common.v1.Signature signature = 4;
 }
-
 message SetMuteStateResponse {
     Result result = 1;
     enum Result {
@@ -97,16 +91,13 @@ message SetMuteStateResponse {
         CHAT_NOT_FOUND = 1;
         CANT_MUTE = 2;
     }
-
 }
-
 message SetSubscriptionStateRequest {
     ChatId chat_id = 1;
     bool is_subscribed = 2;
     common.v1.SolanaAccountId owner = 3;
     common.v1.Signature signature = 4;
 }
-
 message SetSubscriptionStateResponse {
     Result result = 1;
     enum Result {
@@ -114,36 +105,73 @@ message SetSubscriptionStateResponse {
         CHAT_NOT_FOUND = 1;
         CANT_UNSUBSCRIBE = 2;
     }
-
 }
-
+message OpenChatEventStream {
+    ChatId chat_id = 1;
+    common.v1.SolanaAccountId owner = 2;
+    common.v1.Signature signature = 3;
+}
+message ChatStreamEvent {
+    repeated ChatMessage messages = 1;
+    repeated Pointer pointers = 2;
+}
+message ChatStreamEventBatch {
+    repeated ChatStreamEvent events = 2 ;
+}
+message StreamChatEventsRequest {
+    oneof type {
+        OpenChatEventStream  open_stream = 1;
+        common.v1.ClientPong pong        = 2;
+    }
+}
+message StreamChatEventsResponse {
+    oneof type {
+        ChatStreamEventBatch events = 1;
+        common.v1.ServerPing ping   = 2;
+    }
+}
+message SendMessageRequest {
+    common.v1.SolanaAccountId owner = 1;
+    common.v1.Signature signature = 2;
+    ChatId chat_id = 3;
+    // todo: What field type should this be? Maybe the chat message itself with fields missing?
+    repeated Content content = 4 ;
+}
+message SendMessageResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+    }
+    ChatMessage message = 2;
+}
 message ChatId {
-    bytes value = 1;
+    bytes value = 1 ;
 }
-
 message ChatMessageId {
-    bytes value = 1;
+    bytes value = 1 ;
 }
-
+message ChatMemberId {
+    // todo: Public key for now
+    bytes value = 1 ;
+}
 message Pointer {
     Kind kind = 1;
     enum Kind {
-        UNKNOWN = 0;
-        READ = 1;
+        UNKNOWN   = 0;
+        READ      = 1;
+        DELIVERED = 2;
+        SENT      = 3; // Probably always inferred by OK result in SendMessageResponse
     }
-
     ChatMessageId value = 2;
+    ChatMemberId user = 3;
 }
-
 message ChatMetadata {
     ChatId chat_id = 1;
     // Recommended chat title inferred by the type of chat
     oneof title {
-
-        LocalizedContent localized = 2;
-        common.v1.Domain domain    = 3;
+        ServerLocalizedContent localized = 2;
+        common.v1.Domain       domain    = 3;
     }
-
     // Pointer in the chat indicating the most recently read message by the user
     Pointer read_pointer = 4;
     // Estimated number of unread messages in this chat
@@ -156,7 +184,7 @@ message ChatMetadata {
     bool can_mute = 8;
     // Can the user unsubscribe from this chat?
     bool can_unsubscribe = 9;
-    // Cursor value for this chat for reference in subsequent GetChatsRequest
+    // Cursor value for this chat for reference in subsequent GetChatsRequest 
     Cursor cursor = 10;
     // Is this a verified chat?
     //
@@ -164,34 +192,31 @@ message ChatMetadata {
     // different verification statuses. They should be treated separately.
     bool is_verified = 11;
 }
-
 message ChatMessage {
     // Unique ID for this message
     ChatMessageId message_id = 1;
     // Timestamp this message was generated at
     google.protobuf.Timestamp ts = 2;
     // Ordered message content. A message may have more than one piece of content.
-    repeated Content content = 3;
-    // Cursor value for this message for reference in subsequent GetMessagesRequest
+    repeated Content content = 3 ;
+    // Cursor value for this message for reference in subsequent GetMessagesRequest 
     Cursor cursor = 4;
+    ChatMemberId sender = 5;
 }
-
 message Content {
     oneof type {
-
-        LocalizedContent        localized     = 1;
-        ExchangeDataContent     exchange_data = 2;
-        NaclBoxEncryptedContent nacl_box      = 3;
+        ServerLocalizedContent  server_localized = 1;
+        ExchangeDataContent     exchange_data    = 2;
+        NaclBoxEncryptedContent nacl_box         = 3;
+        TextContent             text             = 4;
+        ThankYouContent         thank_you        = 5;
     }
-
 }
-
-message LocalizedContent {
+message ServerLocalizedContent {
     // When server-side localization is in place, clients will always see the
     // localized text.
-    string key_or_text = 1;
+    string key_or_text = 1 ;
 }
-
 message ExchangeDataContent {
     Verb verb = 1;
     enum Verb {
@@ -208,23 +233,24 @@ message ExchangeDataContent {
         RECEIVED_TIP = 10;
         SENT_TIP     = 11;
     }
-
     oneof exchange_data {
-
         transaction.v2.ExchangeData            exact = 2;
         transaction.v2.ExchangeDataWithoutRate partial = 3;
     }
-
 }
-
 message NaclBoxEncryptedContent {
     common.v1.SolanaAccountId peer_public_key = 1;
-    bytes nonce = 2;
-    bytes encrypted_payload = 3;
+    bytes nonce = 2 ;
+    bytes encrypted_payload = 3 ;
 }
-
+message TextContent {
+    string text = 1 ;
+}
+message ThankYouContent {
+    // todo: May need additional metdata (who is being thanked, which tip, etc)
+}
 // Opaque cursor used across paged APIs. Underlying bytes may change as paging
 // strategies evolve.
 message Cursor {
-    bytes value = 1;
+    bytes value = 1 ;
 }

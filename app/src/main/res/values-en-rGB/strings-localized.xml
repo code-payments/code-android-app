@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Link a Phone Number</string>
   <string name="action_logIn">Log In</string>
   <string name="action_logout">Log Out</string>
+  <string name="action_messageGetCode">Message @getcode to Connect</string>
   <string name="action_mute">Mute</string>
   <string name="action_next">Next</string>
   <string name="action_noTryAgain">No, Try Again</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Welcome Bonus</string>
   <string name="subtitle_chooseCountry">Choose a country</string>
   <string name="subtitle_comingSoon">Coming Soon</string>
+  <string name="subtitle_connectXTweetText">\@getcode I’d like to connect my X account so I can receive tips from people all over the world</string>
   <string name="subtitle_delete">Delete</string>
   <string name="subtitle_deleteAccountDescription">Make sure you have your Secret Recovery Phrase saved, and then enter \"Delete\" to delete your Code account. This action is irreversible.</string>
   <string name="subtitle_didntGetCode">Didn\'t get a code at %1$s?</string>

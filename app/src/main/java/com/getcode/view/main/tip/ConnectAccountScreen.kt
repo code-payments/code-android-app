@@ -116,7 +116,7 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
             )
             Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
             Text(
-                text = stringResource(R.string.action_postToConnect),
+                text = stringResource(R.string.action_messageGetCode),
             )
         }
     )
@@ -158,7 +158,7 @@ private fun composeTweet(context: Context, intent: Intent) {
 @Composable
 private fun Preview_TweetPreview() {
     CodeTheme {
-        TweetPreview(xMessage = "I’m connecting my X account with @getcode\n" +
+        TweetPreview(xMessage = "${stringResource(R.string.subtitle_connectXTweetText)}\n" +
                 "\n" +
                 "CodeAccount:349pQtzGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQPXved:zGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQP")
     }

@@ -81,6 +81,7 @@ import com.getcode.network.repository.hexEncodedString
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
+import com.getcode.ui.components.PermissionResult
 import com.getcode.util.CurrencyUtils
 import com.getcode.util.IntentUtils
 import com.getcode.util.Kin
@@ -465,8 +466,8 @@ class Session @Inject constructor(
         uiFlow.update { it.copy(isCameraScanEnabled = scanning) }
     }
 
-    fun onCameraPermissionChanged(isGranted: Boolean) {
-        uiFlow.update { it.copy(isCameraPermissionGranted = isGranted) }
+    fun onCameraPermissionResult(result: PermissionResult) {
+        uiFlow.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
     }
 
     fun showBill(
@@ -936,11 +937,18 @@ class Session @Inject constructor(
             }
     }
 
-    fun presentTipConfirmation(amount: KinAmount) {
-        val data = tipController.scannedUserData ?: return
-        val (_, payload) = data
+    fun presentTipConfirmation(amount: KinAmount, user: TwitterUser? = null) {
+        val scannedUserData = tipController.scannedUserData?.second
+        val payload = if (user != null) {
+            CodePayload(
+                kind = Kind.Tip,
+                value = Username(user.username)
+            )
+        } else {
+            scannedUserData
+        } ?: return
 
-        val metadata = tipController.userMetadata ?: return
+        val metadata = user ?: tipController.userMetadata ?: return
         uiFlow.update {
             val billState = it.billState.copy(
                 tipConfirmation = TipConfirmation(
@@ -1251,7 +1259,7 @@ class Session @Inject constructor(
                 presentationStyle = PresentationStyle.Pop,
                 billState = it.billState.copy(
                     bill = Bill.Login(
-                        amount = KinAmount.newInstance(Kin.fromKin(0), Rate.oneToOne),
+                        amount = KinAmount.Zero,
                         payload = payload,
                         request = request,
                     ),

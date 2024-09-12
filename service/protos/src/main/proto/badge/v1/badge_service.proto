@@ -4,11 +4,11 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/bad
 option java_package = "com.codeinc.gen.badge.v1";
 option objc_class_prefix = "CPBBadgeV1";
 import "common/v1/model.proto";
+
 service Badge {
     // ResetBadgeCount resets an owner account's app icon badge count back to zero
     rpc ResetBadgeCount(ResetBadgeCountRequest) returns (ResetBadgeCountResponse);
 }
-
 message ResetBadgeCountRequest {
     // The owner account to clear badge count
     common.v1.SolanaAccountId owner = 1;
@@ -17,12 +17,9 @@ message ResetBadgeCountRequest {
     // mechanism to the RPC.
     common.v1.Signature signature = 2;
 }
-
 message ResetBadgeCountResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
 }
-

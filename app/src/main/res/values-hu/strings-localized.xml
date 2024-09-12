@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Kapcsoljon telefonszámot</string>
   <string name="action_logIn">Bejelentkezés</string>
   <string name="action_logout">Kijelentkezés</string>
+  <string name="action_messageGetCode">Üzenj a @getcode-nak a csatlakozáshoz</string>
   <string name="action_mute">Némítás</string>
   <string name="action_next">Következő</string>
   <string name="action_noTryAgain">Nem, próbáld újra</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Üdvözlő bónusz</string>
   <string name="subtitle_chooseCountry">Válasszon egy országot</string>
   <string name="subtitle_comingSoon">Jön hamarosan</string>
+  <string name="subtitle_connectXTweetText">\@getcode Csatlakoztatni akarom az X fiókomat, hogy borravalót kaphassak bárhonnan a világon.</string>
   <string name="subtitle_delete">Törlés</string>
   <string name="subtitle_deleteAccountDescription">Győződj meg róla, hogy a Titkos Helyreállítási Kifejezés el van mentve, majd nyomj \"Törlés\"-t a Code fiókod törléséhez. Ez a művelet nem visszavonható.</string>
   <string name="subtitle_didntGetCode">Nem kapott kódot itt: %1$s?</string>

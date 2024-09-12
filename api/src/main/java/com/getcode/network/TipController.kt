@@ -39,6 +39,7 @@ import kotlin.concurrent.fixedRateTimer
 
 typealias TipUser = Pair<String, CodePayload>
 
+
 @Singleton
 class TipController @Inject constructor(
     private val client: Client,
@@ -108,10 +109,11 @@ class TipController @Inject constructor(
 
     private suspend fun callForConnectedUser() {
         Timber.d("twitter poll call")
-        val tipAddress = SessionManager.getOrganizer()?.primaryVault ?: return
+        val organizer = SessionManager.getOrganizer() ?: return
+        val tipAddress = organizer.primaryVault
         // only set lastPoll if we actively attempt to reach RPC
         lastPoll = System.currentTimeMillis()
-        client.fetchTwitterUser(tipAddress)
+        client.fetchTwitterUser(organizer, tipAddress)
             .onSuccess {
                 Timber.d("current user twitter connected @ ${it.username}")
                 prefRepository.set(PrefsString.KEY_TIP_ACCOUNT, Json.encodeToString(it))
@@ -152,10 +154,11 @@ class TipController @Inject constructor(
     }
 
     suspend fun fetch(username: String): TwitterUser? {
+        val organizer = SessionManager.getOrganizer() ?: return null
         val key = username.lowercase()
         return cachedUsers.getOrPutIfNonNull(key) {
             Timber.d("fetching user $username")
-            client.fetchTwitterUser(username).getOrThrow()
+            client.fetchTwitterUser(organizer, username).getOrThrow()
         }
     }
 

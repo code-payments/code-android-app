@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -219,11 +220,13 @@ fun TipScaffold(
                 emission = data
             }
 
-            override fun dismiss() {
+            override fun dismiss(eventDriven: Boolean) {
                 composeScope.launch {
                     val tip = emission?.tip
                     emission = null
-                    tip?.dismiss()
+                    if (eventDriven) {
+                        tip?.dismiss()
+                    }
                 }
             }
 
@@ -234,6 +237,10 @@ fun TipScaffold(
 
             override val isTipShowing: Boolean
                 get() = emission != null
+        }
+
+        LaunchedEffect(tipsEngine, tipProvider) {
+            tipsEngine.setProvider(tipProvider)
         }
 
         val density = LocalDensity.current

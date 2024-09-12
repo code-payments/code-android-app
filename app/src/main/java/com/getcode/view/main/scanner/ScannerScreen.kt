@@ -63,14 +63,14 @@ import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
-import com.getcode.ui.components.FullScreenProgressSpinner
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.PermissionCheck
+import com.getcode.ui.components.PermissionResult
 import com.getcode.ui.components.getPermissionLauncher
+import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.ui.utils.KeepScreenOn
 import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
+import com.getcode.util.launchAppSettings
 import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.bill.BillManagementOptions
 import com.getcode.view.main.scanner.views.CameraDisabledView
@@ -78,7 +78,7 @@ import com.getcode.view.main.scanner.camera.CodeScanner
 import com.getcode.view.main.bill.HomeBill
 import com.getcode.view.main.scanner.modals.LoginConfirmation
 import com.getcode.view.main.scanner.modals.PaymentConfirmation
-import com.getcode.view.main.scanner.views.PermissionsBlockingView
+import com.getcode.view.main.scanner.views.CameraPermissionsMissingView
 import com.getcode.view.main.scanner.modals.ReceivedKinConfirmation
 import com.getcode.view.main.scanner.modals.TipConfirmation
 import com.getcode.view.main.scanner.views.HomeRestricted
@@ -335,22 +335,37 @@ private fun BillContainer(
     onStartCamera: () -> Unit,
     onAction: (UiElement) -> Unit,
 ) {
-    val onPermissionResult =
-        { isGranted: Boolean ->
-            session.onCameraPermissionChanged(isGranted = isGranted)
-        }
-
-    val launcher = getPermissionLauncher(onPermissionResult)
     val context = LocalContext.current as Activity
+    val onPermissionResult = { result: PermissionResult ->
+        session.onCameraPermissionResult(result)
+        if (result == PermissionResult.ShouldShowRationale) {
+            TopBarManager.showMessage(
+                TopBarManager.TopBarMessage(
+                    title = context.getString(R.string.action_allowCameraAccess),
+                    message = context.getString(R.string.error_description_cameraAccessRequired),
+                    type = TopBarManager.TopBarMessageType.ERROR,
+                    secondaryText = context.getString(R.string.action_openSettings),
+                    secondaryAction = { context.launchAppSettings() }
+                )
+            )
+        }
+    }
+
+    val cameraPermissionLauncher = getPermissionLauncher(Manifest.permission.CAMERA, onPermissionResult)
+
+    val permissionChecker = rememberPermissionChecker()
+
+    val checkPermission = { shouldRequest: Boolean ->
+        permissionChecker.request(
+            permission = Manifest.permission.CAMERA,
+            shouldRequest = shouldRequest,
+            onPermissionResult = onPermissionResult,
+            launcher = cameraPermissionLauncher
+        )
+    }
 
     SideEffect {
-        PermissionCheck.requestPermission(
-            context = context,
-            permission = Manifest.permission.CAMERA,
-            shouldRequest = false,
-            onPermissionResult = onPermissionResult,
-            launcher = launcher
-        )
+        checkPermission(false)
     }
 
     Box(
@@ -376,11 +391,9 @@ private fun BillContainer(
             }
 
             else -> {
-                PermissionsBlockingView(
+                CameraPermissionsMissingView(
                     modifier = Modifier.fillMaxSize(),
-                    context = context,
-                    onPermissionResult = onPermissionResult,
-                    launcher = launcher
+                    onClick = { checkPermission(true) }
                 )
             }
         }

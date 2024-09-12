@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Collega un numero di telefono</string>
   <string name="action_logIn">Accedi</string>
   <string name="action_logout">Disconnetti</string>
+  <string name="action_messageGetCode">Trasmetti @getcode per connetterti</string>
   <string name="action_mute">Silenzia</string>
   <string name="action_next">Avanti</string>
   <string name="action_noTryAgain">No, riprova</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus di benvenuto</string>
   <string name="subtitle_chooseCountry">Scegli un paese</string>
   <string name="subtitle_comingSoon">Prossimamente</string>
+  <string name="subtitle_connectXTweetText">\@getcode Vorrei connettere al mio account X in modo da poter ricevere suggerimenti da persone di tutto il mondo</string>
   <string name="subtitle_delete">Cancella</string>
   <string name="subtitle_deleteAccountDescription">Assicurati di aver salvato la tua frase di recupero segreta e poi inserisci \"Cancella\" per cancellare il tuo account Code. Questa azione è irreversibile.</string>
   <string name="subtitle_didntGetCode">Non hai ricevuto un codice al %1$s?</string>

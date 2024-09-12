@@ -3,6 +3,8 @@ package com.getcode.view.main.tip
 import android.content.Intent
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
+import com.getcode.analytics.Action
+import com.getcode.analytics.AnalyticsService
 import com.getcode.network.TipController
 import com.getcode.util.IntentUtils
 import com.getcode.util.resources.ResourceHelper
@@ -19,6 +21,7 @@ import javax.inject.Inject
 class TipConnectViewModel @Inject constructor(
     resources: ResourceHelper,
     tipController: TipController,
+    analytics: AnalyticsService,
 ) : BaseViewModel2<TipConnectViewModel.State, TipConnectViewModel.Event>(
     initialState = State(null, ""),
     updateStateForEvent = updateStateForEvent
@@ -45,7 +48,7 @@ class TipConnectViewModel @Inject constructor(
                 when (it) {
                     IdentityConnectionReason.TipCard -> {
                         """
-                            ${resources.getString(R.string.subtitle_linkingTwitter)}
+                            ${resources.getString(R.string.subtitle_connectXTweetText)}
                             
                             $verificationMessage
                         """.trimIndent()
@@ -68,6 +71,7 @@ class TipConnectViewModel @Inject constructor(
             .map { stateFlow.value.xMessage }
             .map { IntentUtils.tweet(it) }
             .onEach {
+                analytics.action(Action.MessageCodeOnX)
                 dispatchEvent(Event.OpenX(it))
                 tipController.startVerification()
             }.launchIn(viewModelScope)

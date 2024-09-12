@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">電話番号をリンクする</string>
   <string name="action_logIn">ログイン</string>
   <string name="action_logout">ログアウト</string>
+  <string name="action_messageGetCode">\@getcode にメッセージを送って連携する</string>
   <string name="action_mute">ミュート</string>
   <string name="action_next">次へ</string>
   <string name="action_noTryAgain">いいえ,もう一度試してください</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">ウェルカムボーナス</string>
   <string name="subtitle_chooseCountry">国を選択する</string>
   <string name="subtitle_comingSoon">もうすぐ登場</string>
+  <string name="subtitle_connectXTweetText">\@getcode Xアカウントと連携して,世界中の人たちからヒントをもらえるようにしたい</string>
   <string name="subtitle_delete">削除</string>
   <string name="subtitle_deleteAccountDescription">シークレットリカバリフレーズが保存されていることを確認し,「削除」と入力してCodeアカウントを削除してください。このアクションは元に戻せません。</string>
   <string name="subtitle_didntGetCode">%1$sでコードを受け取りませんでしたか？</string>

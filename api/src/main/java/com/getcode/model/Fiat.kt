@@ -1,7 +1,10 @@
 package com.getcode.model
 
+import kotlinx.serialization.Serializable
+
 sealed interface Value
 
+@Serializable
 data class Fiat(
     val currency: CurrencyCode,
     val amount: Double,

@@ -1,6 +1,5 @@
 package com.getcode.db
 
-import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
@@ -8,7 +7,6 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
-import androidx.room.Transaction
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID

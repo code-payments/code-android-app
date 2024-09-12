@@ -7,6 +7,7 @@ import android.icu.text.DateFormat
 import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.os.Environment
+import com.getcode.BuildConfig
 import com.getcode.analytics.AnalyticsService
 import com.getcode.util.save
 import com.getcode.util.toByteArray
@@ -14,6 +15,7 @@ import com.getcode.util.uriToBitmap
 import com.getcode.utils.TraceType
 import com.getcode.utils.timedTraceSuspend
 import com.kik.kikx.kikcodes.KikCodeScanner
+import com.kik.kikx.kikcodes.ScanQuality
 import com.kik.kikx.models.ScannableKikCode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +34,12 @@ class StaticImageHelper @Inject constructor(
     suspend fun analyze(uri: Uri): Result<ScannableKikCode> {
         val bitmap = context.uriToBitmap(uri)
         return if (bitmap != null) {
-            detectCodeInImage(bitmap) {
+            detectCodeInImage(bitmap) { image, quality ->
                 scanner.scanKikCode(
-                    it.toByteArray(),
-                    it.width,
-                    it.height,
+                    image.toByteArray(),
+                    image.width,
+                    image.height,
+                    quality
                 )
             }
         } else {
@@ -46,7 +49,7 @@ class StaticImageHelper @Inject constructor(
 
     private suspend fun detectCodeInImage(
         bitmap: Bitmap,
-        scan: suspend (Bitmap) -> Result<ScannableKikCode>
+        scan: suspend (Bitmap, ScanQuality) -> Result<ScannableKikCode>
     ): Result<ScannableKikCode> = withContext(Dispatchers.Default) {
         val destinationRoot =
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
@@ -63,7 +66,7 @@ class StaticImageHelper @Inject constructor(
     private suspend fun search(
         bitmap: Bitmap,
         destination: File,
-        scan: suspend (Bitmap) -> Result<ScannableKikCode>,
+        scan: suspend (Bitmap, ScanQuality) -> Result<ScannableKikCode>,
     ): Result<ScannableKikCode> {
         return timedTraceSuspend(
             message = "analyzing image",
@@ -73,14 +76,16 @@ class StaticImageHelper @Inject constructor(
                 analytics.photoScanned(result.isSuccess, time.inWholeMilliseconds)
             }
         ) {
-            // try scanning raw
-            val raw = scan(bitmap)
-            if (raw.isSuccess) {
-                debugPrint("Code found raw")
-                bitmap.recycle()
-                return@timedTraceSuspend raw
-            } else {
-                debugPrint("No Code found via raw")
+            // try scanning raw at various scan qualities
+            for (quality in ScanQuality.iterator()) {
+                val raw = scan(bitmap, quality)
+                if (raw.isSuccess) {
+                    debugPrint("Code found raw using $quality")
+                    bitmap.recycle()
+                    return@timedTraceSuspend raw
+                } else {
+                    debugPrint("No Code found via raw using $quality")
+                }
             }
 
             val zoomLevels = listOf(1.0)
@@ -88,7 +93,7 @@ class StaticImageHelper @Inject constructor(
                 bitmap = bitmap,
                 destination = destination,
                 zoomLevels = zoomLevels,
-                scan = scan,
+                scan = { scan(it, ScanQuality.Medium) },
             )
 
             if (result.isSuccess) {
@@ -235,5 +240,5 @@ private fun debugPrint(message: String) {
     if (DEBUG) println(message)
 }
 
-private const val DEBUG = true
+private val DEBUG = BuildConfig.DEBUG
 private const val SAVE_IMAGES = false

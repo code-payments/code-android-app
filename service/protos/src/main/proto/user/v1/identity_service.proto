@@ -6,6 +6,7 @@ option objc_class_prefix = "CPBUserV1";
 import "common/v1/model.proto";
 import "phone/v1/phone_verification_service.proto";
 import "transaction/v2/transaction_service.proto";
+
 service Identity {
     // LinkAccount links an owner account to the user identified and authenticated
     // by a one-time use token.
@@ -52,7 +53,6 @@ service Identity {
     // information.
     rpc GetTwitterUser(GetTwitterUserRequest) returns (GetTwitterUserResponse);
 }
-
 message LinkAccountRequest {
     // The public key of the owner account that will be linked to a user.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -66,9 +66,7 @@ message LinkAccountRequest {
         // SMS code using the phone verification service.
         phone.v1.PhoneLinkingToken phone = 3;
     }
-
 }
-
 message LinkAccountResponse {
     Result result = 1;
     enum Result {
@@ -81,7 +79,6 @@ message LinkAccountResponse {
         // retry at a later time.
         RATE_LIMITED = 2;
     }
-
     // The user that was linked to the owner account
     User user = 2;
     // The data container where the user can store a copy of their data
@@ -93,9 +90,7 @@ message LinkAccountResponse {
         // Metadata that corresponds to a phone-based identifying feature.
         PhoneMetadata phone = 5;
     }
-
 }
-
 message UnlinkAccountRequest {
     // The public key of the owner account that will be unliked.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -107,9 +102,7 @@ message UnlinkAccountRequest {
         // The phone number associated with the owner account.
         common.v1.PhoneNumber phone_number = 4;
     }
-
 }
-
 message UnlinkAccountResponse {
     Result result = 1;
     enum Result {
@@ -118,9 +111,7 @@ message UnlinkAccountResponse {
         // that never had a valid association.
         NEVER_ASSOCIATED = 1;
     }
-
 }
-
 message GetUserRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -132,9 +123,7 @@ message GetUserRequest {
     oneof identifying_feature {
         common.v1.PhoneNumber phone_number = 3;
     }
-
 }
-
 message GetUserResponse {
     Result result = 1;
     enum Result {
@@ -146,7 +135,6 @@ message GetUserResponse {
         // The user exists, but at least one of their timelock accounts is unlocked
         UNLOCKED_TIMELOCK_ACCOUNT = 3;
     }
-
     // The user associated with the identifier
     User user = 2;
     // The data container where the user can store a copy of their data
@@ -158,27 +146,21 @@ message GetUserResponse {
         // Metadata that corresponds to a phone-based identifying feature.
         PhoneMetadata phone = 5;
     }
-
     // Whether client internal flags are enabled for this user
     bool enable_internal_flags = 6;
     // Set of which airdrops the user is eligible to receive
     repeated transaction.v2.AirdropType eligible_airdrops = 7;
-
     // Wether the buy module is enabled for this user
     bool enable_buy_module = 8;
 }
-
 message UpdatePreferencesRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
-
     // The data container for the copy of the contact list being added to.
     common.v1.DataContainerId container_id = 2;
-
     // The signature is of serialize(UpdatePreferencesRequest) without this field set
     // using the private key of owner_account_id.
     common.v1.Signature signature = 3;
-
     // The user's locale, which is used for server-side localization of things like
     // chat messages, pushes, etc. If no locale is set, or the provided locale isn't
     // supported, then English is used as the default fallback.
@@ -188,17 +170,14 @@ message UpdatePreferencesRequest {
     //       are updated.
     common.v1.Locale locale = 4;
 }
-
 message UpdatePreferencesResponse {
     Result result = 1;
     enum Result {
         OK = 0;
-
         // The provided locale couldn't be parsed or recognized and is invalid.
         INVALID_LOCALE = 1;
     }
 }
-
 message LoginToThirdPartyAppRequest {
     // The intent ID identifying the instance of the login flow.
     common.v1.IntentId intent_id = 1;
@@ -208,7 +187,6 @@ message LoginToThirdPartyAppRequest {
     // the user.
     common.v1.Signature signature = 3;
 }
-
 message LoginToThirdPartyAppResponse {
     Result result = 1;
     enum Result {
@@ -227,9 +205,7 @@ message LoginToThirdPartyAppResponse {
         // account with the correct identifier specified in the original request.
         INVALID_ACCOUNT = 5;
     }
-
 }
-
 message GetLoginForThirdPartyAppRequest {
     // The intent ID identifying the instance of the login flow.
     common.v1.IntentId intent_id = 1;
@@ -239,7 +215,6 @@ message GetLoginForThirdPartyAppRequest {
     // to domain verification, authenticates the third party.
     common.v1.Signature signature = 3;
 }
-
 message GetLoginForThirdPartyAppResponse {
     Result result = 1;
     enum Result {
@@ -252,20 +227,20 @@ message GetLoginForThirdPartyAppResponse {
         // logged in user yet.
         NO_USER_LOGGED_IN = 3;
     }
-
     // The relationship authority account that logged in.
     common.v1.SolanaAccountId user_id = 2;
 }
-
-
 message GetTwitterUserRequest {
     oneof query {
         // The Twitter username to query against
-        string username = 1;
-
+        string username = 1 ;
         // The tip address to query against
         common.v1.SolanaAccountId tip_address = 2;
     }
+    // An optional set of authentication information that allows for more
+    // information to be returned in the request.
+    common.v1.SolanaAccountId requestor = 10;
+    common.v1.Signature signature = 11;
 }
 message GetTwitterUserResponse {
     Result result = 1;
@@ -274,10 +249,8 @@ message GetTwitterUserResponse {
         // The Twitter user doesn't exist or isn't linked with a Code account
         NOT_FOUND = 1;
     }
-
     TwitterUser twitter_user = 2;
 }
-
 // User is the highest order of a form of identity within Code.
 //
 // Note: Users outside Code are modelled as relationship accounts
@@ -287,7 +260,6 @@ message User {
     // The identifying features that are associated with the user
     View view = 2;
 }
-
 // View is a well-defined set of identifying features. It is contrained to having
 // exactly one feature set at a time, for now.
 message View {
@@ -297,7 +269,6 @@ message View {
     //       supported to date.
     common.v1.PhoneNumber phone_number = 1;
 }
-
 message PhoneMetadata {
     // State that determines whether a phone number is linked to the owner
     // account. A phone number is linked if we can treat it as an alias.
@@ -305,20 +276,17 @@ message PhoneMetadata {
     // of whether the number was linked at any point in time.
     bool is_linked = 1;
 }
-
 message TwitterUser {
     // Public key for a token account where tips are routed
+    //
+    // TODO(tip_rename): Candidate for renaming to something more generic.
     common.v1.SolanaAccountId tip_address = 1;
-
     // The user's username on Twitter
-    string username = 2;
-
+    string username = 2 ;
     // The user's friendly name on Twitter
-    string name = 3;
-
+    string name = 3 ;
     // URL to the user's Twitter profile picture
-    string profile_pic_url = 4;
-
+    string profile_pic_url = 4 ;
     // The type of Twitter verification associated with the user
     VerifiedType verified_type = 5;
     enum VerifiedType {
@@ -327,7 +295,16 @@ message TwitterUser {
         BUSINESS   = 2;
         GOVERNMENT = 3;
     }
-
     // The number of followers the user has on Twitter
     uint32 follower_count = 6;
+    // The cost of establishing the friendship (regardless if caller is a friend).
+    //
+    // This should not be cached for an extended period, as exchange rate / value
+    // may change at any time.
+    transaction.v2.ExchangeDataWithoutRate friendship_cost = 7;
+    // ===========================================================
+    // The rest of the fields require authentication to be present.
+    // ===========================================================
+    // Indicates the user is a friend of the caller.
+    bool is_friend = 10;
 }

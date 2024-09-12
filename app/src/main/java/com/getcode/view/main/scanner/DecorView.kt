@@ -94,6 +94,7 @@ internal fun DecorView(
                 .padding(horizontal = CodeTheme.dimens.grid.x3)
                 .align(Alignment.TopStart)
                 .popoverTip(
+                    visible = dataState.billState.bill == null,
                     tip = tips.downloadCodeTip,
                     alignment = Alignment.BottomStart
                 )

@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">关联手机号码</string>
   <string name="action_logIn">登录</string>
   <string name="action_logout">退出登录</string>
+  <string name="action_messageGetCode">给@getcode发送消息以连接</string>
   <string name="action_mute">静音</string>
   <string name="action_next">下一个</string>
   <string name="action_noTryAgain">不,再试一次</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">开户赠金</string>
   <string name="subtitle_chooseCountry">选择国家/地区</string>
   <string name="subtitle_comingSoon">即将到来</string>
+  <string name="subtitle_connectXTweetText">\@getcode我想连接我的X账号,以便收取来自世界各地的人们的提示</string>
   <string name="subtitle_delete">删除</string>
   <string name="subtitle_deleteAccountDescription">确保您已保存您的恢复密语,然后输入\"删除\"以删除您的 Code 账户。此操作是不可逆的。</string>
   <string name="subtitle_didntGetCode">%1$s 没有收到验证码？</string>
