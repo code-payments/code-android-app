@@ -2,6 +2,7 @@ package com.getcode.model
 
 import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
+import com.codeinc.gen.user.v1.friendshipCostOrNull
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
@@ -55,8 +56,9 @@ data class TwitterUser(
                 followerCount = proto.followerCount,
                 tipAddress = tipAddress,
                 verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown,
+//                costOfFriendship = kotlin.runCatching { proto.friendshipCostOrNull }.getOrNull()
                 costOfFriendship = Fiat(currency = CurrencyCode.USD, amount = 1.00),
-                isFriend = proto.isFriend
+                isFriend = runCatching { proto.isFriend }.getOrNull() ?: false
             )
         }
     }
