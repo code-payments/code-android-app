@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Een telefoonnummer koppelen</string>
   <string name="action_logIn">Inloggen</string>
   <string name="action_logout">Uitloggen</string>
+  <string name="action_messageGetCode">Stuur een bericht aan @getcode om te verbinden</string>
   <string name="action_mute">Dempen</string>
   <string name="action_next">Volgende</string>
   <string name="action_noTryAgain">Nee, probeer het opnieuw</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Welkomstbonus</string>
   <string name="subtitle_chooseCountry">Een land kiezen</string>
   <string name="subtitle_comingSoon">Binnenkort beschikbaar</string>
+  <string name="subtitle_connectXTweetText">\@getcode Ik wil graag mijn X-account verbinden zodat ik tips kan ontvangen van mensen over de hele wereld</string>
   <string name="subtitle_delete">Verwijderen</string>
   <string name="subtitle_deleteAccountDescription">Zorg ervoor dat je je Geheime Herstelzin hebt opgeslagen en voer vervolgens \'Verwijderen\' in om je Code-account te verwijderen. Deze actie is onomkeerbaar.</string>
   <string name="subtitle_didntGetCode">Geen code ontvangen op %1$s?</string>

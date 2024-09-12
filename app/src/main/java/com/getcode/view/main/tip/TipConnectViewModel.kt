@@ -48,7 +48,7 @@ class TipConnectViewModel @Inject constructor(
                 when (it) {
                     IdentityConnectionReason.TipCard -> {
                         """
-                            ${resources.getString(R.string.subtitle_linkingTwitter)}
+                            ${resources.getString(R.string.subtitle_connectXTweetText)}
                             
                             $verificationMessage
                         """.trimIndent()

@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">連結電話號碼</string>
   <string name="action_logIn">登入</string>
   <string name="action_logout">登出</string>
+  <string name="action_messageGetCode">傳送 @getcode 訊息來連接</string>
   <string name="action_mute">靜音</string>
   <string name="action_next">下一步</string>
   <string name="action_noTryAgain">不,請再試</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">歡迎獎金</string>
   <string name="subtitle_chooseCountry">選擇國家</string>
   <string name="subtitle_comingSoon">即將登場</string>
+  <string name="subtitle_connectXTweetText">\@getcode 我想要連接到我的 X 帳戶,以收到全世界用戶的建議</string>
   <string name="subtitle_delete">刪除</string>
   <string name="subtitle_deleteAccountDescription">請確認您已經妥善保存了您的助記詞,然後輸入「刪除」以刪除您的 Code 帳戶。這個操作是不可逆轉的。</string>
   <string name="subtitle_didntGetCode">沒有在 %1$s 收到驗證碼嗎？</string>

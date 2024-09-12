@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Pautkan Nombor Telefon</string>
   <string name="action_logIn">Log Masuk</string>
   <string name="action_logout">Log Keluar</string>
+  <string name="action_messageGetCode">Hantar teks kepada @getcode untuk Berhubung</string>
   <string name="action_mute">Senyap</string>
   <string name="action_next">Seterusnya</string>
   <string name="action_noTryAgain">Tidak. Cuba Lagi</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus Selamat Datang</string>
   <string name="subtitle_chooseCountry">Pilih negara</string>
   <string name="subtitle_comingSoon">Akan datang</string>
+  <string name="subtitle_connectXTweetText">\@getcode saya ingin menghubungkan akaun X saya supaya saya boleh menerima petua dari seluruh dunia </string>
   <string name="subtitle_delete">Padam</string>
   <string name="subtitle_deleteAccountDescription">Pastikan anda telah menyimpan Frasa Pemulihan Rahsia anda, kemudian masukkan \"Padam\" untuk memadamkan akaun Code anda. Tindakan ini tidak dapat dipulihkan.</string>
   <string name="subtitle_didntGetCode">Tidak menerima kod di %1$s?</string>

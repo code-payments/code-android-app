@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">전화번호 연결</string>
   <string name="action_logIn">로그인</string>
   <string name="action_logout">로그아웃</string>
+  <string name="action_messageGetCode">\@getcode로 메시지를 보내 연결하기</string>
   <string name="action_mute">음소거</string>
   <string name="action_next">다음</string>
   <string name="action_noTryAgain">아니요, 다시 시도하세요.</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">웰컴 보너스</string>
   <string name="subtitle_chooseCountry">국가 선택</string>
   <string name="subtitle_comingSoon">곧 출시</string>
+  <string name="subtitle_connectXTweetText">\@getcode 전 세계 사람들에게서 팁을 받을 수 있도록 X 계정을 연결하고 싶습니다.</string>
   <string name="subtitle_delete">삭제</string>
   <string name="subtitle_deleteAccountDescription">Code 계정을 삭제하려면 복구 문구를 저장한 다음 \"삭제\"를 입력하세요. 삭제하면 되돌릴 수 없습니다.</string>
   <string name="subtitle_didntGetCode">%1$s에서 코드를 받지 못했나요?</string>

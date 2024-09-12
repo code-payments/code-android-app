@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Conectează un număr de telefon</string>
   <string name="action_logIn">Conectare</string>
   <string name="action_logout">Deconectare</string>
+  <string name="action_messageGetCode">Trimite mesaj către @getcode pentru Conectare</string>
   <string name="action_mute">Pune în surdină</string>
   <string name="action_next">Următorul</string>
   <string name="action_noTryAgain">Nu, încearcă din nou</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus de bun-venit</string>
   <string name="subtitle_chooseCountry">Alege o țară</string>
   <string name="subtitle_comingSoon">Urmează în curând</string>
+  <string name="subtitle_connectXTweetText">\@getcode Vreau să-mi conectez contul X ca să primesc sfaturi de la oameni din toată lumea</string>
   <string name="subtitle_delete">Șterge</string>
   <string name="subtitle_deleteAccountDescription">Asigură-te că ai salvat Fraza ta secretă de recuperare, apoi scrie „Șterge\" pentru a-ți șterge contul Code. Această acțiune este ireversibilă.</string>
   <string name="subtitle_didntGetCode">Nu ai primit un cod la %1$s?</string>

@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Σύνδεση Αριθμού Τηλεφώνου</string>
   <string name="action_logIn">Σύνδεση</string>
   <string name="action_logout">Αποσύνδεση</string>
+  <string name="action_messageGetCode">Στείλε μήνυμα στο @getcode για Σύνδεση</string>
   <string name="action_mute">Σίγαση</string>
   <string name="action_next">Επόμενο</string>
   <string name="action_noTryAgain">Όχι, δοκιμάστε ξανά</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Μπόνους καλωσορίσματος</string>
   <string name="subtitle_chooseCountry">Επιλέξτε χώρα</string>
   <string name="subtitle_comingSoon">Έρχεται Σύντομα</string>
+  <string name="subtitle_connectXTweetText">\@getcode θα ήθελα να συνδέσω τον λογαριασμό μου X, ώστε να μπορώ να λαμβάνω συμβουλές από άτομα σε όλο τον κόσμο</string>
   <string name="subtitle_delete">Διαγραφή</string>
   <string name="subtitle_deleteAccountDescription">Βεβαιωθείτε ότι έχετε αποθηκεύσει τη Μυστική Φράση Ανάκτησης και, στη συνέχεια, πληκτρολογήστε \"Διαγραφή\" για να διαγράψετε τον λογαριασμό σας στο Code. Αυτή η ενέργεια είναι μη αναστρέψιμη.</string>
   <string name="subtitle_didntGetCode">Δεν λάβατε κωδικό στο %1$s;</string>

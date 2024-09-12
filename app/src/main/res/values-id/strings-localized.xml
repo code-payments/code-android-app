@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Tautkan Nomor Telepon</string>
   <string name="action_logIn">Masuk</string>
   <string name="action_logout">Keluar</string>
+  <string name="action_messageGetCode">Kirim pesan ke @getcode untuk Menghubungkan</string>
   <string name="action_mute">Bisukan</string>
   <string name="action_next">Selanjutnya</string>
   <string name="action_noTryAgain">Tidak, Coba Lagi</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus Penyambutan</string>
   <string name="subtitle_chooseCountry">Pilih salah satu negara</string>
   <string name="subtitle_comingSoon">Segera Hadir</string>
+  <string name="subtitle_connectXTweetText">\@getcode Saya ingin menghubungkan akun X saya agar bisa menerima kiat-kiat dari orang di seluruh dunia</string>
   <string name="subtitle_delete">Hapus</string>
   <string name="subtitle_deleteAccountDescription">Pastikan Anda menyimpan Frasa Pemulihan Rahasia, lalu masukkan \"Delete\" untuk menghapus akun Code Anda. Tindakan ini tidak dapat dibatalkan.</string>
   <string name="subtitle_didntGetCode">Tidak mendapatkan kode di %1$s?</string>

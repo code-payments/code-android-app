@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Linkuj numer telefonu</string>
   <string name="action_logIn">Zaloguj się</string>
   <string name="action_logout">Wyloguj się</string>
+  <string name="action_messageGetCode">Wyślij wiadomość do @getcode, aby się podłączyć</string>
   <string name="action_mute">Wycisz</string>
   <string name="action_next">Dalej</string>
   <string name="action_noTryAgain">Nie, spróbuj ponownie</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus powitalny</string>
   <string name="subtitle_chooseCountry">Wybierz kraj</string>
   <string name="subtitle_comingSoon">Wkrótce</string>
+  <string name="subtitle_connectXTweetText">\@getcode Chcę podłączyć moje konto X, aby otrzymywać napiwki od ludzi z całego świata.</string>
   <string name="subtitle_delete">Usuń</string>
   <string name="subtitle_deleteAccountDescription">Upewnij się, że masz zapisaną swoją tajną frazę odzyskiwania, a następnie wprowadź „Usuń\", aby usunąć konto Code. Tego działania nie da się odwrócić.</string>
   <string name="subtitle_didntGetCode">Nie otrzymałeś kodu w %1$s?</string>

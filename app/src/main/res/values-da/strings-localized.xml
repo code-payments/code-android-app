@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Link et telefonnummer</string>
   <string name="action_logIn">Log ind</string>
   <string name="action_logout">Log ud</string>
+  <string name="action_messageGetCode">Send en besked med @getcode for at oprette forbindelse</string>
   <string name="action_mute">Dæmp</string>
   <string name="action_next">Næste</string>
   <string name="action_noTryAgain">Nej, prøv igen</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Velkomstbonus</string>
   <string name="subtitle_chooseCountry">Vælg land</string>
   <string name="subtitle_comingSoon">Kommer snart</string>
+  <string name="subtitle_connectXTweetText">\@getcode Jeg vil gerne forbinde min X-konto, så jeg kan modtage donationer fra folk over hele verden</string>
   <string name="subtitle_delete">Slet </string>
   <string name="subtitle_deleteAccountDescription">Sørg for at du har gemt din hemmelige gendannelsessætning og tast derefter \"Slet\" for at slette din Code-konto. Denne handling kan ikke fortrydes.  </string>
   <string name="subtitle_didntGetCode">Fik du ikke en kode i %1$s?</string>
