@@ -5,6 +5,7 @@ option java_package = "com.codeinc.gen.transaction.v2";
 option objc_class_prefix = "APBTransactionV2";
 import "common/v1/model.proto";
 import "google/protobuf/timestamp.proto";
+
 service Transaction {
     // SubmitIntent is the mechanism for client and server to agree upon a set of
     // client actions to execute on the blockchain using the Code sequencer for
@@ -96,7 +97,6 @@ message SubmitIntentRequest {
         // The globally unique client generated intent ID. Use the original intent
         // ID when operating on actions that mutate the intent.
         common.v1.IntentId id = 1;
-        
         // The verified owner account public key
         common.v1.SolanaAccountId owner = 2;
         // Additional metadata that describes the high-level intention
@@ -125,7 +125,7 @@ message SubmitIntentResponse {
     message ServerParameters {
         // The set of all server paremeters required to fill missing transaction
         // details. Server guarantees to provide a message for each client action
-        // in an order consistent with the received action list. 
+        // in an order consistent with the received action list.
         repeated ServerParameter server_parameters = 1 ;
     }
     message Success {
@@ -341,7 +341,7 @@ message SwapRequest {
         uint64 limit = 3;
         // Whether the client wants the RPC to wait for blockchain status. If false,
         // then the RPC will return Success when the swap is submitted to the blockchain.
-        // Otherwise, the RPC will observe and report back the status of the transaction. 
+        // Otherwise, the RPC will observe and report back the status of the transaction.
         bool wait_for_blockchain_status = 4;
         // The signature is of serialize(Initiate) without this field set using the
         // private key of the owner account. This provides an authentication mechanism
@@ -556,6 +556,10 @@ message SendPrivatePaymentMetadata {
     bool is_tip = 5;
     // If is_tip is true, the user being tipped
     TippedUser tipped_user = 6;
+    // Is the payment for a friendship?
+    bool is_friendship = 7;
+    // If is_friendship is true, the user being friended
+    FriendedUser friended_user = 8;
 }
 // Send a payment to a destination account publicly.
 //
@@ -801,7 +805,6 @@ message NoPrivacyWithdrawAction {
     common.v1.SolanaAccountId destination = 3;
     // The intended Kin quark amount to withdraw
     uint64 amount = 4;
-    
     // Whether the account is closed afterwards. This is always true, since there
     // are no current se cases to leave it open.
     bool should_close = 5;
@@ -985,8 +988,8 @@ message ReasonStringErrorDetails {
     string reason = 1 ;
 }
 message InvalidSignatureErrorDetails {
-    // The action whose signature mismatched 
-    uint32 action_id = 1; 
+    // The action whose signature mismatched
+    uint32 action_id = 1;
     // The transaction the server expected to have signed.
     common.v1.Transaction expected_transaction = 2;
     // The signature that was provided by the client.
@@ -1072,7 +1075,7 @@ message PaymentHistoryItem {
     bool is_airdrop = 9;
     // If is_airdrop is true, the type of airdrop received.
     AirdropType airdrop_type = 10;
-    // Is this a micro payment? 
+    // Is this a micro payment?
     bool is_micro_payment = 11;
     // The intent ID associated with this history item
     common.v1.IntentId intent_id = 12;
@@ -1132,6 +1135,14 @@ message BuyModuleLimit {
     float max_per_transaction = 2;
 }
 message TippedUser {
+    Platform platform = 1 ;
+    enum Platform {
+        UNKNOWN = 0;
+        TWITTER = 1;
+    }
+    string username = 2 ;
+}
+message FriendedUser {
     Platform platform = 1 ;
     enum Platform {
         UNKNOWN = 0;

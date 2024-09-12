@@ -70,9 +70,9 @@ fun ChatByUsernameScreen(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<ChatByUsernameViewModel.Event.OnSuccess>()
-            .map { it.username }
+            .map { it.user }
             .onEach {
-                navigator.push(ChatMessageConversationScreen(username = it))
+                navigator.push(ChatMessageConversationScreen(user = it))
             }.launchIn(this)
     }
 

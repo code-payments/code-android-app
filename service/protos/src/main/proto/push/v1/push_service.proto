@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/pus
 option java_package = "com.codeinc.gen.push.v1";
 option objc_class_prefix = "APBPushV1";
 import "common/v1/model.proto";
+
 service Push {
     // AddToken stores a push token in a data container. The call is idempotent
     // and adding an existing valid token will not fail. Token types will be

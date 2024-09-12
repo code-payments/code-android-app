@@ -3,6 +3,7 @@ package code.currency.v1;
 option go_package = "github.com/code-payments/code-protobuf-api/generated/go/currency/v1;currency";
 option java_package = "com.codeinc.gen.currency.v1";
 option objc_class_prefix = "CPBCurrencyV1";
+
 import "google/protobuf/timestamp.proto";
 service Currency {
     // GetAllRates returns the exchange rates for Kin against all available currencies

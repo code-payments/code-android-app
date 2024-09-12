@@ -27,6 +27,8 @@ data class KinAmount(
     }
 
     companion object {
+        val Zero = newInstance(0, Rate.oneToOne)
+
         fun newInstance(kin: Int, rate: Rate): KinAmount {
             return newInstance(fromKin(kin), rate)
         }

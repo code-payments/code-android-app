@@ -303,9 +303,10 @@ class IdentityRepository @Inject constructor(
         }
     }
 
-    suspend fun fetchTwitterUserByUsername(username: String): Result<TwitterUser> {
+    suspend fun fetchTwitterUserByUsername(owner: KeyPair, username: String): Result<TwitterUser> {
         val request = GetTwitterUserRequest.newBuilder()
             .setUsername(username)
+            .setRequestor(owner.publicKeyBytes.toSolanaAccount())
             .build()
 
         return try {
@@ -349,9 +350,10 @@ class IdentityRepository @Inject constructor(
         }
     }
 
-    suspend fun fetchTwitterUserByAddress(address: PublicKey): Result<TwitterUser> {
+    suspend fun fetchTwitterUserByAddress(owner: KeyPair, address: PublicKey): Result<TwitterUser> {
         val request = GetTwitterUserRequest.newBuilder()
             .setTipAddress(address.byteArray.toSolanaAccount())
+            .setRequestor(owner.publicKeyBytes.toSolanaAccount())
             .build()
 
         return try {

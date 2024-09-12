@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/mic
 option java_package = "com.codeinc.gen.micropayment.v1";
 option objc_class_prefix = "APBMicroPaymentV1";
 import "common/v1/model.proto";
+
 // todo: Migrate this to a generic "request" service
 service MicroPayment {
     // GetStatus gets basic request status

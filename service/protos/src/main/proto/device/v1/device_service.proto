@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/dev
 option java_package = "com.codeinc.gen.device.v1";
 option objc_class_prefix = "CPBDevicetV1";
 import "common/v1/model.proto";
+
 service Device {
     // RegisterLoggedInAccounts registers a set of owner accounts logged for
     // an app install. Currently, a single login is enforced per app install.

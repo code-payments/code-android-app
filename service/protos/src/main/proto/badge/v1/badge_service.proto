@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/bad
 option java_package = "com.codeinc.gen.badge.v1";
 option objc_class_prefix = "CPBBadgeV1";
 import "common/v1/model.proto";
+
 service Badge {
     // ResetBadgeCount resets an owner account's app icon badge count back to zero
     rpc ResetBadgeCount(ResetBadgeCountRequest) returns (ResetBadgeCountResponse);

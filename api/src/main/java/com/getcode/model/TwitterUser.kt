@@ -21,7 +21,9 @@ data class TwitterUser(
     override val imageUrl: String?,
     val displayName: String,
     val followerCount: Int,
-    val verificationStatus: VerificationStatus
+    val verificationStatus: VerificationStatus,
+    val costOfFriendship: Fiat,
+    val isFriend: Boolean,
 ): TipMetadata {
 
     override val platform: String = "X"
@@ -52,7 +54,9 @@ data class TwitterUser(
                 imageUrl = avatarUrl,
                 followerCount = proto.followerCount,
                 tipAddress = tipAddress,
-                verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown
+                verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown,
+                costOfFriendship = Fiat(currency = CurrencyCode.USD, amount = 1.00),
+                isFriend = proto.isFriend
             )
         }
     }

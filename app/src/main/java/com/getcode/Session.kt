@@ -937,11 +937,18 @@ class Session @Inject constructor(
             }
     }
 
-    fun presentTipConfirmation(amount: KinAmount) {
-        val data = tipController.scannedUserData ?: return
-        val (_, payload) = data
+    fun presentTipConfirmation(amount: KinAmount, user: TwitterUser? = null) {
+        val scannedUserData = tipController.scannedUserData?.second
+        val payload = if (user != null) {
+            CodePayload(
+                kind = Kind.Tip,
+                value = Username(user.username)
+            )
+        } else {
+            scannedUserData
+        } ?: return
 
-        val metadata = tipController.userMetadata ?: return
+        val metadata = user ?: tipController.userMetadata ?: return
         uiFlow.update {
             val billState = it.billState.copy(
                 tipConfirmation = TipConfirmation(
@@ -1252,7 +1259,7 @@ class Session @Inject constructor(
                 presentationStyle = PresentationStyle.Pop,
                 billState = it.billState.copy(
                     bill = Bill.Login(
-                        amount = KinAmount.newInstance(Kin.fromKin(0), Rate.oneToOne),
+                        amount = KinAmount.Zero,
                         payload = payload,
                         request = request,
                     ),

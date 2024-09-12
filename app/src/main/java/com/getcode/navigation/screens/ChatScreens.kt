@@ -28,6 +28,7 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.model.ID
+import com.getcode.model.TwitterUser
 import com.getcode.model.chat.Reference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -43,6 +44,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.RawValue
 
 @Parcelize
 data object ChatListModal: ChatGraph, ModalRoot {
@@ -59,8 +61,8 @@ data object ChatListModal: ChatGraph, ModalRoot {
             closeButtonEnabled = { it is ChatListModal },
         ) {
             val viewModel = getViewModel<ChatListViewModel>()
-//            val conversations = viewModel.conversations.collectAsLazyPagingItems()
-            ChatListScreen(viewModel)
+            val conversations = viewModel.conversations.collectAsLazyPagingItems()
+            ChatListScreen(viewModel, conversations)
         }
     }
 }
@@ -85,7 +87,7 @@ data object ChatByUsernameScreen: ChatGraph, ModalContent {
 
 @Parcelize
 data class ChatMessageConversationScreen(
-    val username: String? = null,
+    val user: @RawValue TwitterUser? = null,
     val chatId: ID? = null,
     val intentId: ID? = null
 ) : AppScreen(), ChatGraph, ModalContent {
@@ -153,6 +155,13 @@ data class ChatMessageConversationScreen(
 
             },
             backButtonEnabled = { it is ChatMessageConversationScreen },
+            onBackClicked = {
+                if (state.twitterUser != null) {
+                    navigator.popUntil { it is ChatListModal }
+                } else {
+                    navigator.pop()
+                }
+            }
         ) {
             val messages = vm.messages.collectAsLazyPagingItems()
             ChatConversationScreen(state, messages, vm::dispatchEvent)
@@ -176,6 +185,14 @@ data class ChatMessageConversationScreen(
                         navigator.pop()
                     }
                 }.launchIn(this)
+        }
+
+        LaunchedEffect(user) {
+            if (user != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnTwitterUserChanged(user)
+                )
+            }
         }
 
         LaunchedEffect(chatId) {

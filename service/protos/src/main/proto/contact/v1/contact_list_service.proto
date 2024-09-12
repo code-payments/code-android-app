@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/con
 option java_package = "com.codeinc.gen.contact.v1";
 option objc_class_prefix = "CPBContactV1";
 import "common/v1/model.proto";
+
 service ContactList {
     // AddContacts adds a batch of contacts to a user's contact list
     rpc AddContacts(AddContactsRequest) returns (AddContactsResponse);

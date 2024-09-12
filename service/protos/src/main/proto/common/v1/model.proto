@@ -5,6 +5,7 @@ option java_package = "com.codeinc.gen.common.v1";
 option objc_class_prefix = "CPBCommonV1";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+
 // AccountType associates a type to an account, which infers how an account is used
 // within the Code ecosystem.
 enum AccountType {

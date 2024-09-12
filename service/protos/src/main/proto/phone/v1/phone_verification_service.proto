@@ -4,6 +4,7 @@ option go_package = "github.com/code-payments/code-protobuf-api/generated/go/pho
 option java_package = "com.codeinc.gen.phone.v1";
 option objc_class_prefix = "CPBPhoneV1";
 import "common/v1/model.proto";
+
 service PhoneVerification {
     // SendVerificationCode sends a verification code to the provided phone number
     // over SMS. If an active verification is already taking place, the existing code

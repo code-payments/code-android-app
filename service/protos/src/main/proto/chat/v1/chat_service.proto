@@ -6,6 +6,7 @@ option objc_class_prefix = "CPBChatV1";
 import "common/v1/model.proto";
 import "transaction/v2/transaction_service.proto";
 import "google/protobuf/timestamp.proto";
+
 // Deprecated: Use the v2 service
 service Chat {
     // GetChats gets the set of chats for an owner account

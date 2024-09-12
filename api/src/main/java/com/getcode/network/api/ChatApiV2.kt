@@ -12,19 +12,15 @@ import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.model.chat.Chat
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.StartChatRequest
 import com.getcode.model.chat.StartChatResponse
-import com.getcode.model.description
 import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
-import com.getcode.utils.TraceType
 import com.getcode.utils.bytes
 import com.getcode.utils.sign
-import com.getcode.utils.trace
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
@@ -54,11 +50,11 @@ class ChatApiV2 @Inject constructor(
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel)
 
-    fun createTipChat(owner: KeyPair, intentId: ID): Flow<StartChatResponse> {
+    fun startChat(owner: KeyPair, intentId: ID): Flow<StartChatResponse> {
         val request = StartChatRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setTipChat(
-                ChatService.StartTipChatParameters.newBuilder()
+            .setTwoWayChat(
+                ChatService.StartTwoWayChatParameters.newBuilder()
                     .setIntentId(IntentId.newBuilder()
                         .setValue(intentId.toByteString()))
                     .build()
