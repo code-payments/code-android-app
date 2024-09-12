@@ -11,6 +11,8 @@ import com.getcode.db.InMemoryDao
 import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
+import com.getcode.model.description
+import com.getcode.model.uuid
 import com.getcode.network.BalanceController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
@@ -26,6 +28,7 @@ import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
+import com.getcode.utils.makeE164
 import com.getcode.utils.trace
 import com.getcode.utils.token
 import com.google.firebase.Firebase
@@ -33,6 +36,7 @@ import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
 import com.ionspin.kotlin.crypto.LibsodiumInitializer
+import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
@@ -59,6 +63,7 @@ class AuthManager @Inject constructor(
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
     private val mnemonicManager: MnemonicManager,
+    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
@@ -265,9 +270,21 @@ class AuthManager @Inject constructor(
             }
             .doOnSuccess {
                 taggedTrace("account data fetched successfully")
+
+                val distinctId = user?.userId?.description
+                val phoneNumber = phone?.phoneNumber?.makeE164()
+
                 if (!BuildConfig.DEBUG) {
+                    // BugSnag
                     if (Bugsnag.isStarted()) {
-                        Bugsnag.setUser(null, phone?.phoneNumber, null)
+                        Bugsnag.setUser(distinctId, phoneNumber, null)
+                    }
+
+                    // Mixpanel
+                    mixpanelAPI.identify(distinctId)
+
+                    if (phone?.phoneNumber != null) {
+                        mixpanelAPI.people.set("\$email", phoneNumber)
                     }
                 }
                 launch { savePrefs(phone!!, user!!) }
