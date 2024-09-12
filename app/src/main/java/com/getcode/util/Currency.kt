@@ -111,10 +111,10 @@ fun formatAmountString(
     } else {
         when {
             currency.code == currency.symbol -> {
-                "${FormatUtils.format(amount)} $suffix"
+                FormatUtils.format(amount) + if (suffix.isNotEmpty()) " $suffix" else ""
             }
             else -> {
-                "${currency.symbol}${FormatUtils.format(amount)} $suffix"
+                "${currency.symbol}${FormatUtils.format(amount)}" + if (suffix.isNotEmpty()) " $suffix" else ""
             }
         }
     }

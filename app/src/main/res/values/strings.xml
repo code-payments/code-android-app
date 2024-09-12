@@ -56,4 +56,6 @@
 
     <string name="title_tipCardBack">Don\'t have cash?\nTip me with Code!</string>
     <string name="subtitle_tipCardBack">Scan to download the app, and then scan the code on the other side to tip</string>
+
+    <string name="action_payToChat">Send %1$s to Start Chatting</string>
 </resources>

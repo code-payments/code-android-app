@@ -22,18 +22,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.paging.compose.LazyPagingItems
+import cafe.adriel.voyager.navigator.currentOrThrow
+import com.getcode.LocalSession
+import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.ButtonState
+import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
+import com.getcode.util.formatted
 import com.getcode.view.main.tip.IdentityConnectionReason
 import kotlinx.coroutines.delay
 
@@ -44,6 +51,8 @@ fun ChatConversationScreen(
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
+    val session = LocalSession.currentOrThrow
+
     CodeScaffold(
         topBar = {
             IdentityRevealHeader(state = state) {
@@ -59,12 +68,31 @@ fun ChatConversationScreen(
                 modifier = Modifier
                     .imePadding()
             ) {
-                ChatInput(
-                    state = state.textFieldState,
-                    sendCashEnabled = state.tipChatCash.enabled,
-                    onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
-                    onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
-                )
+                val canChat = remember(state.twitterUser) {
+                    state.twitterUser == null || state.twitterUser.isFriend
+                }
+                if (canChat) {
+                    ChatInput(
+                        state = state.textFieldState,
+                        sendCashEnabled = state.tipChatCash.enabled,
+                        onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
+                        onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                    )
+                } else {
+                    CodeButton(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = CodeTheme.dimens.grid.x2)
+                            .padding(horizontal = CodeTheme.dimens.inset),
+                        buttonState = ButtonState.Filled,
+                        text = stringResource(
+                            R.string.action_payToChat,
+                            state.costToChat.formatted(suffix = "")
+                        )
+                    ) {
+//                        session.presentTipConfirmation(state.costToChat)
+                    }
+                }
             }
         }
     ) { padding ->

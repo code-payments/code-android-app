@@ -8,7 +8,9 @@ import androidx.compose.foundation.text2.input.clearText
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
+import com.getcode.model.TwitterUser
 import com.getcode.network.TipController
+import com.getcode.network.TwitterUserController
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import com.getcode.view.main.chat.conversation.ConversationViewModel.Event
@@ -24,7 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatByUsernameViewModel @Inject constructor(
     resources: ResourceHelper,
-    tipController: TipController,
+    twitterUserController: TwitterUserController,
 ): BaseViewModel2<ChatByUsernameViewModel.State, ChatByUsernameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -40,7 +42,7 @@ class ChatByUsernameViewModel @Inject constructor(
 
     sealed interface Event {
         data object CheckUsername : Event
-        data class OnSuccess(val username: String) : Event
+        data class OnSuccess(val user: TwitterUser) : Event
         data object OnError : Event
     }
 
@@ -52,14 +54,14 @@ class ChatByUsernameViewModel @Inject constructor(
                 val textFieldState = it.textFieldState
                 val text = textFieldState.text.toString()
 
-                runCatching { tipController.fetch(text) }
+                runCatching { twitterUserController.fetchUser(text) }
             }
             .map { it.getOrNull() }
             .onEach { twitterUser ->
                 if (twitterUser == null) {
                     dispatchEvent(Event.OnError)
                 } else {
-                    dispatchEvent(Event.OnSuccess(twitterUser.username))
+                    dispatchEvent(Event.OnSuccess(twitterUser))
                 }
             }.launchIn(viewModelScope)
 

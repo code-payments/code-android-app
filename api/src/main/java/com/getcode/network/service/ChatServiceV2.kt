@@ -293,7 +293,7 @@ class ChatServiceV2 @Inject constructor(
             ChatType.Notification -> throw IllegalArgumentException("Unable to create notification chats from client")
             ChatType.TwoWay -> {
                 try {
-                    networkOracle.managedRequest(api.createTipChat(owner, intentId))
+                    networkOracle.managedRequest(api.startChat(owner, intentId))
                         .map { response ->
                             when (response.result) {
                                 ChatService.StartChatResponse.Result.OK -> {
