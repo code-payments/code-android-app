@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">เชื่อมโยงหมายเลขโทรศัพท์</string>
   <string name="action_logIn">เข้าสู่ระบบ</string>
   <string name="action_logout">ออกจากระบบ</string>
+  <string name="action_messageGetCode">ส่งข้อความถึง @getcode เพื่อเชื่อมต่อ</string>
   <string name="action_mute">ปิดเสียง</string>
   <string name="action_next">ต่อไป</string>
   <string name="action_noTryAgain">ไม่, ลองอีกครั้ง</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">โบนัสต้อนรับ</string>
   <string name="subtitle_chooseCountry">เลือกประเทศ</string>
   <string name="subtitle_comingSoon">จะมีให้บริการในเร็ว ๆ นี้</string>
+  <string name="subtitle_connectXTweetText">\@getcode ฉันต้องการเชื่อมต่อบัญชี X ของฉันเพื่อที่จะได้รับทิปจากผู้คนทั่วโลก</string>
   <string name="subtitle_delete">ลบ</string>
   <string name="subtitle_deleteAccountDescription">ตรวจสอบให้แน่ใจว่าคุณได้บันทึกวลีกู้คืนแล้ว จากนั้นป้อนคำว่า \"ลบ\" เพื่อลบบัญชี Code ของคุณ การดำเนินการนี้ไม่สามารถย้อนกลับได้</string>
   <string name="subtitle_didntGetCode">ไม่ได้รับรหัสที่ %1$s หรือ</string>

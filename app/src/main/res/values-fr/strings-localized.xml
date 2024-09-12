@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Associer un numéro de téléphone</string>
   <string name="action_logIn">Se connecter</string>
   <string name="action_logout">Se déconnecter</string>
+  <string name="action_messageGetCode">Envoyez un message à @getcode pour le connecter</string>
   <string name="action_mute">Mettre en sourdine</string>
   <string name="action_next">Suivant</string>
   <string name="action_noTryAgain">Non, réessayez</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus de bienvenue</string>
   <string name="subtitle_chooseCountry">Sélectionner un pays</string>
   <string name="subtitle_comingSoon">À venir</string>
+  <string name="subtitle_connectXTweetText">\@getcode J\'aimerais connecter mon compte X pour pouvoir recevoir des versements de personnes du monde entier</string>
   <string name="subtitle_delete">Supprimer</string>
   <string name="subtitle_deleteAccountDescription">Assurez-vous d\'avoir enregistré votre phrase secrète de récupération, puis tapez « Supprimer » pour supprimer votre compte Code. Cette action est irréversible.</string>
   <string name="subtitle_didntGetCode">Vous n\'avez pas reçu de code à %1$s ?</string>

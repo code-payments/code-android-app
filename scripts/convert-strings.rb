@@ -21,6 +21,7 @@ ARGF.each do |line|
 
         name.gsub!(/[ .]/, "_")
 
+        value.gsub!(/^@/, '\@')
         value.gsub!(/&/, "&amp;")
         value.gsub!(/</, "&lt;")
         value.gsub!(/'/, "\\\\'")

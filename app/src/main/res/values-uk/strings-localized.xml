@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Прив\'язати номер телефону</string>
   <string name="action_logIn">Увійти</string>
   <string name="action_logout">Вийти</string>
+  <string name="action_messageGetCode">Надішліть повідомлення @getcode для підключення</string>
   <string name="action_mute">Вимкнути звук</string>
   <string name="action_next">Наступне</string>
   <string name="action_noTryAgain">Ні, спробувати ще раз</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Вітальний бонус</string>
   <string name="subtitle_chooseCountry">Вибрати країну</string>
   <string name="subtitle_comingSoon">Скоро буде</string>
+  <string name="subtitle_connectXTweetText">\@getcode Я хочу підключити свій обліковий запис X, щоб отримувати поради від людей з усього світу</string>
   <string name="subtitle_delete">Видалити</string>
   <string name="subtitle_deleteAccountDescription">Переконайтеся, що ви зберегли секретну фразу відновлення, а потім введіть «Видалити», щоб видалити обліковий запис Code. Ця дія незворотна.</string>
   <string name="subtitle_didntGetCode">Не отримали код на %1$s?</string>

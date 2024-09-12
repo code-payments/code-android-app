@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Yhdistä puhelinnumero</string>
   <string name="action_logIn">Kirjaudu sisään</string>
   <string name="action_logout">Kirjaudu ulos</string>
+  <string name="action_messageGetCode">Yhdistä lähettämällä viesti @getcode</string>
   <string name="action_mute">Hiljennä</string>
   <string name="action_next">Seuraava</string>
   <string name="action_noTryAgain">Ei, yritä uudelleen</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Tervetulobonus</string>
   <string name="subtitle_chooseCountry">Valitse maa</string>
   <string name="subtitle_comingSoon">Tulossa pian</string>
+  <string name="subtitle_connectXTweetText">\@getcode Haluaisin yhdistää X-tiliini, jotta voin saada tippejä ihmisiltä kaikkialta maailmassa</string>
   <string name="subtitle_delete">Poista</string>
   <string name="subtitle_deleteAccountDescription">Varmista, että olet tallentanut salaisen palautuslauseesi ja kirjoita sitten \"Poista\" Code-tilisi poistamiseksi. Tätä toimintoa ei voi perua.</string>
   <string name="subtitle_didntGetCode">Etkö saanut koodia numeroon %1$s?</string>

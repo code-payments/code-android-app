@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Odkázat na telefonní číslo</string>
   <string name="action_logIn">Přihlásit se</string>
   <string name="action_logout">Odhlásit se</string>
+  <string name="action_messageGetCode">Zpráva @getcode za účelem propojení</string>
   <string name="action_mute">Ztlumit</string>
   <string name="action_next">Dále</string>
   <string name="action_noTryAgain">Ne, zkusit znovu</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Bonus na uvítanou</string>
   <string name="subtitle_chooseCountry">Zvolit zemi</string>
   <string name="subtitle_comingSoon">Již brzy</string>
+  <string name="subtitle_connectXTweetText">\@getcode, chci si propojit účet X a dostávat tipy od lidí z celého světa</string>
   <string name="subtitle_delete">Odstranit</string>
   <string name="subtitle_deleteAccountDescription">Ujistěte se, že máte uloženou tajnou frázi pro obnovení, a poté zadejte \"Odstranit\" pro odstranění účtu Code. Tato akce je nevratná.</string>
   <string name="subtitle_didntGetCode">Nedostali jste kód na %1$s?</string>

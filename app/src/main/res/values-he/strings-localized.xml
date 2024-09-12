@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">קשר מספר טלפון</string>
   <string name="action_logIn">התחברות</string>
   <string name="action_logout">יציאה מהחשבון</string>
+  <string name="action_messageGetCode">שלחו הודעה ל-@getcode כדי להתחבר</string>
   <string name="action_mute">השתק</string>
   <string name="action_next">הבא</string>
   <string name="action_noTryAgain">לא, נסה שוב</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">בונוס מבורך</string>
   <string name="subtitle_chooseCountry">בחר מדינה</string>
   <string name="subtitle_comingSoon">יגיע בקרוב</string>
+  <string name="subtitle_connectXTweetText">\@getcode, אני רוצה לחבר את חשבון X שלי כדי שאוכל לקבל טיפים מאנשים בכל רחבי העולם</string>
   <string name="subtitle_delete">מחק</string>
   <string name="subtitle_deleteAccountDescription">יש לוודא ששמרת את ביטוי השחזור הסודי שלך, ולאחר מכן להזין \"מחק\" כדי למחוק את חשבון Code שלך. פעולה זו היא בלתי הפיכה.</string>
   <string name="subtitle_didntGetCode">לא קיבלת קוד ב-%1$s?</string>

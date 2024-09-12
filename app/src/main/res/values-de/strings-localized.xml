@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">Eine Telefonnummer verknüpfen</string>
   <string name="action_logIn">Einloggen</string>
   <string name="action_logout">Abmelden</string>
+  <string name="action_messageGetCode">Schreibe @getcode, um Dich zu verbinden</string>
   <string name="action_mute">Stummschalten</string>
   <string name="action_next">Weiter</string>
   <string name="action_noTryAgain">Nein, erneut versuchen</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">Willkommensbonus</string>
   <string name="subtitle_chooseCountry">Land auswählen</string>
   <string name="subtitle_comingSoon">Demnächst erhältlich</string>
+  <string name="subtitle_connectXTweetText">\@getcode Ich möchte mein X-Konto verknüpfen, damit ich Tipps von Menschen auf der ganzen Welt erhalte.</string>
   <string name="subtitle_delete">Löschen</string>
   <string name="subtitle_deleteAccountDescription">Vergewissern Sie sich, dass Sie Ihre geheime Wiederherstellungsphrase gespeichert haben, und geben Sie dann „Löschen\" ein, um Ihr Code-Konto zu löschen. Dieser Vorgang kann nicht rückgängig gemacht werden.</string>
   <string name="subtitle_didntGetCode">Sie haben keinen Code bei %1$s erhalten?</string>

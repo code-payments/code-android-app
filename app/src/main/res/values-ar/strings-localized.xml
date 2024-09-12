@@ -36,6 +36,7 @@
   <string name="action_linkPhoneNumber">إرفاق رقم الهاتف</string>
   <string name="action_logIn">تسجيل الدخول</string>
   <string name="action_logout">تسجيل الخروج</string>
+  <string name="action_messageGetCode">أرسل رسالة إلي @getcode للربط</string>
   <string name="action_mute">كتم الصوت</string>
   <string name="action_next">التالي</string>
   <string name="action_noTryAgain">لا, حاول مرة أخرى</string>
@@ -234,6 +235,7 @@
   <string name="subtitle_chat_welcomeBonus">مكافأة ترحيبية</string>
   <string name="subtitle_chooseCountry">اختر بلدًا</string>
   <string name="subtitle_comingSoon">قريباً</string>
+  <string name="subtitle_connectXTweetText">\@getcode أرغب في ربط حسابي على X حتى أتمكن من تلقي النصائح من أشخاص في جميع أنحاء العالم</string>
   <string name="subtitle_delete">حذف</string>
   <string name="subtitle_deleteAccountDescription">تأكد من حفظ عبارة الاسترداد السرية الخاصة بك, ثم أدخل \"حذف\" لحذف حساب Code الخاص بك. لا يمكن الرجوع في هذا الإجراء.</string>
   <string name="subtitle_didntGetCode">ألم تتلقى رمزًا على %1$s؟</string>
