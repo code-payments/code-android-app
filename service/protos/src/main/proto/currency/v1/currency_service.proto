@@ -8,14 +8,12 @@ service Currency {
     // GetAllRates returns the exchange rates for Kin against all available currencies
     rpc GetAllRates(GetAllRatesRequest) returns (GetAllRatesResponse);
 }
-
 message GetAllRatesRequest {
     // If timestamp is included, the returned rate will be the most recent available
     // exchange rate prior to the provided timestamp within the same day. Otherwise,
     // the latest rates will be returned.
     google.protobuf.Timestamp timestamp = 1;
 }
-
 message GetAllRatesResponse {
     Result result = 1;
     enum Result {
@@ -23,10 +21,8 @@ message GetAllRatesResponse {
         // No currency data is available for the requested timestamp.
         MISSING_DATA = 1;
     }
-
     // The time the exchange rates were observed
     google.protobuf.Timestamp as_of = 2;
     // The price of 1 Kin in different currencies, keyed on 3- or 4- letter lowercase currency code.
-    map<string, double> rates = 3;
+    map<string, double> rates = 3 ;
 }
-

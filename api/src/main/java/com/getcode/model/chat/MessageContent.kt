@@ -340,9 +340,9 @@ sealed interface MessageContent {
             proto: MessageContentV1,
         ): MessageContent? {
             return when (proto.typeCase) {
-                ChatServiceV1.Content.TypeCase.LOCALIZED -> Localized(
+                ChatServiceV1.Content.TypeCase.SERVER_LOCALIZED -> Localized(
                     isFromSelf = false,
-                    value = proto.localized.keyOrText
+                    value = proto.serverLocalized.keyOrText
                 )
 
                 ChatServiceV1.Content.TypeCase.EXCHANGE_DATA -> {

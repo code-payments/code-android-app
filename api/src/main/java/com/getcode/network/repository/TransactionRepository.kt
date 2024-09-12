@@ -368,8 +368,8 @@ class TransactionRepository @Inject constructor(
 
                                     expected?.diff(produced)
                                 }
-                                TransactionService.ErrorDetails.TypeCase.INTENT_DENIED -> {
-                                    errors.add("Denied: ${error.intentDenied.reason.name}")
+                                TransactionService.ErrorDetails.TypeCase.DENIED -> {
+                                    errors.add("Denied: ${error.denied.reason}")
                                 }
                                 else -> Unit
                             }
@@ -765,8 +765,8 @@ sealed class ErrorSubmitIntent(val value: Int) {
             return when (proto.code) {
                 SubmitIntentResponse.Error.Code.DENIED -> {
                     val reasons = proto.errorDetailsList.mapNotNull {
-                        if (!it.hasIntentDenied()) return@mapNotNull null
-                        DeniedReason.fromValue(it.intentDenied.reasonValue)
+                        if (!it.hasDenied()) return@mapNotNull null
+                        DeniedReason.fromValue(it.denied.codeValue)
                     }
 
                     Denied(reasons)

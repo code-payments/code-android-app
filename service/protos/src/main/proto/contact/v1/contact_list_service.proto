@@ -12,7 +12,6 @@ service ContactList {
     // GetContacts gets a subset of contacts from a user's contact list
     rpc GetContacts(GetContactsRequest) returns (GetContactsResponse);
 }
-
 message AddContactsRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -23,22 +22,19 @@ message AddContactsRequest {
     // The data container for the copy of the contact list being added to.
     common.v1.DataContainerId container_id = 3;
     // The set of contacts to add to the contact list
-    repeated common.v1.PhoneNumber contacts = 4;
+    repeated common.v1.PhoneNumber contacts = 4 ;
   
 }
-
 message AddContactsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
     // The contacts' current status keyed by phone number. This is an optimization
     // so that clients can populate initial state without needing an extra network
     // call.
     map<string, ContactStatus> contact_status = 2;
 }
-
 message RemoveContactsRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -49,17 +45,14 @@ message RemoveContactsRequest {
     // The data container for the copy of the contact list being removed from.
     common.v1.DataContainerId container_id = 3;
      // The set of contacts to remove from the contact list
-    repeated common.v1.PhoneNumber contacts = 4;
+    repeated common.v1.PhoneNumber contacts = 4 ;
 }
-
 message RemoveContactsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
 }
-
 message GetContactsRequest {
     // The public key of the owner account that signed this request message.
     common.v1.SolanaAccountId owner_account_id = 1;
@@ -76,13 +69,11 @@ message GetContactsRequest {
     // that have both been invited and registered with the app.
     bool include_only_in_app_contacts = 5;
 }
-
 message GetContactsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
     // A page of contacts
     repeated Contact contacts = 2;
     // The page token to include in a subsequent request to get the next set of
@@ -90,14 +81,12 @@ message GetContactsResponse {
     // pages.
     PageToken next_page_token = 3;
 }
-
 message Contact {
     // The contact's phone number
     common.v1.PhoneNumber phone_number = 1;
     // The contact's current status
     ContactStatus status = 2;
 }
-
 message ContactStatus {
     // Flag to indicate whether a user has registered with Code and used the app
     // at least once.
@@ -111,8 +100,6 @@ message ContactStatus {
     // todo: This field will be deprecated after the invite phase is complete.
     bool is_invite_revoked = 3;
 }
-
 message PageToken {
-    bytes value = 1;
+    bytes value = 1 ;
 }
-

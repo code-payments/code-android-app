@@ -14,42 +14,35 @@ service Device {
     // Clients can use this RPC to detect stale logins for boot out of the app.
     rpc GetLoggedInAccounts(GetLoggedInAccountsRequest) returns (GetLoggedInAccountsResponse);
 }
-
 message RegisterLoggedInAccountsRequest {
     common.v1.AppInstallId app_install = 1;
     // The set of owners logged into the app install. Setting an empty value
     // indicates there are no logged in users. We allow for more than one owner
     // in the spec with a repeated field to be flexible in the future.
-    repeated common.v1.SolanaAccountId owners = 2;
+    repeated common.v1.SolanaAccountId owners = 2 ;
     // Signature values must appear in the exact order their respecitive signing
     // owner account appears in the owners field. All signatures should be generated
     // without any other signature values set.
-    repeated common.v1.Signature signatures = 3;
+    repeated common.v1.Signature signatures = 3 ;
 }
-
 message RegisterLoggedInAccountsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
         INVALID_OWNER = 1;
     }
-
     // Set of invalid owner accounts detected in the request. An owner account
     // can be invalid for several reasons: not phone verified, timelock account
     // unlocked, etc. Value is set when result is INVALID_OWNER.
-    repeated common.v1.SolanaAccountId invalid_owners = 2;
+    repeated common.v1.SolanaAccountId invalid_owners = 2 ;
 }
-
 message GetLoggedInAccountsRequest {
     common.v1.AppInstallId app_install = 1;
 }
-
 message GetLoggedInAccountsResponse {
     Result result = 1;
     enum Result {
         OK = 0;
     }
-
-    repeated common.v1.SolanaAccountId owners = 2;
+    repeated common.v1.SolanaAccountId owners = 2 ;
 }
-
