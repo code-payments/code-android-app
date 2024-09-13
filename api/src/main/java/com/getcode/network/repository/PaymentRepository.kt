@@ -8,6 +8,7 @@ import com.getcode.model.CodePayload
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
+import com.getcode.model.TipMetadata
 import com.getcode.model.TwitterUser
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
@@ -187,7 +188,7 @@ class PaymentRepository @Inject constructor(
         messagingRepository.rejectPayment(payload.rendezvous)
     }
 
-    suspend fun completeTipPayment(metadata: TwitterUser, amount: KinAmount) {
+    suspend fun completeTipPayment(metadata: TipMetadata, amount: KinAmount) {
         return suspendCancellableCoroutine { cont ->
             val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
 

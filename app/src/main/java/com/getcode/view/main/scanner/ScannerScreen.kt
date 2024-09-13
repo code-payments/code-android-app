@@ -6,7 +6,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -55,8 +54,6 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
-import com.getcode.navigation.screens.BuyMoreKinModal
-import com.getcode.navigation.screens.BuySellScreen
 import com.getcode.navigation.screens.ChatListModal
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
@@ -68,7 +65,6 @@ import com.getcode.ui.components.PermissionResult
 import com.getcode.ui.components.getPermissionLauncher
 import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.utils.AnimationUtils
-import com.getcode.ui.utils.ModalAnimationSpeed
 import com.getcode.ui.utils.measured
 import com.getcode.util.launchAppSettings
 import com.getcode.view.login.notificationPermissionCheck
@@ -76,11 +72,8 @@ import com.getcode.view.main.bill.BillManagementOptions
 import com.getcode.view.main.scanner.views.CameraDisabledView
 import com.getcode.view.main.scanner.camera.CodeScanner
 import com.getcode.view.main.bill.HomeBill
-import com.getcode.view.main.scanner.modals.LoginConfirmation
-import com.getcode.view.main.scanner.modals.PaymentConfirmation
 import com.getcode.view.main.scanner.views.CameraPermissionsMissingView
-import com.getcode.view.main.scanner.modals.ReceivedKinConfirmation
-import com.getcode.view.main.scanner.modals.TipConfirmation
+import com.getcode.ui.modals.ReceivedKinConfirmation
 import com.getcode.view.main.scanner.views.HomeRestricted
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -109,7 +102,7 @@ fun ScanScreen(
     request: DeepLinkRequest? = null,
 ) {
     val navigator = LocalCodeNavigator.current
-    val dataState by session.uiFlow.collectAsState()
+    val dataState by session.state.collectAsState()
 
     when (val restrictionType = dataState.restrictionType) {
         RestrictionType.ACCESS_EXPIRED,
@@ -517,90 +510,6 @@ private fun BillContainer(
                     ReceivedKinConfirmation(
                         bill = updatedState.billState.bill as Bill.Cash,
                         onClaim = { session.cancelSend() }
-                    )
-                }
-            }
-        }
-
-        // Payment Confirmation container
-        AnimatedContent(
-            modifier = Modifier.align(BottomCenter),
-            targetState = updatedState.billState.paymentConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = AnimationUtils.modalAnimationSpec(),
-            label = "payment confirmation",
-        ) {
-            if (it != null) {
-                Box(
-                    contentAlignment = BottomCenter
-                ) {
-
-                    PaymentConfirmation(
-                        confirmation = updatedState.billState.paymentConfirmation,
-                        balance = updatedState.balance,
-                        onAddKin = {
-                            session.rejectPayment()
-                            if (updatedState.buyModule.enabled) {
-                                if (updatedState.buyModule.available) {
-                                    navigator.show(BuyMoreKinModal(showClose = true))
-                                } else {
-                                    TopBarManager.showMessage(
-                                        TopBarManager.TopBarMessage(
-                                            title = context.getString(R.string.error_title_buyModuleUnavailable),
-                                            message = context.getString(R.string.error_description_buyModuleUnavailable),
-                                            type = TopBarManager.TopBarMessageType.ERROR
-                                        )
-                                    )
-                                }
-                            } else {
-                                navigator.show(BuySellScreen)
-                            }
-                        },
-                        onSend = { session.completePayment() },
-                        onCancel = {
-                            session.rejectPayment()
-                        }
-                    )
-                }
-            }
-        }
-
-        // Login Confirmation container
-        AnimatedContent(
-            modifier = Modifier.align(BottomCenter),
-            targetState = updatedState.billState.loginConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = AnimationUtils.modalAnimationSpec(),
-            label = "login confirmation",
-        ) {
-            if (it != null) {
-                Box(
-                    contentAlignment = BottomCenter
-                ) {
-                    LoginConfirmation(
-                        confirmation = updatedState.billState.loginConfirmation,
-                        onSend = { session.completeLogin() },
-                        onCancel = {
-                            session.rejectLogin()
-                        }
-                    )
-                }
-            }
-        }
-
-        // Tip Confirmation container
-        AnimatedContent(
-            modifier = Modifier.align(BottomCenter),
-            targetState = updatedState.billState.tipConfirmation?.payload, // payload is constant across state changes
-            transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast),
-            label = "tip confirmation",
-        ) {
-            if (it != null) {
-                Box(
-                    contentAlignment = BottomCenter
-                ) {
-                    TipConfirmation(
-                        confirmation = updatedState.billState.tipConfirmation,
-                        onSend = { session.completeTipPayment() },
-                        onCancel = { session.cancelTip() }
                     )
                 }
             }

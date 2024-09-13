@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.modals
+package com.getcode.ui.modals
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth

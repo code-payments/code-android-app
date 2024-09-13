@@ -32,7 +32,7 @@ fun TwitterUsernameDisplay(
             painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
             contentDescription = null
         )
-        Text(text = username, style = CodeTheme.typography.textLarge)
+        Text(text = username, style = CodeTheme.typography.textLarge, color = CodeTheme.colors.textMain)
         verificationStatus?.let { status ->
             status.checkmark()?.let { asset ->
                 Image(

@@ -190,25 +190,30 @@ data class BillToast(
             .toString()
 }
 
+sealed class Confirmation(open val showScrim: Boolean = false)
+
 data class PaymentConfirmation(
     val state: ConfirmationState,
     val payload: CodePayload,
     val requestedAmount: KinAmount,
     val localAmount: KinAmount,
-)
+    override val showScrim: Boolean = false,
+): Confirmation(showScrim)
 
 data class LoginConfirmation(
     val state: ConfirmationState,
     val payload: CodePayload,
     val domain: Domain,
-)
+    override val showScrim: Boolean = false,
+): Confirmation(showScrim)
 
 data class TipConfirmation(
     val state: ConfirmationState,
     val amount: KinAmount,
     val payload: CodePayload?,
     val metadata: TipMetadata,
-) {
+    override val showScrim: Boolean = false,
+): Confirmation(showScrim) {
     val imageUrl: String?
         get() {
             return when (metadata) {

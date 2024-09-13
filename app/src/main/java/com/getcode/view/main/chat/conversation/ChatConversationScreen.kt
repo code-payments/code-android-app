@@ -90,7 +90,7 @@ fun ChatConversationScreen(
                             state.costToChat.formatted(suffix = "")
                         )
                     ) {
-//                        session.presentTipConfirmation(state.costToChat)
+                        session.presentTipConfirmation(state.costToChat, state.twitterUser)
                     }
                 }
             }

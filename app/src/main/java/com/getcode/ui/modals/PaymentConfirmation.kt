@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.modals
+package com.getcode.ui.modals
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
