@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Je moet je camera opstarten om Codes te scannen.</string>
   <string name="subtitle_tipCardForX">Met je fooikaart kunt je fooien ontvangen van codegebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, verbind je X-identiteit.</string>
   <string name="subtitle_tipCardTwitterDescription">Met je fooikaart kunt je fooien ontvangen van Code-gebruikers over de hele wereld. Om toegang te krijgen tot je fooikaart, post op X.</string>
+  <string name="subtitle_tipCardXDescription">Met je Fooikaart kun je fooien ontvangen van Code-gebruikers over de hele wereld. Stuur een bericht naar @getcode op X om toegang te krijgen tot je Fooikaart.</string>
   <string name="subtitle_turnOnNotifications">Code toestaan om je meldingen te sturen wanneer je Fooi van andere Code-gebruikers ontvangt.</string>
   <string name="subtitle_typeDelete">Typ \'%1$s\'</string>
   <string name="subtitle_updateRequiredDescription">We hebben enkele wijzigingen doorgevoerd om de ervaring te verbeteren. Je dient de app te updaten om Code te blijven gebruiken.</string>

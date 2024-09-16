@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">You need to start your camera to scan Codes</string>
   <string name="subtitle_tipCardForX">Your Tip Card lets you receive tips from Code users all over the world. To access your Tip Card connect your X identity.</string>
   <string name="subtitle_tipCardTwitterDescription">Your Tip Card lets you receive tips from Code users all over the world. To access your Tip Card post to X.</string>
+  <string name="subtitle_tipCardXDescription">Your Tip Card lets you receive tips from Code users all over the world. To access your Tip Card, message @getcode on X.</string>
   <string name="subtitle_turnOnNotifications">Allow Code to send you notifications when you receive Tips from other Code users.</string>
   <string name="subtitle_typeDelete">Type \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">We\'ve made some changes to improve the experience. You\'ll need to update the app to keep using Code.</string>

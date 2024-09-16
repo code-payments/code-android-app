@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Code를 스캔하려면 카메라를 시작해야 합니다</string>
   <string name="subtitle_tipCardForX">팁 카드를 사용하면 전 세계 Code 사용자로부터 팁을 받을 수 있습니다. 팁 카드에 액세스하려면 X-Identity를 연결하세요.</string>
   <string name="subtitle_tipCardTwitterDescription">팁 카드를 사용하면 전 세계 Code 사용자로부터 팁을 받을 수 있습니다. 팁 카드에 액세스하려면 X에 게시하세요.</string>
+  <string name="subtitle_tipCardXDescription">Tip Card를 사용하면 전 세계 Code 사용자로부터 팁을 받을 수 있습니다. Tip Card에 액세스하려면 X에서 @getcode 계정으로 메시지를 보내주세요.</string>
   <string name="subtitle_turnOnNotifications">다른 Code 사용자로부터 팁을 받을 때 Code가 알림을 보낼 수 있도록 허용합니다.</string>
   <string name="subtitle_typeDelete">유형 \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">경험 개선을 위해 변경사항을 적용했습니다. Code를 계속 사용하려면 앱을 업데이트 하세요. </string>

@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">أنت بحاجة إلى تشغيل الكاميرا لمسح الرموز ضوئيًا</string>
   <string name="subtitle_tipCardForX">تتيح لك بطاقة الإكرامية الخاصة بك تلقي الإكراميات من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة الإكرامية الخاصة بك, قم بتوصيل هوية X الخاصة بك.</string>
   <string name="subtitle_tipCardTwitterDescription">تتيح لك بطاقة النصائح تلقي نصائح من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة النصائح انشر على X.</string>
+  <string name="subtitle_tipCardXDescription">تتيح لك بطاقة الإكرامية الخاصة بك تلقي الإكراميات من مستخدمي Code في جميع أنحاء العالم. للوصول إلى بطاقة الإكرامية الخاصة بك أرسل رسالة إلي @getcode على منصة X.</string>
   <string name="subtitle_turnOnNotifications">اسمح لـ Code بإرسال إشعارات إليك عندما تتلقى نصائح من مستخدمي Code الآخرين.</string>
   <string name="subtitle_typeDelete">اكتب \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">لقد أجرينا بعض التغييرات لتحسين التجربة. ستحتاج إلى تحديث التطبيق للاستمرار في استخدام Code.</string>
