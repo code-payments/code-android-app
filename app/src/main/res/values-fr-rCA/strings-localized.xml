@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Vous devez lancer votre caméra pour scanner les codes</string>
   <string name="subtitle_tipCardForX">Votre carte de pourboire vous permet de recevoir des pourboires de la part des utilisateurs de Code dans le monde entier. Pour accéder à votre carte de pourboire, connectez votre identité X.</string>
   <string name="subtitle_tipCardTwitterDescription">Votre carte de conseils vous permet de recevoir des conseils de la part d\'utilisateurs de Code dans le monde entier. Pour avoir accès à votre carte de conseils, envoyez un message par X.</string>
+  <string name="subtitle_tipCardXDescription">Votre Carte de conseils vous permet de recevoir des conseils de la part d’utilisateurs de Code du monde entier. Pour accéder à votre Carte de conseils, envoyez un message à @getcode sur X.</string>
   <string name="subtitle_turnOnNotifications">Autorisez Code à vous envoyer des notifications lorsque vous recevez des conseils d\'autres utilisateurs de Code.</string>
   <string name="subtitle_typeDelete">Tapez \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Nous avons apporté quelques modifications pour améliorer l\'expérience. Vous devrez mettre à jour l\'application pour continuer à utiliser Code.</string>

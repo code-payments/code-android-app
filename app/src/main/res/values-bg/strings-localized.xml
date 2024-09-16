@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Трябва да стартирате камерата си, за да сканирате кодове</string>
   <string name="subtitle_tipCardForX">Вашата карта за бакшиши ви позволява да получавате бакшиши от потребители на Code от целия свят. За достъп до вашата карта за бакшиши, свържете своята идентичност в Х. </string>
   <string name="subtitle_tipCardTwitterDescription">С вашата карта за бакшиши може да получавате подаръци от потребители на Code по цял свят. За достъп до картата за бакшиши публикувайте в социалната мрежа X.</string>
+  <string name="subtitle_tipCardXDescription">Твоята карта за средства ти позволява да получаваш средства от потребители на Code по целия свят. За достъп до съобщението за картата за средства въведи @getcode в X.</string>
   <string name="subtitle_turnOnNotifications">Позволете на Code да Ви изпраща известия, когато получавате съвети от други потребители на Code.</string>
   <string name="subtitle_typeDelete">Напишете \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Направихме някои промени, за да подобрим качеството. Трябва да подновите приложението, за да използвате кода. </string>

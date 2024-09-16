@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Para ler códigos, tem de ativar a sua câmara</string>
   <string name="subtitle_tipCardForX">O seu Cartão de Recompensas permite-lhe receber recompensas de utilizadores da Code de todo o mundo. Para ter acesso ao seu Cartão de Recompensas, conecte a sua identidade X.</string>
   <string name="subtitle_tipCardTwitterDescription">O seu Cartão de gorjetas permite-lhe receber gorjetas de utilizadores do Code em todo o mundo. Para aceder ao seu Cartão de gorjetas, faça uma publicação no X.</string>
+  <string name="subtitle_tipCardXDescription">O seu cartão de gorjetas permite-lhe receber gorjetas de utilizadores do Code em todo o mundo. Para aceder ao seu cartão de gorjetas, envie uma mensagem para @getcode no X.</string>
   <string name="subtitle_turnOnNotifications">Permita que o Code lhe envie notificações quando receber gorjetas de outros utilizadores do Code.</string>
   <string name="subtitle_typeDelete">Digite \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Fizemos algumas alterações para melhorar a experiência. Terá que atualizar a aplicação para continuar a usar a Code.</string>

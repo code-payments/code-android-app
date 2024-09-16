@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Code\'ları taramak için kameranızı başlatmanız gerekir</string>
   <string name="subtitle_tipCardForX">Bahşiş Kartın, dünyanın dört bir yanındaki Code kullanıcılarından bahşişler almana olanak tanır. Tip Kartına erişmek için X kimliğini bağla.</string>
   <string name="subtitle_tipCardTwitterDescription">Bahşiş Kartınız, dünyanın her yerindeki Code kullanıcılarından ipuçları almanızı sağlar. Bahşiş Kartınıza erişmek için X\'e gönderin.</string>
+  <string name="subtitle_tipCardXDescription">Tip Card\'ınız dünyanın her yerindeki Code kullanıcılarından bahşiş almanızı sağlar. Tip Card\'ınıza erişmek için X üzerinden @getcode\'a mesaj gönderin.</string>
   <string name="subtitle_turnOnNotifications">Diğer Code kullanıcılarından ipuçları aldığınızda Code\'un size bildirim göndermesine izin verin.\n\n\n\n\n\n\n</string>
   <string name="subtitle_typeDelete">\"%1$s\" yaz</string>
   <string name="subtitle_updateRequiredDescription">Deneyimi iyileştirmek için bazı değişiklikler yaptık. Code\'u kullanmaya devam etmek için uygulamayı güncellemen gerekiyor.</string>

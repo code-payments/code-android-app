@@ -1,8 +1,6 @@
 package com.getcode.view.main.chat.create.byusername
 
-import android.graphics.Paint.Align
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,13 +22,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ChatMessageConversationScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
+import com.getcode.ui.components.ConstraintMode
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeScaffold
@@ -113,6 +111,8 @@ fun ChatByUsernameScreen(
                     backgroundColor = Color.Transparent,
                     borderColor = Color.Transparent
                 ),
+                maxLines = 1,
+                constraintMode = ConstraintMode.AutoSize(minimum = CodeTheme.typography.displaySmall),
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 style = CodeTheme.typography.displayMedium,
                 placeholderStyle = CodeTheme.typography.displayMedium,

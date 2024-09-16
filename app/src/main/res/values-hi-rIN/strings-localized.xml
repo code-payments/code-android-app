@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">कोड्स स्कैन करने के लिए आपको अपना कैमरा शुरू करना होगा</string>
   <string name="subtitle_tipCardForX">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से टिप्स प्राप्त करने की सुविधा देता है. अपने टिप कार्ड को एक्सेस करने के लिए अपनी X की पहचान को कनेक्ट करें.</string>
   <string name="subtitle_tipCardTwitterDescription">आपका टिप कार्ड आपको दुनिया भर के Code उपयोगकर्ताओं से सुझाव प्राप्त करने देता है. अपने टिप कार्ड को एक्सेस करने के लिए X पर पोस्ट करें.</string>
+  <string name="subtitle_tipCardXDescription">आपका Tip Card आपको दुनिया भर के Code यूज़र से सुझाव प्राप्त करने देता है. अपने Tip Card तक पहुँचने के लिए X पर @getcode मेसेज भेजें.</string>
   <string name="subtitle_turnOnNotifications">जब आप अन्य Code यूज़र से सुझाव प्राप्त करते हैं तो Code को आपको सूचनाएं भेजने की अनुमति दें.</string>
   <string name="subtitle_typeDelete">टाइप करें \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">अनुभव को बेहतर बनाने के लिए हमने कुछ बदलाव किए हैं. कोड का उपयोग जारी रखने के लिए आपको ऐप को अपडेट करना होगा.</string>
