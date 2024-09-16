@@ -28,7 +28,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ChatMessageConversationScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
-import com.getcode.ui.components.AutoSize
+import com.getcode.ui.components.ConstraintMode
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeScaffold
@@ -112,7 +112,7 @@ fun ChatByUsernameScreen(
                     borderColor = Color.Transparent
                 ),
                 maxLines = 1,
-                autosize = AutoSize.Constrained(minimum = CodeTheme.typography.displaySmall),
+                constraintMode = ConstraintMode.AutoSize(minimum = CodeTheme.typography.displaySmall),
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 style = CodeTheme.typography.displayMedium,
                 placeholderStyle = CodeTheme.typography.displayMedium,

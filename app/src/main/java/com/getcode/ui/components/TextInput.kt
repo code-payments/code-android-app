@@ -62,9 +62,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.roundToInt
 
-sealed interface AutoSize {
-    data object Disabled: AutoSize
-    data class Constrained(val minimum: TextStyle): AutoSize
+sealed interface ConstraintMode {
+    data object Free : ConstraintMode
+    data class AutoSize(val minimum: TextStyle) : ConstraintMode
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -87,7 +87,7 @@ fun TextInput(
     enabled: Boolean = true,
     isError: Boolean = false,
     readOnly: Boolean = false,
-    autosize: AutoSize = AutoSize.Disabled,
+    constraintMode: ConstraintMode = ConstraintMode.Free,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     scrollState: ScrollState = rememberScrollState(),
@@ -108,8 +108,8 @@ fun TextInput(
             modifier = Modifier
                 .background(backgroundColor, shape)
                 .defaultMinSize(minHeight = minHeight)
-                .autoSize(
-                    mode = autosize,
+                .constrain(
+                    mode = constraintMode,
                     state = state,
                     style = style,
                     frameConstraints = constraints
@@ -163,8 +163,8 @@ fun TextInput(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private fun Modifier.autoSize(
-    mode: AutoSize,
+private fun Modifier.constrain(
+    mode: ConstraintMode,
     state: TextFieldState,
     style: TextStyle,
     frameConstraints: Constraints,
@@ -175,31 +175,31 @@ private fun Modifier.autoSize(
     val textLayoutResult = remember { Ref<TextLayoutResult?>() }
     var flag by remember { mutableStateOf(Unit, neverEqualPolicy()) }
 
-    Modifier.addIf(mode is AutoSize.Constrained) {
-    Modifier.layout { measurable, constraints ->
-        val placeable = measurable.measure(constraints)
-        val result = autosizeTextMeasurer.measure(
-            text = AnnotatedString(state.text.toString()),
-            style = style,
-            constraints = Constraints(
-                maxWidth = (frameConstraints.maxWidth * 0.85f).roundToInt(),
-                minHeight = 0
-            ),
-            minFontSize = (mode as AutoSize.Constrained).minimum.fontSize,
-            maxFontSize = style.fontSize,
-            autosizeGranularity = 100
-        )
+    Modifier.addIf(mode is ConstraintMode.AutoSize) {
+        Modifier.layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints)
+            val result = autosizeTextMeasurer.measure(
+                text = AnnotatedString(state.text.toString()),
+                style = style,
+                constraints = Constraints(
+                    maxWidth = (frameConstraints.maxWidth * 0.85f).roundToInt(),
+                    minHeight = 0
+                ),
+                minFontSize = (mode as ConstraintMode.AutoSize).minimum.fontSize,
+                maxFontSize = style.fontSize,
+                autosizeGranularity = 100
+            )
 
-        textLayoutResult.value = result
-        flag = Unit
+            textLayoutResult.value = result
+            flag = Unit
 
-        onTextSizeDetermined(result.layoutInput.style.fontSize)
+            onTextSizeDetermined(result.layoutInput.style.fontSize)
 
-        layout(placeable.width, placeable.height) {
-            placeable.placeRelative(0, 0)
+            layout(placeable.width, placeable.height) {
+                placeable.placeRelative(0, 0)
+            }
         }
     }
-}
 }
 
 @OptIn(ExperimentalFoundationApi::class)
