@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">您需要启动相机以扫描Code</string>
   <string name="subtitle_tipCardForX">您的小费卡可让您接收来自世界各地的 Code 用户的小费。要访问您的小费卡,请连接您的 X 身份。</string>
   <string name="subtitle_tipCardTwitterDescription">您的小费卡可让您收到来自世界各地 Code 用户的小费。要访问您的小费卡,请发帖至 X。</string>
+  <string name="subtitle_tipCardXDescription">您的小费卡 (Tip Card) 可让您接收来自世界各地 Code 用户的小费。要访问您的小费卡,请在 X 上发送消息给 @getcode 。</string>
   <string name="subtitle_turnOnNotifications">允许 Code 在您收到其他 Code 用户的小费时向您发送通知。</string>
   <string name="subtitle_typeDelete">输入\"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">我们进行了一些更改以改善体验。您需要更新应用才能继续使用 Code。</string>

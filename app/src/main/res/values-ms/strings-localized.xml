@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Anda perlu memulakan kamera anda untuk mengimbas Codes</string>
   <string name="subtitle_tipCardForX">Kad Tip anda membolehkan anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kad Tip anda sila hubungkan identiti X anda.</string>
   <string name="subtitle_tipCardTwitterDescription">Kad Tip anda membolehkan anda menerima tip dari pengguna Kod di serata dunia. Untuk mengakses ke Kad Tip anda sila siarkan ke X.</string>
+  <string name="subtitle_tipCardXDescription">Kad Upah anda membolehkan anda menerima upah daripada pengguna Code di seluruh dunia. Untuk mengakses Kad Upah anda, hantar mesej kepada @getcode di X.</string>
   <string name="subtitle_turnOnNotifications">Benarkan Code untuk menghantar pemberitahuan kepada anda apabila anda menerima Petua daripada pengguna Code lain. </string>
   <string name="subtitle_typeDelete">Jenis \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Kami telah melakukan beberapa perubahan untuk meningkatkan pengalaman. Anda perlu mengemas kini aplikasi untuk terus menggunakan Code.</string>

@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">El kell indítania a fényképezőgépet a Code-ok beolvasásához.</string>
   <string name="subtitle_tipCardForX">A Borravalós kártya lehetővé teszi, hogy borravalót kapj a Code felhasználóitól a világ minden tájáról. A Borravalós kártyához való hozzáféréshez csatlakoztasd az X azonosítódat.</string>
   <string name="subtitle_tipCardTwitterDescription">A Borravalós kártyával borravalót kaphatsz a Code felhasználóitól a világ minden tájáról. A Borravalós kártyát eléréséhez írj az X-re.</string>
+  <string name="subtitle_tipCardXDescription">A Borravalós kártyával borravalót kaphat Code felhasználóktól a világ minden tájáról. A Borravalós kártya eléréséhez üzenjen a @getcode-nak az X-en.</string>
   <string name="subtitle_turnOnNotifications">Engedélyezze, hogy a Code értesítést küldjön, amikor borravalót kap más Code felhasználóktól.</string>
   <string name="subtitle_typeDelete">Írd be: \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Néhány változtatást eszközöltünk az élmény javítása érdekében. A Code használatának folytatásához frissítenie kell az alkalmazást.</string>

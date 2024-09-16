@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Bạn cần bật camera để quét Mã</string>
   <string name="subtitle_tipCardForX">Thẻ Tiền boa của bạn giúp bạn có thể nhận tiền boa từ người dùng Code trên toàn thế giới. Để truy cập Thẻ Tiền boa, hãy kết nối danh tính X của bạn.</string>
   <string name="subtitle_tipCardTwitterDescription">Thẻ Tip cho phép bạn nhận tiền tip từ người dùng Code trên toàn thế giới. Để sử dụng Thẻ Tip của mình, hãy đăng bài trên X.</string>
+  <string name="subtitle_tipCardXDescription">Thẻ Tip cho phép bạn nhận tiền tip từ những người dùng Code trên toàn thế giới. Để sử dụng Thẻ Tip của bạn, hãy nhắn tin cho @getcode trên X.</string>
   <string name="subtitle_turnOnNotifications">Cho phép Code gửi thông báo cho bạn khi bạn nhận được tiền típ từ những người dùng Code khác.</string>
   <string name="subtitle_typeDelete">Gõ \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Chúng tôi đã thực hiện một số thay đổi để cải thiện trải nghiệm. Bạn sẽ cần cập nhật ứng dụng để tiếp tục sử dụng Mã.</string>

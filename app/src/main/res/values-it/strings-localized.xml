@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">È necessario aprire la fotocamera per scansionare i codici</string>
   <string name="subtitle_tipCardForX">La tua Tip Card ti consente di ricevere mance dagli utenti di Code in tutto il mondo. Per accedere alla tua Tip Card collega la tua identità X.</string>
   <string name="subtitle_tipCardTwitterDescription">La tua Tip Card ti consente di ricevere mance dagli utenti di Code in tutto il mondo. Per accedere alla tua Tip Card, pubblica su X.</string>
+  <string name="subtitle_tipCardXDescription">La tua Tip Card ti consente di ricevere suggerimenti dagli utenti Code di tutto il mondo. Per accedere alla Tip Card invia un messaggio a @getcode su X.</string>
   <string name="subtitle_turnOnNotifications">Consenti a Code di inviarti notifiche quando ricevi mance da altri utenti di Code.</string>
   <string name="subtitle_typeDelete">Digita \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Abbiamo apportato alcune modifiche per migliorare l\'esperienza. Dovrai aggiornare l\'app per poter continuare a utilizzare Code.</string>

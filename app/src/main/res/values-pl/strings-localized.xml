@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Aby skanować Code, musisz uruchomić kamerę</string>
   <string name="subtitle_tipCardForX">Twoja karta napiwków umożliwia otrzymywanie napiwków od użytkowników Code na całym świecie. Aby uzyskać dostęp do karty napiwków, połącz swoją tożsamość X.</string>
   <string name="subtitle_tipCardTwitterDescription">Twoja karta napiwkowa pozwala Ci otrzymywać napiwki od użytkowników Code na całym świecie.  Aby uzyskać dostęp do karty napiwkowej, wyślij post do X. </string>
+  <string name="subtitle_tipCardXDescription">Twoja Tip Card umożliwia otrzymywanie napiwków od użytkowników Code na całym świecie. Aby uzyskać dostęp do Tip Card, wyślij wiadomość @getcode na X.</string>
   <string name="subtitle_turnOnNotifications">Zezwól aplikacji Code na wysyłanie Ci powiadomień, gdy otrzymasz wskazówki od innych użytkowników aplikacji.</string>
   <string name="subtitle_typeDelete">Wpisz „%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Dokonaliśmy paru zmian, żeby usprawnić korzystanie z usługi. Żeby nadal używać Code, musisz zaktualizować aplikację.</string>

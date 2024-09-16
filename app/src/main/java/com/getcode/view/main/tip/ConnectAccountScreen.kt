@@ -95,7 +95,7 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
     )
     Text(
         text = when(state.reason) {
-            IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardForX)
+            IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardXDescription)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.subtitle_connectXAccount)
             null -> ""
         },
