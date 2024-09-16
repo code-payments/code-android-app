@@ -12,7 +12,7 @@ object Android {
 object Packaging {
     private const val majorVersion = 2
     private const val minorVersion = 1
-    private const val patchVersion = 12
+    private const val patchVersion = 13
 
     const val versionName = "$majorVersion.$minorVersion.$patchVersion"
 }
