@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -28,20 +29,25 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.node.Ref
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
@@ -50,9 +56,11 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
-import com.getcode.ui.utils.measured
+import com.getcode.ui.utils.AutoSizeTextMeasurer
+import com.getcode.ui.utils.addIf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlin.math.roundToInt
 
 sealed interface AutoSize {
     data object Disabled: AutoSize
@@ -94,33 +102,18 @@ fun TextInput(
     )
 
     var textSize by remember { mutableStateOf(style.fontSize) }
-    var textFieldSize by remember { mutableStateOf(DpSize.Zero) }
-    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    val density = LocalDensity.current
-    // Adjust font size based on textField size
-    LaunchedEffect(textFieldSize, textLayoutResult, state.text) {
-        when (autosize) {
-            is AutoSize.Constrained -> {
-                val text = state.text
-                if (textFieldSize.width > 0.dp && text.isNotEmpty()) {
-                    // Calculate an approximate font size based on the available width and text length
-                    val newFontSize = with (density) { (textFieldSize.width / text.length * 1.2f).toSp() }
-                        .coerceAtMost(style.fontSize)
-                        .coerceAtLeast(autosize.minimum.fontSize)
-                    textSize = newFontSize
-                }
-            }
-            AutoSize.Disabled -> Unit
-        }
-    }
-
-
-    Box(modifier = modifier.measured { textFieldSize = it }) {
+    BoxWithConstraints(modifier = modifier) {
         BasicTextField2(
             modifier = Modifier
                 .background(backgroundColor, shape)
-                .defaultMinSize(minHeight = minHeight),
+                .defaultMinSize(minHeight = minHeight)
+                .autoSize(
+                    mode = autosize,
+                    state = state,
+                    style = style,
+                    frameConstraints = constraints
+                ) { textSize = it },
             enabled = enabled,
             readOnly = readOnly,
             state = state,
@@ -135,9 +128,6 @@ fun TextInput(
                     minHeightInLines = minLines,
                     maxHeightInLines = maxLines
                 )
-            },
-            onTextLayout = {
-                textLayoutResult = it()
             },
             decorator = {
                 DecoratorBox(
@@ -170,6 +160,46 @@ fun TextInput(
             focusManager.clearFocus(true)
         }
     }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.autoSize(
+    mode: AutoSize,
+    state: TextFieldState,
+    style: TextStyle,
+    frameConstraints: Constraints,
+    onTextSizeDetermined: (TextUnit) -> Unit
+): Modifier = this.composed {
+    val textMeasurer = rememberTextMeasurer()
+    val autosizeTextMeasurer = remember(textMeasurer) { AutoSizeTextMeasurer(textMeasurer) }
+    val textLayoutResult = remember { Ref<TextLayoutResult?>() }
+    var flag by remember { mutableStateOf(Unit, neverEqualPolicy()) }
+
+    Modifier.addIf(mode is AutoSize.Constrained) {
+    Modifier.layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        val result = autosizeTextMeasurer.measure(
+            text = AnnotatedString(state.text.toString()),
+            style = style,
+            constraints = Constraints(
+                maxWidth = (frameConstraints.maxWidth * 0.85f).roundToInt(),
+                minHeight = 0
+            ),
+            minFontSize = (mode as AutoSize.Constrained).minimum.fontSize,
+            maxFontSize = style.fontSize,
+            autosizeGranularity = 100
+        )
+
+        textLayoutResult.value = result
+        flag = Unit
+
+        onTextSizeDetermined(result.layoutInput.style.fontSize)
+
+        layout(placeable.width, placeable.height) {
+            placeable.placeRelative(0, 0)
+        }
+    }
+}
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -234,12 +264,4 @@ fun keyboardAsState(): State<Boolean> {
         onDispose { viewTreeObserver.removeOnGlobalLayoutListener(listener) }
     }
     return keyboardState
-}
-
-fun TextUnit.coerceAtMost(other: TextUnit): TextUnit {
-    return if (this > other) other else this
-}
-
-fun TextUnit.coerceAtLeast(other: TextUnit): TextUnit {
-    return if (this < other) other else this
 }
