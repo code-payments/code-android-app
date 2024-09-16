@@ -88,6 +88,7 @@ android {
     compileOptions {
         sourceCompatibility(Versions.java)
         targetCompatibility(Versions.java)
+        isCoreLibraryDesugaringEnabled = true
     }
 
     java {
@@ -121,6 +122,8 @@ dependencies {
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
     implementation(project(":vendor:tipkit:tipkit-m2"))
+
+    coreLibraryDesugaring(Libs.android_desugaring)
 
     //standard libraries
     implementation(Libs.kotlinx_collections_immutable)
