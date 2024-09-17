@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Parcelable
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
+import com.getcode.R
 import com.getcode.model.PrefsBool
 import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.screens.ScanScreen
@@ -55,7 +56,7 @@ class DeeplinkHandler @Inject constructor(
 
     suspend fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
         println(intent)
-        val uri = when {
+        var uri = when {
             intent?.data != null -> intent.data
             intent?.getStringExtra(Intent.EXTRA_TEXT) != null -> {
                 val sharedLink = intent.getStringExtra(Intent.EXTRA_TEXT)?.toUri() ?: return null
@@ -67,6 +68,14 @@ class DeeplinkHandler @Inject constructor(
 
             else -> null
         } ?: return null
+
+        // check for jump
+        if (uri.host == context.getString(R.string.root_url_jump_no_protocol)) {
+            val source = uri.getQueryParameter("source")
+            if (source != null) {
+                uri = Uri.parse(source)
+            }
+        }
 
         return when (val type = uri.deeplinkType) {
             is Type.Login -> {

@@ -9,6 +9,7 @@
     <string translatable="false" name="root_url_cash">https://cash.getcode.com</string>
     <string translatable="false" name="app_url_cash">codewallet://cash.getcode.com</string>
     <string translatable="false" name="root_url_app_no_protocol">app.getcode.com</string>
+    <string translatable="false" name="root_url_jump_no_protocol">jump.getcode.com</string>
     <string translatable="false" name="root_url_cash_no_protocol">cash.getcode.com</string>
     <string translatable="false" name="root_url_sdk_no_protocol">sdk.getcode.com</string>
     <string translatable="false" name="root_url_tipcard_no_protocol">tipcard.getcode.com</string>
