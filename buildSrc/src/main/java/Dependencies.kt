@@ -91,6 +91,8 @@ object Versions {
     const val protobuf_plugin = "0.9.4"
 
     const val sodium_bindings = "0.9.0"
+
+    const val desugaring = "2.1.2"
 }
 
 object Classpath {
@@ -134,6 +136,7 @@ object Plugins {
 }
 
 object Libs {
+    const val android_desugaring = "com.android.tools:desugar_jdk_libs:${Versions.desugaring}"
     const val androidx_activity = "androidx.activity:activity-ktx:{${Versions.androidx_activity}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
     const val androidx_biometrics = "androidx.biometric:biometric:${Versions.androidx_biometrics}"
