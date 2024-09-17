@@ -71,7 +71,8 @@ class DeeplinkHandler @Inject constructor(
 
         // check for jump
         if (uri.host == context.getString(R.string.root_url_jump_no_protocol)) {
-            val source = uri.getQueryParameter("source")
+            val regex = "#source=([^&]*)".toRegex()
+            val source = regex.find(uri.toString())?.groupValues?.get(1)
             if (source != null) {
                 uri = Uri.parse(source)
             }

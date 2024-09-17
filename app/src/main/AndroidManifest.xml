@@ -128,14 +128,14 @@
                     android:scheme="https" />
             </intent-filter>
 
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
 
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:host="jump.getcode.com"
+                    android:host="@string/root_url_jump_no_protocol"
                     android:scheme="https" />
             </intent-filter>
 
