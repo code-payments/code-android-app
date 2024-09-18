@@ -97,7 +97,7 @@ internal fun HomeBottom(
                         modifier = Modifier.weight(1f),
                         label = stringResource(R.string.action_chat),
                         painter = painterResource(R.drawable.ic_chat),
-                        badgeCount = 0,
+                        badgeCount = state.chatUnreadCount,
                         onClick = { onPress(action) },
                     )
                 }

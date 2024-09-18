@@ -123,6 +123,12 @@ class ChatHistoryController @Inject constructor(
         .map { it.filter { c -> !c.isMuted && c.isSubscribed } }
         .map { it.sumOf { c -> c.unreadCount } }
 
+    val chatUnreadCount = chats
+        .filterNotNull()
+        // Ignore muted chats and unsubscribed chats
+        .map { it.filter { c -> !c.isMuted && c.isSubscribed } }
+        .map { it.sumOf { c -> c.unreadCount } }
+
     private fun owner(): KeyPair? = SessionManager.getKeyPair()
 
     suspend fun fetchChats(update: Boolean = false) {
