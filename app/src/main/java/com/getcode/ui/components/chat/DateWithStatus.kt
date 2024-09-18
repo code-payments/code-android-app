@@ -89,7 +89,7 @@ private fun Preview_DateWithStatus() {
                 modifier = Modifier
                     .wrapContentWidth()
                     .background(
-                        color = ChatOutgoing,
+                        color = CodeTheme.colors.secondary,
                         shape = MessageNodeDefaults.DefaultShape
                     )
                     .padding(CodeTheme.dimens.grid.x2)

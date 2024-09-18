@@ -9,6 +9,8 @@ val BrandSubtle = Color(0xFF565C86)
 val BrandMuted = Color(0xFF45464E)
 val BrandDark = Color(0xFF1F1A34)
 val BrandAction = Color(0xFF212121)
+val BrandOverlay = Color(0xBF1E1E1E)
+val BrandAccent = Color(0xFF443091)
 
 val Brand01 = Color(0xFF130F27)
 val White = Color(0xffffffff)

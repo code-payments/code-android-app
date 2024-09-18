@@ -5,11 +5,11 @@ package com.getcode.view.main.chat.conversation
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
+import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
-import com.codeinc.gen.user.v1.user
 import com.getcode.BuildConfig
 import com.getcode.R
 import com.getcode.SessionController
@@ -21,13 +21,8 @@ import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.ConversationCashFeature
-import com.getcode.model.CurrencyCode
-import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
-import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.ChatMember
-import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
@@ -35,20 +30,16 @@ import com.getcode.network.ConversationController
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
-import com.getcode.solana.keys.PublicKey
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ConversationMessageIndice
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.bytes
-import com.getcode.utils.catchSafely
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -62,13 +53,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.math.cos
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
@@ -95,6 +83,8 @@ class ConversationViewModel @Inject constructor(
         val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
+        val showTypingIndicator: Boolean,
+        val isSelfTyping: Boolean,
     ) {
         data class User(
             val memberId: UUID,
@@ -118,6 +108,8 @@ class ConversationViewModel @Inject constructor(
                 users = emptyList(),
                 lastSeen = null,
                 pointers = emptyMap(),
+                showTypingIndicator = false,
+                isSelfTyping = false,
             )
         }
     }
@@ -151,6 +143,12 @@ class ConversationViewModel @Inject constructor(
         data class MarkDelivered(val messageId: ID) : Event
 
         data object PresentPaymentConfirmation : Event
+
+        data object OnTypingStarted: Event
+        data object OnTypingStopped: Event
+
+        data object OnUserTypingStarted: Event
+        data object OnUserTypingStopped: Event
 
         data class Error(val fatal: Boolean, val message: String = "", val show: Boolean = true) :
             Event
@@ -373,6 +371,47 @@ class ConversationViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+
+        stateFlow
+            .map { it.conversationId }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .flatMapLatest { conversationController.observeTyping(it) }
+            .onEach { isOtherUserTyping ->
+                if (isOtherUserTyping) {
+                    dispatchEvent(Event.OnTypingStarted)
+                } else {
+                    dispatchEvent(Event.OnTypingStopped)
+                }
+            }.launchIn(viewModelScope)
+
+
+        stateFlow
+            .map { it.textFieldState }
+            .flatMapLatest { it.textAsFlow() }
+            .onEach {
+                if (it.isEmpty()) {
+                    dispatchEvent(Event.OnUserTypingStopped)
+                } else if (it.isNotEmpty()) {
+                    if (!stateFlow.value.isSelfTyping) {
+                        dispatchEvent(Event.OnUserTypingStarted)
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStarted>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach {
+                conversationController.onUserStartedTypingIn(it)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStopped>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach {
+                conversationController.onUserStoppedTypingIn(it)
+            }.launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -465,6 +504,20 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnTwitterUserChanged -> { state ->
                     state.copy(twitterUser = event.user)
+                }
+
+                is Event.OnTypingStarted -> { state ->
+                    state.copy(showTypingIndicator = true)
+                }
+                is Event.OnTypingStopped -> { state ->
+                    state.copy(showTypingIndicator = false)
+                }
+
+                is Event.OnUserTypingStarted -> { state ->
+                    state.copy(isSelfTyping = true)
+                }
+                is Event.OnUserTypingStopped -> { state ->
+                    state.copy(isSelfTyping = false)
                 }
 
                 is Event.PresentPaymentConfirmation,

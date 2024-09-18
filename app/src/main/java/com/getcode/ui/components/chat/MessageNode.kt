@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
@@ -46,11 +47,12 @@ class MessageNodeScope(
     fun Modifier.sizeableWidth() =
         this.widthIn(max = boxScope.maxWidth * 0.85f)
 
-    val color = if (contents is MessageContent.Exchange && !contents.verb.increasesBalance) {
-        ChatOutgoing
-    } else {
-        BrandDark
-    }
+    val color: Color
+        @Composable get() = if (contents is MessageContent.Exchange && !contents.verb.increasesBalance) {
+            CodeTheme.colors.secondary
+        } else {
+            CodeTheme.colors.brandDark
+        }
 
     val isAnnouncement: Boolean
         @Composable get() = remember {
