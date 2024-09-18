@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.modals
+package com.getcode.ui.modals
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +24,7 @@ import coil3.request.error
 import com.getcode.R
 import com.getcode.model.TwitterUser
 import com.getcode.models.ConfirmationState
-import com.getcode.models.TipConfirmation
+import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.theme.bolded
@@ -38,7 +38,7 @@ import com.getcode.view.main.scanner.components.PriceWithFlag
 @Composable
 internal fun TipConfirmation(
     modifier: Modifier = Modifier,
-    confirmation: TipConfirmation?,
+    confirmation: SocialUserPaymentConfirmation?,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {

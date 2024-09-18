@@ -2,16 +2,11 @@ package com.getcode.model
 
 import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
+import com.codeinc.gen.user.v1.friendChatIdOrNull
+import com.codeinc.gen.user.v1.friendshipCostOrNull
 import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.base58
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
 
 @Serializable
 data class TwitterUser(
@@ -22,9 +17,10 @@ data class TwitterUser(
     val displayName: String,
     val followerCount: Int,
     val verificationStatus: VerificationStatus,
-    val costOfFriendship: Fiat,
-    val isFriend: Boolean,
-): TipMetadata {
+    override val costOfFriendship: Fiat,
+    override val isFriend: Boolean,
+    override val chatId: ID,
+): SocialUser {
 
     override val platform: String = "X"
 
@@ -55,8 +51,12 @@ data class TwitterUser(
                 followerCount = proto.followerCount,
                 tipAddress = tipAddress,
                 verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown,
-                costOfFriendship = Fiat(currency = CurrencyCode.USD, amount = 1.00),
-                isFriend = proto.isFriend
+                costOfFriendship = proto.friendshipCostOrNull?.let {
+                    val currency = CurrencyCode.tryValueOf(it.currency) ?: return@let null
+                    Fiat(currency, it.nativeAmount)
+                } ?: Fiat(currency = CurrencyCode.USD, amount = 1.00),
+                isFriend = proto.isFriend,
+                chatId = proto.friendChatId.value.toList()
             )
         }
     }

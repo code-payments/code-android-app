@@ -25,7 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.ChatMessageConversationScreen
+import com.getcode.navigation.screens.ConversationScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.ConstraintMode
@@ -70,7 +70,7 @@ fun ChatByUsernameScreen(
             .filterIsInstance<ChatByUsernameViewModel.Event.OnSuccess>()
             .map { it.user }
             .onEach {
-                navigator.push(ChatMessageConversationScreen(user = it))
+                navigator.push(ConversationScreen(user = it))
             }.launchIn(this)
     }
 

@@ -20,7 +20,7 @@ import com.getcode.LocalNetworkObserver
 import com.getcode.LocalPhoneFormatter
 import com.getcode.LocalSession
 import com.getcode.R
-import com.getcode.Session
+import com.getcode.SessionController
 import com.getcode.analytics.AnalyticsService
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
@@ -77,7 +77,8 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var tipDefinitions: DefinedTips
 
-    private val session by viewModels<Session>()
+    @Inject
+    lateinit var sessionController: SessionController
 
     /**
      * The compose navigation controller does not play nice with single task activities.
@@ -121,7 +122,7 @@ class MainActivity : FragmentActivity() {
                 )
 
                 CompositionLocalProvider(
-                    LocalSession provides session,
+                    LocalSession provides sessionController,
                     LocalAnalytics provides analyticsManager,
                     LocalDeeplinks provides deeplinkHandler,
                     LocalNetworkObserver provides networkObserver,

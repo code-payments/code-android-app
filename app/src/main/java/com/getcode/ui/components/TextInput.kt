@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.node.Ref
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
@@ -58,6 +60,7 @@ import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
 import com.getcode.ui.utils.AutoSizeTextMeasurer
 import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.measured
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlin.math.roundToInt
@@ -101,9 +104,11 @@ fun TextInput(
         interactionSource = remember { MutableInteractionSource() }
     )
 
+    val density = LocalDensity.current
     var textSize by remember { mutableStateOf(style.fontSize) }
+    var textFieldSize by remember { mutableStateOf(DpSize.Zero) }
 
-    BoxWithConstraints(modifier = modifier) {
+    Box(modifier = modifier.measured { textFieldSize = it }) {
         BasicTextField2(
             modifier = Modifier
                 .background(backgroundColor, shape)
@@ -112,7 +117,12 @@ fun TextInput(
                     mode = constraintMode,
                     state = state,
                     style = style,
-                    frameConstraints = constraints
+                    frameConstraints = Constraints(
+                        minWidth = 0,
+                        minHeight = 0,
+                        maxWidth = with (density) { textFieldSize.width.roundToPx() },
+                        maxHeight = with (density) { textFieldSize.height.roundToPx() },
+                    )
                 ) { textSize = it },
             enabled = enabled,
             readOnly = readOnly,

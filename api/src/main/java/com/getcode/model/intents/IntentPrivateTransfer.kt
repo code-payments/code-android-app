@@ -1,23 +1,31 @@
 package com.getcode.model.intents
 
-import android.content.Context
+import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.TippedUser.Platform
-import com.getcode.model.TipMetadata
 import com.getcode.model.Fee
+import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.SocialUser
+import com.getcode.model.chat.ChatIdV2
+import com.getcode.model.chat.Platform
 import com.getcode.model.intents.actions.ActionFeePayment
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
+import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toPublicKey
 import com.getcode.network.repository.toSolanaAccount
-import com.getcode.solana.keys.*
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import timber.log.Timber
+
+sealed interface PrivateTransferMetadata {
+    data class Tip(val socialUser: SocialUser): PrivateTransferMetadata
+    data class Chat(val socialUser: SocialUser): PrivateTransferMetadata
+}
 
 class IntentPrivateTransfer(
     override val id: PublicKey,
@@ -30,7 +38,7 @@ class IntentPrivateTransfer(
     private val fee: Kin,
     private val additionalFees: List<Fee>,
     private val isWithdrawal: Boolean,
-    private val tipMetadata: TipMetadata?,
+    private val metadata: PrivateTransferMetadata?,
     val resultTray: Tray,
 
     override val actionGroup: ActionGroup,
@@ -49,12 +57,24 @@ class IntentPrivateTransfer(
                             .setNativeAmount(grossAmount.fiat)
                     )
 
-                    if (tipMetadata != null) {
-                        setIsTip(true)
-                        setTippedUser(TransactionService.TippedUser.newBuilder()
-                            .setPlatformValue(Platform.TWITTER_VALUE)
-                            .setUsername(tipMetadata.username)
-                        )
+                    when (metadata) {
+                        is PrivateTransferMetadata.Chat -> {
+                            setIsChat(true)
+                            setChatId(ChatIdV2.newBuilder()
+                                .setValue(metadata.socialUser.chatId.toByteString())
+                            )
+                        }
+                        is PrivateTransferMetadata.Tip -> {
+                            setIsTip(true)
+                            setTippedUser(TransactionService.TippedUser.newBuilder()
+                                .setPlatformValue(when (Platform.named(metadata.socialUser.platform)) {
+                                    Platform.Unknown -> ChatService.Platform.UNKNOWN_PLATFORM_VALUE
+                                    Platform.Twitter -> ChatService.Platform.TWITTER_VALUE
+                                })
+                                .setUsername(metadata.socialUser.username)
+                            )
+                        }
+                        null -> Unit
                     }
                 }
             )
@@ -63,7 +83,6 @@ class IntentPrivateTransfer(
 
     companion object {
         fun newInstance(
-            context: Context,
             rendezvousKey: PublicKey,
             organizer: Organizer,
             destination: PublicKey,
@@ -71,7 +90,7 @@ class IntentPrivateTransfer(
             fee: Kin,
             additionalFees: List<Fee>,
             isWithdrawal: Boolean,
-            tipMetadata: TipMetadata?
+            metadata: PrivateTransferMetadata?,
         ): IntentPrivateTransfer {
             if (fee > amount.kin) {
                 throw IntentPrivateTransferException.InvalidFeeException()
@@ -153,7 +172,7 @@ class IntentPrivateTransfer(
                 kind = ActionWithdraw.Kind.NoPrivacyWithdraw(netAmount.kin),
                 cluster = currentTray.outgoing.getCluster(),
                 destination = destination,
-                tipMetadata = tipMetadata
+                metadata = metadata
             )
 
             // 3. Redistribute the funds to optimize for a
@@ -217,7 +236,7 @@ class IntentPrivateTransfer(
                 fee = fee,
                 additionalFees = additionalFees,
                 isWithdrawal = isWithdrawal,
-                tipMetadata = tipMetadata,
+                metadata = metadata,
                 actionGroup = group,
                 resultTray = currentTray,
             )

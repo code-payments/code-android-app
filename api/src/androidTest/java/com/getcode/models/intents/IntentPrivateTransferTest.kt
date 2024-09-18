@@ -52,7 +52,6 @@ class IntentPrivateTransferTest {
         val rendezvous = PublicKey.generate()
 
         val intent = IntentPrivateTransfer.newInstance(
-            context = context,
             rendezvousKey = rendezvous,
             organizer = organizer,
             destination = destination,

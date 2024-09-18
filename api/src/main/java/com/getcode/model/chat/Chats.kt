@@ -6,7 +6,7 @@ typealias ChatGrpcV1 = com.codeinc.gen.chat.v1.ChatGrpc
 typealias ChatGrpcV2 = com.codeinc.gen.chat.v2.ChatGrpc
 
 typealias ChatIdV1 = com.codeinc.gen.chat.v1.ChatService.ChatId
-typealias ChatIdV2 = com.codeinc.gen.chat.v2.ChatService.ChatId
+typealias ChatIdV2 = com.codeinc.gen.common.v1.Model.ChatId
 
 typealias MessageContentV1 = com.codeinc.gen.chat.v1.ChatService.Content
 typealias MessageContentV2 = com.codeinc.gen.chat.v2.ChatService.Content

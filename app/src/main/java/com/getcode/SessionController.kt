@@ -10,8 +10,6 @@ import android.os.Build
 import android.view.WindowManager
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
-import androidx.lifecycle.viewModelScope
-import cafe.adriel.voyager.core.model.ScreenModel
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.domain.CashLinkManager
@@ -31,14 +29,15 @@ import com.getcode.model.Feature
 import com.getcode.model.Fiat
 import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.GalleryFeature
+import com.getcode.model.ID
 import com.getcode.model.IntentMetadata
 import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
-import com.getcode.model.Rate
 import com.getcode.model.RequestKinFeature
+import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
 import com.getcode.model.Username
 import com.getcode.model.notifications.NotificationType
@@ -50,7 +49,7 @@ import com.getcode.models.DeepLinkRequest
 import com.getcode.models.LoginConfirmation
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.PaymentValuation
-import com.getcode.models.TipConfirmation
+import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.ChatHistoryController
@@ -97,11 +96,9 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
-import com.getcode.view.BaseViewModel
 import com.getcode.view.main.scanner.UiElement
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
-import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
@@ -132,6 +129,7 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.concurrent.schedule
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -177,6 +175,7 @@ sealed interface SessionEvent {
     data object PresentTipEntry : SessionEvent
     data object RequestNotificationPermissions : SessionEvent
     data class SendIntent(val intent: Intent) : SessionEvent
+    data class OnChatPaidForSuccessfully(val intentId: ID, val user: SocialUser): SessionEvent
 }
 
 enum class RestrictionType {
@@ -186,8 +185,8 @@ enum class RestrictionType {
 }
 
 @SuppressLint("CheckResult")
-@HiltViewModel
-class Session @Inject constructor(
+@Singleton
+class SessionController @Inject constructor(
     private val client: Client,
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
@@ -211,8 +210,10 @@ class Session @Inject constructor(
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
-) : BaseViewModel(resources), ScreenModel {
-    val uiFlow = MutableStateFlow(SessionState())
+) {
+    private val scope = CoroutineScope(Dispatchers.IO)
+    
+    val state = MutableStateFlow(SessionState())
 
     private val _eventFlow: MutableSharedFlow<SessionEvent> = MutableSharedFlow()
     val eventFlow: SharedFlow<SessionEvent> = _eventFlow.asSharedFlow()
@@ -226,74 +227,74 @@ class Session @Inject constructor(
             .map { it.cameraStartByDefault }
             .distinctUntilChanged()
             .onEach { cameraAutoStart ->
-                uiFlow.update {
+                state.update {
                     it.copy(autoStartCamera = cameraAutoStart)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         features.buyModule
             .distinctUntilChanged()
             .onEach { module ->
-                uiFlow.update {
+                state.update {
                     it.copy(buyModule = module)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         features.requestKin
             .distinctUntilChanged()
             .onEach { module ->
-                uiFlow.update {
+                state.update {
                     it.copy(requestKin = module)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         features.cameraGestures
             .distinctUntilChanged()
             .onEach { module ->
-                uiFlow.update {
+                state.update {
                     it.copy(cameraGestures = module)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         features.invertedDragZoom
             .distinctUntilChanged()
             .onEach { module ->
-                uiFlow.update {
+                state.update {
                     it.copy(invertedDragZoom = module)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         features.galleryEnabled
             .distinctUntilChanged()
             .onEach { module ->
-                uiFlow.update {
+                state.update {
                     it.copy(gallery = module)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         features.tipCardFlippable
             .distinctUntilChanged()
             .onEach { module ->
-                uiFlow.update {
+                state.update {
                     it.copy(flippableTipCard = module)
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         betaFlagsRepository.observe()
             .distinctUntilChanged()
             .onEach { betaFlags ->
-                uiFlow.update { it.copy(scannerElements = buildScannerElements(betaFlags)) }
-            }.launchIn(viewModelScope)
+                state.update { it.copy(scannerElements = buildScannerElements(betaFlags)) }
+            }.launchIn(scope)
 
         tipController.showTwitterSplat
             .onEach { splat ->
-                viewModelScope.launch {
+                scope.launch {
                     if (splat) {
                         delay(300)
                     } else {
                         delay(500)
                     }
-                    uiFlow.update {
+                    state.update {
                         it.copy(splatTipCard = splat)
                     }
                 }
@@ -304,7 +305,7 @@ class Session @Inject constructor(
             .filter { tipController.verificationInProgress.value }
             .filterNotNull()
             .distinctUntilChanged()
-            .filter { uiFlow.value.isCameraScanEnabled }
+            .filter { state.value.isCameraScanEnabled }
             .onEach {
                 when (it) {
                     is TwitterUser -> {
@@ -324,23 +325,23 @@ class Session @Inject constructor(
                         )
                     }
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         tipController.connectedAccount
             .onEach { account ->
-                uiFlow.update {
+                state.update {
                     it.copy(
                         tipCardConnected = account != null
                     )
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         StatusRepository().getIsUpgradeRequired(BuildConfig.VERSION_CODE)
             .subscribeOn(Schedulers.computation())
             .timeout(15_000L, TimeUnit.MILLISECONDS)
             .onErrorComplete { false }
             .subscribe { isUpgradeRequired ->
-                uiFlow.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
+                state.update { m -> m.copy(restrictionType = if (isUpgradeRequired) RestrictionType.FORCE_UPGRADE else null) }
             }
 
         SessionManager.authState
@@ -376,7 +377,7 @@ class Session @Inject constructor(
                     prefRepository.set(PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP, false)
                 }
             )
-            .launchIn(viewModelScope)
+            .launchIn(scope)
 
         combine(
             exchange.observeLocalRate(),
@@ -388,47 +389,47 @@ class Session @Inject constructor(
                 KinAmount.newInstance(Kin.fromKin(balance), rate)
             }
         }.filterNotNull().onEach { balanceInKin ->
-            uiFlow.update {
+            state.update {
                 it.copy(balance = balanceInKin)
             }
-        }.launchIn(viewModelScope)
+        }.launchIn(scope)
 
         historyController.notificationsUnreadCount
             .distinctUntilChanged()
             .map { it }
             .onEach { count ->
-                uiFlow.update { it.copy(notificationUnreadCount = count) }
-            }.launchIn(viewModelScope)
+                state.update { it.copy(notificationUnreadCount = count) }
+            }.launchIn(scope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
             .flowOn(Dispatchers.IO)
             .onEach { log ->
                 withContext(Dispatchers.Main) {
-                    uiFlow.update {
+                    state.update {
                         it.copy(logScanTimes = log)
                     }
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         prefRepository.observeOrDefault(PrefsBool.VIBRATE_ON_SCAN, false)
             .flowOn(Dispatchers.IO)
             .onEach { enabled ->
                 withContext(Dispatchers.Main) {
-                    uiFlow.update {
+                    state.update {
                         it.copy(vibrateOnScan = enabled)
                     }
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         prefRepository.observeOrDefault(PrefsBool.SHOW_CONNECTIVITY_STATUS, false)
             .flowOn(Dispatchers.IO)
             .onEach { enabled ->
                 withContext(Dispatchers.Main) {
-                    uiFlow.update {
+                    state.update {
                         it.copy(showNetworkOffline = enabled)
                     }
                 }
-            }.launchIn(viewModelScope)
+            }.launchIn(scope)
 
         CoroutineScope(Dispatchers.IO).launch {
             SessionManager.authState
@@ -436,7 +437,7 @@ class Session @Inject constructor(
                 .collectLatest {
                     it.let { state ->
                         if (state.isTimelockUnlocked) {
-                            uiFlow.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
+                            this@SessionController.state.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
                         }
                     }
                 }
@@ -463,11 +464,11 @@ class Session @Inject constructor(
     }
 
     fun onCameraScanning(scanning: Boolean) {
-        uiFlow.update { it.copy(isCameraScanEnabled = scanning) }
+        state.update { it.copy(isCameraScanEnabled = scanning) }
     }
 
     fun onCameraPermissionResult(result: PermissionResult) {
-        uiFlow.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
+        state.update { it.copy(isCameraPermissionGranted = result == PermissionResult.Granted) }
     }
 
     fun showBill(
@@ -488,7 +489,7 @@ class Session @Inject constructor(
         when (bill) {
             is Bill.Cash -> {
                 if (bill.kind == Bill.Kind.firstKin) {
-                    uiFlow.update {
+                    state.update {
                         it.copy(
                             billState = it.billState.copy(
                                 primaryAction = null,
@@ -497,7 +498,7 @@ class Session @Inject constructor(
                         )
                     }
                 } else {
-                    uiFlow.update {
+                    state.update {
                         it.copy(
                             billState = it.billState.copy(
                                 primaryAction = BillState.Action.Send { onRemoteSend() },
@@ -519,7 +520,7 @@ class Session @Inject constructor(
                 cancelSend(PresentationStyle.Pop)
                 vibrator.vibrate()
 
-                viewModelScope.launch {
+                scope.launch {
                     client.fetchLimits(true).subscribe({}, ErrorUtils::handleError)
                 }
             },
@@ -551,7 +552,7 @@ class Session @Inject constructor(
     private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
         println("present send")
         if (bill.didReceive) {
-            uiFlow.update {
+            state.update {
                 val billState = it.billState
                 it.copy(
                     billState = billState.copy(
@@ -566,7 +567,7 @@ class Session @Inject constructor(
         val style: PresentationStyle =
             if (bill.didReceive) PresentationStyle.Pop else PresentationStyle.Slide
 
-        uiFlow.update {
+        state.update {
             val billState = it.billState
             it.copy(
                 presentationStyle = style,
@@ -602,16 +603,16 @@ class Session @Inject constructor(
         cashLinkManager.cancelSend()
         BottomBarManager.clearByType(BottomBarManager.BottomBarMessageType.REMOTE_SEND)
 
-        viewModelScope.launch {
+        scope.launch {
             val shown = showToastIfNeeded(style)
             withContext(Dispatchers.Main) {
-                uiFlow.update {
+                state.update {
                     it.copy(
                         presentationStyle = style,
                     )
                 }
 
-                uiFlow.update {
+                state.update {
                     it.copy(
                         billState = it.billState.copy(
                             bill = null,
@@ -630,7 +631,7 @@ class Session @Inject constructor(
                 delay(5.seconds.inWholeMilliseconds)
             }
             withContext(Dispatchers.Main) {
-                uiFlow.update {
+                state.update {
                     it.copy(
                         billState = it.billState.copy(showToast = false)
                     )
@@ -642,7 +643,7 @@ class Session @Inject constructor(
     private fun showToastIfNeeded(
         style: PresentationStyle,
     ): Boolean {
-        val billState = uiFlow.value.billState
+        val billState = state.value.billState
         val bill = billState.bill ?: return false
 
         if (style is PresentationStyle.Pop || billState.showToast) {
@@ -666,10 +667,10 @@ class Session @Inject constructor(
         isDeposit: Boolean = false,
         initialDelay: Duration = 500.milliseconds
     ) {
-        viewModelScope.launch {
+        scope.launch {
             delay(initialDelay)
             if (amount.kin.toKinTruncatingLong() == 0L) {
-                uiFlow.update { uiModel ->
+                state.update { uiModel ->
                     val billState = uiModel.billState
                     uiModel.copy(
                         billState = billState.copy(
@@ -680,7 +681,7 @@ class Session @Inject constructor(
                 return@launch
             }
 
-            uiFlow.update {
+            state.update {
                 it.copy(
                     billState = it.billState.copy(
                         showToast = true,
@@ -691,7 +692,7 @@ class Session @Inject constructor(
 
             delay(5.seconds)
 
-            uiFlow.update { uiModel ->
+            state.update { uiModel ->
                 val billState = uiModel.billState
                 uiModel.copy(
                     billState = billState.copy(
@@ -702,7 +703,7 @@ class Session @Inject constructor(
 
             // wait for animation to run
             delay(500.milliseconds)
-            uiFlow.update { uiModel ->
+            state.update { uiModel ->
                 val billState = uiModel.billState
                 uiModel.copy(
                     billState = billState.copy(
@@ -719,7 +720,7 @@ class Session @Inject constructor(
             scanProcessingTime = System.currentTimeMillis()
         }
 
-        if (uiFlow.value.vibrateOnScan) {
+        if (state.value.vibrateOnScan) {
             vibrator.tick()
         }
 
@@ -781,7 +782,7 @@ class Session @Inject constructor(
     }
 
     private fun attemptPayment(payload: CodePayload, request: DeepLinkRequest? = null) =
-        viewModelScope.launch {
+        scope.launch {
             val (amount, p) = paymentRepository.attemptRequest(payload) ?: return@launch
             BottomBarManager.clear()
 
@@ -793,7 +794,7 @@ class Session @Inject constructor(
         }
 
     private fun attemptTip(codePayload: CodePayload, request: DeepLinkRequest? = null) =
-        viewModelScope.launch {
+        scope.launch {
             BottomBarManager.clear()
             val username = codePayload.username ?: request?.tipRequest?.username ?: return@launch
             presentTipCard(payload = codePayload, username = username)
@@ -803,7 +804,7 @@ class Session @Inject constructor(
             client.receiveIfNeeded().subscribe({}, ErrorUtils::handleError)
         }
 
-    fun presentShareableTipCard() = viewModelScope.launch {
+    fun presentShareableTipCard() = scope.launch {
         val username = tipController.connectedAccount.value?.username ?: return@launch
         val code = CodePayload(
             kind = Kind.Tip,
@@ -820,9 +821,9 @@ class Session @Inject constructor(
         )
 
         withContext(Dispatchers.Main) {
-            uiFlow.update {
+            state.update {
                 val billState = it.billState.copy(
-                    bill = Bill.Tip(code, canFlip = uiFlow.value.flippableTipCard.enabled),
+                    bill = Bill.Tip(code, canFlip = state.value.flippableTipCard.enabled),
                     primaryAction = BillState.Action.Share { onRemoteSend() },
                     secondaryAction = BillState.Action.Cancel(::cancelSend)
                 )
@@ -865,7 +866,7 @@ class Session @Inject constructor(
                     onPositive = {
                         when {
                             isDenied -> {
-                                viewModelScope.launch {
+                                scope.launch {
                                     _eventFlow.emit(SessionEvent.RequestNotificationPermissions)
                                 }
                             }
@@ -890,7 +891,7 @@ class Session @Inject constructor(
         vibrator.vibrate()
 
         withContext(Dispatchers.Main) {
-            uiFlow.update {
+            state.update {
                 val billState = it.billState.copy(
                     bill = Bill.Tip(payload),
                     primaryAction = null,
@@ -921,7 +922,7 @@ class Session @Inject constructor(
                                     R.string.subtitle_linkingTwitterPrompt, username
                                 )
                             )
-                            viewModelScope.launch {
+                            scope.launch {
                                 _eventFlow.emit(SessionEvent.SendIntent(intent))
                             }
                             cancelTip()
@@ -937,21 +938,14 @@ class Session @Inject constructor(
             }
     }
 
-    fun presentTipConfirmation(amount: KinAmount, user: TwitterUser? = null) {
+    fun presentTipConfirmation(amount: KinAmount) {
         val scannedUserData = tipController.scannedUserData?.second
-        val payload = if (user != null) {
-            CodePayload(
-                kind = Kind.Tip,
-                value = Username(user.username)
-            )
-        } else {
-            scannedUserData
-        } ?: return
+        val payload = scannedUserData ?: return
+        val metadata = tipController.userMetadata ?: return
 
-        val metadata = user ?: tipController.userMetadata ?: return
-        uiFlow.update {
+        state.update {
             val billState = it.billState.copy(
-                tipConfirmation = TipConfirmation(
+                socialUserPaymentConfirmation = SocialUserPaymentConfirmation(
                     state = ConfirmationState.AwaitingConfirmation,
                     payload = payload,
                     amount = amount,
@@ -963,17 +957,62 @@ class Session @Inject constructor(
         }
     }
 
-    fun completeTipPayment() = viewModelScope.launch {
-        val tipConfirmation = uiFlow.value.billState.tipConfirmation ?: return@launch
+    fun presentPrivatePaymentConfirmation(socialUser: SocialUser, amount: KinAmount) {
+        val payload = CodePayload(
+            kind = Kind.Tip,
+            value = Username(socialUser.username),
+        )
+
+
+        state.update {
+            val billState = it.billState.copy(
+                socialUserPaymentConfirmation = SocialUserPaymentConfirmation(
+                    state = ConfirmationState.AwaitingConfirmation,
+                    payload = payload,
+                    amount = amount,
+                    metadata = socialUser,
+                    isPrivate = true,
+                    showScrim = true
+                )
+            )
+
+            it.copy(billState = billState)
+        }
+    }
+
+    fun completeTipPayment() = scope.launch {
+        val tipConfirmation = state.value.billState.socialUserPaymentConfirmation ?: return@launch
         val metadata = tipController.userMetadata ?: return@launch
 
         val amount = tipConfirmation.amount
 
-        uiFlow.update {
+        fun showError() {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_payment_failed),
+                resources.getString(R.string.error_description_payment_failed),
+            )
+
+            state.update { uiModel ->
+                uiModel.copy(
+                    presentationStyle = PresentationStyle.Hidden,
+                    billState = uiModel.billState.copy(
+                        bill = null,
+                        showToast = false,
+                        socialUserPaymentConfirmation = null,
+                        toast = null,
+                        valuation = null,
+                        primaryAction = null,
+                        secondaryAction = null,
+                    )
+                )
+            }
+        }
+
+        state.update {
             val billState = it.billState
             it.copy(
                 billState = billState.copy(
-                    tipConfirmation = tipConfirmation.copy(state = ConfirmationState.Sending)
+                    socialUserPaymentConfirmation = tipConfirmation.copy(state = ConfirmationState.Sending)
                 ),
             )
         }
@@ -982,13 +1021,13 @@ class Session @Inject constructor(
             paymentRepository.completeTipPayment(metadata, amount)
         }.onSuccess {
             historyController.fetchChats()
-            uiFlow.update {
+            state.update {
                 val billState = it.billState
-                val confirmation = it.billState.tipConfirmation ?: return@update it
+                val confirmation = it.billState.socialUserPaymentConfirmation ?: return@update it
 
                 it.copy(
                     billState = billState.copy(
-                        tipConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                        socialUserPaymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
                     ),
                 )
             }
@@ -1001,13 +1040,105 @@ class Session @Inject constructor(
                 resources.getString(R.string.error_description_payment_failed),
             )
 
-            uiFlow.update { uiModel ->
+            state.update { uiModel ->
                 uiModel.copy(
                     presentationStyle = PresentationStyle.Hidden,
                     billState = uiModel.billState.copy(
                         bill = null,
                         showToast = false,
-                        tipConfirmation = null,
+                        socialUserPaymentConfirmation = null,
+                        toast = null,
+                        valuation = null,
+                        primaryAction = null,
+                        secondaryAction = null,
+                    )
+                )
+            }
+        }
+
+        if (state.value.billState.socialUserPaymentConfirmation == null) {
+            showError()
+            return@launch
+        }
+
+        state.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    socialUserPaymentConfirmation = tipConfirmation.copy(state = ConfirmationState.Sending)
+                ),
+            )
+        }
+
+        runCatching {
+            paymentRepository.completeTipPayment(tipConfirmation.metadata, tipConfirmation.amount)
+        }.onSuccess {
+            historyController.fetchChats()
+            state.update {
+                val billState = it.billState
+                val confirmation = it.billState.socialUserPaymentConfirmation ?: return@update it
+
+                it.copy(
+                    billState = billState.copy(
+                        socialUserPaymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                    ),
+                )
+            }
+            delay(400.milliseconds)
+            cancelTip()
+            showToast(tipConfirmation.amount, isDeposit = false)
+        }.onFailure {
+            showError()
+        }
+    }
+
+    fun completePrivatePayment() = scope.launch {
+        val confirmation = state.value.billState.socialUserPaymentConfirmation ?: return@launch
+        val user = confirmation.metadata
+        val amount = confirmation.amount
+
+        state.update {
+            val billState = it.billState
+            it.copy(
+                billState = billState.copy(
+                    socialUserPaymentConfirmation = billState.socialUserPaymentConfirmation?.copy(state = ConfirmationState.Sending)
+                ),
+            )
+        }
+
+        runCatching {
+            paymentRepository.payForFriendship(user, amount)
+        }.onSuccess {
+            historyController.fetchChats()
+
+            state.update { s ->
+                val billState = s.billState
+                val socialUserPaymentConfirmation = s.billState.socialUserPaymentConfirmation ?: return@update s
+
+                s.copy(
+                    billState = billState.copy(
+                        socialUserPaymentConfirmation = socialUserPaymentConfirmation.copy(state = ConfirmationState.Sent),
+                    ),
+                )
+            }
+            delay(1.seconds)
+            cancelTip()
+            delay(400.milliseconds)
+            showToast(amount, isDeposit = false)
+            _eventFlow.emit(SessionEvent.OnChatPaidForSuccessfully(it, user))
+        }.onFailure {
+            TopBarManager.showMessage(
+                resources.getString(R.string.error_title_payment_failed),
+                resources.getString(R.string.error_description_payment_failed),
+            )
+
+            state.update { uiModel ->
+                uiModel.copy(
+                    presentationStyle = PresentationStyle.Hidden,
+                    billState = uiModel.billState.copy(
+                        bill = null,
+                        showToast = false,
+                        socialUserPaymentConfirmation = null,
                         toast = null,
                         valuation = null,
                         primaryAction = null,
@@ -1022,17 +1153,17 @@ class Session @Inject constructor(
         // Cancelling from amount entry is triggered by a UI event.
         // To distinguish between a valid "Next" action that will
         // also dismiss the entry screen, we need to check explicitly
-        if (uiFlow.value.billState.tipConfirmation == null) {
+        if (state.value.billState.socialUserPaymentConfirmation == null) {
             cancelTip()
         }
     }
 
     fun cancelTip() {
         tipController.reset()
-        uiFlow.update {
+        state.update {
             val billState = it.billState.copy(
                 bill = null,
-                tipConfirmation = null,
+                socialUserPaymentConfirmation = null,
                 valuation = null,
                 primaryAction = null,
                 secondaryAction = null,
@@ -1049,7 +1180,7 @@ class Session @Inject constructor(
         amount: KinAmount,
         payload: CodePayload?,
         request: DeepLinkRequest? = null
-    ) = viewModelScope.launch {
+    ) = scope.launch {
         val code: CodePayload
         if (payload != null) {
             code = payload
@@ -1072,7 +1203,7 @@ class Session @Inject constructor(
 
         val isReceived = payload != null
         val presentationStyle = if (isReceived) PresentationStyle.Pop else PresentationStyle.Slide
-        uiFlow.update {
+        state.update {
             var billState = it.billState.copy(
                 bill = Bill.Payment(amount, code, request),
                 valuation = PaymentValuation(amount),
@@ -1111,12 +1242,12 @@ class Session @Inject constructor(
         vibrator.vibrate()
     }
 
-    fun completePayment() = viewModelScope.launch {
+    fun completePayment() = scope.launch {
         // keep bill active while sending
         cashLinkManager.cancelBillTimeout()
 
-        val paymentConfirmation = uiFlow.value.billState.paymentConfirmation ?: return@launch
-        uiFlow.update {
+        val paymentConfirmation = state.value.billState.paymentConfirmation ?: return@launch
+        state.update {
             val billState = it.billState
             it.copy(
                 billState = billState.copy(
@@ -1132,7 +1263,7 @@ class Session @Inject constructor(
         }.onSuccess {
             historyController.fetchChats()
 
-            uiFlow.update {
+            state.update {
                 val billState = it.billState
                 val confirmation = it.billState.paymentConfirmation ?: return@update it
 
@@ -1152,7 +1283,7 @@ class Session @Inject constructor(
             )
 
             ErrorUtils.handleError(error)
-            uiFlow.update { uiModel ->
+            state.update { uiModel ->
                 uiModel.copy(
                     presentationStyle = PresentationStyle.Hidden,
                     billState = uiModel.billState.copy(
@@ -1170,8 +1301,8 @@ class Session @Inject constructor(
     }
 
     private fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
-        val paymentRendezous = uiFlow.value.billState.paymentConfirmation
-        val bill = uiFlow.value.billState.bill ?: return
+        val paymentRendezous = state.value.billState.paymentConfirmation
+        val bill = state.value.billState.bill ?: return
         val amount = bill.amount
         val request = bill.metadata.request
 
@@ -1181,7 +1312,7 @@ class Session @Inject constructor(
 
         analytics.requestHidden(amount = amount)
 
-        uiFlow.update {
+        state.update {
             it.copy(
                 presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
@@ -1194,7 +1325,7 @@ class Session @Inject constructor(
             )
         }
 
-        viewModelScope.launch {
+        scope.launch {
             delay(300)
             if (rejected) {
                 if (!ignoreRedirect) {
@@ -1227,11 +1358,11 @@ class Session @Inject constructor(
     }
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
-        val payload = uiFlow.value.billState.paymentConfirmation?.payload
+        val payload = state.value.billState.paymentConfirmation?.payload
         cancelPayment(true, ignoreRedirect)
         payload ?: return
 
-        viewModelScope.launch {
+        scope.launch {
             paymentRepository.rejectPayment(payload)
         }
     }
@@ -1254,7 +1385,7 @@ class Session @Inject constructor(
     ) {
         vibrator.vibrate()
 
-        uiFlow.update {
+        state.update {
             it.copy(
                 presentationStyle = PresentationStyle.Pop,
                 billState = it.billState.copy(
@@ -1275,12 +1406,12 @@ class Session @Inject constructor(
         }
     }
 
-    fun completeLogin() = viewModelScope.launch {
+    fun completeLogin() = scope.launch {
         val organizer = SessionManager.getOrganizer() ?: return@launch
-        val loginConfirmation = uiFlow.value.billState.loginConfirmation ?: return@launch
+        val loginConfirmation = state.value.billState.loginConfirmation ?: return@launch
         val domain = loginConfirmation.domain
 
-        uiFlow.update {
+        state.update {
             val billState = it.billState
             it.copy(
                 billState = billState.copy(
@@ -1312,7 +1443,7 @@ class Session @Inject constructor(
             )
             ErrorUtils.handleError(it)
 
-            uiFlow.update { uiModel ->
+            state.update { uiModel ->
                 uiModel.copy(
                     presentationStyle = PresentationStyle.Hidden,
                     billState = uiModel.billState.copy(
@@ -1327,7 +1458,7 @@ class Session @Inject constructor(
                 )
             }
         }.onSuccess {
-            uiFlow.update {
+            state.update {
                 val billState = it.billState
                 val confirmation = it.billState.loginConfirmation ?: return@update it
 
@@ -1344,9 +1475,9 @@ class Session @Inject constructor(
     }
 
     private fun cancelLogin(rejected: Boolean) {
-        val bill = uiFlow.value.billState.bill ?: return
+        val bill = state.value.billState.bill ?: return
         val request = bill.metadata.request
-        uiFlow.update {
+        state.update {
             it.copy(
                 presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
@@ -1362,7 +1493,7 @@ class Session @Inject constructor(
             )
         }
 
-        viewModelScope.launch {
+        scope.launch {
             delay(300)
             if (rejected) {
                 request?.cancelUrl?.let { url ->
@@ -1389,7 +1520,7 @@ class Session @Inject constructor(
     }
 
     fun rejectLogin() {
-        val rendezvous = uiFlow.value.billState.loginConfirmation?.payload?.rendezvous
+        val rendezvous = state.value.billState.loginConfirmation?.payload?.rendezvous
         if (rendezvous == null) {
             Timber.e("Failed to reject login, no rendezous found in login confirmation.")
             return
@@ -1397,7 +1528,7 @@ class Session @Inject constructor(
 
         cancelLogin(rejected = true)
 
-        viewModelScope.launch {
+        scope.launch {
             client.rejectLogin(rendezvous)
         }
     }
@@ -1443,7 +1574,7 @@ class Session @Inject constructor(
                 )
             }
             .subscribe({
-                viewModelScope.launch { historyController.fetchChats() }
+                scope.launch { historyController.fetchChats() }
             }, {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
@@ -1500,7 +1631,7 @@ class Session @Inject constructor(
     fun onCodeScan(
         code: ScannableKikCode,
     ) {
-        if (uiFlow.value.billState.bill == null) {
+        if (state.value.billState.bill == null) {
             if (code is ScannableKikCode.RemoteKikCode) {
                 onCodeScan(code.payloadId)
             }
@@ -1514,7 +1645,7 @@ class Session @Inject constructor(
 
     @SuppressLint("CheckResult")
     fun onRemoteSend() {
-        val bill = uiFlow.value.billState.bill
+        val bill = state.value.billState.bill
         when (bill) {
             is Bill.Cash -> {
                 shareGiftCard()
@@ -1544,12 +1675,12 @@ class Session @Inject constructor(
             giftCard = giftCard
         )
             .doOnSubscribe {
-                uiFlow.update { it.copy(isRemoteSendLoading = true) }
+                state.update { it.copy(isRemoteSendLoading = true) }
             }
             .doOnComplete {
                 loadingIndicatorTimer?.cancel()
                 loadingIndicatorTimer = Timer().schedule(1000) {
-                    uiFlow.update { it.copy(isRemoteSendLoading = false) }
+                    state.update { it.copy(isRemoteSendLoading = false) }
                 }
 
                 analytics.remoteSendOutgoing(
@@ -1559,7 +1690,7 @@ class Session @Inject constructor(
             }
             .doOnError {
                 loadingIndicatorTimer?.cancel()
-                uiFlow.update { it.copy(isRemoteSendLoading = false) }
+                state.update { it.copy(isRemoteSendLoading = false) }
             }
             .timeout(15, TimeUnit.SECONDS)
             .subscribe(
@@ -1568,7 +1699,7 @@ class Session @Inject constructor(
             )
     }
 
-    private fun shareTipCard() = viewModelScope.launch {
+    private fun shareTipCard() = scope.launch {
         val connectedAccount = tipController.connectedAccount.value ?: return@launch
         withContext(Dispatchers.Main) {
             val shareIntent =
@@ -1579,7 +1710,7 @@ class Session @Inject constructor(
     }
 
     private fun cancelRemoteSend(giftCard: GiftCardAccount, amount: KinAmount) =
-        viewModelScope.launch {
+        scope.launch {
             val organizer = SessionManager.getOrganizer() ?: return@launch
             client.cancelRemoteSend(giftCard, amount.kin, organizer)
                 .onSuccess {
@@ -1613,11 +1744,11 @@ class Session @Inject constructor(
 
             BottomBarManager.showMessage(
                 BottomBarManager.BottomBarMessage(
-                    title = getString(R.string.prompt_title_didYouSendLink),
-                    subtitle = getString(R.string.prompt_description_didYouSendLink),
-                    positiveText = getString(R.string.action_yes),
-                    negativeText = getString(R.string.action_noTryAgain),
-                    tertiaryText = getString(R.string.action_cancelSend),
+                    title = resources.getString(R.string.prompt_title_didYouSendLink),
+                    subtitle = resources.getString(R.string.prompt_description_didYouSendLink),
+                    positiveText = resources.getString(R.string.action_yes),
+                    negativeText = resources.getString(R.string.action_noTryAgain),
+                    tertiaryText = resources.getString(R.string.action_cancelSend),
                     onPositive = {
                         cancelSend(style = PresentationStyle.Pop)
                         vibrator.vibrate()
@@ -1645,10 +1776,10 @@ class Session @Inject constructor(
         if (request != null) {
             when {
                 request.paymentRequest != null -> {
-                    viewModelScope.launch {
-                        if (uiFlow.value.balance == null) {
+                    scope.launch {
+                        if (state.value.balance == null) {
                             balanceController.fetchBalanceSuspend()
-                            uiFlow.update {
+                            state.update {
                                 val amount = KinAmount.newInstance(
                                     Kin.fromKin(balanceController.rawBalance), exchange.localRate
                                 )
@@ -1733,7 +1864,7 @@ class Session @Inject constructor(
             val mnemonic = mnemonicManager.fromEntropyBase58(base58Entropy)
             val giftCardAccount = giftCardManager.createGiftCard(mnemonic)
 
-            viewModelScope.launch {
+            scope.launch {
                 withContext(Dispatchers.IO) {
                     withTimeout(15000) {
                         balanceController.fetchBalanceSuspend()
@@ -1750,7 +1881,7 @@ class Session @Inject constructor(
 
                             historyController.fetchChats()
 
-                            viewModelScope.launch(Dispatchers.Main) {
+                            scope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()
                                 showBill(
                                     Bill.Cash(
@@ -1780,20 +1911,20 @@ class Session @Inject constructor(
         when (throwable) {
             is RemoteSendException.GiftCardClaimedException ->
                 TopBarManager.showMessage(
-                    getString(R.string.error_title_alreadyCollected),
-                    getString(R.string.error_description_alreadyCollected)
+                    resources.getString(R.string.error_title_alreadyCollected),
+                    resources.getString(R.string.error_description_alreadyCollected)
                 )
 
             is RemoteSendException.GiftCardExpiredException ->
                 TopBarManager.showMessage(
-                    getString(R.string.error_title_linkExpired),
-                    getString(R.string.error_description_linkExpired)
+                    resources.getString(R.string.error_title_linkExpired),
+                    resources.getString(R.string.error_description_linkExpired)
                 )
 
             else -> {
                 TopBarManager.showMessage(
-                    getString(R.string.error_title_failedToCollect),
-                    getString(R.string.error_description_failedToCollect)
+                    resources.getString(R.string.error_title_failedToCollect),
+                    resources.getString(R.string.error_description_failedToCollect)
                 )
                 val traceableError = Throwable(
                     message = "Failed to receive remote send",

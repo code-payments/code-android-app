@@ -11,6 +11,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.mapper.ConversationMapper
 import com.getcode.mapper.ConversationMessageMapper
+import com.getcode.model.Conversation
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
@@ -156,6 +157,15 @@ class ChatHistoryController @Inject constructor(
         chatEntries.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
     }
 
+    fun addChat(chat: Chat) {
+        chatEntries.value = (chatEntries.value.orEmpty() + chat)
+            .sortedByDescending { it.lastMessageMillis }
+    }
+
+    fun findChat(predicate: (Chat) -> Boolean): Chat? {
+        return chatEntries.value?.firstOrNull(predicate)
+    }
+
     suspend fun advanceReadPointer(chatId: ID) {
         val owner = owner() ?: return
 
@@ -181,17 +191,14 @@ class ChatHistoryController @Inject constructor(
         }
     }
 
-    fun advanceReadPointerUpTo(chatId: ID, timestamp: Long) {
+    fun resetUnreadCount(chatId: ID) {
         chatEntries.update {
             it?.toMutableList()?.apply chats@{
                 indexOfFirst { chat -> chat.id == chatId }
                     .takeIf { index -> index >= 0 }
                     ?.let { index ->
                         val chat = this[index]
-                        val newestMessage = chat.newestMessage
-                        if (newestMessage != null) {
-                            this[index] = chat.resetUnreadCount()
-                        }
+                        this[index] = chat.resetUnreadCount()
                     }
             }?.toList()
         }

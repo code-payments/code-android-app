@@ -16,7 +16,7 @@ import com.getcode.util.PhoneUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.network.NetworkObserverStub
 
-val LocalSession: ProvidableCompositionLocal<Session?> = staticCompositionLocalOf { null }
+val LocalSession: ProvidableCompositionLocal<SessionController?> = staticCompositionLocalOf { null }
 val LocalAnalytics: ProvidableCompositionLocal<AnalyticsService> = staticCompositionLocalOf { AnalyticsServiceNull() }
 val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener> = staticCompositionLocalOf { NetworkObserverStub() }
 val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }

@@ -1,6 +1,6 @@
 package com.getcode.solana.instructions.programs
 
-import com.getcode.model.TipMetadata
+import com.getcode.model.SocialUser
 import com.getcode.solana.AgoraMemo
 import com.getcode.solana.Instruction
 import com.getcode.solana.TransferType
@@ -23,7 +23,7 @@ class MemoProgram_Memo(data: List<Byte>) : MemoProgram(data) {
             )
         }
 
-        fun newInstance(tipMetadata: TipMetadata): MemoProgram_Memo {
+        fun newInstance(tipMetadata: SocialUser): MemoProgram_Memo {
             val memo = "tip:${tipMetadata.platform}:${tipMetadata.username}"
 
             return MemoProgram_Memo(memo.toByteArray().toList())

@@ -83,7 +83,7 @@ message GetChatsResponse {
     repeated ChatMetadata chats = 2 ;
 }
 message GetMessagesRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2;
     common.v1.SolanaAccountId owner = 3;
     common.v1.Signature signature = 4;
@@ -106,7 +106,7 @@ message GetMessagesResponse {
     repeated ChatMessage messages = 2 ;
 }
 message OpenChatEventStream {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2 ;
     common.v1.SolanaAccountId owner = 3;
     common.v1.Signature signature = 4;
@@ -191,7 +191,7 @@ message StartChatResponse {
     ChatMetadata chat = 2;
 }
 message SendMessageRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2 ;
     // Allowed content types that can be sent by client:
     //  - TextContent
@@ -214,7 +214,7 @@ message SendMessageResponse {
     ChatMessage message = 2;
 }
 message AdvancePointerRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     Pointer pointer = 2;
     common.v1.SolanaAccountId owner = 3;
     common.v1.Signature signature = 4;
@@ -230,7 +230,7 @@ message AdvancePointerResponse {
     }
 }
 message RevealIdentityRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2;
     ChatMemberIdentity identity = 3;
     common.v1.SolanaAccountId owner = 4;
@@ -248,7 +248,7 @@ message RevealIdentityResponse {
     ChatMessage message = 2;
 }
 message SetMuteStateRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2 ;
     bool is_muted = 3;
     common.v1.SolanaAccountId owner = 4;
@@ -264,7 +264,7 @@ message SetMuteStateResponse {
     }
 }
 message SetSubscriptionStateRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2 ;
     bool is_subscribed = 3;
     common.v1.SolanaAccountId owner = 4;
@@ -280,7 +280,7 @@ message SetSubscriptionStateResponse {
     }
 }
 message NotifyIsTypingRequest {
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     ChatMemberId member_id = 2 ;
     bool is_typing = 3;
     common.v1.SolanaAccountId owner = 4;
@@ -293,11 +293,6 @@ message NotifyIsTypingResponse {
         DENIED         = 1;
         CHAT_NOT_FOUND = 2;
     }
-}
-message ChatId {
-    // Sufficient space is left for a consistent hash value, though other types
-    // of values may be used.
-    bytes value = 1 ;
 }
 message ChatMessageId {
     // Guaranteed to be a time-based UUID. This should be used to construct a
@@ -330,7 +325,7 @@ enum PointerType {
 // todo: Support is_verified in a clean way
 message ChatMetadata {
     // Globally unique ID for this chat
-    ChatId chat_id = 1;
+    common.v1.ChatId chat_id = 1;
     // The type of chat
     ChatType type = 2 ;
     // The chat title, which will be localized by server when applicable
