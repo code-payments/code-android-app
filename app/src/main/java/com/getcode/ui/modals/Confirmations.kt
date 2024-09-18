@@ -44,9 +44,9 @@ fun ConfirmationModals(
             derivedStateOf {
                 val loginConfirmation = billState.loginConfirmation
                 val paymentConfirmation = billState.paymentConfirmation
-                val tipConfirmation = billState.tipConfirmation
+                val socialPaymentConfirmation = billState.socialUserPaymentConfirmation
 
-                listOf(loginConfirmation, paymentConfirmation, tipConfirmation).any {
+                listOf(loginConfirmation, paymentConfirmation, socialPaymentConfirmation).any {
                     it?.showScrim == true
                 }
             }
@@ -128,10 +128,10 @@ fun ConfirmationModals(
             }
         }
 
-        // Tip Confirmation container
+        // Social Payment Confirmation container
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = sessionState.billState.tipConfirmation?.payload, // payload is constant across state changes
+            targetState = sessionState.billState.socialUserPaymentConfirmation?.payload, // payload is constant across state changes
             transitionSpec = AnimationUtils.modalAnimationSpec(speed = ModalAnimationSpeed.Fast),
             label = "tip confirmation",
         ) {
@@ -140,8 +140,14 @@ fun ConfirmationModals(
                     contentAlignment = BottomCenter
                 ) {
                     TipConfirmation(
-                        confirmation = sessionState.billState.tipConfirmation,
-                        onSend = { session.completeTipPayment() },
+                        confirmation = sessionState.billState.socialUserPaymentConfirmation,
+                        onSend = {
+                            if (sessionState.billState.socialUserPaymentConfirmation?.isPrivate == true) {
+                                session.completePrivatePayment()
+                            } else {
+                                session.completeTipPayment()
+                            }
+                        },
                         onCancel = { session.cancelTip() }
                     )
                 }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,6 +30,7 @@ import androidx.paging.compose.LazyPagingItems
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalSession
 import com.getcode.R
+import com.getcode.SessionEvent
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.theme.CodeTheme
@@ -43,15 +45,19 @@ import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.util.formatted
 import com.getcode.view.main.tip.IdentityConnectionReason
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import java.util.UUID
 
 @Composable
-fun ChatConversationScreen(
+fun ConversationScreen(
     state: ConversationViewModel.State,
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
-    val session = LocalSession.currentOrThrow
 
     CodeScaffold(
         topBar = {
@@ -90,7 +96,7 @@ fun ChatConversationScreen(
                             state.costToChat.formatted(suffix = "")
                         )
                     ) {
-                        session.presentTipConfirmation(state.costToChat, state.twitterUser)
+                        dispatchEvent(ConversationViewModel.Event.PresentPaymentConfirmation)
                     }
                 }
             }

@@ -18,6 +18,7 @@ import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
+import com.getcode.model.SocialUser
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatIdV2
 import com.getcode.model.chat.ChatStreamEventUpdate
@@ -285,6 +286,8 @@ class ChatServiceV2 @Inject constructor(
 
     suspend fun startChat(
         owner: KeyPair,
+        self: SocialUser,
+        with: SocialUser,
         intentId: ID,
         type: ChatType
     ): Result<Chat> {
@@ -294,7 +297,7 @@ class ChatServiceV2 @Inject constructor(
             ChatType.Notification -> throw IllegalArgumentException("Unable to create notification chats from client")
             ChatType.TwoWay -> {
                 try {
-                    networkOracle.managedRequest(api.startChat(owner, intentId))
+                    networkOracle.managedRequest(api.startChat(owner, self, with, intentId))
                         .map { response ->
                             when (response.result) {
                                 ChatService.StartChatResponse.Result.OK -> {

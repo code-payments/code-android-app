@@ -12,7 +12,11 @@ enum class Platform {
         }
 
         fun named(name: String): Platform {
-            return entries.firstOrNull { it.name.lowercase() == name.lowercase() } ?: Unknown
+            val normalizedName = name.lowercase()
+            return entries.firstOrNull {
+                it.name.lowercase() == normalizedName ||
+                        (normalizedName == "x" && it.name.lowercase() == "twitter")
+            } ?: Unknown
         }
     }
 }

@@ -123,29 +123,3 @@ suspend fun Client.advancePointer(
         chatServiceV1.advancePointer(owner, chat.id, to, status)
     }
 }
-
-suspend fun Client.startChat(
-    owner: KeyPair,
-    reference: ID,
-    type: ChatType,
-): Result<Chat> {
-    return chatServiceV2.startChat(owner, reference, type)
-}
-
-fun Client.openChatStream(
-    scope: CoroutineScope,
-    conversation: Conversation,
-    memberId: UUID,
-    owner: KeyPair,
-    chatLookup: (Conversation) -> Chat,
-    onEvent: (Result<ChatStreamEventUpdate>) -> Unit
-): ChatMessageStreamReference {
-    return chatServiceV2.openChatStream(
-        scope = scope,
-        conversation = conversation,
-        memberId = memberId,
-        owner = owner,
-        chatLookup = chatLookup,
-        onEvent = onEvent
-    )
-}

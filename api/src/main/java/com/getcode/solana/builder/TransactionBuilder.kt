@@ -1,8 +1,8 @@
 package com.getcode.solana.builder
 
-import com.getcode.model.TipMetadata
 import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
+import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.solana.Instruction
 import com.getcode.solana.SolanaTransaction
@@ -105,7 +105,7 @@ object TransactionBuilder {
         recentBlockhash: Hash,
         kreIndex: Int,
         legacy: Boolean = false,
-        tipMetadata: TipMetadata? = null,
+        metadata: PrivateTransferMetadata? = null,
     ): SolanaTransaction {
         val instructions = mutableListOf<Instruction>()
 
@@ -116,8 +116,13 @@ object TransactionBuilder {
                 kreIndex = kreIndex
             ).instruction(),
         )
-        if (tipMetadata != null) {
-            instructions.add(MemoProgram_Memo.newInstance(tipMetadata).instruction())
+
+        when (metadata) {
+            is PrivateTransferMetadata.Chat -> Unit
+            is PrivateTransferMetadata.Tip -> {
+                instructions.add(MemoProgram_Memo.newInstance(metadata.socialUser).instruction())
+            }
+            null -> Unit
         }
 
         instructions.addAll(

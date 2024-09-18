@@ -1,7 +1,5 @@
 package com.getcode.network
 
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.getcode.model.chat.Chat
@@ -10,13 +8,12 @@ import javax.inject.Inject
 class ConversationListController @Inject constructor(
     private val historyController: ChatHistoryController,
 ) {
-    private val pagingConfig = PagingConfig(pageSize = 20)
+    val isLoadingChats: Boolean
+        get() = historyController.loadingMessages
 
-    fun observeConversations() =
-        Pager(
-            config = pagingConfig,
-            initialKey = null,
-        ) { ChatPagingSource(historyController.chats.value.orEmpty()) }.flow
+    fun observeConversations() = historyController.chats
+
+    suspend fun fetchChats() = historyController.fetchChats(true)
 }
 
 class ChatPagingSource(

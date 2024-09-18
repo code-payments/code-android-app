@@ -4,7 +4,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
-import com.getcode.model.TipMetadata
+import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
@@ -62,7 +62,7 @@ class TipController @Inject constructor(
     var userMetadata: TwitterUser? = null
         private set
 
-    val connectedAccount: StateFlow<TipMetadata?> = prefRepository.observeOrDefault(PrefsString.KEY_TIP_ACCOUNT, "")
+    val connectedAccount: StateFlow<SocialUser?> = prefRepository.observeOrDefault(PrefsString.KEY_TIP_ACCOUNT, "")
         .map { runCatching { Json.decodeFromString<TwitterUser>(it) }.getOrNull() }
         .distinctUntilChanged()
         .stateIn(

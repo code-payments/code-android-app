@@ -44,7 +44,7 @@ import com.getcode.model.chat.Chat
 import com.getcode.model.chat.isConversation
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
-import com.getcode.navigation.screens.ChatMessageConversationScreen
+import com.getcode.navigation.screens.ConversationScreen
 import com.getcode.navigation.screens.ChatScreen
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
@@ -87,7 +87,7 @@ fun BalanceScreen(
                 faqOpen = { navigator.push(FaqScreen) },
                 openChat = {
                     if (it.isConversation) {
-                        navigator.push(ChatMessageConversationScreen(chatId = it.id))
+                        navigator.push(ConversationScreen(chatId = it.id))
                     } else {
                         navigator.push(ChatScreen(it.id))
                     }
@@ -186,7 +186,8 @@ fun BalanceContent(
         itemsIndexed(
             state.chats,
             key = { _, item -> item.id },
-            contentType = { _, item -> item }) { index, chat ->
+            contentType = { _, item -> item }
+        ) { index, chat ->
             ChatNode(chat = chat, onClick = { openChat(chat) })
             Divider(
                 modifier = Modifier.padding(start = CodeTheme.dimens.inset),

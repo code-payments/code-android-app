@@ -295,7 +295,7 @@ data class ChatScreen(val chatId: ID) : MainGraph, ModalContent {
                 .map { it.reference }
                 .filterIsInstance<Reference.IntentId>()
                 .map { it.id }
-                .onEach { navigator.push(ChatMessageConversationScreen(intentId = it)) }
+                .onEach { navigator.push(ConversationScreen(intentId = it)) }
                 .launchIn(this)
         }
 

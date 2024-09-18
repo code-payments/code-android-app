@@ -12,6 +12,8 @@ import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
+import com.getcode.model.SocialUser
+import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.StartChatRequest
@@ -19,6 +21,7 @@ import com.getcode.model.chat.StartChatResponse
 import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.bytes
 import com.getcode.utils.sign
 import io.grpc.ManagedChannel
@@ -50,13 +53,20 @@ class ChatApiV2 @Inject constructor(
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel)
 
-    fun startChat(owner: KeyPair, intentId: ID): Flow<StartChatResponse> {
+    fun startChat(
+        owner: KeyPair,
+        self: SocialUser,
+        with: SocialUser,
+        intentId: ID
+    ): Flow<StartChatResponse> {
         val request = StartChatRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .setSelf(self.chatMemberIdentity)
             .setTwoWayChat(
                 ChatService.StartTwoWayChatParameters.newBuilder()
-                    .setIntentId(IntentId.newBuilder()
-                        .setValue(intentId.toByteString()))
+                    .setIdentity(with.chatMemberIdentity)
+                    .setIntentId(IntentId.newBuilder().setValue(intentId.toByteString()))
+                    .setOtherUser(with.tipAddress.bytes.toSolanaAccount())
                     .build()
             )
             .apply { setSignature(sign(owner)) }
@@ -255,3 +265,21 @@ class ChatApiV2 @Inject constructor(
         api.revealIdentity(request, observer)
     }
 }
+
+private val SocialUser.chatMemberIdentity: ChatMemberIdentity
+    get() {
+        val builder = ChatMemberIdentity.newBuilder()
+            .setUsername(username)
+            .setPlatform(
+                when (Platform.named(platform)) {
+                    Platform.Unknown -> ChatService.Platform.UNKNOWN_PLATFORM
+                    Platform.Twitter -> ChatService.Platform.TWITTER
+                }
+            )
+
+        if (imageUrl != null) {
+            builder.setProfilePicUrl(imageUrl)
+        }
+
+        return builder.build()
+    }

@@ -6,7 +6,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
 import com.getcode.model.CodePayload
-import com.getcode.model.TipMetadata
+import com.getcode.model.SocialUser
 import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -21,7 +21,7 @@ data class BillState(
     val valuation: Valuation?,
     val paymentConfirmation: PaymentConfirmation?,
     val loginConfirmation: LoginConfirmation?,
-    val tipConfirmation: TipConfirmation?,
+    val socialUserPaymentConfirmation: SocialUserPaymentConfirmation?,
     val primaryAction: Action?,
     val secondaryAction: Action?,
 ) {
@@ -39,7 +39,7 @@ data class BillState(
             valuation = null,
             paymentConfirmation = null,
             loginConfirmation = null,
-            tipConfirmation = null,
+            socialUserPaymentConfirmation = null,
             primaryAction = null,
             secondaryAction = null,
         )
@@ -190,30 +190,34 @@ data class BillToast(
             .toString()
 }
 
-sealed class Confirmation(open val showScrim: Boolean = false)
+sealed class Confirmation(
+    open val showScrim: Boolean = false,
+    open val state: ConfirmationState,
+)
 
 data class PaymentConfirmation(
-    val state: ConfirmationState,
+    override val state: ConfirmationState,
     val payload: CodePayload,
     val requestedAmount: KinAmount,
     val localAmount: KinAmount,
     override val showScrim: Boolean = false,
-): Confirmation(showScrim)
+): Confirmation(showScrim, state)
 
 data class LoginConfirmation(
-    val state: ConfirmationState,
+    override val state: ConfirmationState,
     val payload: CodePayload,
     val domain: Domain,
     override val showScrim: Boolean = false,
-): Confirmation(showScrim)
+): Confirmation(showScrim, state)
 
-data class TipConfirmation(
-    val state: ConfirmationState,
+data class SocialUserPaymentConfirmation(
+    override val state: ConfirmationState,
     val amount: KinAmount,
     val payload: CodePayload?,
-    val metadata: TipMetadata,
+    val metadata: SocialUser,
+    val isPrivate: Boolean = false,
     override val showScrim: Boolean = false,
-): Confirmation(showScrim) {
+): Confirmation(showScrim, state) {
     val imageUrl: String?
         get() {
             return when (metadata) {

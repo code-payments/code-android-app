@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import com.getcode.SessionEvent
 import com.getcode.SessionState
-import com.getcode.Session
+import com.getcode.SessionController
 import com.getcode.LocalBiometricsState
 import com.getcode.PresentationStyle
 import com.getcode.R
@@ -97,7 +97,7 @@ enum class UiElement {
 
 @Composable
 fun ScanScreen(
-    session: Session,
+    session: SessionController,
     cashLink: String? = null,
     request: DeepLinkRequest? = null,
 ) {
@@ -138,6 +138,8 @@ fun ScanScreen(
                             SessionEvent.RequestNotificationPermissions -> {
                                 notificationPermissionChecker(true)
                             }
+
+                            is SessionEvent.OnChatPaidForSuccessfully -> Unit
                         }
                     }
                     .launchIn(this)
@@ -148,7 +150,7 @@ fun ScanScreen(
 
 @Composable
 private fun ScannerContent(
-    session: Session,
+    session: SessionController,
     dataState: SessionState,
     cashLink: String?,
     request: DeepLinkRequest?,
@@ -323,7 +325,7 @@ private fun BillContainer(
     isCameraStarted: Boolean,
     isPaused: Boolean,
     dataState: SessionState,
-    session: Session,
+    session: SessionController,
     scannerView: @Composable () -> Unit,
     onStartCamera: () -> Unit,
     onAction: (UiElement) -> Unit,
