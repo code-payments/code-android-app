@@ -3,6 +3,8 @@ package com.getcode.network.api
 import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.chat.v2.ChatService.ChatMemberIdentity
 import com.codeinc.gen.chat.v2.ChatService.Content
+import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingRequest
+import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.PointerType
 import com.codeinc.gen.chat.v2.ChatService.RevealIdentityRequest
 import com.codeinc.gen.chat.v2.ChatService.RevealIdentityResponse
@@ -263,6 +265,46 @@ class ChatApiV2 @Inject constructor(
             .build()
 
         api.revealIdentity(request, observer)
+    }
+
+    fun onStartedTyping(
+        owner: KeyPair,
+        chatId: ID,
+        memberId: UUID,
+        observer: StreamObserver<NotifyIsTypingResponse>
+    ) {
+        val request = NotifyIsTypingRequest.newBuilder()
+            .setChatId(ChatId.newBuilder()
+                .setValue(chatId.toByteArray().toByteString())
+            ).setIsTyping(true)
+            .setMemberId(ChatService.ChatMemberId.newBuilder()
+                .setValue(memberId.bytes.toByteString())
+            )
+            .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .apply { setSignature(sign(owner)) }
+            .build()
+
+        api.notifyIsTyping(request, observer)
+    }
+
+    fun onStoppedTyping(
+        owner: KeyPair,
+        chatId: ID,
+        memberId: UUID,
+        observer: StreamObserver<NotifyIsTypingResponse>
+    ) {
+        val request = NotifyIsTypingRequest.newBuilder()
+            .setChatId(ChatId.newBuilder()
+                .setValue(chatId.toByteArray().toByteString())
+            ).setIsTyping(false)
+            .setMemberId(ChatService.ChatMemberId.newBuilder()
+                .setValue(memberId.bytes.toByteString())
+            )
+            .setOwner(owner.publicKeyBytes.toSolanaAccount())
+            .apply { setSignature(sign(owner)) }
+            .build()
+
+        api.notifyIsTyping(request, observer)
     }
 }
 

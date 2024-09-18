@@ -3,6 +3,7 @@ package com.getcode.network
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import com.getcode.api.BuildConfig
 import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.manager.SessionManager
@@ -15,7 +16,6 @@ import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.SocialUser
-import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.OutgoingMessageContent
@@ -27,13 +27,15 @@ import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.bytes
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -50,6 +52,9 @@ interface ConversationController {
     suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus)
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID>
     fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessageWithContent>>
+    fun observeTyping(conversationId: ID): Flow<Boolean>
+    suspend fun onUserStartedTypingIn(conversationId: ID)
+    suspend fun onUserStoppedTypingIn(conversationId: ID)
 }
 
 class ConversationStreamController @Inject constructor(
@@ -65,6 +70,8 @@ class ConversationStreamController @Inject constructor(
     private val db: AppDatabase by lazy { Database.requireInstance() }
 
     private var stream: ChatMessageStreamReference? = null
+
+    private val typingChats = MutableStateFlow<List<ID>>(emptyList())
 
     private fun conversationPagingSource(conversationId: ID) =
         db.conversationMessageDao().observeConversationMessages(conversationId.base58)
@@ -136,7 +143,13 @@ class ConversationStreamController @Inject constructor(
         ) result@{ result ->
             if (result.isSuccess) {
                 val updates = result.getOrNull() ?: return@result
-                val (messages, pointers) = updates
+                val (messages, pointers, isTyping) = updates
+
+                typingChats.value = if (isTyping) {
+                    typingChats.value + listOf(conversation.id).toSet()
+                } else {
+                    typingChats.value - listOf(conversation.id).toSet()
+                }
 
                 historyController.updateChatWithMessages(chat, messages)
                 val messagesWithContent = messages.map {
@@ -165,7 +178,7 @@ class ConversationStreamController @Inject constructor(
                     }
                 }
 
-                println("chat messages: ${messages.count()}, pointers=${pointers.count()}")
+                println("chat messages: ${messages.count()}, pointers=${pointers.count()}, isTyping=$isTyping")
 
                 scope.launch(Dispatchers.IO) {
                     db.conversationMessageDao().upsertMessagesWithContent(messagesWithContent)
@@ -258,5 +271,46 @@ class ConversationStreamController @Inject constructor(
             config = pagingConfig,
             initialKey = null,
         ) { conversationPagingSource(conversationId) }.flow
+
+    override fun observeTyping(conversationId: ID): Flow<Boolean> =
+        typingChats.map { it.contains(conversationId) }
+
+    override suspend fun onUserStartedTypingIn(conversationId: ID) {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return
+
+        val chat = historyController.findChat { it.id == conversationId }
+            ?: return
+
+        val memberId = chat.selfId ?: return
+
+        chatService.onStartedTyping(
+            owner, chat, memberId
+        ).onSuccess {
+            println("on typing started reported")
+        }.onFailure {
+            if (BuildConfig.DEBUG) {
+                it.printStackTrace()
+            }
+        }
+    }
+
+    override suspend fun onUserStoppedTypingIn(conversationId: ID) {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return
+
+        val chat = historyController.findChat { it.id == conversationId }
+            ?: return
+
+        val memberId = chat.selfId ?: return
+
+        chatService.onStoppedTyping(
+            owner, chat, memberId
+        ).onSuccess {
+            println("on typing stopped reported")
+        }.onFailure {
+            if (BuildConfig.DEBUG) {
+            it.printStackTrace()
+            }
+        }
+    }
 
 }
