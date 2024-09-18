@@ -60,6 +60,11 @@ message IntentId {
 message UserId {
     bytes value = 1 ;
 }
+message ChatId {
+    // Sufficient space is left for a consistent hash value, though other types
+    // of values may be used.
+    bytes value = 1 ;
+}
 // DataContainerId is a globally unique identifier for a container where a user
 // can store a copy of their data
 message DataContainerId {

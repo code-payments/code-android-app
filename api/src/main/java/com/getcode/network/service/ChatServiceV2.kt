@@ -19,6 +19,7 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatIdV2
 import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.OutgoingMessageContent
@@ -450,7 +451,7 @@ class ChatServiceV2 @Inject constructor(
             val request = StreamChatEventsRequest.newBuilder()
                 .setOpenStream(OpenChatEventStream.newBuilder()
                     .setChatId(
-                        ChatService.ChatId.newBuilder()
+                        ChatIdV2.newBuilder()
                             .setValue(conversation.id.toByteString())
                             .build()
                     )
