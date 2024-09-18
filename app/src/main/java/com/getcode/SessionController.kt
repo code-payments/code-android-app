@@ -157,6 +157,7 @@ data class SessionState(
     val isRemoteSendLoading: Boolean = false,
     val splatTipCard: Boolean = false,
     val notificationUnreadCount: Int = 0,
+    val chatUnreadCount: Int = 0,
     val buyModule: Feature = BuyModuleFeature(),
     val requestKin: Feature = RequestKinFeature(),
     val cameraGestures: Feature = CameraGesturesFeature(),
@@ -399,6 +400,13 @@ class SessionController @Inject constructor(
             .map { it }
             .onEach { count ->
                 state.update { it.copy(notificationUnreadCount = count) }
+            }.launchIn(scope)
+
+        historyController.chatUnreadCount
+            .distinctUntilChanged()
+            .map { it }
+            .onEach { count ->
+                state.update { it.copy(chatUnreadCount = count) }
             }.launchIn(scope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)
