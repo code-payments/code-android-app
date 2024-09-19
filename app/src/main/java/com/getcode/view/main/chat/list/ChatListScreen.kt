@@ -56,7 +56,7 @@ fun ChatListScreen(
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(state.chats, key = { it.id }) { chat ->
-                ChatNode(chat = chat) {
+                ChatNode(chat = chat, showAvatar = true) {
                     navigator.push(ConversationScreen(chatId = chat.id))
                 }
                 Divider(
