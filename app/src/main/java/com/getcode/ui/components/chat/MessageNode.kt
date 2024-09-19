@@ -82,8 +82,6 @@ fun MessageNode(
     status: MessageStatus,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
-    showTipActions: Boolean = true,
-    openMessageChat: (Reference) -> Unit = { },
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -109,10 +107,8 @@ fun MessageNode(
                                 }
                             ),
                         contents = contents,
-                        showTipActions = showTipActions,
                         status = status,
                         date = date,
-                        openMessageChat = { openMessageChat(contents.reference) }
                     )
                 }
 
