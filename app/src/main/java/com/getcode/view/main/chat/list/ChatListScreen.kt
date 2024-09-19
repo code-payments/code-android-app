@@ -18,7 +18,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.ChatByUsernameScreen
 import com.getcode.navigation.screens.ConversationScreen
@@ -45,9 +47,11 @@ fun ChatListScreen(
         bottomBar = {
             Box(modifier = Modifier.fillMaxWidth()) {
                 CodeButton(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = CodeTheme.dimens.inset),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = CodeTheme.dimens.inset),
                     buttonState = ButtonState.Filled,
-                    text = "Start a New Chat"
+                    text = stringResource(R.string.action_startNewChat)
                 ) {
                     navigator.push(ChatByUsernameScreen)
                 }
@@ -79,7 +83,7 @@ fun ChatListScreen(
                             CodeCircularProgressIndicator()
                             Text(
                                 modifier = Modifier.fillMaxWidth(0.6f),
-                                text = "Loading your chats",
+                                text = stringResource(R.string.subtitle_loadingChats),
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -97,7 +101,7 @@ fun ChatListScreen(
                         ) {
                             Text(
                                 modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1),
-                                text = "You don't have any chats yet.",
+                                text = stringResource(R.string.subtitle_dontHaveChats),
                                 color = CodeTheme.colors.textSecondary,
                                 style = CodeTheme.typography.textMedium
                             )

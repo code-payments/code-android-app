@@ -209,7 +209,7 @@ fun BalanceContent(
                         CodeCircularProgressIndicator()
                         Text(
                             modifier = Modifier.fillMaxWidth(0.6f),
-                            text = "Loading your balance and transaction history",
+                            text = stringResource(R.string.subtitle_loadingBalanceAndTransactions),
                             textAlign = TextAlign.Center
                         )
                     }
