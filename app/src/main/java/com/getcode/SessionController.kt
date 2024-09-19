@@ -1317,8 +1317,11 @@ class SessionController @Inject constructor(
         val amount = bill.amount
         val request = bill.metadata.request
 
-        paymentRendezous?.let {
-            scannedRendezvous.remove(it.payload.rendezvous.publicKey)
+        // only remove the scanned nonce if rejected; completed payments are one time events
+        if (rejected) {
+            paymentRendezous?.let {
+                scannedRendezvous.remove(it.payload.rendezvous.publicKey)
+            }
         }
 
         analytics.requestHidden(amount = amount)
