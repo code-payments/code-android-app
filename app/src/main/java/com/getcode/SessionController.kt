@@ -1290,6 +1290,9 @@ class SessionController @Inject constructor(
                 resources.getString(R.string.error_description_payment_failed),
             )
 
+            // Allow the payment request to be scanned again upon a failure state hit
+            scannedRendezvous.remove(paymentConfirmation.payload.rendezvous.publicKey)
+
             ErrorUtils.handleError(error)
             state.update { uiModel ->
                 uiModel.copy(
