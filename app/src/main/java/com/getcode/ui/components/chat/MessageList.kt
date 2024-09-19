@@ -96,7 +96,6 @@ fun MessageList(
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
                         isNextSameMessage = next == item.chatMessageId,
-                        openMessageChat = { dispatch(MessageListEvent.OpenMessageChat(it)) }
                     )
                 }
 
