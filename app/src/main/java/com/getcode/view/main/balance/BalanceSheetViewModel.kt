@@ -9,7 +9,7 @@ import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
-import com.getcode.network.BalanceHistoryController
+import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.Kin
@@ -30,7 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
     balanceController: BalanceController,
-    historyController: BalanceHistoryController,
+    history: NotificationCollectionHistoryController,
     prefsRepository: PrefRepository,
     features: FeatureRepository,
     networkObserver: NetworkConnectivityListener,
@@ -102,7 +102,7 @@ class BalanceSheetViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        historyController.notifications
+        history.notifications
             .onEach {
                 if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
                     dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
@@ -112,7 +112,7 @@ class BalanceSheetViewModel @Inject constructor(
                 when {
                     chats == null -> null // await for confirmation it's empty
                     chats.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
-                    historyController.loadingMessages -> null // remain loading while fetching messages
+                    history.loadingCollections -> null // remain loading while fetching messages
                     else -> chats
                 }
             }
@@ -126,7 +126,7 @@ class BalanceSheetViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnOpened>()
             .filter { features.isEnabled(PrefsBool.CONVERSATIONS_ENABLED) }
-            .onEach { historyController.fetchChats(true) }
+            .onEach { history.fetch(true) }
             .launchIn(viewModelScope)
     }
 

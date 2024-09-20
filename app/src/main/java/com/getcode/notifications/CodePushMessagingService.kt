@@ -17,7 +17,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
 import com.getcode.network.BalanceController
-import com.getcode.network.BalanceHistoryController
+import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.AccountRepository
@@ -74,10 +74,10 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var balanceController: BalanceController
 
     @Inject
-    lateinit var historyController: BalanceHistoryController
+    lateinit var notificationHistory: NotificationCollectionHistoryController
 
     @Inject
-    lateinit var chatHistoryController: ChatHistoryController
+    lateinit var chatHistory: ChatHistoryController
 
     @Inject
     lateinit var tipController: TipController
@@ -112,8 +112,8 @@ class CodePushMessagingService : FirebaseMessagingService(),
 
                 when (type) {
                     NotificationType.ChatMessage -> {
-                        launch { historyController.fetchChats() }
-                        launch { chatHistoryController.fetchChats() }
+                        launch { notificationHistory.fetch() }
+                        launch { chatHistory.fetch() }
                         launch { balanceController.fetchBalanceSuspend() }
                     }
 

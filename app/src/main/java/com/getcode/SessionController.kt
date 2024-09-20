@@ -52,7 +52,7 @@ import com.getcode.models.PaymentValuation
 import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
-import com.getcode.network.BalanceHistoryController
+import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
@@ -193,7 +193,7 @@ class SessionController @Inject constructor(
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
-    private val historyController: BalanceHistoryController,
+    private val historyController: NotificationCollectionHistoryController,
     private val chatHistoryController: ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
@@ -373,7 +373,7 @@ class SessionController @Inject constructor(
 
                     showToast(amount = amount, isDeposit = true, initialDelay = 1.seconds)
 
-                    historyController.fetchChats()
+                    historyController.fetch()
                 },
                 onFailure = {
                     ErrorUtils.handleError(it)
@@ -634,7 +634,7 @@ class SessionController @Inject constructor(
                 }
             }
 
-            historyController.fetchChats()
+            historyController.fetch()
             balanceController.fetchBalanceSuspend()
 
             if (shown) {
@@ -1030,7 +1030,7 @@ class SessionController @Inject constructor(
         runCatching {
             paymentRepository.completeTipPayment(metadata, amount)
         }.onSuccess {
-            historyController.fetchChats()
+            historyController.fetch()
             state.update {
                 val billState = it.billState
                 val confirmation = it.billState.socialUserPaymentConfirmation ?: return@update it
@@ -1083,7 +1083,7 @@ class SessionController @Inject constructor(
         runCatching {
             paymentRepository.completeTipPayment(tipConfirmation.metadata, tipConfirmation.amount)
         }.onSuccess {
-            historyController.fetchChats()
+            historyController.fetch()
             state.update {
                 val billState = it.billState
                 val confirmation = it.billState.socialUserPaymentConfirmation ?: return@update it
@@ -1119,7 +1119,7 @@ class SessionController @Inject constructor(
         runCatching {
             paymentRepository.payForFriendship(user, amount)
         }.onSuccess {
-            historyController.fetchChats()
+            historyController.fetch()
 
             state.update { s ->
                 val billState = s.billState
@@ -1271,7 +1271,7 @@ class SessionController @Inject constructor(
                 paymentConfirmation.payload.rendezvous
             )
         }.onSuccess {
-            historyController.fetchChats()
+            historyController.fetch()
 
             state.update {
                 val billState = it.billState
@@ -1590,7 +1590,7 @@ class SessionController @Inject constructor(
                 )
             }
             .subscribe({
-                scope.launch { historyController.fetchChats() }
+                scope.launch { historyController.fetch() }
             }, {
                 scannedRendezvous.remove(payload.rendezvous.publicKey)
                 ErrorUtils.handleError(it)
@@ -1895,7 +1895,7 @@ class SessionController @Inject constructor(
                             analytics.cashLinkGrab(amount.kin, amount.rate.currency)
                             analytics.onBillReceived()
 
-                            historyController.fetchChats()
+                            historyController.fetch()
 
                             scope.launch(Dispatchers.Main) {
                                 BottomBarManager.clear()

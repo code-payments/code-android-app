@@ -3,21 +3,19 @@ package com.getcode.network.client
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.model.Conversation
-import com.getcode.model.chat.Chat
-import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
-import com.getcode.model.chat.ChatStreamEventUpdate
-import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.ConversationEntity
+import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.isV2
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.network.repository.base58
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import kotlinx.coroutines.CoroutineScope
 import timber.log.Timber
 import java.util.UUID
 
@@ -42,7 +40,7 @@ suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
     }
 }
 
-suspend fun Client.fetchV1Chats(owner: KeyPair): Result<List<Chat>> {
+suspend fun Client.fetchV1Chats(owner: KeyPair): Result<List<NotificationCollectionEntity>> {
     val v1Chats = chatServiceV1.fetchChats(owner)
         .onSuccess {
             Timber.d("v1 chats fetched=${it.count()}")
@@ -57,7 +55,7 @@ suspend fun Client.fetchV1Chats(owner: KeyPair): Result<List<Chat>> {
         }
 }
 
-suspend fun Client.fetchV2Chats(owner: KeyPair): Result<List<Chat>> {
+suspend fun Client.fetchV2Chats(owner: KeyPair): Result<List<ConversationEntity>> {
     val v2Chats = chatServiceV2.fetchChats(owner)
         .onSuccess {
             Timber.d("v2 chats fetched=${it.count()}")

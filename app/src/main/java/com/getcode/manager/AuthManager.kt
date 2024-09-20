@@ -13,7 +13,7 @@ import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.model.description
 import com.getcode.network.BalanceController
-import com.getcode.network.BalanceHistoryController
+import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
@@ -59,8 +59,8 @@ class AuthManager @Inject constructor(
     private val betaFlags: BetaFlagsRepository,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
-    private val historyController: BalanceHistoryController,
-    private val chatHistoryController: ChatHistoryController,
+    private val notificationCollectionHistory: NotificationCollectionHistoryController,
+    private val chatHistory: ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
     private val mnemonicManager: MnemonicManager,
@@ -290,8 +290,8 @@ class AuthManager @Inject constructor(
                 }
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
-                launch { historyController.fetchChats() }
-                launch { chatHistoryController.fetchChats() }
+                launch { notificationCollectionHistory.fetch() }
+                launch { chatHistory.fetch() }
             }
     }
 
@@ -310,7 +310,7 @@ class AuthManager @Inject constructor(
         analytics.logout()
         sessionManager.clear()
         Database.close()
-        historyController.reset()
+        notificationCollectionHistory.reset()
         inMemoryDao.clear()
         Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)

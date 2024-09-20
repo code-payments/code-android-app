@@ -52,3 +52,15 @@ typealias SetSubscriptionStateRequestV1 = com.codeinc.gen.chat.v1.ChatService.Se
 typealias SetSubscriptionStateRequestV2 = com.codeinc.gen.chat.v2.ChatService.SetSubscriptionStateRequest
 typealias SetSubscriptionStateResponseV1 = com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateResponse
 typealias SetSubscriptionStateResponseV2 = com.codeinc.gen.chat.v2.ChatService.SetSubscriptionStateResponse
+
+/**
+ * Code reference to a V1 [Chat] that serves as a collection of messages associated
+ * with a notification type (Tips, Cash Payments, Web Payments, etc.)
+ */
+typealias NotificationCollectionEntity = Chat
+
+/**
+ * Code reference to a V2 [Chat] that is a full end-to-end chat that suports
+ * peer-to-peer messaging between users.
+ */
+typealias ConversationEntity = Chat

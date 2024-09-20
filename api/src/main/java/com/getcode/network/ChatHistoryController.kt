@@ -1,6 +1,5 @@
 package com.getcode.network
 
-import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import com.getcode.db.AppDatabase
@@ -12,9 +11,9 @@ import com.getcode.mapper.ConversationMessageMapper
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
-import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.ConversationEntity
 import com.getcode.model.chat.Identity
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Title
@@ -22,7 +21,6 @@ import com.getcode.model.chat.isConversation
 import com.getcode.model.chat.selfId
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
-import com.getcode.network.client.fetchChats
 import com.getcode.network.client.fetchMessagesFor
 import com.getcode.network.client.fetchV2Chats
 import com.getcode.network.repository.encodeBase64
@@ -45,14 +43,14 @@ import javax.inject.Singleton
 @Singleton
 class ChatHistoryController @Inject constructor(
     private val client: Client,
-    private val tipController: TipController,
+    private val twitterUserController: TwitterUserController,
     private val conversationMapper: ConversationMapper,
     private val conversationMessageMapper: ConversationMessageMapper,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    private val chatEntries = MutableStateFlow<List<Chat>?>(null)
+    private val chatEntries = MutableStateFlow<List<ConversationEntity>?>(null)
 
-    val chats: StateFlow<List<Chat>?>
+    val chats: StateFlow<List<ConversationEntity>?>
         get() = chatEntries
             .map { it?.filter { entry -> entry.isConversation } }
             .stateIn(this, SharingStarted.Eagerly, emptyList())
@@ -69,7 +67,7 @@ class ChatHistoryController @Inject constructor(
         chatFlows.clear()
     }
 
-    fun updateChatWithMessages(chat: Chat, messages: List<ChatMessage>) {
+    fun updateChatWithMessages(chat: ConversationEntity, messages: List<ChatMessage>) {
         val updatedMessages = (chat.messages + messages).distinctBy { it.id }
         val updatedChat = chat.copy(messages = updatedMessages)
         val chats = chatEntries.value?.map {
@@ -90,10 +88,10 @@ class ChatHistoryController @Inject constructor(
 
     private fun owner(): KeyPair? = SessionManager.getKeyPair()
 
-    suspend fun fetchChats(update: Boolean = false) {
+    suspend fun fetch(update: Boolean = false) {
         if (loadingMessages) return
 
-        val updatedWithMessages = mutableListOf<Chat>()
+        val updatedWithMessages = mutableListOf<ConversationEntity>()
         val containers = fetchChatsWithoutMessages()
         trace(message = "Fetched ${containers.count()} chats", type = TraceType.Silent)
 
@@ -122,12 +120,12 @@ class ChatHistoryController @Inject constructor(
         chatEntries.value = updatedWithMessages.sortedByDescending { it.lastMessageMillis }
     }
 
-    fun addChat(chat: Chat) {
+    fun addChat(chat: ConversationEntity) {
         chatEntries.value = (chatEntries.value.orEmpty() + chat)
             .sortedByDescending { it.lastMessageMillis }
     }
 
-    fun findChat(predicate: (Chat) -> Boolean): Chat? {
+    fun findChat(predicate: (ConversationEntity) -> Boolean): ConversationEntity? {
         return chatEntries.value?.firstOrNull(predicate)
     }
 
@@ -144,7 +142,7 @@ class ChatHistoryController @Inject constructor(
         }
     }
 
-    private suspend fun fetchLatestMessageForChat(chat: Chat): Result<ChatMessage?> {
+    private suspend fun fetchLatestMessageForChat(chat: ConversationEntity): Result<ChatMessage?> {
         val encodedId = chat.id.toByteArray().encodeBase64()
         Timber.d("fetching last message for $encodedId")
         val owner = owner() ?: return Result.success(null)
@@ -169,7 +167,7 @@ class ChatHistoryController @Inject constructor(
             }.map { it.getOrNull(0) }
     }
 
-    private suspend fun fetchChatsWithoutMessages(): List<Chat> {
+    private suspend fun fetchChatsWithoutMessages(): List<ConversationEntity> {
         val owner = owner() ?: return emptyList()
         val result = client.fetchV2Chats(owner)
             .map { chats ->
@@ -201,14 +199,14 @@ class ChatHistoryController @Inject constructor(
         return result.getOrNull().orEmpty()
     }
 
-    private suspend fun fetchMemberImages(chat: Chat): List<ChatMember> {
+    private suspend fun fetchMemberImages(chat: ConversationEntity): List<ChatMember> {
         return chat.members
             .map { member ->
                 if (member.isSelf) return@map member
                 if (member.identity == null) return@map member
                 if (member.identity.imageUrl != null) return@map member
                 val metadata = runCatching {
-                    tipController.fetch(member.identity.username)
+                    twitterUserController.fetchUser(member.identity.username)
                 }.getOrNull() ?: return@map member
 
                 member.copy(

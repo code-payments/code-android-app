@@ -1,20 +1,17 @@
 package com.getcode.view.main.chat.list
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ConversationEntity
 import com.getcode.network.ConversationListController
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
-import com.getcode.view.main.balance.BalanceSheetViewModel.Event
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,12 +24,12 @@ class ChatListViewModel @Inject constructor(
 ) {
     data class State(
         val loading: Boolean = false,
-        val chats: List<Chat> = emptyList(),
+        val conversations: List<ConversationEntity> = emptyList(),
     )
 
     sealed interface Event {
         data class OnChatsLoading(val loading: Boolean) : Event
-        data class OnChatsUpdated(val chats: List<Chat>) : Event
+        data class OnChatsUpdated(val chats: List<ConversationEntity>) : Event
         data object OnOpened: Event
     }
 
@@ -43,12 +40,12 @@ class ChatListViewModel @Inject constructor(
                     dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
                 }
             }
-            .map { chats ->
+            .map { conversations ->
                 when {
-                    chats == null -> null // await for confirmation it's empty
-                    chats.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
-                    conversationsController.isLoadingChats -> null // remain loading while fetching messages
-                    else -> chats
+                    conversations == null -> null // await for confirmation it's empty
+                    conversations.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+                    conversationsController.isLoading -> null // remain loading while fetching messages
+                    else -> conversations
                 }
             }
             .filterNotNull()
@@ -69,7 +66,7 @@ class ChatListViewModel @Inject constructor(
             when (event) {
                 is Event.OnOpened -> { state -> state }
                 is Event.OnChatsLoading -> { state -> state.copy(loading = event.loading) }
-                is Event.OnChatsUpdated -> { state -> state.copy(chats = event.chats) }
+                is Event.OnChatsUpdated -> { state -> state.copy(conversations = event.chats) }
             }
         }
     }

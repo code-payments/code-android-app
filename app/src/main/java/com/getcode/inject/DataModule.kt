@@ -4,7 +4,6 @@ import com.getcode.mapper.ConversationMapper
 import com.getcode.mapper.ConversationMessageWithContentMapper
 import com.getcode.network.ConversationController
 import com.getcode.network.ConversationStreamController
-import com.getcode.network.BalanceHistoryController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange

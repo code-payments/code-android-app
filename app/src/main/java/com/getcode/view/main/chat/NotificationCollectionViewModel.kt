@@ -4,15 +4,15 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
-import com.getcode.model.chat.Chat
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
-import com.getcode.network.BalanceHistoryController
+import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.base58
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -39,11 +39,11 @@ import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class ChatViewModel @Inject constructor(
-    historyController: BalanceHistoryController,
+class NotificationCollectionViewModel @Inject constructor(
+    historyController: NotificationCollectionHistoryController,
     conversationController: ConversationController,
     betaFlags: BetaFlagsRepository,
-) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(
+) : BaseViewModel2<NotificationCollectionViewModel.State, NotificationCollectionViewModel.Event>(
     initialState = State(
         chatId = null,
         chat = null,
@@ -58,7 +58,7 @@ class ChatViewModel @Inject constructor(
 ) {
     data class State(
         val chatId: ID?,
-        val chat: Chat?,
+        val chat: NotificationCollectionEntity?,
         val title: Title?,
         val canMute: Boolean,
         val isMuted: Boolean,
@@ -72,7 +72,7 @@ class ChatViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnChatIdChanged(val id: ID?) : Event
-        data class OnChatChanged(val chat: Chat) : Event
+        data class OnChatChanged(val chat: NotificationCollectionEntity) : Event
         data object OnMuteToggled : Event
         data object OnSubscribeToggled : Event
         data class SetMuted(val muted: Boolean) : Event
@@ -145,7 +145,7 @@ class ChatViewModel @Inject constructor(
     val chatMessages = stateFlow
         .map { it.chatId }
         .filterNotNull()
-        .flatMapLatest { historyController.chatFlow(it) }
+        .flatMapLatest { historyController.collectionFlow(it) }
         .mapLatest { page ->
             page.flatMap { message ->
                 message.contents
