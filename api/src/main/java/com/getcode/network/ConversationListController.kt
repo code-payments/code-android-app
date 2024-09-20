@@ -8,12 +8,12 @@ import javax.inject.Inject
 class ConversationListController @Inject constructor(
     private val historyController: ChatHistoryController,
 ) {
-    val isLoadingChats: Boolean
+    val isLoading: Boolean
         get() = historyController.loadingMessages
 
     fun observeConversations() = historyController.chats
 
-    suspend fun fetchChats() = historyController.fetchChats(true)
+    suspend fun fetchChats() = historyController.fetch(true)
 }
 
 class ChatPagingSource(

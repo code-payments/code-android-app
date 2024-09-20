@@ -6,13 +6,14 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
+import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchMessagesFor
 
-class ChatMessagePagingSource(
+class CollectionPagingSource(
     private val client: Client,
     private val owner: KeyPair,
-    private val chat: Chat?,
+    private val collection: NotificationCollectionEntity?,
     private val onMessagesFetched: (List<ChatMessage>) -> Unit,
 ) : PagingSource<Cursor, ChatMessage>() {
     override suspend fun load(
@@ -20,8 +21,8 @@ class ChatMessagePagingSource(
     ): LoadResult<Cursor, ChatMessage> {
         val nextCursor = params.key
 
-        chat ?: return LoadResult.Error(Throwable("Chat not found"))
-        val response = client.fetchMessagesFor(owner, chat, cursor = nextCursor, limit = 20)
+        collection ?: return LoadResult.Error(Throwable("Chat not found"))
+        val response = client.fetchMessagesFor(owner, collection, cursor = nextCursor, limit = 20)
 
         response.exceptionOrNull()?.let {
             return LoadResult.Error(it)

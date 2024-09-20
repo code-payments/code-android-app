@@ -45,7 +45,7 @@ import com.getcode.model.chat.isConversation
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.BuyMoreKinModal
 import com.getcode.navigation.screens.ConversationScreen
-import com.getcode.navigation.screens.ChatScreen
+import com.getcode.navigation.screens.NotificationCollectionScreen
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.CodeTheme
@@ -66,7 +66,7 @@ fun BalanceScreen(
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
-    val session = LocalSession.currentOrThrow
+
     AnimatedContent(
         targetState = state.isBucketDebuggerVisible,
         label = "show/hide buckets",
@@ -85,13 +85,7 @@ fun BalanceScreen(
                 state = state,
                 dispatch = dispatch,
                 faqOpen = { navigator.push(FaqScreen) },
-                openChat = {
-                    if (it.isConversation) {
-                        navigator.push(ConversationScreen(chatId = it.id))
-                    } else {
-                        navigator.push(ChatScreen(it.id))
-                    }
-                },
+                openChat = { navigator.push(NotificationCollectionScreen(it.id)) },
                 buyMoreKin = { navigator.push(BuyMoreKinModal()) }
             )
         }

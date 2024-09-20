@@ -39,8 +39,8 @@ fun ChatListScreen(
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
 
-    val chatsEmpty by remember(state.chats) {
-        derivedStateOf { state.chats.isEmpty() }
+    val chatsEmpty by remember(state.conversations) {
+        derivedStateOf { state.conversations.isEmpty() }
     }
 
     CodeScaffold(
@@ -59,7 +59,7 @@ fun ChatListScreen(
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(state.chats, key = { it.id }) { chat ->
+            items(state.conversations, key = { it.id }) { chat ->
                 ChatNode(chat = chat, showAvatar = true) {
                     navigator.push(ConversationScreen(chatId = chat.id))
                 }
