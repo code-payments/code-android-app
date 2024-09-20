@@ -52,6 +52,7 @@ import com.getcode.models.PaymentValuation
 import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
+import com.getcode.network.BalanceHistoryController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
@@ -192,7 +193,8 @@ class SessionController @Inject constructor(
     private val receiveTransactionRepository: ReceiveTransactionRepository,
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
-    private val historyController: ChatHistoryController,
+    private val historyController: BalanceHistoryController,
+    private val chatHistoryController: ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
@@ -395,14 +397,14 @@ class SessionController @Inject constructor(
             }
         }.launchIn(scope)
 
-        historyController.notificationsUnreadCount
+        historyController.unreadCount
             .distinctUntilChanged()
             .map { it }
             .onEach { count ->
                 state.update { it.copy(notificationUnreadCount = count) }
             }.launchIn(scope)
 
-        historyController.chatUnreadCount
+        chatHistoryController.unreadCount
             .distinctUntilChanged()
             .map { it }
             .onEach { count ->

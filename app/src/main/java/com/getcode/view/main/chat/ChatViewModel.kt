@@ -12,7 +12,7 @@ import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
-import com.getcode.network.ChatHistoryController
+import com.getcode.network.BalanceHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.base58
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -40,7 +40,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    historyController: ChatHistoryController,
+    historyController: BalanceHistoryController,
     conversationController: ConversationController,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<ChatViewModel.State, ChatViewModel.Event>(

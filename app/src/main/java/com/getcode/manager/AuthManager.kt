@@ -12,8 +12,8 @@ import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.model.description
-import com.getcode.model.uuid
 import com.getcode.network.BalanceController
+import com.getcode.network.BalanceHistoryController
 import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
@@ -59,7 +59,8 @@ class AuthManager @Inject constructor(
     private val betaFlags: BetaFlagsRepository,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
-    private val historyController: ChatHistoryController,
+    private val historyController: BalanceHistoryController,
+    private val chatHistoryController: ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
     private val mnemonicManager: MnemonicManager,
@@ -290,6 +291,7 @@ class AuthManager @Inject constructor(
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { historyController.fetchChats() }
+                launch { chatHistoryController.fetchChats() }
             }
     }
 

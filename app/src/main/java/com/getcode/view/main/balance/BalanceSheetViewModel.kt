@@ -9,7 +9,7 @@ import com.getcode.model.Feature
 import com.getcode.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
-import com.getcode.network.ChatHistoryController
+import com.getcode.network.BalanceHistoryController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.Kin
@@ -30,7 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
     balanceController: BalanceController,
-    historyController: ChatHistoryController,
+    historyController: BalanceHistoryController,
     prefsRepository: PrefRepository,
     features: FeatureRepository,
     networkObserver: NetworkConnectivityListener,

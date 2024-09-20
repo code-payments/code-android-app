@@ -26,19 +26,8 @@ typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.
 data class ChatFetchExceptions(val errors: List<Throwable>): Throwable()
 
 suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
-    val v2Chats = chatServiceV2.fetchChats(owner)
-        .onSuccess {
-            Timber.d("v2 chats fetched=${it.count()}")
-        }.onFailure {
-            trace("Failed fetching chats from V2", type = TraceType.Error)
-        }
-
-    val v1Chats = chatServiceV1.fetchChats(owner)
-        .onSuccess {
-            Timber.d("v1 chats fetched=${it.count()}")
-        }.onFailure {
-            trace("Failed fetching chats from V1", type = TraceType.Error)
-        }
+    val v2Chats = fetchV2Chats(owner)
+    val v1Chats = fetchV1Chats(owner)
 
     if (v2Chats.isSuccess || v1Chats.isSuccess) {
         val chats = (v1Chats.getOrNull().orEmpty() + v2Chats.getOrNull().orEmpty())
@@ -52,6 +41,37 @@ suspend fun Client.fetchChats(owner: KeyPair): Result<List<Chat>> {
         return Result.failure(ChatFetchExceptions(errors))
     }
 }
+
+suspend fun Client.fetchV1Chats(owner: KeyPair): Result<List<Chat>> {
+    val v1Chats = chatServiceV1.fetchChats(owner)
+        .onSuccess {
+            Timber.d("v1 chats fetched=${it.count()}")
+        }.onFailure {
+            trace("Failed fetching chats from V1", type = TraceType.Error)
+        }
+
+    return v1Chats
+        .map { chats ->
+            chats.sortedByDescending { it.lastMessageMillis }
+            .distinctBy { it.id }
+        }
+}
+
+suspend fun Client.fetchV2Chats(owner: KeyPair): Result<List<Chat>> {
+    val v2Chats = chatServiceV2.fetchChats(owner)
+        .onSuccess {
+            Timber.d("v2 chats fetched=${it.count()}")
+        }.onFailure {
+            trace("Failed fetching chats from V2", type = TraceType.Error)
+        }
+
+    return v2Chats
+        .map { chats ->
+            chats.sortedByDescending { it.lastMessageMillis }
+                .distinctBy { it.id }
+        }
+}
+
 
 suspend fun Client.setMuted(owner: KeyPair, chat: Chat, muted: Boolean): Result<Boolean> {
     return if (chat.isV2) {
