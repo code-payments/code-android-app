@@ -28,7 +28,7 @@ kotlin {
 }
 
 android {
-    namespace = Android.namespace(gradle, suffix = ".service.models")
+    namespace = "${Android.codeNamespace}.service.models"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

@@ -1,17 +1,9 @@
 @file:Suppress("ConstPropertyName")
 
-import org.gradle.api.invocation.Gradle
-
 
 object Android {
     const val codeNamespace = "com.getcode"
-    private const val flipchat = "com.flipchat"
-
-    fun namespace(gradle: Gradle, suffix: String = ""): String {
-        val isCode = gradle.startParameter.taskNames.any { it.contains("code", ignoreCase = true) }
-        val main = if (isCode) codeNamespace else flipchat
-        return "$main$suffix"
-    }
+    const val flipchatNamespace = "com.flipchat"
 
     const val compileSdkVersion = 34
     const val minSdkVersion = 24

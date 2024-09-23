@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = Android.namespace(gradle, suffix = ".vendor.kin")
+    namespace = "${Android.codeNamespace}.vendor.kin"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
