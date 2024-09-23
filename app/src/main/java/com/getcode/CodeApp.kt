@@ -3,7 +3,6 @@ package com.getcode
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,9 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
-import cafe.adriel.voyager.core.screen.Screen
-import cafe.adriel.voyager.core.screen.ScreenKey
-import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.core.stack.StackEvent
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
@@ -205,20 +201,4 @@ private fun CrossfadeTransition(
         content = content,
         transition = { fadeIn() togetherWith fadeOut() }
     )
-}
-
-internal data object MainRoot : Screen {
-
-    override val key: ScreenKey = uniqueScreenKey
-
-    private fun readResolve(): Any = this
-
-    @Composable
-    override fun Content() {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(CodeTheme.colors.background)
-        )
-    }
 }
