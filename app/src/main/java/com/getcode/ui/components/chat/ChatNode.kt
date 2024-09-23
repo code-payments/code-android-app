@@ -20,9 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
-import com.getcode.LocalBetaFlags
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.isConversation
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
@@ -134,5 +134,11 @@ private val Chat.messagePreview: String
             filtered = contents
         }
 
-        return filtered.map { it.localizedText }.joinToString(" ")
+        val isFromSelf = newestMessage?.isFromSelf ?: false
+
+        // joinToString does expose a Composable scoped lambda
+        @Suppress("SimplifiableCallChain")
+        val messageBody = filtered.map { it.localizedText }.joinToString(" ")
+
+        return if (isFromSelf && isConversation) "You: $messageBody" else messageBody
     }
