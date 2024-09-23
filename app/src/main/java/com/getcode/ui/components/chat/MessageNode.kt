@@ -16,9 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.chat.Reference
-import com.getcode.theme.BrandDark
-import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.localizedText
 import kotlinx.datetime.Instant

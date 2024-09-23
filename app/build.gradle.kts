@@ -20,11 +20,14 @@ plugins {
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
 
 android {
-    namespace = Android.namespace
+    val _namespace = Android.namespace(gradle)
+    // static namespace
+    namespace = Android.codeNamespace
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
-        applicationId = Android.namespace
+        // compile-time packageName based on productFlavor
+        applicationId = _namespace
         versionCode = versioning.getVersionCode()
         versionName = Packaging.versionName
 
@@ -33,7 +36,8 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
-        resValue("string", "applicationId", Android.namespace)
+        // compile-time packageName based on productFlavor
+        resValue("string", "applicationId", _namespace)
 
         buildConfigField("String", "MIXPANEL_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "MIXPANEL_API_KEY")}\"")
         buildConfigField("String", "KADO_API_KEY", "\"${tryReadProperty(rootProject.rootDir, "KADO_API_KEY")}\"")
@@ -56,6 +60,18 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion = Versions.compose_compiler
+    }
+
+    flavorDimensions.add("default")
+
+    productFlavors {
+        create("code") {
+            dimension = "default"
+        }
+
+        create("flipchat") {
+            dimension = "default"
+        }
     }
 
     buildTypes {

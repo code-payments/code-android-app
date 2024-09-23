@@ -1,5 +1,3 @@
-import com.google.protobuf.gradle.protobuf
-
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
@@ -8,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.namespace}.api"
+    namespace = "${Android.codeNamespace}.api"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion

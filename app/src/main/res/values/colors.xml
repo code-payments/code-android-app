@@ -19,6 +19,7 @@
     <color name="code_brand">#0F0C1F</color>
     <color name="code_brand_light">#7379A0</color>
     <color name="code_brand_subtle">#565C86</color>
+    <color name="code_brand_accent">#443091</color>
 
     <color name="purple_dark">#0F0C1F</color>
     <color name="purple_light">#8785A9</color>
