@@ -7,7 +7,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import com.getcode.theme.BuildConfig
 import timber.log.Timber
 
-data class DeviceWindowSizeClass internal constructor(
+data class DeviceWindowSizeClass(
     val widthSizeClass: WindowSizeClass,
     val heightSizeClass: WindowSizeClass,
 )

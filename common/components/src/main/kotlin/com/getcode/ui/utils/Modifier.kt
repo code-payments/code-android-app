@@ -9,7 +9,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,7 +67,10 @@ fun Modifier.unboundedClickable(
         enabled = enabled,
         role = role,
         interactionSource = interaction,
-        indication = rememberRipple(bounded = false, radius = rippleRadius),
+        indication = ripple(
+            bounded = false,
+            radius = rippleRadius
+        )
     )
 }
 
@@ -233,7 +236,8 @@ fun Modifier.drawWithGradient(
             drawRect(
                 brush = Brush.verticalGradient(
                     startY = startY(height.toPx()),
-                    endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY } ?: height.toPx(),
+                    endY = endY(height.toPx()).takeIf { it != Float.POSITIVE_INFINITY }
+                        ?: height.toPx(),
                     colors = colors,
                 ),
                 blendMode = blendMode

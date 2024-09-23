@@ -3,7 +3,7 @@ import com.google.protobuf.gradle.protobuf
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
-    id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_ksp) version Versions.kotlin_ksp
     id(Plugins.kotlin_serialization)
 }
 
@@ -12,7 +12,6 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
@@ -58,8 +57,6 @@ android {
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"
         )
@@ -97,7 +94,7 @@ dependencies {
 
     implementation(Libs.androidx_paging_runtime)
 
-    kapt(Libs.androidx_room_compiler)
+    ksp(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
 
     api(Libs.sodium_bindings)

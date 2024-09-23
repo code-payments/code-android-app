@@ -4,7 +4,6 @@ object Android {
     const val namespace = "com.getcode"
     const val compileSdkVersion = 34
     const val minSdkVersion = 24
-    const val targetSdkVersion = 34
     const val testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     const val buildToolsVersion = "34.0.0"
 }
@@ -19,11 +18,12 @@ object Packaging {
 
 object Versions {
     const val java = "17"
-    const val kotlin = "1.9.23"
-    const val kotlinx_coroutines = "1.7.3"
-    const val kotlinx_serialization = "1.6.2"
-    const val kotlinx_datetime = "0.5.0"
-    const val android_gradle_build_tools = "8.4.0"
+    const val kotlin = "2.0.20"
+    const val kotlin_ksp = "2.0.20-1.0.25"
+    const val kotlinx_coroutines = "1.9.0"
+    const val kotlinx_serialization = "1.7.3"
+    const val kotlinx_datetime = "0.6.1"
+    const val android_gradle_build_tools = "8.6.0"
     const val google_services = "4.3.15"
 
     const val androidx_activity = "1.7.2"
@@ -36,22 +36,18 @@ object Versions {
     const val androidx_navigation = "2.7.4"
     const val androidx_browser = "1.4.0"
     const val androidx_paging = "3.2.1"
-    const val androidx_room = "2.6.1"
+    const val androidx_room = "2.7.0-alpha08"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2024.05.00"
+    const val compose = "2024.09.02"
 
-    // compose compiler is tied to [Versions.kotlin]
-    // See compatibility mapping here:
-    // https://developer.android.com/jetpack/androidx/releases/compose-compiler
-    const val compose_compiler = "1.5.11"
     const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
     const val compose_paging = "3.3.0-alpha02"
     const val compose_webview = "0.33.6"
 
-    const val hilt = "2.50"
+    const val hilt = "2.52"
     const val hilt_jetpack = "1.1.0-beta01"
     const val okhttp = "4.9.3"
     const val retrofit = "2.6.0"
@@ -121,11 +117,12 @@ object Plugins {
     const val android_application = "com.android.application"
     const val android_library = "com.android.library"
     const val androidx_navigation_safeargs = "androidx.navigation.safeargs.kotlin"
+    const val compose_compiler = "org.jetbrains.kotlin.plugin.compose"
     const val kotlin_android = "kotlin-android"
     const val kotlin_parcelize = "kotlin-parcelize"
-    const val kotlin_kapt = "kotlin-kapt"
+    const val kotlin_ksp = "com.google.devtools.ksp"
     const val kotlin_serialization = "org.jetbrains.kotlin.plugin.serialization"
-    const val hilt = "dagger.hilt.android.plugin"
+    const val hilt = "com.google.dagger.hilt.android"
     const val google_services = "com.google.gms.google-services"
     const val firebase_crashlytics = "com.google.firebase.crashlytics"
     const val firebase_perf = "com.google.firebase.firebase-perf"
@@ -298,5 +295,4 @@ object Libs {
     const val fingerprint_pro = "com.fingerprint.android:pro:2.4.0"
 
     const val haze = "dev.chrisbanes.haze:haze:0.7.3"
-    const val process_phoenix = "com.jakewharton:process-phoenix:3.0.0"
 }

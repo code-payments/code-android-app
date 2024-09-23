@@ -16,11 +16,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.LocalContentColor
+import androidx.compose.material.LocalRippleConfiguration
+import androidx.compose.material.RippleConfiguration
+import androidx.compose.material.RippleDefaults
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -109,7 +110,7 @@ private fun NumberButton(
     KeyBoardButton(modifier = modifier, text = number.toString(), onClick = onClick)
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterialApi::class)
 @Composable
 private fun KeyBoardButton(
     modifier: Modifier = Modifier,
@@ -127,7 +128,7 @@ private fun KeyBoardButton(
         if (!isSelected) Transparent else White10
     }
 
-    CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) {
+    CompositionLocalProvider(LocalRippleConfiguration provides rippleConfig) {
         Box(
             modifier = modifier
                 .background(bgColor)
@@ -184,18 +185,8 @@ private fun KeyBoardButton(
     }
 }
 
-private object RippleCustomTheme : RippleTheme {
-    @Composable
-    override fun defaultColor() =
-        RippleTheme.defaultRippleColor(
-            White,
-            lightTheme = true
-        )
-
-    @Composable
-    override fun rippleAlpha(): RippleAlpha =
-        RippleTheme.defaultRippleAlpha(
-            Brand,
-            lightTheme = true
-        )
-}
+@OptIn(ExperimentalMaterialApi::class)
+private val rippleConfig = RippleConfiguration(
+    color = RippleDefaults.rippleColor(White, true),
+    rippleAlpha = RippleDefaults.rippleAlpha(Brand, true)
+)

@@ -9,7 +9,6 @@ buildscript {
 
     dependencies {
         classpath(Classpath.android_gradle_build_tools)
-        classpath(Classpath.kotlin_hilt_plugin)
         classpath(Classpath.androidx_navigation_safeargs)
         classpath(Classpath.kotlin_gradle_plugin)
         classpath(Classpath.google_services)
@@ -23,6 +22,11 @@ buildscript {
     }
 }
 
+plugins {
+    id(Plugins.kotlin_ksp) version Versions.kotlin_ksp apply false
+    id(Plugins.hilt) version Versions.hilt apply false
+}
+
 allprojects {
     repositories {
         google()
@@ -33,6 +37,16 @@ allprojects {
     }
     configurations.all {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
+    }
+
+    subprojects {
+        subprojects.onEach { subproject ->
+            subproject.tasks.whenTaskAdded {
+                if (name.contains("kapt")) {
+                    enabled = false
+                }
+            }
+        }
     }
 }
 

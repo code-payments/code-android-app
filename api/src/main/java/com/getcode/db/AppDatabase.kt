@@ -2,6 +2,7 @@ package com.getcode.db
 
 import android.content.Context
 import androidx.room.AutoMigration
+import androidx.room.BuiltInTypeConverters
 import androidx.room.Database
 import androidx.room.DeleteColumn
 import androidx.room.DeleteTable

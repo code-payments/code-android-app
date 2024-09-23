@@ -7,7 +7,6 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         ndkVersion = "23.1.7779620"
         externalNativeBuild {

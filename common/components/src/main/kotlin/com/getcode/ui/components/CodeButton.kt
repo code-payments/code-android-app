@@ -1,12 +1,22 @@
 package com.getcode.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonColors
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ButtonDefaults.elevation
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
+import androidx.compose.material.LocalMinimumInteractiveComponentEnforcement
+import androidx.compose.material.LocalRippleConfiguration
+import androidx.compose.material.ProvideTextStyle
+import androidx.compose.material.RippleConfiguration
+import androidx.compose.material.RippleDefaults
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -23,7 +33,13 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.isUnspecified
-import com.getcode.theme.*
+import com.getcode.theme.BrandLight
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.Transparent
+import com.getcode.theme.White
+import com.getcode.theme.White10
+import com.getcode.theme.White20
+import com.getcode.theme.White50
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.plus
@@ -98,7 +114,7 @@ fun CodeButton(
 
     CompositionLocalProvider(
         LocalMinimumInteractiveComponentEnforcement provides false,
-        LocalRippleTheme provides ripple
+        LocalRippleConfiguration provides ripple,
     ) {
 
         var size by remember {
@@ -150,31 +166,22 @@ fun CodeButton(
     }
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun getRipple(
     buttonState: ButtonState,
     contentColor: Color
-): RippleTheme {
+): RippleConfiguration {
     return remember(buttonState, contentColor) {
-        object : RippleTheme {
-            @Composable
-            override fun defaultColor(): Color {
-                return when (buttonState) {
-                    ButtonState.Bordered -> White
-                    ButtonState.Filled -> BrandLight
-                    ButtonState.Filled10 -> White50
-                    ButtonState.Subtle -> White
-                }
-            }
-
-            @Composable
-            override fun rippleAlpha(): RippleAlpha {
-                return RippleTheme.defaultRippleAlpha(
-                    contentColor,
-                    lightTheme = true
-                )
-            }
-        }
+        RippleConfiguration(
+            color = when (buttonState) {
+                ButtonState.Bordered -> White
+                ButtonState.Filled -> BrandLight
+                ButtonState.Filled10 -> White50
+                ButtonState.Subtle -> White
+            },
+            rippleAlpha = RippleDefaults.rippleAlpha(contentColor, true)
+        )
     }
 }
 

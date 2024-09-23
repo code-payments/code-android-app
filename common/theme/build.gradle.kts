@@ -1,6 +1,7 @@
 plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
+    id(Plugins.compose_compiler) version Versions.kotlin
 }
 
 android {
@@ -8,7 +9,6 @@ android {
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
     }
@@ -16,8 +16,6 @@ android {
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"
         )
@@ -41,10 +39,6 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
     }
 }
 

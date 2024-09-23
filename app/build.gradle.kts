@@ -1,11 +1,10 @@
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
-import org.jetbrains.kotlin.cli.common.toBooleanLenient
 
 plugins {
     id(Plugins.android_application)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_parcelize)
-    id(Plugins.kotlin_kapt)
+    id(Plugins.kotlin_ksp) version Versions.kotlin_ksp
     id(Plugins.kotlin_serialization)
     id(Plugins.androidx_navigation_safeargs)
     id(Plugins.hilt)
@@ -15,6 +14,7 @@ plugins {
     id(Plugins.bugsnag)
     id(Plugins.secrets_gradle_plugin)
     id(Plugins.versioning_gradle_plugin)
+    id(Plugins.compose_compiler) version Versions.kotlin
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
@@ -29,7 +29,6 @@ android {
         versionName = Packaging.versionName
 
         minSdk = Android.minSdkVersion
-        targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
@@ -54,10 +53,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
-    }
-
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
@@ -68,7 +63,7 @@ android {
             applicationIdSuffix = ".dev"
             signingConfig = signingConfigs.getByName("contributors")
 
-            val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanLenient() ?: false
+            val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanStrictOrNull() ?: false
             isMinifyEnabled = debugMinifyEnabled
             isShrinkResources = debugMinifyEnabled
 
@@ -80,7 +75,7 @@ android {
             }
 
             configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanLenient() ?: false
+                mappingFileUploadEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_CRASHLYTICS_UPLOAD", "false").toBooleanStrictOrNull() ?: false
             }
         }
     }
@@ -100,8 +95,6 @@ android {
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlin.RequiresOptIn"
         )
     }
@@ -138,14 +131,14 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
-    implementation("androidx.webkit:webkit:1.11.0")
-    kapt(Libs.hilt_android_compiler)
-    kapt(Libs.hilt_compiler)
+    implementation("androidx.webkit:webkit:1.12.0")
+    ksp(Libs.hilt_android_compiler)
+    ksp(Libs.hilt_compiler)
     androidTestImplementation(Libs.hilt)
     androidTestImplementation(Libs.hilt_android_test)
-    kaptAndroidTest(Libs.hilt_android_compiler)
+    kspAndroidTest(Libs.hilt_android_compiler)
     testImplementation(Libs.hilt_android_test)
-    kaptTest(Libs.hilt_android_compiler)
+    kspTest(Libs.hilt_android_compiler)
 
     androidTestImplementation("io.mockk:mockk:1.13.12")
 
@@ -220,7 +213,7 @@ dependencies {
     implementation(Libs.androidx_room_ktx)
     implementation(Libs.androidx_room_rxjava3)
     implementation(Libs.androidx_room_paging)
-    kapt(Libs.androidx_room_compiler)
+    ksp(Libs.androidx_room_compiler)
 
     implementation(Libs.markwon_core)
     implementation(Libs.markwon_linkify)
