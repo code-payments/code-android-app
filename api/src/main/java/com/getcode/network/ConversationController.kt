@@ -9,6 +9,7 @@ import com.getcode.db.Database
 import com.getcode.manager.SessionManager
 import com.getcode.mapper.ConversationMapper
 import com.getcode.mapper.ConversationMessageWithContentMapper
+import com.getcode.mapper.PointerStatus
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationIntentIdReference
 import com.getcode.model.ConversationMessageWithContent
@@ -20,14 +21,17 @@ import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Platform
+import com.getcode.model.chat.Pointer
 import com.getcode.model.chat.isConversation
 import com.getcode.model.chat.selfId
 import com.getcode.model.description
+import com.getcode.model.uuid
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.bytes
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
@@ -42,11 +46,20 @@ interface ConversationController {
     fun observeConversation(id: ID): Flow<ConversationWithLastPointers?>
     suspend fun createConversation(identifier: ID, with: SocialUser): Conversation
     suspend fun getConversation(identifier: ID): ConversationWithLastPointers?
-    suspend fun getOrCreateConversation(identifier: ID, with: SocialUser): ConversationWithLastPointers
+    suspend fun getOrCreateConversation(
+        identifier: ID,
+        with: SocialUser
+    ): ConversationWithLastPointers
+
     fun openChatStream(scope: CoroutineScope, conversation: Conversation)
     fun closeChatStream()
     suspend fun hasInteracted(messageId: ID): Boolean
-    suspend fun revealIdentity(conversationId: ID, platform: Platform, username: String): Result<Unit>
+    suspend fun revealIdentity(
+        conversationId: ID,
+        platform: Platform,
+        username: String
+    ): Result<Unit>
+
     suspend fun resetUnreadCount(conversationId: ID)
     suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus)
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID>
@@ -105,7 +118,10 @@ class ConversationStreamController @Inject constructor(
         return conversation
     }
 
-    override suspend fun getOrCreateConversation(identifier: ID, with: SocialUser): ConversationWithLastPointers {
+    override suspend fun getOrCreateConversation(
+        identifier: ID,
+        with: SocialUser
+    ): ConversationWithLastPointers {
         var conversationByChatId = getConversation(identifier)
         if (conversationByChatId != null) {
             return conversationByChatId
@@ -132,6 +148,27 @@ class ConversationStreamController @Inject constructor(
         val chat = historyController.findChat { it.id == conversation.id }
             ?: throw IllegalArgumentException("Unable to resolve chat for this conversation")
         val memberId = chat.selfId ?: throw IllegalStateException("Not a member of this chat")
+
+        scope.launch(Dispatchers.IO) {
+            savePointers(conversationId = conversation.id,
+                pointers = chat.members.flatMap { member ->
+                    member.pointers.mapNotNull { ptr ->
+                        val messageId = ptr.messageId ?: return@mapNotNull null
+                        val uuid = ptr.memberId?.uuid ?: return@mapNotNull null
+                        PointerStatus(
+                            memberId = uuid,
+                            messageId = messageId,
+                            messageStatus = when (ptr) {
+                                is Pointer.Delivered -> MessageStatus.Delivered
+                                is Pointer.Read -> MessageStatus.Read
+                                is Pointer.Sent -> MessageStatus.Sent
+                                is Pointer.Unknown -> MessageStatus.Unknown
+                            }
+                        )
+                    }
+                }
+            )
+        }
 
         stream = chatService.openChatStream(
             scope = scope,
@@ -177,21 +214,15 @@ class ConversationStreamController @Inject constructor(
                     }
                 }
 
-                println("chat messages: ${messages.count()}, pointers=${pointers.count()}, isTyping=$isTyping")
+                trace(
+                    tag = "ConversationStream",
+                    message = "chat messages: ${messages.count()}, pointers=${pointers.count()}, isTyping=$isTyping",
+                    type = TraceType.Silent
+                )
 
                 scope.launch(Dispatchers.IO) {
                     db.conversationMessageDao().upsertMessagesWithContent(messagesWithContent)
-                    pointers
-                        // we only care about pointers of others
-                        .filter { it.memberId != chat.selfId }
-                        .onEach {
-                        println("inserting $it")
-                        db.conversationPointersDao().insert(
-                            conversationId = conversation.id,
-                            messageId = it.messageId,
-                            status = it.messageStatus
-                        )
-                    }
+                    savePointers(conversationId = conversation.id, pointers = pointers)
                 }
             } else {
                 result.exceptionOrNull()?.let {
@@ -199,6 +230,20 @@ class ConversationStreamController @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun savePointers(
+        conversationId: ID,
+        pointers: List<PointerStatus>
+    ) {
+        pointers
+            .onEach {
+                db.conversationPointersDao().insert(
+                    conversationId = conversationId,
+                    messageId = it.messageId,
+                    status = it.messageStatus
+                )
+            }
     }
 
     override fun closeChatStream() {
@@ -210,8 +255,13 @@ class ConversationStreamController @Inject constructor(
         return false
     }
 
-    override suspend fun revealIdentity(conversationId: ID, platform: Platform, username: String): Result<Unit> {
-        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return Result.failure(Throwable("owner not found"))
+    override suspend fun revealIdentity(
+        conversationId: ID,
+        platform: Platform,
+        username: String
+    ): Result<Unit> {
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair
+            ?: return Result.failure(Throwable("owner not found"))
         val chat = historyController.findChat { it.id == conversationId }
             ?: return Result.failure(Throwable("Chat not found"))
 
@@ -229,7 +279,11 @@ class ConversationStreamController @Inject constructor(
         historyController.resetUnreadCount(chat.id)
     }
 
-    override suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus) {
+    override suspend fun advanceReadPointer(
+        conversationId: ID,
+        messageId: ID,
+        status: MessageStatus
+    ) {
         val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return
 
         val chat = historyController.findChat { it.id == conversationId } ?: return
@@ -243,7 +297,8 @@ class ConversationStreamController @Inject constructor(
     }
 
     override suspend fun sendMessage(conversationId: ID, message: String): Result<ID> {
-        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return Result.failure(Throwable("Owner not found"))
+        val owner = SessionManager.getOrganizer()?.ownerKeyPair
+            ?: return Result.failure(Throwable("Owner not found"))
 
         val chat = historyController.findChat { it.id == conversationId }
             ?: return Result.failure(Throwable("Chat not found"))
@@ -307,7 +362,7 @@ class ConversationStreamController @Inject constructor(
             println("on typing stopped reported")
         }.onFailure {
             if (BuildConfig.DEBUG) {
-            it.printStackTrace()
+                it.printStackTrace()
             }
         }
     }
