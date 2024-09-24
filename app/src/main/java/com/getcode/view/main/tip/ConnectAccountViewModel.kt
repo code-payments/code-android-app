@@ -5,7 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.analytics.AnalyticsService
+import com.getcode.ed25519.Ed25519
+import com.getcode.manager.MnemonicManager
+import com.getcode.manager.SessionManager
+import com.getcode.manager.TopBarManager
+import com.getcode.network.IdentityManager
 import com.getcode.network.TipController
+import com.getcode.network.repository.encodeBase64
 import com.getcode.util.IntentUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -18,11 +24,12 @@ import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 
 @HiltViewModel
-class TipConnectViewModel @Inject constructor(
+class ConnectAccountViewModel @Inject constructor(
     resources: ResourceHelper,
     tipController: TipController,
     analytics: AnalyticsService,
-) : BaseViewModel2<TipConnectViewModel.State, TipConnectViewModel.Event>(
+    identityManager: IdentityManager,
+) : BaseViewModel2<ConnectAccountViewModel.State, ConnectAccountViewModel.Event>(
     initialState = State(null, ""),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -44,9 +51,10 @@ class TipConnectViewModel @Inject constructor(
             .filterIsInstance<Event.OnReasonChanged>()
             .map { it.reason }
             .mapNotNull {
-                val verificationMessage = tipController.generateTipVerification() ?: return@mapNotNull null
                 when (it) {
                     IdentityConnectionReason.TipCard -> {
+                        val verificationMessage = identityManager.generateVerificationTweet(resources.getString(R.string.account_name_link)) ?: return@mapNotNull null
+
                         """
                             ${resources.getString(R.string.subtitle_connectXTweetText)}
                             
@@ -55,8 +63,19 @@ class TipConnectViewModel @Inject constructor(
                     }
 
                     IdentityConnectionReason.IdentityReveal -> {
+                        val verificationMessage = identityManager.generateVerificationTweet(resources.getString(R.string.account_name_link)) ?: return@mapNotNull null
                         """
                             ${resources.getString(R.string.subtitle_linkingTwitterToRevealIdentity)}
+                            
+                            $verificationMessage
+                        """.trimIndent()
+                    }
+
+                    IdentityConnectionReason.Login -> {
+                        val verificationMessage = identityManager.generateVerificationTweet(resources.getString(R.string.account_name_link)) ?: return@mapNotNull null
+
+                        """
+                            ${resources.getString(R.string.subtitle_linkingTwitterToLogin, resources.getString(R.string.handle))}
                             
                             $verificationMessage
                         """.trimIndent()

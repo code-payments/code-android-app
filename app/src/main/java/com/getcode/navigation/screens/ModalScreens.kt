@@ -14,7 +14,6 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.analytics.Action
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -44,7 +43,7 @@ import com.getcode.view.main.getKin.KadoWebScreen
 import com.getcode.view.main.tip.ConnectAccountScreen
 import com.getcode.view.main.tip.EnterTipScreen
 import com.getcode.view.main.tip.IdentityConnectionReason
-import com.getcode.view.main.tip.TipConnectViewModel
+import com.getcode.view.main.tip.ConnectAccountViewModel
 import com.kevinnzou.web.rememberWebViewNavigator
 import com.kevinnzou.web.rememberWebViewState
 import kotlinx.parcelize.IgnoredOnParcel
@@ -458,15 +457,16 @@ data class EnterTipModal(val isInChat: Boolean = false) : MainGraph, ModalRoot {
 
 @Parcelize
 data class ConnectAccount(
-    private val reason: IdentityConnectionReason = IdentityConnectionReason.TipCard,
+    val reason: IdentityConnectionReason = IdentityConnectionReason.TipCard,
 ) : MainGraph, ModalContent {
+
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-        val viewModel = getViewModel<TipConnectViewModel>()
+        val viewModel = getViewModel<ConnectAccountViewModel>()
         when (reason) {
             IdentityConnectionReason.TipCard -> {
                 ModalContainer(
@@ -494,13 +494,17 @@ data class ConnectAccount(
                     ConnectAccountScreen(viewModel)
                 }
             }
+
+            IdentityConnectionReason.Login -> {
+                ConnectAccountScreen(viewModel)
+            }
         }
 
         LaunchedEffect(viewModel, reason) {
-            viewModel.dispatchEvent(TipConnectViewModel.Event.OnReasonChanged(reason))
+            viewModel.dispatchEvent(ConnectAccountViewModel.Event.OnReasonChanged(reason))
         }
 
-        if (reason == IdentityConnectionReason.TipCard) {
+        if (reason == IdentityConnectionReason.TipCard || reason == IdentityConnectionReason.Login) {
             AnalyticsScreenWatcher(action = Action.OpenConnectAccount)
         }
     }

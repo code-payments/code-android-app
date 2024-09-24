@@ -13,6 +13,7 @@ import androidx.core.net.toUri
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.domain.CashLinkManager
+import com.getcode.ed25519.Ed25519
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.GiftCardManager
@@ -77,6 +78,7 @@ import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
 import com.getcode.network.repository.StatusRepository
+import com.getcode.network.repository.encodeBase64
 import com.getcode.network.repository.hexEncodedString
 import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
@@ -210,6 +212,7 @@ class SessionController @Inject constructor(
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
     private val codeAnalyzer: KikCodeAnalyzer,
+    private val sessionManager: SessionManager,
     appSettings: AppSettingsRepository,
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
@@ -451,6 +454,13 @@ class SessionController @Inject constructor(
                         }
                     }
                 }
+        }
+    }
+
+    fun setupAsNew() {
+        if (SessionManager.entropyB64 == null) {
+            val seedB64 = Ed25519.createSeed16().encodeBase64()
+            sessionManager.set(seedB64)
         }
     }
 

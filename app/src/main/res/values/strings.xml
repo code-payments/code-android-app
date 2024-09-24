@@ -62,4 +62,9 @@
     <string name="subtitle_loadingChats">Loading your chats</string>
     <string name="action_startNewChat">Start a New Chat</string>
     <string name="subtitle_dontHaveChats">You don\'t have any chats yet.</string>
+
+    <string name="title_connectYourX">Connect Your X</string>
+    <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>
+    <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>
+    <string name="action_messageToConnect">Message %1$s to Connect</string>
 </resources>

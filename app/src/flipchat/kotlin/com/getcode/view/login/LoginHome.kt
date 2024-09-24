@@ -62,7 +62,7 @@ fun LoginHome(
                 modifier = Modifier
             )
             Text(
-                text = "Flipchat",
+                text = stringResource(R.string.app_name_without_variant),
                 style = CodeTheme.typography.displayMedium,
                 color = White
             )

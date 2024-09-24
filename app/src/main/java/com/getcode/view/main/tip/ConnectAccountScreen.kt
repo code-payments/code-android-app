@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -28,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
@@ -48,11 +50,13 @@ import kotlinx.coroutines.flow.onEach
 enum class IdentityConnectionReason {
     TipCard,
     IdentityReveal,
+    Login,
 }
 
 @Composable
 fun ConnectAccountScreen(
-    viewModel: TipConnectViewModel = hiltViewModel()
+    viewModel: ConnectAccountViewModel = hiltViewModel(),
+    titleAlignment: TextAlign = TextAlign.Start,
 ) {
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
@@ -60,11 +64,12 @@ fun ConnectAccountScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
-            .filterIsInstance<TipConnectViewModel.Event.OpenX>()
+            .filterIsInstance<ConnectAccountViewModel.Event.OpenX>()
             .onEach {
                 composeTweet(context, it.intent)
                 delay(1_000)
                 when (state.reason) {
+                    IdentityConnectionReason.Login,
                     IdentityConnectionReason.IdentityReveal -> navigator.pop()
                     else -> navigator.hide()
                 }
@@ -77,29 +82,39 @@ fun ConnectAccountScreen(
             .padding(CodeTheme.dimens.grid.x4),
         verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
     ) {
-        RequestContent(state = state) {
-            viewModel.dispatchEvent(TipConnectViewModel.Event.PostToX)
+        RequestContent(state = state, titleAlignment = titleAlignment) {
+            viewModel.dispatchEvent(ConnectAccountViewModel.Event.PostToX)
         }
     }
 }
 
 @Composable
-private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick: () -> Unit) {
+private fun ColumnScope.RequestContent(
+    state: ConnectAccountViewModel.State,
+    titleAlignment: TextAlign = TextAlign.Start,
+    onClick: () -> Unit
+) {
     Text(
+        modifier = Modifier.fillMaxWidth(),
         text = when(state.reason) {
             IdentityConnectionReason.TipCard -> stringResource(id = R.string.title_receiveTips)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.title_connectAccount)
+            IdentityConnectionReason.Login -> stringResource(id = R.string.title_connectYourX)
             null -> ""
         },
-        style = CodeTheme.typography.displayMedium.bolded()
+        style = CodeTheme.typography.displayMedium.bolded(),
+        textAlign = titleAlignment,
     )
     Text(
+        modifier = Modifier.fillMaxWidth(),
         text = when(state.reason) {
             IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardXDescription)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.subtitle_connectXAccount)
+            IdentityConnectionReason.Login -> stringResource(id = R.string.subtitle_identityInApp, stringResource(R.string.app_name_without_variant))
             null -> ""
         },
-        style = CodeTheme.typography.textSmall
+        style = CodeTheme.typography.textSmall,
+        textAlign = titleAlignment,
     )
     Spacer(modifier = Modifier.weight(0.3f))
     TweetPreview(modifier = Modifier.fillMaxWidth(), xMessage = state.xMessage)
@@ -115,9 +130,7 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
                 contentDescription = null
             )
             Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
-            Text(
-                text = stringResource(R.string.action_messageGetCode),
-            )
+            Text(stringResource(R.string.action_messageToConnect, stringResource(R.string.handle)),)
         }
     )
 }
