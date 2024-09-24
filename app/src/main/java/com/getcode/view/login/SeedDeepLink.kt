@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.getcode.AppHomeScreen
 import com.getcode.R
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
@@ -42,7 +43,7 @@ fun SeedDeepLink(
     val authState by SessionManager.authState.collectAsState()
 
     fun navigateMain() {
-        navigator.replaceAll(ScanScreen())
+        navigator.replaceAll(AppHomeScreen())
     }
     fun navigateLogin() = navigator.replace(LoginScreen())
 

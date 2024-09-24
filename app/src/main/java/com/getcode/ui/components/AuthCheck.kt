@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.screen.Screen
+import com.getcode.AppHomeScreen
 import com.getcode.LocalDeeplinks
 import com.getcode.R
 import com.getcode.manager.BottomBarManager
@@ -19,6 +20,7 @@ import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
+import com.getcode.navigation.screens.MainScreen
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.DeeplinkResult
 import com.getcode.ui.utils.getActivity
@@ -138,7 +140,7 @@ fun AuthCheck(
                 if (authenticated) {
                     if (!deeplinkRouted) {
                         trace("Navigating to home")
-                        onNavigate(listOf(ScanScreen()))
+                        onNavigate(listOf(AppHomeScreen()))
                     }
                 } else {
                     tipsEngine?.invalidateAllTips()
@@ -160,7 +162,7 @@ private fun Flow<DeeplinkFlowState>.mapSeedToHome(): Flow<DeeplinkFlowState> =
             trace("mapping entropy to home screen")
             // send the user to home screen
             val entropy = (screens.first() as? LoginScreen)?.seed
-            val updatedData = data.copy(stack = listOf(ScanScreen(seed = entropy)))
+            val updatedData = data.copy(stack = listOf(AppHomeScreen(seed = entropy)))
             updatedData to auth
         } else {
             data to auth
@@ -175,7 +177,7 @@ private fun Flow<DeeplinkResult>.showLogoutConfirmationIfNeeded(
     onCancel: () -> Unit
 ): Flow<DeeplinkResult> = onEach { (type, screens) ->
     if (type is DeeplinkHandler.Type.Login) {
-        val entropy = (screens.first() as? ScanScreen)?.seed
+        val entropy = (screens.first() as? MainScreen)?.seed
         if (entropy != null) {
             trace("showing logout confirm")
             showLogoutMessage(

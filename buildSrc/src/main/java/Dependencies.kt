@@ -230,6 +230,8 @@ object Libs {
         "cafe.adriel.voyager:voyager-hilt:${Versions.voyager}"
     const val compose_voyager_navigation_bottomsheet =
         "cafe.adriel.voyager:voyager-bottom-sheet-navigator:${Versions.voyager}"
+    const val compose_voyager_navigation_tabs =
+        "cafe.adriel.voyager:voyager-tab-navigator:${Versions.voyager}"
     const val compose_voyager_navigation_transitions =
         "cafe.adriel.voyager:voyager-transitions:${Versions.voyager}"
     const val compose_webview = "io.github.kevinnzou:compose-webview:${Versions.compose_webview}"

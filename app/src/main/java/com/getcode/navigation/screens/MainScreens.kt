@@ -50,11 +50,11 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class ScanScreen(
-    val seed: String? = null,
+    override val seed: String? = null,
     val cashLink: String? = null,
     @IgnoredOnParcel
     val request: DeepLinkRequest? = null,
-) : AppScreen(), MainGraph {
+) : AppScreen(), MainScreen, MainGraph {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 

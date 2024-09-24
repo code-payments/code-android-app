@@ -58,12 +58,13 @@ data class LoginScreen(val seed: String? = null) : LoginGraph {
         } else {
             // establish a new entropy identity for create account flow
             // login will replace it in [SessionManager].
-            session?.setupAsNew()
+            // session?.setupAsNew()
 
             LoginHome(
                 createAccount = {
                     analytics.action(Action.CreateAccount)
-                    navigator.push(CreateAccountWithX)
+//                    navigator.push(CreateAccountWithX)
+                    navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
                 },
                 login = {
                     navigator.push(AccessKeyLoginScreen())

@@ -25,3 +25,5 @@ internal data object MainRoot : Screen {
         )
     }
 }
+
+typealias AppHomeScreen = ScanScreen

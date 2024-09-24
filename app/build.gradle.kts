@@ -184,6 +184,7 @@ dependencies {
     implementation(Libs.compose_voyager_navigation)
     implementation(Libs.compose_voyager_navigation_transitions)
     implementation(Libs.compose_voyager_navigation_bottomsheet)
+    implementation(Libs.compose_voyager_navigation_tabs)
     implementation(Libs.compose_voyager_navigation_hilt)
     implementation(Libs.compose_webview)
 

@@ -3,6 +3,7 @@ package com.getcode.view.login
 import android.Manifest
 import android.annotation.SuppressLint
 import android.os.Build
+import com.getcode.AppHomeScreen
 import com.getcode.analytics.Action
 import com.getcode.analytics.ActionSource
 import com.getcode.analytics.AnalyticsService
@@ -84,7 +85,7 @@ class AccessKeyViewModel @Inject constructor(
         } else {
             if (Build.VERSION.SDK_INT < 33) {
                 analytics.action(Action.CompletedOnboarding)
-                navigator.replaceAll(ScanScreen())
+                navigator.replaceAll(AppHomeScreen())
             } else {
                 val notificationsPermissionDenied = permissions.isDenied(
                     Manifest.permission.POST_NOTIFICATIONS
@@ -94,7 +95,7 @@ class AccessKeyViewModel @Inject constructor(
                     navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, true))
                 } else {
                     analytics.action(Action.CompletedOnboarding)
-                    navigator.replaceAll(ScanScreen())
+                    navigator.replaceAll(AppHomeScreen())
                 }
             }
         }

@@ -9,12 +9,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.getcode.AppHomeScreen
 import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.theme.CodeTheme
@@ -33,7 +33,7 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current, from
                 if (fromOnboarding) {
                     analytics.action(Action.CompletedOnboarding)
                 }
-                navigator.replaceAll(ScanScreen())
+                navigator.replaceAll(AppHomeScreen())
             } else {
                 navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications, fromOnboarding))
             }

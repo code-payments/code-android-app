@@ -9,6 +9,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.getcode.AppHomeScreen
 import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.analytics.Action
@@ -27,7 +28,7 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             if (fromOnboarding) {
                 analytics.action(Action.CompletedOnboarding)
             }
-            navigator.replaceAll(ScanScreen())
+            navigator.replaceAll(AppHomeScreen())
         }
     }
     val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })

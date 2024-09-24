@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.getcode.navigation.screens.TabbedHomeScreen
 import com.getcode.theme.CodeTheme
 
 internal data object MainRoot : Screen {
@@ -25,3 +26,7 @@ internal data object MainRoot : Screen {
         )
     }
 }
+
+typealias AppHomeScreen = TabbedHomeScreen
+
+

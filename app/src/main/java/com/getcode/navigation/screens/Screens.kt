@@ -5,6 +5,10 @@ import cafe.adriel.voyager.core.screen.Screen
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber
 
+interface MainScreen {
+    val seed: String?
+}
+
 sealed interface NamedScreen {
 
     val name: String?
