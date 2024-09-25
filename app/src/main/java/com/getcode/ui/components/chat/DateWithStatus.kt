@@ -3,7 +3,6 @@ package com.getcode.ui.components.chat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -20,8 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.getcode.R
 import com.getcode.model.MessageStatus
-import com.getcode.theme.BrandLight
-import com.getcode.theme.ChatOutgoing
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatTimeRelatively
 import kotlinx.datetime.Clock
