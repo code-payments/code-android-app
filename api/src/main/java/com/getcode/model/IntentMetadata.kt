@@ -52,7 +52,7 @@ sealed class IntentMetadata {
             exchangeRate: Double,
             isChat: Boolean,
         ): PaymentMetadata? {
-            val currency = CurrencyCode.tryValueOf(currencyString.uppercase())
+            val currency = com.getcode.model.CurrencyCode.tryValueOf(currencyString.uppercase())
                 ?: return null
 
             return PaymentMetadata(

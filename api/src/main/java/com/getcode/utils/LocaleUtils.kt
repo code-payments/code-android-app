@@ -2,7 +2,6 @@ package com.getcode.utils
 
 import android.content.Context
 import android.telephony.TelephonyManager
-import com.getcode.model.CurrencyCode
 import com.getcode.model.RegionCode
 import java.util.*
 
@@ -21,17 +20,17 @@ object LocaleUtils {
         val localCountry = context.resources.configuration.locale
 
         val networkCountryIsoCurrency = if (networkCountryIso.isNotBlank()) {
-            CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(networkCountryIso)]
+            com.getcode.model.CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(networkCountryIso)]
         } else null
 
         val simCountryIsoCurrency = if (simCountryIso.isNotBlank()) {
-            CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(simCountryIso)]
+            com.getcode.model.CurrencyCode.regionsCurrencies[RegionCode.tryValueOf(simCountryIso)]
         } else null
 
         val localeIsoCurrency =
             runCatching { Currency.getInstance(localCountry).currencyCode }.getOrNull()
-                ?.let { CurrencyCode.tryValueOf(it) }
-                ?: CurrencyCode.USD
+                ?.let { com.getcode.model.CurrencyCode.tryValueOf(it) }
+                ?: com.getcode.model.CurrencyCode.USD
 
         return (networkCountryIsoCurrency ?: simCountryIsoCurrency ?: localeIsoCurrency).name
     }

@@ -1,6 +1,5 @@
 package com.getcode.model.intents
 
-import android.content.Context
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.solana.keys.Hash

@@ -2,7 +2,6 @@ package com.getcode.analytics
 
 import com.getcode.api.BuildConfig
 import com.getcode.model.AppSetting
-import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.PrefsBool
@@ -86,7 +85,7 @@ class AnalyticsManager @Inject constructor(
 
     override fun billTimeoutReached(
         kin: Kin,
-        currencyCode: CurrencyCode,
+        currencyCode: com.getcode.model.CurrencyCode,
         animation: BillPresentationStyle
     ) {
         track(
@@ -98,7 +97,7 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
-    override fun billShown(kin: Kin, currencyCode: CurrencyCode, animation: BillPresentationStyle) {
+    override fun billShown(kin: Kin, currencyCode: com.getcode.model.CurrencyCode, animation: BillPresentationStyle) {
         track(
             Name.Bill,
             Pair(Property.State, StringValue.Shown.value),
@@ -110,7 +109,7 @@ class AnalyticsManager @Inject constructor(
 
     override fun billHidden(
         kin: Kin,
-        currencyCode: CurrencyCode,
+        currencyCode: com.getcode.model.CurrencyCode,
         animation: BillPresentationStyle
     ) {
         track(
@@ -155,7 +154,7 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
-    override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) {
+    override fun remoteSendOutgoing(kin: Kin, currencyCode: com.getcode.model.CurrencyCode) {
         track(
             Name.RemoteSendOutgoing,
             Property.Amount to kin.toKin().toInt().toString(),
@@ -163,7 +162,7 @@ class AnalyticsManager @Inject constructor(
         )
     }
 
-    override fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean) {
+    override fun remoteSendIncoming(kin: Kin, currencyCode: com.getcode.model.CurrencyCode, isVoiding: Boolean) {
         track(
             Name.RemoteSendIncoming,
             Property.VoidingSend to if (isVoiding) StringValue.Yes.value else StringValue.No.value,
@@ -184,7 +183,7 @@ class AnalyticsManager @Inject constructor(
         grabStartMillis = System.currentTimeMillis()
     }
 
-    override fun grab(kin: Kin, currencyCode: CurrencyCode) {
+    override fun grab(kin: Kin, currencyCode: com.getcode.model.CurrencyCode) {
         if (grabStartMillis == 0L) return
         val millisecondsToGrab = System.currentTimeMillis() - grabStartMillis
         track(
@@ -220,7 +219,7 @@ class AnalyticsManager @Inject constructor(
         cashLinkGrabStartMillis = System.currentTimeMillis()
     }
 
-    override fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode) {
+    override fun cashLinkGrab(kin: Kin, currencyCode: com.getcode.model.CurrencyCode) {
         if (cashLinkGrabStartMillis == 0L) return
         val millisecondsToGrab = System.currentTimeMillis() - cashLinkGrabStartMillis
         track(

@@ -17,7 +17,6 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginGraph
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.MainScreen

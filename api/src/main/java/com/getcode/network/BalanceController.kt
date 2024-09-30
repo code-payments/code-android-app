@@ -12,8 +12,6 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import com.getcode.utils.FormatUtils
-import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.core.Completable
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +42,7 @@ data class BalanceDisplay(
 
 open class BalanceController @Inject constructor(
     exchange: Exchange,
-    networkObserver: NetworkConnectivityListener,
+    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
@@ -70,7 +68,7 @@ open class BalanceController @Inject constructor(
             .map { it.connected }
             .onEach { connected ->
                 if (connected) {
-                    retryable({ fetchBalanceSuspend() })
+                    com.getcode.utils.network.retryable({ fetchBalanceSuspend() })
                 }
             }
             .flatMapLatest {
@@ -233,10 +231,10 @@ open class BalanceController @Inject constructor(
     }
 
     private fun isKin(selectedCurrency: Currency): Boolean =
-        selectedCurrency.code == CurrencyCode.KIN.name
+        selectedCurrency.code == com.getcode.model.CurrencyCode.KIN.name
 
     private fun formatAmount(amount: Double, currency: Currency?): String {
-        return if (amount % 1 == 0.0 || currency?.code == CurrencyCode.KIN.name) {
+        return if (amount % 1 == 0.0 || currency?.code == com.getcode.model.CurrencyCode.KIN.name) {
             String.format(Locale.getDefault(), "%,.0f", amount)
         } else {
             String.format(Locale.getDefault(), "%,.2f", amount)

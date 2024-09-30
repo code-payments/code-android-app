@@ -2,7 +2,6 @@ package com.getcode.model.chat
 
 import com.codeinc.gen.chat.v1.ChatService as ChatServiceV1
 import com.codeinc.gen.chat.v2.ChatService
-import com.getcode.model.CurrencyCode
 import com.getcode.model.EncryptedData
 import com.getcode.model.Fiat
 import com.getcode.model.GenericAmount
@@ -11,10 +10,7 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.network.repository.toPublicKey
-import com.getcode.utils.serializer.MessageContentSerializer
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 
 @Serializable
 sealed interface MessageContent {
@@ -252,7 +248,7 @@ sealed interface MessageContent {
                     when (proto.exchangeData.exchangeDataCase) {
                         ChatService.ExchangeDataContent.ExchangeDataCase.EXACT -> {
                             val exact = proto.exchangeData.exact
-                            val currency = CurrencyCode.tryValueOf(exact.currency) ?: return null
+                            val currency = com.getcode.model.CurrencyCode.tryValueOf(exact.currency) ?: return null
                             val kinAmount = KinAmount.newInstance(
                                 kin = Kin.fromQuarks(exact.quarks),
                                 rate = Rate(
@@ -274,7 +270,7 @@ sealed interface MessageContent {
 
                         ChatService.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
                             val partial = proto.exchangeData.partial
-                            val currency = CurrencyCode.tryValueOf(partial.currency) ?: return null
+                            val currency = com.getcode.model.CurrencyCode.tryValueOf(partial.currency) ?: return null
 
                             val fiat = Fiat(
                                 currency = currency,
@@ -351,7 +347,7 @@ sealed interface MessageContent {
                     when (proto.exchangeData.exchangeDataCase) {
                         ChatServiceV1.ExchangeDataContent.ExchangeDataCase.EXACT -> {
                             val exact = proto.exchangeData.exact
-                            val currency = CurrencyCode.tryValueOf(exact.currency) ?: return null
+                            val currency = com.getcode.model.CurrencyCode.tryValueOf(exact.currency) ?: return null
                             val kinAmount = KinAmount.newInstance(
                                 kin = Kin.fromQuarks(exact.quarks),
                                 rate = Rate(
@@ -371,7 +367,7 @@ sealed interface MessageContent {
 
                         ChatServiceV1.ExchangeDataContent.ExchangeDataCase.PARTIAL -> {
                             val partial = proto.exchangeData.partial
-                            val currency = CurrencyCode.tryValueOf(partial.currency) ?: return null
+                            val currency = com.getcode.model.CurrencyCode.tryValueOf(partial.currency) ?: return null
 
                             val fiat = Fiat(
                                 currency = currency,

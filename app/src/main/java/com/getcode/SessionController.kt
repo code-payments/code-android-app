@@ -84,9 +84,8 @@ import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.ui.components.PermissionResult
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.IntentUtils
-import com.getcode.util.Kin
+import com.getcode.utils.Kin
 import com.getcode.util.formatted
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
@@ -95,7 +94,6 @@ import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.catchSafely
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
@@ -201,10 +199,10 @@ class SessionController @Inject constructor(
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
     private val authManager: AuthManager,
-    private val networkObserver: NetworkConnectivityListener,
+    private val networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
     private val resources: ResourceHelper,
     private val vibrator: Vibrator,
-    private val currencyUtils: CurrencyUtils,
+    private val currencyUtils: com.getcode.utils.CurrencyUtils,
     private val exchange: Exchange,
     private val giftCardManager: GiftCardManager,
     private val mnemonicManager: MnemonicManager,

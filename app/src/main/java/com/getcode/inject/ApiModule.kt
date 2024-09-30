@@ -11,7 +11,6 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
-import com.getcode.network.api.CurrencyApi
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.client.AccountService
 import com.getcode.network.client.Client
@@ -29,11 +28,9 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.service.ChatServiceV1
 import com.getcode.util.AccountAuthenticator
 import com.getcode.util.locale.LocaleHelper
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.network.service.CurrencyService
 import com.getcode.network.service.DeviceService
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
@@ -51,7 +48,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.create
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
@@ -164,9 +160,9 @@ object ApiModule {
         accountRepository: AccountRepository,
         privacyMigration: PrivacyMigration,
         transactionReceiver: TransactionReceiver,
-        networkObserver: NetworkConnectivityListener,
+        networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
         resources: ResourceHelper,
-        currencyUtils: CurrencyUtils,
+        currencyUtils: com.getcode.utils.CurrencyUtils,
     ): BalanceController {
         return BalanceController(
             exchange = exchange,
@@ -193,8 +189,8 @@ object ApiModule {
     @Provides
     fun providesExchange(
         currencyService: CurrencyService,
-        locale: LocaleHelper,
-        currencyUtils: CurrencyUtils,
+        locale: com.getcode.util.locale.LocaleHelper,
+        currencyUtils: com.getcode.utils.CurrencyUtils,
         prefRepository: PrefRepository,
     ): Exchange = CodeExchange(
         currencyService = currencyService,
@@ -224,7 +220,7 @@ object ApiModule {
         prefRepository: PrefRepository,
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
-        networkObserver: NetworkConnectivityListener,
+        networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
         chatServiceV1: ChatServiceV1,
         chatServiceV2: ChatServiceV2,
         deviceService: DeviceService,

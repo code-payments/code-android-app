@@ -25,6 +25,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
+import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
 import com.getcode.network.TipController

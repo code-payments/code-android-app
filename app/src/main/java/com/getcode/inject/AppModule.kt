@@ -18,11 +18,11 @@ import com.getcode.util.AndroidResources
 import com.getcode.util.Api25Vibrator
 import com.getcode.util.Api26Vibrator
 import com.getcode.util.Api31Vibrator
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
+import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.network.Api24NetworkObserver
 import com.getcode.utils.network.Api29NetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -79,9 +79,16 @@ object AppModule {
         wifiManager: WifiManager
     ): NetworkConnectivityListener = when (Build.VERSION.SDK_INT) {
         in Build.VERSION_CODES.N .. Build.VERSION_CODES.P -> {
-            Api24NetworkObserver(wifiManager, connectivityManager, telephonyManager)
+            Api24NetworkObserver(
+                wifiManager,
+                connectivityManager,
+                telephonyManager
+            )
         }
-        else -> Api29NetworkObserver(connectivityManager, telephonyManager)
+        else -> Api29NetworkObserver(
+            connectivityManager,
+            telephonyManager
+        )
     }
 
     @Provides
@@ -96,7 +103,7 @@ object AppModule {
 
 
     @Provides
-    fun providesCNotificationManager(
+    fun providesNotificationManager(
         @ApplicationContext context: Context
     ): NotificationManagerCompat = NotificationManagerCompat.from(context)
 

@@ -27,7 +27,7 @@ android {
     defaultConfig {
         versionCode = versioning.getVersionCode()
         versionName = Packaging.versionName
-
+        applicationId = Android.codeNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
@@ -54,26 +54,6 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion = Versions.compose_compiler
-    }
-
-    flavorDimensions.add("default")
-
-    productFlavors {
-        create("code") {
-            dimension = "default"
-            val packageName = Android.codeNamespace
-            // compile-time packageName based on productFlavor
-            applicationId = packageName
-            resValue("string", "applicationId", packageName)
-        }
-
-        create("flipchat") {
-            dimension = "default"
-            val packageName = Android.flipchatNamespace
-            // compile-time packageName based on productFlavor
-            applicationId = packageName
-            resValue("string", "applicationId", packageName)
-        }
     }
 
     buildTypes {
@@ -134,11 +114,14 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":api"))
-    implementation(project(":crypto:ed25519"))
-    implementation(project(":crypto:kin"))
     implementation(project(":common:components"))
+    implementation(project(":common:locale"))
     implementation(project(":common:resources"))
     implementation(project(":common:theme"))
+    implementation(project(":libs:crypto:ed25519"))
+    implementation(project(":libs:crypto:kin"))
+    implementation(project(":libs:currency"))
+    implementation(project(":libs:networkObservation"))
     implementation(project(":vendor:tipkit:tipkit-m2"))
 
     coreLibraryDesugaring(Libs.android_desugaring)

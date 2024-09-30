@@ -87,11 +87,11 @@ class TransactionRepository @Inject constructor(
         maxDeposit = deposit
     }
 
-    fun buyLimitFor(currencyCode: CurrencyCode): BuyLimit? {
+    fun buyLimitFor(currencyCode: com.getcode.model.CurrencyCode): BuyLimit? {
         return limits?.buyLimitFor(currencyCode)
     }
 
-    fun sendLimitFor(currencyCode: CurrencyCode): SendLimit? {
+    fun sendLimitFor(currencyCode: com.getcode.model.CurrencyCode): SendLimit? {
         return limits?.sendLimitFor(currencyCode)
     }
 
@@ -100,7 +100,7 @@ class TransactionRepository @Inject constructor(
     }
 
     fun hasAvailableDailyLimit(): Boolean {
-        return (sendLimitFor(currencyCode = CurrencyCode.USD)?.nextTransaction ?: 0.0) > 0
+        return (sendLimitFor(currencyCode = com.getcode.model.CurrencyCode.USD)?.nextTransaction ?: 0.0) > 0
     }
 
     private fun setLimits(limits: Limits) {
@@ -588,7 +588,7 @@ class TransactionRepository @Inject constructor(
                     message = "Fetched limits",
                     type = TraceType.Process,
                     metadata = {
-                        val sendLimit = it.sendLimitFor(CurrencyCode.USD)
+                        val sendLimit = it.sendLimitFor(com.getcode.model.CurrencyCode.USD)
                         if (sendLimit != null) {
                             "limitNextTx" to sendLimit
                         }

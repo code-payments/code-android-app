@@ -29,12 +29,12 @@ class CurrencyService @Inject constructor(
             networkOracle.managedRequest(api.getRates())
                 .map { response ->
                     val rates = response.ratesMap.mapNotNull { (key, value) ->
-                        val currency = CurrencyCode.tryValueOf(key) ?: return@mapNotNull null
+                        val currency = com.getcode.model.CurrencyCode.tryValueOf(key) ?: return@mapNotNull null
                         Rate(fx = value, currency = currency)
                     }.toMutableList()
 
-                    if (rates.none { it.currency == CurrencyCode.KIN }) {
-                        rates.add(Rate(fx = 1.0, currency = CurrencyCode.KIN))
+                    if (rates.none { it.currency == com.getcode.model.CurrencyCode.KIN }) {
+                        rates.add(Rate(fx = 1.0, currency = com.getcode.model.CurrencyCode.KIN))
                     }
 
                     Result.success(ApiRateResult(

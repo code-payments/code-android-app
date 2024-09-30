@@ -44,7 +44,7 @@ class Client @Inject constructor(
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
-    internal val networkObserver: NetworkConnectivityListener,
+    internal val networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
     internal val chatServiceV1: ChatServiceV1,
     internal val chatServiceV2: ChatServiceV2,
     internal val deviceService: DeviceService,

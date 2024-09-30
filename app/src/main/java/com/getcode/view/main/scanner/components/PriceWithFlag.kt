@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.Dp
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.theme.CodeTheme
-import com.getcode.util.flagResId
+import com.getcode.utils.flagResId
 import com.getcode.util.formatted
 
 object PriceWithFlagDefaults {

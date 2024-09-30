@@ -1,7 +1,6 @@
 package com.getcode.db
 
 import androidx.room.TypeConverter
-import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.model.chat.ChatMember
@@ -9,7 +8,6 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Pointer
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -27,9 +25,9 @@ class Converters {
     fun stringToIntList(value: String) = value.split(",")
 
     @TypeConverter
-    fun currencyCodeToString(value: CurrencyCode) = value.name
+    fun currencyCodeToString(value: com.getcode.model.CurrencyCode) = value.name
     @TypeConverter
-    fun stringToCurrencyCode(value: String) = CurrencyCode.tryValueOf(value)
+    fun stringToCurrencyCode(value: String) = com.getcode.model.CurrencyCode.tryValueOf(value)
 
     @TypeConverter
     fun ratesToString(value: List<Rate>) = Json.encodeToString(value)

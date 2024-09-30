@@ -3,7 +3,6 @@ package com.getcode.models.intents
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.intents.IntentPrivateTransfer
@@ -46,7 +45,7 @@ class IntentPrivateTransferTest {
         val amount = KinAmount.fromFiatAmount(
             fiat = 5.00,
             fx = 0.00001,
-            currencyCode = CurrencyCode.USD
+            currencyCode = com.getcode.model.CurrencyCode.USD
         )
 
         val rendezvous = PublicKey.generate()

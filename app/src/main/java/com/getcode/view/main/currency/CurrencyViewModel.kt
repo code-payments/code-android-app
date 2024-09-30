@@ -4,12 +4,10 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.model.Currency
-import com.getcode.model.PrefString
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
-import com.getcode.util.CurrencyUtils
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
@@ -28,7 +26,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import kotlinx.serialization.Serializable
 import javax.inject.Inject
 
 enum class CurrencySelectKind {
@@ -44,8 +41,8 @@ enum class CurrencySelectKind {
 
 @HiltViewModel
 class CurrencyViewModel @Inject constructor(
-    localeHelper: LocaleHelper,
-    currencyUtils: CurrencyUtils,
+    localeHelper: com.getcode.util.locale.LocaleHelper,
+    currencyUtils: com.getcode.utils.CurrencyUtils,
     exchange: Exchange,
     private val prefsRepository: PrefRepository,
     private val resources: ResourceHelper,

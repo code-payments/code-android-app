@@ -2,7 +2,6 @@ package com.getcode.model.intents.actions
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.model.SocialUser
 import com.getcode.model.Kin
 import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.ServerParameter

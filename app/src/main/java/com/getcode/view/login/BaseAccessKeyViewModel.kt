@@ -13,7 +13,6 @@ import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.media.MediaScanner
-import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.DeniedReason
 import com.getcode.network.repository.ErrorSubmitIntent
 import com.getcode.network.repository.ErrorSubmitIntentException
@@ -25,7 +24,6 @@ import com.getcode.ui.utils.toAGColor
 import com.getcode.util.generateQrCode
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.save
-import com.getcode.utils.ErrorUtils
 import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -34,8 +32,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.io.File
-import java.io.FileOutputStream
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date

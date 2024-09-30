@@ -10,6 +10,7 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
 import com.getcode.model.SocialUser
+import com.getcode.model.fromFiatAmount
 import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client

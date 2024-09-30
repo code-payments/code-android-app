@@ -6,9 +6,21 @@ import com.getcode.utils.network.NetworkState
 import com.getcode.utils.network.SignalStrength
 
 internal class NetworkStateProvider (
-    override val values: Sequence<NetworkState> = sequenceOf(
-        NetworkState(connected = false, type = ConnectionType.Unknown, signalStrength = SignalStrength.Unknown),
-        NetworkState(connected = false, type = ConnectionType.Wifi, signalStrength = SignalStrength.Great),
-        NetworkState(connected = true, type = ConnectionType.Wifi, signalStrength = SignalStrength.Great),
+    override val values: Sequence<com.getcode.utils.network.NetworkState> = sequenceOf(
+        com.getcode.utils.network.NetworkState(
+            connected = false,
+            type = com.getcode.utils.network.ConnectionType.Unknown,
+            signalStrength = com.getcode.utils.network.SignalStrength.Unknown
+        ),
+        com.getcode.utils.network.NetworkState(
+            connected = false,
+            type = com.getcode.utils.network.ConnectionType.Wifi,
+            signalStrength = com.getcode.utils.network.SignalStrength.Great
+        ),
+        com.getcode.utils.network.NetworkState(
+            connected = true,
+            type = com.getcode.utils.network.ConnectionType.Wifi,
+            signalStrength = com.getcode.utils.network.SignalStrength.Great
+        ),
     )
-): PreviewParameterProvider<NetworkState>
+): PreviewParameterProvider<com.getcode.utils.network.NetworkState>

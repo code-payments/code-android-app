@@ -57,7 +57,7 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                     val requestData = when (exchangeData) {
                         MessagingService.RequestToReceiveBill.ExchangeDataCase.EXACT -> {
                             val data = request.exact
-                            val currency = CurrencyCode.tryValueOf(data.currency) ?: return null
+                            val currency = com.getcode.model.CurrencyCode.tryValueOf(data.currency) ?: return null
 
                             val additionalFees = request.additionalFeesList.mapNotNull {
                                 val destination = PublicKey(it.destination.value.toByteArray().toList())
@@ -83,7 +83,7 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                         }
                         MessagingService.RequestToReceiveBill.ExchangeDataCase.PARTIAL -> {
                             val data = request.partial
-                            val currency = CurrencyCode.tryValueOf(data.currency) ?: return null
+                            val currency = com.getcode.model.CurrencyCode.tryValueOf(data.currency) ?: return null
 
 
                             val additionalFees = request.additionalFeesList.mapNotNull {
@@ -110,7 +110,7 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                 MessagingService.Message.KindCase.AIRDROP_RECEIVED -> {
                     val type = AirdropType.getInstance(message.airdropReceived.airdropType)
                         ?: return null
-                    val currency = CurrencyCode.tryValueOf(message.airdropReceived.exchangeData.currency)
+                    val currency = com.getcode.model.CurrencyCode.tryValueOf(message.airdropReceived.exchangeData.currency)
                         ?: return null
 
                     Kind.AirdropKind(

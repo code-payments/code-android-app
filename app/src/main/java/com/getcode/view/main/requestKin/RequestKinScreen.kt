@@ -16,7 +16,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.getcode.LocalNetworkObserver
 import com.getcode.LocalSession
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -29,6 +28,7 @@ import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.CodeKeyPad
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.view.main.giveKin.AmountArea
 import kotlinx.coroutines.launch
 

@@ -71,8 +71,10 @@ android {
 dependencies {
     implementation(project(":common:resources"))
     api(project(":service:models"))
-    implementation(project(":crypto:ed25519"))
-    implementation(project(":crypto:kin"))
+    implementation(project(":libs:crypto:ed25519"))
+    implementation(project(":libs:crypto:kin"))
+    implementation(project(":libs:currency"))
+    implementation(project(":libs:networkObservation"))
 
     implementation(Libs.rxjava)
     implementation(Libs.kotlinx_coroutines_core)

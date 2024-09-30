@@ -9,6 +9,8 @@ import com.getcode.model.Currency
 import com.getcode.model.KinAmount
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.Kin
+import com.getcode.utils.formatAmountString
 
 fun KinAmount.formattedRaw() = FormatUtils.formatWholeRoundDown(kin.toKin().toDouble())
 

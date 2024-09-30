@@ -5,7 +5,6 @@ import com.codeinc.gen.transaction.v2.TransactionService.FeePaymentAction
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
 import com.getcode.model.intents.ServerParameter
-import com.getcode.network.repository.toIntentId
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder

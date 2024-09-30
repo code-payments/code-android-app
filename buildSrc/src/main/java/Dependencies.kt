@@ -29,6 +29,7 @@ object Versions {
     const val android_gradle_build_tools = "8.4.0"
     const val google_services = "4.3.15"
 
+    const val androidx_appcompat = "1.7.0"
     const val androidx_activity = "1.7.2"
     const val androidx_annotation = "1.7.1"
     const val androidx_biometrics = "1.2.0-alpha05"
@@ -140,6 +141,7 @@ object Plugins {
 
 object Libs {
     const val android_desugaring = "com.android.tools:desugar_jdk_libs:${Versions.desugaring}"
+    const val androidx_appcompat = "androidx.appcompat:appcompat:${Versions.androidx_appcompat}"
     const val androidx_activity = "androidx.activity:activity-ktx:{${Versions.androidx_activity}"
     const val androidx_annotation = "androidx.annotation:annotation:${Versions.androidx_annotation}"
     const val androidx_biometrics = "androidx.biometric:biometric:${Versions.androidx_biometrics}"

@@ -13,8 +13,7 @@ import com.getcode.model.GenericAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
+import com.getcode.utils.Kin
 import com.getcode.util.formatted
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
@@ -25,7 +24,7 @@ import java.util.Locale
 internal fun MessageContent.localizedText(
     title: String,
     resources: ResourceHelper,
-    currencyUtils: CurrencyUtils,
+    currencyUtils: com.getcode.utils.CurrencyUtils,
 ): String {
     return when (val content = this) {
         is MessageContent.Exchange -> {

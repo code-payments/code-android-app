@@ -24,7 +24,7 @@ import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.util.CurrencyUtils
+import com.getcode.utils.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils
@@ -65,7 +65,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var resources: ResourceHelper
 
     @Inject
-    lateinit var currencyUtils: CurrencyUtils
+    lateinit var currencyUtils: com.getcode.utils.CurrencyUtils
 
     @Inject
     lateinit var authManager: AuthManager

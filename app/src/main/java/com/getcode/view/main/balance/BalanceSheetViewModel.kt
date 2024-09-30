@@ -12,8 +12,7 @@ import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.network.repository.PrefRepository
-import com.getcode.util.Kin
-import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.utils.Kin
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +32,7 @@ class BalanceSheetViewModel @Inject constructor(
     history: NotificationCollectionHistoryController,
     prefsRepository: PrefRepository,
     features: FeatureRepository,
-    networkObserver: NetworkConnectivityListener,
+    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent

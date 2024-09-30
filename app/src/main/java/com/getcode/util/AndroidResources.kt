@@ -11,6 +11,7 @@ import androidx.annotation.StringRes
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.res.ResourcesCompat
 import com.getcode.BuildConfig
+import com.getcode.R
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -100,5 +101,14 @@ class AndroidResources @Inject constructor(
 
     override fun getFont(fontResId: Int): Typeface? {
         return runCatching { ResourcesCompat.getFont(context, fontResId) }.getOrNull()
+    }
+
+
+    override fun getOfKinSuffix(): String {
+        return getString(R.string.core_ofKin)
+    }
+
+    override fun getKinSuffix(): String {
+        return getString(R.string.core_kin)
     }
 }

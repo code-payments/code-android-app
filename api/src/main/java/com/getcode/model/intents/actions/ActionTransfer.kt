@@ -11,7 +11,6 @@ import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.SplitterCommitmentAccounts
-import com.getcode.solana.keys.SplitterTranscript
 
 class ActionTransfer(
     override var id: Int,

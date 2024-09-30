@@ -9,7 +9,6 @@ import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.organizer.AccountType
-import com.getcode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.organizer.AccountCluster
 
 class ActionCloseEmptyAccount(

@@ -1,6 +1,5 @@
 package com.getcode.solana.organizer
 
-import android.content.Context
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase

@@ -1,6 +1,5 @@
 package com.getcode.network
 
-import android.content.Context
 import com.getcode.analytics.AnalyticsService
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentType

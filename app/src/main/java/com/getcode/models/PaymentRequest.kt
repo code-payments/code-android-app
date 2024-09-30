@@ -3,7 +3,6 @@ package com.getcode.models
 import android.net.Uri
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Domain
-import com.getcode.model.Fee
 import com.getcode.model.Fiat
 import com.getcode.network.repository.decodeBase64
 import com.getcode.solana.keys.PublicKey

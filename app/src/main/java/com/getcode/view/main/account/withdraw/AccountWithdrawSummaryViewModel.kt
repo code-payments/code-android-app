@@ -2,7 +2,6 @@ package com.getcode.view.main.account.withdraw
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
-import com.getcode.AppHomeScreen
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
 import com.getcode.solana.keys.PublicKey
@@ -122,7 +121,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
 
                 analytics.withdrawal(amount = amount, successful = true)
 
-                navigator.replaceAll(AppHomeScreen())
+                navigator.replaceAll(ScanScreen())
 
                 uiFlow.value = uiFlow.value.copy(isSuccess = true)
             }, {

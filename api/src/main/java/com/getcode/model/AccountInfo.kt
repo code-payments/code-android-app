@@ -68,7 +68,7 @@ data class AccountInfo (
     // the time created on the blockchain.
     var createdAt: Long?,
 
-) {
+    ) {
     companion object {
         fun newInstance(info: AccountService.TokenAccountInfo): AccountInfo? {
             val accountType = AccountType.newInstance(info.accountType, info.relationship) ?: return null
@@ -82,7 +82,7 @@ data class AccountInfo (
             val owner = PublicKey(info.owner.value.toByteArray().toList())
             val authority = PublicKey(info.authority.value.toByteArray().toList())
 
-            val originalCurrency = CurrencyCode.tryValueOf(info.originalExchangeData.currency)
+            val originalCurrency = com.getcode.model.CurrencyCode.tryValueOf(info.originalExchangeData.currency)
 
             val originalKinAmount = originalCurrency?.let {
                 KinAmount.newInstance(

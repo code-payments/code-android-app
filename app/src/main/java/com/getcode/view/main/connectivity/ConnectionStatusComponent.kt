@@ -15,10 +15,10 @@ import com.getcode.utils.network.NetworkState
 import com.getcode.ui.components.CodeCircularProgressIndicator
 
 @Composable
-fun ConnectionStatus(state: NetworkState) {
+fun ConnectionStatus(state: com.getcode.utils.network.NetworkState) {
     Row {
         when  {
-            !state.connected && state.type != ConnectionType.Unknown -> {
+            !state.connected && state.type != com.getcode.utils.network.ConnectionType.Unknown -> {
                 CodeCircularProgressIndicator(
                     modifier = Modifier.height(
                         CodeTheme.dimens.grid.x2
@@ -45,6 +45,6 @@ fun ConnectionStatus(state: NetworkState) {
 
 @Preview
 @Composable
-fun ConnectionReconnectingPreview(@PreviewParameter(NetworkStateProvider::class) state: NetworkState) {
+fun ConnectionReconnectingPreview(@PreviewParameter(NetworkStateProvider::class) state: com.getcode.utils.network.NetworkState) {
     ConnectionStatus(state)
 }

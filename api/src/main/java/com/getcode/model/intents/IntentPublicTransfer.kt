@@ -1,17 +1,14 @@
 package com.getcode.model.intents
 
-import android.util.Log
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.KinAmount
 import com.getcode.model.intents.actions.ActionTransfer
-import com.getcode.model.intents.actions.ActionWithdraw
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.keys.*
 import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
-import timber.log.Timber
 
 class IntentPublicTransfer(
     override val id: PublicKey,

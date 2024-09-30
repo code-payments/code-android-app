@@ -71,7 +71,7 @@ data object ChatListModal: ChatGraph, ModalRoot {
         LifecycleEffect(
             onStarted = {
                 val disposedScreen = navigator.lastItem
-                if (disposedScreen !is BalanceModal) {
+                if (disposedScreen !is ChatListModal) {
                     viewModel.dispatchEvent(ChatListViewModel.Event.OnOpened)
                 }
             }

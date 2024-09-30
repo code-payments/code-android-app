@@ -5,6 +5,7 @@ import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
+import com.getcode.model.fromFiatAmount
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange
@@ -12,11 +13,8 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.replaceParam
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,9 +37,9 @@ class GiveKinSheetViewModel @Inject constructor(
     prefsRepository: PrefRepository,
     balanceRepository: BalanceRepository,
     transactionRepository: TransactionRepository,
-    localeHelper: LocaleHelper,
-    currencyUtils: CurrencyUtils,
-    networkObserver: NetworkConnectivityListener,
+    localeHelper: com.getcode.util.locale.LocaleHelper,
+    currencyUtils: com.getcode.utils.CurrencyUtils,
+    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
     resources: ResourceHelper,
 ) : BaseAmountCurrencyViewModel(
     client,

@@ -12,13 +12,10 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.replaceParam
-import com.getcode.util.CurrencyUtils
-import com.getcode.util.Kin
+import com.getcode.utils.Kin
 import com.getcode.util.NumberInputHelper
-import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
-import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -88,10 +85,10 @@ abstract class BaseAmountCurrencyViewModel(
     protected val exchange: Exchange,
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository,
-    protected val localeHelper: LocaleHelper,
-    private val currencyUtils: CurrencyUtils,
+    protected val localeHelper: com.getcode.util.locale.LocaleHelper,
+    private val currencyUtils: com.getcode.utils.CurrencyUtils,
     protected val resources: ResourceHelper,
-    private val networkObserver: NetworkConnectivityListener,
+    private val networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
 ) : BaseViewModel(resources), AmountInputViewModel {
     protected val numberInputHelper = NumberInputHelper()
     abstract fun setCurrencyUiModel(currencyUiModel: CurrencyUiModel)

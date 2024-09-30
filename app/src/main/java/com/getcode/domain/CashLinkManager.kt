@@ -1,6 +1,5 @@
 package com.getcode.domain
 
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.KinAmount
 import com.getcode.network.repository.SendTransactionRepository

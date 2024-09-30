@@ -9,6 +9,7 @@ import androidx.annotation.FontRes
 import androidx.annotation.PluralsRes
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
+import androidx.compose.runtime.staticCompositionLocalOf
 import java.io.File
 
 interface ResourceHelper {
@@ -37,6 +38,9 @@ interface ResourceHelper {
     fun getIdentifier(name: String, type: ResourceType): Int?
 
     fun getFont(@FontRes fontResId: Int): Typeface?
+
+    fun getOfKinSuffix(): String
+    fun getKinSuffix(): String
 }
 
 sealed interface ResourceType {
@@ -49,4 +53,4 @@ sealed interface ResourceType {
     }
 }
 
-val x: String = ""
+val LocalResources = staticCompositionLocalOf<ResourceHelper?> { null }

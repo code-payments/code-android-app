@@ -33,12 +33,12 @@ interface Exchange {
     val entryRate: Rate
     fun observeEntryRate(): Flow<Rate>
 
-    fun rates(): Map<CurrencyCode, Rate>
-    fun observeRates(): Flow<Map<CurrencyCode, Rate>>
+    fun rates(): Map<com.getcode.model.CurrencyCode, Rate>
+    fun observeRates(): Flow<Map<com.getcode.model.CurrencyCode, Rate>>
 
     suspend fun fetchRatesIfNeeded()
 
-    fun rateFor(currencyCode: CurrencyCode): Rate?
+    fun rateFor(currencyCode: com.getcode.model.CurrencyCode): Rate?
 
     fun rateForUsd(): Rate?
 }
@@ -59,17 +59,17 @@ class ExchangeNull : Exchange {
         return emptyFlow()
     }
 
-    override fun rates(): Map<CurrencyCode, Rate> {
+    override fun rates(): Map<com.getcode.model.CurrencyCode, Rate> {
         return emptyMap()
     }
 
-    override fun observeRates(): Flow<Map<CurrencyCode, Rate>> {
+    override fun observeRates(): Flow<Map<com.getcode.model.CurrencyCode, Rate>> {
         return emptyFlow()
     }
 
     override suspend fun fetchRatesIfNeeded() = Unit
 
-    override fun rateFor(currencyCode: CurrencyCode): Rate? {
+    override fun rateFor(currencyCode: com.getcode.model.CurrencyCode): Rate? {
         return null
     }
 
@@ -82,8 +82,8 @@ class ExchangeNull : Exchange {
 class CodeExchange @Inject constructor(
     private val currencyService: CurrencyService,
     prefs: PrefRepository,
-    private val preferredCurrency: suspend () -> Currency?,
-    private val defaultCurrency: suspend () -> Currency?,
+    private val preferredCurrency: suspend () -> com.getcode.model.Currency?,
+    private val defaultCurrency: suspend () -> com.getcode.model.Currency?,
 ) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
     private val db = Database.getInstance()
@@ -102,10 +102,10 @@ class CodeExchange @Inject constructor(
 
     private var rateDate: Long = System.currentTimeMillis()
 
-    private var localCurrency: CurrencyCode? = null
-    private var entryCurrency: CurrencyCode? = null
+    private var localCurrency: com.getcode.model.CurrencyCode? = null
+    private var entryCurrency: com.getcode.model.CurrencyCode? = null
 
-    private val _rates = MutableStateFlow(emptyMap<CurrencyCode, Rate>())
+    private val _rates = MutableStateFlow(emptyMap<com.getcode.model.CurrencyCode, Rate>())
     private var rates = RatesBox(0, emptyMap())
         set(value) {
             field = value
@@ -113,7 +113,7 @@ class CodeExchange @Inject constructor(
         }
 
     override fun rates() = rates.rates
-    override fun observeRates(): Flow<Map<CurrencyCode, Rate>> = _rates
+    override fun observeRates(): Flow<Map<com.getcode.model.CurrencyCode, Rate>> = _rates
 
     private val isStale: Boolean
         get() {
@@ -128,14 +128,14 @@ class CodeExchange @Inject constructor(
 
     init {
         launch {
-            localCurrency = CurrencyCode.tryValueOf(preferredCurrency()?.code.orEmpty())
-            entryCurrency = CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
+            localCurrency = com.getcode.model.CurrencyCode.tryValueOf(preferredCurrency()?.code.orEmpty())
+            entryCurrency = com.getcode.model.CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
 
             prefs.observeOrDefault(PrefsString.KEY_ENTRY_CURRENCY, "")
                 .map { it.takeIf { it.isNotEmpty() } }
-                .map { CurrencyCode.tryValueOf(it.orEmpty()) }
+                .map { com.getcode.model.CurrencyCode.tryValueOf(it.orEmpty()) }
                 .mapNotNull { preferred ->
-                    preferred ?: CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
+                    preferred ?: com.getcode.model.CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
                 }.onEach { setEntryCurrency(it) }
                 .launchIn(this@CodeExchange)
         }
@@ -152,9 +152,9 @@ class CodeExchange @Inject constructor(
 
         prefs.observeOrDefault(PrefsString.KEY_LOCAL_CURRENCY, "")
             .map { it.takeIf { it.isNotEmpty() } }
-            .map { CurrencyCode.tryValueOf(it.orEmpty()) }
+            .map { com.getcode.model.CurrencyCode.tryValueOf(it.orEmpty()) }
             .mapNotNull { preferred ->
-                preferred ?: CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
+                preferred ?: com.getcode.model.CurrencyCode.tryValueOf(defaultCurrency()?.code.orEmpty())
             }.onEach { setLocalCurrency(it) }
             .launchIn(this)
     }
@@ -175,12 +175,12 @@ class CodeExchange @Inject constructor(
         updateRates()
     }
 
-    private fun setEntryCurrency(currency: CurrencyCode) {
+    private fun setEntryCurrency(currency: com.getcode.model.CurrencyCode) {
         entryCurrency = currency
         updateRates()
     }
 
-    private fun setLocalCurrency(currency: CurrencyCode) {
+    private fun setLocalCurrency(currency: com.getcode.model.CurrencyCode) {
         localCurrency = currency
         updateRates()
     }
@@ -199,11 +199,11 @@ class CodeExchange @Inject constructor(
         }
 
         val localRegionCurrency = defaultCurrency() ?: return
-        val currency = CurrencyCode.tryValueOf(localRegionCurrency.code)
+        val currency = com.getcode.model.CurrencyCode.tryValueOf(localRegionCurrency.code)
         entryCurrency = currency
     }
 
-    override fun rateFor(currencyCode: CurrencyCode): Rate? = rates.rateFor(currencyCode)
+    override fun rateFor(currencyCode: com.getcode.model.CurrencyCode): Rate? = rates.rateFor(currencyCode)
 
     override fun rateForUsd(): Rate? = rates.rateForUsd()
 
@@ -270,7 +270,7 @@ class CodeExchange @Inject constructor(
     }
 }
 
-private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, Rate>) {
+private data class RatesBox(val dateMillis: Long, val rates: Map<com.getcode.model.CurrencyCode, Rate>) {
     constructor(dateMillis: Long, rates: List<Rate>) : this(
         dateMillis,
         rates.associateBy { it.currency })
@@ -278,14 +278,14 @@ private data class RatesBox(val dateMillis: Long, val rates: Map<CurrencyCode, R
     val isEmpty: Boolean
         get() = rates.isEmpty()
 
-    fun rateFor(currencyCode: CurrencyCode): Rate? = rates[currencyCode]
+    fun rateFor(currencyCode: com.getcode.model.CurrencyCode): Rate? = rates[currencyCode]
 
-    fun rateFor(currency: Currency): Rate? {
-        val currencyCode = CurrencyCode.tryValueOf(currency.code)
+    fun rateFor(currency: com.getcode.model.Currency): Rate? {
+        val currencyCode = com.getcode.model.CurrencyCode.tryValueOf(currency.code)
         return currencyCode?.let { rates[it] }
     }
 
     fun rateForUsd(): Rate? {
-        return rates[CurrencyCode.USD]
+        return rates[com.getcode.model.CurrencyCode.USD]
     }
 }

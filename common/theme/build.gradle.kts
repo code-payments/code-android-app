@@ -55,5 +55,11 @@ dependencies {
     implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_material)
     implementation(Libs.compose_accompanist)
+
     implementation(Libs.timber)
+
+    implementation(Libs.androidx_appcompat)
+    implementation(Libs.androidx_core)
+    implementation(Libs.androidx_activity)
+    implementation(Libs.androidx_navigation_fragment)
 }

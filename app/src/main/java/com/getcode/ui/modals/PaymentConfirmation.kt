@@ -32,6 +32,7 @@ import com.getcode.model.Kin.Companion.fromFiat
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.Rate
+import com.getcode.model.fromFiatAmount
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.ConfirmationState
 import com.getcode.theme.CodeTheme

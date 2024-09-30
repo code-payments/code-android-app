@@ -70,4 +70,9 @@
     <string name="title_cash">Cash</string>
     <string name="title_chats">Chats</string>
     <string name="title_settings">Settings</string>
+
+    <string translatable="false" name="app_name_without_variant">Code</string>
+    <string translatable="false" name="app_name">Code</string>
+    <string translatable="false" name="handle">\@getcode</string>
+    <string translatable="false" name="account_name_link">CodeAccount</string>
 </resources>

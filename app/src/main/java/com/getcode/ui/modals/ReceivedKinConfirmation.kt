@@ -16,7 +16,7 @@ import com.getcode.theme.White
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
 import com.getcode.ui.components.Modal
-import com.getcode.util.flagResId
+import com.getcode.utils.flagResId
 import com.getcode.util.formatted
 import com.getcode.view.main.giveKin.AmountArea
 

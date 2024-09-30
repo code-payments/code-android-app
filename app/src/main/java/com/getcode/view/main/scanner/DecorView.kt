@@ -40,13 +40,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.SessionState
-import com.getcode.LocalNetworkObserver
 import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.xxl
 import com.getcode.ui.components.Pill
 import com.getcode.ui.tips.DefinedTips
 import com.getcode.ui.utils.unboundedClickable
+import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.view.main.scanner.components.HomeBottom
 import dev.bmcreations.tipkit.LocalTipProvider
 import dev.bmcreations.tipkit.engines.LocalTipsEngine

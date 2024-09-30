@@ -2,7 +2,7 @@ package com.getcode.model
 
 import kotlinx.serialization.Serializable
 
-sealed interface Value
+
 
 @Serializable
 data class Fiat(
@@ -37,4 +37,41 @@ sealed interface GenericAmount {
             is Partial -> KinAmount.fromFiatAmount(fiat.amount, rate)
         }
     }
+}
+
+fun KinAmount.Companion.fromFiatAmount(kin: Kin, fiat: Double, fx: Double, currencyCode: CurrencyCode): KinAmount {
+    return KinAmount(
+        kin = kin.inflating(),
+        fiat = fiat,
+        rate = Rate(
+            fx = fx,
+            currency = currencyCode
+        )
+    )
+}
+
+fun KinAmount.Companion.fromFiatAmount(fiat: Double, fx: Double, currencyCode: CurrencyCode): KinAmount {
+    return fromFiatAmount(
+        kin = Kin.fromFiat(fiat = fiat, fx = fx),
+        fiat = fiat,
+        fx = fx,
+        currencyCode = currencyCode
+    )
+}
+
+fun KinAmount.Companion.fromFiatAmount(fiat: Double, rate: Rate): KinAmount {
+    return fromFiatAmount(
+        kin = Kin.fromFiat(fiat = fiat, fx = rate.fx),
+        fiat = fiat,
+        fx = rate.fx,
+        currencyCode = rate.currency
+    )
+}
+
+fun KinAmount.Companion.fromFiatAmount(fiat: Fiat, rate: Rate): KinAmount {
+    return KinAmount(
+        kin = Kin.fromFiat(fiat = fiat.amount, fx = rate.fx),
+        fiat = fiat.amount,
+        rate = rate
+    )
 }

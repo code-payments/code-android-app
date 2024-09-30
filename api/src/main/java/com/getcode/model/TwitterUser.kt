@@ -2,7 +2,6 @@ package com.getcode.model
 
 import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
-import com.codeinc.gen.user.v1.friendChatIdOrNull
 import com.codeinc.gen.user.v1.friendshipCostOrNull
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
@@ -52,9 +51,9 @@ data class TwitterUser(
                 tipAddress = tipAddress,
                 verificationStatus = VerificationStatus.entries.getOrNull(proto.verifiedTypeValue) ?: VerificationStatus.unknown,
                 costOfFriendship = proto.friendshipCostOrNull?.let {
-                    val currency = CurrencyCode.tryValueOf(it.currency) ?: return@let null
+                    val currency = com.getcode.model.CurrencyCode.tryValueOf(it.currency) ?: return@let null
                     Fiat(currency, it.nativeAmount)
-                } ?: Fiat(currency = CurrencyCode.USD, amount = 1.00),
+                } ?: Fiat(currency = com.getcode.model.CurrencyCode.USD, amount = 1.00),
                 isFriend = proto.isFriend,
                 chatId = proto.friendChatId.value.toList()
             )

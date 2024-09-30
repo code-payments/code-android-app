@@ -7,7 +7,6 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.AccountInfo
-import com.getcode.model.SocialUser
 import com.getcode.model.Domain
 import com.getcode.model.Fee
 import com.getcode.model.GiftCard

@@ -24,6 +24,7 @@ data class CodePayload(
             is Fiat -> deriveRendezvousKey(encode(kind = kind, fiat = value, nonce = nonce).toByteArray())
             is Kin -> deriveRendezvousKey(encode(kind = kind, kin = value, nonce = nonce).toByteArray())
             is Username -> deriveRendezvousKey(encode(kind = kind, username = value).toByteArray())
+            else -> throw IllegalArgumentException()
         }
     }
 
@@ -50,6 +51,7 @@ data class CodePayload(
             is Kin -> encode(kind, value, nonce)
             is Fiat -> encode(kind, value, nonce)
             is Username -> encode(kind, value)
+            else -> throw IllegalArgumentException()
         }
     }
 
@@ -145,7 +147,7 @@ data class CodePayload(
                 Kind.Login -> {
                     // grab currency
                     val currencyIndex = list[1].byteToUnsignedInt()
-                    val currency = CurrencyCode.entries.toList()[currencyIndex]
+                    val currency = com.getcode.model.CurrencyCode.entries.toList()[currencyIndex]
 
                     // grab the fiat value
                     val amountData = ByteArray(7)

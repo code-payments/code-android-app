@@ -52,7 +52,7 @@ object AccountUtils {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
-                val result = retryable(
+                val result = com.getcode.utils.network.retryable(
                     call = { getAccountNoActivity(context) },
                     onRetry = { currentAttempt ->
                         trace(
@@ -122,7 +122,7 @@ object AccountUtils {
             }
         }
 
-        return retryable(
+        return com.getcode.utils.network.retryable(
             call = { getAccountNoActivity(context) },
             onRetry = { currentAttempt ->
                 trace(
