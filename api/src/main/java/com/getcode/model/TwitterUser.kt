@@ -2,7 +2,6 @@ package com.getcode.model
 
 import android.webkit.MimeTypeMap
 import com.codeinc.gen.user.v1.IdentityService
-import com.codeinc.gen.user.v1.friendChatIdOrNull
 import com.codeinc.gen.user.v1.friendshipCostOrNull
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.serializer.PublicKeyAsStringSerializer
@@ -55,7 +54,7 @@ data class TwitterUser(
                     val currency = CurrencyCode.tryValueOf(it.currency) ?: return@let null
                     Fiat(currency, it.nativeAmount)
                 } ?: Fiat(currency = CurrencyCode.USD, amount = 1.00),
-                isFriend = proto.isFriend,
+                isFriend = runCatching { proto.isFriend }.getOrNull() ?: false,
                 chatId = proto.friendChatId.value.toList()
             )
         }
