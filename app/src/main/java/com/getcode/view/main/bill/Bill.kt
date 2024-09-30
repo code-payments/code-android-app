@@ -11,6 +11,7 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
+import com.getcode.model.fromFiatAmount
 import com.getcode.models.Bill
 import com.getcode.theme.CodeTheme
 

@@ -3,6 +3,7 @@ package com.getcode.view.main.requestKin
 import androidx.lifecycle.viewModelScope
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
+import com.getcode.model.fromFiatAmount
 import com.getcode.network.client.Client
 import com.getcode.network.client.receiveIfNeeded
 import com.getcode.network.exchange.Exchange

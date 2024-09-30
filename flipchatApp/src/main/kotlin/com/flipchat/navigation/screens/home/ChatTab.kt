@@ -7,6 +7,7 @@ import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import com.flipchat.R
+import com.getcode.theme.CodeTheme
 
 internal object ChatTab : Tab {
 
@@ -19,6 +20,6 @@ internal object ChatTab : Tab {
 
     @Composable
     override fun Content() {
-        Text("Chat")
+        Text("Chat", color = CodeTheme.colors.onBackground)
     }
 }

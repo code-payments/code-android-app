@@ -7,10 +7,15 @@ import android.os.Process.killProcess
 import android.os.Process.myPid
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.transitions.FadeTransition
+import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipchat.BuildConfig
+import com.flipchat.MainRoot
 import com.flipchat.navigation.screens.LoginScreen
 import com.flipchat.util.AndroidResources
 import com.getcode.theme.CodeTheme
@@ -42,7 +47,9 @@ class MainActivity : FragmentActivity() {
                 LocalNetworkObserver provides networkObserver,
             ) {
                 CodeTheme {
-                    Navigator(LoginScreen())
+                    Navigator(MainRoot) { navigator ->
+                        FadeTransition(navigator)
+                    }
                 }
             }
         }

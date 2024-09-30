@@ -4,8 +4,10 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.accounts.AuthenticatorException
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
+import androidx.core.database.getStringOrNull
 import androidx.core.os.bundleOf
 import com.flipchat.BuildConfig
 import com.getcode.utils.TraceType
@@ -52,7 +54,7 @@ object AccountUtils {
         val subject = SingleSubject.create<Pair<String?, Account?>>()
         return subject.doOnSubscribe {
             CoroutineScope(Dispatchers.IO).launch {
-                val result = com.getcode.utils.network.retryable(
+                val result = retryable(
                     call = { getAccountNoActivity(context) },
                     onRetry = { currentAttempt ->
                         trace(
@@ -122,7 +124,24 @@ object AccountUtils {
             }
         }
 
-        return com.getcode.utils.network.retryable(
+        // attempt to pull from Code App
+        context.contentResolver.query(
+            Uri.parse("content://com.getcode.accountprovider/accounts"),
+            null,
+            null,
+            null,
+            null
+        )?.use {
+            while (it.moveToNext()) {
+                val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
+                if (token != null) {
+                    println("Code account on device found. Sharing with FC")
+                    return token
+                }
+            }
+        }
+
+        return retryable(
             call = { getAccountNoActivity(context) },
             onRetry = { currentAttempt ->
                 trace(

@@ -58,8 +58,14 @@ data object TabbedHomeScreen : Screen, Parcelable {
                 )
             }
         ) { tabNavigator ->
-            Column(modifier = Modifier.statusBarsPadding()) {
-                Box(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .background(CodeTheme.colors.background)
+            ) {
+                Box(
+                    modifier = Modifier.weight(1f)
+                ) {
                     CurrentTab()
                 }
                 Row(
