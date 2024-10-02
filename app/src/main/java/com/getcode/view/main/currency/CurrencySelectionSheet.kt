@@ -60,7 +60,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.view.main.giveKin.CurrencyListItem

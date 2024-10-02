@@ -10,9 +10,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import com.getcode.theme.CodeTheme
-import com.getcode.utils.network.ConnectionType
-import com.getcode.utils.network.NetworkState
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 
 @Composable
 fun ConnectionStatus(state: com.getcode.utils.network.NetworkState) {

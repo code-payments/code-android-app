@@ -33,7 +33,7 @@ import com.getcode.ui.components.SheetTitle
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.SheetTitleText
 import com.getcode.ui.components.keyboardAsState
-import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -132,6 +132,3 @@ internal fun NamedScreen.ModalContainer(
         }
     }
 }
-
-internal interface ModalContent
-internal sealed interface ModalRoot : ModalContent

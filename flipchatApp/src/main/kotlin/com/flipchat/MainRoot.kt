@@ -3,7 +3,6 @@ package com.flipchat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,12 +24,12 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipchat.navigation.screens.LoginScreen
-import com.flipchat.navigation.screens.TabbedHomeScreen
+import com.flipchat.features.login.LoginScreen
+import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.manager.SessionManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import kotlinx.coroutines.delay
 
 internal data object MainRoot : Screen {

@@ -18,7 +18,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -39,8 +38,8 @@ import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.Row
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance

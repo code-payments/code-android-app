@@ -17,7 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
     conversationsController: ConversationListController,
-    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
+    networkObserver: NetworkConnectivityListener,
 ): BaseViewModel2<ChatListViewModel.State, ChatListViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent

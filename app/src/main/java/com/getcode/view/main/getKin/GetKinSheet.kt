@@ -52,8 +52,8 @@ import com.getcode.theme.Success
 import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.bolded
-import com.getcode.ui.components.CodeCircularProgressIndicator
-import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.showSnackbar
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable

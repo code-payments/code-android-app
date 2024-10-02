@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.models.BillState
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.Pill
 import com.getcode.ui.utils.rememberedClickable
 

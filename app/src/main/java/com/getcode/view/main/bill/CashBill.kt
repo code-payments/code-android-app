@@ -60,7 +60,7 @@ import com.getcode.ui.utils.drawWithGradient
 import com.getcode.ui.utils.nonScaledSp
 import com.getcode.ui.utils.punchCircle
 import com.getcode.ui.utils.punchRectangle
-import com.getcode.util.formattedRaw
+import com.getcode.extensions.formattedRaw
 import kotlin.math.ceil
 import kotlin.math.roundToInt
 

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title_payment_failed">Payment Failed</string>
+    <string name="error_description_payment_failed">This payment request could not be paid at this time. Please try again later.</string>
+</resources>

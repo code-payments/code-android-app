@@ -15,6 +15,9 @@ import com.getcode.navigation.screens.AccessKeyLoginScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.ui.components.bars.BarManager
+import com.getcode.ui.components.bars.BarMessages
+import com.getcode.ui.components.bars.rememberBarManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -26,10 +29,11 @@ import kotlinx.coroutines.launch
 fun rememberCodeAppState(
     scaffoldState: ScaffoldState = rememberScaffoldState(),
     navigator: CodeNavigator = LocalCodeNavigator.current,
+    barManager: BarManager = rememberBarManager(),
     coroutineScope: CoroutineScope = rememberCoroutineScope()
 ) =
-    remember(scaffoldState, navigator , coroutineScope) {
-        CodeAppState(scaffoldState, navigator, coroutineScope)
+    remember(scaffoldState, navigator , barManager, coroutineScope) {
+        CodeAppState(scaffoldState, navigator, barManager, coroutineScope)
     }
 
 /**
@@ -39,19 +43,10 @@ fun rememberCodeAppState(
 class CodeAppState(
     val scaffoldState: ScaffoldState,
     var navigator: CodeNavigator,
+    private val barManager: BarManager,
     coroutineScope: CoroutineScope
 ) {
     init {
-        coroutineScope.launch {
-            TopBarManager.messages.collect { currentMessages ->
-                topBarMessage.value = currentMessages.firstOrNull()
-            }
-        }
-        coroutineScope.launch {
-            BottomBarManager.messages.collect { currentMessages ->
-                bottomBarMessage.value = currentMessages.firstOrNull()
-            }
-        }
         coroutineScope.launch {
             ModalManager.messages.collect { currentMessages ->
                 modalMessage.value = currentMessages.firstOrNull()
@@ -88,8 +83,9 @@ class CodeAppState(
             )
         }
 
-    val topBarMessage = MutableStateFlow<TopBarManager.TopBarMessage?>(null)
-    val bottomBarMessage = MutableStateFlow<BottomBarManager.BottomBarMessage?>(null)
+    val barMessages: BarMessages
+        get() = barManager.barMessages
+
     val modalMessage = MutableStateFlow<ModalManager.Message?>(null)
 
     fun upPress() {

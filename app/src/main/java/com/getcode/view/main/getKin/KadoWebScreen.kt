@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.KadoWebScreen.BuyKinWebInterface
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.toAGColor
 import com.kevinnzou.web.AccompanistWebViewClient
 import com.kevinnzou.web.LoadingState

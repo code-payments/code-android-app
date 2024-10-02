@@ -27,7 +27,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.components.SheetTitleDefaults
 import com.getcode.ui.components.chat.utils.localized
 import com.getcode.ui.utils.RepeatOnLifecycle
-import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.utils.trace
 import com.getcode.view.download.ShareDownloadScreen
 import com.getcode.view.main.account.AccountHome

@@ -1,6 +1,8 @@
 package com.getcode.utils
 
 import android.annotation.SuppressLint
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.libs.currency.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
@@ -19,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
+val LocalCurrencyUtils: ProvidableCompositionLocal<CurrencyUtils?> = staticCompositionLocalOf { null }
 
 @Singleton
 class CurrencyUtils @Inject constructor(

@@ -6,15 +6,19 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
 import com.flipchat.util.AndroidLocale
-import com.flipchat.util.AndroidResources
-import com.getcode.analytics.AnalyticsManager
+import com.getcode.util.resources.AndroidResources
 import com.getcode.analytics.AnalyticsService
 import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.util.vibration.Api25Vibrator
+import com.getcode.util.vibration.Api26Vibrator
+import com.getcode.util.vibration.Api31Vibrator
+import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.network.Api24NetworkObserver
 import com.getcode.utils.network.Api29NetworkObserver
@@ -66,6 +70,23 @@ object AppModule {
     fun providesNotificationManager(
         @ApplicationContext context: Context
     ): NotificationManagerCompat = NotificationManagerCompat.from(context)
+
+    @SuppressLint("NewApi")
+    @Provides
+    @Singleton
+    fun providesVibrator(
+        @ApplicationContext context: Context
+    ): Vibrator = when (val apiLevel = Build.VERSION.SDK_INT) {
+        in Build.VERSION_CODES.BASE..Build.VERSION_CODES.R -> {
+            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            if (apiLevel >= Build.VERSION_CODES.O) {
+                Api26Vibrator(vibrator)
+            } else {
+                Api25Vibrator(vibrator)
+            }
+        }
+        else -> Api31Vibrator(context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager)
+    }
 
     @Provides
     @SuppressLint("NewApi")

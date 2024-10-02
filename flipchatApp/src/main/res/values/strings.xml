@@ -5,11 +5,22 @@
     <string translatable="false" name="handle">\@flipchatapp</string>
     <string translatable="false" name="account_name_link">FlipchatAccount</string>
 
+    <string name="action_nevermind">Nevermind</string>
+
     <string name="action_payToChat">Send %1$s to Start Chatting</string>
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
     <string name="subtitle_loadingChats">Loading your chats</string>
     <string name="action_startNewChat">Start a New Chat</string>
     <string name="subtitle_dontHaveChats">You don\'t have any chats yet.</string>
+
+    <string name="title_chat">Chat</string>
+    <string name="title_whatsTheirUsername">What\'s Their Username?</string>
+    <string name="subtitle_xUsername">X Username</string>
+    <string name="error_title_usernameNotFound">Username not found</string>
+    <string name="error_description_usernameNotFound">This X username isn\'t on Code yet. Please try a different username.</string>
+
+    <string name="prompt_title_revealIdentity">Reveal your identity?</string>
+    <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
 
     <string name="title_connectYourX">Connect Your X</string>
     <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>

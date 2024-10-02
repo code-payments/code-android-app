@@ -28,8 +28,8 @@ import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.ImageWithBackground
 import com.getcode.util.ChromeTabsUtils
 

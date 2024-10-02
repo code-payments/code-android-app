@@ -32,7 +32,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DashEffect
 import com.getcode.theme.receipt
 import com.getcode.theme.monospace
-import com.getcode.view.main.scanner.components.PriceWithFlag
+import com.getcode.ui.components.PriceWithFlag
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

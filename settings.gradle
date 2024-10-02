@@ -1,16 +1,34 @@
-include ':api'
-include ':app'
-include ':flipchatApp'
-include ':common:components'
-include ':common:theme'
-include ':common:locale'
-include ':common:resources'
-include ':libs:crypto:kin'
-include ':libs:crypto:ed25519'
-include ':libs:currency'
-include ':libs:networkObservation'
-include ':service:models'
-include ':service:protos'
-include ':vendor:tipkit:tipkit'
-include ':vendor:tipkit:tipkit-m2'
 rootProject.name = "Code"
+
+include(
+        // apps
+        ":app",
+        ":flipchatApp",
+
+        // Internal libs
+        ":libs:api",
+        ":libs:crypto:ed25519",
+        ":libs:crypto:kin",
+        ":libs:currency",
+        ":libs:datetime",
+        ":libs:locale",
+        ":libs:network:exchange",
+        ':libs:network:observation',
+        ":libs:payments",
+        ":libs:requests",
+        ":libs:vibrator",
+
+        // common UI
+        ":ui:components",
+        ":ui:navigation",
+        ":ui:resources",
+        ":ui:theme",
+
+        // protobuf model and service implementations
+        ":service:models",
+        ":service:protos",
+
+        // 3rd party imported dependencies
+        ":vendor:tipkit:tipkit",
+        ":vendor:tipkit:tipkit-m2",
+)

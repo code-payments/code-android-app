@@ -1,10 +1,15 @@
 package com.flipchat.util
 
-import android.accounts.*
+
+import android.accounts.AbstractAccountAuthenticator
+import android.accounts.Account
+import android.accounts.AccountAuthenticatorResponse
+import android.accounts.NetworkErrorException
 import android.content.Context
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import com.getcode.utils.trace
+import android.accounts.AccountManager as AndroidAccountManager
 
 
 class AccountAuthenticator(
@@ -35,7 +40,7 @@ class AccountAuthenticator(
         options: Bundle
     ): Bundle {
         // Extract the username and password from the Account Manager, then, generate token
-        val am = AccountManager.get(context)
+        val am = AndroidAccountManager.get(context)
         var authToken = am.peekAuthToken(account, authTokenType)
         trace("authenticator: authToken ${authToken != null}, $authTokenType")
         // Lets give another try to authenticate the user
@@ -52,9 +57,9 @@ class AccountAuthenticator(
         if (null != authToken) {
             if (authToken.isNotEmpty()) {
                 val result = Bundle()
-                result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
-                result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type)
-                result.putString(AccountManager.KEY_AUTHTOKEN, authToken)
+                result.putString(AndroidAccountManager.KEY_ACCOUNT_NAME, account.name)
+                result.putString(AndroidAccountManager.KEY_ACCOUNT_TYPE, account.type)
+                result.putString(AndroidAccountManager.KEY_AUTHTOKEN, authToken)
                 return result
             }
         }
@@ -79,7 +84,7 @@ class AccountAuthenticator(
         // This call is used to query whether the Authenticator supports
         // specific features. We don't expect to get called, so we always
         // return false (no) for any queries.
-        val result = bundleOf(AccountManager.KEY_BOOLEAN_RESULT to false)
+        val result = bundleOf(AndroidAccountManager.KEY_BOOLEAN_RESULT to false)
         return result
     }
 

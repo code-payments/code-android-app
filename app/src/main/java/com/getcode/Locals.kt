@@ -18,8 +18,6 @@ import com.getcode.utils.network.NetworkObserverStub
 val LocalSession: ProvidableCompositionLocal<SessionController?> = staticCompositionLocalOf { null }
 val LocalAnalytics: ProvidableCompositionLocal<AnalyticsService> = staticCompositionLocalOf { AnalyticsServiceNull() }
 val LocalPhoneFormatter: ProvidableCompositionLocal<PhoneUtils?> = staticCompositionLocalOf { null }
-val LocalCurrencyUtils: ProvidableCompositionLocal<com.getcode.utils.CurrencyUtils?> = staticCompositionLocalOf { null }
-val LocalExchange: ProvidableCompositionLocal<Exchange> = staticCompositionLocalOf { ExchangeNull() }
 val LocalDeeplinks: ProvidableCompositionLocal<DeeplinkHandler?> = staticCompositionLocalOf { null }
 val LocalTopBarPadding: ProvidableCompositionLocal<PaddingValues> = staticCompositionLocalOf { PaddingValues() }
 val LocalBetaFlags: ProvidableCompositionLocal<BetaOptions> = staticCompositionLocalOf { BetaOptions.Defaults }

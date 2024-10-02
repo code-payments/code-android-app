@@ -13,11 +13,11 @@ import com.getcode.models.Bill
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.Modal
 import com.getcode.utils.flagResId
-import com.getcode.util.formatted
+import com.getcode.extensions.formatted
 import com.getcode.view.main.giveKin.AmountArea
 
 @Composable

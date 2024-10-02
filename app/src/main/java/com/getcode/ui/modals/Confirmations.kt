@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment.Companion.BottomCenter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.zIndex
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.LocalSession
 import com.getcode.R

@@ -46,7 +46,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":common:resources"))
+    implementation(project(":ui:resources"))
 
     //Jetpack compose
     implementation(platform(Libs.compose_bom))

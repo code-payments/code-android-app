@@ -18,7 +18,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -29,8 +28,8 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Success
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.TextInput
 
 @OptIn(ExperimentalFoundationApi::class)

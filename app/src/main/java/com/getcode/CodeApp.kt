@@ -26,6 +26,7 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import cafe.adriel.voyager.transitions.SlideTransition
+import com.getcode.manager.ModalManager
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -35,14 +36,14 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.AuthCheck
 import com.getcode.ui.components.bars.BottomBarContainer
-import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.ModalContainer
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.TitleBar
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.modals.ConfirmationModals
 import com.getcode.ui.utils.getActivity
-import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.rememberBiometricsState
 import com.getcode.util.BiometricsError
@@ -96,7 +97,7 @@ fun CodeApp(tipsEngine: TipsEngine) {
 
                             val (isVisibleTopBar, isVisibleBackButton) = appState.isVisibleTopBar
                             if (isVisibleTopBar && appState.currentTitle.isNotBlank()) {
-                                TitleBar(
+                                AppBarWithTitle(
                                     modifier = Modifier.measured { topBarHeight = it.height },
                                     title = appState.currentTitle,
                                     backButton = isVisibleBackButton,
@@ -152,8 +153,8 @@ fun CodeApp(tipsEngine: TipsEngine) {
             }
         }
         BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
-        TopBarContainer(appState)
-        BottomBarContainer(appState)
+        TopBarContainer(appState.barMessages)
+        BottomBarContainer(appState.barMessages)
         ConfirmationModals(Modifier.fillMaxSize())
     }
 }
@@ -177,7 +178,8 @@ private fun AppNavHost(content: @Composable () -> Unit) {
                 }
             }
 
-        }
+        },
+        onHide = ModalManager::clear
     ) { sheetNav ->
         combinedNavigator =
             combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)

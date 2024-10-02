@@ -46,9 +46,9 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.chat.ChatNode
 import com.getcode.utils.Kin
 import com.getcode.view.main.account.BucketDebugger

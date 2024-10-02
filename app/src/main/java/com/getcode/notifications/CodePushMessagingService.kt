@@ -24,7 +24,6 @@ import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.utils.CurrencyUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils

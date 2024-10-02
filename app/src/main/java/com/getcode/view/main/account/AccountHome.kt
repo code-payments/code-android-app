@@ -50,7 +50,7 @@ import com.getcode.navigation.screens.FaqScreen
 import com.getcode.navigation.screens.WithdrawalAmountScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.verticalScrollStateGradient

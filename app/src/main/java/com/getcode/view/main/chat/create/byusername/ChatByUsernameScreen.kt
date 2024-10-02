@@ -29,9 +29,9 @@ import com.getcode.navigation.screens.ConversationScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.ConstraintMode
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.TextInput
 import com.getcode.ui.components.keyboardAsState
 import kotlinx.coroutines.delay

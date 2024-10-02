@@ -86,7 +86,7 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.ui.components.PermissionResult
 import com.getcode.util.IntentUtils
 import com.getcode.utils.Kin
-import com.getcode.util.formatted
+import com.getcode.extensions.formatted
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
@@ -1800,6 +1800,7 @@ class SessionController @Inject constructor(
         if (request != null) {
             when {
                 request.paymentRequest != null -> {
+                    val payment = request.paymentRequest!!
                     scope.launch {
                         if (state.value.balance == null) {
                             balanceController.fetchBalanceSuspend()
@@ -1810,9 +1811,9 @@ class SessionController @Inject constructor(
                                 it.copy(balance = amount)
                             }
                         }
-                        val fiat = request.paymentRequest.fiat
+                        val fiat = payment.fiat
                         val kind =
-                            if (request.paymentRequest.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
+                            if (payment.fees.isEmpty()) Kind.RequestPayment else Kind.RequestPaymentV2
                         val payload = CodePayload(
                             kind = kind,
                             value = fiat,
@@ -1846,9 +1847,10 @@ class SessionController @Inject constructor(
                 }
 
                 request.tipRequest != null -> {
+                    val tip = request.tipRequest!!
                     val payload = CodePayload(
                         kind = Kind.Tip,
-                        value = Username(request.tipRequest.username)
+                        value = Username(tip.username)
                     )
 
                     if (scannedRendezvous.contains(payload.rendezvous.publicKey)) {
@@ -1862,7 +1864,8 @@ class SessionController @Inject constructor(
                 }
 
                 request.imageRequest != null -> {
-                    onImageSelected(request.imageRequest.uri)
+                    val image = request.imageRequest!!
+                    onImageSelected(image.uri)
                 }
             }
         }

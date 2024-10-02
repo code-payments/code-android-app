@@ -15,10 +15,8 @@ import androidx.fragment.app.FragmentActivity
 import com.getcode.BuildConfig
 import com.getcode.CodeApp
 import com.getcode.LocalAnalytics
-import com.getcode.LocalCurrencyUtils
 import com.getcode.LocalDeeplinks
 import com.getcode.LocalDownloadQrCode
-import com.getcode.LocalExchange
 import com.getcode.LocalPhoneFormatter
 import com.getcode.LocalSession
 import com.getcode.R
@@ -27,13 +25,17 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
+import com.getcode.network.exchange.LocalExchange
 import com.getcode.ui.tips.DefinedTips
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
 import com.getcode.util.rememberQrBitmapPainter
+import com.getcode.util.resources.LocalResources
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.LocalVibrator
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.CurrencyUtils
+import com.getcode.utils.LocalCurrencyUtils
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.utils.trace
@@ -47,6 +49,9 @@ import kotlin.system.exitProcess
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    @Inject
+    lateinit var resources: ResourceHelper
 
     @Inject
     lateinit var client: Client
@@ -135,7 +140,8 @@ class MainActivity : FragmentActivity() {
                     LocalCurrencyUtils provides currencyUtils,
                     LocalExchange provides exchange,
                     LocalDownloadQrCode provides downloadQr,
-                    LocalTipsEngine provides tipEngine
+                    LocalTipsEngine provides tipEngine,
+                    LocalResources provides resources
                 ) {
                     CodeApp(tipEngine)
                 }

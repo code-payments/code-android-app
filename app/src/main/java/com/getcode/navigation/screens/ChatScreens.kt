@@ -30,13 +30,11 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
 import com.getcode.model.ID
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.Reference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.UserAvatar
-import com.getcode.ui.utils.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
-import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.chat.conversation.ConversationScreen
 import com.getcode.view.main.chat.conversation.ConversationViewModel
 import com.getcode.view.main.chat.create.byusername.ChatByUsernameScreen

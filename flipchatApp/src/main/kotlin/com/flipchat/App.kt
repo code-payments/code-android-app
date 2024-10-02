@@ -1,66 +1,120 @@
 package com.flipchat
 
-import android.app.Application
-import androidx.appcompat.app.AppCompatDelegate
-import com.bugsnag.android.Bugsnag
-import com.flipchat.manager.AuthManager
-import com.getcode.crypt.MnemonicCache
-import com.getcode.network.integrity.DeviceCheck
-import com.getcode.utils.ErrorUtils
-import com.getcode.utils.trace
-import com.google.firebase.Firebase
-import com.google.firebase.initialize
-import dagger.hilt.android.HiltAndroidApp
-import io.reactivex.rxjava3.plugins.RxJavaPlugins
-import timber.log.Timber
-import javax.inject.Inject
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.navigator.Navigator
+import cafe.adriel.voyager.transitions.ScreenTransition
+import cafe.adriel.voyager.transitions.ScreenTransitionContent
+import cafe.adriel.voyager.transitions.SlideTransition
+import com.flipchat.features.payments.PaymentScaffold
+import com.getcode.manager.ModalManager
+import com.getcode.manager.TopBarManager
+import com.getcode.navigation.core.BottomSheetNavigator
+import com.getcode.navigation.core.CombinedNavigator
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.transitions.SheetSlideTransition
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.LocalCodeColors
+import com.getcode.ui.components.bars.BottomBarContainer
+import com.getcode.ui.components.bars.TopBarContainer
+import com.getcode.ui.components.bars.rememberBarManager
+import com.getcode.ui.theme.CodeScaffold
+import dev.bmcreations.tipkit.TipScaffold
+import dev.bmcreations.tipkit.engines.TipsEngine
 
-@HiltAndroidApp
-class App : Application() {
+@Composable
+fun App(
+    tipsEngine: TipsEngine,
+) {
+    CodeTheme {
+        AppScreenContent {
+            val barManager = rememberBarManager()
+            AppNavHost {
+                val codeNavigator = LocalCodeNavigator.current
+                TipScaffold(tipsEngine = tipsEngine) {
+                    CodeScaffold { innerPaddingModifier ->
+                        PaymentScaffold {
+                            Navigator(
+                                screen = MainRoot,
+                            ) { navigator ->
+                                LaunchedEffect(navigator.lastItem) {
+                                    // update global navigator for platform access to support push/pop from a single
+                                    // navigator current
+                                    codeNavigator.screensNavigator = navigator
+                                }
 
-    @Inject
-    lateinit var authManager: AuthManager
-
-    override fun onCreate() {
-        super.onCreate()
-
-        Firebase.initialize(this)
-        DeviceCheck.register(this)
-        MnemonicCache.init(this)
-        authManager.init()
-
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-
-        RxJavaPlugins.setErrorHandler {
-            ErrorUtils.handleError(it)
-        }
-
-        if (BuildConfig.DEBUG) {
-            Timber.plant(object : Timber.DebugTree() {
-                override fun createStackElementTag(element: StackTraceElement): String {
-                    val elementTag = super.createStackElementTag(element)
-                        .orEmpty()
-                        .split("$")
-                        .filter { it.isNotEmpty() }
-                        .take(2)
-                        .joinToString(" ")
-                        .replace("_", " ")
-
-                    val methodName = element.methodName
-                        .split("$")
-                        .firstOrNull()
-                        .orEmpty()
-
-                    return String.format(
-                        "%s | %s ",
-                        elementTag,
-                        methodName
-                    )
+                                Box(
+                                    modifier = Modifier
+                                        .padding(innerPaddingModifier)
+                                ) {
+                                    SlideTransition(navigator)
+                                }
+                            }
+                        }
+                    }
                 }
-            })
-        } else {
-            Bugsnag.start(this)
+                TopBarContainer(barManager.barMessages)
+                BottomBarContainer(barManager.barMessages)
+            }
         }
-        trace("app onCreate end")
     }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun AppNavHost(content: @Composable () -> Unit) {
+    var combinedNavigator by remember {
+        mutableStateOf<CombinedNavigator?>(null)
+    }
+    BottomSheetNavigator(
+        modifier = Modifier.fillMaxSize(),
+        sheetBackgroundColor = LocalCodeColors.current.background,
+        sheetContentColor = LocalCodeColors.current.onBackground,
+        sheetContent = { sheetNav ->
+            combinedNavigator = combinedNavigator?.apply { sheetNavigator = sheetNav }
+                ?: CombinedNavigator(sheetNav)
+            combinedNavigator?.let {
+                CompositionLocalProvider(LocalCodeNavigator provides it) {
+                    SheetSlideTransition(navigator = it)
+                }
+            }
+
+        },
+        onHide = ModalManager::clear
+    ) { sheetNav ->
+        combinedNavigator =
+            combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)
+        combinedNavigator?.let {
+            CompositionLocalProvider(LocalCodeNavigator provides it) {
+                content()
+            }
+        }
+    }
+}
+
+@Composable
+private fun CrossfadeTransition(
+    navigator: Navigator,
+    modifier: Modifier = Modifier,
+    content: ScreenTransitionContent = { it.Content() }
+) {
+    ScreenTransition(
+        navigator = navigator,
+        modifier = modifier,
+        content = content,
+        transition = { fadeIn() togetherWith fadeOut() }
+    )
 }

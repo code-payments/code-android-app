@@ -17,8 +17,8 @@ import com.getcode.model.Immutable
 import com.getcode.model.PrefsBool
 import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.SettingsRow
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 

@@ -39,9 +39,9 @@ import androidx.compose.ui.unit.isSpecified
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
+import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.components.Cloudy
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.PermissionResult
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.getPermissionLauncher

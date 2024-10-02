@@ -14,11 +14,10 @@ import com.getcode.LocalAnalytics
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 
 @Composable
 fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current, fromOnboarding: Boolean = false) {

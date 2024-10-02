@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.swallowClicks
 
 @Composable

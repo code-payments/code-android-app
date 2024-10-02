@@ -49,7 +49,7 @@ android {
 
 dependencies {
     api(project(":vendor:tipkit:tipkit"))
-    implementation(project(":common:theme"))
+    implementation(project(":ui:theme"))
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     implementation(Libs.compose_ui_graphics)

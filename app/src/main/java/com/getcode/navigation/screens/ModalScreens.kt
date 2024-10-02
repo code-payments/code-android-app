@@ -18,8 +18,8 @@ import com.getcode.analytics.AnalyticsScreenWatcher
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.SheetTitleDefaults
-import com.getcode.ui.utils.getActivityScopedViewModel
-import com.getcode.ui.utils.getStackScopedViewModel
+import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.navigation.extensions.getStackScopedViewModel
 import com.getcode.view.login.PhoneConfirm
 import com.getcode.view.login.PhoneVerify
 import com.getcode.view.login.PhoneVerifyViewModel

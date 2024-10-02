@@ -14,12 +14,12 @@ import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.util.AndroidLocale
 import com.getcode.util.AndroidPermissions
-import com.getcode.util.AndroidResources
-import com.getcode.util.Api25Vibrator
-import com.getcode.util.Api26Vibrator
-import com.getcode.util.Api31Vibrator
+import com.getcode.util.vibration.Api25Vibrator
+import com.getcode.util.vibration.Api26Vibrator
+import com.getcode.util.vibration.Api31Vibrator
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.permissions.PermissionChecker
+import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.CurrencyUtils

@@ -17,9 +17,9 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeKeyPad
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeKeyPad
 import com.getcode.view.main.giveKin.AmountArea
 
 @Composable

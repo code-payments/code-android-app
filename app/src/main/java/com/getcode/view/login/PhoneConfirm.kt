@@ -45,9 +45,9 @@ import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeCircularProgressIndicator
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.OtpRow
 
 internal const val OTP_LENGTH = 6

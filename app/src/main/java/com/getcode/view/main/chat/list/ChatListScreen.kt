@@ -26,10 +26,10 @@ import com.getcode.navigation.screens.ChatByUsernameScreen
 import com.getcode.navigation.screens.ConversationScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.ui.components.ButtonState
-import com.getcode.ui.components.CodeButton
-import com.getcode.ui.components.CodeCircularProgressIndicator
-import com.getcode.ui.components.CodeScaffold
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.chat.ChatNode
 
 @Composable
