@@ -3,8 +3,6 @@ package com.getcode.crypt
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.repository.decodeBase64
 import com.getcode.network.repository.encodeBase64
-import com.getcode.utils.TraceType
-import com.getcode.utils.timedTrace
 import org.kin.sdk.base.tools.Base58
 
 

@@ -19,7 +19,6 @@ import com.getcode.model.SocialUser
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.OutgoingMessageContent
-import com.getcode.model.chat.Platform
 import com.getcode.model.chat.isConversation
 import com.getcode.model.chat.selfId
 import com.getcode.model.description
@@ -29,7 +28,6 @@ import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.bytes
-import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

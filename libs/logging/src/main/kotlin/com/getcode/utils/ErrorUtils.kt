@@ -3,7 +3,7 @@ package com.getcode.utils
 import android.database.SQLException
 import com.bugsnag.android.Bugsnag
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.getcode.api.BuildConfig
+import com.getcode.libs.logging.BuildConfig
 import com.getcode.manager.TopBarManager
 import io.grpc.StatusRuntimeException
 import io.reactivex.rxjava3.exceptions.OnErrorNotImplementedException
@@ -18,7 +18,7 @@ object ErrorUtils {
     private var isDisplayErrors = false
 
     fun setDisplayErrors(isDisplayErrors: Boolean) {
-        this.isDisplayErrors = isDisplayErrors
+        ErrorUtils.isDisplayErrors = isDisplayErrors
     }
 
     fun handleError(throwable: Throwable) {

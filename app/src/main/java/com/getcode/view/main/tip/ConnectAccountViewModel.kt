@@ -5,13 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.analytics.AnalyticsService
-import com.getcode.ed25519.Ed25519
-import com.getcode.manager.MnemonicManager
-import com.getcode.manager.SessionManager
-import com.getcode.manager.TopBarManager
 import com.getcode.network.IdentityManager
 import com.getcode.network.TipController
-import com.getcode.network.repository.encodeBase64
 import com.getcode.util.IntentUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2

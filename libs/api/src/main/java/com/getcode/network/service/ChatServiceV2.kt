@@ -1,7 +1,6 @@
 package com.getcode.network.service
 
 import com.codeinc.gen.chat.v2.ChatService
-import com.codeinc.gen.chat.v2.ChatService.MemberId
 import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.OpenChatEventStream
 import com.codeinc.gen.chat.v2.ChatService.PointerType
@@ -24,7 +23,6 @@ import com.getcode.model.chat.ChatIdV2
 import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.OutgoingMessageContent
-import com.getcode.model.chat.Platform
 import com.getcode.model.description
 import com.getcode.model.uuid
 import com.getcode.network.api.ChatApiV2
@@ -35,7 +33,6 @@ import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.bytes
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import io.grpc.Status

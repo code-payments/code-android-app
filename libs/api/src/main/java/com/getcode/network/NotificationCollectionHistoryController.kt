@@ -111,7 +111,10 @@ class NotificationCollectionHistoryController @Inject constructor(
 
         val updatedWithMessages = mutableListOf<NotificationCollectionEntity>()
         val containers = fetchCollectionsWithoutMessages()
-        trace(message = "Fetched ${containers.count()} collections", type = TraceType.Silent)
+        trace(
+            message = "Fetched ${containers.count()} collections",
+            type = TraceType.Silent
+        )
 
         if (!update) {
             pagerMap.clear()

@@ -45,7 +45,10 @@ class BidirectionalStreamReference<Request, Response>(private val scope: Corouti
             // double provided timeout
             val newTimeout = (it * 2)
             if (pingTimeout != newTimeout) {
-                trace(type = TraceType.StateChange, message = "Updating timeout from $pingTimeout to $newTimeout")
+                trace(
+                    type = TraceType.StateChange,
+                    message = "Updating timeout from $pingTimeout to $newTimeout"
+                )
                 pingTimeout = newTimeout
             }
         }

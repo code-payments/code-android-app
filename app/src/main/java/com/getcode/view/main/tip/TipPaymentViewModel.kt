@@ -2,7 +2,6 @@ package com.getcode.view.main.tip
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.manager.TopBarManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount

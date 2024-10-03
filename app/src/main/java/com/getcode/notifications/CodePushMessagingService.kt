@@ -27,9 +27,7 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
-import com.getcode.utils.trace
 import com.getcode.view.MainActivity
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations

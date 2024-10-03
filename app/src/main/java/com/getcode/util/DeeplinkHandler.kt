@@ -49,7 +49,10 @@ class DeeplinkHandler @Inject constructor(
         set(value) {
             intent.value = value
             field = value
-            trace("debounced intent data=${value?.data}", type = TraceType.Silent)
+            trace(
+                "debounced intent data=${value?.data}",
+                type = TraceType.Silent
+            )
         }
 
     val intent = MutableStateFlow(debounceIntent)

@@ -1,5 +1,7 @@
 package com.getcode.utils.network
 
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
 import kotlinx.coroutines.delay
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -10,19 +12,19 @@ suspend fun <T> retryable(
     maxRetries: Int = 3,
     delayDuration: Duration = 2.seconds,
     onRetry: (Int) -> Unit = { currentAttempt ->
-//        trace(
-//            message = "Retrying call",
-//            metadata = {
-//                "count" to currentAttempt
-//            },
-//            type = TraceType.Process,
-//        )
+        trace(
+            message = "Retrying call",
+            metadata = {
+                "count" to currentAttempt
+            },
+            type = TraceType.Process,
+        )
     },
     onError: (startTime: TimeSource.Monotonic.ValueTimeMark) -> Unit = { startTime ->
-//        trace(
-//            "Failed to get a success after $maxRetries attempts in ${startTime.elapsedNow().inWholeMilliseconds} ms",
-//            type = TraceType.Error
-//        )
+        trace(
+            "Failed to get a success after $maxRetries attempts in ${startTime.elapsedNow().inWholeMilliseconds} ms",
+            type = TraceType.Error
+        )
     },
 ): T? {
     var currentAttempt = 0
@@ -32,11 +34,11 @@ suspend fun <T> retryable(
         val result = try {
             call()
         } catch (e: Exception) {
-//            trace(
-//                message = "Attempt $currentAttempt failed with exception: ${e.message}",
-//                error = e,
-//                type = TraceType.Error
-//            )
+            trace(
+                message = "Attempt $currentAttempt failed with exception: ${e.message}",
+                error = e,
+                type = TraceType.Error
+            )
             null
         }
 

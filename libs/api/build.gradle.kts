@@ -34,19 +34,6 @@ android {
         }
     }
 
-    buildTypes {
-        getByName("release") {
-            buildConfigField("Boolean", "NOTIFY_ERRORS", "true")
-        }
-        getByName("debug") {
-            buildConfigField(
-                "Boolean",
-                "NOTIFY_ERRORS",
-                tryReadProperty(rootProject.rootDir, "NOTIFY_ERRORS", "false")
-            )
-        }
-    }
-
     java {
         toolchain {
             languageVersion.set(JavaLanguageVersion.of(Versions.java))
@@ -74,6 +61,8 @@ dependencies {
     implementation(project(":libs:crypto:ed25519"))
     implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:currency"))
+    implementation(project(":libs:logging"))
+    implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:observation"))
     implementation(project(":ui:resources"))
@@ -94,6 +83,11 @@ dependencies {
     implementation(Libs.mixpanel)
 
     implementation(platform(Libs.firebase_bom))
+    implementation(Libs.firebase_crashlytics)
+    implementation(Libs.firebase_installations)
+    implementation(Libs.firebase_perf)
+    implementation(Libs.firebase_messaging)
+
     implementation(Libs.play_integrity)
 
     implementation(Libs.androidx_paging_runtime)
@@ -106,12 +100,6 @@ dependencies {
     implementation(Libs.fingerprint_pro)
 
     implementation(Libs.lib_phone_number_google)
-
-    implementation(platform(Libs.firebase_bom))
-    implementation(Libs.firebase_crashlytics)
-    implementation(Libs.firebase_installations)
-    implementation(Libs.firebase_perf)
-    implementation(Libs.firebase_messaging)
 
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)

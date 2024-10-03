@@ -8,7 +8,6 @@ import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppResponse
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
 import com.getcode.db.Database
-import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
@@ -24,7 +23,6 @@ import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
-import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject

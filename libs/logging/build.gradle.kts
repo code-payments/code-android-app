@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.libs.requests"
+    namespace = "${Android.codeNamespace}.libs.logging"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -18,6 +18,19 @@ android {
     compileOptions {
         sourceCompatibility(Versions.java)
         targetCompatibility(Versions.java)
+    }
+
+    buildTypes {
+        getByName("release") {
+            buildConfigField("Boolean", "NOTIFY_ERRORS", "true")
+        }
+        getByName("debug") {
+            buildConfigField(
+                "Boolean",
+                "NOTIFY_ERRORS",
+                tryReadProperty(rootProject.rootDir, "NOTIFY_ERRORS", "false")
+            )
+        }
     }
 
     java {
@@ -37,35 +50,17 @@ android {
     }
 
     buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = Versions.compose_compiler
+        buildConfig = true
     }
 }
 
 dependencies {
-    implementation(project(":libs:api"))
-    implementation(project(":libs:currency"))
-    implementation(project(":libs:logging"))
-    implementation(project(":ui:resources"))
-
-    //Jetpack compose
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
-
-    implementation(Libs.kotlinx_coroutines_core)
-    implementation(Libs.kotlinx_serialization_json)
-    implementation(Libs.kotlinx_datetime)
-    implementation(Libs.inject)
-
-
-    androidTestImplementation(Libs.androidx_junit)
-    androidTestImplementation(Libs.junit)
-    androidTestImplementation(Libs.androidx_test_runner)
-    implementation(Libs.hilt)
-
-    implementation(Libs.timber)
+    api(Libs.timber)
     implementation(Libs.bugsnag)
+    implementation(Libs.rxjava)
+    implementation(platform(Libs.firebase_bom))
+    implementation(Libs.firebase_crashlytics)
+    implementation(Libs.grpc_kotlin)
+    implementation(Libs.sqlcipher)
+    implementation(project(":libs:messaging"))
 }

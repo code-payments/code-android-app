@@ -21,7 +21,6 @@ import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipchat.features.payments.PaymentScaffold
 import com.getcode.manager.ModalManager
-import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator

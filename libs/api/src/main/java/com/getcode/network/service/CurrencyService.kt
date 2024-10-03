@@ -1,6 +1,5 @@
 package com.getcode.network.service
 
-import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
 import com.getcode.network.api.CurrencyApi
 import com.getcode.network.core.NetworkOracle

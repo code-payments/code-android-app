@@ -10,11 +10,8 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AccountManager
 import com.getcode.manager.AuthManager
-import com.getcode.manager.BottomBarManager
 import com.getcode.manager.MnemonicManager
-import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils

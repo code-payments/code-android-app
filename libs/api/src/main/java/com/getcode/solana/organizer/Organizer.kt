@@ -79,7 +79,7 @@ class Organizer(
 
     fun propagateBalances() {
         val balances = mutableMapOf<AccountType, Kin>()
-        timedTrace("propagate balances") {
+        com.getcode.utils.timedTrace("propagate balances") {
             for ((vaultPublicKey, info) in accountInfos) {
                 if (tray.publicKey(info.accountType) == vaultPublicKey) {
                     balances[info.accountType] = info.balance

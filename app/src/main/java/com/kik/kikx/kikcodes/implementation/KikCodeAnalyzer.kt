@@ -1,6 +1,5 @@
 package com.kik.kikx.kikcodes.implementation
 
-import android.content.Context
 import android.net.Uri
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -12,7 +11,6 @@ import com.getcode.utils.ErrorUtils
 import com.kik.kikx.kikcodes.KikCodeScanner
 import com.kik.kikx.kikcodes.ScannerError
 import com.kik.kikx.models.ScannableKikCode
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

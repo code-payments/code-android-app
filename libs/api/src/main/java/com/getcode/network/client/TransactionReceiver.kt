@@ -138,7 +138,10 @@ class TransactionReceiver @Inject constructor(
     }
 
     fun receiveFromIncoming(amount: Kin, organizer: Organizer): Completable {
-        trace("receiveFromIncoming $amount", type = TraceType.Silent)
+        trace(
+            "receiveFromIncoming $amount",
+            type = TraceType.Silent
+        )
         return transactionRepository.receiveFromIncoming(
             context, amount, organizer
         ).map {

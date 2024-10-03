@@ -48,6 +48,8 @@ android {
 dependencies {
     implementation(project(":libs:api"))
     implementation(project(":libs:currency"))
+    implementation(project(":libs:logging"))
+    implementation(project(":libs:messaging"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:resources"))
 

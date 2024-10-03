@@ -12,6 +12,8 @@ include(
         ":libs:currency",
         ":libs:datetime",
         ":libs:locale",
+        ":libs:logging",
+        ":libs:messaging",
         ":libs:network:exchange",
         ':libs:network:observation',
         ":libs:payments",

@@ -45,7 +45,10 @@ suspend fun Client.fetchV1Chats(owner: KeyPair): Result<List<NotificationCollect
         .onSuccess {
             Timber.d("v1 chats fetched=${it.count()}")
         }.onFailure {
-            trace("Failed fetching chats from V1", type = TraceType.Error)
+            trace(
+                "Failed fetching chats from V1",
+                type = TraceType.Error
+            )
         }
 
     return v1Chats
@@ -60,7 +63,10 @@ suspend fun Client.fetchV2Chats(owner: KeyPair): Result<List<ConversationEntity>
         .onSuccess {
             Timber.d("v2 chats fetched=${it.count()}")
         }.onFailure {
-            trace("Failed fetching chats from V2", type = TraceType.Error)
+            trace(
+                "Failed fetching chats from V2",
+                type = TraceType.Error
+            )
         }
 
     return v2Chats

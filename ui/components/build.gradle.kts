@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":libs:datetime"))
     implementation(project(":libs:crypto:ed25519"))
     implementation(project(":libs:currency"))
+    implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:theme"))

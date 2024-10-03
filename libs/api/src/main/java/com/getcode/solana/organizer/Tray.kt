@@ -424,18 +424,27 @@ class Tray(
             val currentSlot = slots[slots.size - i] // Backwards
             val smallerSlot = slotDown(currentSlot.type)
 
-            trace("$padding o Checking slot: ${currentSlot.type}", type = TraceType.Silent)
+            trace(
+                "$padding o Checking slot: ${currentSlot.type}",
+                type = TraceType.Silent
+            )
 
             if (smallerSlot == null) {
                 // We're at the lowest denomination
                 // so we can't exchange anymore.
-                trace("$padding x Last slot", type = TraceType.Silent)
+                trace(
+                    "$padding x Last slot",
+                    type = TraceType.Silent
+                )
                 break
             }
 
             if (currentSlot.billCount() <= 0) {
                 // Nothing to exchange, the current slot is empty.
-                trace("$padding x Empty", type = TraceType.Silent)
+                trace(
+                    "$padding x Empty",
+                    type = TraceType.Silent
+                )
                 continue
             }
 
@@ -444,7 +453,10 @@ class Tray(
             if (smallerSlot.billCount() >= howManyFit - 1) {
                 // No reason to exchange yet, the smaller slot
                 // already has enough bills for most payments
-                trace("$padding x Enough bills", type = TraceType.Silent)
+                trace(
+                    "$padding x Enough bills",
+                    type = TraceType.Silent
+                )
                 continue
             }
 
@@ -499,7 +511,10 @@ class Tray(
             if (largerSlot == null) {
                 // We're at the largest denomination
                 // so we can't exchange anymore.
-                trace("$padding x Last slot", type = TraceType.Silent)
+                trace(
+                    "$padding x Last slot",
+                    type = TraceType.Silent
+                )
                 break
             }
 
@@ -513,7 +528,10 @@ class Tray(
             if (howManyWeHave < ((howManyFit * 2) - 1)) {
                 // We don't have enough bills to exchange, so we can't do
                 // anything in this slot at the moment.
-                trace("$padding x Not enough bills", type = TraceType.Silent)
+                trace(
+                    "$padding x Not enough bills",
+                    type = TraceType.Silent
+                )
                 continue
             }
 

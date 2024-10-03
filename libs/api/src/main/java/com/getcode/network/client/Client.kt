@@ -17,7 +17,6 @@ import com.getcode.network.service.ChatServiceV1
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.network.service.DeviceService
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.network.NetworkConnectivityListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel

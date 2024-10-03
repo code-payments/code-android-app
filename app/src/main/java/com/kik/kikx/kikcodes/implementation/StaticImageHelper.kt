@@ -68,7 +68,7 @@ class StaticImageHelper @Inject constructor(
         destination: File,
         scan: suspend (Bitmap, ScanQuality) -> Result<ScannableKikCode>,
     ): Result<ScannableKikCode> {
-        return timedTraceSuspend(
+        return com.getcode.utils.timedTraceSuspend(
             message = "analyzing image",
             tag = "Image Analysis",
             type = TraceType.Process,
@@ -113,7 +113,7 @@ class StaticImageHelper @Inject constructor(
         zoomLevels: List<Double>,
         scan: suspend (Bitmap) -> Result<ScannableKikCode>
     ): Result<ScannableKikCode> {
-        return timedTraceSuspend(
+        return com.getcode.utils.timedTraceSuspend(
             message = "slidingWindowSearch",
             tag = "Image Analysis",
             type = TraceType.Process

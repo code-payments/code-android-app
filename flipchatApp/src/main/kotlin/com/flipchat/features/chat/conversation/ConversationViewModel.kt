@@ -11,8 +11,6 @@ import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
 import com.flipchat.BuildConfig
-import com.flipchat.R
-import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationWithLastPointers
@@ -21,7 +19,6 @@ import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.MessageStatus
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
@@ -53,7 +50,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID

@@ -588,7 +588,7 @@ class TransactionRepository @Inject constructor(
                     message = "Fetched limits",
                     type = TraceType.Process,
                     metadata = {
-                        val sendLimit = it.sendLimitFor(com.getcode.model.CurrencyCode.USD)
+                        val sendLimit = it.sendLimitFor(CurrencyCode.USD)
                         if (sendLimit != null) {
                             "limitNextTx" to sendLimit
                         }

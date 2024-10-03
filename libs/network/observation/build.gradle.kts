@@ -47,6 +47,7 @@ android {
 
 dependencies {
     implementation(project(":libs:datetime"))
+    implementation(project(":libs:logging"))
     //Jetpack compose
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)

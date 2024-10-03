@@ -31,8 +31,8 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
 import com.getcode.utils.makeE164
-import com.getcode.utils.trace
 import com.getcode.utils.token
+import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging

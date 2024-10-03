@@ -7,7 +7,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.R
 import com.getcode.analytics.Action
-import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator

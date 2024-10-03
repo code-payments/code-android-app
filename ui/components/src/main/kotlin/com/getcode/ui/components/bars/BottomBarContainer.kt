@@ -38,7 +38,6 @@ import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.rememberedClickable
-import com.getcode.utils.trace
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -122,9 +121,6 @@ fun BottomBarView(
 ) {
     bottomBarMessage ?: return
 
-    LaunchedEffect(bottomBarMessage) {
-        trace("bottom bar message shown=${bottomBarMessage.title}")
-    }
     BackHandler(enabled = bottomBarMessage.isDismissible) {
         onBackPressed()
     }

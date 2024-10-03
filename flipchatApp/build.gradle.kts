@@ -120,6 +120,8 @@ dependencies {
     implementation(project(":libs:crypto:ed25519"))
     implementation(project(":libs:crypto:kin"))
     implementation(project(":libs:currency"))
+    implementation(project(":libs:logging"))
+    implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:observation"))
     implementation(project(":libs:payments"))

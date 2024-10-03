@@ -4,7 +4,6 @@ package com.getcode.util
 
 import android.content.Context
 import com.getcode.R
-import com.getcode.manager.TopBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 

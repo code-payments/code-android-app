@@ -2,19 +2,15 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.push.v1.PushService
-import com.getcode.ed25519.Ed25519
 import com.getcode.manager.SessionManager
 import com.getcode.model.PrefsString
 import com.getcode.network.api.PushApi
 import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
-import com.google.firebase.installations.installations
-import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
 class PushRepository @Inject constructor(

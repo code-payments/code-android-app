@@ -93,7 +93,10 @@ class ChatHistoryController @Inject constructor(
 
         val updatedWithMessages = mutableListOf<ConversationEntity>()
         val containers = fetchChatsWithoutMessages()
-        trace(message = "Fetched ${containers.count()} chats", type = TraceType.Silent)
+        trace(
+            message = "Fetched ${containers.count()} chats",
+            type = TraceType.Silent
+        )
 
         if (!update) {
             pagerMap.clear()

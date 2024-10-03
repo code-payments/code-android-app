@@ -4,19 +4,14 @@ package com.getcode.view.main.chat.create.byusername
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
-import androidx.compose.foundation.text2.input.clearText
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.TwitterUser
-import com.getcode.network.TipController
 import com.getcode.network.TwitterUserController
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
-import com.getcode.view.main.chat.conversation.ConversationViewModel.Event
-import com.getcode.view.main.chat.conversation.ConversationViewModel.State
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map

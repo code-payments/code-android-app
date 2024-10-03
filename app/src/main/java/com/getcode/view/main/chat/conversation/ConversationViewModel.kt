@@ -11,11 +11,8 @@ import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
 import com.getcode.BuildConfig
-import com.getcode.R
 import com.getcode.SessionController
 import com.getcode.SessionEvent
-import com.getcode.manager.BottomBarManager
-import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
@@ -23,7 +20,6 @@ import com.getcode.model.MessageStatus
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
@@ -36,9 +32,7 @@ import com.getcode.ui.components.chat.utils.ConversationMessageIndice
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.TraceType
 import com.getcode.utils.timestamp
-import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -53,7 +47,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
