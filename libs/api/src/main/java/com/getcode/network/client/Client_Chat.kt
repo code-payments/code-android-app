@@ -85,7 +85,7 @@ suspend fun Client.setSubscriptionState(
     subscribed: Boolean
 ): Result<Boolean> {
     return if (chat.isV2) {
-        chatServiceV2.setSubscriptionState(owner, chat.id, subscribed)
+        throw IllegalArgumentException("V2 chats dont have subscription state")
     } else {
         chatServiceV1.setSubscriptionState(owner, chat.id, subscribed)
     }

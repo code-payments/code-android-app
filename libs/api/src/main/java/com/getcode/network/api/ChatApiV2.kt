@@ -1,13 +1,11 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.chat.v2.ChatService
-import com.codeinc.gen.chat.v2.ChatService.ChatMemberIdentity
+import com.codeinc.gen.chat.v2.ChatService.MemberIdentity
 import com.codeinc.gen.chat.v2.ChatService.Content
 import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingRequest
 import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.PointerType
-import com.codeinc.gen.chat.v2.ChatService.RevealIdentityRequest
-import com.codeinc.gen.chat.v2.ChatService.RevealIdentityResponse
 import com.codeinc.gen.chat.v2.ChatService.SendMessageRequest
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.common.v1.Model
@@ -25,11 +23,13 @@ import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.bytes
+import com.getcode.utils.network.retryable
 import com.getcode.utils.sign
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import java.util.UUID
 import javax.inject.Inject
@@ -47,8 +47,6 @@ import com.getcode.model.chat.ModelIntentId as IntentId
 import com.getcode.model.chat.PointerV2 as Pointer
 import com.getcode.model.chat.SetMuteStateRequestV2 as SetMuteStateRequest
 import com.getcode.model.chat.SetMuteStateResponseV2 as SetMuteStateResponse
-import com.getcode.model.chat.SetSubscriptionStateRequestV2 as SetSubscriptionStateRequest
-import com.getcode.model.chat.SetSubscriptionStateResponseV2 as SetSubscriptionStateResponse
 
 class ChatApiV2 @Inject constructor(
     managedChannel: ManagedChannel
@@ -61,12 +59,11 @@ class ChatApiV2 @Inject constructor(
         with: SocialUser,
         intentId: ID
     ): Flow<StartChatResponse> {
+
         val request = StartChatRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setSelf(self.chatMemberIdentity)
             .setTwoWayChat(
                 ChatService.StartTwoWayChatParameters.newBuilder()
-                    .setIdentity(with.chatMemberIdentity)
                     .setIntentId(IntentId.newBuilder().setValue(intentId.toByteString()))
                     .setOtherUser(with.tipAddress.bytes.toSolanaAccount())
                     .build()
@@ -102,8 +99,6 @@ class ChatApiV2 @Inject constructor(
                 ChatId.newBuilder()
                     .setValue(chatId.toByteString())
                     .build()
-            ).setMemberId(ChatService.ChatMemberId.newBuilder()
-                .setValue(memberId.bytes.toByteString())
             )
 
         if (cursor != null) {
@@ -138,10 +133,10 @@ class ChatApiV2 @Inject constructor(
             ).setPointer(
                 Pointer.newBuilder()
                     .setType(type)
-                    .setMemberId(ChatService.ChatMemberId.newBuilder()
+                    .setMemberId(ChatService.MemberId.newBuilder()
                         .setValue(memberId.bytes.toByteString()))
                     .setValue(
-                        ChatService.ChatMessageId.newBuilder()
+                        ChatService.MessageId.newBuilder()
                             .setValue(to.toByteArray().toByteString())
                     )
             ).setOwner(owner.publicKeyBytes.toSolanaAccount())
@@ -165,26 +160,6 @@ class ChatApiV2 @Inject constructor(
             .build()
 
         return api::setMuteState
-            .callAsCancellableFlow(request)
-            .flowOn(Dispatchers.IO)
-    }
-
-    fun setSubscriptionState(
-        owner: KeyPair,
-        chatId: ID,
-        subscribed: Boolean
-    ): Flow<SetSubscriptionStateResponse> {
-        val request = SetSubscriptionStateRequest.newBuilder()
-            .setChatId(
-                ChatId.newBuilder()
-                    .setValue(chatId.toByteArray().toByteString())
-                    .build()
-            ).setIsSubscribed(subscribed)
-            .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .apply { setSignature(sign(owner)) }
-            .build()
-
-        return api::setSubscriptionState
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }
@@ -220,11 +195,6 @@ class ChatApiV2 @Inject constructor(
         val contentProto = when (content) {
             is OutgoingMessageContent.Text -> Content.newBuilder()
                 .setText(ChatService.TextContent.newBuilder().setText(content.text))
-            is OutgoingMessageContent.ThankYou -> Content.newBuilder()
-                .setThankYou(ChatService.ThankYouContent.newBuilder()
-                    .setTipIntent(Model.IntentId.newBuilder()
-                        .setValue(content.tipIntentId.toByteString()))
-                )
         }
 
         val request = SendMessageRequest.newBuilder()
@@ -232,39 +202,11 @@ class ChatApiV2 @Inject constructor(
                 .setValue(chatId.toByteArray().toByteString())
             )
             .addContent(contentProto)
-            .setMemberId(ChatService.ChatMemberId.newBuilder()
-                .setValue(memberId.bytes.toByteString())
-            ).setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .apply { setSignature(sign(owner)) }
-            .build()
-
-        api.sendMessage(request, observer)
-    }
-
-    fun revealIdentity(
-        owner: KeyPair,
-        chatId: ID,
-        memberId: UUID,
-        platform: Platform,
-        username: String,
-        observer: StreamObserver<RevealIdentityResponse>
-    ) {
-        val request = RevealIdentityRequest.newBuilder()
-            .setChatId(ChatId.newBuilder()
-                .setValue(chatId.toByteArray().toByteString())
-            )
-            .setMemberId(ChatService.ChatMemberId.newBuilder()
-                .setValue(memberId.bytes.toByteString())
-            )
-            .setIdentity(ChatMemberIdentity.newBuilder()
-                .setPlatformValue(platform.ordinal)
-                .setUsername(username)
-            )
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .apply { setSignature(sign(owner)) }
             .build()
 
-        api.revealIdentity(request, observer)
+        api.sendMessage(request, observer)
     }
 
     fun onStartedTyping(
@@ -277,9 +219,6 @@ class ChatApiV2 @Inject constructor(
             .setChatId(ChatId.newBuilder()
                 .setValue(chatId.toByteArray().toByteString())
             ).setIsTyping(true)
-            .setMemberId(ChatService.ChatMemberId.newBuilder()
-                .setValue(memberId.bytes.toByteString())
-            )
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -297,9 +236,6 @@ class ChatApiV2 @Inject constructor(
             .setChatId(ChatId.newBuilder()
                 .setValue(chatId.toByteArray().toByteString())
             ).setIsTyping(false)
-            .setMemberId(ChatService.ChatMemberId.newBuilder()
-                .setValue(memberId.bytes.toByteString())
-            )
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
             .apply { setSignature(sign(owner)) }
             .build()
@@ -308,9 +244,9 @@ class ChatApiV2 @Inject constructor(
     }
 }
 
-private val SocialUser.chatMemberIdentity: ChatMemberIdentity
+private val SocialUser.chatMemberIdentity: MemberIdentity
     get() {
-        val builder = ChatMemberIdentity.newBuilder()
+        val builder = MemberIdentity.newBuilder()
             .setUsername(username)
             .setPlatform(
                 when (Platform.named(platform)) {

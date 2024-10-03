@@ -49,9 +49,7 @@ typealias SetMuteStateResponseV2 = com.codeinc.gen.chat.v2.ChatService.SetMuteSt
 
 
 typealias SetSubscriptionStateRequestV1 = com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateRequest
-typealias SetSubscriptionStateRequestV2 = com.codeinc.gen.chat.v2.ChatService.SetSubscriptionStateRequest
 typealias SetSubscriptionStateResponseV1 = com.codeinc.gen.chat.v1.ChatService.SetSubscriptionStateResponse
-typealias SetSubscriptionStateResponseV2 = com.codeinc.gen.chat.v2.ChatService.SetSubscriptionStateResponse
 
 /**
  * Code reference to a V1 [Chat] that serves as a collection of messages associated

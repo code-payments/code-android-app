@@ -54,77 +54,29 @@ data class Chat(
 
     val unreadCount: Int
         get() {
-            if (!isV2) return _unreadCount
-
-            val self = members.firstOrNull { it.isSelf } ?: return 0
-            return self.numUnread
+            return _unreadCount
         }
 
     fun resetUnreadCount(): Chat {
-        if (!isV2) {
-            return copy(_unreadCount = 0)
-        }
-
-        val self = members.firstOrNull { it.isSelf } ?: return this
-        val updatedSelf = self.copy(numUnread = 0)
-        val updatedMembers = members.map {
-            if (it.id == self.id) {
-                updatedSelf
-            } else {
-                it
-            }
-        }
-        return copy(members = updatedMembers)
+        return copy(_unreadCount = 0)
     }
 
     val isMuted: Boolean
         get() {
-            if (!isV2) return _isMuted
-
-            val self = members.firstOrNull { it.isSelf } ?: return false
-            return self.isMuted
+            return _isMuted
         }
 
     fun setMuteState(muted: Boolean): Chat {
-        if (!isV2) {
-            return copy(_isMuted = muted)
-        }
-
-        val self = members.firstOrNull { it.isSelf } ?: return this
-        val updatedSelf = self.copy(isMuted = muted)
-        val updatedMembers = members.map {
-            if (it.id == self.id) {
-                updatedSelf
-            } else {
-                it
-            }
-        }
-        return copy(members = updatedMembers)
+        return copy(_isMuted = muted)
     }
 
     val isSubscribed: Boolean
         get() {
-            if (!isV2) return _isSubscribed
-
-            val self = members.firstOrNull { it.isSelf } ?: return false
-            return self.isSubscribed
+            return _isSubscribed
         }
 
     fun setSubscriptionState(subscribed: Boolean): Chat {
-        if (!isV2) {
-            return copy(_isSubscribed = subscribed)
-        }
-
-        val self = members.firstOrNull { it.isSelf } ?: return this
-        val updatedSelf = self.copy(isSubscribed = subscribed)
-        val updatedMembers = members.map {
-            if (it.id == self.id) {
-                updatedSelf
-            } else {
-                it
-            }
-        }
-        return copy(members = updatedMembers)
+        return copy(_isSubscribed = subscribed)
     }
 
     val newestMessage: ChatMessage?

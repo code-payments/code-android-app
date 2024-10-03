@@ -59,18 +59,7 @@ fun ConversationScreen(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
-    val navigator = LocalCodeNavigator.current
-
     CodeScaffold(
-        topBar = {
-            IdentityRevealHeader(state = state) {
-                if (state.identityAvailable) {
-                    dispatchEvent(ConversationViewModel.Event.RevealIdentity)
-                } else {
-                    navigator.push(ConnectAccount(IdentityConnectionReason.IdentityReveal))
-                }
-            }
-        },
         bottomBar = {
             Column(
                 modifier = Modifier.imePadding(),

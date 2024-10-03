@@ -6,7 +6,7 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.uuid
 import javax.inject.Inject
-import com.codeinc.gen.chat.v2.ChatService.ChatMessage as ApiChatMessage
+import com.codeinc.gen.chat.v2.ChatService.Message as ApiChatMessage
 import com.getcode.model.chat.ChatMessage as DomainChatMessage
 
 

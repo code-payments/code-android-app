@@ -306,21 +306,6 @@ sealed interface MessageContent {
                     SodiumBox(isFromSelf = isFromSelf, data = data)
                 }
 
-                ChatService.Content.TypeCase.THANK_YOU -> {
-                    ThankYou(
-                        isFromSelf = isFromSelf,
-                        tipIntentId = proto.thankYou.tipIntent.value.toByteArray().toList()
-                    )
-                }
-
-                ChatService.Content.TypeCase.IDENTITY_REVEALED -> {
-                    IdentityRevealed(
-                        isFromSelf = isFromSelf,
-                        memberId = proto.identityRevealed.memberId.value.toByteArray().toList(),
-                        identity = Identity(proto.identityRevealed.identity) ?: return null
-                    )
-                }
-
                 ChatService.Content.TypeCase.TEXT -> RawText(
                     isFromSelf = isFromSelf,
                     value = proto.text.text

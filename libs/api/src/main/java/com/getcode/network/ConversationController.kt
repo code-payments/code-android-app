@@ -29,6 +29,7 @@ import com.getcode.network.repository.base58
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.bytes
+import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +47,6 @@ interface ConversationController {
     fun openChatStream(scope: CoroutineScope, conversation: Conversation)
     fun closeChatStream()
     suspend fun hasInteracted(messageId: ID): Boolean
-    suspend fun revealIdentity(conversationId: ID, platform: Platform, username: String): Result<Unit>
     suspend fun resetUnreadCount(conversationId: ID)
     suspend fun advanceReadPointer(conversationId: ID, messageId: ID, status: MessageStatus)
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID>
@@ -208,20 +208,6 @@ class ConversationStreamController @Inject constructor(
     override suspend fun hasInteracted(messageId: ID): Boolean {
         // TODO: will require conversation model update
         return false
-    }
-
-    override suspend fun revealIdentity(conversationId: ID, platform: Platform, username: String): Result<Unit> {
-        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: return Result.failure(Throwable("owner not found"))
-        val chat = historyController.findChat { it.id == conversationId }
-            ?: return Result.failure(Throwable("Chat not found"))
-
-        val memberId = chat.selfId ?: return Result.failure(Throwable("Not member of chat"))
-
-        return chatService.revealIdentity(owner, chat, memberId, platform, username)
-            .map { }
-            .onSuccess {
-                db.conversationDao().revealIdentity(conversationId)
-            }
     }
 
     override suspend fun resetUnreadCount(conversationId: ID) {

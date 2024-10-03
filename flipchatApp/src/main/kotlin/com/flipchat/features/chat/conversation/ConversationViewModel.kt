@@ -137,7 +137,6 @@ class ConversationViewModel @Inject constructor(
         data object RevealIdentity : Event
 
         data class OnIdentityAvailable(val available: Boolean) : Event
-        data object OnIdentityRevealed : Event
 
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
         data class MarkRead(val messageId: ID) : Event
@@ -310,41 +309,6 @@ class ConversationViewModel @Inject constructor(
                             error = error
                         )
                     }
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.RevealIdentity>()
-            .mapNotNull { stateFlow.value.conversationId }
-            .onEach { conversationId ->
-                val user = stateFlow.value.users.firstOrNull()?.username ?: "This user"
-                val identity = tipController.connectedAccount.value ?: return@onEach
-                val platform = when (identity) {
-                    is TwitterUser -> Platform.Twitter
-                }
-                BottomBarManager.showMessage(
-                    BottomBarManager.BottomBarMessage(
-                        title = resources.getString(R.string.prompt_title_revealIdentity),
-                        subtitle = resources.getString(
-                            R.string.prompt_subtitle_revealIdentity,
-                            user,
-                            identity.username
-                        ),
-                        positiveText = resources.getString(R.string.action_yes),
-                        type = BottomBarManager.BottomBarMessageType.REMOTE_SEND,
-                        onPositive = {
-                            viewModelScope.launch {
-                                conversationController.revealIdentity(
-                                    conversationId,
-                                    platform,
-                                    identity.username
-                                ).onSuccess { dispatchEvent(Event.OnIdentityRevealed) }
-                                    .onFailure { it.printStackTrace() }
-                            }
-                        },
-                        negativeText = resources.getString(R.string.action_nevermind)
-                    )
-                )
             }
             .launchIn(viewModelScope)
 
@@ -534,10 +498,6 @@ class ConversationViewModel @Inject constructor(
                 is Event.MarkRead,
                 is Event.MarkDelivered,
                 is Event.SendMessage -> { state -> state }
-
-                is Event.OnIdentityRevealed -> { state ->
-                    state.copy(identityRevealed = true)
-                }
 
                 is Event.OnUserRevealed -> { state ->
                     val users = state.users

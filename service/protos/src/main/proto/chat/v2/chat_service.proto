@@ -47,17 +47,12 @@ service Chat {
     // StartChat starts a chat. The RPC call is idempotent and will use existing
     // chats whenever applicable within the context of message routing.
     rpc StartChat(StartChatRequest) returns (StartChatResponse);
-    // SendMessage sends a message to a chat
+    // SendMessage sends a message to a chat.
     rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
-    // AdvancePointer advances a pointer in message history for a chat member
+    // AdvancePointer advances a pointer in message history for a chat member.
     rpc AdvancePointer(AdvancePointerRequest) returns (AdvancePointerResponse);
-    // RevealIdentity reveals a chat member's identity if it is anonymous. A chat
-    // message will be inserted on success.
-    rpc RevealIdentity(RevealIdentityRequest) returns (RevealIdentityResponse);
-    // SetMuteState configures a chat member's mute state
+    // SetMuteState configures a chat member's mute state.
     rpc SetMuteState(SetMuteStateRequest) returns (SetMuteStateResponse);
-    // SetSubscriptionState configures a chat member's susbscription state
-    rpc SetSubscriptionState(SetSubscriptionStateRequest) returns (SetSubscriptionStateResponse);
     // NotifyIsTypingRequest notifies a chat that the sending member is typing.
     //
     // These requests are transient, and may be dropped at any point.
@@ -77,19 +72,17 @@ message GetChatsRequest {
 message GetChatsResponse {
     Result result = 1;
     enum Result {
-        OK        = 0;
-        NOT_FOUND = 1;
+        OK = 0;
     }
-    repeated ChatMetadata chats = 2 ;
+    repeated Metadata chats = 2 ;
 }
 message GetMessagesRequest {
     common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2;
-    common.v1.SolanaAccountId owner = 3;
-    common.v1.Signature signature = 4;
-    uint32 page_size = 5;
-    Cursor cursor = 6;
-    Direction direction = 7;
+    common.v1.SolanaAccountId owner = 2;
+    common.v1.Signature signature = 3;
+    uint32 page_size = 4;
+    Cursor cursor = 5;
+    Direction direction = 6;
     enum Direction {
         ASC  = 0;
         DESC = 1;
@@ -98,22 +91,19 @@ message GetMessagesRequest {
 message GetMessagesResponse {
     Result result = 1;
     enum Result {
-        OK                = 0;
-        DENIED            = 1;
-        CHAT_NOT_FOUND    = 2;
-        MESSAGE_NOT_FOUND = 3;
+        OK     = 0;
+        DENIED = 1;
     }
-    repeated ChatMessage messages = 2 ;
+    repeated Message messages = 2 ;
 }
 message OpenChatEventStream {
     common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2 ;
-    common.v1.SolanaAccountId owner = 3;
-    common.v1.Signature signature = 4;
+    common.v1.SolanaAccountId owner = 2;
+    common.v1.Signature signature = 3;
 }
 message ChatStreamEvent {
     oneof type {
-        ChatMessage message = 1;
+        Message message = 1;
         Pointer     pointer = 2;
         IsTyping    is_typing = 3;
     }
@@ -124,8 +114,7 @@ message ChatStreamEventBatch {
 message ChatStreamEventError {
     Code code = 1;
     enum Code {
-        DENIED         = 0;
-        CHAT_NOT_FOUND = 1;
+        DENIED = 0;
     }
 }
 message StreamChatEventsRequest {
@@ -144,10 +133,8 @@ message StreamChatEventsResponse {
 message StartChatRequest {
     common.v1.SolanaAccountId owner = 1;
     common.v1.Signature signature = 2;
-    ChatMemberIdentity self = 3;
     oneof parameters {
-        StartTwoWayChatParameters two_way_chat = 4;
-        // GroupChatParameters group_chat  = 4;
+        StartTwoWayChatParameters two_way_chat = 3;
     }
 }
 // StartTwoWayChatParameters contains the parameters required to start
@@ -169,10 +156,6 @@ message StartTwoWayChatParameters {
     // This is most likely to occur when initiating a chat with a user for the first
     // time.
     common.v1.IntentId intent_id = 2;
-    // The identity of the other user.
-    //
-    // Note: This can/should be removed with proper intent plumbing.
-    ChatMemberIdentity identity = 3;
 }
 message StartChatResponse {
     Result result = 1;
@@ -186,32 +169,33 @@ message StartChatResponse {
         // before the service will permit the creation of the chat. This can happen in
         // cases where the block chain is particularly slow (beyond our RPC timeouts).
         PENDING = 3;
+        // MISSING_IDENTITY indicates that there is no identity for the user (creator).
+        MISSING_IDENTITY = 4;
+        // USER_NOT_FOUND indicates that (one of) the target user's was not found.
+        USER_NOT_FOUND = 5;
     }
     // The chat to use if the RPC was successful.
-    ChatMetadata chat = 2;
+    Metadata chat = 2;
 }
 message SendMessageRequest {
     common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2 ;
     // Allowed content types that can be sent by client:
     //  - TextContent
     //  - ThankYouContent
-    repeated Content content = 3 ;
-    common.v1.SolanaAccountId owner = 4;
-    common.v1.Signature signature = 5;
+    repeated Content content = 2 ;
+    common.v1.SolanaAccountId owner = 3;
+    common.v1.Signature signature = 4;
 }
 message SendMessageResponse {
     Result result = 1;
     enum Result {
         OK                   = 0;
         DENIED               = 1;
-        CHAT_NOT_FOUND       = 2;
-        INVALID_CHAT_TYPE    = 3;
-        INVALID_CONTENT_TYPE = 4;
+        INVALID_CONTENT_TYPE = 2;
     }
     // The chat message that was sent if the RPC was succesful, which includes
     // server-side metadata like the generated message ID and official timestamp
-    ChatMessage message = 2;
+    Message message = 2;
 }
 message AdvancePointerRequest {
     common.v1.ChatId chat_id = 1;
@@ -222,92 +206,50 @@ message AdvancePointerRequest {
 message AdvancePointerResponse {
     Result result = 1;
     enum Result {
-        OK                   = 0;
-        DENIED               = 1;
-        CHAT_NOT_FOUND       = 2;
-        MESSAGE_NOT_FOUND    = 3;
-        INVALID_POINTER_TYPE = 4;
+        OK                = 0;
+        DENIED            = 1;
+        MESSAGE_NOT_FOUND = 2;
     }
-}
-message RevealIdentityRequest {
-    common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2;
-    ChatMemberIdentity identity = 3;
-    common.v1.SolanaAccountId owner = 4;
-    common.v1.Signature signature = 5;
-}
-message RevealIdentityResponse {
-    Result result = 1;
-    enum Result {
-        OK                          = 0;
-        DENIED                      = 1;
-        CHAT_NOT_FOUND              = 2;
-        DIFFERENT_IDENTITY_REVEALED = 3;
-    }
-    // The chat message that was sent if the RPC was successful
-    ChatMessage message = 2;
 }
 message SetMuteStateRequest {
     common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2 ;
-    bool is_muted = 3;
-    common.v1.SolanaAccountId owner = 4;
-    common.v1.Signature signature = 5;
+    bool is_muted = 2;
+    common.v1.SolanaAccountId owner = 3;
+    common.v1.Signature signature = 4;
 }
 message SetMuteStateResponse {
     Result result = 1;
     enum Result {
         OK             = 0;
         DENIED         = 1;
-        CHAT_NOT_FOUND = 2;
-        CANT_MUTE      = 3;
-    }
-}
-message SetSubscriptionStateRequest {
-    common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2 ;
-    bool is_subscribed = 3;
-    common.v1.SolanaAccountId owner = 4;
-    common.v1.Signature signature = 5;
-}
-message SetSubscriptionStateResponse {
-    Result result = 1;
-    enum Result {
-        OK               = 0;
-        DENIED           = 1;
-        CHAT_NOT_FOUND   = 2;
-        CANT_UNSUBSCRIBE = 3;
+        CANT_MUTE      = 2;
     }
 }
 message NotifyIsTypingRequest {
     common.v1.ChatId chat_id = 1;
-    ChatMemberId member_id = 2 ;
-    bool is_typing = 3;
-    common.v1.SolanaAccountId owner = 4;
-    common.v1.Signature signature = 5;
+    bool is_typing = 2;
+    common.v1.SolanaAccountId owner = 3;
+    common.v1.Signature signature = 4;
 }
 message NotifyIsTypingResponse {
     Result result = 1;
     enum Result {
         OK             = 0;
         DENIED         = 1;
-        CHAT_NOT_FOUND = 2;
     }
 }
-message ChatMessageId {
-    // Guaranteed to be a time-based UUID. This should be used to construct a
-    // consistently ordered message history based on time using a simple byte
-    // comparison.
+message MessageId {
+    // A lexicographically sortable ID that can be used to sort source of
+    // chat history.
     bytes value = 1 ;
 }
-message ChatMemberId {
-    // Globally random UUID
+message MemberId {
+    // The publically available 'deposit' address of the user.
     bytes value = 1 ;
 }
 enum ChatType {
     UNKNOWN_CHAT_TYPE = 0;
-    NOTIFICATION      = 1;
-    TWO_WAY           = 2;
+    TWO_WAY           = 1;
     // GROUP             = 3;
 }
 enum Platform {
@@ -323,36 +265,31 @@ enum PointerType {
 // A chat
 //
 // todo: Support is_verified in a clean way
-message ChatMetadata {
-    // Globally unique ID for this chat
+message Metadata {
     common.v1.ChatId chat_id = 1;
     // The type of chat
     ChatType type = 2 ;
-    // The chat title, which will be localized by server when applicable
-    string title = 3 ;
-    // The members in this chat
-    //
-    // For NOTIFICATION chats, this list has exactly 1 item
-    // For TWO_WAY chats, this list has exactly 2 items
-    //
-    // todo: If we support group chats, then we'll likely return the first page
-    //       or a prioritized list. The remaining members would be fetched via
-    //       a new RPC.
-    repeated ChatMember members = 4 ;
-    // Can the user mute this chat?
-    bool can_mute = 5;
-    // Can the user unsubscribe from this chat?
-    bool can_unsubscribe = 6;
     // Cursor value for this chat for reference in subsequent GetChatsRequest
-    Cursor cursor = 7;
+    Cursor cursor = 3;
+    // The chat title, which is _only_ set by server if an explicit title
+    // was set. Otherwise, clients should fill in an appropriate chat title.
+    string title = 4 ;
+    // The members in this chat.
+    repeated Member members = 5 ;
+    // Whether or not the chat is muted (from the perspective of the caller).
+    bool is_muted = 6;
+    // Whether or not the chat is mutable (from the persective of the caller).
+    bool muteable = 7;
+    // Number of (estimated) unread message (from the perspective of the caller).
+    uint32 num_unread = 8;
 }
 // A message in a chat
-message ChatMessage {
+message Message {
     // Globally unique ID for this message
-    ChatMessageId message_id = 1;
+    MessageId message_id = 1;
     // The chat member that sent the message. For NOTIFICATION chats, this field
     // is omitted since the chat has exactly 1 member.
-    ChatMemberId sender_id = 2;
+    MemberId sender_id = 2;
     // Ordered message content. A message may have more than one piece of content.
     repeated Content content = 3 ;
     // Timestamp this message was generated at. This value is also encoded in
@@ -362,39 +299,36 @@ message ChatMessage {
     Cursor cursor = 5;
 }
 // A user in a chat
-message ChatMember {
-    // Globally unique ID for this chat member
-    ChatMemberId member_id = 1;
-    // Is this chat member yourself? This enables client to identify which member_id
-    // is themselves.
-    bool is_self = 2;
+message Member {
+    // Public AccountId (for is self...is derived via deposit address)
+    MemberId member_id = 1;
     // The chat member's identity if it has been revealed.
-    ChatMemberIdentity identity = 3;
-    // Chat message state for this member. This list will have DELIVERED and READ
-    // pointers, if they exist. SENT pointers should be inferred by persistence
-    // on server.
-    repeated Pointer pointers = 4 ;
-    // Estimated number of unread messages for the chat member in this chat
     //
-    // Only valid when is_self = true
-    uint32 num_unread = 5;
-    // Has the chat member muted this chat?
+    // Multiple identities here? Well really only needs twitter/other handles
+    // Repeated PlatformHandles (where code doesn't matter)?
+    MemberIdentity identity = 2;
+    // Chat message state for this member.
     //
-    // Only valid when is_self = true
-    bool is_muted = 6;
-    // Is the chat member subscribed to this chat?
+    // If set, the list may contain DELIVERED and READ pointers. SENT pointers
+    // are only shared between the sender and server, to indicate persistence.
     //
-    // Only valid when is_self = true
-    bool is_subscribed = 7;
+    // The server may wish to omit all pointers in various types of group chats
+    // or as relief valves.
+    repeated Pointer pointers = 3 ;
+    // If the member is the caller (where applicable), will be set to true.
+    bool is_self = 4;
 }
 // Identity to an external social platform that can be linked to a Code account
-message ChatMemberIdentity {
+message MemberIdentity {
     // The external social platform linked to this chat member
     Platform platform = 1 ;
-    // The chat member's username on the external social platform
+    // The chat member's username on the external social platform.
     string username = 2 ;
+    // TODO: If we need the profile pic, we need display name...both can maybe be removed?
+    // If present, the display name of the user.
+    string display_name = 3 ;
     // If present, the URL of the users profile pic.
-    string profile_pic_url = 3 ;
+    string profile_pic_url = 4 ;
 }
 // Pointer in a chat indicating a user's message history state in a chat.
 message Pointer {
@@ -405,9 +339,9 @@ message Pointer {
     PointerType type = 1 ;
     // Everything at or before this message ID is considered to have the state
     // inferred by the type of pointer.
-    ChatMessageId value = 2;
+    MessageId value = 2;
     // The chat member associated with this pointer state
-    ChatMemberId member_id = 3;
+    MemberId member_id = 3;
 }
 // Content for a chat message
 message Content {
@@ -416,8 +350,6 @@ message Content {
         LocalizedContent        localized         = 2;
         ExchangeDataContent     exchange_data     = 3;
         NaclBoxEncryptedContent nacl_box          = 4;
-        ThankYouContent         thank_you         = 5;
-        IdentityRevealedContent identity_revealed = 6;
     }
 }
 // Raw text content
@@ -461,6 +393,8 @@ message ExchangeDataContent {
         common.v1.IntentId  intent    = 4;
         common.v1.Signature signature = 5;
     }
+    // TODO: We need to be able to provide the parties involved, such that
+    // such that client can render it correctly.
 }
 // Encrypted piece of content using NaCl box encryption
 message NaclBoxEncryptedContent {
@@ -472,25 +406,6 @@ message NaclBoxEncryptedContent {
     // The encrypted piece of message content
     bytes encrypted_payload = 3 ;
 }
-// Thank you content that is used to thank Code users for tips
-message ThankYouContent {
-    // The tip intent that is being thanked.
-    common.v1.IntentId tip_intent = 1;
-    // Reserved for the thanker, which is only required if we support GROUP chats.
-    // Otherwise, it can be inferred from the sender in a TWO_WAY chat.
-    reserved 2;
-    // Reserved for the thankee, which is only required if we support GROUP chats.
-    // Otherwise, it can be inferred from the sender in a TWO_WAY chat.
-    reserved 3;
-}
-// Identity revealed content that is inserted into chat whenever a chat member
-// reveals their identity
-message IdentityRevealedContent {
-    // The chat member who revealed their identity
-    ChatMemberId member_id = 1;
-    // The identity that was revealed
-    ChatMemberIdentity identity = 2;
-}
 // Opaque cursor used across paged APIs. Underlying bytes may change as paging
 // strategies evolve. Expected length value will vary based on the RPC being
 // executed.
@@ -498,7 +413,7 @@ message Cursor {
     bytes value = 1 ;
 }
 message IsTyping {
-    ChatMemberId member_id = 1;
+    MemberId member_id = 1;
     // is_typing indicates whether or not the user is typing.
     // If false, the user has explicitly stopped typing.
     bool is_typing = 2;

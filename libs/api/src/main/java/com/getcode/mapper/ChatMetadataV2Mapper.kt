@@ -8,14 +8,14 @@ import javax.inject.Inject
 
 class ChatMetadataV2Mapper @Inject constructor(
     private val chatMemberMapper: ChatMemberMapper,
-) : Mapper<ChatService.ChatMetadata, Chat> {
-    override fun map(from: ChatService.ChatMetadata): Chat {
+) : Mapper<ChatService.Metadata, Chat> {
+    override fun map(from: ChatService.Metadata): Chat {
         return Chat(
             id = from.chatId.value.toByteArray().toList(),
             title = Title.Localized(from.title),
             cursor = from.cursor.value.toByteArray().toList(),
-            canMute = from.canMute,
-            canUnsubscribe = from.canUnsubscribe,
+            canMute = false,
+            canUnsubscribe = false,
             members = from.membersList.mapNotNull { chatMemberMapper.map(it) },
             type = ChatType(from.type),
             messages = emptyList(),

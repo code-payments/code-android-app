@@ -1,11 +1,10 @@
 package com.getcode.network.service
 
 import com.codeinc.gen.chat.v2.ChatService
-import com.codeinc.gen.chat.v2.ChatService.ChatMemberId
+import com.codeinc.gen.chat.v2.ChatService.MemberId
 import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.OpenChatEventStream
 import com.codeinc.gen.chat.v2.ChatService.PointerType
-import com.codeinc.gen.chat.v2.ChatService.RevealIdentityResponse
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsRequest
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsResponse
@@ -70,12 +69,6 @@ class ChatServiceV2 @Inject constructor(
                         Result.success(response.chatsList.map(chatMapper::map))
                     }
 
-                    ChatService.GetChatsResponse.Result.NOT_FOUND -> {
-                        val error = Throwable("Error: chats not found for owner")
-                        Timber.e(t = error)
-                        Result.failure(error)
-                    }
-
                     ChatService.GetChatsResponse.Result.UNRECOGNIZED -> {
                         val error = Throwable("Error: Unrecognized request.")
                         Timber.e(t = error)
@@ -105,8 +98,8 @@ class ChatServiceV2 @Inject constructor(
                             Result.success(muted)
                         }
 
-                        ChatService.SetMuteStateResponse.Result.CHAT_NOT_FOUND -> {
-                            val error = Throwable("Error: chat not found for $chatId")
+                        ChatService.SetMuteStateResponse.Result.DENIED -> {
+                            val error = Throwable("Error: Denied for $chatId")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -118,50 +111,6 @@ class ChatServiceV2 @Inject constructor(
                         }
 
                         ChatService.SetMuteStateResponse.Result.UNRECOGNIZED -> {
-                            val error = Throwable("Error: Unrecognized request.")
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
-
-                        else -> {
-                            val error = Throwable("Error: Unknown")
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
-                    }
-                }.first()
-        } catch (e: Exception) {
-            ErrorUtils.handleError(e)
-            Result.failure(e)
-        }
-    }
-
-    suspend fun setSubscriptionState(
-        owner: KeyPair,
-        chatId: ID,
-        subscribed: Boolean,
-    ): Result<Boolean> {
-        return try {
-            networkOracle.managedRequest(api.setSubscriptionState(owner, chatId, subscribed))
-                .map { response ->
-                    when (response.result) {
-                        ChatService.SetSubscriptionStateResponse.Result.OK -> {
-                            Result.success(subscribed)
-                        }
-
-                        ChatService.SetSubscriptionStateResponse.Result.CHAT_NOT_FOUND -> {
-                            val error = Throwable("Error: chat not found for $chatId")
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
-
-                        ChatService.SetSubscriptionStateResponse.Result.CANT_UNSUBSCRIBE -> {
-                            val error = Throwable("Error: Unable to change mute state for $chatId.")
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
-
-                        ChatService.SetSubscriptionStateResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")
                             Timber.e(t = error)
                             Result.failure(error)
@@ -210,9 +159,9 @@ class ChatServiceV2 @Inject constructor(
                             })
                         }
 
-                        ChatService.GetMessagesResponse.Result.MESSAGE_NOT_FOUND -> {
+                        ChatService.GetMessagesResponse.Result.DENIED -> {
                             val error =
-                                Throwable("Error: messages not found for chat ${chat.id.description}")
+                                Throwable("Error: Denied for ${chat.id.description}")
                             Result.failure(error)
                         }
 
@@ -255,8 +204,8 @@ class ChatServiceV2 @Inject constructor(
                             Result.success(Unit)
                         }
 
-                        ChatService.AdvancePointerResponse.Result.CHAT_NOT_FOUND -> {
-                            val error = Throwable("Error: chat not found $chatId")
+                        ChatService.AdvancePointerResponse.Result.DENIED -> {
+                            val error = Throwable("Error: Denied $chatId")
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -273,7 +222,7 @@ class ChatServiceV2 @Inject constructor(
                             Result.failure(error)
                         }
 
-                        else -> {
+                        null -> {
                             val error = Throwable("Error: Unknown")
                             Timber.e(t = error)
                             Result.failure(error)
@@ -325,8 +274,23 @@ class ChatServiceV2 @Inject constructor(
                                     Result.failure(error)
                                 }
 
-                                else -> {
-                                    val error = Throwable("Error: Unknown")
+                                ChatService.StartChatResponse.Result.PENDING -> {
+                                    val error = Throwable("Error: Pending.")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                                ChatService.StartChatResponse.Result.MISSING_IDENTITY -> {
+                                    val error = Throwable("Error: Missing Identity.")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                                ChatService.StartChatResponse.Result.USER_NOT_FOUND -> {
+                                    val error = Throwable("Error: Recipient not found @ ${with.username}.")
+                                    Timber.e(t = error)
+                                    Result.failure(error)
+                                }
+                                null -> {
+                                    val error = Throwable("Error: Unknown.")
                                     Timber.e(t = error)
                                     Result.failure(error)
                                 }
@@ -464,10 +428,6 @@ class ChatServiceV2 @Inject constructor(
                             .setValue(conversation.id.toByteString())
                             .build()
                     )
-                    .setMemberId(
-                        ChatMemberId.newBuilder()
-                            .setValue(memberId.bytes.toByteString())
-                    )
                     .setOwner(owner.publicKeyBytes.toSolanaAccount())
                     .apply { setSignature(sign(owner)) }
                 ).build()
@@ -520,18 +480,6 @@ class ChatServiceV2 @Inject constructor(
                                 Result.failure(error)
                             }
 
-                            SendMessageResponse.Result.CHAT_NOT_FOUND -> {
-                                val error = Throwable("Error: Send Message: chat not found $chatId")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            SendMessageResponse.Result.INVALID_CHAT_TYPE -> {
-                                val error = Throwable("Error: Send Message: invalid chat type")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
                             SendMessageResponse.Result.INVALID_CONTENT_TYPE -> {
                                 val error = Throwable("Error: Send Message: invalid content type")
                                 Timber.e(t = error)
@@ -539,85 +487,6 @@ class ChatServiceV2 @Inject constructor(
                             }
 
                             SendMessageResponse.Result.UNRECOGNIZED -> {
-                                val error = Throwable("Error: Send Message: Unrecognized request.")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            else -> {
-                                val error = Throwable("Error: Unknown")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-                        }
-
-                        cont.resume(result)
-                    }
-
-                    override fun onError(t: Throwable?) {
-                        val error = t ?: Throwable("Error: Hit a snag")
-                        ErrorUtils.handleError(error)
-                        cont.resume(Result.failure(error))
-                    }
-
-                    override fun onCompleted() {
-
-                    }
-
-                }
-            )
-        } catch (e: Exception) {
-            ErrorUtils.handleError(e)
-            cont.resume(Result.failure(e))
-        }
-    }
-
-    suspend fun revealIdentity(
-        owner: KeyPair,
-        chat: Chat,
-        memberId: UUID,
-        platform: Platform,
-        username: String,
-    ): Result<ChatMessage> = suspendCancellableCoroutine { cont ->
-        val chatId = chat.id
-        try {
-            api.revealIdentity(
-                owner,
-                chatId,
-                memberId,
-                platform,
-                username,
-                observer = object : StreamObserver<RevealIdentityResponse> {
-                    override fun onNext(value: RevealIdentityResponse?) {
-                        val requestResult = value?.result
-                        if (requestResult == null) {
-                            trace(
-                                message = "Chat SendMessage Server returned empty message. This is unexpected.",
-                                type = TraceType.Error
-                            )
-                            return
-                        }
-
-                        val result = when (requestResult) {
-                            RevealIdentityResponse.Result.OK -> {
-                                trace("Chat message sent =: ${value.message.messageId.value.toList().description}")
-                                val message = messageMapper.map(chat to value.message)
-                                Result.success(message)
-                            }
-
-                            RevealIdentityResponse.Result.DENIED -> {
-                                val error = Throwable("Error: Send Message: Denied")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            RevealIdentityResponse.Result.CHAT_NOT_FOUND -> {
-                                val error = Throwable("Error: Send Message: chat not found $chatId")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            RevealIdentityResponse.Result.UNRECOGNIZED -> {
                                 val error = Throwable("Error: Send Message: Unrecognized request.")
                                 Timber.e(t = error)
                                 Result.failure(error)
@@ -680,12 +549,6 @@ class ChatServiceV2 @Inject constructor(
 
                             NotifyIsTypingResponse.Result.DENIED -> {
                                 val error = Throwable("Error: Send Message: Denied")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            NotifyIsTypingResponse.Result.CHAT_NOT_FOUND -> {
-                                val error = Throwable("Error: Send Message: chat not found $chatId")
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
@@ -753,12 +616,6 @@ class ChatServiceV2 @Inject constructor(
 
                             NotifyIsTypingResponse.Result.DENIED -> {
                                 val error = Throwable("Error: NotifyIsTyping: Denied")
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            NotifyIsTypingResponse.Result.CHAT_NOT_FOUND -> {
-                                val error = Throwable("Error: NotifyIsTyping: chat not found $chatId")
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }

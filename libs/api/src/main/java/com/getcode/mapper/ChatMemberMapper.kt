@@ -7,15 +7,12 @@ import com.getcode.model.chat.Pointer
 import com.getcode.model.uuid
 import javax.inject.Inject
 
-class ChatMemberMapper @Inject constructor(): Mapper<ChatService.ChatMember, ChatMember?> {
-    override fun map(from: ChatService.ChatMember): ChatMember? {
+class ChatMemberMapper @Inject constructor(): Mapper<ChatService.Member, ChatMember?> {
+    override fun map(from: ChatService.Member): ChatMember? {
         return ChatMember(
             id = from.memberId.value.toByteArray().toList().uuid ?: return null,
             identity = runCatching { Identity(from.identity) }.getOrNull(),
-            isMuted = from.isMuted,
             isSelf = from.isSelf,
-            isSubscribed = from.isSubscribed,
-            numUnread = from.numUnread,
             pointers = from.pointersList.map { Pointer(it) }
         )
     }

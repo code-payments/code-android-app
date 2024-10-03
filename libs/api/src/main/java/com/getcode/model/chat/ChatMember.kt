@@ -31,9 +31,6 @@ data class ChatMember(
     val isSelf: Boolean,
     val identity: Identity?,
     val pointers: List<Pointer>,
-    val numUnread: Int,
-    val isMuted: Boolean,
-    val isSubscribed: Boolean,
 )
 
 /**
@@ -49,7 +46,7 @@ data class Identity(
     val imageUrl: String?
 ) {
     companion object {
-        operator fun invoke(proto: ChatService.ChatMemberIdentity): Identity? {
+        operator fun invoke(proto: ChatService.MemberIdentity): Identity? {
             val platform = Platform(proto.platform).takeIf { it != Platform.Unknown } ?: return null
             return Identity(
                 platform = platform,
