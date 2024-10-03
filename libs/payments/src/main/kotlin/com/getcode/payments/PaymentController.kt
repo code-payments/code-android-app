@@ -1,6 +1,7 @@
 package com.getcode.payments
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.getcode.domain.BillController
 import com.getcode.libs.payments.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.CodePayload
@@ -18,10 +19,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,10 +46,13 @@ val LocalPaymentController = staticCompositionLocalOf<PaymentController?> { null
 class PaymentController @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val resources: ResourceHelper,
+    private val billController: BillController,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    val state = MutableStateFlow(PaymentState())
+    val state = billController.state.map {
+        PaymentState(it)
+    }.stateIn(scope, started = SharingStarted.Eagerly, initialValue = PaymentState())
 
     private val _eventFlow: MutableSharedFlow<PaymentEvent> = MutableSharedFlow()
     val eventFlow: SharedFlow<PaymentEvent> = _eventFlow.asSharedFlow()
@@ -59,8 +64,8 @@ class PaymentController @Inject constructor(
         )
 
 
-        state.update {
-            val billState = it.billState.copy(
+        billController.update {
+            it.copy(
                 socialUserPaymentConfirmation = SocialUserPaymentConfirmation(
                     state = ConfirmationState.AwaitingConfirmation,
                     payload = payload,
@@ -70,22 +75,17 @@ class PaymentController @Inject constructor(
                     showScrim = true
                 )
             )
-
-            it.copy(billState = billState)
         }
     }
 
     fun completePrivatePayment() = scope.launch {
-        val confirmation = state.value.billState.socialUserPaymentConfirmation ?: return@launch
+        val confirmation = billController.state.value.socialUserPaymentConfirmation ?: return@launch
         val user = confirmation.metadata
         val amount = confirmation.amount
 
-        state.update {
-            val billState = it.billState
+        billController.update {
             it.copy(
-                billState = billState.copy(
-                    socialUserPaymentConfirmation = billState.socialUserPaymentConfirmation?.copy(state = ConfirmationState.Sending)
-                ),
+                socialUserPaymentConfirmation = it.socialUserPaymentConfirmation?.copy(state = ConfirmationState.Sending),
             )
         }
 
@@ -94,18 +94,14 @@ class PaymentController @Inject constructor(
         }.onSuccess {
 //            historyController.fetch()
 
-            state.update { s ->
-                val billState = s.billState
-                val socialUserPaymentConfirmation = s.billState.socialUserPaymentConfirmation ?: return@update s
-
-                s.copy(
-                    billState = billState.copy(
-                        socialUserPaymentConfirmation = socialUserPaymentConfirmation.copy(state = ConfirmationState.Sent),
-                    ),
+            billController.update { billState ->
+                val socialUserPaymentConfirmation = billState.socialUserPaymentConfirmation ?: return@update billState
+                billState.copy(
+                    socialUserPaymentConfirmation = socialUserPaymentConfirmation.copy(state = ConfirmationState.Sent),
                 )
             }
             delay(1.seconds)
-            cancelTip()
+            cancelPayment()
             delay(400.milliseconds)
             _eventFlow.emit(PaymentEvent.OnChatPaidForSuccessfully(it, user))
         }.onFailure {
@@ -114,45 +110,12 @@ class PaymentController @Inject constructor(
                 resources.getString(R.string.error_description_payment_failed),
             )
 
-            state.update { uiModel ->
-                uiModel.copy(
-                    billState = uiModel.billState.copy(
-                        bill = null,
-                        showToast = false,
-                        socialUserPaymentConfirmation = null,
-                        toast = null,
-                        valuation = null,
-                        primaryAction = null,
-                        secondaryAction = null,
-                    )
-                )
-            }
+            billController.reset()
         }
     }
 
-    fun cancelTipEntry() {
-        // Cancelling from amount entry is triggered by a UI event.
-        // To distinguish between a valid "Next" action that will
-        // also dismiss the entry screen, we need to check explicitly
-        if (state.value.billState.socialUserPaymentConfirmation == null) {
-            cancelTip()
-        }
-    }
-
-    fun cancelTip() {
+    fun cancelPayment() {
 //        tipController.reset()
-        state.update {
-            val billState = it.billState.copy(
-                bill = null,
-                socialUserPaymentConfirmation = null,
-                valuation = null,
-                primaryAction = null,
-                secondaryAction = null,
-            )
-
-            it.copy(
-                billState = billState
-            )
-        }
+        billController.reset()
     }
 }

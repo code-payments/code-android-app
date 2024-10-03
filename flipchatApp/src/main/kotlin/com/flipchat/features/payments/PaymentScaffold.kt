@@ -69,7 +69,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                         onSend = {
                             payments.completePrivatePayment()
                         },
-                        onCancel = { payments.cancelTip() }
+                        onCancel = { payments.cancelPayment() }
                     )
                 }
             }
