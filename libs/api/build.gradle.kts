@@ -64,7 +64,7 @@ dependencies {
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
-    implementation(project(":libs:network:observation"))
+    implementation(project(":libs:network:connectivity"))
     implementation(project(":ui:resources"))
 
     implementation(Libs.rxjava)

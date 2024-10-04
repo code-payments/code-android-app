@@ -20,7 +20,7 @@ import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.ui.components.text.AmountArea
 
 @Composable
 fun AccountWithdrawSummary(

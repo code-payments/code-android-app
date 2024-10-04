@@ -1,4 +1,4 @@
-package com.getcode.view.main.connectivity
+package com.getcode.ui.components
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -11,12 +11,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.utils.network.ConnectionType
+import com.getcode.utils.network.NetworkState
+import com.getcode.utils.network.connectivity.NetworkStateProvider
 
 @Composable
-fun ConnectionStatus(state: com.getcode.utils.network.NetworkState) {
+fun ConnectionStatus(state: NetworkState) {
     Row {
         when  {
-            !state.connected && state.type != com.getcode.utils.network.ConnectionType.Unknown -> {
+            !state.connected && state.type != ConnectionType.Unknown -> {
                 CodeCircularProgressIndicator(
                     modifier = Modifier.height(
                         CodeTheme.dimens.grid.x2
@@ -43,6 +46,6 @@ fun ConnectionStatus(state: com.getcode.utils.network.NetworkState) {
 
 @Preview
 @Composable
-fun ConnectionReconnectingPreview(@PreviewParameter(NetworkStateProvider::class) state: com.getcode.utils.network.NetworkState) {
+fun ConnectionReconnectingPreview(@PreviewParameter(NetworkStateProvider::class) state: NetworkState) {
     ConnectionStatus(state)
 }

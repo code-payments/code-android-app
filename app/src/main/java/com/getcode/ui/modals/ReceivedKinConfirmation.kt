@@ -18,7 +18,7 @@ import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.Modal
 import com.getcode.utils.flagResId
 import com.getcode.extensions.formatted
-import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.ui.components.text.AmountArea
 
 @Composable
 internal fun ReceivedKinConfirmation(

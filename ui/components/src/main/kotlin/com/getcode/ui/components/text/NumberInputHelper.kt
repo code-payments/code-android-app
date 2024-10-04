@@ -1,11 +1,9 @@
-package com.getcode.util
+package com.getcode.ui.components.text
 
 import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 import java.util.*
-import kotlin.math.floor
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 
 class NumberInputHelper {

@@ -1,4 +1,4 @@
-package com.getcode.view.main.giveKin
+package com.getcode.ui.components.text
 
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
@@ -18,16 +18,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.getcode.R
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
+import com.getcode.ui.components.ConnectionStatus
+import com.getcode.ui.components.R
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.utils.network.LocalNetworkObserver
 import com.getcode.utils.network.NetworkState
-import com.getcode.view.main.connectivity.ConnectionStatus
-import com.getcode.view.main.connectivity.NetworkStateProvider
+import com.getcode.utils.network.connectivity.NetworkStateProvider
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable

@@ -17,7 +17,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.ui.utils.getActivity
 
 @Composable
-inline fun <reified T: ViewModel> Screen.getActivityScopedViewModel(): T {
+inline fun <reified T: ViewModel> getActivityScopedViewModel(): T {
     val activity = LocalContext.current.getActivity() as ComponentActivity
     val defaultFactory = (LocalLifecycleOwner.current as HasDefaultViewModelProviderFactory)
     val viewModelStore = LocalContext.current.getActivity()!!.viewModelStore

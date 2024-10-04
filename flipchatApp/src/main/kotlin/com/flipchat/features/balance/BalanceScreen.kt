@@ -1,8 +1,6 @@
-package com.getcode.view.main.balance
+package com.flipchat.features.balance
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.togetherWith
+import android.os.Parcelable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -18,6 +16,7 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -33,59 +32,53 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.getcode.R
-import com.getcode.manager.TopBarManager
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.flipchat.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
 import com.getcode.model.chat.Chat
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.BuyMoreKinModal
-import com.getcode.navigation.screens.NotificationCollectionScreen
-import com.getcode.navigation.screens.CurrencySelectionModal
-import com.getcode.navigation.screens.FaqScreen
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.chat.ChatNode
-import com.getcode.utils.Kin
-import com.getcode.view.main.account.BucketDebugger
-import com.getcode.view.main.currency.CurrencySelectKind
 import com.getcode.ui.components.text.AmountArea
+import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.utils.Kin
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
+data object BalanceScreen : Screen, Parcelable {
 
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    @Composable
+    override fun Content() {
+        val viewModel = getActivityScopedViewModel<BalanceSheetViewModel>()
+        val state by viewModel.stateFlow.collectAsState()
+        BalanceScreenContent(state, viewModel::dispatchEvent)
+    }
+
+}
 @Composable
-fun BalanceScreen(
+fun BalanceScreenContent(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
 ) {
     val navigator = LocalCodeNavigator.current
 
-    AnimatedContent(
-        targetState = state.isBucketDebuggerVisible,
-        label = "show/hide buckets",
-        transitionSpec = {
-            slideIntoContainer(
-                AnimatedContentTransitionScope.SlideDirection.End
-            ) togetherWith slideOutOfContainer(
-                AnimatedContentTransitionScope.SlideDirection.Start
-            )
-        }
-    ) { buckets ->
-        if (buckets) {
-            BucketDebugger()
-        } else {
-            BalanceContent(
-                state = state,
-                dispatch = dispatch,
-                faqOpen = { navigator.push(FaqScreen) },
-                openChat = { navigator.push(NotificationCollectionScreen(it.id)) },
-                buyMoreKin = { navigator.push(BuyMoreKinModal()) }
-            )
-        }
-    }
+    BalanceContent(
+        state = state,
+        dispatch = dispatch,
+        faqOpen = {  },
+        openChat = {  },
+        buyMoreKin = {  }
+    )
 }
 
 @Composable
@@ -125,7 +118,7 @@ fun BalanceContent(
                     state,
                     canClickBalance,
                 ) {
-                    navigator.push(CurrencySelectionModal(CurrencySelectKind.Local))
+//                    navigator.push(CurrencySelectionModal(CurrencySelectKind.Local))
                 }
             }
         }
@@ -142,37 +135,37 @@ fun BalanceContent(
             }
         }
 
-        item {
-            Column(
-                modifier = Modifier
-                    .fillParentMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .padding(bottom = CodeTheme.dimens.grid.x11),
-            ) {
-                if (!chatsEmpty && !state.chatsLoading && state.buyModule.enabled) {
-                    CodeButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = CodeTheme.dimens.grid.x5),
-                        buttonState = ButtonState.Filled,
-                        onClick = {
-                            if (state.buyModule.available) {
-                                buyMoreKin()
-                            } else {
-                                TopBarManager.showMessage(
-                                    TopBarManager.TopBarMessage(
-                                        title = context.getString(R.string.error_title_buyModuleUnavailable),
-                                        message = context.getString(R.string.error_description_buyModuleUnavailable),
-                                        type = TopBarManager.TopBarMessageType.ERROR
-                                    )
-                                )
-                            }
-                        },
-                        text = stringResource(id = R.string.action_addCash)
-                    )
-                }
-            }
-        }
+//        item {
+//            Column(
+//                modifier = Modifier
+//                    .fillParentMaxWidth()
+//                    .padding(horizontal = CodeTheme.dimens.inset)
+//                    .padding(bottom = CodeTheme.dimens.grid.x11),
+//            ) {
+//                if (!chatsEmpty && !state.chatsLoading && state.buyModule.enabled) {
+//                    CodeButton(
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .padding(top = CodeTheme.dimens.grid.x5),
+//                        buttonState = ButtonState.Filled,
+//                        onClick = {
+//                            if (state.buyModule.available) {
+//                                buyMoreKin()
+//                            } else {
+//                                TopBarManager.showMessage(
+//                                    TopBarManager.TopBarMessage(
+//                                        title = context.getString(R.string.error_title_buyModuleUnavailable),
+//                                        message = context.getString(R.string.error_description_buyModuleUnavailable),
+//                                        type = TopBarManager.TopBarMessageType.ERROR
+//                                    )
+//                                )
+//                            }
+//                        },
+//                        text = stringResource(id = R.string.action_addCash)
+//                    )
+//                }
+//            }
+//        }
         itemsIndexed(
             state.chats,
             key = { _, item -> item.id },

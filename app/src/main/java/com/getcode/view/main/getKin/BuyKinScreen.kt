@@ -31,7 +31,7 @@ import com.getcode.ui.components.Row
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.LocalNetworkObserver
-import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.ui.components.text.AmountArea
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds

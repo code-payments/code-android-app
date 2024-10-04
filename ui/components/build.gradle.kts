@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":libs:currency"))
     implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
+    implementation(project(":libs:network:connectivity"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))

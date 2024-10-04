@@ -26,6 +26,7 @@ import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeKeyPad

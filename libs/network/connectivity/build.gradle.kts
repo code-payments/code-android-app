@@ -51,6 +51,7 @@ dependencies {
     //Jetpack compose
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
+    debugImplementation(Libs.compose_ui_tools)
 
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)

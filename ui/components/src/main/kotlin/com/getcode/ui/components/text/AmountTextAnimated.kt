@@ -1,4 +1,4 @@
-package com.getcode.view.main.giveKin
+package com.getcode.ui.components.text
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -19,11 +18,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
-import com.getcode.R
 import com.getcode.theme.CodeTheme
-import com.getcode.util.NumberInputHelper
-import com.getcode.util.NumberInputHelper.Companion.DECIMAL_SEPARATOR
-import com.getcode.util.NumberInputHelper.Companion.GROUPING_SEPARATOR
+import com.getcode.ui.components.R
+import com.getcode.ui.components.text.NumberInputHelper.Companion.DECIMAL_SEPARATOR
+import com.getcode.ui.components.text.NumberInputHelper.Companion.GROUPING_SEPARATOR
 import java.util.*
 import kotlin.collections.HashMap
 import kotlin.concurrent.schedule

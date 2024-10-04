@@ -29,7 +29,7 @@ import com.getcode.ui.theme.CodeKeyPad
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.LocalNetworkObserver
-import com.getcode.view.main.giveKin.AmountArea
+import com.getcode.ui.components.text.AmountArea
 import kotlinx.coroutines.launch
 
 @Preview

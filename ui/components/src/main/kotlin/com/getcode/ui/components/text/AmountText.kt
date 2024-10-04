@@ -1,4 +1,4 @@
-package com.getcode.view.main.giveKin
+package com.getcode.ui.components.text
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -17,7 +17,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -28,10 +27,10 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
-import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.theme.bolded
+import com.getcode.ui.components.R
 
 
 object AmountSizeStore {

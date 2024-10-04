@@ -13,6 +13,7 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.replaceParam
+import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import dagger.hilt.android.lifecycle.HiltViewModel

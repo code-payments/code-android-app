@@ -15,7 +15,7 @@ include(
         ":libs:logging",
         ":libs:messaging",
         ":libs:network:exchange",
-        ':libs:network:observation',
+        ':libs:network:connectivity',
         ":libs:payments",
         ":libs:requests",
         ":libs:vibrator",
