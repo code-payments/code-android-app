@@ -155,14 +155,16 @@ class ChatHistoryController @Inject constructor(
                     val messages =
                         result.map { message -> conversationMessageMapper.map(chat.id to message) }
                     val memberId = chat.selfId ?: return@onSuccess
-                    val latestRef = messages.maxBy { it.dateMillis }
-                    client.advancePointer(
-                        owner,
-                        chat,
-                        latestRef.id,
-                        memberId,
-                        MessageStatus.Delivered
-                    )
+                    val latestRef = messages.maxByOrNull { it.dateMillis }
+                    if (latestRef != null) {
+                        client.advancePointer(
+                            owner,
+                            chat,
+                            latestRef.id,
+                            memberId,
+                            MessageStatus.Delivered
+                        )
+                    }
                 }
             }
             .onFailure {

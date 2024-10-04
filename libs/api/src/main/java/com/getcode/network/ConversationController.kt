@@ -161,7 +161,7 @@ class ConversationStreamController @Inject constructor(
 
                 if (identityRevealed != null && conversation.members.isNotEmpty()) {
                     val members = conversation.members.map {
-                        if (identityRevealed.memberId == it.id.bytes) {
+                        if (identityRevealed.memberId == it.id) {
                             it.copy(identity = identityRevealed.identity)
                         } else {
                             it
@@ -232,12 +232,9 @@ class ConversationStreamController @Inject constructor(
         val chat = historyController.findChat { it.id == conversationId }
             ?: return Result.failure(Throwable("Chat not found"))
 
-        val memberId = chat.selfId ?: return Result.failure(Throwable("Not a member of this chat"))
-
         return chatService.sendMessage(
             owner = owner,
             chat = chat,
-            memberId = memberId,
             content = OutgoingMessageContent.Text(message)
         ).map {
             val messageWithContent = messageWithContentMapper.map(conversationId to it)
@@ -264,10 +261,8 @@ class ConversationStreamController @Inject constructor(
         val chat = historyController.findChat { it.id == conversationId }
             ?: return
 
-        val memberId = chat.selfId ?: return
-
         chatService.onStartedTyping(
-            owner, chat, memberId
+            owner, chat
         ).onSuccess {
             println("on typing started reported")
         }.onFailure {
@@ -283,10 +278,9 @@ class ConversationStreamController @Inject constructor(
         val chat = historyController.findChat { it.id == conversationId }
             ?: return
 
-        val memberId = chat.selfId ?: return
 
         chatService.onStoppedTyping(
-            owner, chat, memberId
+            owner, chat
         ).onSuccess {
             println("on typing stopped reported")
         }.onFailure {

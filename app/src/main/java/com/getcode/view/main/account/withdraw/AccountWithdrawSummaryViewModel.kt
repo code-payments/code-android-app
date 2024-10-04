@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.analytics.AnalyticsService
+import com.getcode.manager.BottomBarManager
 import com.getcode.solana.keys.PublicKey
 import com.getcode.manager.SessionManager
+import com.getcode.manager.TopBarManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount

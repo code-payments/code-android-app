@@ -13,7 +13,7 @@ import java.util.UUID
  * @param id Globally unique ID for this message
  * This is a time based UUID in v2
  * @param senderId The chat member that sent the message.
- * For [ChatType.Notification] chats, this field is omitted since the chat has exactly 1 member.
+ * For [ChatType.Unknown] chats, this field is omitted since the chat has exactly 1 member.
  * @param cursor Cursor value for this message for reference in a paged GetMessagesRequest
  * @param dateMillis Timestamp this message was generated at
  * @param contents Ordered message content. A message may have more than one piece of content.
@@ -21,8 +21,7 @@ import java.util.UUID
 @Serializable
 data class ChatMessage(
     val id: ID, // time based UUID in v2
-    @Serializable(with = UUIDSerializer::class)
-    val senderId: UUID?,
+    val senderId: ID?,
     val isFromSelf: Boolean,
     val cursor: Cursor,
     val dateMillis: Long,

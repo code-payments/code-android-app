@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 data class PointerStatus(
     val messageId: UUID,
-    val memberId: UUID,
+    val memberId: ID,
     val messageStatus: MessageStatus,
 ) {
 
@@ -29,7 +29,7 @@ class PointerMapper @Inject constructor(): Mapper<PointerV2, PointerStatus?> {
         }
 
         val messageId = from.value.value.toByteArray().toList().uuid ?: return null
-        val memberId = from.memberId.value.toByteArray().toList().uuid ?: return null
+        val memberId = from.memberId.value.toByteArray().toList()
 
         return PointerStatus(
             messageId = messageId,

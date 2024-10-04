@@ -15,6 +15,7 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.extensions.formattedRaw
+import com.getcode.manager.TopBarManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.FormatUtils

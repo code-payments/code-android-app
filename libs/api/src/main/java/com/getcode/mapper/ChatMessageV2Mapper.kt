@@ -16,7 +16,7 @@ class ChatMessageV2Mapper @Inject constructor(
         val (chat, message) = from
 
         val messageId = message.messageId.value.toByteArray().toList()
-        val messageSenderId = message.senderId.value.toByteArray().toList().uuid
+        val messageSenderId = message.senderId.value.toByteArray().toList()
         val selfMember = chat.members.firstOrNull { it.isSelf }
         val isFromSelf = selfMember?.id == messageSenderId
 

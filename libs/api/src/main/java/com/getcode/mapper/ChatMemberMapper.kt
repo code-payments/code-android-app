@@ -10,7 +10,7 @@ import javax.inject.Inject
 class ChatMemberMapper @Inject constructor(): Mapper<ChatService.Member, ChatMember?> {
     override fun map(from: ChatService.Member): ChatMember? {
         return ChatMember(
-            id = from.memberId.value.toByteArray().toList().uuid ?: return null,
+            id = from.memberId.value.toByteArray().toList() ?: return null,
             identity = runCatching { Identity(from.identity) }.getOrNull(),
             isSelf = from.isSelf,
             pointers = from.pointersList.map { Pointer(it) }

@@ -2,6 +2,7 @@ package com.getcode.view.main.giveKin
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.model.CurrencyCode
 import com.getcode.model.KinAmount
 import com.getcode.model.fromFiatAmount

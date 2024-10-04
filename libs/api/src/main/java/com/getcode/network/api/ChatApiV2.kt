@@ -90,7 +90,6 @@ class ChatApiV2 @Inject constructor(
     fun fetchChatMessages(
         owner: KeyPair,
         chatId: ID,
-        memberId: UUID,
         cursor: Cursor? = null,
         limit: Int? = null
     ): Flow<GetMessagesResponse> {
@@ -124,7 +123,7 @@ class ChatApiV2 @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    fun advancePointer(owner: KeyPair, chatId: ID, memberId: UUID, to: ID, type: PointerType): Flow<AdvancePointerResponse> {
+    fun advancePointer(owner: KeyPair, chatId: ID, memberId: ID, to: ID, type: PointerType): Flow<AdvancePointerResponse> {
         val request = AdvancePointerRequest.newBuilder()
             .setChatId(
                 ChatId.newBuilder()
@@ -134,7 +133,7 @@ class ChatApiV2 @Inject constructor(
                 Pointer.newBuilder()
                     .setType(type)
                     .setMemberId(ChatService.MemberId.newBuilder()
-                        .setValue(memberId.bytes.toByteString()))
+                        .setValue(memberId.toByteString()))
                     .setValue(
                         ChatService.MessageId.newBuilder()
                             .setValue(to.toByteArray().toByteString())
@@ -188,7 +187,6 @@ class ChatApiV2 @Inject constructor(
     fun sendMessage(
         owner: KeyPair,
         chatId: ID,
-        memberId: UUID,
         content: OutgoingMessageContent,
         observer: StreamObserver<SendMessageResponse>
     ) {
@@ -212,7 +210,6 @@ class ChatApiV2 @Inject constructor(
     fun onStartedTyping(
         owner: KeyPair,
         chatId: ID,
-        memberId: UUID,
         observer: StreamObserver<NotifyIsTypingResponse>
     ) {
         val request = NotifyIsTypingRequest.newBuilder()
@@ -229,7 +226,6 @@ class ChatApiV2 @Inject constructor(
     fun onStoppedTyping(
         owner: KeyPair,
         chatId: ID,
-        memberId: UUID,
         observer: StreamObserver<NotifyIsTypingResponse>
     ) {
         val request = NotifyIsTypingRequest.newBuilder()

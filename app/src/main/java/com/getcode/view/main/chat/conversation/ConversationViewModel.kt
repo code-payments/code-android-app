@@ -13,6 +13,7 @@ import androidx.paging.map
 import com.getcode.BuildConfig
 import com.getcode.SessionController
 import com.getcode.SessionEvent
+import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
@@ -32,7 +33,9 @@ import com.getcode.ui.components.chat.utils.ConversationMessageIndice
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.timestamp
+import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow

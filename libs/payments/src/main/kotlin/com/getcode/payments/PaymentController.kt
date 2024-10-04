@@ -13,6 +13,7 @@ import com.getcode.model.Username
 import com.getcode.models.BillState
 import com.getcode.models.ConfirmationState
 import com.getcode.models.SocialUserPaymentConfirmation
+import com.getcode.network.ChatHistoryController
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.util.resources.ResourceHelper
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +45,7 @@ val LocalPaymentController = staticCompositionLocalOf<PaymentController?> { null
 
 @Singleton
 class PaymentController @Inject constructor(
+    private val historyController: ChatHistoryController,
     private val paymentRepository: PaymentRepository,
     private val resources: ResourceHelper,
     private val billController: BillController,
@@ -92,7 +94,7 @@ class PaymentController @Inject constructor(
         runCatching {
             paymentRepository.payForFriendship(user, amount)
         }.onSuccess {
-//            historyController.fetch()
+            historyController.fetch()
 
             billController.update { billState ->
                 val socialUserPaymentConfirmation = billState.socialUserPaymentConfirmation ?: return@update billState
@@ -115,7 +117,6 @@ class PaymentController @Inject constructor(
     }
 
     fun cancelPayment() {
-//        tipController.reset()
         billController.reset()
     }
 }

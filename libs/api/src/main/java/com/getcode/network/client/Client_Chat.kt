@@ -127,7 +127,9 @@ suspend fun Client.fetchMessagesFor(
         }
         .onSuccess {
             Timber.d("messages fetched=${it.count()} for ${chat.id.base58}")
-            Timber.d("start=${it.minOf { it.dateMillis }}, end=${it.maxOf { it.dateMillis }}")
+            if (it.isNotEmpty()) {
+                Timber.d("start=${it.minOf { it.dateMillis }}, end=${it.maxOf { it.dateMillis }}")
+            }
         }.onFailure {
             Timber.e(t = it, "Failed fetching messages.")
         }
@@ -137,7 +139,7 @@ suspend fun Client.advancePointer(
     owner: KeyPair,
     chat: Chat,
     to: ID,
-    memberId: UUID? = null,
+    memberId: ID? = null,
     status: MessageStatus = MessageStatus.Read,
 ): Result<Unit> {
     return if (chat.isV2) {

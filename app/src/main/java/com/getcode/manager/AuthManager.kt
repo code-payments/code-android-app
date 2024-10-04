@@ -26,9 +26,11 @@ import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
 import com.getcode.utils.makeE164
 import com.getcode.utils.token
+import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
@@ -68,7 +70,7 @@ class AuthManager @Inject constructor(
 
     companion object {
         private const val TAG = "AuthManager"
-        internal fun taggedTrace(message: String, type: com.getcode.utils.TraceType = TraceType.Log) {
+        internal fun taggedTrace(message: String, type: TraceType = TraceType.Log) {
             trace(message = message, type = type, tag = TAG)
         }
     }

@@ -4,7 +4,6 @@ import com.codeinc.gen.chat.v2.ChatService
 
 enum class ChatType {
     Unknown,
-    Notification,
     TwoWay;
 
     companion object {

@@ -27,7 +27,7 @@ class FlipchatApp : Application() {
         Firebase.initialize(this)
         DeviceCheck.register(this)
         MnemonicCache.init(this)
-        authManager.init()
+        authManager.init { trace("NaCl init") }
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
 

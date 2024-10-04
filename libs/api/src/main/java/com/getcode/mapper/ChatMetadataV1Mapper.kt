@@ -16,7 +16,7 @@ class ChatMetadataV1Mapper @Inject constructor(
             cursor = from.cursor.value.toByteArray().toList(),
             canMute = from.canMute,
             canUnsubscribe = from.canUnsubscribe,
-            type = ChatType.Notification,
+            type = ChatType.Unknown,
             messages = emptyList(),
             // backwards compatibility fields - these are derived from [Chat#members] in V2
             _unreadCount = from.numUnread,

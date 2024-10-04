@@ -225,20 +225,7 @@ private fun ConversationScreenContent(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
-    val navigator = LocalCodeNavigator.current
-
     CodeScaffold(
-        topBar = {
-            Column {
-                IdentityRevealHeader(state = state) {
-                    if (state.identityAvailable) {
-                        dispatchEvent(ConversationViewModel.Event.RevealIdentity)
-                    } else {
-//                    navigator.push(ConnectAccount(IdentityConnectionReason.IdentityReveal))
-                    }
-                }
-            }
-        },
         bottomBar = {
             Column(
                 modifier = Modifier
@@ -305,60 +292,6 @@ private fun ConversationScreenContent(
 
         HandleMessageChanges(listState = lazyListState, items = messages) { message ->
             dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
-        }
-    }
-}
-
-@Composable
-private fun IdentityRevealHeader(
-    state: ConversationViewModel.State,
-    onClick: () -> Unit
-) {
-    var showRevealHeader by remember {
-        mutableStateOf(false)
-    }
-
-    LaunchedEffect(state.identityRevealed, state.users) {
-        if (state.identityRevealed == false) {
-            delay(500)
-        }
-        showRevealHeader = state.identityRevealed == false
-    }
-
-    AnimatedContent(
-        targetState = showRevealHeader,
-        label = "show/hide identity reveal header"
-    ) { show ->
-        if (show) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = CodeTheme.dimens.grid.x2),
-                color = CodeTheme.colors.background,
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Your messages are showing up anonymously.",
-                        style = CodeTheme.typography.linkSmall.copy(
-                            textDecoration = null,
-                            fontWeight = FontWeight.W700
-                        ),
-                    )
-
-                    ClickableText(
-                        text = AnnotatedString("Tap to Reveal Your Identity"),
-                        style = CodeTheme.typography.linkSmall.copy(
-                            color = Color.White,
-                            fontWeight = FontWeight.W700
-                        ),
-                    ) {
-                        onClick()
-                    }
-                }
-            }
         }
     }
 }

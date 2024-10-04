@@ -7,6 +7,7 @@ import com.getcode.crypt.MnemonicCache
 import com.getcode.manager.AuthManager
 import com.getcode.network.integrity.DeviceCheck
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.initialize
 import dagger.hilt.android.HiltAndroidApp

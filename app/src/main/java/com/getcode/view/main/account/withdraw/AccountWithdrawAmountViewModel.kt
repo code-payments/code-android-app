@@ -2,6 +2,7 @@ package com.getcode.view.main.account.withdraw
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
+import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.WithdrawalAddressScreen
 import com.getcode.network.client.Client

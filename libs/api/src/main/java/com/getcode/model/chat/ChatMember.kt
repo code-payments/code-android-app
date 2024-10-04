@@ -10,24 +10,17 @@ import java.util.UUID
 /**
  * A user in a chat
  *
- * @param id Globally unique ID for this chat member
+ * @param id Public AccountId (for is self...is derived via deposit address)
  * @param isSelf Is this chat member yourself? This enables client to identify which member_id
  * is themselves.
  * @param identity The chat member's identity if it has been revealed.
  * @param pointers  Chat message state for this member. This list will have DELIVERED and READ
  * pointers, if they exist. SENT pointers should be inferred by persistence
  * on server.
- * @param numUnread Estimated number of unread messages for the chat member in this chat
- * Only valid when `isSelf = true`
- * @param isMuted Has the chat member muted this chat?
- * Only valid when `isSelf = true`
- * @param isSubscribed Is the chat member subscribed to this chat?
- * Only valid when `isSelf = true`
  */
 @Serializable
 data class ChatMember(
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+    val id: ID,
     val isSelf: Boolean,
     val identity: Identity?,
     val pointers: List<Pointer>,

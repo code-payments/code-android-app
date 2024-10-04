@@ -34,6 +34,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.bytes
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
@@ -76,7 +77,6 @@ class ConversationViewModel @Inject constructor(
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
-        val identityRevealed: Boolean?,
         val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
@@ -84,7 +84,7 @@ class ConversationViewModel @Inject constructor(
         val isSelfTyping: Boolean,
     ) {
         data class User(
-            val memberId: UUID,
+            val memberId: ID,
             val username: String?,
             val imageUrl: String?,
         ) {
@@ -101,7 +101,6 @@ class ConversationViewModel @Inject constructor(
                 tipChatCash = ConversationCashFeature(),
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
-                identityRevealed = null,
                 users = emptyList(),
                 lastSeen = null,
                 pointers = emptyMap(),
@@ -120,7 +119,7 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnUserRevealed(
-            val memberId: UUID,
+            val memberId: ID,
             val username: String? = null,
             val imageUrl: String? = null,
         ) : Event
@@ -177,7 +176,7 @@ class ConversationViewModel @Inject constructor(
             }.onEach { user ->
                 val member = user.let {
                     State.User(
-                        memberId = UUID.randomUUID(),
+                        memberId = UUID.randomUUID().bytes,
                         username = user.username,
                         imageUrl = user.imageUrl
                     )
@@ -433,7 +432,6 @@ class ConversationViewModel @Inject constructor(
 
                     state.copy(
                         conversationId = conversation.id,
-                        identityRevealed = conversation.hasRevealedIdentity,
                         pointers = event.conversationWithPointers.pointers,
                         twitterUser = null,
                         users = members.map {

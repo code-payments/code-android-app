@@ -133,17 +133,10 @@ class ChatServiceV2 @Inject constructor(
         limit: Int? = null
     ): Result<List<ChatMessage>> {
         return try {
-            val memberId = chat.members
-                .filter { it.isSelf }
-                .map { it.id }
-                .firstOrNull()
-                ?: throw IllegalStateException("Fetching messages for a chat you are not a member in")
-
             networkOracle.managedRequest(
                 api.fetchChatMessages(
                     owner,
                     chat.id,
-                    memberId,
                     cursor,
                     limit
                 )
@@ -182,7 +175,7 @@ class ChatServiceV2 @Inject constructor(
     suspend fun advancePointer(
         owner: KeyPair,
         chatId: ID,
-        memberId: UUID,
+        memberId: ID,
         to: ID,
         status: MessageStatus,
     ): Result<Unit> {
@@ -242,7 +235,6 @@ class ChatServiceV2 @Inject constructor(
         trace("Creating $type chat for ${intentId.description}")
         return when (type) {
             ChatType.Unknown -> throw IllegalArgumentException("Unknown chat type provided")
-            ChatType.Notification -> throw IllegalArgumentException("Unable to create notification chats from client")
             ChatType.TwoWay -> {
                 try {
                     networkOracle.managedRequest(api.startChat(owner, self, with, intentId))
@@ -304,7 +296,7 @@ class ChatServiceV2 @Inject constructor(
     fun openChatStream(
         scope: CoroutineScope,
         conversation: Conversation,
-        memberId: UUID,
+        memberId: ID,
         owner: KeyPair,
         chatLookup: (Conversation) -> Chat,
         onEvent: (Result<ChatStreamEventUpdate>) -> Unit
@@ -331,7 +323,7 @@ class ChatServiceV2 @Inject constructor(
 
     private fun openChatStream(
         conversation: Conversation,
-        memberId: UUID,
+        memberId: ID,
         owner: KeyPair,
         reference: ChatMessageStreamReference,
         chatLookup: (Conversation) -> Chat,
@@ -363,7 +355,7 @@ class ChatServiceV2 @Inject constructor(
 
                                 val isTyping = value.events.eventsList
                                     .map { it.isTyping }
-                                    .find { it.isTyping && it.memberId.value.toList().uuid != memberId } != null
+                                    .find { it.isTyping && it.memberId.value.toList() != memberId } != null
 
                                 trace("Chat ${conversation.id.description} received ${messages.count()} messages and ${pointerStatuses.count()} status updates.")
                                 val update = ChatStreamEventUpdate(messages, pointerStatuses, isTyping)
@@ -443,7 +435,6 @@ class ChatServiceV2 @Inject constructor(
     suspend fun sendMessage(
         owner: KeyPair,
         chat: Chat,
-        memberId: UUID,
         content: OutgoingMessageContent,
     ): Result<ChatMessage> = suspendCancellableCoroutine { cont ->
         val chatId = chat.id
@@ -451,7 +442,6 @@ class ChatServiceV2 @Inject constructor(
             api.sendMessage(
                 owner = owner,
                 chatId = chatId,
-                memberId = memberId,
                 content = content,
                 observer = object : StreamObserver<SendMessageResponse> {
                     override fun onNext(value: SendMessageResponse?) {
@@ -520,14 +510,12 @@ class ChatServiceV2 @Inject constructor(
     suspend fun onStartedTyping(
         owner: KeyPair,
         chat: Chat,
-        memberId: UUID,
     ): Result<Unit> = suspendCancellableCoroutine { cont ->
         val chatId = chat.id
         try {
             api.onStartedTyping(
                 owner,
                 chatId,
-                memberId,
                 observer = object : StreamObserver<NotifyIsTypingResponse> {
                     override fun onNext(value: NotifyIsTypingResponse?) {
                         val requestResult = value?.result
@@ -587,14 +575,12 @@ class ChatServiceV2 @Inject constructor(
     suspend fun onStoppedTyping(
         owner: KeyPair,
         chat: Chat,
-        memberId: UUID,
     ): Result<Unit> = suspendCancellableCoroutine { cont ->
         val chatId = chat.id
         try {
             api.onStoppedTyping(
                 owner,
                 chatId,
-                memberId,
                 observer = object : StreamObserver<NotifyIsTypingResponse> {
                     override fun onNext(value: NotifyIsTypingResponse?) {
                         val requestResult = value?.result

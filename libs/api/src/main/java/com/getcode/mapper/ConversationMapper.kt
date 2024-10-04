@@ -19,12 +19,11 @@ class ConversationMapper @Inject constructor(
         return Conversation(
             idBase58 = from.id.base58,
             title = when (from.type) {
-                ChatType.Unknown,
-                ChatType.Notification -> from.title.localized(resources)
+                ChatType.Unknown -> from.title.localized(resources)
                 ChatType.TwoWay -> null
             },
             hasRevealedIdentity = self != null,
-            members = from.members.map { it },
+            members = from.members,
             lastActivity = null, // TODO: ?
         )
     }

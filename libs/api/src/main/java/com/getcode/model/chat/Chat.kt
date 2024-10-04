@@ -33,15 +33,14 @@ data class Chat(
     val cursor: Cursor,
     val messages: List<ChatMessage>
 ) {
-    val imageData: Any
+    val imageData: Any?
         get() {
             return when (type) {
                 ChatType.Unknown -> id
-                ChatType.Notification -> id
                 ChatType.TwoWay -> {
                     members
                         .filterNot { it.isSelf }
-                        .firstNotNullOf {
+                        .firstNotNullOfOrNull {
                             if (it.identity != null) {
                                 it.identity.imageUrl.orEmpty()
                             } else {
@@ -90,7 +89,7 @@ val Chat.isV2: Boolean
     get() = members.isNotEmpty()
 
 val Chat.isNotification: Boolean
-    get() = type == ChatType.Notification
+    get() = !isV2 && type != ChatType.TwoWay
 
 val Chat.isConversation: Boolean
     get() = type == ChatType.TwoWay
@@ -98,5 +97,5 @@ val Chat.isConversation: Boolean
 val Chat.self: ChatMember?
     get() = members.firstOrNull { it.isSelf }
 
-val Chat.selfId: UUID?
+val Chat.selfId: ID?
     get() = self?.id

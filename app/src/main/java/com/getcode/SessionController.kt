@@ -86,13 +86,16 @@ import com.getcode.util.IntentUtils
 import com.getcode.utils.Kin
 import com.getcode.extensions.formatted
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.catchSafely
 import com.getcode.utils.nonce
+import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.getcode.view.main.scanner.UiElement
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
