@@ -138,7 +138,7 @@ dependencies {
 
     //hilt dependency injection
     implementation(Libs.hilt)
-    implementation("androidx.webkit:webkit:1.11.0")
+    implementation("androidx.webkit:webkit:1.12.1")
     kapt(Libs.hilt_android_compiler)
     kapt(Libs.hilt_compiler)
     androidTestImplementation(Libs.hilt)
