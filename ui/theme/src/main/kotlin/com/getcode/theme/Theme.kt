@@ -17,8 +17,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
-
-private val DarkColorPalette = CodeColors(
+internal val CodeDefaultColorScheme = ColorScheme(
     brand = Brand,
     brandLight = BrandLight,
     brandSubtle = BrandSubtle,
@@ -26,6 +25,7 @@ private val DarkColorPalette = CodeColors(
     brandDark = BrandDark,
     brandOverlay = BrandOverlay,
     secondary = BrandAccent,
+    tertiary = BrandAccent,
     action = Gray50,
     onAction = White,
     background = Brand,
@@ -39,10 +39,11 @@ private val DarkColorPalette = CodeColors(
 )
 
 @Composable
-fun CodeTheme(
+fun DesignSystem(
+    colorScheme: ColorScheme = CodeDefaultColorScheme,
+    typography: CodeTypography = codeTypography,
     content: @Composable () -> Unit
 ) {
-    val colors = DarkColorPalette
     val sysUiController = rememberSystemUiController()
 
     SideEffect {
@@ -52,8 +53,8 @@ fun CodeTheme(
 
     val dimensions = calculateDimensions()
 
-    ProvideCodeColors(colors) {
-        ProvideCodeTypography(typography = codeTypography) {
+    ProvideColorScheme(colorScheme) {
+        ProvideTypography(typography = typography) {
             ProvideDimens(dimensions = dimensions) {
                 MaterialTheme(
                     colors = debugColors(),
@@ -71,7 +72,7 @@ fun CodeTheme(
 }
 
 object CodeTheme {
-    val colors: CodeColors
+    val colors: ColorScheme
         @Composable get() = LocalCodeColors.current
     val dimens: Dimensions
         @Composable get() = LocalDimens.current
@@ -82,7 +83,7 @@ object CodeTheme {
 }
 
 @Stable
-class CodeColors(
+class ColorScheme(
     brand: Color,
     brandLight: Color,
     brandSubtle: Color,
@@ -90,6 +91,7 @@ class CodeColors(
     brandDark: Color,
     brandOverlay: Color,
     secondary: Color,
+    tertiary: Color,
     action: Color,
     onAction: Color,
     background: Color,
@@ -131,12 +133,14 @@ class CodeColors(
         private set
     var secondary by mutableStateOf(secondary)
         private set
+    var tertiary by mutableStateOf(tertiary)
+        private set
     var action by mutableStateOf(action)
         private set
     var onAction by mutableStateOf(onAction)
         private set
 
-    fun update(other: CodeColors) {
+    fun update(other: ColorScheme) {
         brand = other.brand
         brandLight = other.brandLight
         brandSubtle = other.brandSubtle
@@ -152,11 +156,12 @@ class CodeColors(
         textMain = other.textMain
         textSecondary = other.textSecondary
         secondary = other.secondary
+        tertiary = other.tertiary
         action = other.action
         onAction = other.onAction
     }
 
-    fun copy(): CodeColors = CodeColors(
+    fun copy(): ColorScheme = ColorScheme(
         brand = brand,
         brandLight = brandLight,
         brandSubtle = brandSubtle,
@@ -172,14 +177,15 @@ class CodeColors(
         textMain = textMain,
         textSecondary = textSecondary,
         secondary = secondary,
+        tertiary = tertiary,
         action = action,
         onAction = onAction
     )
 }
 
 @Composable
-fun ProvideCodeColors(
-    colors: CodeColors,
+fun ProvideColorScheme(
+    colors: ColorScheme,
     content: @Composable () -> Unit
 ) {
     val colorPalette = remember { colors.copy() }
@@ -187,13 +193,13 @@ fun ProvideCodeColors(
     CompositionLocalProvider(LocalCodeColors provides colorPalette, content = content)
 }
 
-val LocalCodeColors = staticCompositionLocalOf<CodeColors> {
+val LocalCodeColors = staticCompositionLocalOf<ColorScheme> {
     error("No ColorPalette provided")
 }
 
 /**
  * A Material [Colors] implementation which sets all colors to [debugColor] to discourage usage of
- * [MaterialTheme.colors] in preference to [CodeTheme.colors].
+ * [MaterialTheme.colors] in preference to [DesignSystem.colors].
  */
 fun debugColors(
     darkTheme: Boolean = true,
@@ -218,7 +224,7 @@ fun debugColors(
 fun inputColors(
     textColor: Color = Color.White,
     disabledTextColor: Color = Color.White,
-    borderColor: Color = BrandLight,
+    borderColor: Color = CodeTheme.colors.brandLight,
     unfocusedBorderColor: Color = borderColor,
     backgroundColor: Color = White05,
     placeholderColor: Color = White50,

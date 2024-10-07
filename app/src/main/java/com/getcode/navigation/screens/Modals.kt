@@ -24,7 +24,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.LocalBetaFlags
-import com.getcode.MainRoot
 import com.getcode.TopLevelViewModel
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -121,7 +120,7 @@ internal fun NamedScreen.ModalContainer(
             modifier = Modifier
                 .windowInsetsPadding(WindowInsets.navigationBars)
         ) {
-            val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
+            val tlvm = getActivityScopedViewModel<TopLevelViewModel>()
             val state by tlvm.state.collectAsState()
             CompositionLocalProvider(
                 LocalOverscrollConfiguration provides null,

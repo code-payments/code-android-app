@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import kotlinx.coroutines.delay
 
 private const val StepDuration = 400
@@ -91,7 +92,7 @@ fun TypingIndicator(
 @Composable
 @Preview
 fun PreviewTypingIndicator() {
-    CodeTheme {
+    DesignSystem {
         Box(modifier = Modifier.size(400.dp), contentAlignment = Alignment.Center) {
             TypingIndicator()
         }

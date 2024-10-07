@@ -3,9 +3,19 @@ package com.getcode.view.main.account.withdraw
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -15,12 +25,10 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.WithdrawalArgs
-import com.getcode.theme.Brand01
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.components.text.AmountArea
 
 @Composable
 fun AccountWithdrawSummary(
@@ -49,8 +57,8 @@ fun AccountWithdrawSummary(
         ) {
             Box(
                 modifier = Modifier
-                    .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.medium)
-                    .background(Brand01)
+                    .border(width = CodeTheme.dimens.border, color = CodeTheme.colors.brandLight, shape = CodeTheme.shapes.medium)
+                    .background(CodeTheme.colors.brandDark)
                     .padding(CodeTheme.dimens.grid.x4)
             ) {
                 AmountArea(
@@ -73,8 +81,8 @@ fun AccountWithdrawSummary(
 
             Box(
                 modifier = Modifier
-                    .border(width = CodeTheme.dimens.border, color = BrandLight, shape = CodeTheme.shapes.medium)
-                    .background(Brand01)
+                    .border(width = CodeTheme.dimens.border, color = CodeTheme.colors.brandLight, shape = CodeTheme.shapes.medium)
+                    .background(CodeTheme.colors.brandDark)
                     .padding(CodeTheme.dimens.grid.x4)
             ) {
                 Text(

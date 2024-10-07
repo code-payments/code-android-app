@@ -16,8 +16,6 @@ android {
     kotlinOptions {
         jvmTarget = Versions.java
         freeCompilerArgs += listOf(
-            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-Xuse-experimental=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlin.ExperimentalUnsignedTypes",
             "-opt-in=kotlin.RequiresOptIn"
         )

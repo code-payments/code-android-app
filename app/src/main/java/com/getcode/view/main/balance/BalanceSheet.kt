@@ -45,6 +45,7 @@ import com.getcode.navigation.screens.NotificationCollectionScreen
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.navigation.screens.FaqScreen
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.White10
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -359,7 +360,7 @@ private fun EmptyTransactionsHint(faqOpen: () -> Unit) {
 @Preview
 @Composable
 private fun TopPreview() {
-    CodeTheme {
+    DesignSystem {
         val model = BalanceSheetViewModel.State(
             amountText = "$12.34 of Kin",
             marketValue = 2_225_100.0,

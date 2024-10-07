@@ -23,8 +23,6 @@ import com.getcode.R
 import com.getcode.models.Bill
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
-import com.getcode.theme.Alert
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
@@ -63,7 +61,7 @@ fun GiveKinScreen(
         }
 
         val color =
-            if (isInError) Alert else BrandLight
+            if (isInError) CodeTheme.colors.errorText else CodeTheme.colors.brandLight
         Box(
             modifier = Modifier.weight(0.65f)
         ) {

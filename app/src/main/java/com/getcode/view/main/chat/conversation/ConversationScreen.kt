@@ -37,8 +37,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.R
-import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -50,7 +48,6 @@ import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.extensions.formatted
-import com.getcode.view.main.tip.IdentityConnectionReason
 import kotlinx.coroutines.delay
 
 @Composable

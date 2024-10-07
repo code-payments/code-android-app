@@ -51,7 +51,7 @@ val LocalCodeTypography = staticCompositionLocalOf<CodeTypography> {
 }
 
 @Composable
-fun ProvideCodeTypography(
+fun ProvideTypography(
     typography: CodeTypography,
     content: @Composable () -> Unit
 ) {

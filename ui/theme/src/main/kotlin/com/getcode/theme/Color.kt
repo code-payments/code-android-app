@@ -12,7 +12,6 @@ val BrandAction = Color(0xFF212121)
 val BrandOverlay = Color(0xBF1E1E1E)
 val BrandAccent = Color(0xFF443091)
 
-val Brand01 = Color(0xFF130F27)
 val White = Color(0xffffffff)
 val White50 = Color(0x80FFFFFF)
 val White10 = Color(0x1AFFFFFF)
@@ -25,14 +24,14 @@ val Transparent = Color(0x00FFFFFF)
 val Gray50 = Color(0x803C3C3C)
 val DashEffect = Color(0xFF303137)
 
-val TextMain = White
-val TextSecondary = BrandLight
-val TextError = Color(0xFFDD8484)
-
 val Alert = Color(0xFFFF8383)
 val Warning = Color(0xFFf1ab1f)
 val Success = Color(0xFF87D300)
 val Error = Color(0xFFA42D2D)
+
+val TextMain = White
+val TextSecondary = BrandLight
+val TextError = Alert
 
 val SystemGreen = Color(0xFF04C759)
 

@@ -13,7 +13,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.fromFiatAmount
 import com.getcode.models.Bill
-import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 
 @Composable
 fun Bill(
@@ -51,7 +51,7 @@ fun Bill(
 @Preview
 @Composable
 fun Preview_CashBill() {
-    CodeTheme {
+    DesignSystem {
         val payload = CodePayload(
             Kind.Cash,
             value = Fiat(CurrencyCode.USD, 3.00),
@@ -74,7 +74,7 @@ fun Preview_CashBill() {
 @Preview
 @Composable
 fun Preview_PaymentBill() {
-    CodeTheme {
+    DesignSystem {
         val payload = CodePayload(
             Kind.RequestPayment,
             value = Fiat(CurrencyCode.USD, 0.25),

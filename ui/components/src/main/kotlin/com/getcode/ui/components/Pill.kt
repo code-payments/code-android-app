@@ -41,6 +41,7 @@ fun Pill(
             Text(
                 text = text,
                 style = textStyle,
+                color = contentColor
             )
         }
     )

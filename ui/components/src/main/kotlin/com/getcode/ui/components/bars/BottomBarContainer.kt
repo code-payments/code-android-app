@@ -133,7 +133,7 @@ fun BottomBarView(
                 .background(
                     when (bottomBarMessage.type) {
                         BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.error
-                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
+                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                     }
                 )
                 .padding(CodeTheme.dimens.inset)
@@ -163,7 +163,7 @@ fun BottomBarView(
                     textColor =
                     when (bottomBarMessage.type) {
                         BottomBarManager.BottomBarMessageType.DEFAULT -> CodeTheme.colors.error
-                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> BrandLight
+                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                     },
                     buttonState = ButtonState.Filled,
                     text = bottomBarMessage.positiveText

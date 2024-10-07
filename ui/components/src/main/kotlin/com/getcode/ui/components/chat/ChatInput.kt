@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.extraLarge
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.R
@@ -107,7 +108,7 @@ fun ChatInput(
                     modifier = Modifier
                         .size(ChatInput_Size)
                         .align(Alignment.Bottom)
-                        .background(CodeTheme.colors.secondary, shape = CircleShape)
+                        .background(CodeTheme.colors.tertiary, shape = CircleShape)
                         .clip(CircleShape)
                         .rememberedClickable { onSendMessage() }
                         .padding(8.dp),
@@ -130,7 +131,7 @@ fun ChatInput(
 @Preview
 @Composable
 private fun Preview_ChatInput() {
-    CodeTheme {
+    DesignSystem {
         ChatInput(
             sendCashEnabled = true,
             onSendMessage = {},

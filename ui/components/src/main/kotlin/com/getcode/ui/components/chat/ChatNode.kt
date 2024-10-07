@@ -22,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.MessageContent
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.chat.utils.localized
@@ -89,7 +88,7 @@ fun ChatNode(
                             DateUtils.getDateRelatively(it)
                         },
                         style = CodeTheme.typography.textSmall,
-                        color = if (hasUnreadMessages) ChatNodeDefaults.UnreadIndicator else CodeTheme.colors.brandLight,
+                        color = if (hasUnreadMessages) ChatNodeDefaults.UnreadIndicator else CodeTheme.colors.textSecondary,
                     )
                 }
             }
@@ -101,7 +100,7 @@ fun ChatNode(
                     modifier = Modifier.weight(1f),
                     text = chat.messagePreview,
                     style = CodeTheme.typography.textMedium,
-                    color = CodeTheme.colors.brandLight,
+                    color = CodeTheme.colors.textSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -109,7 +108,7 @@ fun ChatNode(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.VolumeOff,
                         contentDescription = "chat is muted",
-                        tint = BrandLight
+                        tint = CodeTheme.colors.brandLight
                     )
                 } else {
                     Badge(

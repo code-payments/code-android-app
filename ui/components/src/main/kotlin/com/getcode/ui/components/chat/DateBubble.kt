@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.getcode.theme.BrandDark
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Pill
 
 @Composable
@@ -15,6 +16,6 @@ internal fun DateBubble(
 ) = Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Pill(
         text = date,
-        backgroundColor = BrandDark
+        backgroundColor = CodeTheme.colors.secondary
     )
 }

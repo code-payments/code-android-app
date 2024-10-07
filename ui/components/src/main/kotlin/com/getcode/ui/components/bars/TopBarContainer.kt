@@ -156,12 +156,14 @@ private fun TopBarView(
                     .height(CodeTheme.dimens.border)
                     .background(Black10)
             )
+
+            val color = CodeTheme.colors.brandLight
             Row(modifier = Modifier
                 .height(IntrinsicSize.Min)
                 .drawBehind {
                     val strokeWidth = Dp.Hairline.toPx()
                     drawLine(
-                        color = BrandLight,
+                        color = color,
                         Offset(0f, 0f),
                         Offset(size.width, 0f),
                         strokeWidth

@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.White50
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.addIf
@@ -371,7 +372,7 @@ private fun calculateHintTextColor(swipeFraction: Float): Color {
 private fun Preview() {
     var isLoading by remember { mutableStateOf(false) }
     var isSuccess by remember { mutableStateOf(false) }
-    CodeTheme {
+    DesignSystem {
         Column(
             verticalArrangement = Arrangement.Bottom,
             modifier = Modifier

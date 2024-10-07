@@ -36,6 +36,7 @@ import com.getcode.model.fromFiatAmount
 import com.getcode.models.PaymentConfirmation
 import com.getcode.models.ConfirmationState
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.bolded
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -125,7 +126,7 @@ private fun confirmationWithState(state: ConfirmationState) = PaymentConfirmatio
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Awaiting() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -146,7 +147,7 @@ fun Preview_PaymentConfirmModal_Awaiting() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Sending() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -167,7 +168,7 @@ fun Preview_PaymentConfirmModal_Sending() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Sent() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -188,7 +189,7 @@ fun Preview_PaymentConfirmModal_Sent() {
 @Preview(showBackground = true)
 @Composable
 fun Preview_PaymentConfirmModal_Interactive() {
-    CodeTheme {
+    DesignSystem {
         Box(
             modifier = Modifier
                 .fillMaxSize()

@@ -59,7 +59,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.theme.White50
@@ -200,7 +199,7 @@ private fun PhoneEntry(
         modifier = modifier
             .border(
                 width = CodeTheme.dimens.border,
-                color = BrandLight,
+                color = CodeTheme.colors.brandLight,
                 shape = CodeTheme.shapes.extraSmall
             )
             .background(White05)
@@ -247,7 +246,7 @@ private fun PhoneEntry(
         }
         Spacer(
             modifier = Modifier
-                .background(BrandLight)
+                .background(CodeTheme.colors.brandLight)
                 .width(1.dp)
                 .fillMaxHeight()
         )

@@ -36,6 +36,7 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.BrandSubtle
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
 import com.getcode.ui.theme.ButtonState
@@ -169,7 +170,7 @@ private fun composeTweet(context: Context, intent: Intent) {
 @Preview
 @Composable
 private fun Preview_TweetPreview() {
-    CodeTheme {
+    DesignSystem {
         TweetPreview(xMessage = "${stringResource(R.string.subtitle_connectXTweetText)}\n" +
                 "\n" +
                 "CodeAccount:349pQtzGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQPXved:zGmiBxU9vADVf6AUdMLLXyCCU3Zu4smrQP")

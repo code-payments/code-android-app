@@ -10,7 +10,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.WindowSizeClass
 import com.getcode.ui.utils.rememberedClickable
@@ -37,9 +36,9 @@ fun OtpBox(
             .rememberedClickable(onClick = onClick)
             .border(
                 border = if (isHighlighted)
-                    BorderStroke(CodeTheme.dimens.thickBorder, color = BrandLight.copy(alpha = 0.7f))
+                    BorderStroke(CodeTheme.dimens.thickBorder, color = CodeTheme.colors.brandLight.copy(alpha = 0.7f))
                 else
-                    BorderStroke(CodeTheme.dimens.border, color = BrandLight.copy(alpha = 0.3f)),
+                    BorderStroke(CodeTheme.dimens.border, color = CodeTheme.colors.brandLight.copy(alpha = 0.3f)),
                 shape = CodeTheme.shapes.small
             )
             .background(Color.White.copy(alpha = 0.1f)),

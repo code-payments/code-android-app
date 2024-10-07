@@ -43,7 +43,6 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
 import com.getcode.network.repository.replaceParam
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -144,7 +143,7 @@ fun PhoneConfirm(
                         } else if (dataState.isResendingCode) {
                             CodeCircularProgressIndicator(
                                 strokeWidth = CodeTheme.dimens.thickBorder,
-                                color = BrandLight,
+                                color = CodeTheme.colors.brandLight,
                                 modifier = Modifier
                                     .size(CodeTheme.dimens.grid.x4)
                                     .align(Alignment.CenterHorizontally),

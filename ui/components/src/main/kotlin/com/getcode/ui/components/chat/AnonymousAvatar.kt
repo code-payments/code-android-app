@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.network.repository.sha512
-import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.ui.utils.UUIDPreviewParameterProvider
 import com.getcode.ui.utils.deriveTargetColor
 import com.getcode.ui.utils.toAGColor
@@ -108,7 +108,7 @@ fun AnonymousAvatar(
 @Preview
 @Composable
 fun Preview_Avatars() {
-    CodeTheme {
+    DesignSystem {
         val provider = UUIDPreviewParameterProvider(40)
         LazyVerticalGrid(columns = GridCells.Fixed(8)) {
             items(provider.values.toList()) {

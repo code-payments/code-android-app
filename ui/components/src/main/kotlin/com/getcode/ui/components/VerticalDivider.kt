@@ -8,14 +8,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 
 @Composable
 fun VerticalDivider(
     modifier: Modifier = Modifier,
     thickness: Dp = CodeTheme.dimens.border,
-    color: Color = BrandLight
+    color: Color = CodeTheme.colors.brandLight,
 ) = Canvas(modifier.fillMaxHeight().width(thickness)) {
     drawLine(
         color = color,

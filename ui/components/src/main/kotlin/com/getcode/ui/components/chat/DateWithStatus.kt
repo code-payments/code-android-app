@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import com.getcode.model.MessageStatus
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.ui.components.R
 import com.getcode.util.formatTimeRelatively
 import kotlinx.datetime.Clock
@@ -77,7 +78,7 @@ internal fun DateWithStatus(
 @Preview
 @Composable
 private fun Preview_DateWithStatus() {
-    CodeTheme {
+    DesignSystem {
         @Composable
         fun Bubble(
             status: MessageStatus

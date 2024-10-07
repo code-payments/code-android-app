@@ -189,7 +189,7 @@
         </service>
 
         <service
-            android:name="com.flipchat.util.AuthenticatorService"
+            android:name="com.getcode.oct24.util.AuthenticatorService"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />

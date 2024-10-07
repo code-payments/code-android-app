@@ -15,7 +15,6 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.displayName
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.MiddleEllipsisText
 import com.getcode.ui.utils.rememberedClickable
@@ -98,7 +97,7 @@ fun BucketDebugger() {
 
                 Spacer(modifier = Modifier
                     .padding(vertical = CodeTheme.dimens.grid.x2)
-                    .background(BrandLight)
+                    .background(CodeTheme.colors.brandLight)
                     .fillMaxWidth()
                     .height(1.dp))
             }

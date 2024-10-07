@@ -198,7 +198,8 @@ fun Modifier.punchCircle(color: Color) = this.drawWithContent {
     drawContent()
 }
 
-fun Modifier.withTopBorder(color: Color = BrandLight) = drawBehind {
+@Composable
+fun Modifier.withTopBorder(color: Color = CodeTheme.colors.brandLight) = drawBehind {
     val strokeWidth = Dp.Hairline.toPx()
     drawLine(
         color = color,

@@ -22,15 +22,14 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeKeyPad
 import com.getcode.util.showNetworkError
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.LocalNetworkObserver
-import com.getcode.ui.components.text.AmountArea
 import kotlinx.coroutines.launch
 
 @Composable
@@ -61,7 +60,7 @@ fun EnterTipScreen(
             }
         }
 
-        val color = if (isInError) Alert else BrandLight
+        val color = if (isInError) Alert else CodeTheme.colors.textSecondary
         Box(
             modifier = Modifier.weight(0.65f)
         ) {

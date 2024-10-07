@@ -3,7 +3,7 @@
 
 object Android {
     const val codeNamespace = "com.getcode"
-    const val flipchatNamespace = "com.flipchat"
+    const val flipchatNamespace = "com.getcode.oct24"
 
     const val compileSdkVersion = 34
     const val minSdkVersion = 24

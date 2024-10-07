@@ -32,7 +32,7 @@ import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.transitions.SheetSlideTransition
-import com.getcode.theme.CodeTheme
+import com.getcode.theme.DesignSystem
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.AuthCheck
 import com.getcode.ui.components.bars.BottomBarContainer
@@ -44,6 +44,7 @@ import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.modals.ConfirmationModals
 import com.getcode.ui.utils.getActivity
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.ui.theme.CodeTheme
 import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.rememberBiometricsState
 import com.getcode.util.BiometricsError
@@ -53,7 +54,7 @@ import dev.bmcreations.tipkit.engines.TipsEngine
 
 @Composable
 fun CodeApp(tipsEngine: TipsEngine) {
-    val tlvm = MainRoot.getActivityScopedViewModel<TopLevelViewModel>()
+    val tlvm = getActivityScopedViewModel<TopLevelViewModel>()
     val state by tlvm.state.collectAsState()
     val activity = LocalContext.current.getActivity()
     val biometricsState = rememberBiometricsState(

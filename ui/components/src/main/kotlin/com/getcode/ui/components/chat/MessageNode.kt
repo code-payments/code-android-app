@@ -44,13 +44,6 @@ class MessageNodeScope(
     fun Modifier.sizeableWidth() =
         this.widthIn(max = boxScope.maxWidth * 0.85f)
 
-    val color: Color
-        @Composable get() = if (contents is MessageContent.Exchange && !contents.verb.increasesBalance) {
-            CodeTheme.colors.secondary
-        } else {
-            CodeTheme.colors.brandDark
-        }
-
     val isAnnouncement: Boolean
         @Composable get() = remember {
             when (contents) {
@@ -58,6 +51,13 @@ class MessageNodeScope(
                 is MessageContent.ThankYou -> true
                 else -> false
             }
+        }
+
+    val color: Color
+        @Composable get() = when {
+            isAnnouncement -> CodeTheme.colors.secondary
+            contents.isFromSelf -> CodeTheme.colors.secondary
+            else -> CodeTheme.colors.brandDark
         }
 }
 

@@ -18,8 +18,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.getcode.theme.Alert
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.ui.components.ConnectionStatus
@@ -80,8 +78,8 @@ fun AmountArea(
         KinValueHint(
             modifier = Modifier.align(CenterHorizontally),
             showIcon = isAltCaption && isAltCaptionKinIcon,
-            iconColor = altCaptionColor ?: BrandLight,
-            captionColor = if (isAltCaption) (altCaptionColor ?: Alert) else BrandLight,
+            iconColor = altCaptionColor ?: CodeTheme.colors.brandLight,
+            captionColor = if (isAltCaption) (altCaptionColor ?: CodeTheme.colors.errorText) else CodeTheme.colors.brandLight,
             captionText = captionText,
             networkState = networkState
         )

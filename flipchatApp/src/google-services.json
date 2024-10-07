@@ -9,7 +9,7 @@
 			"client_info": {
 				"mobilesdk_app_id": "1:820570393291:android:ac7abe6f53cf88896a694e",
 				"android_client_info": {
-					"package_name": "com.flipchat"
+					"package_name": "com.getcode.oct24"
 				}
 			},
 			"oauth_client": [
@@ -38,7 +38,7 @@
 			"client_info": {
 				"mobilesdk_app_id": "1:820570393291:android:402719b34e236a396a694e",
 				"android_client_info": {
-					"package_name": "com.flipchat.dev"
+					"package_name": "com.getcode.oct24.dev"
 				}
 			},
 			"oauth_client": [

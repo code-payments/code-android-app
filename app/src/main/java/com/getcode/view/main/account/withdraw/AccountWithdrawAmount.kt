@@ -15,12 +15,11 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CurrencySelectionModal
 import com.getcode.theme.Alert
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeKeyPad
-import com.getcode.ui.components.text.AmountArea
 
 @Composable
 fun AccountWithdrawAmount(
@@ -36,7 +35,7 @@ fun AccountWithdrawAmount(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         val color =
-            if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) Alert else BrandLight
+            if (dataState.amountModel.balanceKin < dataState.amountModel.amountKin.toKinValueDouble()) CodeTheme.colors.errorText else CodeTheme.colors.brandLight
 
         Box(
             modifier = Modifier.weight(0.5f)

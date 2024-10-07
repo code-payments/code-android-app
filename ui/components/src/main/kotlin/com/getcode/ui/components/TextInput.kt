@@ -53,7 +53,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraSmall
 import com.getcode.theme.inputColors
@@ -218,7 +217,7 @@ private fun DecoratorBox(
     placeholder: String,
     placeholderStyle: TextStyle,
     placeholderColor: Color,
-    borderColor: Color = BrandLight,
+    borderColor: Color = CodeTheme.colors.brandLight,
     contentPadding: PaddingValues,
     leadingIcon: (@Composable () -> Unit)?,
     trailingIcon: (@Composable () -> Unit)?,

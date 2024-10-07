@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.manager.ModalManager
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -51,7 +50,7 @@ private data class ModalContainerMessage(
                 message.icon?.let { imageResId ->
                     Box(
                         modifier = Modifier
-                            .background(BrandLight, CircleShape),
+                            .background(CodeTheme.colors.brandLight, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Image(

@@ -263,7 +263,7 @@ private fun GetKinItemRow(modifier: Modifier = Modifier, item: GetKinItem) {
         ) {
             Text(
                 text = item.titleText,
-                color = if (item.isActive) Color.White else BrandLight,
+                color = if (item.isActive) Color.White else CodeTheme.colors.brandLight,
                 style = CodeTheme.typography.textSmall.copy(
                     textDecoration = if (item.isStrikeThrough) TextDecoration.LineThrough else null,
                 ),
