@@ -33,7 +33,7 @@ import com.getcode.model.chat.SetSubscriptionStateResponseV1 as SetSubscriptionS
 class ChatApiV1 @Inject constructor(
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
-    private val api = ChatGrpc.newStub(managedChannel)
+    private val api = ChatGrpc.newStub(managedChannel).withWaitForReady()
 
     fun fetchChats(owner: KeyPair): Flow<GetChatsResponse> {
         val request = GetChatsRequest.newBuilder()

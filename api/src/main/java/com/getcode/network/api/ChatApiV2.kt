@@ -53,7 +53,7 @@ import com.getcode.model.chat.SetSubscriptionStateResponseV2 as SetSubscriptionS
 class ChatApiV2 @Inject constructor(
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
-    private val api = ChatGrpc.newStub(managedChannel)
+    private val api = ChatGrpc.newStub(managedChannel).withWaitForReady()
 
     fun startChat(
         owner: KeyPair,

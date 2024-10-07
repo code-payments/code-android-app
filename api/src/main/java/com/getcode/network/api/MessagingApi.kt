@@ -20,7 +20,7 @@ class MessagingApi @Inject constructor(
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io()
 ) : GrpcApi(managedChannel) {
-    private val api = MessagingGrpc.newStub(managedChannel)
+    private val api = MessagingGrpc.newStub(managedChannel).withWaitForReady()
 
     fun openMessageStream(request: OpenMessageStreamRequest): Flowable<OpenMessageStreamResponse> =
         api::openMessageStream
