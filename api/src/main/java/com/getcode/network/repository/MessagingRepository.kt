@@ -61,7 +61,6 @@ class MessagingRepository @Inject constructor(
             }
             .doOnNext { messagesList ->
                 if (messagesList.isEmpty()) {
-                    Timber.e("message list is empty")
                     return@doOnNext
                 }
                 ackMessages(rendezvousKeyPair, messagesList.map { it.id })

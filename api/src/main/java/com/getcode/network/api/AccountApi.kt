@@ -22,7 +22,7 @@ class AccountApi @Inject constructor(
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {
-    private val api = AccountGrpc.newStub(managedChannel)
+    private val api = AccountGrpc.newStub(managedChannel).withWaitForReady()
 
     fun isCodeAccount(owner: KeyPair): Flow<AccountService.IsCodeAccountResponse> {
         val request = AccountService.IsCodeAccountRequest.newBuilder()
