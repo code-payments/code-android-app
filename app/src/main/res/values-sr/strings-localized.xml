@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Морате да покренете камеру да бисте скенирали кодове</string>
   <string name="subtitle_tipCardForX">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице повежите се са својим X идентитетом.</string>
   <string name="subtitle_tipCardTwitterDescription">Ваша картица за напојнице вам омогућава да примате напојнице од корисника Code апликације из целог света. Да бисте приступили вашој картици за напојнице поставите објаву на X платформи.</string>
+  <string name="subtitle_tipCardXDescription">Картица „Савети\" вам омогућава да примате савете од корисника апликације Code из целог света. Да бисте приступили картици „Савети\", пошаљите поруку @getcode на X.</string>
   <string name="subtitle_turnOnNotifications">Дозволите апликацији Code да вам шаље обавештења кад добијете савете од других корисника апликације Code.</string>
   <string name="subtitle_typeDelete">Откуцајте \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Napravili smo neke izmene da bismo poboljšali iskustvo. Moraćete da ažurirate aplikaciju da biste nastavili da koristite Code.</string>

@@ -5,25 +5,24 @@ package com.getcode.view.main.chat.conversation
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
+import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
-import com.codeinc.gen.user.v1.user
 import com.getcode.BuildConfig
 import com.getcode.R
+import com.getcode.SessionController
+import com.getcode.SessionEvent
 import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
 import com.getcode.model.ConversationCashFeature
-import com.getcode.model.CurrencyCode
-import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.ChatMember
-import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
@@ -36,13 +35,15 @@ import com.getcode.ui.components.chat.utils.ConversationMessageIndice
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
 import com.getcode.utils.timestamp
+import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -56,7 +57,6 @@ import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.math.cos
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
@@ -65,6 +65,7 @@ class ConversationViewModel @Inject constructor(
     tipController: TipController,
     exchange: Exchange,
     resources: ResourceHelper,
+    sessionController: SessionController,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -82,6 +83,8 @@ class ConversationViewModel @Inject constructor(
         val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
+        val showTypingIndicator: Boolean,
+        val isSelfTyping: Boolean,
     ) {
         data class User(
             val memberId: UUID,
@@ -105,16 +108,17 @@ class ConversationViewModel @Inject constructor(
                 users = emptyList(),
                 lastSeen = null,
                 pointers = emptyMap(),
+                showTypingIndicator = false,
+                isSelfTyping = false,
             )
         }
     }
 
     sealed interface Event {
         data class OnTwitterUserChanged(val user: TwitterUser?) : Event
-        data class OnCostToChatChanged(val cost: KinAmount): Event
-        data class OnMembersChanged(val members: List<State.User>): Event
+        data class OnCostToChatChanged(val cost: KinAmount) : Event
+        data class OnMembersChanged(val members: List<State.User>) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
-        data class OnReferenceChanged(val reference: Reference.IntentId?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithLastPointers) :
             Event
 
@@ -131,14 +135,23 @@ class ConversationViewModel @Inject constructor(
         data object SendMessage : Event
         data object RevealIdentity : Event
 
-        data class OnIdentityAvailable(val available: Boolean): Event
+        data class OnIdentityAvailable(val available: Boolean) : Event
         data object OnIdentityRevealed : Event
 
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
         data class MarkRead(val messageId: ID) : Event
         data class MarkDelivered(val messageId: ID) : Event
 
-        data class Error(val message: String, val fatal: Boolean) : Event
+        data object PresentPaymentConfirmation : Event
+
+        data object OnTypingStarted: Event
+        data object OnTypingStopped: Event
+
+        data object OnUserTypingStarted: Event
+        data object OnUserTypingStopped: Event
+
+        data class Error(val fatal: Boolean, val message: String = "", val show: Boolean = true) :
+            Event
     }
 
     init {
@@ -178,34 +191,52 @@ class ConversationViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        // reference ID is used to create a chat that is non-existent if needed
         eventFlow
-            .filterIsInstance<Event.OnReferenceChanged>()
-            .map { it.reference }
-            .filterNotNull()
-            .filterIsInstance<Reference.IntentId>()
-            .map { it.id }
-            .distinctUntilChanged()
-            .mapNotNull { referenceId ->
+            .filterIsInstance<Event.PresentPaymentConfirmation>()
+            .mapNotNull {
+                val state = stateFlow.value
+                if (state.twitterUser == null) return@mapNotNull null
+                state.twitterUser to state.costToChat
+            }.onEach { (user, amount) ->
+                sessionController.presentPrivatePaymentConfirmation(
+                    socialUser = user,
+                    amount = amount
+                )
+            }.launchIn(viewModelScope)
+
+        sessionController.eventFlow
+            .filterIsInstance<SessionEvent.OnChatPaidForSuccessfully>()
+            .onEach { event ->
                 runCatching {
-                    conversationController.getOrCreateConversation(referenceId, ChatType.TwoWay)
+                    val conversation = conversationController.getOrCreateConversation(
+                        identifier = event.intentId,
+                        with = event.user
+                    )
+                    dispatchEvent(Event.OnConversationChanged(conversation))
                 }.onFailure {
                     it.printStackTrace()
+                    TopBarManager.showMessage(
+                        "Failed to Start Chat",
+                        "We were unable to start a chat with ${event.user.username}. Please try again.",
+                    )
+
                     dispatchEvent(
                         Event.Error(
                             message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
+                            show = false,
                             fatal = true
                         )
                     )
                 }.getOrNull()
             }
-            .onEach { dispatchEvent(Dispatchers.Main, Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnConversationChanged>()
             .map { it.conversationWithPointers }
-            .onEach { (conversation, pointer) ->
+            .distinctUntilChangedBy { it.conversation.id }
+            .onEach { conversationController.resetUnreadCount(it.conversation.id) }
+            .onEach { (conversation, _) ->
                 runCatching {
                     conversationController.openChatStream(viewModelScope, conversation)
                 }.onFailure {
@@ -261,8 +292,25 @@ class ConversationViewModel @Inject constructor(
                 val textFieldState = it.textFieldState
                 val text = textFieldState.text.toString()
                 textFieldState.clearText()
+
                 conversationController.sendMessage(it.conversationId!!, text)
-            }.launchIn(viewModelScope)
+                    .onSuccess {
+                        trace(
+                            tag = "Conversation",
+                            message = "message sent successfully",
+                            type = TraceType.Silent
+                        )
+                    }
+                    .onFailure { error ->
+                        trace(
+                            tag = "Conversation",
+                            message = "message failed to send",
+                            type = TraceType.Error,
+                            error = error
+                        )
+                    }
+            }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.RevealIdentity>()
@@ -313,10 +361,57 @@ class ConversationViewModel @Inject constructor(
             }
             .onEach { (result, user) ->
                 if (result != null) {
-                    dispatchEvent(Event.OnUserRevealed(memberId = user.memberId, result.username, result.imageUrl))
+                    dispatchEvent(
+                        Event.OnUserRevealed(
+                            memberId = user.memberId,
+                            result.username,
+                            result.imageUrl
+                        )
+                    )
                 }
             }
             .launchIn(viewModelScope)
+
+        stateFlow
+            .map { it.conversationId }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .flatMapLatest { conversationController.observeTyping(it) }
+            .onEach { isOtherUserTyping ->
+                if (isOtherUserTyping) {
+                    dispatchEvent(Event.OnTypingStarted)
+                } else {
+                    dispatchEvent(Event.OnTypingStopped)
+                }
+            }.launchIn(viewModelScope)
+
+
+        stateFlow
+            .map { it.textFieldState }
+            .flatMapLatest { it.textAsFlow() }
+            .onEach {
+                if (it.isEmpty()) {
+                    dispatchEvent(Event.OnUserTypingStopped)
+                } else if (it.isNotEmpty()) {
+                    if (!stateFlow.value.isSelfTyping) {
+                        dispatchEvent(Event.OnUserTypingStarted)
+                    }
+                }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStarted>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach {
+                conversationController.onUserStartedTypingIn(it)
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnUserTypingStopped>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .onEach {
+                conversationController.onUserStoppedTypingIn(it)
+            }.launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -374,6 +469,7 @@ class ConversationViewModel @Inject constructor(
                         conversationId = conversation.id,
                         identityRevealed = conversation.hasRevealedIdentity,
                         pointers = event.conversationWithPointers.pointers,
+                        twitterUser = null,
                         users = members.map {
                             State.User(
                                 memberId = it.id,
@@ -409,6 +505,22 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnTwitterUserChanged -> { state ->
                     state.copy(twitterUser = event.user)
                 }
+
+                is Event.OnTypingStarted -> { state ->
+                    state.copy(showTypingIndicator = true)
+                }
+                is Event.OnTypingStopped -> { state ->
+                    state.copy(showTypingIndicator = false)
+                }
+
+                is Event.OnUserTypingStarted -> { state ->
+                    state.copy(isSelfTyping = true)
+                }
+                is Event.OnUserTypingStopped -> { state ->
+                    state.copy(isSelfTyping = false)
+                }
+
+                is Event.PresentPaymentConfirmation,
                 is Event.OnChatIdChanged,
                 is Event.Error,
                 Event.RevealIdentity,
@@ -416,10 +528,6 @@ class ConversationViewModel @Inject constructor(
                 is Event.MarkRead,
                 is Event.MarkDelivered,
                 is Event.SendMessage -> { state -> state }
-
-                is Event.OnReferenceChanged -> { state ->
-                    state.copy(reference = event.reference)
-                }
 
                 is Event.OnIdentityRevealed -> { state ->
                     state.copy(identityRevealed = true)

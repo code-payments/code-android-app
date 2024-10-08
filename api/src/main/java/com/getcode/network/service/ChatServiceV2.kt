@@ -2,6 +2,7 @@ package com.getcode.network.service
 
 import com.codeinc.gen.chat.v2.ChatService
 import com.codeinc.gen.chat.v2.ChatService.ChatMemberId
+import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.OpenChatEventStream
 import com.codeinc.gen.chat.v2.ChatService.PointerType
 import com.codeinc.gen.chat.v2.ChatService.RevealIdentityResponse
@@ -18,12 +19,15 @@ import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
 import com.getcode.model.MessageStatus
+import com.getcode.model.SocialUser
 import com.getcode.model.chat.Chat
+import com.getcode.model.chat.ChatIdV2
 import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Platform
 import com.getcode.model.description
+import com.getcode.model.uuid
 import com.getcode.network.api.ChatApiV2
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.core.NetworkOracle
@@ -284,6 +288,8 @@ class ChatServiceV2 @Inject constructor(
 
     suspend fun startChat(
         owner: KeyPair,
+        self: SocialUser,
+        with: SocialUser,
         intentId: ID,
         type: ChatType
     ): Result<Chat> {
@@ -293,7 +299,7 @@ class ChatServiceV2 @Inject constructor(
             ChatType.Notification -> throw IllegalArgumentException("Unable to create notification chats from client")
             ChatType.TwoWay -> {
                 try {
-                    networkOracle.managedRequest(api.startChat(owner, intentId))
+                    networkOracle.managedRequest(api.startChat(owner, self, with, intentId))
                         .map { response ->
                             when (response.result) {
                                 ChatService.StartChatResponse.Result.OK -> {
@@ -394,8 +400,12 @@ class ChatServiceV2 @Inject constructor(
                                     .map { it.message }
                                     .map { messageMapper.map(chatLookup(conversation) to it) }
 
+                                val isTyping = value.events.eventsList
+                                    .map { it.isTyping }
+                                    .find { it.isTyping && it.memberId.value.toList().uuid != memberId } != null
+
                                 trace("Chat ${conversation.id.description} received ${messages.count()} messages and ${pointerStatuses.count()} status updates.")
-                                val update = ChatStreamEventUpdate(messages, pointerStatuses)
+                                val update = ChatStreamEventUpdate(messages, pointerStatuses, isTyping)
                                 onEvent(Result.success(update))
                             }
 
@@ -450,7 +460,7 @@ class ChatServiceV2 @Inject constructor(
             val request = StreamChatEventsRequest.newBuilder()
                 .setOpenStream(OpenChatEventStream.newBuilder()
                     .setChatId(
-                        ChatService.ChatId.newBuilder()
+                        ChatIdV2.newBuilder()
                             .setValue(conversation.id.toByteString())
                             .build()
                     )
@@ -609,6 +619,152 @@ class ChatServiceV2 @Inject constructor(
 
                             RevealIdentityResponse.Result.UNRECOGNIZED -> {
                                 val error = Throwable("Error: Send Message: Unrecognized request.")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            else -> {
+                                val error = Throwable("Error: Unknown")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+                        }
+
+                        cont.resume(result)
+                    }
+
+                    override fun onError(t: Throwable?) {
+                        val error = t ?: Throwable("Error: Hit a snag")
+                        ErrorUtils.handleError(error)
+                        cont.resume(Result.failure(error))
+                    }
+
+                    override fun onCompleted() {
+
+                    }
+
+                }
+            )
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            cont.resume(Result.failure(e))
+        }
+    }
+
+    suspend fun onStartedTyping(
+        owner: KeyPair,
+        chat: Chat,
+        memberId: UUID,
+    ): Result<Unit> = suspendCancellableCoroutine { cont ->
+        val chatId = chat.id
+        try {
+            api.onStartedTyping(
+                owner,
+                chatId,
+                memberId,
+                observer = object : StreamObserver<NotifyIsTypingResponse> {
+                    override fun onNext(value: NotifyIsTypingResponse?) {
+                        val requestResult = value?.result
+                        if (requestResult == null) {
+                            trace(
+                                message = "Chat NotifyIsTyping Server returned empty message. This is unexpected.",
+                                type = TraceType.Error
+                            )
+                            return
+                        }
+
+                        val result = when (requestResult) {
+                            NotifyIsTypingResponse.Result.OK -> {
+                                Result.success(Unit)
+                            }
+
+                            NotifyIsTypingResponse.Result.DENIED -> {
+                                val error = Throwable("Error: Send Message: Denied")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            NotifyIsTypingResponse.Result.CHAT_NOT_FOUND -> {
+                                val error = Throwable("Error: Send Message: chat not found $chatId")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            NotifyIsTypingResponse.Result.UNRECOGNIZED -> {
+                                val error = Throwable("Error: Send Message: Unrecognized request.")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            else -> {
+                                val error = Throwable("Error: Unknown")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+                        }
+
+                        cont.resume(result)
+                    }
+
+                    override fun onError(t: Throwable?) {
+                        val error = t ?: Throwable("Error: Hit a snag")
+                        ErrorUtils.handleError(error)
+                        cont.resume(Result.failure(error))
+                    }
+
+                    override fun onCompleted() {
+
+                    }
+
+                }
+            )
+        } catch (e: Exception) {
+            ErrorUtils.handleError(e)
+            cont.resume(Result.failure(e))
+        }
+    }
+
+    suspend fun onStoppedTyping(
+        owner: KeyPair,
+        chat: Chat,
+        memberId: UUID,
+    ): Result<Unit> = suspendCancellableCoroutine { cont ->
+        val chatId = chat.id
+        try {
+            api.onStoppedTyping(
+                owner,
+                chatId,
+                memberId,
+                observer = object : StreamObserver<NotifyIsTypingResponse> {
+                    override fun onNext(value: NotifyIsTypingResponse?) {
+                        val requestResult = value?.result
+                        if (requestResult == null) {
+                            trace(
+                                message = "Chat NotifyIsTyping Server returned empty message. This is unexpected.",
+                                type = TraceType.Error
+                            )
+                            return
+                        }
+
+                        val result = when (requestResult) {
+                            NotifyIsTypingResponse.Result.OK -> {
+                                Result.success(Unit)
+                            }
+
+                            NotifyIsTypingResponse.Result.DENIED -> {
+                                val error = Throwable("Error: NotifyIsTyping: Denied")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            NotifyIsTypingResponse.Result.CHAT_NOT_FOUND -> {
+                                val error = Throwable("Error: NotifyIsTyping: chat not found $chatId")
+                                Timber.e(t = error)
+                                Result.failure(error)
+                            }
+
+                            NotifyIsTypingResponse.Result.UNRECOGNIZED -> {
+                                val error = Throwable("Error: NotifyIsTyping: Unrecognized request.")
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }

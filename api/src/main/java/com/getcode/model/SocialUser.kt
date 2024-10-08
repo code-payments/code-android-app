@@ -5,7 +5,7 @@ import com.getcode.utils.serializer.PublicKeyAsStringSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed interface TipMetadata {
+sealed interface SocialUser {
     val platform: String
     val username: String
     @Serializable(with = PublicKeyAsStringSerializer::class)
@@ -13,4 +13,8 @@ sealed interface TipMetadata {
     val imageUrl: String?
 
     val imageUrlSanitized: String?
+
+    val costOfFriendship: Fiat
+    val isFriend: Boolean
+    val chatId: ID
 }

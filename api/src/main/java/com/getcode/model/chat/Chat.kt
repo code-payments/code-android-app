@@ -33,7 +33,7 @@ data class Chat(
     val cursor: Cursor,
     val messages: List<ChatMessage>
 ) {
-    val imageData: Any
+    val imageData: Any?
         get() {
             return when (type) {
                 ChatType.Unknown -> id
@@ -41,7 +41,7 @@ data class Chat(
                 ChatType.TwoWay -> {
                     members
                         .filterNot { it.isSelf }
-                        .firstNotNullOf {
+                        .firstNotNullOfOrNull {
                             if (it.identity != null) {
                                 it.identity.imageUrl.orEmpty()
                             } else {

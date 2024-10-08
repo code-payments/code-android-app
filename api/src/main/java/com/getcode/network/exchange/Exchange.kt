@@ -1,17 +1,12 @@
 package com.getcode.network.exchange
 
-import android.annotation.SuppressLint
 import com.getcode.db.Database
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
 import com.getcode.model.Rate
-import com.getcode.network.api.CurrencyApi
-import com.getcode.network.core.NetworkOracle
 import com.getcode.network.repository.PrefRepository
-import com.getcode.network.service.ApiRateResult
 import com.getcode.network.service.CurrencyService
-import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.format
 import com.getcode.utils.network.retryable
@@ -26,17 +21,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Instant
-import timber.log.Timber
 import java.util.Date
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.time.Duration.Companion.convert
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 
 interface Exchange {
     val localRate: Rate

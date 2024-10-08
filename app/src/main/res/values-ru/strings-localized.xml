@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Вам нужно запустить камеру для сканирования кодов</string>
   <string name="subtitle_tipCardForX">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к своей карте чаевых, подключите свою личность X.</string>
   <string name="subtitle_tipCardTwitterDescription">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к карточке чаевых, опублиуйте пост в X.</string>
+  <string name="subtitle_tipCardXDescription">Ваша карта чаевых позволяет вам получать чаевые от пользователей Code со всего мира. Чтобы получить доступ к сообщению вашей карты Чаевых @getcode на X.</string>
   <string name="subtitle_turnOnNotifications">Разрешите Code отправлять вам уведомления, когда вы получаете советы от других пользователей Code.</string>
   <string name="subtitle_typeDelete">Введите «%1$s‎»</string>
   <string name="subtitle_updateRequiredDescription">Мы кое-что изменили, чтобы улучшить ваш опыт пользования. Вам придется обновить приложение, чтобы продолжить пользоваться Code.</string>

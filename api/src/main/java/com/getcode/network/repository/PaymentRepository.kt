@@ -5,10 +5,12 @@ import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
+import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
-import com.getcode.model.TwitterUser
+import com.getcode.model.SocialUser
+import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.establishRelationshipSingle
@@ -187,7 +189,7 @@ class PaymentRepository @Inject constructor(
         messagingRepository.rejectPayment(payload.rendezvous)
     }
 
-    suspend fun completeTipPayment(metadata: TwitterUser, amount: KinAmount) {
+    suspend fun completeTipPayment(socialUser: SocialUser, amount: KinAmount) {
         return suspendCancellableCoroutine { cont ->
             val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
 
@@ -204,9 +206,9 @@ class PaymentRepository @Inject constructor(
                     fee = Kin.fromKin(0),
                     additionalFees = emptyList(),
                     rendezvousKey = rendezvous,
-                    destination = metadata.tipAddress,
+                    destination = socialUser.tipAddress,
                     isWithdrawal = true,
-                    tipMetadata = metadata,
+                    metadata = PrivateTransferMetadata.Tip(socialUser),
                 )
 
                 if (transferResult.isSuccess) {
@@ -216,6 +218,48 @@ class PaymentRepository @Inject constructor(
                     ).observeOn(Schedulers.io()).doOnComplete {
                         analytics.transferForTip(amount = amount, successful = true)
                         cont.resume(Unit)
+                    }.subscribe()
+                } else {
+                    // pass exception down to onFailure for isolated handling
+                    throw transferResult.exceptionOrNull()
+                        ?: Throwable("Unable to complete payment")
+                }
+            }.onFailure { error ->
+                ErrorUtils.handleError(error)
+                cont.resumeWithException(error)
+            }
+        }
+    }
+
+    suspend fun payForFriendship(user: SocialUser, amount: KinAmount): ID  {
+        return suspendCancellableCoroutine { cont ->
+            val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
+
+            // Generally, we would use the rendezvous key that
+            // was generated from the scan code payload, however,
+            // tip codes are inherently deterministic and won't
+            // change so we need a unique rendezvous for every tx.
+            val rendezvous = PublicKey.generate()
+
+            runCatching {
+                val transferResult = client.transferWithResult(
+                    amount = amount,
+                    organizer = organizer,
+                    fee = Kin.fromKin(0),
+                    additionalFees = emptyList(),
+                    rendezvousKey = rendezvous,
+                    destination = user.tipAddress,
+                    isWithdrawal = true,
+                    metadata = PrivateTransferMetadata.Chat(user),
+                )
+
+                if (transferResult.isSuccess) {
+                    Completable.concatArray(
+                        balanceController.fetchBalance(),
+                        client.fetchLimits(isForce = true)
+                    ).observeOn(Schedulers.io()).doOnComplete {
+//                        analytics.transferForTip(amount = amount, successful = true)
+                        cont.resume(transferResult.getOrNull().orEmpty())
                     }.subscribe()
                 } else {
                     // pass exception down to onFailure for isolated handling

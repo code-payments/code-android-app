@@ -35,7 +35,7 @@ import com.getcode.view.main.account.AccountSheetViewModel
 import com.getcode.view.main.balance.BalanceScreen
 import com.getcode.view.main.balance.BalanceSheetViewModel
 import com.getcode.view.main.chat.ChatScreen
-import com.getcode.view.main.chat.ChatViewModel
+import com.getcode.view.main.chat.NotificationCollectionViewModel
 import com.getcode.view.main.giveKin.GiveKinScreen
 import com.getcode.view.main.requestKin.RequestKinScreen
 import com.getcode.view.main.scanner.ScanScreen
@@ -271,19 +271,19 @@ data object BalanceModal : ChatGraph, ModalRoot {
 }
 
 @Parcelize
-data class ChatScreen(val chatId: ID) : MainGraph, ModalContent {
+data class NotificationCollectionScreen(val collectionId: ID) : MainGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
-        val vm = getViewModel<ChatViewModel>()
+        val vm = getViewModel<NotificationCollectionViewModel>()
         val state by vm.stateFlow.collectAsState()
         val navigator = LocalCodeNavigator.current
 
         ModalContainer(
             titleString = { state.title.localized },
-            backButtonEnabled = { it is ChatScreen },
+            backButtonEnabled = { it is NotificationCollectionScreen },
         ) {
             val messages = vm.chatMessages.collectAsLazyPagingItems()
             ChatScreen(state = state, messages = messages, dispatch = vm::dispatchEvent)
@@ -291,16 +291,16 @@ data class ChatScreen(val chatId: ID) : MainGraph, ModalContent {
 
         LaunchedEffect(vm) {
             vm.eventFlow
-                .filterIsInstance<ChatViewModel.Event.OpenMessageChat>()
+                .filterIsInstance<NotificationCollectionViewModel.Event.OpenMessageChat>()
                 .map { it.reference }
                 .filterIsInstance<Reference.IntentId>()
                 .map { it.id }
-                .onEach { navigator.push(ChatMessageConversationScreen(intentId = it)) }
+                .onEach { navigator.push(ConversationScreen(intentId = it)) }
                 .launchIn(this)
         }
 
-        LaunchedEffect(chatId) {
-            vm.dispatchEvent(ChatViewModel.Event.OnChatIdChanged(chatId))
+        LaunchedEffect(collectionId) {
+            vm.dispatchEvent(NotificationCollectionViewModel.Event.OnChatIdChanged(collectionId))
         }
     }
 }

@@ -31,8 +31,6 @@ internal fun MessagePayment(
     contents: MessageContent.Exchange,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
-    showTipActions: Boolean = true,
-    openMessageChat: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -94,12 +92,6 @@ internal fun MessagePayment(
                 )
             }
         }
-
-        TipChatActions(
-            contents = contents,
-            showTipActions = showTipActions,
-            openMessageChat = openMessageChat
-        )
 
         DateWithStatus(
             modifier = Modifier

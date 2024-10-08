@@ -1,4 +1,4 @@
-package com.getcode.view.main.scanner.modals
+package com.getcode.ui.modals
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth

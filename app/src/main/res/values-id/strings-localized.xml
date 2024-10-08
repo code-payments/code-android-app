@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Anda perlu memulai kamera Anda untuk memindai Code</string>
   <string name="subtitle_tipCardForX">Kartu Tip Anda memungkinkan Anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kartu Tip Anda, hubungkan identitas X Anda.</string>
   <string name="subtitle_tipCardTwitterDescription">Kartu Tip Anda memungkinkan Anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kartu Tip, kirim postingan ke X.</string>
+  <string name="subtitle_tipCardXDescription">Kartu Tip Anda memungkinkan Anda menerima tip dari pengguna Code di seluruh dunia. Untuk mengakses Kartu Tip Anda, kirim pesan ke @getcode di X.</string>
   <string name="subtitle_turnOnNotifications">Izinkan Code mengirimi Anda pemberitahuan saat Anda menerima Tip dari pengguna Code lainnya.</string>
   <string name="subtitle_typeDelete">Tikkan \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Kami telah melakukan beberapa perubahan untuk meningkatkan pengalaman. Anda harus memperbarui aplikasi untuk tetap menggunakan Code.</string>

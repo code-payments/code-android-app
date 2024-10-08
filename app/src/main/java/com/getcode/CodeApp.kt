@@ -44,6 +44,7 @@ import com.getcode.ui.components.ModalContainer
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.TitleBar
 import com.getcode.ui.components.bars.TopBarContainer
+import com.getcode.ui.modals.ConfirmationModals
 import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.ui.utils.measured
@@ -157,6 +158,7 @@ fun CodeApp(tipsEngine: TipsEngine) {
         BiometricsBlockingView(modifier = Modifier.fillMaxSize(), biometricsState)
         TopBarContainer(appState)
         BottomBarContainer(appState)
+        ConfirmationModals(Modifier.fillMaxSize())
     }
 }
 

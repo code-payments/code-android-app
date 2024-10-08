@@ -15,7 +15,7 @@ import com.getcode.model.Rate
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.WithdrawalArgs
-import com.getcode.network.ChatHistoryController
+import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.client.*
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
@@ -44,7 +44,7 @@ data class AccountWithdrawSummaryUiModel(
 class AccountWithdrawSummaryViewModel @Inject constructor(
     private val analytics: AnalyticsService,
     private val client: Client,
-    private val historyController: ChatHistoryController,
+    private val historyController: NotificationCollectionHistoryController,
     private val resources: ResourceHelper,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccountWithdrawSummaryUiModel())
@@ -109,7 +109,7 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
 
         client.withdrawExternally(amount, organizer, destination)
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnComplete { viewModelScope.launch { historyController.fetchChats() } }
+            .doOnComplete { viewModelScope.launch { historyController.fetch() } }
             .subscribe({
                 TopBarManager.showMessage(
                     TopBarManager.TopBarMessage(

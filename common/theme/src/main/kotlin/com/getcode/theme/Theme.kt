@@ -23,6 +23,9 @@ private val DarkColorPalette = CodeColors(
     brandLight = BrandLight,
     brandSubtle = BrandSubtle,
     brandMuted = BrandMuted,
+    brandDark = BrandDark,
+    brandOverlay = BrandOverlay,
+    secondary = BrandAccent,
     action = Gray50,
     onAction = White,
     background = Brand,
@@ -84,6 +87,9 @@ class CodeColors(
     brandLight: Color,
     brandSubtle: Color,
     brandMuted: Color,
+    brandDark: Color,
+    brandOverlay: Color,
+    secondary: Color,
     action: Color,
     onAction: Color,
     background: Color,
@@ -103,9 +109,9 @@ class CodeColors(
         private set
     var brandMuted by mutableStateOf(brandMuted)
         private set
-    var action by mutableStateOf(action)
+    var brandDark by mutableStateOf(brandDark)
         private set
-    var onAction by mutableStateOf(onAction)
+    var brandOverlay by mutableStateOf(brandOverlay)
         private set
     var background by mutableStateOf(background)
         private set
@@ -123,13 +129,20 @@ class CodeColors(
         private set
     var textSecondary by mutableStateOf(textSecondary)
         private set
+    var secondary by mutableStateOf(secondary)
+        private set
+    var action by mutableStateOf(action)
+        private set
+    var onAction by mutableStateOf(onAction)
+        private set
 
     fun update(other: CodeColors) {
         brand = other.brand
         brandLight = other.brandLight
         brandSubtle = other.brandSubtle
         brandMuted = other.brandMuted
-        action = other.action
+        brandDark = other.brandDark
+        brandOverlay = other.brandOverlay
         background = other.background
         onBackground = other.onBackground
         surface = other.surface
@@ -138,6 +151,9 @@ class CodeColors(
         errorText = other.errorText
         textMain = other.textMain
         textSecondary = other.textSecondary
+        secondary = other.secondary
+        action = other.action
+        onAction = other.onAction
     }
 
     fun copy(): CodeColors = CodeColors(
@@ -145,8 +161,8 @@ class CodeColors(
         brandLight = brandLight,
         brandSubtle = brandSubtle,
         brandMuted = brandMuted,
-        action = action,
-        onAction = onAction,
+        brandDark = brandDark,
+        brandOverlay = brandOverlay,
         background = background,
         onBackground = onBackground,
         surface = surface,
@@ -155,6 +171,9 @@ class CodeColors(
         errorText = errorText,
         textMain = textMain,
         textSecondary = textSecondary,
+        secondary = secondary,
+        action = action,
+        onAction = onAction
     )
 }
 

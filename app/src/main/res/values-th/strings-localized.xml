@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">คุณต้องเปิดใช้งานกล้องเพื่อสแกน Code</string>
   <string name="subtitle_tipCardForX">บัตรทิปของคุณช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้เชื่อมต่อข้อมูลประจำตัว X ของคุณ</string>
   <string name="subtitle_tipCardTwitterDescription">บัตรทิปช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก ในการเข้าถึงบัตรทิปของคุณ ให้โพสต์บน X</string>
+  <string name="subtitle_tipCardXDescription">การ์ดทิปช่วยให้คุณได้รับทิปจากผู้ใช้ Code ทั่วโลก หากต้องการเข้าถึงการ์ดทิปของคุณ โปรดส่งข้อความถึง @getcode บน X</string>
   <string name="subtitle_turnOnNotifications">อนุญาตให้ Code ส่งการแจ้งเตือนถึงคุณเมื่อคุณได้รับทิปจากผู้ใช้ Code รายอื่น</string>
   <string name="subtitle_typeDelete">พิมพ์  \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">เราได้ทำการเปลี่ยนแปลงบางอย่างเพื่อปรับปรุงประสบการณ์ หากต้องการใช้ Code ต่อไปคุณจะต้องอัปเดตแอป</string>

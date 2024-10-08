@@ -27,9 +27,9 @@ import com.getcode.ui.utils.withTopBorder
 
 @Composable
 fun ChatScreen(
-    state: ChatViewModel.State,
+    state: NotificationCollectionViewModel.State,
     messages: LazyPagingItems<ChatItem>,
-    dispatch: (ChatViewModel.Event) -> Unit,
+    dispatch: (NotificationCollectionViewModel.Event) -> Unit,
 ) {
     val listState = rememberLazyListState()
 
@@ -43,7 +43,7 @@ fun ChatScreen(
             messages = messages,
             dispatch = {
                 when (it) {
-                    is MessageListEvent.OpenMessageChat -> dispatch(ChatViewModel.Event.OpenMessageChat(it.reference))
+                    is MessageListEvent.OpenMessageChat -> dispatch(NotificationCollectionViewModel.Event.OpenMessageChat(it.reference))
                     is MessageListEvent.AdvancePointer -> Unit // handled on conversation open
                 }
             }
@@ -71,7 +71,7 @@ fun ChatScreen(
                                 ),
                                 positiveText = context.getString(if (state.isMuted) R.string.action_unmute else R.string.action_mute),
                                 negativeText = context.getString(R.string.action_nevermind),
-                                onPositive = { dispatch(ChatViewModel.Event.OnMuteToggled) },
+                                onPositive = { dispatch(NotificationCollectionViewModel.Event.OnMuteToggled) },
                             )
                         )
                     },
@@ -92,7 +92,7 @@ fun ChatScreen(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         if (!state.isSubscribed) {
-                            dispatch(ChatViewModel.Event.OnSubscribeToggled)
+                            dispatch(NotificationCollectionViewModel.Event.OnSubscribeToggled)
                             return@CodeButton
                         }
 
@@ -105,7 +105,7 @@ fun ChatScreen(
                                 ),
                                 positiveText = context.getString(R.string.action_unsubscribe),
                                 negativeText = context.getString(R.string.action_nevermind),
-                                onPositive = { dispatch(ChatViewModel.Event.OnSubscribeToggled) },
+                                onPositive = { dispatch(NotificationCollectionViewModel.Event.OnSubscribeToggled) },
                             )
                         )
                     },

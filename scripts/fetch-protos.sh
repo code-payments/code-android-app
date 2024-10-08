@@ -1,10 +1,32 @@
 #!/bin/bash
 
 root=$(pwd)
-REPO_URL="https://github.com/code-payments/code-protobuf-api"
-COMMIT_SHA=$1
+REPO_URL="https://github.com/code-payments/code-protobuf-api"  # Default repo URL
+COMMIT_SHA=""
+RUN_STRIP_PROTO_VALIDATION=false  # Default to not running the script
 TEMP_DIR=$(mktemp -d)
 DEST_DIR="service/protos/src/main/proto"
+
+# Parse options
+while getopts ":r:x" opt; do
+  case ${opt} in
+    r )
+      REPO_URL=$OPTARG
+      ;;
+    x )
+      RUN_STRIP_PROTO_VALIDATION=true
+      ;;
+    \? )
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+# Get the commit SHA if provided
+COMMIT_SHA=$1
 
 # Clone the repository
 git clone "$REPO_URL" "$TEMP_DIR"
@@ -20,7 +42,7 @@ else
 fi
 
 # Create the destination directory if it doesn't exist
-mkdir -p "../../$DEST_DIR"
+mkdir -p "${root}/$DEST_DIR"
 
 # Copy proto files
 if [ -d "proto" ]; then
@@ -35,4 +57,21 @@ fi
 cd ../..
 rm -rf "$TEMP_DIR"
 
-sh "${root}"/scripts/strip-proto-validation.sh
+# Conditionally run the strip proto validation script
+if [ "$RUN_STRIP_PROTO_VALIDATION" = true ]; then
+    SCRIPT_PATH="${root}/scripts/strip-proto-validation.sh"
+
+    # Ensure the script exists and is executable
+    if [ -f "$SCRIPT_PATH" ]; then
+        if [ -x "$SCRIPT_PATH" ]; then
+            echo "Running strip-proto-validation.sh"
+            "$SCRIPT_PATH"
+        else
+            echo "Error: strip-proto-validation.sh is not executable. Run 'chmod +x $SCRIPT_PATH' to fix this."
+            exit 1
+        fi
+    else
+        echo "Error: strip-proto-validation.sh not found at $SCRIPT_PATH"
+        exit 1
+    fi
+fi

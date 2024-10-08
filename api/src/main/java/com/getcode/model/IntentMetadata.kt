@@ -21,6 +21,7 @@ sealed class IntentMetadata {
                         metadata.receivePaymentsPublicly.exchangeData.currency,
                         metadata.receivePaymentsPublicly.exchangeData.quarks,
                         metadata.receivePaymentsPublicly.exchangeData.exchangeRate,
+                        metadata.sendPrivatePayment.isChat,
                     )?.let { ReceivePaymentsPublicly(it) }
                 }
                 TransactionService.Metadata.TypeCase.UPGRADE_PRIVACY -> UpgradePrivacy
@@ -30,6 +31,7 @@ sealed class IntentMetadata {
                         metadata.sendPrivatePayment.exchangeData.currency,
                         metadata.sendPrivatePayment.exchangeData.quarks,
                         metadata.sendPrivatePayment.exchangeData.exchangeRate,
+                        metadata.sendPrivatePayment.isChat,
                     )?.let { SendPrivatePayment(it) }
                 }
                 TransactionService.Metadata.TypeCase.SEND_PUBLIC_PAYMENT -> {
@@ -37,6 +39,7 @@ sealed class IntentMetadata {
                         metadata.sendPublicPayment.exchangeData.currency,
                         metadata.sendPrivatePayment.exchangeData.quarks,
                         metadata.sendPublicPayment.exchangeData.exchangeRate,
+                        metadata.sendPrivatePayment.isChat,
                     )?.let { SendPublicPayment(it) }
                 }
                 else -> null
@@ -47,6 +50,7 @@ sealed class IntentMetadata {
             currencyString: String,
             quarks: Long,
             exchangeRate: Double,
+            isChat: Boolean,
         ): PaymentMetadata? {
             val currency = CurrencyCode.tryValueOf(currencyString.uppercase())
                 ?: return null
@@ -58,12 +62,14 @@ sealed class IntentMetadata {
                         fx = exchangeRate,
                         currency = currency
                     )
-                )
+                ),
+                isChat = isChat,
             )
         }
     }
 }
 
 data class PaymentMetadata(
-    val amount: KinAmount
+    val amount: KinAmount,
+    val isChat: Boolean,
 )

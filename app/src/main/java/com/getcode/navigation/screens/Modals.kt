@@ -95,6 +95,7 @@ internal fun NamedScreen.ModalContainer(
                 }
                 callback()
             }
+            Unit
         }
         SheetTitle(
             modifier = Modifier,
@@ -111,9 +112,9 @@ internal fun NamedScreen.ModalContainer(
             closeButton = closeButton,
             backButtonEnabled = isBackEnabled,
             closeButtonEnabled = isCloseEnabled,
-            onBackIconClicked = onBackClicked?.let { { it() } }
+            onBackIconClicked = onBackClicked?.let { { hideSheet { it() } } }
                 ?: { hideSheet { navigator.pop() } },
-            onCloseIconClicked = onCloseClicked?.let { { it() } }
+            onCloseIconClicked = onCloseClicked?.let { { hideSheet { it() } } }
                 ?: { hideSheet { navigator.hide() } }
         )
         Box(

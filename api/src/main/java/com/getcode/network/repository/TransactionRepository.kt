@@ -13,7 +13,6 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.Re
 import com.getcode.api.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.manager.SessionManager
 import com.getcode.model.*
 import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
@@ -27,6 +26,7 @@ import com.getcode.model.intents.IntentRemoteReceive
 import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
+import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.integrity.DeviceCheck
@@ -139,7 +139,7 @@ class TransactionRepository @Inject constructor(
         rendezvousKey: PublicKey,
         destination: PublicKey,
         isWithdrawal: Boolean,
-        tipMetadata: TipMetadata? = null,
+        metadata: PrivateTransferMetadata? = null,
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
@@ -153,13 +153,12 @@ class TransactionRepository @Inject constructor(
                 additionalFees = emptyList(),
                 resultTray = organizer.tray,
                 isWithdrawal = isWithdrawal,
-                tipMetadata = tipMetadata
+                metadata = metadata
             ) as IntentType
         )
             .delay(1, TimeUnit.SECONDS)
 
         val intent = IntentPrivateTransfer.newInstance(
-            context = context,
             rendezvousKey = rendezvousKey,
             organizer = organizer,
             destination = destination,
@@ -167,7 +166,7 @@ class TransactionRepository @Inject constructor(
             fee = fee,
             additionalFees = additionalFees,
             isWithdrawal = isWithdrawal,
-            tipMetadata = tipMetadata
+            metadata = metadata
         )
 
         return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)

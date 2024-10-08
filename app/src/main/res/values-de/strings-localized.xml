@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Starten Sie für einen Codes-Scan bitte Ihre Kamera</string>
   <string name="subtitle_tipCardForX">Mit Ihrer Trinkgeldkarte können Sie von Code-Nutzerinnen und -Nutzern auf der ganzen Welt Trinkgeld erhalten. Verbinden Sie Ihr X-Konto, um auf Ihre Trinkgeldkarte zuzugreifen.</string>
   <string name="subtitle_tipCardTwitterDescription">Mit Ihrer Tipp-Karte können Sie Tipps von Code-Benutzern aus der ganzen Welt erhalten. Um auf Ihre Tipp-Karte zuzugreifen, posten Sie an X.</string>
+  <string name="subtitle_tipCardXDescription">Mit Ihrer Tip Card können Sie Tipps von Code-Benutzern aus aller Welt erhalten. Um auf Ihre Tip Card zuzugreifen, senden Sie eine Nachricht an @getcode unter X.</string>
   <string name="subtitle_turnOnNotifications">Erlauben Sie Code, Ihnen Benachrichtigungen zu senden, wenn Sie Tipps von anderen Code-Nutzern erhalten.</string>
   <string name="subtitle_typeDelete">Geben Sie „%1$s\" ein</string>
   <string name="subtitle_updateRequiredDescription">Wir haben einige Änderungen vorgenommen, um das Nutzererlebnis zu verbessern. Die App muss aktualisiert werden, um Code weiterhin nutzen zu können.</string>

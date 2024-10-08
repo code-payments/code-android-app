@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Debes abrir tu cámara para escanear Codes</string>
   <string name="subtitle_tipCardForX">Tu tarjeta de propinas te permite recibir propinas de usuarios de Code de todo el mundo. Para poder acceder a tu tarjeta de propinas, conecta con tu identidad de X.</string>
   <string name="subtitle_tipCardTwitterDescription">Con tu tarjeta de propinas puedes recibir propinas de usuarios de Code de todo el mundo. Para acceder a tu tarjeta de propinas, publica en X. </string>
+  <string name="subtitle_tipCardXDescription">Tu Tip Card te permite recibir consejos de usuarios de Code de todo el mundo. Para acceder a tu Tip Card envía un mensaje @getcode en X.</string>
   <string name="subtitle_turnOnNotifications">Permita que Code le envíe notificaciones cuando reciba Sugerencias de otros usuarios de Code.</string>
   <string name="subtitle_typeDelete">Escribe \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Hemos realizado algunos cambios para mejorar la experiencia. Tendrás que actualizar la aplicación para seguir utilizando Code.</string>

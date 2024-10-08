@@ -58,4 +58,8 @@
     <string name="subtitle_tipCardBack">Scan to download the app, and then scan the code on the other side to tip</string>
 
     <string name="action_payToChat">Send %1$s to Start Chatting</string>
+    <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
+    <string name="subtitle_loadingChats">Loading your chats</string>
+    <string name="action_startNewChat">Start a New Chat</string>
+    <string name="subtitle_dontHaveChats">You don\'t have any chats yet.</string>
 </resources>

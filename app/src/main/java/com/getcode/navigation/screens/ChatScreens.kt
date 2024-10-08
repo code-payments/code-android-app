@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
 import androidx.paging.compose.collectAsLazyPagingItems
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
@@ -33,8 +34,10 @@ import com.getcode.model.chat.Reference
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.UserAvatar
+import com.getcode.ui.utils.getActivityScopedViewModel
 import com.getcode.util.formatDateRelatively
-import com.getcode.view.main.chat.conversation.ChatConversationScreen
+import com.getcode.view.main.balance.BalanceSheetViewModel
+import com.getcode.view.main.chat.conversation.ConversationScreen
 import com.getcode.view.main.chat.conversation.ConversationViewModel
 import com.getcode.view.main.chat.create.byusername.ChatByUsernameScreen
 import com.getcode.view.main.chat.list.ChatListScreen
@@ -57,13 +60,22 @@ data object ChatListModal: ChatGraph, ModalRoot {
 
     @Composable
     override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        val viewModel = getActivityScopedViewModel<ChatListViewModel>()
         ModalContainer(
             closeButtonEnabled = { it is ChatListModal },
         ) {
-            val viewModel = getViewModel<ChatListViewModel>()
-            val conversations = viewModel.conversations.collectAsLazyPagingItems()
-            ChatListScreen(viewModel, conversations)
+            ChatListScreen(viewModel)
         }
+
+        LifecycleEffect(
+            onStarted = {
+                val disposedScreen = navigator.lastItem
+                if (disposedScreen !is BalanceModal) {
+                    viewModel.dispatchEvent(ChatListViewModel.Event.OnOpened)
+                }
+            }
+        )
     }
 }
 
@@ -86,7 +98,7 @@ data object ChatByUsernameScreen: ChatGraph, ModalContent {
 }
 
 @Parcelize
-data class ChatMessageConversationScreen(
+data class ConversationScreen(
     val user: @RawValue TwitterUser? = null,
     val chatId: ID? = null,
     val intentId: ID? = null
@@ -154,17 +166,13 @@ data class ChatMessageConversationScreen(
                 }
 
             },
-            backButtonEnabled = { it is ChatMessageConversationScreen },
+            backButtonEnabled = { it is ConversationScreen },
             onBackClicked = {
-                if (state.twitterUser != null) {
-                    navigator.popUntil { it is ChatListModal }
-                } else {
-                    navigator.pop()
-                }
+                navigator.popUntil { it is ChatListModal }
             }
         ) {
             val messages = vm.messages.collectAsLazyPagingItems()
-            ChatConversationScreen(state, messages, vm::dispatchEvent)
+            ConversationScreen(state, messages, vm::dispatchEvent)
         }
 
         LaunchedEffect(vm) {
@@ -180,9 +188,11 @@ data class ChatMessageConversationScreen(
             vm.eventFlow
                 .filterIsInstance<ConversationViewModel.Event.Error>()
                 .onEach {
-                    Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                    if (it.show) {
+                        Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+                    }
                     if (it.fatal) {
-                        navigator.pop()
+                        navigator.popAll()
                     }
                 }.launchIn(this)
         }
@@ -199,14 +209,6 @@ data class ChatMessageConversationScreen(
             if (chatId != null) {
                 vm.dispatchEvent(
                     ConversationViewModel.Event.OnChatIdChanged(chatId)
-                )
-            }
-        }
-
-        LaunchedEffect(intentId) {
-            if (intentId != null) {
-                vm.dispatchEvent(
-                    ConversationViewModel.Event.OnReferenceChanged(Reference.IntentId(intentId))
                 )
             }
         }

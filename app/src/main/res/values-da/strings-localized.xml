@@ -288,6 +288,7 @@
   <string name="subtitle_startCameraToScan">Du skal starte dit kamera for at scanne koder</string>
   <string name="subtitle_tipCardForX">Med dit drikkepengekort kan du modtage drikkepenge fra Code-brugere over hele verden. For at få adgang til dit drikkepengekort skal du forbinde din X-identitet.\n</string>
   <string name="subtitle_tipCardTwitterDescription">Dit Tip Card lader dig modtage donationer fra Code-brugere over hele verden. Slå noget op på X for at tilgå dit Tip Card.</string>
+  <string name="subtitle_tipCardXDescription">Dit tipkort giver dig mulighed for at modtage tips fra kodebrugere over hele verden. For at få adgang til dit tipkort-skal du skrive til @getcode på X.</string>
   <string name="subtitle_turnOnNotifications">Tillad, at Code sender dig notifikationer, når du modtager tip fra andre Code-brugere.</string>
   <string name="subtitle_typeDelete">Tast \"%1$s\"</string>
   <string name="subtitle_updateRequiredDescription">Vi har foretaget nogle ændringer for at forbedre oplevelsen. Du skal opdatere appen for at fortsætte med at anvende Code.</string>

@@ -1,17 +1,17 @@
 package com.getcode.network.client
 
 import android.annotation.SuppressLint
-import android.content.Context
 import com.getcode.api.BuildConfig
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.AccountInfo
-import com.getcode.model.TipMetadata
+import com.getcode.model.SocialUser
 import com.getcode.model.Domain
 import com.getcode.model.Fee
 import com.getcode.model.GiftCard
+import com.getcode.model.ID
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -22,6 +22,7 @@ import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
+import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.WithdrawException
@@ -66,7 +67,7 @@ fun Client.transfer(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    tippedUsername: String? = null,
+    metadata: PrivateTransferMetadata? = null,
 ): Completable {
     return transferWithResultSingle(
         amount,
@@ -94,19 +95,20 @@ fun Client.transferWithResultSingle(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    tipMetadata: TipMetadata? = null,
-): Single<Result<Unit>> {
+    metadata: PrivateTransferMetadata? = null,
+): Single<Result<ID>> {
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, tipMetadata
+                amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, metadata
             )
         })
         .map {
             if (it is IntentPrivateTransfer) {
                 balanceController.setTray(organizer, it.resultTray)
             }
-        }.map { Result.success(Unit) }
+            it
+        }.map { Result.success(it.id.bytes) }
         .onErrorReturn { Result.failure(it) }
 }
 
@@ -118,8 +120,8 @@ fun Client.transferWithResult(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    tipMetadata: TipMetadata? = null,
-): Result<Unit> {
+    metadata: PrivateTransferMetadata? = null,
+): Result<ID> {
     return transferWithResultSingle(
         amount = amount,
         fee = fee,
@@ -128,7 +130,7 @@ fun Client.transferWithResult(
         rendezvousKey = rendezvousKey,
         destination = destination,
         isWithdrawal = isWithdrawal,
-        tipMetadata = tipMetadata
+        metadata = metadata,
     ).blockingGet()
 }
 

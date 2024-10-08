@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,6 +40,7 @@ import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
 import com.getcode.ui.components.ButtonState
 import com.getcode.ui.components.CodeButton
+import com.getcode.ui.components.CodeScaffold
 import com.getcode.ui.components.Row
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
@@ -72,19 +74,43 @@ fun ConnectAccountScreen(
             .launchIn(this)
     }
 
-    Column(
-        Modifier
-            .padding(CodeTheme.dimens.grid.x4),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-    ) {
-        RequestContent(state = state) {
-            viewModel.dispatchEvent(TipConnectViewModel.Event.PostToX)
+    CodeScaffold(
+        bottomBar = {
+            CodeButton(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(CodeTheme.dimens.inset),
+                onClick = {
+                    viewModel.dispatchEvent(TipConnectViewModel.Event.PostToX)
+                },
+                buttonState = ButtonState.Filled,
+                content = {
+                    Image(
+                        painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
+                        colorFilter = ColorFilter.tint(Brand),
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+                    Text(
+                        text = stringResource(R.string.action_messageGetCode),
+                    )
+                }
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier
+                .padding(CodeTheme.dimens.inset)
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+        ) {
+            RequestContent(state = state)
         }
     }
+
 }
 
 @Composable
-private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick: () -> Unit) {
+private fun ColumnScope.RequestContent(state: TipConnectViewModel.State) {
     Text(
         text = when(state.reason) {
             IdentityConnectionReason.TipCard -> stringResource(id = R.string.title_receiveTips)
@@ -95,7 +121,7 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
     )
     Text(
         text = when(state.reason) {
-            IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardForX)
+            IdentityConnectionReason.TipCard -> stringResource(id = R.string.subtitle_tipCardXDescription)
             IdentityConnectionReason.IdentityReveal -> stringResource(id = R.string.subtitle_connectXAccount)
             null -> ""
         },
@@ -104,22 +130,6 @@ private fun ColumnScope.RequestContent(state: TipConnectViewModel.State, onClick
     Spacer(modifier = Modifier.weight(0.3f))
     TweetPreview(modifier = Modifier.fillMaxWidth(), xMessage = state.xMessage)
     Spacer(modifier = Modifier.weight(0.7f))
-    CodeButton(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        buttonState = ButtonState.Filled,
-        content = {
-            Image(
-                painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
-                colorFilter = ColorFilter.tint(Brand),
-                contentDescription = null
-            )
-            Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
-            Text(
-                text = stringResource(R.string.action_messageGetCode),
-            )
-        }
-    )
 }
 
 @Composable

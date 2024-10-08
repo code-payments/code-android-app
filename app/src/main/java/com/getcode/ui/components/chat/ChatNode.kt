@@ -40,10 +40,9 @@ object ChatNodeDefaults {
 fun ChatNode(
     modifier: Modifier = Modifier,
     chat: Chat,
+    showAvatar: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val betaFlags = LocalBetaFlags.current
-
     Row(
         modifier = modifier
             .rememberedClickable { onClick() }
@@ -54,7 +53,7 @@ fun ChatNode(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (betaFlags.conversationsEnabled) {
+        if (showAvatar) {
             val imageModifier = Modifier
                 .size(CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape)
