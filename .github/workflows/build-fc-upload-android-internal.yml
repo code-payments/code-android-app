@@ -2,10 +2,10 @@ name: Android Build and Deploy (Internal)
 
 env:
   # The name of the main module repository
-  main_project_module: app
+  main_project_module: flipchatApp
 
   # The name of the Play Store
-  playstore_name: Code Wallet
+  playstore_name: Flipchat
 
 on:
   # Allows you to run this workflow manually from the Actions tab
@@ -38,7 +38,7 @@ jobs:
         id: google_services_json_file
         with:
           fileName: google-services.json
-          fileDir: ./app/src
+          fileDir: ./flipchatApp/src
           encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
 
       - name: Decode Service Account Key JSON file
@@ -59,11 +59,11 @@ jobs:
         uses: timheuer/base64-to-file@v1
         with:
           fileName: key
-          fileDir: ./app/key
+          fileDir: ./flipchatApp/key
           encodedString: ${{ secrets.UPLOAD_KEY_STORE }}
 
       - name: Setup BugSnag API Key
-        run: echo BUGSNAG_API_KEY=\"${{ secrets.BUGSNAG_API_KEY }}\" > ./local.properties
+        run: echo BUGSNAG_API_KEY=\"${{ secrets.FLIPCHAT_BUGSNAG_API_KEY }}\" > ./local.properties
 
       - name: Setup Fingerprint API Key
         run: echo FINGERPRINT_API_KEY=${{ secrets.FINGERPRINT_API_KEY }} >> ./local.properties
@@ -75,13 +75,13 @@ jobs:
         run: echo KADO_API_KEY=\"${{ secrets.KADO_API_KEY }}\" >> ./local.properties
 
       - name: Setup Mixpanel API Key
-        run: echo MIXPANEL_API_KEY=\"${{ secrets.MIXPANEL_API_KEY }}\" >> ./local.properties
+        run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
         run: bundle exec fastlane android test
 
       - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_internal
+        run: bundle exec fastlane android deploy_fc_internal
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
@@ -93,4 +93,4 @@ jobs:
         with:
           name: assets
           path: |
-            ${{ github.workspace }}/app/build/outputs/bundle/release
+            ${{ github.workspace }}/flipchatApp/build/outputs/bundle/release

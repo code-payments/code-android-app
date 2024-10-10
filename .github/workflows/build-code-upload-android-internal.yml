@@ -1,4 +1,4 @@
-name: Android Build and Deploy (Alpha)
+name: Android Build and Deploy (Internal)
 
 env:
   # The name of the main module repository
@@ -8,10 +8,6 @@ env:
   playstore_name: Code Wallet
 
 on:
-  push:
-    tags:
-      - 'v*'
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -85,7 +81,7 @@ jobs:
         run: bundle exec fastlane android test
 
       - name: Build & deploy Android release
-        run: bundle exec fastlane android deploy_alpha
+        run: bundle exec fastlane android deploy_code_internal
         env:
           STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS}}
@@ -93,7 +89,7 @@ jobs:
           SERVICE_ACCOUNT_KEY_JSON: ${{ steps.service_account_json_file.outputs.filePath }}
     
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: assets
           path: |
