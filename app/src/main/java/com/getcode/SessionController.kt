@@ -1017,54 +1017,6 @@ class SessionController @Inject constructor(
             }
         }
 
-        state.update {
-            val billState = it.billState
-            it.copy(
-                billState = billState.copy(
-                    socialUserPaymentConfirmation = tipConfirmation.copy(state = ConfirmationState.Sending)
-                ),
-            )
-        }
-
-        runCatching {
-            paymentRepository.completeTipPayment(metadata, amount)
-        }.onSuccess {
-            historyController.fetch()
-            state.update {
-                val billState = it.billState
-                val confirmation = it.billState.socialUserPaymentConfirmation ?: return@update it
-
-                it.copy(
-                    billState = billState.copy(
-                        socialUserPaymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
-                    ),
-                )
-            }
-            delay(400.milliseconds)
-            cancelTip()
-            showToast(amount, isDeposit = false)
-        }.onFailure {
-            TopBarManager.showMessage(
-                resources.getString(R.string.error_title_payment_failed),
-                resources.getString(R.string.error_description_payment_failed),
-            )
-
-            state.update { uiModel ->
-                uiModel.copy(
-                    presentationStyle = PresentationStyle.Hidden,
-                    billState = uiModel.billState.copy(
-                        bill = null,
-                        showToast = false,
-                        socialUserPaymentConfirmation = null,
-                        toast = null,
-                        valuation = null,
-                        primaryAction = null,
-                        secondaryAction = null,
-                    )
-                )
-            }
-        }
-
         if (state.value.billState.socialUserPaymentConfirmation == null) {
             showError()
             return@launch
