@@ -1,10 +1,10 @@
 package com.getcode.network.repository
 
-import com.squareup.okhttp.Call
-import com.squareup.okhttp.OkHttpClient
-import com.squareup.okhttp.Request
-import com.squareup.okhttp.Response
 import io.reactivex.rxjava3.core.Single
+import okhttp3.Call
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import org.json.JSONObject
 
 class StatusRepository {
@@ -20,7 +20,7 @@ class StatusRepository {
                 it.onError(Exception())
                 return@create
             }
-            val json = JSONObject(response.body().string())
+            val json = JSONObject(response.body?.string().orEmpty())
             val minimumVersion = json.getInt("minimumClientVersion")
             val isUpgradeRequired = currentVersionCode < minimumVersion
             it.onSuccess(isUpgradeRequired)

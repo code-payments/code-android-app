@@ -104,6 +104,8 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -214,8 +216,7 @@ class SessionController @Inject constructor(
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO)
-    
+    val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     val state = MutableStateFlow(SessionState())
 
     private val _eventFlow: MutableSharedFlow<SessionEvent> = MutableSharedFlow()
@@ -441,17 +442,15 @@ class SessionController @Inject constructor(
                 }
             }.launchIn(scope)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            SessionManager.authState
-                .distinctUntilChangedBy { it.isTimelockUnlocked }
-                .collectLatest {
-                    it.let { state ->
-                        if (state.isTimelockUnlocked) {
-                            this@SessionController.state.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
-                        }
+        SessionManager.authState
+            .distinctUntilChangedBy { it.isTimelockUnlocked }
+            .onEach {
+                it.let { state ->
+                    if (state.isTimelockUnlocked) {
+                        this@SessionController.state.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
                     }
                 }
-        }
+            }.launchIn(scope)
     }
 
     private fun buildScannerElements(
@@ -997,54 +996,6 @@ class SessionController @Inject constructor(
         val amount = tipConfirmation.amount
 
         fun showError() {
-            TopBarManager.showMessage(
-                resources.getString(R.string.error_title_payment_failed),
-                resources.getString(R.string.error_description_payment_failed),
-            )
-
-            state.update { uiModel ->
-                uiModel.copy(
-                    presentationStyle = PresentationStyle.Hidden,
-                    billState = uiModel.billState.copy(
-                        bill = null,
-                        showToast = false,
-                        socialUserPaymentConfirmation = null,
-                        toast = null,
-                        valuation = null,
-                        primaryAction = null,
-                        secondaryAction = null,
-                    )
-                )
-            }
-        }
-
-        state.update {
-            val billState = it.billState
-            it.copy(
-                billState = billState.copy(
-                    socialUserPaymentConfirmation = tipConfirmation.copy(state = ConfirmationState.Sending)
-                ),
-            )
-        }
-
-        runCatching {
-            paymentRepository.completeTipPayment(metadata, amount)
-        }.onSuccess {
-            historyController.fetch()
-            state.update {
-                val billState = it.billState
-                val confirmation = it.billState.socialUserPaymentConfirmation ?: return@update it
-
-                it.copy(
-                    billState = billState.copy(
-                        socialUserPaymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
-                    ),
-                )
-            }
-            delay(400.milliseconds)
-            cancelTip()
-            showToast(amount, isDeposit = false)
-        }.onFailure {
             TopBarManager.showMessage(
                 resources.getString(R.string.error_title_payment_failed),
                 resources.getString(R.string.error_description_payment_failed),
@@ -1750,7 +1701,7 @@ class SessionController @Inject constructor(
             )
         )
 
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 _eventFlow.emit(SessionEvent.SendIntent(shareIntent))
             }
@@ -1938,6 +1889,7 @@ class SessionController @Inject constructor(
                 )
 
             else -> {
+                throwable.printStackTrace()
                 TopBarManager.showMessage(
                     resources.getString(R.string.error_title_failedToCollect),
                     resources.getString(R.string.error_description_failedToCollect)

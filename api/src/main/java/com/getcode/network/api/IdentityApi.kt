@@ -19,7 +19,7 @@ class IdentityApi @Inject constructor(
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {
-    private val api = IdentityGrpc.newStub(managedChannel)
+    private val api = IdentityGrpc.newStub(managedChannel).withWaitForReady()
 
     fun linkAccount(request: IdentityService.LinkAccountRequest): @NonNull Single<IdentityService.LinkAccountResponse> {
         return api::linkAccount

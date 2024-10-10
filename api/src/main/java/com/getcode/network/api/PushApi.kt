@@ -14,7 +14,7 @@ class PushApi @Inject constructor(
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {
-    private val api = PushGrpc.newStub(managedChannel)
+    private val api = PushGrpc.newStub(managedChannel).withWaitForReady()
 
     fun addToken(request: PushService.AddTokenRequest): @NonNull Single<PushService.AddTokenResponse> {
         return api::addToken
