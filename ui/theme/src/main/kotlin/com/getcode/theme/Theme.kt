@@ -26,11 +26,13 @@ internal val CodeDefaultColorScheme = ColorScheme(
     brandOverlay = BrandOverlay,
     secondary = BrandAccent,
     tertiary = BrandAccent,
+    indicator = BrandIndicator,
     action = Gray50,
     onAction = White,
     background = Brand,
     onBackground = White,
     surface = Brand,
+    surfaceVariant = BrandDark,
     onSurface = White,
     error = Error,
     errorText = TextError,
@@ -92,11 +94,13 @@ class ColorScheme(
     brandOverlay: Color,
     secondary: Color,
     tertiary: Color,
+    indicator: Color,
     action: Color,
     onAction: Color,
     background: Color,
     onBackground: Color,
     surface: Color,
+    surfaceVariant: Color,
     onSurface: Color,
     error: Color,
     errorText: Color,
@@ -121,6 +125,8 @@ class ColorScheme(
         private set
     var surface by mutableStateOf(surface)
         private set
+    var surfaceVariant by mutableStateOf(surfaceVariant)
+        private set
     var onSurface by mutableStateOf(onSurface)
         private set
     var error by mutableStateOf(error)
@@ -134,6 +140,8 @@ class ColorScheme(
     var secondary by mutableStateOf(secondary)
         private set
     var tertiary by mutableStateOf(tertiary)
+        private set
+    var indicator by mutableStateOf(indicator)
         private set
     var action by mutableStateOf(action)
         private set
@@ -150,6 +158,7 @@ class ColorScheme(
         background = other.background
         onBackground = other.onBackground
         surface = other.surface
+        surfaceVariant = other.surfaceVariant
         onSurface = other.onSurface
         error = other.error
         errorText = other.errorText
@@ -157,6 +166,7 @@ class ColorScheme(
         textSecondary = other.textSecondary
         secondary = other.secondary
         tertiary = other.tertiary
+        indicator = other.indicator
         action = other.action
         onAction = other.onAction
     }
@@ -171,6 +181,7 @@ class ColorScheme(
         background = background,
         onBackground = onBackground,
         surface = surface,
+        surfaceVariant = surfaceVariant,
         onSurface = onSurface,
         error = error,
         errorText = errorText,
@@ -178,6 +189,7 @@ class ColorScheme(
         textSecondary = textSecondary,
         secondary = secondary,
         tertiary = tertiary,
+        indicator = indicator,
         action = action,
         onAction = onAction
     )

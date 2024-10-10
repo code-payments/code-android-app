@@ -16,6 +16,6 @@ internal fun DateBubble(
 ) = Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
     Pill(
         text = date,
-        backgroundColor = CodeTheme.colors.secondary
+        backgroundColor = CodeTheme.colors.surfaceVariant
     )
 }

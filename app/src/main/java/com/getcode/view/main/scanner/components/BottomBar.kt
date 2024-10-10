@@ -29,7 +29,6 @@ import com.getcode.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.Row
-import com.getcode.ui.components.chat.ChatNodeDefaults
 import com.getcode.ui.utils.heightOrZero
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.widthOrZero
@@ -140,7 +139,7 @@ private fun BottomBarAction(
             Badge(
                 modifier = Modifier.padding(top = 6.dp, end = 1.dp),
                 count = badgeCount,
-                color = ChatNodeDefaults.UnreadIndicator,
+                color = CodeTheme.colors.indicator,
                 enterTransition = scaleIn(
                     animationSpec = tween(
                         durationMillis = 300,

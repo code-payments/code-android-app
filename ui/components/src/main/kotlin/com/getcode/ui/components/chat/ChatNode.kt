@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
@@ -43,10 +42,6 @@ import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils
 import com.getcode.util.formatTimeRelatively
-
-object ChatNodeDefaults {
-    val UnreadIndicator: Color = Color(0xFF31BB00)
-}
 
 @Composable
 fun ChatNode(
@@ -102,7 +97,7 @@ fun ChatNode(
                             DateUtils.getDateRelatively(it)
                         },
                         style = CodeTheme.typography.textSmall,
-                        color = if (hasUnreadMessages) ChatNodeDefaults.UnreadIndicator else CodeTheme.colors.textSecondary,
+                        color = if (hasUnreadMessages) CodeTheme.colors.indicator else CodeTheme.colors.textSecondary,
                     )
                 }
             }
@@ -132,7 +127,7 @@ fun ChatNode(
                         Modifier
                             .padding(end = CodeTheme.dimens.grid.x1),
                         count = chat.unreadCount,
-                        color = ChatNodeDefaults.UnreadIndicator
+                        color = CodeTheme.colors.indicator,
                     )
                 }
             }
