@@ -104,6 +104,8 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -214,8 +216,7 @@ class SessionController @Inject constructor(
     betaFlagsRepository: BetaFlagsRepository,
     features: FeatureRepository,
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO)
-    
+    val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     val state = MutableStateFlow(SessionState())
 
     private val _eventFlow: MutableSharedFlow<SessionEvent> = MutableSharedFlow()
@@ -441,17 +442,15 @@ class SessionController @Inject constructor(
                 }
             }.launchIn(scope)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            SessionManager.authState
-                .distinctUntilChangedBy { it.isTimelockUnlocked }
-                .collectLatest {
-                    it.let { state ->
-                        if (state.isTimelockUnlocked) {
-                            this@SessionController.state.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
-                        }
+        SessionManager.authState
+            .distinctUntilChangedBy { it.isTimelockUnlocked }
+            .onEach {
+                it.let { state ->
+                    if (state.isTimelockUnlocked) {
+                        this@SessionController.state.update { m -> m.copy(restrictionType = RestrictionType.TIMELOCK_UNLOCKED) }
                     }
                 }
-        }
+            }.launchIn(scope)
     }
 
     private fun buildScannerElements(
@@ -1750,7 +1749,7 @@ class SessionController @Inject constructor(
             )
         )
 
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch(Dispatchers.IO) {
             withContext(Dispatchers.Main) {
                 _eventFlow.emit(SessionEvent.SendIntent(shareIntent))
             }
@@ -1938,6 +1937,7 @@ class SessionController @Inject constructor(
                 )
 
             else -> {
+                throwable.printStackTrace()
                 TopBarManager.showMessage(
                     resources.getString(R.string.error_title_failedToCollect),
                     resources.getString(R.string.error_description_failedToCollect)

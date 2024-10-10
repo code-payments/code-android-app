@@ -19,7 +19,7 @@ class TransactionApiV2 @Inject constructor(
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {
-    private val api = TransactionGrpc.newStub(managedChannel)
+    private val api = TransactionGrpc.newStub(managedChannel).withWaitForReady()
 
     fun submitIntent(request: StreamObserver<TransactionService.SubmitIntentResponse>): StreamObserver<TransactionService.SubmitIntentRequest> {
         return api.submitIntent(request)

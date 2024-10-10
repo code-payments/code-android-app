@@ -17,7 +17,7 @@ class DeviceApi @Inject constructor(
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 
-    private val api = DeviceGrpc.newStub(managedChannel)
+    private val api = DeviceGrpc.newStub(managedChannel).withWaitForReady()
 
     fun registerInstallation(owner: KeyPair, installationId: String) : Flow<DeviceService.RegisterLoggedInAccountsResponse> {
         val request = DeviceService.RegisterLoggedInAccountsRequest.newBuilder()
