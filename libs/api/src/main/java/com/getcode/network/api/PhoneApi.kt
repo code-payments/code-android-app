@@ -14,7 +14,7 @@ class PhoneApi @Inject constructor(
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {
-    private val api = PhoneVerificationGrpc.newStub(managedChannel)
+    private val api = PhoneVerificationGrpc.newStub(managedChannel).withWaitForReady()
 
     fun sendVerificationCode(request: PhoneVerificationService.SendVerificationCodeRequest): @NonNull Single<PhoneVerificationService.SendVerificationCodeResponse> {
         return api::sendVerificationCode

@@ -12,9 +12,11 @@ import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.LoginPhoneConfirmationScreen
 import com.getcode.navigation.screens.PhoneConfirmationScreen
+import com.getcode.network.repository.ErrorSubmitIntent
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.ErrorUtils
 import com.getcode.utils.makeE164
 import com.getcode.view.*
 import com.google.android.gms.auth.api.phone.SmsRetriever
@@ -174,7 +176,7 @@ class PhoneVerifyViewModel @Inject constructor(
             }
             .doOnComplete { setIsLoading(false) }
             .map { res ->
-                when (res) {
+                val message = when (res) {
                     PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> null
 
                     PhoneVerificationService.SendVerificationCodeResponse.Result.INVALID_PHONE_NUMBER,
@@ -184,12 +186,24 @@ class PhoneVerifyViewModel @Inject constructor(
                     PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_COUNTRY -> {
                         getUnsupportedCountryError()
                     }
-                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNRECOGNIZED -> {
+                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNRECOGNIZED,
+                    PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_DEVICE -> {
                         getUnsupportedDeviceError()
                     }
                     else -> getGenericError()
-                }?.let { message -> TopBarManager.showMessage(message) }
-                res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
+                }
+
+                if (message != null) {
+                    TopBarManager.showMessage(message)
+                }
+
+                val success = res == PhoneVerificationService.SendVerificationCodeResponse.Result.OK
+
+                if (!success) {
+                    ErrorUtils.handleError(PhoneVerifyException(reason = res.name))
+                }
+
+                success
             }
             .concatMapSingle { isSuccess ->
                 Single.just(isSuccess).delay(500L, TimeUnit.MILLISECONDS)
@@ -254,3 +268,12 @@ class PhoneVerifyViewModel @Inject constructor(
         resources.getString(R.string.error_description_countryNotSupported)
     )
 }
+
+private class PhoneVerifyException(
+    cause: Throwable? = null,
+    val reason: String,
+) : Exception(cause) {
+    override val message: String
+        get() = "Failed to verify phone number: $reason"
+}
+

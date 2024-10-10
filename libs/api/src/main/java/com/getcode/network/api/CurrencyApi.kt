@@ -15,7 +15,7 @@ import javax.inject.Inject
 class CurrencyApi @Inject constructor(
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
-    private val api = CurrencyGrpc.newStub(managedChannel)
+    private val api = CurrencyGrpc.newStub(managedChannel).withWaitForReady()
 
     fun getRates(request: CurrencyService.GetAllRatesRequest = CurrencyService.GetAllRatesRequest.getDefaultInstance()): Flow<CurrencyService.GetAllRatesResponse> =
         api::getAllRates

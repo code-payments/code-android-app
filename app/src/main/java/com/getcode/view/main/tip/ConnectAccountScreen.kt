@@ -39,9 +39,10 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.bolded
 import com.getcode.theme.extraSmall
+import com.getcode.ui.components.Row
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.components.Row
+import com.getcode.ui.theme.CodeScaffold
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -77,23 +78,43 @@ fun ConnectAccountScreen(
             .launchIn(this)
     }
 
-    Column(
-        Modifier
-            .padding(CodeTheme.dimens.grid.x4),
-        verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
-    ) {
-        RequestContent(state = state, titleAlignment = titleAlignment) {
-            viewModel.dispatchEvent(ConnectAccountViewModel.Event.PostToX)
+    CodeScaffold(
+        bottomBar = {
+            CodeButton(
+                modifier = Modifier.fillMaxWidth()
+                    .padding(CodeTheme.dimens.inset),
+                onClick = {
+                    viewModel.dispatchEvent(ConnectAccountViewModel.Event.PostToX)
+                },
+                buttonState = ButtonState.Filled,
+                content = {
+                    Image(
+                        painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
+                        colorFilter = ColorFilter.tint(Brand),
+                        contentDescription = null
+                    )
+                    Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
+                    Text(
+                        text = stringResource(R.string.action_messageGetCode),
+                    )
+                }
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier
+                .padding(CodeTheme.dimens.inset)
+                .padding(padding),
+            verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+        ) {
+            RequestContent(state = state, titleAlignment = titleAlignment)
         }
     }
+
 }
 
 @Composable
-private fun ColumnScope.RequestContent(
-    state: ConnectAccountViewModel.State,
-    titleAlignment: TextAlign = TextAlign.Start,
-    onClick: () -> Unit
-) {
+private fun ColumnScope.RequestContent(state: ConnectAccountViewModel.State, titleAlignment: TextAlign = TextAlign.Start) {
     Text(
         modifier = Modifier.fillMaxWidth(),
         text = when(state.reason) {
@@ -119,20 +140,6 @@ private fun ColumnScope.RequestContent(
     Spacer(modifier = Modifier.weight(0.3f))
     TweetPreview(modifier = Modifier.fillMaxWidth(), xMessage = state.xMessage)
     Spacer(modifier = Modifier.weight(0.7f))
-    CodeButton(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        buttonState = ButtonState.Filled,
-        content = {
-            Image(
-                painter = rememberVectorPainter(image = ImageVector.vectorResource(id = R.drawable.ic_twitter_x)),
-                colorFilter = ColorFilter.tint(Brand),
-                contentDescription = null
-            )
-            Spacer(Modifier.width(CodeTheme.dimens.grid.x2))
-            Text(stringResource(R.string.action_messageToConnect, stringResource(R.string.handle)),)
-        }
-    )
 }
 
 @Composable

@@ -51,7 +51,7 @@ import com.getcode.model.chat.SetMuteStateResponseV2 as SetMuteStateResponse
 class ChatApiV2 @Inject constructor(
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
-    private val api = ChatGrpc.newStub(managedChannel)
+    private val api = ChatGrpc.newStub(managedChannel).withWaitForReady()
 
     fun startChat(
         owner: KeyPair,

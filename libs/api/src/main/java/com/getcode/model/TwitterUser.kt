@@ -53,8 +53,8 @@ data class TwitterUser(
                 costOfFriendship = proto.friendshipCostOrNull?.let {
                     val currency = com.getcode.model.CurrencyCode.tryValueOf(it.currency) ?: return@let null
                     Fiat(currency, it.nativeAmount)
-                } ?: Fiat(currency = com.getcode.model.CurrencyCode.USD, amount = 1.00),
-                isFriend = proto.isFriend,
+                } ?: Fiat(currency = CurrencyCode.USD, amount = 1.00),
+                isFriend = runCatching { proto.isFriend }.getOrNull() ?: false,
                 chatId = proto.friendChatId.value.toList()
             )
         }
