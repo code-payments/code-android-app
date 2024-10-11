@@ -162,7 +162,6 @@ dependencies {
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)
     debugImplementation(Libs.compose_ui_tools)
-    implementation(Libs.compose_ui_tools_preview)
     implementation(Libs.compose_accompanist)
     implementation(Libs.compose_foundation)
     implementation(Libs.compose_material)
