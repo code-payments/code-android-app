@@ -2,6 +2,7 @@ package com.getcode.ui.components.chat.utils
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.getcode.ui.components.R
 import com.getcode.manager.SessionManager
@@ -20,25 +21,38 @@ import com.getcode.utils.LocalCurrencyUtils
 import timber.log.Timber
 import java.util.Locale
 
+val LocalLocalizeCurrencyFormatting = staticCompositionLocalOf { false }
+
 fun MessageContent.localizedText(
     title: String,
     resources: ResourceHelper,
+    localizeCurrency: Boolean = true,
     currencyUtils: com.getcode.utils.CurrencyUtils,
 ): String {
     return when (val content = this) {
         is MessageContent.Exchange -> {
             val amount = when (val kinAmount = content.amount) {
                 is GenericAmount.Exact -> {
-                    Timber.d("exact")
-                    val currency = currencyUtils.getCurrency(kinAmount.currencyCode.name)
+                    val currency = if (localizeCurrency) {
+                        currencyUtils.getCurrency(kinAmount.currencyCode.name)
+                    } else {
+                        null
+                    }
+
+                    val amount = if (localizeCurrency) {
+                        kinAmount.amount.fiat
+                    } else {
+                        kinAmount.amount.kin.toKinValueDouble()
+                    }
+
                     kinAmount.amount.formatted(
                         resources = resources,
+                        amount = amount,
                         currency = currency ?: Currency.Kin
                     )
                 }
 
                 is GenericAmount.Partial -> {
-                    Timber.d("partial")
                     FormatUtils.formatCurrency(kinAmount.fiat.amount, kinAmount.currencyCode).let {
                         "$it ${resources.getOfKinSuffix()}"
                     }
@@ -113,9 +127,23 @@ internal val MessageContent.localizedText: String
             is MessageContent.Exchange -> {
                 val amount = when (val kinAmount = content.amount) {
                     is GenericAmount.Exact -> {
-                        val currency =
+                        val localizeCurrencyFormatting = LocalLocalizeCurrencyFormatting.current
+                        val currency = if (localizeCurrencyFormatting) {
                             LocalCurrencyUtils.current?.getCurrency(kinAmount.currencyCode.name)
-                        kinAmount.amount.formatted(currency = currency ?: Currency.Kin)
+                        } else {
+                            null
+                        }
+
+                        val amount = if (localizeCurrencyFormatting) {
+                            kinAmount.amount.fiat
+                        } else {
+                            kinAmount.amount.kin.toKinValueDouble()
+                        }
+
+                        kinAmount.amount.formatted(
+                            amount = amount,
+                            currency = currency ?: Currency.Kin
+                        )
                     }
 
                     is GenericAmount.Partial -> {

@@ -37,3 +37,7 @@ object FormatUtils {
         return formatCurrency(value, locale)
     }
 }
+
+fun Int.withCommas(): String {
+    return this.toString().reversed().chunked(3).joinToString(",").reversed()
+}

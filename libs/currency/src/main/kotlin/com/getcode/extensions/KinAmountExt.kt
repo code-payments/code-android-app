@@ -18,30 +18,32 @@ fun KinAmount.formattedRaw() = FormatUtils.formatWholeRoundDown(kin.toKin().toDo
 @Composable
 fun KinAmount.formatted(
     currency: Currency,
+    amount: Double = fiat,
     suffix: String = stringResource(R.string.core_ofKin)
 ) = formatAmountString(
     resources = AndroidResources(context = LocalContext.current),
     currency = currency,
-    amount = fiat,
+    amount = amount,
     suffix = suffix
 )
 
 @Composable
-fun KinAmount.formatted(suffix: String = stringResource(R.string.core_ofKin)): String {
+fun KinAmount.formatted(amount: Double = fiat, suffix: String = stringResource(R.string.core_ofKin)): String {
     val currency = LocalCurrencyUtils.current?.getCurrency(rate.currency.name)
         ?: Currency.Kin
-    return formatted(currency = currency, suffix = suffix)
+    return formatted(currency = currency, amount = amount, suffix = suffix)
 }
 
 fun KinAmount.formatted(
     resources: ResourceHelper,
     currency: Currency,
+    amount: Double = fiat,
     kinSuffix: String = "",
     suffix: String = resources.getString(R.string.core_ofKin)
 ) = formatAmountString(
     resources = resources,
     currency = currency,
-    amount = fiat,
+    amount = amount,
     kinSuffix = kinSuffix,
     suffix = suffix
 )

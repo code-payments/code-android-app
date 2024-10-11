@@ -24,6 +24,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     brandMuted = BrandMuted,
     brandDark = BrandDark,
     brandOverlay = BrandOverlay,
+    brandContainer = Brand,
     secondary = BrandAccent,
     tertiary = BrandAccent,
     indicator = BrandIndicator,
@@ -92,6 +93,7 @@ class ColorScheme(
     brandMuted: Color,
     brandDark: Color,
     brandOverlay: Color,
+    brandContainer: Color,
     secondary: Color,
     tertiary: Color,
     indicator: Color,
@@ -118,6 +120,8 @@ class ColorScheme(
     var brandDark by mutableStateOf(brandDark)
         private set
     var brandOverlay by mutableStateOf(brandOverlay)
+        private set
+    var brandContainer by mutableStateOf(brandContainer)
         private set
     var background by mutableStateOf(background)
         private set
@@ -155,6 +159,7 @@ class ColorScheme(
         brandMuted = other.brandMuted
         brandDark = other.brandDark
         brandOverlay = other.brandOverlay
+        brandContainer = other.brandContainer
         background = other.background
         onBackground = other.onBackground
         surface = other.surface
@@ -178,6 +183,7 @@ class ColorScheme(
         brandMuted = brandMuted,
         brandDark = brandDark,
         brandOverlay = brandOverlay,
+        brandContainer = brandContainer,
         background = background,
         onBackground = onBackground,
         surface = surface,

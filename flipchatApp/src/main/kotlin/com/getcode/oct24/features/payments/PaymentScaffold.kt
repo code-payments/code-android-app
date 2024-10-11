@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import com.getcode.payments.LocalPaymentController
 import com.getcode.theme.Black40
+import com.getcode.ui.components.SlideToConfirmDefaults
 import com.getcode.ui.modals.TipConfirmation
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.ModalAnimationSpeed
@@ -66,6 +67,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                 ) {
                     TipConfirmation(
                         confirmation = state.billState.socialUserPaymentConfirmation,
+                        trackColor = SlideToConfirmDefaults.PurpleTrackColor,
                         onSend = {
                             payments.completePrivatePayment()
                         },

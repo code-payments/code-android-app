@@ -118,9 +118,7 @@ fun BalanceContent(
                 BalanceTop(
                     state,
                     canClickBalance,
-                ) {
-//                    navigator.push(CurrencySelectionModal(CurrencySelectKind.Local))
-                }
+                )
             }
         }
 
@@ -130,43 +128,12 @@ fun BalanceContent(
                     .fillParentMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset)
             ) {
-                if (!chatsEmpty && !state.chatsLoading) {
+                if (!chatsEmpty && !state.chatsLoading && !state.isKinSelected) {
                     KinValueHint(faqOpen)
                 }
             }
         }
 
-//        item {
-//            Column(
-//                modifier = Modifier
-//                    .fillParentMaxWidth()
-//                    .padding(horizontal = CodeTheme.dimens.inset)
-//                    .padding(bottom = CodeTheme.dimens.grid.x11),
-//            ) {
-//                if (!chatsEmpty && !state.chatsLoading && state.buyModule.enabled) {
-//                    CodeButton(
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(top = CodeTheme.dimens.grid.x5),
-//                        buttonState = ButtonState.Filled,
-//                        onClick = {
-//                            if (state.buyModule.available) {
-//                                buyMoreKin()
-//                            } else {
-//                                TopBarManager.showMessage(
-//                                    TopBarManager.TopBarMessage(
-//                                        title = context.getString(R.string.error_title_buyModuleUnavailable),
-//                                        message = context.getString(R.string.error_description_buyModuleUnavailable),
-//                                        type = TopBarManager.TopBarMessageType.ERROR
-//                                    )
-//                                )
-//                            }
-//                        },
-//                        text = stringResource(id = R.string.action_addCash)
-//                    )
-//                }
-//            }
-//        }
         itemsIndexed(
             state.chats,
             key = { _, item -> item.id },
@@ -221,7 +188,7 @@ fun BalanceTop(
         isAltCaptionKinIcon = false,
         isLoading = state.chatsLoading,
         currencyResId = state.currencyFlag,
-        isClickable = isClickable,
+        isClickable = false,
         onClick = onClick,
         textStyle = CodeTheme.typography.displayLarge,
     )

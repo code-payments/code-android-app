@@ -15,7 +15,7 @@ internal object CashTab : Tab {
     override val options: TabOptions
         @Composable get() = TabOptions(
             index = 0u,
-            title = stringResource(R.string.title_cash),
+            title = stringResource(R.string.title_kin),
             icon = painterResource(R.drawable.ic_kin_white_small)
         )
 

@@ -21,7 +21,7 @@ import com.getcode.theme.CodeTheme
 @Composable
 fun Modal(
     modifier: Modifier = Modifier,
-    backgroundColor: Color = Brand,
+    backgroundColor: Color = CodeTheme.colors.brandContainer,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(

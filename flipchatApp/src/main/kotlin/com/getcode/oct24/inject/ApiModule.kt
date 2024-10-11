@@ -5,6 +5,7 @@ import com.getcode.oct24.util.AccountAuthenticator
 import com.getcode.analytics.AnalyticsService
 import com.getcode.annotations.DevManagedChannel
 import com.getcode.manager.MnemonicManager
+import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
@@ -30,6 +31,7 @@ import com.getcode.network.service.DeviceService
 import com.getcode.oct24.BuildConfig
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.Kin
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
@@ -151,16 +153,8 @@ object ApiModule {
             privacyMigration = privacyMigration,
             transactionReceiver = transactionReceiver,
             networkObserver = networkObserver,
-            getCurrencyFromCode = {
-                it?.name?.let(currencyUtils::getCurrency)
-            },
-            suffix = { currency ->
-                if (currency?.code != CurrencyCode.KIN.name) {
-                    resources.getOfKinSuffix()
-                } else {
-                    ""
-                }
-            }
+            getCurrencyFromCode = { it?.name?.let(currencyUtils::getCurrency) },
+            suffix = { _ -> resources.getKinSuffix() }
         )
     }
 
@@ -174,16 +168,8 @@ object ApiModule {
     ): Exchange = CodeExchange(
         currencyService = currencyService,
         prefs = prefRepository,
-        preferredCurrency = {
-            val preferredCurrencyCode = prefRepository.get(
-                PrefsString.KEY_LOCAL_CURRENCY,
-                ""
-            ).takeIf { it.isNotEmpty() }
-
-            val preferredCurrency = preferredCurrencyCode?.let { currencyUtils.getCurrency(it) }
-            preferredCurrency ?: locale.getDefaultCurrency()
-        },
-        defaultCurrency = { locale.getDefaultCurrency() }
+        preferredCurrency = { Currency.Kin },
+        defaultCurrency = { Currency.Kin }
     )
 
     @Singleton

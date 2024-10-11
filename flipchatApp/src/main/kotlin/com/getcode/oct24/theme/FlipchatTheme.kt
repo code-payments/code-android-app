@@ -26,6 +26,7 @@ private val colors = ColorScheme(
     brandMuted = BrandMuted,
     brandDark = Color(0xFF2C2158),
     brandOverlay = BrandOverlay,
+    brandContainer = FC_Primary,
     secondary = FC_Secondary,
     tertiary = FC_Tertiary,
     indicator = FC_Accent,

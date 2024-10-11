@@ -33,12 +33,14 @@ import com.getcode.ui.components.Modal
 import com.getcode.ui.components.PriceWithFlag
 import com.getcode.ui.components.R
 import com.getcode.ui.components.SlideToConfirm
+import com.getcode.ui.components.SlideToConfirmDefaults
 import com.getcode.ui.components.TwitterUsernameDisplay
 
 @Composable
 fun TipConfirmation(
     modifier: Modifier = Modifier,
     confirmation: SocialUserPaymentConfirmation?,
+    trackColor: Color = SlideToConfirmDefaults.BlueTrackColor,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -103,6 +105,7 @@ fun TipConfirmation(
         SlideToConfirm(
             isLoading = isSending,
             isSuccess = state is ConfirmationState.Sent,
+            trackColor = trackColor,
             onConfirm = { onSend() },
             label = stringResource(R.string.action_swipeToTip)
         )

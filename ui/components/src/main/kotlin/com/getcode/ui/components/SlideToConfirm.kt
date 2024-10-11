@@ -104,6 +104,7 @@ object SlideToConfirmDefaults {
     val SnapThreshold = 0.7f
     val BlueTrackColor = Track.BlueColor
     val BlackTrackColor = Track.BlackColor
+    val PurpleTrackColor = Track.PurpleColor
 }
 
 private object Thumb {
@@ -121,6 +122,7 @@ private object Track {
 
     val BlueColor = Color(0xFF11142A)
     val BlackColor = Color(0xFF201D1D)
+    val PurpleColor = Color(0xFF241A4B)
 }
 
 
