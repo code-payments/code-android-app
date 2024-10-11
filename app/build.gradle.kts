@@ -58,12 +58,14 @@ android {
 
     buildTypes {
         getByName("release") {
+            resValue("string", "applicationId", Android.codeNamespace)
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
+            resValue("string", "applicationId", "${Android.codeNamespace}.dev")
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanLenient() ?: false
