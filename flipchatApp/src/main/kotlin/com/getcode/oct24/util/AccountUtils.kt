@@ -132,18 +132,20 @@ object AccountUtils {
         }
 
         // attempt to pull from Code App
-        context.contentResolver.query(
-            Uri.parse("content://com.getcode.accountprovider/accounts"),
-            null,
-            null,
-            null,
-            null
-        )?.use {
-            while (it.moveToNext()) {
-                val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
-                if (token != null) {
-                    println("Code account on device found. Sharing with FC")
-                    return token
+        runCatching {
+            context.contentResolver.query(
+                Uri.parse("content://com.getcode.accountprovider/accounts"),
+                null,
+                null,
+                null,
+                null
+            )?.use {
+                while (it.moveToNext()) {
+                    val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
+                    if (token != null) {
+                        println("Code account on device found. Sharing with FC")
+                        return token
+                    }
                 }
             }
         }
