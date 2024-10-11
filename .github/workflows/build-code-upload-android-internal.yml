@@ -1,4 +1,4 @@
-name: Android Build and Deploy (Internal)
+name: Code Build and Deploy (Internal)
 
 env:
   # The name of the main module repository
@@ -78,7 +78,7 @@ jobs:
         run: echo MIXPANEL_API_KEY=\"${{ secrets.MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
-        run: bundle exec fastlane android test
+        run: bundle exec fastlane android code_tests
 
       - name: Build & deploy Android release
         run: bundle exec fastlane android deploy_code_internal

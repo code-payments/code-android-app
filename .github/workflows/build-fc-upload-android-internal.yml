@@ -1,4 +1,4 @@
-name: Android Build and Deploy (Internal)
+name: Flipchat Build and Deploy (Internal)
 
 env:
   # The name of the main module repository
@@ -78,7 +78,7 @@ jobs:
         run: echo MIXPANEL_API_KEY=\"${{ secrets.FLIPCHAT_MIXPANEL_API_KEY }}\" >> ./local.properties
 
       - name: Run tests
-        run: bundle exec fastlane android test
+        run: bundle exec fastlane android fc_tests
 
       - name: Build & deploy Android release
         run: bundle exec fastlane android deploy_fc_internal
