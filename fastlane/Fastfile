@@ -18,12 +18,12 @@ default_platform(:android)
 platform :android do
   desc "Runs all the tests for Code"
   lane :code_tests do
-    gradle(task: "app:test")
+    gradle(task: "app:testDebug")
   end
 
   desc "Runs all the tests for Flipchat"
     lane :fc_tests do
-      gradle(task: "flipchatApp:test")
+      gradle(task: "flipchatApp:testDebug")
     end
 
   desc "Build and Deploy a new internal version of Code to the Google Play"
