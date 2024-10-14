@@ -2,6 +2,7 @@ plugins {
     id(Plugins.android_library)
     id(Plugins.kotlin_android)
     id(Plugins.kotlin_serialization)
+    id(Plugins.kotlin_parcelize)
 }
 
 android {
@@ -39,10 +40,14 @@ android {
 
 dependencies {
     implementation(project(":libs:api"))
+    implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
 
     implementation(Libs.androidx_annotation)
     api(Libs.kotlin_stdlib)
+
+    api(Libs.rxjava)
+    api(Libs.rxandroid)
 
     implementation(platform(Libs.compose_bom))
     implementation(Libs.compose_ui)

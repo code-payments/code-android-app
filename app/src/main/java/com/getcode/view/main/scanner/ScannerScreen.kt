@@ -61,19 +61,18 @@ import com.getcode.navigation.screens.GetKinModal
 import com.getcode.navigation.screens.GiveKinModal
 import com.getcode.navigation.screens.ShareDownloadLinkModal
 import com.getcode.ui.components.OnLifecycleEvent
-import com.getcode.ui.components.PermissionResult
-import com.getcode.ui.components.getPermissionLauncher
-import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.utils.AnimationUtils
 import com.getcode.ui.utils.measured
 import com.getcode.util.launchAppSettings
-import com.getcode.view.login.notificationPermissionCheck
 import com.getcode.view.main.bill.BillManagementOptions
 import com.getcode.view.main.scanner.views.CameraDisabledView
 import com.getcode.view.main.scanner.camera.CodeScanner
 import com.getcode.view.main.bill.HomeBill
 import com.getcode.view.main.scanner.views.CameraPermissionsMissingView
 import com.getcode.ui.modals.ReceivedKinConfirmation
+import com.getcode.util.permissions.PermissionResult
+import com.getcode.util.permissions.getPermissionLauncher
+import com.getcode.util.permissions.rememberPermissionHandler
 import com.getcode.view.main.scanner.views.HomeRestricted
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.launchIn
@@ -121,7 +120,8 @@ fun ScanScreen(
                 request = request,
             )
 
-            val notificationPermissionChecker = notificationPermissionCheck { }
+            val notificationPermissionChecker =
+                com.getcode.util.permissions.notificationPermissionCheck { }
             val context = LocalContext.current
             LaunchedEffect(session) {
                 session.eventFlow
@@ -348,7 +348,7 @@ private fun BillContainer(
 
     val cameraPermissionLauncher = getPermissionLauncher(Manifest.permission.CAMERA, onPermissionResult)
 
-    val permissionChecker = rememberPermissionChecker()
+    val permissionChecker = rememberPermissionHandler()
 
     val checkPermission = { shouldRequest: Boolean ->
         permissionChecker.request(

@@ -53,7 +53,8 @@ fun SeedDeepLink(
             navigator.push(PermissionRequestScreen(CodeLoginPermission.Notifications))
         }
     }
-    val notificationPermissionCheck = notificationPermissionCheck { onNotificationResult(it) }
+    val notificationPermissionCheck =
+        com.getcode.util.permissions.notificationPermissionCheck { onNotificationResult(it) }
 
     fun onError() {
         TopBarManager.showMessage(

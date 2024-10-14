@@ -42,14 +42,14 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.components.Cloudy
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.components.PermissionResult
 import com.getcode.ui.components.SelectionContainer
-import com.getcode.ui.components.getPermissionLauncher
-import com.getcode.ui.components.rememberPermissionChecker
 import com.getcode.ui.components.rememberSelectionState
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
 import com.getcode.util.launchAppSettings
+import com.getcode.util.permissions.PermissionResult
+import com.getcode.util.permissions.getPermissionLauncher
+import com.getcode.util.permissions.rememberPermissionHandler
 
 @Composable
 fun BackupKey(
@@ -79,7 +79,7 @@ fun BackupKey(
     }
 
     val launcher = getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
-    val permissionChecker = rememberPermissionChecker()
+    val permissionChecker = rememberPermissionHandler()
     if (isExportSeedRequested && isStoragePermissionGranted) {
         viewModel.onSubmit()
         isExportSeedRequested = false

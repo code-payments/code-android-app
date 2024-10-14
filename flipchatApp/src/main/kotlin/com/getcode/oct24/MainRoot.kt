@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
@@ -28,6 +29,7 @@ import com.flipchat.features.login.LoginScreen
 import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.oct24.R
 import com.getcode.manager.SessionManager
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -85,14 +87,11 @@ internal data object MainRoot : Screen {
                 return@LaunchedEffect
             }
             if (sessionState.isAuthenticated == true) {
-                navigator.replace(AppHomeScreen)
+                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
             } else {
-                navigator.replace(LoginScreen())
+                navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
             }
         }
     }
 }
-
-typealias AppHomeScreen = TabbedHomeScreen
-
 

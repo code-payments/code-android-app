@@ -8,6 +8,6 @@ class AccountManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     suspend fun getToken(): String? {
-        return AccountUtils.getToken(context)
+        return AccountUtils.getToken(context)?.token
     }
 }

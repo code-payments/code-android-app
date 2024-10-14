@@ -1,7 +1,11 @@
-package com.getcode.view.login
+package com.getcode.util.permissions
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -9,12 +13,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import com.getcode.R
+import androidx.core.content.ContextCompat
+import com.getcode.libs.permissions.R
 import com.getcode.manager.TopBarManager
-import com.getcode.ui.components.PermissionResult
-import com.getcode.ui.components.getPermissionLauncher
-import com.getcode.ui.components.rememberPermissionChecker
-import com.getcode.util.launchAppSettings
 
 @Composable
 fun notificationPermissionCheck(isShowError: Boolean = true, onResult: (Boolean) -> Unit): (shouldRequest: Boolean) -> Unit {
@@ -32,7 +33,7 @@ private fun notificationPermissionCheckApi33(
     onResult: (Boolean) -> Unit
 ): (shouldRequest: Boolean) -> Unit {
     val context = LocalContext.current
-    val permissionChecker = rememberPermissionChecker()
+    val permissionChecker = rememberPermissionHandler()
     var permissionRequested by remember { mutableStateOf(false) }
     val onPermissionError = {
         TopBarManager.showMessage(
@@ -107,4 +108,14 @@ private fun notificationPermissionCheckApiLegacy(
     }
 
     return permissionCheck
+}
+
+internal fun Context.appSettings() = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+    data = Uri.fromParts("package", packageName, null)
+    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+}
+
+internal fun Context.launchAppSettings() {
+    val intent = appSettings()
+    ContextCompat.startActivity(this, intent, null)
 }

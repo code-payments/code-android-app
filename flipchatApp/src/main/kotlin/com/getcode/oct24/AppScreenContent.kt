@@ -7,15 +7,30 @@ import com.flipchat.features.balance.BalanceSheetViewModel
 import com.flipchat.features.chat.conversation.ConversationScreen
 import com.flipchat.features.chat.list.ChatListScreen
 import com.flipchat.features.chat.lookup.ChatByUsernameScreen
+import com.flipchat.features.home.TabbedHomeScreen
+import com.flipchat.features.login.LoginScreen
 import com.flipchat.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.oct24.features.login.accesskey.SeedInputScreen
 
 @Composable
 fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
+        register<NavScreenProvider.Login.Home> {
+            LoginScreen(it.seed)
+        }
+
+        register<NavScreenProvider.Login.SeedInput> {
+            SeedInputScreen
+        }
+
         register<NavScreenProvider.Balance> {
             BalanceScreen
+        }
+
+        register<NavScreenProvider.AppHomeScreen> {
+            TabbedHomeScreen
         }
 
         register<NavScreenProvider.Chat.List> {

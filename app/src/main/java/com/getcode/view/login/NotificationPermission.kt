@@ -30,7 +30,10 @@ fun NotificationPermission(navigator: CodeNavigator = LocalCodeNavigator.current
             navigator.replaceAll(AppHomeScreen())
         }
     }
-    val notificationPermissionCheck = notificationPermissionCheck(onResult = { onNotificationResult(it) })
+    val notificationPermissionCheck =
+        com.getcode.util.permissions.notificationPermissionCheck(onResult = {
+            onNotificationResult(it)
+        })
 
     SideEffect {
         notificationPermissionCheck(false)

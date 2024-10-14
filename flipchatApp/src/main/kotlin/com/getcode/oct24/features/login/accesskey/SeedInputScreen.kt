@@ -1,16 +1,32 @@
-package com.getcode.view.login
+package com.getcode.oct24.features.login.accesskey
 
-import android.annotation.SuppressLint
+import android.os.Parcelable
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -18,33 +34,63 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
-import com.getcode.R
-import com.getcode.theme.*
-import androidx.hilt.navigation.compose.hiltViewModel
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
+import com.flipchat.features.home.tabs.ChatTab.options
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.LoginArgs
+import com.getcode.navigation.screens.NamedScreen
+import com.getcode.oct24.R
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.inputColors
+import com.getcode.theme.topBarHeight
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.utils.unboundedClickable
+import com.getcode.util.permissions.notificationPermissionCheck
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
 
-@SuppressLint("InlinedApi")
-@Preview
+@Parcelize
+data object SeedInputScreen: Screen, NamedScreen, Parcelable {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(R.string.title_enterAccessKeyWords)
+
+    @Composable
+    override fun Content() {
+        val viewModel: SeedInputViewModel = getViewModel()
+        val navigator = LocalCodeNavigator.current
+        Column {
+            AppBarWithTitle(
+                backButton = true,
+                onBackIconClicked = { navigator.pop() },
+                title = options.title,
+            )
+            SeedInput(viewModel)
+        }
+    }
+}
+
 @Composable
-fun SeedInput(
-    viewModel: SeedInputViewModel = hiltViewModel(),
-    arguments: LoginArgs = LoginArgs(),
-) {
+private fun SeedInput(viewModel: SeedInputViewModel) {
     val navigator: CodeNavigator = LocalCodeNavigator.current
     val dataState by viewModel.uiFlow.collectAsState()
     val focusManager = LocalFocusManager.current
     val focusRequester = FocusRequester()
 
-    val notificationPermissionCheck =
-        com.getcode.util.permissions.notificationPermissionCheck(isShowError = false) { }
+    val notificationPermissionCheck = notificationPermissionCheck(isShowError = false) {  }
 
     Column(
         modifier = Modifier

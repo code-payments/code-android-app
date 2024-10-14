@@ -2,9 +2,12 @@ package com.flipchat.features.login
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -18,7 +21,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
 
     @Composable
     override fun Content() {
-//        val navigator = LocalCodeNavigator.current
+        val navigator = LocalCodeNavigator.current
 //        val analytics = LocalAnalytics.current
 //        val session = LocalSession.current
 //
@@ -36,7 +39,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
 //                    navigator.push(LoginPhoneVerificationScreen(isNewAccount = true))
                 },
                 login = {
-//                    navigator.push(AccessKeyLoginScreen())
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput))
                 }
             )
 //        }

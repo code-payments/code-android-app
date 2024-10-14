@@ -17,6 +17,7 @@ include(
         ":libs:network:exchange",
         ':libs:network:connectivity',
         ":libs:payments",
+        ":libs:permissions",
         ":libs:requests",
         ":libs:vibrator",
 

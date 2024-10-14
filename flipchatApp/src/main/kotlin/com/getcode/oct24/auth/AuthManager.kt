@@ -27,6 +27,7 @@ import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
 import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.BuildConfig
+import com.getcode.oct24.util.TokenResult
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.installationId
@@ -80,7 +81,7 @@ class AuthManager @Inject constructor(
     @SuppressLint("CheckResult")
     fun init(onInitialized: () -> Unit = { }) {
         launch {
-            val token = AccountUtils.getToken(context)
+            val token = AccountUtils.getToken(context)?.token
             softLogin(token.orEmpty())
                 .subscribeOn(Schedulers.computation())
                 .doOnComplete { LibsodiumInitializer.initializeWithCallback(onInitialized) }
@@ -115,7 +116,8 @@ class AuthManager @Inject constructor(
 
             it.onSuccess(originalSessionState)
         }.flatMapCompletable {
-            fetchAdditionalAccountData(context, entropyB64,
+            fetchAdditionalAccountData(
+                context, entropyB64,
                 isSoftLogin = false,
                 rollbackOnError = rollbackOnError,
                 originalSessionState = it
@@ -188,6 +190,7 @@ class AuthManager @Inject constructor(
                 }
             }
             .doOnError {
+                it.printStackTrace()
                 val isTimelockUnlockedException =
                     it is AuthManagerException.TimelockUnlockedException
                 if (!isSoftLogin) {
@@ -216,14 +219,23 @@ class AuthManager @Inject constructor(
 
     fun logout(context: Context, onComplete: () -> Unit = {}) {
         launch {
-            AccountUtils.removeAccounts(context)
-                .doOnSuccess { res: Boolean ->
-                    if (res) {
-                        clearToken()
-                        onComplete()
-                    }
+            val token = AccountUtils.getToken(context)
+            when (token) {
+                is TokenResult.Account -> {
+                    AccountUtils.removeAccounts(context)
+                        .doOnSuccess { res: Boolean ->
+                            if (res) {
+                                clearToken()
+                                onComplete()
+                            }
+                        }
+                        .subscribe()
                 }
-                .subscribe()
+                is TokenResult.Code -> {
+                    onComplete()
+                }
+                null -> Unit
+            }
         }
     }
 

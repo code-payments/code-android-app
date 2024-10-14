@@ -1,4 +1,4 @@
-package com.getcode.ui.components
+package com.getcode.util.permissions
 
 import android.app.Activity
 import android.content.Context
@@ -11,7 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.getcode.ui.utils.getActivity
+import com.getcode.util.getActivity
 
 enum class PermissionResult {
     Granted, Denied, ShouldShowRationale
@@ -49,14 +49,14 @@ fun getPermissionLauncher(
 }
 
 @Composable
-fun rememberPermissionChecker(): PermissionChecker {
+fun rememberPermissionHandler(): PermissionHandler{
     val context = LocalContext.current
     return remember(context) {
-        PermissionChecker(context)
+        PermissionHandler(context)
     }
 }
 
-class PermissionChecker(private val context: Context) {
+class PermissionHandler(private val context: Context) {
     fun request(
         permission: String,
         shouldRequest: Boolean = true,

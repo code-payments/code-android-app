@@ -1,17 +1,17 @@
 package com.getcode.oct24
 
+import android.app.Activity
 import androidx.lifecycle.ViewModel
-import com.getcode.manager.SessionManager
+import com.getcode.oct24.auth.AuthManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val sessionManager: SessionManager,
+    private val authManager: AuthManager,
 ) : ViewModel() {
 
-    fun logout(onComplete: () -> Unit) {
-        sessionManager.clear()
-        onComplete()
+    fun logout(activity: Activity, onComplete: () -> Unit) {
+        authManager.logout(activity, onComplete = onComplete)
     }
 }

@@ -125,6 +125,7 @@ dependencies {
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
     implementation(project(":libs:payments"))
+    implementation(project(":libs:permissions"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
@@ -186,9 +187,6 @@ dependencies {
 
     implementation(Libs.androidx_browser)
     implementation(Libs.androidx_constraint_layout_compose)
-
-    implementation(Libs.rxjava)
-    implementation(Libs.rxandroid)
 
     implementation(Libs.slf4j)
     implementation(Libs.grpc_android)

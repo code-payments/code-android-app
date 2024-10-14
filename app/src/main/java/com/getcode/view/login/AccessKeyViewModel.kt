@@ -12,7 +12,6 @@ import com.getcode.manager.MnemonicManager
 import com.getcode.media.MediaScanner
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
-import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.network.repository.getPublicKeyBase58

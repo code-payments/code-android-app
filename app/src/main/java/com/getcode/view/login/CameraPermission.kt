@@ -20,6 +20,7 @@ import com.getcode.navigation.screens.PermissionRequestScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.util.permissions.cameraPermissionCheck
 
 @Composable
 fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current, fromOnboarding: Boolean = false) {
@@ -40,7 +41,8 @@ fun CameraPermission(navigator: CodeNavigator = LocalCodeNavigator.current, from
         }
     }
 
-    val notificationPermissionCheck = notificationPermissionCheck { onNotificationResult(it) }
+    val notificationPermissionCheck =
+        com.getcode.util.permissions.notificationPermissionCheck { onNotificationResult(it) }
 
     val onCameraResult: (Boolean) -> Unit = { isGranted ->
         if (isGranted) {

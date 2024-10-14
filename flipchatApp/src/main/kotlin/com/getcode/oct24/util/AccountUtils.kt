@@ -119,7 +119,7 @@ object AccountUtils {
         )
     }
 
-    suspend fun getToken(context: Context): String? {
+    suspend fun getToken(context: Context): TokenResult? {
         val accountManager = AccountManager.get(context)
         val account = accountManager.accounts.firstOrNull()
         if (account != null) {
@@ -127,7 +127,7 @@ object AccountUtils {
                 .getOrNull()?.takeIf { it.isNotEmpty() }
 
             if (token != null) {
-                return token
+                return TokenResult.Account(token)
             }
         }
 
@@ -144,13 +144,13 @@ object AccountUtils {
                     val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
                     if (token != null) {
                         println("Code account on device found. Sharing with FC")
-                        return token
+                        return TokenResult.Code(token)
                     }
                 }
             }
         }
 
-        return retryable(
+        val token = retryable(
             call = { getAccountNoActivity(context) },
             onRetry = { currentAttempt ->
                 trace(
@@ -163,6 +163,14 @@ object AccountUtils {
                 )
             }
 
-        )?.first
+        )?.first ?: return null
+
+        return TokenResult.Account(token)
     }
+}
+
+sealed interface TokenResult {
+    val token: String
+    data class Account(override val token: String): TokenResult
+    data class Code(override val token: String): TokenResult
 }
