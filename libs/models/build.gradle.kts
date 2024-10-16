@@ -36,7 +36,7 @@ android {
 }
 
 dependencies {
-    api(project(":service:models"))
+    api(project(":definitions:code:models"))
     implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:keys"))

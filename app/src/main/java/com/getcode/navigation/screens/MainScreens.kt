@@ -279,7 +279,6 @@ data class NotificationCollectionScreen(val collectionId: ID) : MainGraph, Modal
     override fun Content() {
         val vm = getViewModel<NotificationCollectionViewModel>()
         val state by vm.stateFlow.collectAsState()
-        val navigator = LocalCodeNavigator.current
 
         ModalContainer(
             titleString = { state.title.localized },
@@ -287,16 +286,6 @@ data class NotificationCollectionScreen(val collectionId: ID) : MainGraph, Modal
         ) {
             val messages = vm.chatMessages.collectAsLazyPagingItems()
             ChatScreen(state = state, messages = messages, dispatch = vm::dispatchEvent)
-        }
-
-        LaunchedEffect(vm) {
-            vm.eventFlow
-                .filterIsInstance<NotificationCollectionViewModel.Event.OpenMessageChat>()
-                .map { it.reference }
-                .filterIsInstance<Reference.IntentId>()
-                .map { it.id }
-                .onEach { navigator.push(ConversationScreen(intentId = it)) }
-                .launchIn(this)
         }
 
         LaunchedEffect(collectionId) {

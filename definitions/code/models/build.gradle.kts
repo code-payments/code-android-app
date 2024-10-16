@@ -12,7 +12,7 @@ version = "0.0.1"
 group = "com.codeinc.gen"
 
 dependencies {
-    protobuf(project(":service:protos"))
+    protobuf(project(":definitions:code:protos"))
 
     implementation(Libs.grpc_protobuf_lite)
     implementation(Libs.grpc_stub)

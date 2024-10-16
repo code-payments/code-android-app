@@ -113,7 +113,7 @@ android {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
-    implementation(project(":libs:api"))
+    implementation(project(":services:code"))
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale"))
     implementation(project(":libs:vibrator"))

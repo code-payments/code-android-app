@@ -8,7 +8,6 @@ import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
 import com.getcode.model.TipCardOnHomeScreenFeature
 import com.getcode.model.ConversationCashFeature
-import com.getcode.model.ConversationsFeature
 import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.GalleryFeature
 import com.getcode.model.InvertedDragZoomFeature
@@ -32,7 +31,6 @@ class FeatureRepository @Inject constructor(
     val tipCardOnHomeScreen =
         betaFlags.observe().map { TipCardOnHomeScreenFeature(it.tipCardOnHomeScreen) }
     val tipCardFlippable = betaFlags.observe().map { FlippableTipCardFeature(it.canFlipTipCard) }
-    val conversations = betaFlags.observe().map { ConversationsFeature(it.conversationsEnabled) }
     val conversationsCash =
         betaFlags.observe().map { ConversationCashFeature(it.conversationCashEnabled) }
 

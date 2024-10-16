@@ -5,8 +5,11 @@ include(
         ":app",
         ":flipchatApp",
 
+        // protobuf model and service implementations for Code
+        ":definitions:code:models",
+        ":definitions:code:protos",
+
         // Internal libs
-        ":libs:api",
         ":libs:crypto:kin",
         ":libs:crypto:solana",
         ":libs:currency",
@@ -30,15 +33,14 @@ include(
         ":libs:requests",
         ":libs:vibrator",
 
+        // Services definition for app and lib access
+        ":services:code",
+
         // common UI
         ":ui:components",
         ":ui:navigation",
         ":ui:resources",
         ":ui:theme",
-
-        // protobuf model and service implementations
-        ":service:models",
-        ":service:protos",
 
         // 3rd party imported dependencies
         ":vendor:tipkit:tipkit",

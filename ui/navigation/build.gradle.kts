@@ -39,7 +39,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":libs:api"))
+    implementation(project(":libs:models"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
 

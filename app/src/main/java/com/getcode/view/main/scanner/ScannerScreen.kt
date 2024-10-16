@@ -54,7 +54,6 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccountModal
 import com.getcode.navigation.screens.BalanceModal
-import com.getcode.navigation.screens.ChatListModal
 import com.getcode.navigation.screens.ConnectAccount
 import com.getcode.navigation.screens.EnterTipModal
 import com.getcode.navigation.screens.GetKinModal
@@ -90,7 +89,6 @@ enum class UiElement {
     BALANCE,
     SHARE_DOWNLOAD,
     TIP_CARD,
-    CHAT,
     GALLERY
 }
 
@@ -231,7 +229,6 @@ private fun ScannerContent(
                     }
                 }
 
-                UiElement.CHAT -> navigator.show(ChatListModal)
                 UiElement.GALLERY -> {
                     pickPhoto.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)

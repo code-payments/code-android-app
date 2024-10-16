@@ -79,12 +79,6 @@ fun BetaFlagsScreen(
             state.galleryEnabled,
         ),
         BetaFeature(
-            PrefsBool.CONVERSATIONS_ENABLED,
-            R.string.beta_conversations,
-            stringResource(id = R.string.beta_conversations_description),
-            state.conversationsEnabled,
-        ),
-        BetaFeature(
             PrefsBool.VIBRATE_ON_SCAN,
             R.string.beta_vibrate_on_scan,
             stringResource(R.string.beta_vibrate_on_scan_description),
@@ -184,7 +178,6 @@ fun BetaFlagsScreen(
 private fun BetaOptions.canMutate(flag: PrefsBool): Boolean {
     return when (flag) {
         is Immutable -> false
-        PrefsBool.CONVERSATION_CASH_ENABLED -> conversationsEnabled
         else -> true
     }
 }

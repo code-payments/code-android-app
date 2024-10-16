@@ -15,7 +15,6 @@ data class BetaOptions(
     val buyModuleEnabled: Boolean,
     val chatUnsubEnabled: Boolean,
     val tipsEnabled: Boolean,
-    val conversationsEnabled: Boolean,
     val conversationCashEnabled: Boolean,
     val balanceCurrencySelectionEnabled: Boolean,
     val kadoWebViewEnabled: Boolean,
@@ -38,7 +37,6 @@ data class BetaOptions(
             buyModuleEnabled = true,
             chatUnsubEnabled = false,
             tipsEnabled = true,
-            conversationsEnabled = false,
             conversationCashEnabled = false,
             balanceCurrencySelectionEnabled = true,
             kadoWebViewEnabled = false,
@@ -78,7 +76,6 @@ class BetaFlagsRepository @Inject constructor(
             observeBetaFlag(PrefsBool.BUY_MODULE_ENABLED, default = defaults.buyModuleEnabled),
             observeBetaFlag(PrefsBool.CHAT_UNSUB_ENABLED, default = defaults.chatUnsubEnabled),
             observeBetaFlag(PrefsBool.TIPS_ENABLED, default = defaults.tipsEnabled),
-            observeBetaFlag(PrefsBool.CONVERSATIONS_ENABLED, default = defaults.conversationsEnabled),
             observeBetaFlag(PrefsBool.CONVERSATION_CASH_ENABLED, default = defaults.conversationCashEnabled),
             observeBetaFlag(PrefsBool.BALANCE_CURRENCY_SELECTION_ENABLED, defaults.balanceCurrencySelectionEnabled),
             observeBetaFlag(PrefsBool.DISPLAY_ERRORS, default = defaults.displayErrors),
@@ -99,17 +96,16 @@ class BetaFlagsRepository @Inject constructor(
                 buyModuleEnabled = it[5],
                 chatUnsubEnabled = it[6],
                 tipsEnabled = it[7],
-                conversationsEnabled = it[8],
-                conversationCashEnabled = it[9],
-                balanceCurrencySelectionEnabled = it[10],
-                displayErrors = it[11],
-                kadoWebViewEnabled = it[12],
-                shareTweetToTip = it[13],
-                tipCardOnHomeScreen = it[14],
-                cameraGesturesEnabled = it[15],
-                invertedDragZoom = it[16],
-                canFlipTipCard = it[17],
-                galleryEnabled = it[18],
+                conversationCashEnabled = it[8],
+                balanceCurrencySelectionEnabled = it[9],
+                displayErrors = it[10],
+                kadoWebViewEnabled = it[11],
+                shareTweetToTip = it[12],
+                tipCardOnHomeScreen = it[13],
+                cameraGesturesEnabled = it[14],
+                invertedDragZoom = it[15],
+                canFlipTipCard = it[16],
+                galleryEnabled = it[17],
             )
         }
     }
@@ -136,7 +132,6 @@ class BetaFlagsRepository @Inject constructor(
                 PrefsBool.CAMERA_GESTURES_ENABLED -> cameraGesturesEnabled
                 PrefsBool.CAMERA_DRAG_INVERTED -> invertedDragZoom
                 PrefsBool.CHAT_UNSUB_ENABLED -> chatUnsubEnabled
-                PrefsBool.CONVERSATIONS_ENABLED -> conversationsEnabled
                 PrefsBool.CONVERSATION_CASH_ENABLED -> conversationCashEnabled
                 PrefsBool.DISPLAY_ERRORS -> displayErrors
                 PrefsBool.GALLERY_ENABLED -> galleryEnabled

@@ -113,27 +113,22 @@ android {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
-    implementation(project(":libs:api"))
-    implementation(project(":libs:datetime"))
+    // libs (not included with services)
     implementation(project(":libs:locale"))
     implementation(project(":libs:vibrator"))
-    implementation(project(":libs:encryption:ed25519"))
-    implementation(project(":libs:encryption:mnemonic"))
-    implementation(project(":libs:encryption:keys"))
-    implementation(project(":libs:encryption:utils"))
-    implementation(project(":libs:crypto:kin"))
-    implementation(project(":libs:currency"))
-    implementation(project(":libs:logging"))
-    implementation(project(":libs:messaging"))
-    implementation(project(":libs:network:exchange"))
-    implementation(project(":libs:network:connectivity"))
-    implementation(project(":libs:payments"))
     implementation(project(":libs:permissions"))
     implementation(project(":libs:requests"))
+
+    // code services
+    implementation(project(":services:code"))
+
+    // ui components
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
     implementation(project(":ui:resources"))
     implementation(project(":ui:theme"))
+
+    // tipkit
     implementation(project(":vendor:tipkit:tipkit-m2"))
 
     coreLibraryDesugaring(Libs.android_desugaring)

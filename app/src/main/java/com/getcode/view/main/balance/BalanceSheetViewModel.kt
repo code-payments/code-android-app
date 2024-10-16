@@ -121,12 +121,6 @@ class BalanceSheetViewModel @Inject constructor(
             }.onEach {
                 dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
             }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnOpened>()
-            .filter { features.isEnabled(PrefsBool.CONVERSATIONS_ENABLED) }
-            .onEach { history.fetch(true) }
-            .launchIn(viewModelScope)
     }
 
     companion object {

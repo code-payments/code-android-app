@@ -467,10 +467,6 @@ class SessionController @Inject constructor(
             UiElement.GET_KIN
         }
 
-        if (betaOptions.conversationsEnabled) {
-            actions += UiElement.CHAT
-        }
-
         actions += UiElement.BALANCE
 
         return actions

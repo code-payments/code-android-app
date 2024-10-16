@@ -22,11 +22,6 @@ data class TipCardOnHomeScreenFeature(
     override val available: Boolean = true, // always available
 ): Feature
 
-data class ConversationsFeature(
-    override val enabled: Boolean = BetaOptions.Defaults.conversationsEnabled,
-    override val available: Boolean = true, // always available
-): Feature
-
 data class ConversationCashFeature(
     override val enabled: Boolean = BetaOptions.Defaults.conversationCashEnabled,
     override val available: Boolean = true, // always available
