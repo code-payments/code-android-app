@@ -123,7 +123,6 @@ class BalanceSheetViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.OnOpened>()
-            .filter { features.isEnabled(PrefsBool.CONVERSATIONS_ENABLED) }
             .onEach { history.fetch(true) }
             .launchIn(viewModelScope)
     }

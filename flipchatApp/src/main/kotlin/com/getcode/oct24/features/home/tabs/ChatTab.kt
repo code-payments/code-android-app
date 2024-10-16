@@ -26,7 +26,7 @@ internal object ChatTab : Tab {
         @Composable get() = TabOptions(
             index = 1u,
             title = stringResource(R.string.title_chats),
-            icon = painterResource(R.drawable.ic_chat)
+            icon = painterResource(R.drawable.ic_fc_chats)
         )
 
     @Composable
