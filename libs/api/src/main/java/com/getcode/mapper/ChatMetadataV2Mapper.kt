@@ -4,6 +4,7 @@ import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Title
+import com.getcode.model.protomapping.invoke
 import javax.inject.Inject
 
 class ChatMetadataV2Mapper @Inject constructor(

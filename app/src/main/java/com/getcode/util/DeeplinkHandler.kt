@@ -12,10 +12,10 @@ import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.network.repository.BetaFlagsRepository
-import com.getcode.network.repository.urlDecode
 import com.getcode.utils.TraceType
 import com.getcode.utils.base64EncodedData
 import com.getcode.utils.trace
+import com.getcode.utils.urlDecode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import timber.log.Timber

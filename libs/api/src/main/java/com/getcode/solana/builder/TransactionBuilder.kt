@@ -2,12 +2,13 @@ package com.getcode.solana.builder
 
 import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
+import com.getcode.model.extensions.newInstance
 import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.solana.Instruction
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType
-import com.getcode.solana.description
+import com.getcode.solana.keys.description
 import com.getcode.solana.instructions.programs.*
 import com.getcode.solana.keys.Key32.Companion.mock
 import com.getcode.solana.keys.Key32.Companion.subsidizer

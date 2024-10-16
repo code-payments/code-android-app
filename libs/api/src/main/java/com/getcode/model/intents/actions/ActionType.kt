@@ -2,10 +2,8 @@ package com.getcode.model.intents.actions
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.solana.keys.Signature
 import com.getcode.model.intents.ServerParameter
 import com.getcode.solana.SolanaTransaction
-import timber.log.Timber
 
 abstract class ActionType {
     abstract var id: Int
@@ -16,7 +14,7 @@ abstract class ActionType {
 
     abstract fun transactions(): List<SolanaTransaction>
 
-    fun signatures(): List<Signature> {
+    fun signatures(): List<com.getcode.solana.keys.Signature> {
         return signer?.let { s ->
             transactions().map { transaction -> transaction.sign(s).first() }
         }.orEmpty()

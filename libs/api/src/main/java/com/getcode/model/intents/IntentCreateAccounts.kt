@@ -5,7 +5,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionType
 import com.getcode.model.intents.actions.ActionWithdraw
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.keys.PublicKey

@@ -2,11 +2,10 @@ package com.getcode.network.client
 
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.TwitterUser
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.Organizer
 import java.util.Locale
 
-suspend fun Client.loginToThirdParty(rendezvous: PublicKey, relationship: Ed25519.KeyPair): Result<Unit> {
+suspend fun Client.loginToThirdParty(rendezvous: com.getcode.solana.keys.PublicKey, relationship: Ed25519.KeyPair): Result<Unit> {
     return identityRepository.loginToThirdParty(rendezvous, relationship)
 }
 
@@ -26,7 +25,7 @@ suspend fun Client.fetchTwitterUser(
 
 suspend fun Client.fetchTwitterUser(
     organizer: Organizer,
-    address: PublicKey
+    address: com.getcode.solana.keys.PublicKey
 ): Result<TwitterUser> {
     return identityRepository.fetchTwitterUserByAddress(organizer.ownerKeyPair, address)
 }

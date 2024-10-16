@@ -7,14 +7,13 @@ import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.sign
 
 class ActionOpenAccount(
     override var id: Int,
     override var serverParameter: ServerParameter? = null,
     override val signer: Ed25519.KeyPair?,
-    val owner: PublicKey,
+    val owner: com.getcode.solana.keys.PublicKey,
     val type: AccountType,
     val accountCluster: AccountCluster
 ) : ActionType() {
@@ -48,7 +47,7 @@ class ActionOpenAccount(
 
     companion object {
         fun newInstance(
-            owner: PublicKey,
+            owner: com.getcode.solana.keys.PublicKey,
             type: AccountType,
             accountCluster: AccountCluster
         ): ActionOpenAccount {

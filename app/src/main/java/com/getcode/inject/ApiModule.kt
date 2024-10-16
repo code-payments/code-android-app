@@ -189,7 +189,7 @@ object ApiModule {
     @Provides
     fun providesExchange(
         currencyService: CurrencyService,
-        locale: com.getcode.util.locale.LocaleHelper,
+        locale: LocaleHelper,
         currencyUtils: com.getcode.utils.CurrencyUtils,
         prefRepository: PrefRepository,
     ): Exchange = CodeExchange(

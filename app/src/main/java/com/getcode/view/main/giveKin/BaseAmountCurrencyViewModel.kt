@@ -11,13 +11,13 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.repository.replaceParam
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.AmountInputViewModel
 import com.getcode.utils.Kin
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
+import com.getcode.utils.replaceParam
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine

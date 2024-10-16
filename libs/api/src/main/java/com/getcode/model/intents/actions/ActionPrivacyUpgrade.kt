@@ -2,13 +2,11 @@ package com.getcode.model.intents.actions
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
+import com.getcode.model.extensions.newInstance
 import com.getcode.model.intents.ServerParameter
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
-import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.SplitterCommitmentAccounts
 import com.getcode.solana.keys.verifyContained
 import com.getcode.solana.organizer.AccountCluster
 import timber.log.Timber
@@ -20,11 +18,11 @@ class ActionPrivacyUpgrade(
 
     var source: AccountCluster,
     var originalActionID: Int,
-    var originalCommitmentStateAccount: PublicKey,
+    var originalCommitmentStateAccount: com.getcode.solana.keys.PublicKey,
     var originalAmount: Kin,
-    var originalNonce: PublicKey,
-    var originalRecentBlockhash: Hash,
-    var treasury: PublicKey
+    var originalNonce: com.getcode.solana.keys.PublicKey,
+    var originalRecentBlockhash: com.getcode.solana.keys.Hash,
+    var treasury: com.getcode.solana.keys.PublicKey
 ) : ActionType() {
     val configCountRequirement: Int = 1
 
@@ -60,7 +58,7 @@ class ActionPrivacyUpgrade(
         // We'll user the original nonce and recentBlockhash that
         // the original transaction used.
 
-        val splitterAccounts = SplitterCommitmentAccounts.newInstance(
+        val splitterAccounts = com.getcode.solana.keys.SplitterCommitmentAccounts.newInstance(
             treasury = treasury,
             destination = privacyUpgrade.newCommitmentDestination,
             recentRoot = privacyUpgrade.merkleRoot,
@@ -99,11 +97,11 @@ class ActionPrivacyUpgrade(
         fun newInstance(
             source: AccountCluster,
             originalActionID: Int,
-            originalCommitmentStateAccount: PublicKey,
+            originalCommitmentStateAccount: com.getcode.solana.keys.PublicKey,
             originalAmount: Kin,
-            originalNonce: PublicKey,
-            originalRecentBlockhash: Hash,
-            treasury: PublicKey
+            originalNonce: com.getcode.solana.keys.PublicKey,
+            originalRecentBlockhash: com.getcode.solana.keys.Hash,
+            treasury: com.getcode.solana.keys.PublicKey
         ): ActionPrivacyUpgrade {
             return ActionPrivacyUpgrade(
                 id = 0,

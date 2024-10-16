@@ -3,11 +3,11 @@ package com.getcode.model
 import com.getcode.codeScanner.CodeScanner
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.network.repository.encodeBase64
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
 import com.getcode.utils.deriveRendezvousKey
+import com.getcode.utils.encodeBase64
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.longToByteArray
 import java.nio.ByteBuffer
@@ -147,7 +147,7 @@ data class CodePayload(
                 Kind.Login -> {
                     // grab currency
                     val currencyIndex = list[1].byteToUnsignedInt()
-                    val currency = com.getcode.model.CurrencyCode.entries.toList()[currencyIndex]
+                    val currency = CurrencyCode.entries.toList()[currencyIndex]
 
                     // grab the fiat value
                     val amountData = ByteArray(7)

@@ -12,14 +12,15 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Domain
 import com.getcode.model.Fiat
-import com.getcode.solana.keys.Signature
 import com.getcode.model.PaymentRequest
 import com.getcode.model.StreamMessage
-import com.getcode.solana.keys.PublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.MessagingApi
 import com.getcode.network.core.INFINITE_STREAM_TIMEOUT
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.getPublicKeyBase58
+import com.getcode.utils.hexEncodedString
 import com.google.protobuf.Timestamp
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -72,7 +73,9 @@ class MessagingRepository @Inject constructor(
                     val account =
                         message.requestToGrabBill.requestorAccount.value.toByteArray().toPublicKey()
                     val signature =
-                        Signature(message.sendMessageRequestSignature.value.toByteArray().toList())
+                        com.getcode.solana.keys.Signature(
+                            message.sendMessageRequestSignature.value.toByteArray().toList()
+                        )
                     PaymentRequest(account, signature)
                 }.first()
             }
@@ -108,9 +111,9 @@ class MessagingRepository @Inject constructor(
     }
 
     fun verifyRequestToGrabBill(
-        destination: PublicKey,
+        destination: com.getcode.solana.keys.PublicKey,
         rendezvousKey: KeyPair,
-        signature: Signature
+        signature: com.getcode.solana.keys.Signature
     ): Boolean {
         val messageData = sendRequestToGrabBill(destination = destination).build().toByteArray()
         return rendezvousKey.verify(signature.byteArray, messageData)
@@ -142,7 +145,7 @@ class MessagingRepository @Inject constructor(
     }
 
     suspend fun sendRequestToReceiveBill(
-        destination: PublicKey,
+        destination: com.getcode.solana.keys.PublicKey,
         fiat: Fiat,
         rendezvous: KeyPair
     ): Result<MessagingService.SendMessageResponse> {
@@ -191,7 +194,7 @@ class MessagingRepository @Inject constructor(
 
     suspend fun rejectPayment(rendezvous: KeyPair): Result<MessagingService.SendMessageResponse> {
         val rejection = MessagingService.ClientRejectedPayment.newBuilder()
-            .setIntentId(PublicKey.fromBase58(rendezvous.getPublicKeyBase58()).toIntentId())
+            .setIntentId(com.getcode.solana.keys.PublicKey.fromBase58(rendezvous.getPublicKeyBase58()).toIntentId())
             .build()
 
         val message = MessagingService.Message.newBuilder()
@@ -213,7 +216,7 @@ class MessagingRepository @Inject constructor(
         return sendRendezvousMessage(message, rendezvous)
     }
 
-    private fun sendRequestToGrabBill(destination: PublicKey): MessagingService.Message.Builder {
+    private fun sendRequestToGrabBill(destination: com.getcode.solana.keys.PublicKey): MessagingService.Message.Builder {
         return MessagingService.Message
             .newBuilder()
             .setRequestToGrabBill(

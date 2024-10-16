@@ -51,7 +51,6 @@ import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.oct24.R
 import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.extensions.formatted
-import com.getcode.model.ID
 import com.getcode.model.TwitterUser
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.NamedScreen
@@ -79,8 +78,8 @@ import kotlinx.parcelize.RawValue
 @Parcelize
 data class ConversationScreen(
     val user: @RawValue TwitterUser? = null,
-    val chatId: ID? = null,
-    val intentId: ID? = null
+    val chatId: com.getcode.model.ID? = null,
+    val intentId: com.getcode.model.ID? = null
 ) : Screen, NamedScreen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey

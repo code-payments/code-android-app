@@ -8,7 +8,6 @@ import com.getcode.extensions.formatted
 import com.getcode.libs.requests.R
 import com.getcode.model.CodePayload
 import com.getcode.model.SocialUser
-import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
@@ -206,7 +205,7 @@ data class PaymentConfirmation(
 data class LoginConfirmation(
     override val state: ConfirmationState,
     val payload: CodePayload,
-    val domain: Domain,
+    val domain: com.getcode.model.Domain,
     override val showScrim: Boolean = false,
 ): Confirmation(showScrim, state)
 

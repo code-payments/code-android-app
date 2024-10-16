@@ -6,8 +6,8 @@ import com.getcode.model.Rate
 import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Pointer
-import com.getcode.network.repository.decodeBase64
-import com.getcode.network.repository.encodeBase64
+import com.getcode.utils.decodeBase64
+import com.getcode.utils.encodeBase64
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

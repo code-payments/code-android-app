@@ -10,11 +10,11 @@ import com.getcode.mapper.ConversationMapper
 import com.getcode.mapper.ConversationMessageMapper
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.ConversationEntity
 import com.getcode.model.chat.Identity
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.isConversation
@@ -23,8 +23,8 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
 import com.getcode.network.client.fetchMessagesFor
 import com.getcode.network.client.fetchV2Chats
-import com.getcode.network.repository.encodeBase64
 import com.getcode.utils.TraceType
+import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -208,10 +208,10 @@ class ChatHistoryController @Inject constructor(
         return chat.members
             .map { member ->
                 if (member.isSelf) return@map member
-                if (member.identity == null) return@map member
-                if (member.identity.imageUrl != null) return@map member
+                val identity = member.identity ?: return@map member
+                if (identity.imageUrl != null) return@map member
                 val metadata = runCatching {
-                    twitterUserController.fetchUser(member.identity.username)
+                    twitterUserController.fetchUser(identity.username)
                 }.getOrNull() ?: return@map member
 
                 member.copy(

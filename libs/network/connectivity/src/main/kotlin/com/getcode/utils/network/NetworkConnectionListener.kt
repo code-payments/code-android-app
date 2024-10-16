@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener> = staticCompositionLocalOf { com.getcode.utils.network.NetworkObserverStub() }
+val LocalNetworkObserver: ProvidableCompositionLocal<NetworkConnectivityListener> = staticCompositionLocalOf { NetworkObserverStub() }
 
 interface NetworkConnectivityListener {
     val state: StateFlow<NetworkState>

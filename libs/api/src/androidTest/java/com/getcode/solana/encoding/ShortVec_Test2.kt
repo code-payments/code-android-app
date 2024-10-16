@@ -1,7 +1,7 @@
 package com.getcode.solana.encoding
 
-import com.getcode.network.repository.toByteList
 import com.getcode.solana.ShortVec
+import com.getcode.utils.toByteList
 import junit.framework.Assert.assertEquals
 import org.junit.Test
 

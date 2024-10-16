@@ -1,23 +1,11 @@
 package com.getcode.mapper
 
 import com.codeinc.gen.chat.v2.ChatService
-import com.getcode.model.ID
-import com.getcode.model.MessageStatus
+import com.getcode.model.PointerStatus
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.PointerV2
 import com.getcode.model.uuid
-import com.getcode.utils.timestamp
-import java.util.UUID
 import javax.inject.Inject
-
-data class PointerStatus(
-    val messageId: UUID,
-    val memberId: ID,
-    val messageStatus: MessageStatus,
-) {
-
-    val timestamp: Long?
-        get() = messageId.timestamp
-}
 
 class PointerMapper @Inject constructor(): Mapper<PointerV2, PointerStatus?> {
     override fun map(from: PointerV2): PointerStatus? {

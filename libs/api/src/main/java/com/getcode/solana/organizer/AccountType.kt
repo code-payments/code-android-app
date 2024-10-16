@@ -1,7 +1,6 @@
 package com.getcode.solana.organizer
 
 import com.codeinc.gen.common.v1.Model
-import com.getcode.crypt.DerivePath
 import com.getcode.model.Domain
 
 sealed interface AccountType {
@@ -35,20 +34,20 @@ sealed interface AccountType {
         RemoteSend -> 12
     }
 
-    fun getDerivationPath(index: Int): DerivePath {
+    fun getDerivationPath(index: Int): com.getcode.crypt.DerivePath {
         return when (this) {
-            Primary -> DerivePath.primary
-            Incoming -> DerivePath.getBucketIncoming(index)
-            Outgoing -> DerivePath.getBucketOutgoing(index)
+            Primary -> com.getcode.crypt.DerivePath.primary
+            Incoming -> com.getcode.crypt.DerivePath.getBucketIncoming(index)
+            Outgoing -> com.getcode.crypt.DerivePath.getBucketOutgoing(index)
             is Bucket -> type.getDerivationPath()
             RemoteSend -> {
                 // Remote send accounts are standard Solana accounts
                 // and should use a standard derivation path that
                 // would be compatible with other 3rd party wallets
-                DerivePath.primary
+                com.getcode.crypt.DerivePath.primary
             }
-            is Relationship -> DerivePath.relationship(domain)
-            Swap -> DerivePath.swap
+            is Relationship -> com.getcode.crypt.DerivePath.relationship(domain)
+            Swap -> com.getcode.crypt.DerivePath.swap
         }
     }
 

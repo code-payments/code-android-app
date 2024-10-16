@@ -10,6 +10,7 @@ import android.os.HandlerThread
 import androidx.core.database.getStringOrNull
 import androidx.core.os.bundleOf
 import com.getcode.oct24.BuildConfig
+import com.getcode.oct24.R
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
@@ -134,7 +135,7 @@ object AccountUtils {
         // attempt to pull from Code App
         runCatching {
             context.contentResolver.query(
-                Uri.parse("content://com.getcode.accountprovider/accounts"),
+                Uri.parse("content://${context.getString(R.string.account_provider)}/accounts"),
                 null,
                 null,
                 null,
@@ -148,7 +149,7 @@ object AccountUtils {
                     }
                 }
             }
-        }
+        }.onFailure { it.printStackTrace() }
 
         val token = retryable(
             call = { getAccountNoActivity(context) },

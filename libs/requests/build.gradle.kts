@@ -47,6 +47,10 @@ dependencies {
     implementation(project(":libs:api"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:logging"))
+    implementation(project(":libs:encryption:base58"))
+    implementation(project(":libs:encryption:keys"))
+    implementation(project(":libs:encryption:mnemonic"))
+    implementation(project(":libs:encryption:utils"))
     implementation(project(":ui:resources"))
 
     //Jetpack compose

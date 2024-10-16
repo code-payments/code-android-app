@@ -3,7 +3,6 @@ package com.getcode.network.source
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.chat.NotificationCollectionEntity

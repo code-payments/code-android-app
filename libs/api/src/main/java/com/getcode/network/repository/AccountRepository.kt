@@ -6,6 +6,7 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.model.*
 import com.getcode.network.api.AccountApi
 import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.getPublicKeyBase58
 import io.reactivex.rxjava3.core.Single
 import timber.log.Timber
 import javax.inject.Inject

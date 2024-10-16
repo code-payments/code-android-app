@@ -11,7 +11,9 @@ import com.getcode.model.KinAmount
 import com.getcode.model.LoginRequest
 import com.getcode.model.SocialUser
 import com.getcode.model.fromFiatAmount
+import com.getcode.model.generate
 import com.getcode.model.intents.PrivateTransferMetadata
+import com.getcode.model.toPublicKey
 import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.establishRelationshipSingle
@@ -232,7 +234,7 @@ class PaymentRepository @Inject constructor(
         }
     }
 
-    suspend fun payForFriendship(user: SocialUser, amount: KinAmount): ID  {
+    suspend fun payForFriendship(user: SocialUser, amount: KinAmount): ID {
         return suspendCancellableCoroutine { cont ->
             val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
 

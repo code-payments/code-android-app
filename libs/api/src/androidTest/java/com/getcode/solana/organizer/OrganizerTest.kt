@@ -9,7 +9,8 @@ import com.getcode.crypt.MnemonicCache
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Kin
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.extensions.newInstance
+import com.getcode.model.toPublicKey
 import com.getcode.solana.keys.*
 import org.junit.Assert.*
 import org.junit.Before

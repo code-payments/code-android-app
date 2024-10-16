@@ -1,9 +1,9 @@
 package com.getcode.solana.organizer
 
-import android.content.Context
 import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.extensions.newInstance
+import com.getcode.model.toPublicKey
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey

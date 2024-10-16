@@ -2,18 +2,15 @@ package com.getcode.models.intents.actions
 
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
-import com.getcode.crypt.MnemonicPhrase
-import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.model.intents.ServerParameter
 import com.getcode.model.intents.actions.*
-import com.getcode.network.repository.decodeBase58
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.solana.keys.Key32.Companion.mock
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.SlotType
+import com.getcode.utils.decodeBase58
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -22,16 +19,16 @@ class ActionTest {
     lateinit var context: Context
     lateinit var organizer: Organizer
 
-    private val mnemonic = MnemonicPhrase.newInstance(
+    private val mnemonic = com.getcode.crypt.MnemonicPhrase.newInstance(
         words = "couple divorce usage surprise before range feature source bubble chunk spot away".split(
             " "
         )
     )!!
 
-    private val nonce      = PublicKey.fromBase58(base58 = "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S")
-    private val blockhash  = PublicKey.fromBase58(base58 = "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1")
-    private val treasury   = PublicKey.fromBase58(base58 = "Ddk7k7zMMWsp8fZB12wqbiADdXKQFWfwUUsxSo73JaQ9")
-    private val recentRoot = PublicKey.fromBase58(base58 = "2sDAFcEZkLd3mbm6SaZhifctkyB4NWsp94GMnfDs1BfR")
+    private val nonce      = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S")
+    private val blockhash  = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1")
+    private val treasury   = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "Ddk7k7zMMWsp8fZB12wqbiADdXKQFWfwUUsxSo73JaQ9")
+    private val recentRoot = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "2sDAFcEZkLd3mbm6SaZhifctkyB4NWsp94GMnfDs1BfR")
 
     @Before
     fun setup() {
@@ -191,8 +188,8 @@ class ActionTest {
         parameter = null,
         configs = listOf(
             ServerParameter.Config(
-                nonce = PublicKey.fromBase58(base58 = "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S"),
-                blockhash = PublicKey.fromBase58(base58 = "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1")
+                nonce = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S"),
+                blockhash = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1")
             )
         )
     )
@@ -200,19 +197,23 @@ class ActionTest {
     private val tempPrivacy: ServerParameter = ServerParameter(
         actionId = 0,
         parameter = ServerParameter.Parameter.TempPrivacy(
-            treasury = PublicKey.fromBase58(base58 = "Ddk7k7zMMWsp8fZB12wqbiADdXKQFWfwUUsxSo73JaQ9"),
-            recentRoot = PublicKey.fromBase58(base58 = "2sDAFcEZkLd3mbm6SaZhifctkyB4NWsp94GMnfDs1BfR")
+            treasury = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "Ddk7k7zMMWsp8fZB12wqbiADdXKQFWfwUUsxSo73JaQ9"),
+            recentRoot = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "2sDAFcEZkLd3mbm6SaZhifctkyB4NWsp94GMnfDs1BfR")
         ),
         configs = listOf(
             ServerParameter.Config(
-                nonce = PublicKey.fromBase58(base58 = "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S"),
-                blockhash = PublicKey.fromBase58(base58 = "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1")
+                nonce = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S"),
+                blockhash = com.getcode.solana.keys.PublicKey.fromBase58(base58 = "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1")
             )
         )
     )
 
-    private val leaf = PublicKey("2ocuvgy8ETZp9WDaEy4rpYz2QyeZ7JAiEvXKbW5rKcd4".decodeBase58().toList())
-    private val root = Hash("9EuLAJgnMpEq8wmQUFTNxgYJG2FkAPAGCUhrNK447Uox".decodeBase58().toList())
+    private val leaf = com.getcode.solana.keys.PublicKey(
+        "2ocuvgy8ETZp9WDaEy4rpYz2QyeZ7JAiEvXKbW5rKcd4".decodeBase58().toList()
+    )
+    private val root = com.getcode.solana.keys.Hash(
+        "9EuLAJgnMpEq8wmQUFTNxgYJG2FkAPAGCUhrNK447Uox".decodeBase58().toList()
+    )
     private val proof = listOf(
     "4DEt3CHLarXBy74hiJf5t74HmKfTw5DeLK2nzTLFv3Pq",
     "73uNXKLpHkTgc9ubvyRXTGaNUh19TUx8M9bN4PNTn544",
@@ -277,7 +278,7 @@ class ActionTest {
     "3fCTfZwwMipFUpvbXbcDBBtwuo23hmuTJMYaVECWwNTP",
     "CZ94cA7JHBb4a8mqN9xEJquPNX1TxKqL3cBQms6yfgTr",
     "8PxPosHkG5Q6VBnhiimJaH88yPYt6ZDp4szMBfaVTLun",
-    ).map { PublicKey(it.decodeBase58().toList()) }
+    ).map { com.getcode.solana.keys.PublicKey(it.decodeBase58().toList()) }
 
     val privacyUpgrade = ServerParameter(
         actionId = 0,
@@ -291,8 +292,12 @@ class ActionTest {
         ),
         configs = listOf(
             ServerParameter.Config(
-                nonce = PublicKey("JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S".decodeBase58().toList()),
-                blockhash = PublicKey("BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1".decodeBase58().toList())
+                nonce = com.getcode.solana.keys.PublicKey(
+                    "JDwJWHij1E75GVAAcMUPkwDgC598wRdF4a7d76QX895S".decodeBase58().toList()
+                ),
+                blockhash = com.getcode.solana.keys.PublicKey(
+                    "BXLEqnSJxMHvEJQHRMSbsFQGDpBn891BpQo828xejbi1".decodeBase58().toList()
+                )
             )
         )
     )

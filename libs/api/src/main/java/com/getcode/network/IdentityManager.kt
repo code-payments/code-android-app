@@ -1,7 +1,7 @@
 package com.getcode.network
 
 import com.getcode.manager.SessionManager
-import com.getcode.network.repository.base58
+import com.getcode.utils.base58
 import com.getcode.utils.bytes
 import com.getcode.vendor.Base58
 import java.util.UUID

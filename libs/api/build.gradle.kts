@@ -54,13 +54,21 @@ android {
 }
 
 dependencies {
-    api(project(":service:models"))
     implementation(project(":libs:datetime"))
-    implementation(project(":libs:crypto:ed25519"))
     implementation(project(":libs:crypto:kin"))
+    implementation(project(":libs:crypto:solana"))
+    implementation(project(":libs:encryption:base58"))
+    implementation(project(":libs:encryption:ed25519"))
+    implementation(project(":libs:encryption:hmac"))
+    implementation(project(":libs:encryption:keys"))
+    implementation(project(":libs:encryption:mnemonic"))
+    implementation(project(":libs:encryption:sha256"))
+    implementation(project(":libs:encryption:sha512"))
+    implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))
+    api(project(":libs:models"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
     implementation(project(":ui:resources"))
@@ -92,8 +100,6 @@ dependencies {
 
     kapt(Libs.androidx_room_compiler)
     implementation(Libs.sqlcipher)
-
-    api(Libs.sodium_bindings)
 
     implementation(Libs.fingerprint_pro)
 

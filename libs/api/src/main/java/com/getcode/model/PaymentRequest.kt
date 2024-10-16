@@ -1,8 +1,8 @@
 package com.getcode.model
 
 import com.codeinc.gen.messaging.v1.MessagingService
-import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 
 data class StreamMessage(val id: List<Byte>, val kind: Kind) {
     sealed interface Kind {
@@ -26,7 +26,9 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                             message.requestToGrabBill.requestorAccount.value.toByteArray().toList()
                         )
                     val signature =
-                        Signature(message.sendMessageRequestSignature.value.toByteArray().toList())
+                        Signature(
+                            message.sendMessageRequestSignature.value.toByteArray().toList()
+                        )
 
                     Kind.PaymentRequestKind(
                         PaymentRequest(
@@ -38,14 +40,20 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                 MessagingService.Message.KindCase.REQUEST_TO_RECEIVE_BILL -> {
                     val request = message.requestToReceiveBill
                     val exchangeData = request.exchangeDataCase
-                    val account = PublicKey(request.requestorAccount.value.toByteArray().toList())
-                    val signature = Signature(message.sendMessageRequestSignature.value.toByteArray().toList())
+                    val account = PublicKey(
+                        request.requestorAccount.value.toByteArray().toList()
+                    )
+                    val signature = Signature(
+                        message.sendMessageRequestSignature.value.toByteArray().toList()
+                    )
 
                     val domain: Domain?
                     val verifier: PublicKey?
                     if (request.hasDomain()) {
                         val validDomain = Domain.from(request.domain.value) ?: return null
-                        val validVerifier = PublicKey(request.verifier.value.toByteArray().toList())
+                        val validVerifier = PublicKey(
+                            request.verifier.value.toByteArray().toList()
+                        )
 
                         domain = validDomain
                         verifier = validVerifier
@@ -57,10 +65,12 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                     val requestData = when (exchangeData) {
                         MessagingService.RequestToReceiveBill.ExchangeDataCase.EXACT -> {
                             val data = request.exact
-                            val currency = com.getcode.model.CurrencyCode.tryValueOf(data.currency) ?: return null
+                            val currency = CurrencyCode.tryValueOf(data.currency) ?: return null
 
                             val additionalFees = request.additionalFeesList.mapNotNull {
-                                val destination = PublicKey(it.destination.value.toByteArray().toList())
+                                val destination = PublicKey(
+                                    it.destination.value.toByteArray().toList()
+                                )
                                 Fee(destination = destination, it.feeBps)
                             }
 
@@ -83,11 +93,13 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                         }
                         MessagingService.RequestToReceiveBill.ExchangeDataCase.PARTIAL -> {
                             val data = request.partial
-                            val currency = com.getcode.model.CurrencyCode.tryValueOf(data.currency) ?: return null
+                            val currency = CurrencyCode.tryValueOf(data.currency) ?: return null
 
 
                             val additionalFees = request.additionalFeesList.mapNotNull {
-                                val destination = PublicKey(it.destination.value.toByteArray().toList())
+                                val destination = PublicKey(
+                                    it.destination.value.toByteArray().toList()
+                                )
                                 Fee(destination = destination, it.feeBps)
                             }
 
@@ -110,7 +122,7 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                 MessagingService.Message.KindCase.AIRDROP_RECEIVED -> {
                     val type = AirdropType.getInstance(message.airdropReceived.airdropType)
                         ?: return null
-                    val currency = com.getcode.model.CurrencyCode.tryValueOf(message.airdropReceived.exchangeData.currency)
+                    val currency = CurrencyCode.tryValueOf(message.airdropReceived.exchangeData.currency)
                         ?: return null
 
                     Kind.AirdropKind(
@@ -132,9 +144,15 @@ data class StreamMessage(val id: List<Byte>, val kind: Kind) {
                 MessagingService.Message.KindCase.REQUEST_TO_LOGIN -> {
                     val request = message.requestToLogin
                     val domain = request.domain?.let { Domain.from(it.value) } ?: return null
-                    val verifier = PublicKey(request.verifier.value.toByteArray().toList())
-                    val rendezvous = PublicKey(request.rendezvousKey.toByteArray().toList())
-                    val signature = Signature(request.signature.value.toByteArray().toList())
+                    val verifier = PublicKey(
+                        request.verifier.value.toByteArray().toList()
+                    )
+                    val rendezvous = PublicKey(
+                        request.rendezvousKey.toByteArray().toList()
+                    )
+                    val signature = Signature(
+                        request.signature.value.toByteArray().toList()
+                    )
 
                     Kind.LoginRequestKind(
                         LoginRequest(domain, verifier, rendezvous, signature)

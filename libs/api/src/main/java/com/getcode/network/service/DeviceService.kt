@@ -53,7 +53,11 @@ class DeviceService @Inject constructor(
                 .map { response ->
                     when (response.result) {
                         DeviceService.GetLoggedInAccountsResponse.Result.OK -> {
-                            Result.success(response.ownersList.map { PublicKey(it.value.toByteArray().toList()) })
+                            Result.success(response.ownersList.map {
+                                PublicKey(
+                                    it.value.toByteArray().toList()
+                                )
+                            })
                         }
                         DeviceService.GetLoggedInAccountsResponse.Result.UNRECOGNIZED -> {
                             val error = Throwable("Error: Unrecognized request.")

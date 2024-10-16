@@ -17,7 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.components.R

@@ -4,6 +4,7 @@ import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.crypt.DerivePath
 import com.getcode.crypt.DerivedKey
 import com.getcode.model.Kin
+import com.getcode.model.generate
 import com.getcode.model.intents.actions.ActionCloseEmptyAccount
 import com.getcode.model.intents.actions.ActionWithdraw
 import com.getcode.solana.keys.PublicKey

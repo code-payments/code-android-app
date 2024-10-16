@@ -10,7 +10,7 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.isNotification
@@ -20,11 +20,11 @@ import com.getcode.network.client.fetchMessagesFor
 import com.getcode.network.client.fetchV1Chats
 import com.getcode.network.client.setMuted
 import com.getcode.network.client.setSubscriptionState
-import com.getcode.network.repository.encodeBase64
 import com.getcode.network.source.CollectionPagingSource
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.TraceType
+import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

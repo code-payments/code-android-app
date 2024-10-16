@@ -40,6 +40,6 @@ fun Context.uriToBitmap(uri: Uri): Bitmap? {
             decoder.isMutableRequired = true
         }
     } else {
-        MediaStore.Images.Media.getBitmap(contentResolver, uri)
+        Media.getBitmap(contentResolver, uri)
     }
 }

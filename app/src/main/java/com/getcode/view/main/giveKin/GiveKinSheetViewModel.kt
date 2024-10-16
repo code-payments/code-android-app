@@ -12,10 +12,10 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.repository.replaceParam
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.replaceParam
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

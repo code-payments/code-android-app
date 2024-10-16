@@ -5,9 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import com.getcode.ui.components.R
-import com.getcode.manager.SessionManager
 import com.getcode.model.Currency
-import com.getcode.model.Domain
 import com.getcode.model.GenericAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.Title
@@ -18,10 +16,9 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.LocalCurrencyUtils
-import timber.log.Timber
 import java.util.Locale
 
-val LocalLocalizeCurrencyFormatting = staticCompositionLocalOf { false }
+val LocalLocalizeCurrencyFormatting = staticCompositionLocalOf { true }
 
 fun MessageContent.localizedText(
     title: String,
@@ -92,14 +89,16 @@ fun MessageContent.localizedText(
         }
 
         is MessageContent.SodiumBox -> {
-            val organizer = SessionManager.getOrganizer() ?: return "<! encrypted content !>"
-            val domain = Domain.from(title) ?: return "<! encrypted content !>"
-            val relationship = organizer.relationshipFor(domain) ?: return "<! encrypted content !>"
-            val decrypted = content.data.decryptMessageUsingNaClBox(
-                keyPair = relationship.getCluster().authority.keyPair
-            ) ?: return "<! encrypted content !>"
-
-            decrypted
+            // TODO:
+//            val organizer = SessionManager.getOrganizer() ?: return "<! encrypted content !>"
+//            val domain = com.getcode.crypt.Domain.from(title) ?: return "<! encrypted content !>"
+//            val relationship = organizer.relationshipFor(domain) ?: return "<! encrypted content !>"
+//            val decrypted = content.data.decryptMessageUsingNaClBox(
+//                keyPair = relationship.getCluster().authority.keyPair
+//            ) ?: return "<! encrypted content !>"
+//
+//            decrypted
+            return "<! encrypted content !>"
         }
 
         is MessageContent.Decrypted -> content.data

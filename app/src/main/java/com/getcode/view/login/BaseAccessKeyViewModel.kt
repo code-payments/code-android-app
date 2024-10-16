@@ -16,7 +16,6 @@ import com.getcode.media.MediaScanner
 import com.getcode.network.repository.DeniedReason
 import com.getcode.network.repository.ErrorSubmitIntent
 import com.getcode.network.repository.ErrorSubmitIntentException
-import com.getcode.network.repository.decodeBase64
 import com.getcode.theme.Alert
 import com.getcode.theme.Brand
 import com.getcode.theme.White
@@ -24,13 +23,14 @@ import com.getcode.ui.utils.toAGColor
 import com.getcode.util.generateQrCode
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.save
-import com.getcode.vendor.Base58
+import com.getcode.utils.decodeBase64
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import java.text.DateFormat
 import java.text.SimpleDateFormat

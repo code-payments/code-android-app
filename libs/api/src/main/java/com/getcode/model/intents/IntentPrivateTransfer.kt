@@ -12,13 +12,13 @@ import com.getcode.model.intents.actions.ActionFeePayment
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
-import com.getcode.network.repository.toByteString
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
+import com.getcode.utils.toByteString
 import timber.log.Timber
 
 sealed interface PrivateTransferMetadata {
@@ -59,7 +59,8 @@ class IntentPrivateTransfer(
                     when (metadata) {
                         is PrivateTransferMetadata.Chat -> {
                             setIsChat(true)
-                            setChatId(ChatIdV2.newBuilder()
+                            setChatId(
+                                ChatIdV2.newBuilder()
                                 .setValue(metadata.socialUser.chatId.toByteString())
                             )
                         }

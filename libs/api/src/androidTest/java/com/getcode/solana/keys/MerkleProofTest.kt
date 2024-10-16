@@ -1,6 +1,6 @@
 package com.getcode.solana.keys
 
-import com.getcode.network.repository.decodeBase58
+import com.getcode.utils.decodeBase58
 import org.junit.Test
 import org.kin.sdk.base.models.toUTF8Bytes
 
@@ -15,7 +15,7 @@ fun String.decodeHex(): ByteArray {
 }
 
 class MerkleProofServerTest {
-    private val root = Hash(
+    private val root = com.getcode.solana.keys.Hash(
         "1d92df473ed3fd6326f7ee570ec34547a42a487a7500366ee8ce3bd2e3f5c99c".decodeHex()
             .toList()
     )
@@ -38,7 +38,7 @@ class MerkleProofServerTest {
             "18ea423c80045847f939c0e57c6d6255d4cc7ed4c72f2c5528cc122fac687733",
             "cd097bb2b70eabc6538d44d1583c0f2712b5a6ff16d3d7f9c22455cf0d786f47",
             "be2ff6be7e99eca6736741b87cb131950f14496bd4eb8061a17a95f45b6fd9e8",
-        ).map { Hash(it.decodeHex().toList()) }
+        ).map { com.getcode.solana.keys.Hash(it.decodeHex().toList()) }
 
 
     @Test
@@ -62,7 +62,7 @@ class MerkleProofServerTest {
 
             val nodeBytes = modifiedProof[index].bytes.toMutableList()
             nodeBytes[31] = 0xFF.toByte() // Modify the last byte of every node
-            modifiedProof[index] = Hash(nodeBytes)
+            modifiedProof[index] = com.getcode.solana.keys.Hash(nodeBytes)
 
             assert(!originalCommitment.verifyContained(root, modifiedProof))
         }
@@ -73,7 +73,7 @@ class MerkleProofClientTests {
     private val leaf = PublicKey(
         "2ocuvgy8ETZp9WDaEy4rpYz2QyeZ7JAiEvXKbW5rKcd4".decodeBase58().toList()
     )
-    private val root = Hash(
+    private val root = com.getcode.solana.keys.Hash(
         "9EuLAJgnMpEq8wmQUFTNxgYJG2FkAPAGCUhrNK447Uox".decodeBase58().toList()
     )
 

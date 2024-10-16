@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Code Dev</string>
+    <string name="account_provider" translatable="false">com.getcode.dev.accountprovider</string>
 </resources>

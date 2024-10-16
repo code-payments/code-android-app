@@ -22,12 +22,12 @@ import com.getcode.manager.BottomBarManager
 import com.getcode.manager.SessionManager
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.PhoneVerificationScreen
-import com.getcode.network.repository.urlEncode
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.bolded
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import com.getcode.utils.urlEncode
 
 @Composable
 fun AccountPhone(

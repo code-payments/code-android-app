@@ -15,11 +15,9 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
-import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.MessageStatus
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.Reference
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
@@ -70,10 +68,10 @@ class ConversationViewModel @Inject constructor(
 ) {
 
     data class State(
-        val conversationId: ID?,
+        val conversationId: com.getcode.model.ID?,
         val twitterUser: TwitterUser?,
         val costToChat: KinAmount,
-        val reference: Reference.IntentId?,
+        val reference: com.getcode.model.chat.Reference.IntentId?,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
@@ -84,7 +82,7 @@ class ConversationViewModel @Inject constructor(
         val isSelfTyping: Boolean,
     ) {
         data class User(
-            val memberId: ID,
+            val memberId: com.getcode.model.ID,
             val username: String?,
             val imageUrl: String?,
         ) {
@@ -114,12 +112,12 @@ class ConversationViewModel @Inject constructor(
         data class OnTwitterUserChanged(val user: TwitterUser?) : Event
         data class OnCostToChatChanged(val cost: KinAmount) : Event
         data class OnMembersChanged(val members: List<State.User>) : Event
-        data class OnChatIdChanged(val chatId: ID?) : Event
+        data class OnChatIdChanged(val chatId: com.getcode.model.ID?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithLastPointers) :
             Event
 
         data class OnUserRevealed(
-            val memberId: ID,
+            val memberId: com.getcode.model.ID,
             val username: String? = null,
             val imageUrl: String? = null,
         ) : Event
@@ -134,8 +132,8 @@ class ConversationViewModel @Inject constructor(
         data class OnIdentityAvailable(val available: Boolean) : Event
 
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
-        data class MarkRead(val messageId: ID) : Event
-        data class MarkDelivered(val messageId: ID) : Event
+        data class MarkRead(val messageId: com.getcode.model.ID) : Event
+        data class MarkDelivered(val messageId: com.getcode.model.ID) : Event
 
         data object PresentPaymentConfirmation : Event
 

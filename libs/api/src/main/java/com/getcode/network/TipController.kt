@@ -11,10 +11,7 @@ import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
-import com.getcode.network.repository.base58
-import com.getcode.utils.bytes
 import com.getcode.utils.getOrPutIfNonNull
-import com.getcode.vendor.Base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +29,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import timber.log.Timber
 import java.util.Timer
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.fixedRateTimer

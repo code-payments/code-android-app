@@ -24,10 +24,6 @@
         android:name="android.permission.READ_PHONE_STATE"
         android:maxSdkVersion="28" />
 
-    <permission
-        android:name="com.getcode.permission.READ_ACCOUNT"
-        android:protectionLevel="signature" />
-
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -228,14 +224,6 @@
         <meta-data
             android:name="com.bugsnag.android.API_KEY"
             android:value="${BUGSNAG_API_KEY}" />
-
-        <provider
-            android:name=".AccountProvider"
-            android:authorities="com.getcode.accountprovider"
-            android:exported="true"
-            android:grantUriPermissions="true"
-            android:permission="com.getcode.permission.READ_ACCOUNT"
-            android:enabled="true" />
 
     </application>
 

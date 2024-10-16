@@ -24,10 +24,10 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
-import com.getcode.network.repository.decodeBase64
-import com.getcode.network.repository.encodeBase64
-import com.getcode.vendor.Base58
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.utils.decodeBase64
+import com.getcode.utils.encodeBase64
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 
 @Preview

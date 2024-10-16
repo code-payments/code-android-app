@@ -1,9 +1,9 @@
 package com.getcode.ui.components.chat.utils
 
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.MessageStatus
 import kotlinx.datetime.Instant
 import java.util.UUID
 

@@ -2,7 +2,6 @@ package com.getcode.navigation
 
 import android.os.Parcelable
 import cafe.adriel.voyager.core.registry.ScreenProvider
-import com.getcode.model.ID
 import com.getcode.model.TwitterUser
 import kotlinx.parcelize.Parcelize
 
@@ -18,8 +17,8 @@ sealed class NavScreenProvider : ScreenProvider {
         data object ChatByUsername : NavScreenProvider()
         data class Conversation(
             val user: TwitterUser? = null,
-            val chatId: ID? = null,
-            val intentId: ID? = null
+            val chatId: com.getcode.model.ID? = null,
+            val intentId: com.getcode.model.ID? = null
         ) : NavScreenProvider()
     }
 

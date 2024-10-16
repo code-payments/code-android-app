@@ -6,9 +6,9 @@ import com.getcode.mapper.ChatMessageV1Mapper
 import com.getcode.mapper.ChatMetadataV1Mapper
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.description
 import com.getcode.network.api.ChatApiV1
 import com.getcode.network.core.NetworkOracle

@@ -1,15 +1,13 @@
 package com.getcode.solana.organizer
 
-import com.getcode.crypt.DerivePath
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
 import com.getcode.model.Kin
 import com.getcode.model.unusable
-import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.solana.keys.*
 import com.getcode.utils.TraceType
-import com.getcode.utils.timedTrace
+import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
 import timber.log.Timber
 
@@ -149,16 +147,16 @@ enum class Denomination {
     hundredThousands,
     millions;
 
-    val derivationPath: DerivePath
+    val derivationPath: com.getcode.crypt.DerivePath
         get() {
             return when (this) {
-                ones -> DerivePath.bucket1
-                tens -> DerivePath.bucket10
-                hundreds -> DerivePath.bucket100
-                thousands -> DerivePath.bucket1k
-                tenThousands -> DerivePath.bucket10k
-                hundredThousands -> DerivePath.bucket100k
-                millions -> DerivePath.bucket1m
+                ones -> com.getcode.crypt.DerivePath.bucket1
+                tens -> com.getcode.crypt.DerivePath.bucket10
+                hundreds -> com.getcode.crypt.DerivePath.bucket100
+                thousands -> com.getcode.crypt.DerivePath.bucket1k
+                tenThousands -> com.getcode.crypt.DerivePath.bucket10k
+                hundredThousands -> com.getcode.crypt.DerivePath.bucket100k
+                millions -> com.getcode.crypt.DerivePath.bucket1m
             }
         }
 }

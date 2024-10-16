@@ -22,14 +22,14 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.PushRepository
-import com.getcode.network.repository.encodeBase64
-import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.network.repository.isMock
 import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.BuildConfig
 import com.getcode.oct24.util.TokenResult
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.encodeBase64
+import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.installationId
 import com.getcode.utils.makeE164
 import com.getcode.utils.token

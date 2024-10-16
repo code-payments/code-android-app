@@ -9,9 +9,7 @@ import com.getcode.model.intents.actions.ActionCloseEmptyAccount
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
-import com.getcode.network.repository.toPublicKey
-import com.getcode.solana.keys.LENGTH_32
-import com.getcode.solana.keys.PublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.SlotType
@@ -51,7 +49,9 @@ class IntentReceiveTest {
             amount = amount
         )
 
-        Assert.assertNotEquals(intent.id, PublicKey(ByteArray(LENGTH_32).toList()))
+        Assert.assertNotEquals(intent.id,
+            com.getcode.solana.keys.PublicKey(ByteArray(com.getcode.solana.keys.LENGTH_32).toList())
+        )
 
         val resultTray = intent.resultTray
 

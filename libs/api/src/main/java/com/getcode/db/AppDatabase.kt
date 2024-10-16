@@ -13,13 +13,10 @@ import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.getcode.model.*
-import com.getcode.network.repository.decodeBase64
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import com.getcode.vendor.Base58
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
-import net.sqlcipher.database.SupportFactory
 import org.kin.sdk.base.tools.subByteArray
 import timber.log.Timber
 import java.io.File
@@ -152,7 +149,7 @@ object Database {
     fun init(context: Context, entropyB64: String) {
         trace("database init start", type = TraceType.Process)
         instance?.close()
-        val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 3))
+        val dbUniqueName = com.getcode.vendor.Base58.encode(entropyB64.toByteArray().subByteArray(0, 3))
         dbName = "$dbNamePrefix-$dbUniqueName$dbNameSuffix"
 
         instance =

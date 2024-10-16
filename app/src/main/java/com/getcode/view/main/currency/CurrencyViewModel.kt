@@ -41,7 +41,7 @@ enum class CurrencySelectKind {
 
 @HiltViewModel
 class CurrencyViewModel @Inject constructor(
-    localeHelper: com.getcode.util.locale.LocaleHelper,
+    localeHelper: LocaleHelper,
     currencyUtils: com.getcode.utils.CurrencyUtils,
     exchange: Exchange,
     private val prefsRepository: PrefRepository,

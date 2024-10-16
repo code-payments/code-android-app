@@ -16,12 +16,11 @@ import com.getcode.SessionEvent
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.Feature
-import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.ConversationCashFeature
+import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
-import com.getcode.model.chat.Reference
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
 import com.getcode.network.ConversationController
@@ -73,7 +72,7 @@ class ConversationViewModel @Inject constructor(
         val conversationId: ID?,
         val twitterUser: TwitterUser?,
         val costToChat: KinAmount,
-        val reference: Reference.IntentId?,
+        val reference: com.getcode.model.chat.Reference.IntentId?,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityAvailable: Boolean,

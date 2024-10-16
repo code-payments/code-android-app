@@ -12,7 +12,7 @@ import com.getcode.model.ConversationMessageContent
 import com.getcode.model.ConversationMessageWithContent
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
-import com.getcode.network.repository.base58
+import com.getcode.utils.base58
 
 @Dao
 interface ConversationMessageDao {

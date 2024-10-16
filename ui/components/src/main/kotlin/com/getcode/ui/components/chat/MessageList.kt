@@ -16,7 +16,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.utils.ChatItem

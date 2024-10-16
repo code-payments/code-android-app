@@ -2,12 +2,10 @@ package com.getcode.solana.encoding
 
 
 import com.getcode.ed25519.Ed25519
-import com.getcode.solana.keys.Hash
-import com.getcode.solana.AccountMeta
+import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.Instruction
 import com.getcode.solana.Message
 import com.getcode.solana.MessageHeader
-import com.getcode.solana.keys.PublicKey
 import junit.framework.Assert
 import org.junit.Test
 
@@ -29,7 +27,8 @@ class Message_Test {
 
     @Test
     fun testMessageEncodeDecodeCycle() {
-        fun randomPublicKey() = PublicKey(Ed25519.createKeyPair().publicKeyBytes.toList())
+        fun randomPublicKey() =
+            com.getcode.solana.keys.PublicKey(Ed25519.createKeyPair().publicKeyBytes.toList())
 
         val program = randomPublicKey()
         val program2 = randomPublicKey()
@@ -60,7 +59,7 @@ class Message_Test {
             ),
         )
 
-        val blockhash = Hash(randomPublicKey().bytes)
+        val blockhash = com.getcode.solana.keys.Hash(randomPublicKey().bytes)
 
         val allAccounts = mutableListOf(
             AccountMeta.readonly(program),

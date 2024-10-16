@@ -1,7 +1,7 @@
 package com.getcode.mocks
 
-import com.getcode.network.repository.decodeBase64
 import com.getcode.solana.SolanaTransaction
+import com.getcode.utils.decodeBase64
 
 object SolanaTransaction {
     /// Mock Timelock Create Account Transaction

@@ -23,12 +23,9 @@ import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CameraGesturesFeature
 import com.getcode.model.CodePayload
 import com.getcode.model.Currency
-import com.getcode.model.Domain
 import com.getcode.model.Feature
-import com.getcode.model.Fiat
 import com.getcode.model.FlippableTipCardFeature
 import com.getcode.model.GalleryFeature
-import com.getcode.model.ID
 import com.getcode.model.IntentMetadata
 import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
@@ -76,9 +73,6 @@ import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
 import com.getcode.network.repository.StatusRepository
-import com.getcode.network.repository.encodeBase64
-import com.getcode.network.repository.hexEncodedString
-import com.getcode.network.repository.toPublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.util.IntentUtils
@@ -86,6 +80,8 @@ import com.getcode.utils.Kin
 import com.getcode.extensions.formatted
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.Domain
+import com.getcode.model.toPublicKey
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -94,9 +90,10 @@ import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.catchSafely
+import com.getcode.utils.encodeBase64
+import com.getcode.utils.hexEncodedString
 import com.getcode.utils.nonce
 import com.getcode.utils.trace
-import com.getcode.vendor.Base58
 import com.getcode.view.main.scanner.UiElement
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
 import com.kik.kikx.models.ScannableKikCode
@@ -125,6 +122,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import java.util.Timer
 import java.util.TimerTask
@@ -177,7 +175,7 @@ sealed interface SessionEvent {
     data object PresentTipEntry : SessionEvent
     data object RequestNotificationPermissions : SessionEvent
     data class SendIntent(val intent: Intent) : SessionEvent
-    data class OnChatPaidForSuccessfully(val intentId: ID, val user: SocialUser): SessionEvent
+    data class OnChatPaidForSuccessfully(val intentId: com.getcode.model.ID, val user: SocialUser): SessionEvent
 }
 
 enum class RestrictionType {
@@ -1152,7 +1150,7 @@ class SessionController @Inject constructor(
         if (payload != null) {
             code = payload
         } else {
-            val fiat = Fiat(currency = amount.rate.currency, amount = amount.fiat)
+            val fiat = com.getcode.model.Fiat(currency = amount.rate.currency, amount = amount.fiat)
 
             code = CodePayload(
                 kind = Kind.RequestPayment,

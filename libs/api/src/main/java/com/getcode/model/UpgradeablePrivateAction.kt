@@ -1,12 +1,12 @@
 package com.getcode.model
 
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.getcode.solana.keys.Hash
-import com.getcode.solana.keys.Signature
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.instructions.programs.SystemProgram_AdvanceNonce
 import com.getcode.solana.instructions.programs.TimelockProgram_TransferWithAuthority
+import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.organizer.AccountType
 
 class UpgradeablePrivateAction(
@@ -69,14 +69,20 @@ class UpgradeablePrivateAction(
         }
 
         fun newInstance(proto: TransactionService.UpgradeableIntent.UpgradeablePrivateAction): UpgradeablePrivateAction {
-            val signature = Signature(proto.clientSignature.value.toByteArray().toList())
+            val signature = Signature(
+                proto.clientSignature.value.toByteArray().toList()
+            )
             val accountType =
                 AccountType.newInstance(proto.sourceAccountType)
                     ?: throw UpgradeablePrivateActionException.DeserializationFailedException()
             val originalDestination =
-                PublicKey(proto.originalDestination.value.toByteArray().toList())
-            val treasury = PublicKey(proto.treasury.value.toByteArray().toList())
-            val recentRoot = Hash(proto.recentRoot.value.toByteArray().toList())
+                PublicKey(
+                    proto.originalDestination.value.toByteArray().toList()
+                )
+            val treasury =
+                PublicKey(proto.treasury.value.toByteArray().toList())
+            val recentRoot =
+                Hash(proto.recentRoot.value.toByteArray().toList())
 
             return newInstance(
                 id = proto.actionId,

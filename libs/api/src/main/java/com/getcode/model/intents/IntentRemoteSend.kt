@@ -6,7 +6,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType

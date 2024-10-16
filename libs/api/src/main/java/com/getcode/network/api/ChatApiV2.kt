@@ -8,30 +8,23 @@ import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.PointerType
 import com.codeinc.gen.chat.v2.ChatService.SendMessageRequest
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
-import com.codeinc.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.SocialUser
-import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.chat.Platform
 import com.getcode.model.chat.StartChatRequest
 import com.getcode.model.chat.StartChatResponse
 import com.getcode.network.core.GrpcApi
-import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
-import com.getcode.solana.keys.PublicKey
-import com.getcode.utils.bytes
-import com.getcode.utils.network.retryable
 import com.getcode.utils.sign
+import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
-import java.util.UUID
 import javax.inject.Inject
 import com.getcode.model.chat.AdvancePointerRequestV2 as AdvancePointerRequest
 import com.getcode.model.chat.AdvancePointerResponseV2 as AdvancePointerResponse

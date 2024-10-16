@@ -14,6 +14,7 @@ import com.getcode.api.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*
+import com.getcode.model.extensions.newInstance
 import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
 import com.getcode.model.intents.IntentDeposit
@@ -34,8 +35,6 @@ import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
-import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
@@ -44,6 +43,7 @@ import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.bytes
+import com.getcode.utils.toByteString
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -87,11 +87,11 @@ class TransactionRepository @Inject constructor(
         maxDeposit = deposit
     }
 
-    fun buyLimitFor(currencyCode: com.getcode.model.CurrencyCode): BuyLimit? {
+    fun buyLimitFor(currencyCode: CurrencyCode): BuyLimit? {
         return limits?.buyLimitFor(currencyCode)
     }
 
-    fun sendLimitFor(currencyCode: com.getcode.model.CurrencyCode): SendLimit? {
+    fun sendLimitFor(currencyCode: CurrencyCode): SendLimit? {
         return limits?.sendLimitFor(currencyCode)
     }
 
@@ -100,7 +100,7 @@ class TransactionRepository @Inject constructor(
     }
 
     fun hasAvailableDailyLimit(): Boolean {
-        return (sendLimitFor(currencyCode = com.getcode.model.CurrencyCode.USD)?.nextTransaction ?: 0.0) > 0
+        return (sendLimitFor(currencyCode = CurrencyCode.USD)?.nextTransaction ?: 0.0) > 0
     }
 
     private fun setLimits(limits: Limits) {
@@ -116,7 +116,7 @@ class TransactionRepository @Inject constructor(
     fun createAccounts(organizer: Organizer): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentCreateAccounts(
-                id = PublicKey(bytes = listOf()),
+                id = com.getcode.solana.keys.PublicKey(bytes = listOf()),
                 actionGroup = ActionGroup(),
                 organizer = organizer
             ) as IntentType
@@ -136,14 +136,14 @@ class TransactionRepository @Inject constructor(
         fee: Kin,
         additionalFees: List<Fee>,
         organizer: Organizer,
-        rendezvousKey: PublicKey,
-        destination: PublicKey,
+        rendezvousKey: com.getcode.solana.keys.PublicKey,
+        destination: com.getcode.solana.keys.PublicKey,
         isWithdrawal: Boolean,
         metadata: PrivateTransferMetadata? = null,
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
-                id = PublicKey(bytes = listOf()),
+                id = com.getcode.solana.keys.PublicKey(bytes = listOf()),
                 actionGroup = ActionGroup(),
                 organizer = organizer,
                 destination = destination,
@@ -230,7 +230,7 @@ class TransactionRepository @Inject constructor(
     fun withdraw(
         amount: KinAmount,
         organizer: Organizer,
-        destination: PublicKey
+        destination: com.getcode.solana.keys.PublicKey
     ): Single<IntentType> {
         val intent = IntentPublicTransfer.newInstance(
             organizer = organizer,
@@ -256,7 +256,7 @@ class TransactionRepository @Inject constructor(
     fun sendRemotely(
         amount: KinAmount,
         organizer: Organizer,
-        rendezvousKey: PublicKey,
+        rendezvousKey: com.getcode.solana.keys.PublicKey,
         giftCard: GiftCardAccount
     ): Single<IntentType> {
         val intent = IntentRemoteSend.newInstance(
@@ -358,7 +358,11 @@ class TransactionRepository @Inject constructor(
                                     errors.addAll(
                                         listOf(
                                             "Action index: ${error.invalidSignature.actionId}",
-                                            "Invalid signature: ${Signature(error.invalidSignature.providedSignature.value.toByteArray().toList()).base58()}",
+                                            "Invalid signature: ${
+                                                com.getcode.solana.keys.Signature(
+                                                    error.invalidSignature.providedSignature.value.toByteArray()
+                                                        .toList()
+                                                ).base58()}",
                                             "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
                                             "Transaction expected: $expected",
                                             "Android produced: $produced"
@@ -529,7 +533,7 @@ class TransactionRepository @Inject constructor(
 
     suspend fun fetchIntentMetadata(
         owner: KeyPair,
-        intentId: PublicKey
+        intentId: com.getcode.solana.keys.PublicKey
     ): Result<IntentMetadata> {
         val request = TransactionService.GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.toIntentId())
@@ -599,7 +603,7 @@ class TransactionRepository @Inject constructor(
             .toFlowable()
     }
 
-    fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {
+    fun fetchDestinationMetadata(destination: com.getcode.solana.keys.PublicKey): Single<DestinationMetadata> {
         val request = TransactionService.CanWithdrawToAccountRequest.newBuilder()
             .setAccount(destination.bytes.toSolanaAccount())
             .build()
@@ -653,12 +657,12 @@ class TransactionRepository @Inject constructor(
     }
 
     data class DestinationMetadata(
-        val destination: PublicKey,
+        val destination: com.getcode.solana.keys.PublicKey,
         val isValid: Boolean,
         val kind: Kind,
 
         val hasResolvedDestination: Boolean,
-        val resolvedDestination: PublicKey
+        val resolvedDestination: com.getcode.solana.keys.PublicKey
     ) {
         enum class Kind {
             Unknown,
@@ -678,12 +682,12 @@ class TransactionRepository @Inject constructor(
 
         companion object {
             fun newInstance(
-                destination: PublicKey,
+                destination: com.getcode.solana.keys.PublicKey,
                 isValid: Boolean,
                 kind: Kind
             ): DestinationMetadata {
                 val hasResolvedDestination: Boolean
-                val resolvedDestination: PublicKey
+                val resolvedDestination: com.getcode.solana.keys.PublicKey
 
                 when (kind) {
                     Kind.Unknown, Kind.TokenAccount -> {

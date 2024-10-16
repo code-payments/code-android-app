@@ -5,8 +5,8 @@ import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.self
 import com.getcode.network.localized
-import com.getcode.network.repository.base58
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.base58
 import javax.inject.Inject
 
 class ConversationMapper @Inject constructor(

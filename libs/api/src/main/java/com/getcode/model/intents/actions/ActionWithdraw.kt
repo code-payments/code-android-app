@@ -5,13 +5,12 @@ import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
 import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.ServerParameter
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
-import com.getcode.solana.keys.PublicKey
 
 class ActionWithdraw(
     override var id: Int,
@@ -21,7 +20,7 @@ class ActionWithdraw(
     val kind: Kind,
 
     val cluster: AccountCluster,
-    val destination: PublicKey,
+    val destination: com.getcode.solana.keys.PublicKey,
     val legacy: Boolean,
     val metadata: PrivateTransferMetadata? = null,
 ) : ActionType() {
@@ -85,7 +84,7 @@ class ActionWithdraw(
         fun newInstance(
             kind: Kind,
             cluster: AccountCluster,
-            destination: PublicKey,
+            destination: com.getcode.solana.keys.PublicKey,
             legacy: Boolean = false,
             metadata: PrivateTransferMetadata? = null,
         ): ActionWithdraw {

@@ -7,6 +7,8 @@ import com.getcode.model.PrefsString
 import com.getcode.network.api.PushApi
 import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.decodeBase64
+import com.getcode.utils.toByteString
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow

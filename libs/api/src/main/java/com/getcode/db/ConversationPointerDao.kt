@@ -4,13 +4,11 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Transaction
-import com.getcode.model.Conversation
-import com.getcode.model.ConversationIntentIdReference
 import com.getcode.model.ConversationPointerCrossRef
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
-import com.getcode.network.repository.base58
+import com.getcode.model.chat.MessageStatus
+import com.getcode.utils.base58
+
 import java.util.UUID
 
 @Dao

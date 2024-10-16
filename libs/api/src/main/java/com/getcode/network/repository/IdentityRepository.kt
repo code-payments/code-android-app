@@ -15,8 +15,10 @@ import com.getcode.model.PrefsString
 import com.getcode.model.TwitterUser
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.decodeBase64
+import com.getcode.utils.encodeBase64
+import com.getcode.utils.toByteString
 import com.google.common.collect.Sets
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
@@ -259,7 +261,7 @@ class IdentityRepository @Inject constructor(
     }
 
     suspend fun loginToThirdParty(
-        rendezvous: PublicKey,
+        rendezvous: com.getcode.solana.keys.PublicKey,
         relationship: KeyPair
     ): Result<Unit> {
         val request = LoginToThirdPartyAppRequest.newBuilder()
@@ -348,7 +350,7 @@ class IdentityRepository @Inject constructor(
         }
     }
 
-    suspend fun fetchTwitterUserByAddress(owner: KeyPair, address: PublicKey): Result<TwitterUser> {
+    suspend fun fetchTwitterUserByAddress(owner: KeyPair, address: com.getcode.solana.keys.PublicKey): Result<TwitterUser> {
         val request = GetTwitterUserRequest.newBuilder()
             .setRequestor(owner.publicKeyBytes.toSolanaAccount())
             .setTipAddress(address.byteArray.toSolanaAccount())

@@ -10,7 +10,6 @@ import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.core.BidirectionalStreamReference
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
-import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
@@ -82,7 +81,11 @@ private suspend fun TransactionRepository.submit(intent: SwapIntent): Result<Swa
                                 errors.addAll(
                                     listOf(
                                         "Action index: ${error.invalidSignature.actionId}",
-                                        "Invalid signature: ${Signature(error.invalidSignature.providedSignature.value.toByteArray().toList()).base58()}",
+                                        "Invalid signature: ${
+                                            com.getcode.solana.keys.Signature(
+                                                error.invalidSignature.providedSignature.value.toByteArray()
+                                                    .toList()
+                                            ).base58()}",
                                         "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
                                         "Transaction expected: $expected",
                                         "Android produced: $produced"

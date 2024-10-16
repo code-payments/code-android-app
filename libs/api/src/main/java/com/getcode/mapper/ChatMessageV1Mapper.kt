@@ -1,10 +1,10 @@
 package com.getcode.mapper
 
 
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.protomapping.fromV1
 import javax.inject.Inject
 import com.codeinc.gen.chat.v1.ChatService.ChatMessage as ApiChatMessage
 import com.getcode.model.chat.ChatMessage as DomainChatMessage

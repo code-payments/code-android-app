@@ -8,7 +8,6 @@ import com.getcode.model.intents.ServerParameter
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountCluster
 
 class ActionFeePayment(
@@ -26,7 +25,7 @@ class ActionFeePayment(
         data object Code: Kind {
             override val codeType: Int = 0
         }
-        data class ThirdParty(val destination: PublicKey): Kind {
+        data class ThirdParty(val destination: com.getcode.solana.keys.PublicKey): Kind {
             override val codeType: Int = 1
         }
     }
@@ -36,7 +35,7 @@ class ActionFeePayment(
 
         val timelock = cluster.timelock ?: return emptyList()
 
-        val destination: PublicKey = when (kind) {
+        val destination: com.getcode.solana.keys.PublicKey = when (kind) {
             Kind.Code -> {
                 (serverParameter?.parameter as? ServerParameter.Parameter.FeePayment)?.publicKey ?: return emptyList()
             }

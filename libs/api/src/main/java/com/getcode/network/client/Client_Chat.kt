@@ -6,18 +6,18 @@ import com.getcode.manager.SessionManager
 import com.getcode.model.Cursor
 import com.getcode.model.Domain
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.ConversationEntity
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.isV2
+import com.getcode.model.extensions.decryptingUsing
 import com.getcode.network.core.BidirectionalStreamReference
-import com.getcode.network.repository.base58
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
 import com.getcode.utils.trace
 import timber.log.Timber
-import java.util.UUID
 
 typealias ChatMessageStreamReference = BidirectionalStreamReference<ChatService.StreamChatEventsRequest, ChatService.StreamChatEventsResponse>
 

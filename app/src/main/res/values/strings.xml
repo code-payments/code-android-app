@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
+    <string name="account_provider" translatable="false">com.getcode.accountprovider</string>
     <string name="action_nevermind">Nevermind</string>
     <string name="error_description_login_failed">This login request could not be completed at this time. Please try again later.</string>
     <string name="error_description_usdc_deposit_failure">Failed to create a USDC deposit account.</string>

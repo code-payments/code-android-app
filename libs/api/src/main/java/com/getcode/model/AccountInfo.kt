@@ -1,7 +1,6 @@
 package com.getcode.model
 
 import com.codeinc.gen.account.v1.AccountService
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 
 data class AccountInfo (
@@ -13,17 +12,17 @@ data class AccountInfo (
     var accountType: AccountType,
 
     /// The token account's address
-    var address: PublicKey,
+    var address: com.getcode.solana.keys.PublicKey,
 
     /// The owner of the token account, which can also be thought of as a parent
     /// account that links to one or more token accounts. This is provided when
     /// available.
-    var owner: PublicKey?,
+    var owner: com.getcode.solana.keys.PublicKey?,
 
     /// The token account's authority, which has access to moving funds for the
     /// account. This can be the owner account under certain circumstances (eg.
     /// ATA, primary account). This is provided when available.
-    var authority: PublicKey?,
+    var authority: com.getcode.solana.keys.PublicKey?,
 
     /// The source of truth for the balance calculation.
     var balanceSource: BalanceSource,
@@ -72,17 +71,19 @@ data class AccountInfo (
     companion object {
         fun newInstance(info: AccountService.TokenAccountInfo): AccountInfo? {
             val accountType = AccountType.newInstance(info.accountType, info.relationship) ?: return null
-            val address = PublicKey(info.address.value.toByteArray().toList())
+            val address =
+                com.getcode.solana.keys.PublicKey(info.address.value.toByteArray().toList())
             val balanceSource = BalanceSource.getInstance(info.balanceSource) ?: return null
 
             val managementState = ManagementState.getInstance(info.managementState) ?: return null
             val blockchainState = BlockchainState.getInstance(info.blockchainState) ?: return null
             val claimState = ClaimState.getInstance(info.claimState) ?: return null
 
-            val owner = PublicKey(info.owner.value.toByteArray().toList())
-            val authority = PublicKey(info.authority.value.toByteArray().toList())
+            val owner = com.getcode.solana.keys.PublicKey(info.owner.value.toByteArray().toList())
+            val authority =
+                com.getcode.solana.keys.PublicKey(info.authority.value.toByteArray().toList())
 
-            val originalCurrency = com.getcode.model.CurrencyCode.tryValueOf(info.originalExchangeData.currency)
+            val originalCurrency = CurrencyCode.tryValueOf(info.originalExchangeData.currency)
 
             val originalKinAmount = originalCurrency?.let {
                 KinAmount.newInstance(

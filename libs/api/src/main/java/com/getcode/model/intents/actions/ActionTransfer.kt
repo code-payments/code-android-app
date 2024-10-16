@@ -3,14 +3,13 @@ package com.getcode.model.intents.actions
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
+import com.getcode.model.extensions.newInstance
 import com.getcode.model.intents.ServerParameter
 import com.getcode.model.intents.actions.ActionTransfer.Kind.*
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.organizer.AccountCluster
-import com.getcode.solana.keys.PublicKey
-import com.getcode.solana.keys.SplitterCommitmentAccounts
 
 class ActionTransfer(
     override var id: Int,
@@ -18,10 +17,10 @@ class ActionTransfer(
     override val signer: Ed25519.KeyPair? = null,
 
     val kind: Kind,
-    val intentId: PublicKey,
+    val intentId: com.getcode.solana.keys.PublicKey,
     val amount: Kin,
     val source: AccountCluster,
-    val destination: PublicKey,
+    val destination: com.getcode.solana.keys.PublicKey,
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> {
@@ -30,8 +29,8 @@ class ActionTransfer(
 
         val tempPrivacyParameter = serverParameter.parameter
 
-        val resolvedDestination: PublicKey = if (tempPrivacyParameter is ServerParameter.Parameter.TempPrivacy) {
-            val splitterAccounts = SplitterCommitmentAccounts.newInstance(
+        val resolvedDestination: com.getcode.solana.keys.PublicKey = if (tempPrivacyParameter is ServerParameter.Parameter.TempPrivacy) {
+            val splitterAccounts = com.getcode.solana.keys.SplitterCommitmentAccounts.newInstance(
                 source = source,
                 destination = destination,
                 amount = amount,
@@ -113,10 +112,10 @@ class ActionTransfer(
     companion object {
         fun newInstance(
             kind: Kind,
-            intentId: PublicKey,
+            intentId: com.getcode.solana.keys.PublicKey,
             amount: Kin,
             source: AccountCluster,
-            destination: PublicKey
+            destination: com.getcode.solana.keys.PublicKey
         ): ActionTransfer {
             return ActionTransfer(
                 id = 0,

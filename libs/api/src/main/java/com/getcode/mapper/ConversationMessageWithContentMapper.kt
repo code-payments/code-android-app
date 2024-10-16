@@ -1,10 +1,8 @@
 package com.getcode.mapper
 
-import com.getcode.model.ConversationMessageContent
 import com.getcode.model.ConversationMessageWithContent
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
-import com.getcode.model.chat.MessageContent
 import javax.inject.Inject
 
 class ConversationMessageWithContentMapper @Inject constructor(

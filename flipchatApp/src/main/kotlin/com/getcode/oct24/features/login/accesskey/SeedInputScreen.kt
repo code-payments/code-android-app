@@ -76,7 +76,7 @@ data object SeedInputScreen: Screen, NamedScreen, Parcelable {
             AppBarWithTitle(
                 backButton = true,
                 onBackIconClicked = { navigator.pop() },
-                title = options.title,
+                title = name,
             )
             SeedInput(viewModel)
         }
@@ -113,8 +113,7 @@ private fun SeedInput(viewModel: SeedInputViewModel) {
                 modifier = Modifier
                     .constrainAs(captionText) {
                         top.linkTo(parent.top)
-                    }
-                    .padding(top = CodeTheme.dimens.grid.x4),
+                    },
                 style = CodeTheme.typography.textSmall.copy(textAlign = TextAlign.Center),
                 color = CodeTheme.colors.textSecondary,
                 text = stringResource(R.string.subtitle_loginDescription)

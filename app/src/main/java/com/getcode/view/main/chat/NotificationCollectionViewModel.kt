@@ -5,8 +5,8 @@ import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.chat.MessageContent
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
@@ -14,11 +14,11 @@ import com.getcode.model.chat.Verb
 import com.getcode.network.ConversationController
 import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
-import com.getcode.network.repository.base58
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.ChatMessageIndice
 import com.getcode.util.formatDateRelatively
 import com.getcode.util.toInstantFromMillis
+import com.getcode.utils.base58
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers

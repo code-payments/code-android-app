@@ -2,11 +2,8 @@ package com.getcode.models
 
 import android.net.Uri
 import com.getcode.model.CurrencyCode
-import com.getcode.model.Domain
-import com.getcode.model.Fiat
-import com.getcode.network.repository.decodeBase64
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.decodeBase64
 import com.getcode.vendor.Base58
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -99,7 +96,7 @@ data class DeepLinkRequest(
                         return null
                     }
 
-                    val destination = runCatching { PublicKey.fromBase58(destinationString) }
+                    val destination = runCatching { com.getcode.solana.keys.PublicKey.fromBase58(destinationString) }
                         .getOrNull()
                     if (destination == null) {
                         ErrorUtils.handleError(Throwable())
@@ -110,7 +107,7 @@ data class DeepLinkRequest(
                     // optional fees
                     val fees = container.decode<List<ProvidedFee>>("fees").orEmpty()
 
-                    val fiat = Fiat(currency = currencyCode, amount = amount)
+                    val fiat = com.getcode.model.Fiat(currency = currencyCode, amount = amount)
 
                     Timber.d("fiat=${fiat.amount}, fees=$fees")
                     return baseRequest.copy(
@@ -125,7 +122,7 @@ data class DeepLinkRequest(
                     val loginContainer = container.decode<LoginKeys>("login")
                         ?: return null
 
-                    val verifier = runCatching { PublicKey.fromBase58(loginContainer.verifier.orEmpty()) }
+                    val verifier = runCatching { com.getcode.solana.keys.PublicKey.fromBase58(loginContainer.verifier.orEmpty()) }
                         .getOrNull()
 
                     if (verifier == null) {
@@ -134,7 +131,7 @@ data class DeepLinkRequest(
                         return null
                     }
 
-                    val domain = Domain.from(loginContainer.domain) ?: return null
+                    val domain = com.getcode.model.Domain.from(loginContainer.domain) ?: return null
 
                     return baseRequest.copy(
                         loginRequest = LoginRequest(
@@ -159,14 +156,14 @@ data class DeepLinkRequest(
     }
 }
 data class PaymentRequest(
-    val fiat: Fiat,
-    val destination: PublicKey,
+    val fiat: com.getcode.model.Fiat,
+    val destination: com.getcode.solana.keys.PublicKey,
     val fees: List<ProvidedFee>,
 )
 
 data class LoginRequest(
-    val verifier: PublicKey,
-    val domain: Domain,
+    val verifier: com.getcode.solana.keys.PublicKey,
+    val domain: com.getcode.model.Domain,
 )
 
 data class TipRequest(

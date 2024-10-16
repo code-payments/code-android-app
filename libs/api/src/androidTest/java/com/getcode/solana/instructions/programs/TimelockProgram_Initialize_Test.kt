@@ -2,7 +2,6 @@ package com.getcode.solana.instructions.programs
 
 import com.getcode.mocks.SolanaTransaction
 import com.getcode.solana.keys.base58
-import com.getcode.utils.DataSlice.byteToUnsignedInt
 import junit.framework.Assert.assertEquals
 import org.junit.Test
 

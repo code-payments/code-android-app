@@ -7,6 +7,7 @@ import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
+import com.getcode.model.toPublicKey
 import com.getcode.network.client.Client
 import com.getcode.network.client.pollIntentMetadata
 import com.getcode.network.client.transfer

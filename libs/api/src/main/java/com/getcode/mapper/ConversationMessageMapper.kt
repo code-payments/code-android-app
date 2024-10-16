@@ -3,7 +3,7 @@ package com.getcode.mapper
 import com.getcode.model.ConversationMessage
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
-import com.getcode.network.repository.base58
+import com.getcode.utils.base58
 import javax.inject.Inject
 
 class ConversationMessageMapper @Inject constructor() :

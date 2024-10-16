@@ -6,8 +6,6 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.actions.ActionTransfer
-import com.getcode.solana.keys.LENGTH_32
-import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.SlotType
@@ -46,7 +44,9 @@ class IntentDepositTest {
         )
 
 
-        assertNotEquals(intent.id, PublicKey(ByteArray(LENGTH_32).toList()))
+        assertNotEquals(intent.id,
+            com.getcode.solana.keys.PublicKey(ByteArray(com.getcode.solana.keys.LENGTH_32).toList())
+        )
 
         val resultTray = intent.resultTray
 

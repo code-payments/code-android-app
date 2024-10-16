@@ -1,7 +1,8 @@
 package com.getcode.solana.keys
 
 import com.getcode.model.Kin
-import com.getcode.network.repository.decodeBase58
+import com.getcode.model.extensions.newInstance
+import com.getcode.utils.decodeBase58
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -34,8 +35,12 @@ class ProgramDerivedAccountTest {
     fun testCommitmentDerivation() {
         val treasury    = PublicKey.fromBase58("3HR2k4etyHtBgHCAisRQ5mAU1x3GxWSgmm1bHsNzvZKS")
         val destination = PublicKey.fromBase58("A1WsiTaL6fPei2xcqDPiVnRDvRwpCjne3votXZmrQe86")
-        val recentRoot  = Hash("BvtnzMe2CSunpGoYnvK6YZut1Jg41yaPBDGdJToPQrqy".decodeBase58().toList())
-        val transcript  = Hash("91aPsVLa6xCcVfC9FozexaMK8TgKCUZMkj4k6yPy2q4S".decodeBase58().toList())
+        val recentRoot  = com.getcode.solana.keys.Hash(
+            "BvtnzMe2CSunpGoYnvK6YZut1Jg41yaPBDGdJToPQrqy".decodeBase58().toList()
+        )
+        val transcript  = com.getcode.solana.keys.Hash(
+            "91aPsVLa6xCcVfC9FozexaMK8TgKCUZMkj4k6yPy2q4S".decodeBase58().toList()
+        )
 
         val derivedAccounts = SplitterCommitmentAccounts.newInstance(
                 treasury = treasury,
@@ -61,7 +66,7 @@ class ProgramDerivedAccountTest {
         val transcript = SplitterTranscript(
             intentId = PublicKey.fromBase58(base58 = "4roBdWPCqbuqr4YtPavfi7hTAMdH52RXMDgKhqQ4qvX6"),
             actionId = 1,
-            amount = Kin.Companion.fromKin(40),
+            amount = Kin.fromKin(40),
             source = PublicKey.fromBase58(base58 = "GNVyMgwkFQvm3YLuJdEVW4xEoqDYnixVaxVYT59frGWW"),
             destination = PublicKey.fromBase58(base58 = "Cia66LdCtvfJ6G5jjmLtNoFx5JvWr3uNv2iaFvmSS9gW"),
         )

@@ -62,12 +62,12 @@ internal data object MainRoot : Screen {
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
                 Image(
-                    painter = painterResource(com.getcode.oct24.R.drawable.flipchat_logo),
+                    painter = painterResource(R.drawable.flipchat_logo),
                     contentDescription = "",
                     modifier = Modifier
                 )
                 Text(
-                    text = stringResource(com.getcode.oct24.R.string.app_name_without_variant),
+                    text = stringResource(R.string.app_name_without_variant),
                     style = CodeTheme.typography.displayMedium,
                     color = White
                 )

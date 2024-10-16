@@ -10,7 +10,7 @@ import androidx.room.RewriteQueriesToDropUnusedColumns
 import com.getcode.model.Conversation
 import com.getcode.model.ConversationWithLastPointers
 import com.getcode.model.ID
-import com.getcode.network.repository.base58
+import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
 
 @Dao

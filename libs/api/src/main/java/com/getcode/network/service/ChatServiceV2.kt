@@ -16,23 +16,22 @@ import com.getcode.model.Conversation
 import com.getcode.model.Cursor
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.ID
-import com.getcode.model.MessageStatus
 import com.getcode.model.SocialUser
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatIdV2
 import com.getcode.model.chat.ChatStreamEventUpdate
 import com.getcode.model.chat.ChatType
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.model.description
-import com.getcode.model.uuid
 import com.getcode.network.api.ChatApiV2
 import com.getcode.network.client.ChatMessageStreamReference
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.repository.sign
-import com.getcode.network.repository.toByteString
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.toByteString
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
 import io.grpc.Status
@@ -44,7 +43,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
-import java.util.UUID
 import javax.inject.Inject
 import kotlin.coroutines.resume
 

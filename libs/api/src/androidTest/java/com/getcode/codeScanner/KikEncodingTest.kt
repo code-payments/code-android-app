@@ -1,6 +1,6 @@
 package com.getcode.codeScanner
 
-import com.getcode.network.repository.toByteList
+import com.getcode.utils.toByteList
 import junit.framework.Assert.assertEquals
 import org.junit.Test
 

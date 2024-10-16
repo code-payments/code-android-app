@@ -2,19 +2,16 @@ package com.getcode.model.intents
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
-import com.getcode.solana.keys.Signature
 import com.getcode.model.intents.actions.ActionType
 import com.getcode.model.intents.actions.numberActions
 import com.getcode.network.integrity.toDeviceToken
 import com.getcode.network.repository.*
 import com.getcode.solana.Message
 import com.getcode.solana.SolanaTransaction
-import com.getcode.solana.builder.TransactionBuilder
-import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.sign
 
 abstract class IntentType {
-    abstract val id: PublicKey
+    abstract val id: com.getcode.solana.keys.PublicKey
     abstract val actionGroup: ActionGroup
 
     fun getActions() = actionGroup.actions
@@ -41,7 +38,7 @@ abstract class IntentType {
         return SolanaTransaction(message, sigs)
     }
 
-    fun signatures(): List<Signature> =
+    fun signatures(): List<com.getcode.solana.keys.Signature> =
         actionGroup.actions.map { it.signatures().firstOrNull() }.mapNotNull { it }
 
     abstract fun metadata(): TransactionService.Metadata

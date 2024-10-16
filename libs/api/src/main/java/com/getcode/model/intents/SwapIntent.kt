@@ -4,12 +4,13 @@ import com.codeinc.gen.common.v1.Model.InstructionAccount
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
 import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.network.repository.toHash
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.generate
+import com.getcode.model.toHash
+import com.getcode.model.toPublicKey
 import com.getcode.network.repository.toSignature
-import com.getcode.solana.AccountMeta
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
+import com.getcode.solana.keys.AccountMeta
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
@@ -17,9 +18,7 @@ import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.google.protobuf.ByteString
-import org.kin.sdk.base.models.Key
 import java.lang.IllegalStateException
-import kotlin.math.sign
 
 class SwapIntent(
     val id: PublicKey,

@@ -14,9 +14,9 @@ import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.screens.PermissionRequestScreen
-import com.getcode.network.repository.getPublicKeyBase58
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.getPublicKeyBase58
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable

@@ -19,9 +19,9 @@ data class Limits(
     val maxDeposit: Kin,
 
     // Remaining send limits keyed by currency
-    private val sendLimits: Map<com.getcode.model.CurrencyCode, SendLimit>,
+    private val sendLimits: Map<CurrencyCode, SendLimit>,
     // Buy limits keyed by currency
-    private val buyLimits: Map<com.getcode.model.CurrencyCode, BuyLimit>,
+    private val buyLimits: Map<CurrencyCode, BuyLimit>,
 
     ) {
     val isStale: Boolean
@@ -30,11 +30,11 @@ data class Limits(
             return now - fetchDate > 1.hours.inWholeMilliseconds
         }
 
-    fun sendLimitFor(currencyCode: com.getcode.model.CurrencyCode) : SendLimit? {
+    fun sendLimitFor(currencyCode: CurrencyCode) : SendLimit? {
         return sendLimits[currencyCode]
     }
 
-    fun buyLimitFor(currencyCode: com.getcode.model.CurrencyCode): BuyLimit? {
+    fun buyLimitFor(currencyCode: CurrencyCode): BuyLimit? {
         return buyLimits[currencyCode]
     }
 
@@ -48,7 +48,7 @@ data class Limits(
         ): Limits {
             val sends = sendLimits
                 .mapNotNull { (k, v) ->
-                    val code = com.getcode.model.CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
+                    val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
                     val limit = SendLimit(
                         nextTransaction = v.nextTransaction.toDouble(),
                         maxPerDay = v.maxPerDay.toDouble(),
@@ -66,7 +66,7 @@ data class Limits(
                     )
                 }
                 .mapNotNull { (k, limit) ->
-                    val code = com.getcode.model.CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
+                    val code = CurrencyCode.tryValueOf(k) ?: return@mapNotNull null
                     code to limit
                 }.toMap()
 

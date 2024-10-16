@@ -2,14 +2,14 @@ package com.getcode.model.intents
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.solana.keys.Hash
-import com.getcode.solana.keys.Signature
 import com.getcode.model.Kin
 import com.getcode.model.UpgradeableIntent
+import com.getcode.model.extensions.newInstance
 import com.getcode.model.intents.actions.ActionPrivacyUpgrade
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.keys.Signature
 import com.getcode.solana.keys.SplitterCommitmentAccounts
 import com.getcode.solana.organizer.AccountCluster
 
@@ -98,7 +98,7 @@ class IntentUpgradePrivacy(
             destination: PublicKey,
             originalNonce: PublicKey,
             treasury: PublicKey,
-            recentRoot: Hash
+            recentRoot: com.getcode.solana.keys.Hash
         ) {
             val transaction = SolanaTransaction.fromList(transactionData)
                 ?: throw IntentUpgradePrivacyException.FailedToParseTransactionException()

@@ -3,6 +3,7 @@ package com.getcode.network.repository
 import com.codeinc.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.IntentMetadata
+import com.getcode.model.toPublicKey
 import com.getcode.network.client.Client
 import com.getcode.network.client.pollIntentMetadata
 import com.getcode.solana.organizer.Organizer

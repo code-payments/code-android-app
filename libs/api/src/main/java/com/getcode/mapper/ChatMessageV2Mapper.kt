@@ -4,7 +4,7 @@ package com.getcode.mapper
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.uuid
+import com.getcode.model.protomapping.invoke
 import javax.inject.Inject
 import com.codeinc.gen.chat.v2.ChatService.Message as ApiChatMessage
 import com.getcode.model.chat.ChatMessage as DomainChatMessage

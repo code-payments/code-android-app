@@ -3,13 +3,16 @@ package com.getcode.models.intents
 import android.content.Context
 import androidx.test.platform.app.InstrumentationRegistry
 import com.getcode.crypt.MnemonicPhrase
+import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
+import com.getcode.model.fromFiatAmount
+import com.getcode.model.generate
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.solana.keys.Key32.Companion.mock
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
@@ -45,7 +48,7 @@ class IntentPrivateTransferTest {
         val amount = KinAmount.fromFiatAmount(
             fiat = 5.00,
             fx = 0.00001,
-            currencyCode = com.getcode.model.CurrencyCode.USD
+            currencyCode = CurrencyCode.USD
         )
 
         val rendezvous = PublicKey.generate()
@@ -58,7 +61,7 @@ class IntentPrivateTransferTest {
             isWithdrawal = false,
             fee = Kin.fromKin(0),
             additionalFees = emptyList(),
-            tipMetadata = null,
+            metadata = null,
         )
 
         assertEquals(rendezvous, intent.id)

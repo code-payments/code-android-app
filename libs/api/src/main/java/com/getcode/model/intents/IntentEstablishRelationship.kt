@@ -1,11 +1,11 @@
 package com.getcode.model.intents
 
-import android.content.Context
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.Domain
+import com.getcode.model.generate
 import com.getcode.model.intents.actions.ActionOpenAccount
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toPublicKey
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer

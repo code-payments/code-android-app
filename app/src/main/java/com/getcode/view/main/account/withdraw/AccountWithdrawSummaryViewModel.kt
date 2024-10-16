@@ -19,12 +19,12 @@ import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.client.*
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.vendor.Base58
 import com.getcode.view.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import org.kin.sdk.base.tools.Base58
 import javax.inject.Inject
 
 private const val TAG = "AccountWithdrawSummaryViewModel"
@@ -105,7 +105,8 @@ class AccountWithdrawSummaryViewModel @Inject constructor(
         )
 
         val organizer = SessionManager.getOrganizer() ?: return
-        val destination = PublicKey(Base58.decode(uiModel.resolvedDestination).toList())
+        val destination =
+            PublicKey(Base58.decode(uiModel.resolvedDestination).toList())
 
         client.withdrawExternally(amount, organizer, destination)
             .observeOn(AndroidSchedulers.mainThread())

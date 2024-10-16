@@ -24,7 +24,7 @@ class SlotTest {
 
     @Test
     fun testBillCount() {
-        val tray = Tray.newInstance(context, mnemonic)
+        val tray = Tray.newInstance(mnemonic)
 
         tray.setBalances(
             mapOf(

@@ -3,8 +3,6 @@ package com.getcode.model
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.Relationship
 import okhttp3.internal.toImmutableMap
-import timber.log.Timber
-import java.util.Comparator
 import javax.inject.Inject
 import javax.inject.Singleton
 

@@ -18,11 +18,11 @@ import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.PhoneNumberScreen
 import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.encodeBase64
 import com.getcode.util.OtpSmsBroadcastReceiver
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.encodeBase64
 import com.getcode.view.BaseViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers

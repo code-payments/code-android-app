@@ -47,11 +47,12 @@ android {
 }
 
 dependencies {
-    implementation(project(":libs:api"))
     implementation(project(":libs:datetime"))
-    implementation(project(":libs:crypto:ed25519"))
+    implementation(project(":libs:encryption:ed25519"))
+    implementation(project(":libs:encryption:utils"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:messaging"))
+    implementation(project(":libs:models"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
     implementation(project(":libs:requests"))

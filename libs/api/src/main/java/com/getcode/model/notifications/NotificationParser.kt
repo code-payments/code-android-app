@@ -2,8 +2,9 @@ package com.getcode.model.notifications
 
 import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.chat.MessageContent
-import com.getcode.network.repository.decodeBase64
+import com.getcode.model.protomapping.invoke
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.decodeBase64
 import com.google.firebase.messaging.RemoteMessage
 import timber.log.Timber
 
@@ -58,7 +59,7 @@ fun RemoteMessage.parse(): CodeNotification? {
         }
         it
     }
-    val content = MessageContent.invoke(rawContent).let {
+    val content = MessageContent(rawContent).let {
         if (it == null) {
             Timber.e("failed to convert MessageContent")
             ErrorUtils.handleError(Throwable("failed to convert MessageContent"))

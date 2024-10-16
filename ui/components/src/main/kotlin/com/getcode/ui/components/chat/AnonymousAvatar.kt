@@ -24,12 +24,12 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.getcode.network.repository.sha512
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.utils.UUIDPreviewParameterProvider
 import com.getcode.ui.utils.deriveTargetColor
 import com.getcode.ui.utils.toAGColor
 import com.getcode.utils.bytes
+import com.getcode.utils.sha512
 import java.util.UUID
 import kotlin.experimental.and
 import kotlin.math.roundToInt

@@ -1,6 +1,6 @@
 package com.getcode.util
 
-import com.getcode.network.repository.urlEncode
+import com.getcode.utils.urlEncode
 
 object Linkify {
     fun cashLink(entropy: String): String = "https://cash.getcode.com/c/#/e=${entropy}"

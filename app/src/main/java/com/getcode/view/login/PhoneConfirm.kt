@@ -42,12 +42,12 @@ import com.getcode.LocalPhoneFormatter
 import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginArgs
-import com.getcode.network.repository.replaceParam
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.components.OtpRow
+import com.getcode.utils.replaceParam
 
 internal const val OTP_LENGTH = 6
 

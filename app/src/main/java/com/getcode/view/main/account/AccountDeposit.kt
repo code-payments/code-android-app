@@ -33,10 +33,10 @@ import com.getcode.theme.White
 import com.getcode.theme.White05
 import com.getcode.theme.extraSmall
 import com.getcode.ui.utils.rememberedClickable
-import com.getcode.vendor.Base58
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.MiddleEllipsisText
+import org.kin.sdk.base.tools.Base58
 
 @Composable
 fun AccountDeposit() {

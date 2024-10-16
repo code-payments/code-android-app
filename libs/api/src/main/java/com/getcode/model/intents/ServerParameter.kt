@@ -2,8 +2,8 @@ package com.getcode.model.intents
 
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.Kin
-import com.getcode.network.repository.toHash
-import com.getcode.network.repository.toPublicKey
+import com.getcode.model.toHash
+import com.getcode.model.toPublicKey
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.PublicKey
 
@@ -32,22 +32,38 @@ class ServerParameter(
                 return when (proto.typeCase) {
                     TransactionService.ServerParameter.TypeCase.TEMPORARY_PRIVACY_TRANSFER -> {
                         val param = proto.temporaryPrivacyTransfer
-                        val treasury = PublicKey(param.treasury.value.toByteArray().toList())
-                        val recentRoot = Hash(param.recentRoot.value.toByteArray().toList())
+                        val treasury = PublicKey(
+                            param.treasury.value.toByteArray().toList()
+                        )
+                        val recentRoot = Hash(
+                            param.recentRoot.value.toByteArray().toList()
+                        )
                         return TempPrivacy(treasury, recentRoot)
                     }
                     TransactionService.ServerParameter.TypeCase.TEMPORARY_PRIVACY_EXCHANGE -> {
                         val param = proto.temporaryPrivacyExchange
-                        val treasury = PublicKey(param.treasury.value.toByteArray().toList())
-                        val recentRoot = Hash(param.recentRoot.value.toByteArray().toList())
+                        val treasury = PublicKey(
+                            param.treasury.value.toByteArray().toList()
+                        )
+                        val recentRoot = Hash(
+                            param.recentRoot.value.toByteArray().toList()
+                        )
                         return TempPrivacy(treasury, recentRoot)
                     }
                     TransactionService.ServerParameter.TypeCase.PERMANENT_PRIVACY_UPGRADE -> {
                         val param = proto.permanentPrivacyUpgrade
-                        val newCommitment = PublicKey(param.newCommitment.value.toByteArray().toList())
-                        val newCommitmentTranscript = Hash(param.newCommitmentTranscript.value.toByteArray().toList())
-                        val newCommitmentDestination = PublicKey(param.newCommitmentDestination.value.toByteArray().toList())
-                        val merkleRoot = Hash(param.merkleRoot.value.toByteArray().toList())
+                        val newCommitment = PublicKey(
+                            param.newCommitment.value.toByteArray().toList()
+                        )
+                        val newCommitmentTranscript = Hash(
+                            param.newCommitmentTranscript.value.toByteArray().toList()
+                        )
+                        val newCommitmentDestination = PublicKey(
+                            param.newCommitmentDestination.value.toByteArray().toList()
+                        )
+                        val merkleRoot = Hash(
+                            param.merkleRoot.value.toByteArray().toList()
+                        )
 
                         val merkleProof = param.merkleProofList.map {
                             Hash(it.value.toByteArray().toList())
@@ -66,7 +82,9 @@ class ServerParameter(
                         val param = proto.feePayment
 
                         // PublicKey will be `nil` for .thirdParty fee payments
-                        val optionalDestination = PublicKey(param.codeDestination.value.toByteArray().toList())
+                        val optionalDestination = PublicKey(
+                            param.codeDestination.value.toByteArray().toList()
+                        )
                         FeePayment(optionalDestination)
                     }
                     TransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT,

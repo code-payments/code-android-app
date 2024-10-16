@@ -14,7 +14,7 @@ import javax.inject.Singleton
 @Singleton
 class PhoneUtils @Inject constructor(
     @ApplicationContext private val context: Context,
-    currencyUtils: com.getcode.utils.CurrencyUtils
+    currencyUtils: CurrencyUtils
 ) {
     var countryLocales: List<CountryLocale> = listOf()
     private var countryCodesMap: Map<Int, CountryLocale> = mapOf()

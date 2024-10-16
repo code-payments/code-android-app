@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
-import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Verb
 import com.getcode.model.orOneToOne
 import com.getcode.network.exchange.LocalExchange

@@ -16,6 +16,7 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Limits
 import com.getcode.model.Rate
+import com.getcode.model.generate
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer

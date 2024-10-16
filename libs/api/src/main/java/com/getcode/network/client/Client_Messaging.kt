@@ -4,7 +4,6 @@ import com.codeinc.gen.messaging.v1.MessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Domain
 import com.getcode.model.Fiat
-import com.getcode.solana.keys.PublicKey
 
 suspend fun Client.sendRequestToLogin(
     domain: Domain,
@@ -15,7 +14,7 @@ suspend fun Client.sendRequestToLogin(
 }
 
 suspend fun Client.sendRequestToReceiveBill(
-    destination: PublicKey,
+    destination: com.getcode.solana.keys.PublicKey,
     fiat: Fiat,
     rendezvous: KeyPair
 ): Result<MessagingService.SendMessageResponse> {

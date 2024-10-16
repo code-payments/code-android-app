@@ -28,7 +28,6 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.R
-import com.getcode.model.ID
 import com.getcode.model.TwitterUser
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -98,8 +97,8 @@ data object ChatByUsernameScreen: ChatGraph, ModalContent {
 @Parcelize
 data class ConversationScreen(
     val user: @RawValue TwitterUser? = null,
-    val chatId: ID? = null,
-    val intentId: ID? = null
+    val chatId: com.getcode.model.ID? = null,
+    val intentId: com.getcode.model.ID? = null
 ) : AppScreen(), ChatGraph, ModalContent {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey

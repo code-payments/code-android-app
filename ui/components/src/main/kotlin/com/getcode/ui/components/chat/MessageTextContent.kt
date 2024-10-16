@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import com.getcode.model.MessageStatus
+import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
