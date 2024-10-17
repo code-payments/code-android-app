@@ -100,31 +100,31 @@ class BalanceSheetViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        history.notifications
-            .onEach {
-                if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
-                    dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
-                }
-            }
-            .map { chats ->
-                when {
-                    chats == null -> null // await for confirmation it's empty
-                    chats.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
-                    history.loadingCollections -> null // remain loading while fetching messages
-                    else -> chats
-                }
-            }
-            .filterNotNull()
-            .onEach { update ->
-                dispatchEvent(Dispatchers.Main, Event.OnChatsUpdated(update))
-            }.onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
-            }.launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnOpened>()
-            .onEach { history.fetch(true) }
-            .launchIn(viewModelScope)
+//        history.notifications
+//            .onEach {
+//                if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
+//                    dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
+//                }
+//            }
+//            .map { chats ->
+//                when {
+//                    chats == null -> null // await for confirmation it's empty
+//                    chats.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+//                    history.loadingCollections -> null // remain loading while fetching messages
+//                    else -> chats
+//                }
+//            }
+//            .filterNotNull()
+//            .onEach { update ->
+//                dispatchEvent(Dispatchers.Main, Event.OnChatsUpdated(update))
+//            }.onEach {
+//                dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
+//            }.launchIn(viewModelScope)
+//
+//        eventFlow
+//            .filterIsInstance<Event.OnOpened>()
+//            .onEach { history.fetch(true) }
+//            .launchIn(viewModelScope)
     }
 
     companion object {

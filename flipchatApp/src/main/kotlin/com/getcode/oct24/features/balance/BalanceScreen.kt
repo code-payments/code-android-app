@@ -167,11 +167,11 @@ fun BalanceContent(
                 }
             }
 
-            chatsEmpty -> {
-                item {
-                    EmptyTransactionsHint(faqOpen)
-                }
-            }
+//            chatsEmpty -> {
+//                item {
+//                    EmptyTransactionsHint(faqOpen)
+//                }
+//            }
         }
     }
 }
@@ -182,16 +182,20 @@ fun BalanceTop(
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
-    AmountArea(
-        amountText = state.amountText,
-        isAltCaption = false,
-        isAltCaptionKinIcon = false,
-        isLoading = state.chatsLoading,
-        currencyResId = state.currencyFlag,
-        isClickable = false,
-        onClick = onClick,
-        textStyle = CodeTheme.typography.displayLarge,
-    )
+    if (state.amountText.isEmpty()) {
+        CodeCircularProgressIndicator()
+    } else {
+        AmountArea(
+            amountText = state.amountText,
+            isAltCaption = false,
+            isAltCaptionKinIcon = false,
+            isLoading = state.chatsLoading,
+            currencyResId = state.currencyFlag,
+            isClickable = false,
+            onClick = onClick,
+            textStyle = CodeTheme.typography.displayLarge,
+        )
+    }
 }
 
 @Composable
