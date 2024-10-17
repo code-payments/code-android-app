@@ -36,7 +36,6 @@ android {
 }
 
 dependencies {
-    api(project(":definitions:code:models"))
     implementation(project(":libs:encryption:base58"))
     implementation(project(":libs:encryption:ed25519"))
     implementation(project(":libs:encryption:keys"))
@@ -49,4 +48,5 @@ dependencies {
     implementation(Libs.androidx_room_ktx)
 
     api(Libs.sodium_bindings)
+    implementation(project(":definitions:code:models"))
 }

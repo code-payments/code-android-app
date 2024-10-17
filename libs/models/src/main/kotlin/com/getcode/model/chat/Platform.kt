@@ -1,7 +1,5 @@
 package com.getcode.model.chat
 
-import com.codeinc.gen.chat.v2.ChatService
-
 enum class Platform {
     Unknown,
     Twitter;

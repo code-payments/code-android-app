@@ -13,6 +13,7 @@ import com.getcode.model.AirdropType
 import com.getcode.model.PrefsBool
 import com.getcode.model.PrefsString
 import com.getcode.model.TwitterUser
+import com.getcode.model.protomapping.invoke
 import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
 import com.getcode.utils.ErrorUtils
@@ -158,8 +159,8 @@ class IdentityRepository @Inject constructor(
         keyPair: KeyPair,
         phoneValue: String,
         code: String
-    ): Single<IdentityService.LinkAccountResponse.Result> {
-        if (isMock()) return Single.just(IdentityService.LinkAccountResponse.Result.OK)
+    ): Single<out LinkAccountResult> {
+        if (isMock()) return Single.just(LinkAccountResult.Success)
             .delay(1, TimeUnit.SECONDS)
 
         val request =
@@ -180,14 +181,23 @@ class IdentityRepository @Inject constructor(
         return identityApi.linkAccount(request)
             .map { it.result }
             .let { networkOracle.managedRequest(it) }
+            .map {
+                when (it) {
+                    IdentityService.LinkAccountResponse.Result.OK -> LinkAccountResult.Success
+                    IdentityService.LinkAccountResponse.Result.INVALID_TOKEN -> LinkAccountResult.Error.InvalidCode
+                    IdentityService.LinkAccountResponse.Result.RATE_LIMITED -> LinkAccountResult.Error.RateLimit
+                    IdentityService.LinkAccountResponse.Result.UNRECOGNIZED -> LinkAccountResult.Error.Unrecognized
+                    else -> LinkAccountResult.Error.Other
+                }
+            }
             .firstOrError()
     }
 
     fun unlinkAccount(
         keyPair: KeyPair,
         phoneValue: String
-    ): Single<IdentityService.UnlinkAccountResponse.Result> {
-        if (isMock()) return Single.just(IdentityService.UnlinkAccountResponse.Result.OK)
+    ): Single<out UnlinkAccountResult> {
+        if (isMock()) return Single.just(UnlinkAccountResult.Success)
             .delay(1, TimeUnit.SECONDS)
 
         val request =
@@ -200,6 +210,12 @@ class IdentityRepository @Inject constructor(
         return identityApi.unlinkAccount(request)
             .map { it.result }
             .let { networkOracle.managedRequest(it) }
+            .map {
+                when (it) {
+                    IdentityService.UnlinkAccountResponse.Result.OK -> UnlinkAccountResult.Success
+                    else -> UnlinkAccountResult.Error
+                }
+            }
             .doOnComplete {
                 phoneRepository.phoneNumber = ""
                 phoneRepository.phoneLinked.value = false
@@ -402,4 +418,19 @@ sealed class TwitterUserFetchError : Exception() {
     class UnrecognizedRequest: TwitterUserFetchError()
     class NotFound: TwitterUserFetchError()
     class FailedToParse: TwitterUserFetchError()
+}
+
+sealed interface LinkAccountResult {
+    data object Success: LinkAccountResult
+    sealed interface Error: LinkAccountResult {
+        data object InvalidCode : Error
+        data object RateLimit: Error
+        data object Unrecognized : Error
+        data object Other: Error
+    }
+}
+
+sealed interface UnlinkAccountResult {
+    data object Success: UnlinkAccountResult
+    data object Error: UnlinkAccountResult
 }

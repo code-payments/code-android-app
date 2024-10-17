@@ -3,7 +3,7 @@ package com.getcode.network
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.getcode.api.BuildConfig
+import com.getcode.services.BuildConfig
 import com.getcode.db.AppDatabase
 import com.getcode.db.Database
 import com.getcode.manager.SessionManager

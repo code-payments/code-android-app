@@ -1,7 +1,7 @@
 package com.getcode.network.client
 
 import android.annotation.SuppressLint
-import com.getcode.api.BuildConfig
+import com.getcode.services.BuildConfig
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager

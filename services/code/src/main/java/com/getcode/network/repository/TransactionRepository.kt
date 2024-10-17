@@ -10,7 +10,7 @@ import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
-import com.getcode.api.BuildConfig
+import com.getcode.services.BuildConfig
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.*

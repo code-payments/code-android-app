@@ -1,6 +1,6 @@
 package com.getcode.analytics
 
-import com.getcode.api.BuildConfig
+import com.getcode.services.BuildConfig
 import com.getcode.model.AppSetting
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount

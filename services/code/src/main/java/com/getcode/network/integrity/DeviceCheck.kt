@@ -8,8 +8,8 @@ import com.codeinc.gen.common.v1.Model
 import com.fingerprintjs.android.fpjs_pro.Configuration
 import com.fingerprintjs.android.fpjs_pro.FingerprintJS
 import com.fingerprintjs.android.fpjs_pro.FingerprintJSFactory
-import com.getcode.api.BuildConfig
-import com.getcode.api.BuildConfig.GOOGLE_CLOUD_PROJECT_NUMBER
+import com.getcode.services.BuildConfig
+import com.getcode.services.BuildConfig.GOOGLE_CLOUD_PROJECT_NUMBER
 import com.google.android.gms.tasks.Task
 import com.google.android.play.core.integrity.IntegrityManager
 import com.google.android.play.core.integrity.IntegrityManagerFactory

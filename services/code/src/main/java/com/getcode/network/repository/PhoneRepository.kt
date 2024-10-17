@@ -31,9 +31,8 @@ class PhoneRepository @Inject constructor(
 
     fun sendVerificationCode(
         phoneValue: String
-    ): Flowable<PhoneVerificationService.SendVerificationCodeResponse.Result> {
-        if (isMock()) return Single.just(PhoneVerificationService.SendVerificationCodeResponse.Result.OK)
-            .toFlowable()
+    ): Flowable<out OtpVerificationResult> {
+        if (isMock()) return Single.just(OtpVerificationResult.Success).toFlowable()
 
         return DeviceCheck.integrityResponseFlowable()
             .flatMap { tokenResult ->
@@ -50,14 +49,27 @@ class PhoneRepository @Inject constructor(
                 phoneApi.sendVerificationCode(request)
                     .map { it.result }
                     .let { networkOracle.managedRequest(it) }
+                    .map { ret ->
+                        when (ret) {
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.OK -> OtpVerificationResult.Success
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.NOT_INVITED -> OtpVerificationResult.Error.NotInvited
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.RATE_LIMITED -> OtpVerificationResult.Error.RateLimited
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.INVALID_PHONE_NUMBER -> OtpVerificationResult.Error.InvalidPhoneNumber
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_PHONE_TYPE -> OtpVerificationResult.Error.UnsupportedPhoneType
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_COUNTRY -> OtpVerificationResult.Error.UnsupportedCountry
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.UNSUPPORTED_DEVICE -> OtpVerificationResult.Error.UnsupportedDevice
+                            PhoneVerificationService.SendVerificationCodeResponse.Result.UNRECOGNIZED -> OtpVerificationResult.Error.Unrecognized
+                            else -> OtpVerificationResult.Error.Other
+                        }
+                    }
             }
     }
 
     fun checkVerificationCode(
         phoneValue: String,
         otpInput: String
-    ): Flowable<PhoneVerificationService.CheckVerificationCodeResponse.Result> {
-        if (isMock()) return Flowable.just(PhoneVerificationService.CheckVerificationCodeResponse.Result.OK)
+    ): Flowable<CheckVerificationResult> {
+        if (isMock()) return Flowable.just(CheckVerificationResult.Success)
 
         val request = PhoneVerificationService.CheckVerificationCodeRequest.newBuilder()
             .setPhoneNumber(phoneValue.toPhoneNumber())
@@ -67,6 +79,15 @@ class PhoneRepository @Inject constructor(
         return phoneApi.checkVerificationCode(request)
             .map { it.result }
             .let { networkOracle.managedRequest(it) }
+            .map { result ->
+                when (result) {
+                    PhoneVerificationService.CheckVerificationCodeResponse.Result.OK -> CheckVerificationResult.Success
+                    PhoneVerificationService.CheckVerificationCodeResponse.Result.INVALID_CODE -> CheckVerificationResult.Error.InvalidCode
+                    PhoneVerificationService.CheckVerificationCodeResponse.Result.NO_VERIFICATION -> CheckVerificationResult.Error.NoVerification
+                    PhoneVerificationService.CheckVerificationCodeResponse.Result.UNRECOGNIZED -> CheckVerificationResult.Error.Unrecognized
+                    else -> CheckVerificationResult.Error.Other
+                }
+            }
     }
 
     fun fetchAssociatedPhoneNumber(
@@ -114,5 +135,29 @@ class PhoneRepository @Inject constructor(
         ) { v1, v2 ->
             GetAssociatedPhoneNumberResponse(true, v1.value, false, v2)
         }
+    }
+}
+
+sealed interface OtpVerificationResult {
+    data object Success: OtpVerificationResult
+    sealed interface Error: OtpVerificationResult {
+        data object InvalidPhoneNumber : Error
+        data object NotInvited: Error
+        data object RateLimited: Error
+        data object UnsupportedPhoneType : Error
+        data object UnsupportedCountry : Error
+        data object UnsupportedDevice : Error
+        data object Unrecognized : Error
+        data object Other: Error
+    }
+}
+
+sealed interface CheckVerificationResult {
+    data object Success: CheckVerificationResult
+    sealed interface Error: CheckVerificationResult {
+        data object InvalidCode : Error
+        data object NoVerification : Error
+        data object Unrecognized : Error
+        data object Other: Error
     }
 }

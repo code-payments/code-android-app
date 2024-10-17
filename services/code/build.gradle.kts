@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.codeNamespace}.api"
+    namespace = "${Android.codeNamespace}.services"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -54,6 +54,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":definitions:code:models"))
+
     api(project(":libs:datetime"))
     api(project(":libs:crypto:kin"))
     api(project(":libs:crypto:solana"))

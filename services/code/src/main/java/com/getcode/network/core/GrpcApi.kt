@@ -8,10 +8,7 @@ import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.reactive.asFlow
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.reflect.KFunction2
 
 abstract class GrpcApi(protected val managedChannel: ManagedChannel) {
