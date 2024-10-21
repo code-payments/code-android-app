@@ -2,6 +2,7 @@ package com.getcode.network.api
 
 import com.codeinc.gen.phone.v1.PhoneVerificationGrpc
 import com.codeinc.gen.phone.v1.PhoneVerificationService
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull
@@ -11,6 +12,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import javax.inject.Inject
 
 class PhoneApi @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {

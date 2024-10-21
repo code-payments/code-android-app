@@ -8,6 +8,7 @@ import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsRequest
 import com.codeinc.gen.chat.v2.ChatService.StreamChatEventsResponse
 import com.codeinc.gen.common.v1.Model.ClientPong
+import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.mapper.ChatMessageV2Mapper
 import com.getcode.mapper.ChatMetadataV2Mapper
@@ -54,7 +55,7 @@ class ChatServiceV2 @Inject constructor(
     private val chatMapper: ChatMetadataV2Mapper,
     private val messageMapper: ChatMessageV2Mapper,
     private val pointerMapper: PointerMapper,
-    private val networkOracle: NetworkOracle,
+    @CodeNetworkOracle private val networkOracle: NetworkOracle,
 ) {
     private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
         return networkOracle.managedRequest(api.fetchChats(owner))
@@ -232,6 +233,7 @@ class ChatServiceV2 @Inject constructor(
     ): Result<Chat> {
         trace("Creating $type chat for ${intentId.description}")
         return when (type) {
+            ChatType.GroupChat -> throw IllegalArgumentException("Group chat type provided")
             ChatType.Unknown -> throw IllegalArgumentException("Unknown chat type provided")
             ChatType.TwoWay -> {
                 try {

@@ -1,6 +1,7 @@
 package com.getcode.network.client
 
 import com.codeinc.gen.account.v1.AccountService
+import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.AccountApi
 import com.getcode.network.core.NetworkOracle
@@ -12,6 +13,7 @@ import javax.inject.Inject
 
 class AccountService @Inject constructor(
     private val api: AccountApi,
+    @CodeNetworkOracle
     private val networkOracle: NetworkOracle,
 ) {
 

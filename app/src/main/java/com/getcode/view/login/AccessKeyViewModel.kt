@@ -8,7 +8,7 @@ import com.getcode.analytics.Action
 import com.getcode.analytics.ActionSource
 import com.getcode.analytics.AnalyticsService
 import com.getcode.manager.AuthManager
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.media.MediaScanner
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.CodeLoginPermission
@@ -30,7 +30,7 @@ class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val analytics: AnalyticsService,
     private val permissions: PermissionChecker,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     resources: ResourceHelper,
     mediaScanner: MediaScanner,
 ) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {

@@ -4,13 +4,15 @@
 
 root=$(pwd)
 
+target=$1
+
 # 1. hack: first add a couple newlines after all "];"
-find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '{gsub(/];/, \"];\n\n\"); print}' {} > tmp && mv tmp {}" \;
+find "${root}"/definitions/$target/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '{gsub(/];/, \"];\n\n\"); print}' {} > tmp && mv tmp {}" \;
 
 # 2. strip everything between square brackets [...] ignoring lines starting with //
-find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '!/^[[:space:]]*\/\// {gsub(/ \[.*\]/, \"\");} {print}' {} > tmp && mv tmp {}" \;
+find "${root}"/definitions/$target/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '!/^[[:space:]]*\/\// {gsub(/ \[.*\]/, \"\");} {print}' {} > tmp && mv tmp {}" \;
 
-find "${root}"/service/protos/src/main/proto -name "*.proto" -type f | while read -r file; do
+find "${root}"/definitions/$target/protos/src/main/proto -name "*.proto" -type f | while read -r file; do
     awk '
     BEGIN { in_repeated = 0; buffer = "" }
     {
@@ -37,7 +39,7 @@ done
 #find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '{gsub(/}/, \"}\n\"); print}' {} > tmp && mv tmp {}" \;
 
 # 4. strip validate import statement
-find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk -v RS='' '{gsub(/import \"validate\/validate.proto\";/, \"\"); print}' {} > tmp && mv tmp {}" \;
+find "${root}"/definitions/$target/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk -v RS='' '{gsub(/import \"validate\/validate.proto\";/, \"\"); print}' {} > tmp && mv tmp {}" \;
 
 # 5. add a newline after all trailing } brackets
 #find "${root}"/service/protos/src/main/proto -name "*.proto" -type f -exec sh -c "awk '{gsub(/}/, \"}\n\"); print}' {} > tmp && mv tmp {}" \;

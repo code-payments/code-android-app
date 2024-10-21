@@ -2,6 +2,7 @@ package com.getcode.network.api
 
 import com.codeinc.gen.currency.v1.CurrencyGrpc
 import com.codeinc.gen.currency.v1.CurrencyService
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.core.Scheduler
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class CurrencyApi @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
 ) : GrpcApi(managedChannel) {
     private val api = CurrencyGrpc.newStub(managedChannel).withWaitForReady()

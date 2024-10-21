@@ -18,17 +18,17 @@ import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
+import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.services.utils.installationId
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.installationId
 import com.getcode.utils.trace
 import com.getcode.view.MainActivity
 import com.google.firebase.Firebase
@@ -76,7 +76,7 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var notificationHistory: NotificationCollectionHistoryController
 
     @Inject
-    lateinit var chatHistory: ChatHistoryController
+    lateinit var chatHistory: com.getcode.oct24.network.controllers.ChatHistoryController
 
     @Inject
     lateinit var tipController: TipController

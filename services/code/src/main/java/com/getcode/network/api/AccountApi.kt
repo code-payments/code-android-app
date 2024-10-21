@@ -4,6 +4,7 @@ import com.codeinc.gen.account.v1.AccountGrpc
 import com.codeinc.gen.account.v1.AccountService
 import com.codeinc.gen.account.v1.AccountService.LinkAdditionalAccountsRequest
 import com.codeinc.gen.account.v1.AccountService.LinkAdditionalAccountsResponse
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toSolanaAccount
@@ -19,6 +20,7 @@ import javax.inject.Inject
 
 
 class AccountApi @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {

@@ -1,6 +1,7 @@
 package com.getcode.network.repository
 
 import com.codeinc.gen.phone.v1.PhoneVerificationService
+import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.PhoneApi
@@ -16,7 +17,7 @@ import javax.inject.Singleton
 @Singleton
 class PhoneRepository @Inject constructor(
     private val phoneApi: PhoneApi,
-    private val networkOracle: NetworkOracle
+    @CodeNetworkOracle private val networkOracle: NetworkOracle
 ) {
 
     var phoneNumber: String = ""

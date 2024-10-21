@@ -5,8 +5,9 @@ import com.getcode.generator.OrganizerGenerator
 import com.getcode.network.client.Client
 import com.getcode.network.client.registerInstallation
 import com.getcode.network.client.updatePreferences
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.solana.organizer.Organizer
-import com.getcode.utils.installationId
+import com.getcode.services.utils.installationId
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations

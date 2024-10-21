@@ -33,7 +33,7 @@ import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.TraceType
-import com.getcode.utils.flowInterval
+import com.getcode.services.utils.flowInterval
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single

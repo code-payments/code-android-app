@@ -2,9 +2,9 @@ package com.getcode.inject
 
 import com.getcode.mapper.ConversationMapper
 import com.getcode.mapper.ConversationMessageWithContentMapper
-import com.getcode.network.ConversationController
-import com.getcode.network.ConversationStreamController
-import com.getcode.network.ChatHistoryController
+import com.getcode.oct24.network.controllers.ConversationController
+import com.getcode.oct24.network.controllers.ConversationStreamController
+import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.service.ChatServiceV2
@@ -21,18 +21,19 @@ object DataModule {
     @Provides
     @Singleton
     fun providesConversationController(
-        historyController: ChatHistoryController,
+        historyController: com.getcode.oct24.network.controllers.ChatHistoryController,
         chatServiceV2: ChatServiceV2,
         exchange: Exchange,
         conversationMapper: ConversationMapper,
         messageWithContentMapper: ConversationMessageWithContentMapper,
         tipController: TipController,
-    ): ConversationController = ConversationStreamController(
-        historyController = historyController,
-        exchange = exchange,
-        chatService = chatServiceV2,
-        conversationMapper = conversationMapper,
-        messageWithContentMapper = messageWithContentMapper,
-        tipController = tipController
-    )
+    ): com.getcode.oct24.network.controllers.ConversationController =
+        com.getcode.oct24.network.controllers.ConversationStreamController(
+            historyController = historyController,
+            exchange = exchange,
+            chatService = chatServiceV2,
+            conversationMapper = conversationMapper,
+            messageWithContentMapper = messageWithContentMapper,
+            tipController = tipController
+        )
 }

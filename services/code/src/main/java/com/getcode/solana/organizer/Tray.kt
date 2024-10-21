@@ -9,7 +9,7 @@ import com.getcode.model.description
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.utils.TraceType
-import com.getcode.utils.padded
+import com.getcode.services.utils.padded
 import com.getcode.utils.trace
 import kotlin.math.min
 

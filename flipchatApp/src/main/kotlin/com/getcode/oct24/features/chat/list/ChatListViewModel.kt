@@ -2,7 +2,7 @@ package com.flipchat.features.chat.list
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.model.chat.ConversationEntity
-import com.getcode.network.ConversationListController
+//import com.getcode.oct24.network.controllers.ConversationListController
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +16,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    conversationsController: ConversationListController,
+//    conversationsController: ConversationListController,
     networkObserver: NetworkConnectivityListener,
 ): BaseViewModel2<ChatListViewModel.State, ChatListViewModel.Event>(
     initialState = State(),
@@ -34,30 +34,30 @@ class ChatListViewModel @Inject constructor(
     }
 
     init {
-        conversationsController.observeConversations()
-            .onEach {
-                if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
-                    dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
-                }
-            }
-            .map { conversations ->
-                when {
-                    conversations == null -> null // await for confirmation it's empty
-                    conversations.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
-                    conversationsController.isLoading -> null // remain loading while fetching messages
-                    else -> conversations
-                }
-            }
-            .filterNotNull()
-            .onEach { update ->
-                dispatchEvent(Dispatchers.Main, Event.OnChatsUpdated(update))
-            }.onEach {
-                dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
-            }.launchIn(viewModelScope)
+//        conversationsController.observeConversations()
+//            .onEach {
+//                if (it == null || (it.isEmpty() && !networkObserver.isConnected)) {
+//                    dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(true))
+//                }
+//            }
+//            .map { conversations ->
+//                when {
+//                    conversations == null -> null // await for confirmation it's empty
+//                    conversations.isEmpty() && !networkObserver.isConnected -> null // remain loading while disconnected
+//                    conversationsController.isLoading -> null // remain loading while fetching messages
+//                    else -> conversations
+//                }
+//            }
+//            .filterNotNull()
+//            .onEach { update ->
+//                dispatchEvent(Dispatchers.Main, Event.OnChatsUpdated(update))
+//            }.onEach {
+//                dispatchEvent(Dispatchers.Main, Event.OnChatsLoading(false))
+//            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnOpened>()
-            .onEach { conversationsController.fetchChats() }
+//            .onEach { conversationsController.fetchChats() }
             .launchIn(viewModelScope)
     }
 

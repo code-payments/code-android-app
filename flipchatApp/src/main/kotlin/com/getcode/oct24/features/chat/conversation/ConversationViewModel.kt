@@ -20,7 +20,7 @@ import com.getcode.model.TwitterUser
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
-import com.getcode.network.ConversationController
+import com.getcode.oct24.network.controllers.ConversationController
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository

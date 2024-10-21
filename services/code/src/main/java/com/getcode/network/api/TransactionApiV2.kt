@@ -4,6 +4,7 @@ import com.codeinc.gen.transaction.v2.TransactionGrpc
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
 import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class TransactionApiV2 @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {

@@ -11,7 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import cafe.adriel.voyager.core.stack.StackEvent
 import com.getcode.CodeAppState
-import com.getcode.manager.ModalManager
+import com.getcode.services.manager.ModalManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.buildMessageContent
 import kotlinx.coroutines.delay

@@ -5,6 +5,7 @@ import com.getcode.model.PointerStatus
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.PointerV2
 import com.getcode.model.uuid
+import com.getcode.services.mapper.Mapper
 import javax.inject.Inject
 
 class PointerMapper @Inject constructor(): Mapper<PointerV2, PointerStatus?> {

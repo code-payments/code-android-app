@@ -8,6 +8,8 @@ include(
         // protobuf model and service implementations for Code
         ":definitions:code:models",
         ":definitions:code:protos",
+        ":definitions:flipchat:models",
+        ":definitions:flipchat:protos",
 
         // Internal libs
         ":libs:crypto:kin",
@@ -34,7 +36,9 @@ include(
         ":libs:vibrator",
 
         // Services definition for app and lib access
+        ":services:shared",
         ":services:code",
+        ":services:flipchat",
 
         // common UI
         ":ui:components",

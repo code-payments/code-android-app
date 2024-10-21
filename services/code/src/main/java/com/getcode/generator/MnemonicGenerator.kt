@@ -1,8 +1,8 @@
 package com.getcode.generator
 
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.utils.Base58String
-import com.getcode.utils.Base64String
+import com.getcode.services.utils.Base58String
+import com.getcode.services.utils.Base64String
 import javax.inject.Inject
 
 class MnemonicGenerator @Inject constructor(

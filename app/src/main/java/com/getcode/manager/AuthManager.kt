@@ -14,7 +14,7 @@ import com.getcode.model.PrefsString
 import com.getcode.model.description
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
+import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.IdentityRepository
@@ -22,14 +22,14 @@ import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.isMock
+import com.getcode.services.utils.installationId
+import com.getcode.services.utils.makeE164
+import com.getcode.services.utils.token
 import com.getcode.util.AccountUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.encodeBase64
 import com.getcode.utils.getPublicKeyBase58
-import com.getcode.utils.installationId
-import com.getcode.utils.makeE164
-import com.getcode.utils.token
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
@@ -60,10 +60,10 @@ class AuthManager @Inject constructor(
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val notificationCollectionHistory: NotificationCollectionHistoryController,
-    private val chatHistory: ChatHistoryController,
+    private val chatHistory: com.getcode.oct24.network.controllers.ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false

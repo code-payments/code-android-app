@@ -21,11 +21,11 @@ import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.services.utils.makeE164
 import com.getcode.solana.organizer.AccountType
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.FormatUtils
 import com.getcode.utils.blockchainMemo
-import com.getcode.utils.makeE164
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.view.main.giveKin.AmountUiModel
 import com.getcode.view.main.giveKin.BaseAmountCurrencyViewModel

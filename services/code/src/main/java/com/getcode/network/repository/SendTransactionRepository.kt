@@ -13,7 +13,7 @@ import com.getcode.network.client.pollIntentMetadata
 import com.getcode.network.client.transfer
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.Organizer
-import com.getcode.utils.nonce
+import com.getcode.services.utils.nonce
 import io.reactivex.rxjava3.core.Flowable
 import kotlinx.coroutines.rx3.asFlowable
 import javax.inject.Inject

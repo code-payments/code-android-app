@@ -7,6 +7,7 @@ import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.codeinc.gen.transaction.v2.TransactionService
+import com.getcode.annotations.CodeNetworkOracle
 import com.google.protobuf.ByteString
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -35,7 +36,7 @@ private const val TAG = "MessagingRepository"
 
 class MessagingRepository @Inject constructor(
     private val messagingApi: MessagingApi,
-    private val networkOracle: NetworkOracle,
+    @CodeNetworkOracle private val networkOracle: NetworkOracle,
 ) {
 
     fun openMessageStream(

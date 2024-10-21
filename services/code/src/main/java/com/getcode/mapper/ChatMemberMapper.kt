@@ -5,6 +5,7 @@ import com.getcode.model.chat.ChatMember
 import com.getcode.model.chat.Identity
 import com.getcode.model.protomapping.invoke
 import com.getcode.model.chat.Pointer
+import com.getcode.services.mapper.Mapper
 import javax.inject.Inject
 
 class ChatMemberMapper @Inject constructor(): Mapper<ChatService.Member, ChatMember> {

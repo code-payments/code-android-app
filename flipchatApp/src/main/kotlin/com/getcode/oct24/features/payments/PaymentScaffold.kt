@@ -69,7 +69,12 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                         confirmation = state.billState.socialUserPaymentConfirmation,
                         trackColor = SlideToConfirmDefaults.PurpleTrackColor,
                         onSend = {
-                            payments.completePrivatePayment()
+                            payments.completePrivatePayment(
+                                onSuccess = {
+                                    // TODO: fetch chats
+                                },
+                                onError = {}
+                            )
                         },
                         onCancel = { payments.cancelPayment() }
                     )

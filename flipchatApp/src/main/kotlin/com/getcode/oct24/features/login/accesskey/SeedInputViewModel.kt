@@ -7,7 +7,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
@@ -23,12 +23,14 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 data class SeedInputUiModel(
     val wordsString: String = "",
@@ -44,7 +46,7 @@ class SeedInputViewModel @Inject constructor(
     private val analyticsService: AnalyticsService,
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val accountManager: AccountManager,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
@@ -103,23 +105,10 @@ class SeedInputViewModel @Inject constructor(
 
     @SuppressLint("CheckResult")
     fun performLogin(navigator: CodeNavigator, entropyB64: String, deeplink: Boolean = false) {
-        authManager.login(entropyB64)
-            .subscribeOn(Schedulers.computation())
-            .doOnSubscribe {
-                setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
-            }
-            .concatWith(
-                Completable.complete()
-                    .doOnSubscribe {
-                        setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
-                    }
-                    .delay(if (deeplink) 0L else 1L, TimeUnit.SECONDS)
-            )
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(
-                {
-                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
-                }, {
+        viewModelScope.launch {
+            setState(isLoading = true, isSuccess = false, isContinueEnabled = false)
+            authManager.login(entropyB64)
+                .onFailure {
                     if (it is AuthManager.AuthManagerException.TimelockUnlockedException) {
                         TopBarManager.showMessage(
                             getString(R.string.error_title_timelockUnlocked),
@@ -131,7 +120,12 @@ class SeedInputViewModel @Inject constructor(
                     }
                     setState(isLoading = false, isSuccess = false, isContinueEnabled = true)
                 }
-            )
+                .onSuccess {
+                    setState(isLoading = false, isSuccess = true, isContinueEnabled = false)
+                    delay(if (deeplink) 0.seconds else 1.seconds)
+                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                }
+        }
     }
 
     private fun setState(isLoading: Boolean, isSuccess: Boolean, isContinueEnabled: Boolean) {

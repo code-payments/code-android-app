@@ -3,6 +3,7 @@ package com.getcode.mapper
 import com.getcode.model.ConversationMessage
 import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
+import com.getcode.services.mapper.Mapper
 import com.getcode.utils.base58
 import javax.inject.Inject
 

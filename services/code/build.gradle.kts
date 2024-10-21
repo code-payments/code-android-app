@@ -14,6 +14,7 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
+        buildConfigField("String", "VERSION_NAME", "\"${Packaging.versionName}\"")
         buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
         buildConfigField(
             "String",
@@ -55,6 +56,7 @@ android {
 
 dependencies {
     implementation(project(":definitions:code:models"))
+    api(project(":services:shared"))
 
     api(project(":libs:datetime"))
     api(project(":libs:crypto:kin"))
@@ -80,6 +82,7 @@ dependencies {
     implementation(Libs.kotlinx_serialization_json)
     implementation(Libs.inject)
 
+    implementation(Libs.grpc_android)
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
     implementation(Libs.androidx_lifecycle_runtime)
@@ -110,7 +113,10 @@ dependencies {
     androidTestImplementation(Libs.androidx_junit)
     androidTestImplementation(Libs.junit)
     androidTestImplementation(Libs.androidx_test_runner)
+
     implementation(Libs.hilt)
+    kapt(Libs.hilt_android_compiler)
+    kapt(Libs.hilt_compiler)
 
     implementation(Libs.timber)
     implementation(Libs.bugsnag)

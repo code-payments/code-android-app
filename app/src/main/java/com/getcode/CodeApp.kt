@@ -26,13 +26,12 @@ import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.ScreenTransition
 import cafe.adriel.voyager.transitions.ScreenTransitionContent
 import cafe.adriel.voyager.transitions.SlideTransition
-import com.getcode.manager.ModalManager
+import com.getcode.services.manager.ModalManager
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.LoginScreen
 import com.getcode.navigation.transitions.SheetSlideTransition
-import com.getcode.theme.DesignSystem
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.AuthCheck
 import com.getcode.ui.components.bars.BottomBarContainer
@@ -180,7 +179,7 @@ private fun AppNavHost(content: @Composable () -> Unit) {
             }
 
         },
-        onHide = ModalManager::clear
+        onHide = com.getcode.services.manager.ModalManager::clear
     ) { sheetNav ->
         combinedNavigator =
             combinedNavigator?.apply { sheetNavigator = sheetNav } ?: CombinedNavigator(sheetNav)

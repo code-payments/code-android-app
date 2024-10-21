@@ -11,7 +11,7 @@ import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TwitterUserFetchError
-import com.getcode.utils.getOrPutIfNonNull
+import com.getcode.services.utils.getOrPutIfNonNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

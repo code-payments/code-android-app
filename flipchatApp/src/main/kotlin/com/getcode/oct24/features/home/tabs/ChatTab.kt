@@ -13,6 +13,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
+import com.getcode.manager.BottomBarManager
 import com.getcode.oct24.R
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -38,7 +39,18 @@ internal object ChatTab : Tab {
                 endContent = {
                     Image(
                         modifier = Modifier.unboundedClickable {
-                            navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.ChatByUsername))
+                            BottomBarManager.showMessage(
+                                BottomBarManager.BottomBarMessage(
+                                    positiveText = "Join a Room",
+                                    negativeText = "Create a New Room",
+                                    negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
+                                    tertiaryText = "Cancel",
+                                    onPositive = {},
+                                    onNegative = {},
+                                    type = BottomBarManager.BottomBarMessageType.THEMED,
+                                    showScrim = true,
+                                )
+                            )
                         },
                         imageVector = Icons.Default.Add,
                         contentDescription = null,

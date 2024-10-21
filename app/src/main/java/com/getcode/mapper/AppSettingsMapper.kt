@@ -6,6 +6,7 @@ import com.getcode.model.APP_SETTINGS
 import com.getcode.model.PrefsBool
 import com.getcode.models.SettingItem
 import com.getcode.network.repository.AppSettings
+import com.getcode.services.mapper.SuspendMapper
 import javax.inject.Inject
 
 class AppSettingsMapper @Inject constructor(

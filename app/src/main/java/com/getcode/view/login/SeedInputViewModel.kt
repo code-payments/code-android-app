@@ -11,7 +11,7 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.manager.AccountManager
 import com.getcode.manager.AuthManager
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.screens.LoginPhoneVerificationScreen
@@ -42,7 +42,7 @@ class SeedInputViewModel @Inject constructor(
     private val analyticsService: AnalyticsService,
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val accountManager: AccountManager,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())

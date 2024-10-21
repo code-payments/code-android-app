@@ -16,7 +16,7 @@ import com.getcode.network.repository.PhoneRepository
 import com.getcode.util.PhoneUtils
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.makeE164
+import com.getcode.services.utils.makeE164
 import com.getcode.view.BaseViewModel
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import dagger.hilt.android.lifecycle.HiltViewModel

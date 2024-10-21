@@ -5,6 +5,7 @@ import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.self
 import com.getcode.network.localized
+import com.getcode.services.mapper.Mapper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import javax.inject.Inject
@@ -19,6 +20,7 @@ class ConversationMapper @Inject constructor(
         return Conversation(
             idBase58 = from.id.base58,
             title = when (from.type) {
+                ChatType.GroupChat,
                 ChatType.Unknown -> from.title.localized(resources)
                 ChatType.TwoWay -> null
             },

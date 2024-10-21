@@ -5,16 +5,19 @@ REPO_URL="https://github.com/code-payments/code-protobuf-api"  # Default repo UR
 COMMIT_SHA=""
 RUN_STRIP_PROTO_VALIDATION=false  # Default to not running the script
 TEMP_DIR=$(mktemp -d)
-DEST_DIR="service/protos/src/main/proto"
+TARGET="code"
 
 # Parse options
-while getopts ":r:x" opt; do
+while getopts ":r:t:x" opt; do
   case ${opt} in
     r )
       REPO_URL=$OPTARG
       ;;
     x )
       RUN_STRIP_PROTO_VALIDATION=true
+      ;;
+    t )
+      TARGET=$OPTARG
       ;;
     \? )
       echo "Invalid option: -$OPTARG" >&2
@@ -24,6 +27,8 @@ while getopts ":r:x" opt; do
 done
 
 shift $((OPTIND -1))
+
+DEST_DIR="definitions/$TARGET/protos/src/main/proto"
 
 # Get the commit SHA if provided
 COMMIT_SHA=$1

@@ -4,35 +4,27 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.analytics.AnalyticsService
-import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
-import com.getcode.manager.MnemonicManager
+import com.getcode.ed25519.Ed25519
 import com.getcode.manager.SessionManager
-import com.getcode.model.AirdropType
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
-import com.getcode.model.description
+import com.getcode.model.ID
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
 import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.BetaFlagsRepository
-import com.getcode.network.repository.IdentityRepository
-import com.getcode.network.repository.PhoneRepository
-import com.getcode.network.repository.PrefRepository
-import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.isMock
-import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.BuildConfig
+import com.getcode.oct24.network.controllers.AccountController
+import com.getcode.oct24.user.UserManager
+import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.util.TokenResult
+import com.getcode.services.utils.installationId
+import com.getcode.services.utils.token
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
 import com.getcode.utils.getPublicKeyBase58
-import com.getcode.utils.installationId
-import com.getcode.utils.makeE164
-import com.getcode.utils.token
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
@@ -41,9 +33,6 @@ import com.google.firebase.messaging.messaging
 import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.hilt.android.qualifiers.ApplicationContext
-import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Single
-import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,18 +44,14 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
-    private val phoneRepository: PhoneRepository,
-    private val identityRepository: IdentityRepository,
-    private val pushRepository: PushRepository,
-    private val prefRepository: PrefRepository,
-    private val betaFlags: BetaFlagsRepository,
+    private val accountController: AccountController,
+    private val userManager: UserManager,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val notificationCollectionHistory: NotificationCollectionHistoryController,
-    private val chatHistory: ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
@@ -83,133 +68,121 @@ class AuthManager @Inject constructor(
         launch {
             val token = AccountUtils.getToken(context)?.token
             softLogin(token.orEmpty())
-                .subscribeOn(Schedulers.computation())
-                .doOnComplete { LibsodiumInitializer.initializeWithCallback(onInitialized) }
-                .subscribe({ }, ErrorUtils::handleError)
+                .onSuccess { LibsodiumInitializer.initializeWithCallback(onInitialized) }
+                .onFailure(ErrorUtils::handleError)
         }
     }
 
-    private fun softLogin(entropyB64: String): Completable {
-        if (softLoginDisabled) return Completable.complete()
+    private suspend fun softLogin(entropyB64: String): Result<ID> {
+        if (softLoginDisabled) return Result.failure(Throwable("Disabled"))
         return login(entropyB64, isSoftLogin = true)
     }
 
-    fun createAccount(
-        entropyB64: String,
+    private fun setupAsNew(): String {
+        val entropyB64 = SessionManager.entropyB64
+        return if (entropyB64 == null) {
+            val seedB64 = Ed25519.createSeed16().encodeBase64()
+            sessionManager.set(seedB64)
+            return seedB64
+        } else {
+            entropyB64
+        }
+    }
+
+    suspend fun createAccount(
+        displayName: String,
         rollbackOnError: Boolean = false,
-    ): Completable {
+    ): Result<ID> {
+        val entropyB64 = setupAsNew()
         if (entropyB64.isEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
             sessionManager.clear()
-            return Completable.complete()
+            return Result.failure(Throwable("Provided entropy was empty"))
         }
 
-        return Single.create {
-            softLoginDisabled = true
+        softLoginDisabled = true
 
-            if (!Database.isOpen()) {
-                Database.init(context, entropyB64)
+        if (!Database.isOpen()) {
+            Database.init(context, entropyB64)
+        }
+
+        val originalSessionState = SessionManager.authState.value
+        sessionManager.set(entropyB64)
+        SessionManager.getOrganizer()?.ownerKeyPair?.let {
+            // relay owner keypair to user manager
+            userManager.set(keyPair = it)
+        }
+
+        return accountController.register(displayName)
+            .onSuccess {
+                AccountUtils.addAccount(
+                    context = context,
+                    name = it.base58,
+                    password = entropyB64,
+                    token = entropyB64
+                )
+
+                userManager.set(userId = it)
             }
-
-            val originalSessionState = SessionManager.authState.value
-            sessionManager.set(entropyB64)
-
-            it.onSuccess(originalSessionState)
-        }.flatMapCompletable {
-            fetchAdditionalAccountData(
-                context, entropyB64,
-                isSoftLogin = false,
-                rollbackOnError = rollbackOnError,
-                originalSessionState = it
-            )
-        }.doOnError { softLoginDisabled = false }
+            .onFailure {
+                softLoginDisabled = false
+                if (rollbackOnError) {
+                    login(
+                        originalSessionState.entropyB64.orEmpty(),
+                        false,
+                        rollbackOnError = false
+                    )
+                } else {
+                    clearToken()
+                }
+            }
     }
 
-    fun login(
+    suspend fun login(
         entropyB64: String,
         isSoftLogin: Boolean = false,
         rollbackOnError: Boolean = false
-    ): Completable {
+    ): Result<ID> {
         taggedTrace("Login: isSoftLogin: $isSoftLogin, rollbackOnError: $rollbackOnError")
 
         if (entropyB64.isEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
             sessionManager.clear()
-            return Completable.complete()
+            return Result.failure(Throwable("Provided entropy was empty"))
         }
 
-        return Single.create {
-            if (!isSoftLogin) softLoginDisabled = true
+        if (!Database.isOpen()) {
+            Database.init(context, entropyB64)
+        }
 
-            if (!Database.isOpen()) {
-                Database.init(context, entropyB64)
+        val originalSessionState = SessionManager.authState.value
+        sessionManager.set(entropyB64)
+        SessionManager.getOrganizer()?.ownerKeyPair?.let {
+            // relay owner keypair to user manager
+            userManager.set(keyPair = it)
+        }
+
+        if (!isSoftLogin) {
+            loginAnalytics(entropyB64)
+        }
+
+        if (!isSoftLogin) softLoginDisabled = true
+        return accountController.login()
+            .onSuccess {
+                userManager.set(userId = it)
             }
-
-            val originalSessionState = SessionManager.authState.value
-            sessionManager.set(entropyB64)
-
-            if (!isSoftLogin) {
-                loginAnalytics(entropyB64)
-            }
-            it.onSuccess(originalSessionState)
-        }.flatMapCompletable {
-            val fetchData =
-                fetchAdditionalAccountData(context, entropyB64, isSoftLogin, rollbackOnError, it)
-            if (isSoftLogin) {
-                fetchData.onErrorComplete {
-                    ErrorUtils.handleError(it)
-                    true
-                }
-            } else {
-                fetchData
-            }
-        }.doOnError { softLoginDisabled = false }
-    }
-
-    private fun fetchAdditionalAccountData(
-        context: Context,
-        entropyB64: String,
-        isSoftLogin: Boolean,
-        rollbackOnError: Boolean = false,
-        originalSessionState: SessionManager.SessionState?
-    ): Completable {
-        return fetchData(entropyB64)
-            .doOnSuccess {
-                if (!isSoftLogin) {
-                    if (SessionManager.getOrganizer()?.primaryVault == null) {
-                        throw AuthManagerException.PhoneInvalidException()
-                    }
-                    val (phone, _) = it
-
-                    AccountUtils.addAccount(
-                        context = context,
-                        name = phone.phoneNumber,
-                        password = entropyB64,
-                        token = entropyB64
-                    )
-                }
-            }
-            .doOnError {
+            .onFailure {
                 it.printStackTrace()
-                val isTimelockUnlockedException =
-                    it is AuthManagerException.TimelockUnlockedException
-                if (!isSoftLogin) {
-                    if (rollbackOnError) {
-                        login(
-                            originalSessionState?.entropyB64.orEmpty(),
-                            isSoftLogin,
-                            rollbackOnError = false
-                        )
-                    } else {
-                        clearToken()
-                    }
+                if (rollbackOnError) {
+                    login(
+                        originalSessionState.entropyB64.orEmpty(),
+                        isSoftLogin,
+                        rollbackOnError = false
+                    )
                 } else {
-                    if (isTimelockUnlockedException) {
-                        SessionManager.update { state -> state.copy(isTimelockUnlocked = true) }
-                    }
+//                    clearToken()
                 }
             }
-            .ignoreElement()
     }
 
     fun deleteAndLogout(context: Context, onComplete: () -> Unit = {}) {
@@ -248,67 +221,6 @@ class AuthManager @Inject constructor(
             }.map { Result.success(Unit) }
     }
 
-
-    private fun fetchData(entropyB64: String):
-            Single<Pair<PhoneRepository.GetAssociatedPhoneNumberResponse, IdentityRepository.GetUserResponse>> {
-
-        taggedTrace("fetching account data")
-
-        var owner = SessionManager.authState.value.keyPair
-        if (owner == null || SessionManager.authState.value.entropyB64 != entropyB64) {
-            owner = MnemonicPhrase.fromEntropyB64(entropyB64).getSolanaKeyPair()
-        }
-
-        var phone: PhoneRepository.GetAssociatedPhoneNumberResponse? = null
-        var user: IdentityRepository.GetUserResponse? = null
-
-        return phoneRepository.fetchAssociatedPhoneNumber(owner)
-            .firstOrError()
-            .subscribeOn(Schedulers.computation())
-            .map {
-                if (it.isUnlocked) throw AuthManagerException.TimelockUnlockedException()
-                if (!it.isSuccess) throw AuthManagerException.PhoneInvalidException()
-                it
-            }
-            .flatMap {
-                phone = it
-                identityRepository.getUser(owner, it.phoneNumber)
-                    .firstOrError()
-            }
-            .flatMap {
-                user = it
-                if (SessionManager.authState.value.entropyB64 != entropyB64) {
-                    sessionManager.set(entropyB64)
-                }
-                balanceController.fetchBalance()
-                    .toSingleDefault(Pair(phone!!, user!!))
-            }
-            .doOnSuccess {
-                taggedTrace("account data fetched successfully")
-
-                val distinctId = user?.userId?.description
-                val phoneNumber = phone?.phoneNumber?.makeE164()
-
-                if (!BuildConfig.DEBUG) {
-                    // BugSnag
-                    if (Bugsnag.isStarted()) {
-                        Bugsnag.setUser(distinctId, phoneNumber, null)
-                    }
-
-                    // Mixpanel
-                    mixpanelAPI.identify(distinctId)
-
-                    if (phone?.phoneNumber != null) {
-                        mixpanelAPI.people.set("\$email", phoneNumber)
-                    }
-                }
-                launch { savePrefs(phone!!, user!!) }
-                launch { exchange.fetchRatesIfNeeded() }
-                launch { notificationCollectionHistory.fetch() }
-                launch { chatHistory.fetch() }
-            }
-    }
-
     private fun loginAnalytics(entropyB64: String) {
         val owner = mnemonicManager.getKeyPair(entropyB64)
         taggedTrace("analytics login event")
@@ -330,30 +242,8 @@ class AuthManager @Inject constructor(
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 
-    private suspend fun savePrefs(
-        phone: PhoneRepository.GetAssociatedPhoneNumberResponse,
-        user: IdentityRepository.GetUserResponse
-    ) {
+    private suspend fun savePrefs() {
         Timber.d("saving prefs")
-        phoneRepository.phoneNumber = phone.phoneNumber
-
-        prefRepository.set(
-            PrefsString.KEY_USER_ID to user.userId.toByteArray().encodeBase64(),
-            PrefsString.KEY_DATA_CONTAINER_ID to user.dataContainerId.toByteArray().encodeBase64(),
-        )
-        phoneRepository.phoneLinked.value = phone.isLinked
-
-        betaFlags.enableBeta(user.enableDebugOptions)
-
-        Timber.d("airdrops eligible = ${user.eligibleAirdrops.joinToString { it.name }}")
-        prefRepository.set(
-            PrefsBool.IS_ELIGIBLE_GET_FIRST_KIN_AIRDROP,
-            user.eligibleAirdrops.contains(AirdropType.GetFirstKin),
-        )
-        prefRepository.set(
-            PrefsBool.IS_ELIGIBLE_GIVE_FIRST_KIN_AIRDROP,
-            user.eligibleAirdrops.contains(AirdropType.GiveFirstKin),
-        )
 
         updateFcmToken()
         sessionManager.comeAlive()
@@ -366,16 +256,16 @@ class AuthManager @Inject constructor(
         val installationId = Firebase.installations.installationId()
         val pushToken = Firebase.messaging.token() ?: return
 
-        pushRepository.updateToken(pushToken, installationId)
-            .onSuccess {
-                Timber.d("push token updated")
-            }.onFailure {
-                Timber.e(t = it, message = "Failure updating push token")
-            }
+        // TODO: add back once push controller is added
+//        pushRepository.updateToken(pushToken, installationId)
+//            .onSuccess {
+//                Timber.d("push token updated")
+//            }.onFailure {
+//                Timber.e(t = it, message = "Failure updating push token")
+//            }
     }
 
     sealed class AuthManagerException : Exception() {
-        class PhoneInvalidException : AuthManagerException()
         class TimelockUnlockedException : AuthManagerException()
     }
 }

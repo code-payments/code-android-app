@@ -6,7 +6,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
-import com.getcode.utils.deriveRendezvousKey
+import com.getcode.services.utils.deriveRendezvousKey
 import com.getcode.utils.encodeBase64
 import org.kin.sdk.base.tools.byteArrayToLong
 import org.kin.sdk.base.tools.longToByteArray

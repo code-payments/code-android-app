@@ -7,6 +7,8 @@ import com.getcode.model.TwitterUser
 import kotlinx.parcelize.Parcelize
 
 sealed class NavScreenProvider : ScreenProvider {
+    data object Registration: NavScreenProvider()
+
     sealed class Login {
         data class Home(val seed: String? = null): NavScreenProvider()
         data object SeedInput: NavScreenProvider()
@@ -15,7 +17,10 @@ sealed class NavScreenProvider : ScreenProvider {
     data class AppHomeScreen(val seed: String? = null,): NavScreenProvider()
     sealed class Chat {
         data object List : NavScreenProvider()
-        data object ChatByUsername : NavScreenProvider()
+        sealed class Lookup {
+            data object Entry : NavScreenProvider()
+            data class Confirm(val id: ID): NavScreenProvider()
+        }
         data class Conversation(
             val user: TwitterUser? = null,
             val chatId: ID? = null,

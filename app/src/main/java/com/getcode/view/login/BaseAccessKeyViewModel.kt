@@ -9,7 +9,7 @@ import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.media.MediaScanner
@@ -52,7 +52,7 @@ data class AccessKeyUiModel(
 
 abstract class BaseAccessKeyViewModel(
     private val resources: ResourceHelper,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val mediaScanner: MediaScanner,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())

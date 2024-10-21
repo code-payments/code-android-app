@@ -13,15 +13,11 @@ import androidx.core.net.toUri
 import com.getcode.analytics.AnalyticsManager
 import com.getcode.analytics.AnalyticsService
 import com.getcode.domain.CashLinkManager
-import com.getcode.ed25519.Ed25519
 import com.getcode.manager.AuthManager
 import com.getcode.manager.GiftCardManager
-import com.getcode.manager.MnemonicManager
-import com.getcode.manager.ModalManager
 import com.getcode.manager.SessionManager
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CameraGesturesFeature
-import com.getcode.model.CodePayload
 import com.getcode.model.Currency
 import com.getcode.model.Feature
 import com.getcode.model.FlippableTipCardFeature
@@ -30,12 +26,10 @@ import com.getcode.model.IntentMetadata
 import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
 import com.getcode.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
-import com.getcode.model.Username
 import com.getcode.model.notifications.NotificationType
 import com.getcode.models.Bill
 import com.getcode.models.BillState
@@ -49,7 +43,7 @@ import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.ChatHistoryController
+import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
@@ -73,15 +67,20 @@ import com.getcode.network.repository.PaymentRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.ReceiveTransactionRepository
 import com.getcode.network.repository.StatusRepository
-import com.getcode.solana.organizer.GiftCardAccount
-import com.getcode.solana.organizer.Organizer
 import com.getcode.util.IntentUtils
 import com.getcode.utils.Kin
 import com.getcode.extensions.formatted
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.CodePayload
 import com.getcode.model.Domain
+import com.getcode.model.Kind
+import com.getcode.model.Username
 import com.getcode.model.toPublicKey
+import com.getcode.services.utils.catchSafely
+import com.getcode.services.utils.nonce
+import com.getcode.solana.organizer.GiftCardAccount
+import com.getcode.solana.organizer.Organizer
 import com.getcode.util.permissions.PermissionChecker
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.resources.ResourceHelper
@@ -89,10 +88,7 @@ import com.getcode.util.showNetworkError
 import com.getcode.util.vibration.Vibrator
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
-import com.getcode.utils.catchSafely
-import com.getcode.utils.encodeBase64
 import com.getcode.utils.hexEncodedString
-import com.getcode.utils.nonce
 import com.getcode.utils.trace
 import com.getcode.view.main.scanner.UiElement
 import com.kik.kikx.kikcodes.implementation.KikCodeAnalyzer
@@ -192,7 +188,7 @@ class SessionController @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
     private val historyController: NotificationCollectionHistoryController,
-    private val chatHistoryController: ChatHistoryController,
+    private val chatHistoryController: com.getcode.oct24.network.controllers.ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
@@ -203,7 +199,7 @@ class SessionController @Inject constructor(
     private val currencyUtils: com.getcode.utils.CurrencyUtils,
     private val exchange: Exchange,
     private val giftCardManager: GiftCardManager,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
     private val cashLinkManager: CashLinkManager,
     private val permissionChecker: PermissionChecker,
     private val notificationManager: NotificationManagerCompat,
@@ -448,13 +444,6 @@ class SessionController @Inject constructor(
                     }
                 }
             }.launchIn(scope)
-    }
-
-    fun setupAsNew() {
-        if (SessionManager.entropyB64 == null) {
-            val seedB64 = Ed25519.createSeed16().encodeBase64()
-            sessionManager.set(seedB64)
-        }
     }
 
     private fun buildScannerElements(
@@ -867,8 +856,8 @@ class SessionController @Inject constructor(
 
         if (show) {
             delay(400)
-            ModalManager.showMessage(
-                ModalManager.Message(
+            com.getcode.services.manager.ModalManager.showMessage(
+                com.getcode.services.manager.ModalManager.Message(
                     icon = R.drawable.ic_bell,
                     title = resources.getString(R.string.title_turnOnNotifications),
                     subtitle = resources.getString(R.string.subtitle_turnOnNotifications),

@@ -7,7 +7,7 @@ import com.getcode.R
 import com.getcode.analytics.Action
 import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.CodeNavigator
@@ -67,7 +67,7 @@ class PhoneConfirmViewModel @Inject constructor(
     private val phoneRepository: PhoneRepository,
     private val phoneUtils: PhoneUtils,
     private val resources: ResourceHelper,
-    private val mnemonicManager: MnemonicManager,
+    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
 ) : BaseViewModel(resources) {
 
     companion object {

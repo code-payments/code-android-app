@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import com.getcode.manager.ModalManager
+import com.getcode.services.manager.ModalManager
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.AccessKeyLoginScreen
@@ -46,7 +46,7 @@ class CodeAppState(
 ) {
     init {
         coroutineScope.launch {
-            ModalManager.messages.collect { currentMessages ->
+            com.getcode.services.manager.ModalManager.messages.collect { currentMessages ->
                 modalMessage.value = currentMessages.firstOrNull()
             }
         }
@@ -84,7 +84,7 @@ class CodeAppState(
     val barMessages: BarMessages
         get() = barManager.barMessages
 
-    val modalMessage = MutableStateFlow<ModalManager.Message?>(null)
+    val modalMessage = MutableStateFlow<com.getcode.services.manager.ModalManager.Message?>(null)
 
     fun upPress() {
         if (navigator.pop().not()) {

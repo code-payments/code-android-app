@@ -6,7 +6,7 @@ import com.getcode.network.client.Client
 import com.getcode.network.client.fetchTwitterUser
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.PrefRepository
-import com.getcode.utils.getOrPutIfNonNull
+import com.getcode.services.utils.getOrPutIfNonNull
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton

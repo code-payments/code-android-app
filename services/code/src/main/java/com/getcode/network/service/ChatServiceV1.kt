@@ -1,6 +1,7 @@
 package com.getcode.network.service
 
 import com.codeinc.gen.chat.v1.ChatService
+import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.mapper.ChatMessageV1Mapper
 import com.getcode.mapper.ChatMetadataV1Mapper
@@ -27,7 +28,7 @@ class ChatServiceV1 @Inject constructor(
     private val api: ChatApiV1,
     private val chatMapper: ChatMetadataV1Mapper,
     private val messageMapper: ChatMessageV1Mapper,
-    private val networkOracle: NetworkOracle,
+    @CodeNetworkOracle private val networkOracle: NetworkOracle,
 ) {
     private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
         return networkOracle.managedRequest(api.fetchChats(owner))

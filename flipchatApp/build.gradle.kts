@@ -114,6 +114,8 @@ dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
     implementation(project(":services:code"))
+    implementation(project(":services:flipchat"))
+
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale"))
     implementation(project(":libs:vibrator"))

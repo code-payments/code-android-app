@@ -11,7 +11,7 @@ import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
-import com.getcode.network.ConversationController
+import com.getcode.oct24.network.controllers.ConversationController
 import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -41,7 +41,7 @@ import javax.inject.Inject
 @HiltViewModel
 class NotificationCollectionViewModel @Inject constructor(
     historyController: NotificationCollectionHistoryController,
-    conversationController: ConversationController,
+    conversationController: com.getcode.oct24.network.controllers.ConversationController,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<NotificationCollectionViewModel.State, NotificationCollectionViewModel.Event>(
     initialState = State(

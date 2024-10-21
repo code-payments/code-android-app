@@ -9,17 +9,20 @@ import java.util.*
  */
 object BottomBarManager {
     data class BottomBarMessage(
-        val title: String,
+        val title: String = "",
         val subtitle: String = "",
         val positiveText: String,
+        val positiveStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled,
         val negativeText: String,
+        val negativeStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled10,
         val tertiaryText: String? = null,
         val onPositive: () -> Unit,
         val onNegative: () -> Unit = {},
         val onTertiary: () -> Unit = {},
         val onClose: (actionType: BottomBarActionType?) -> Unit = {},
-        val type: BottomBarMessageType = BottomBarMessageType.DEFAULT,
+        val type: BottomBarMessageType = BottomBarMessageType.ERROR,
         val isDismissible: Boolean = true,
+        val showScrim: Boolean = false,
         val timeoutSeconds: Int? = null,
         val id: Long = UUID.randomUUID().mostSignificantBits,
     )
@@ -45,12 +48,16 @@ object BottomBarManager {
 
     fun clearByType(type: BottomBarMessageType) =  _messages.update { it.filterNot { m -> m.type == type } }
 
-    enum class BottomBarMessageType { DEFAULT, REMOTE_SEND }
+    enum class BottomBarMessageType { ERROR, REMOTE_SEND, THEMED }
 
     enum class BottomBarActionType {
         Positive,
         Negative,
         Tertiary
+    }
+
+    enum class BottomBarButtonStyle {
+        Filled, Filled10
     }
 
 }

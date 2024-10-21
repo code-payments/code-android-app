@@ -8,6 +8,7 @@ import com.codeinc.gen.chat.v2.ChatService.NotifyIsTypingResponse
 import com.codeinc.gen.chat.v2.ChatService.PointerType
 import com.codeinc.gen.chat.v2.ChatService.SendMessageRequest
 import com.codeinc.gen.chat.v2.ChatService.SendMessageResponse
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
@@ -42,6 +43,7 @@ import com.getcode.model.chat.SetMuteStateRequestV2 as SetMuteStateRequest
 import com.getcode.model.chat.SetMuteStateResponseV2 as SetMuteStateResponse
 
 class ChatApiV2 @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel).withWaitForReady()
@@ -186,6 +188,9 @@ class ChatApiV2 @Inject constructor(
         val contentProto = when (content) {
             is OutgoingMessageContent.Text -> Content.newBuilder()
                 .setText(ChatService.TextContent.newBuilder().setText(content.text))
+
+            is OutgoingMessageContent.Encrypted -> throw IllegalArgumentException()
+            is OutgoingMessageContent.LocalizedText -> throw IllegalArgumentException()
         }
 
         val request = SendMessageRequest.newBuilder()

@@ -4,6 +4,7 @@ import com.codeinc.gen.chat.v1.ChatService
 import com.getcode.model.chat.Chat
 import com.getcode.model.chat.ChatType
 import com.getcode.model.chat.Title
+import com.getcode.services.mapper.Mapper
 import javax.inject.Inject
 
 @Deprecated("Replaced by V2")

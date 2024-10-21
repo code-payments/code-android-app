@@ -4,7 +4,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import com.getcode.analytics.AnalyticsService
-import com.getcode.manager.MnemonicManager
 import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
@@ -16,7 +15,9 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.service.ChatServiceV1
 import com.getcode.network.service.ChatServiceV2
 import com.getcode.network.service.DeviceService
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.utils.ErrorUtils
+import com.getcode.utils.network.NetworkConnectivityListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -46,7 +47,7 @@ class Client @Inject constructor(
     internal val prefRepository: PrefRepository,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
-    internal val networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
+    internal val networkObserver: NetworkConnectivityListener,
     internal val chatServiceV1: ChatServiceV1,
     internal val chatServiceV2: ChatServiceV2,
     internal val deviceService: DeviceService,

@@ -8,6 +8,7 @@ import com.codeinc.gen.messaging.v1.MessagingService.OpenMessageStreamResponse
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.SendMessageRequest
 import com.codeinc.gen.messaging.v1.MessagingService.SendMessageResponse
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.core.Flowable
@@ -17,6 +18,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import javax.inject.Inject
 
 class MessagingApi @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io()
 ) : GrpcApi(managedChannel) {

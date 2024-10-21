@@ -3,19 +3,14 @@ package com.getcode.oct24.inject
 import android.content.Context
 import com.getcode.oct24.util.AccountAuthenticator
 import com.getcode.analytics.AnalyticsService
-import com.getcode.annotations.DevManagedChannel
-import com.getcode.manager.MnemonicManager
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.model.Currency
-import com.getcode.model.CurrencyCode
-import com.getcode.model.PrefsString
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.client.AccountService
 import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
-import com.getcode.network.core.NetworkOracle
-import com.getcode.network.core.NetworkOracleImpl
 import com.getcode.network.exchange.CodeExchange
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
@@ -31,6 +26,7 @@ import com.getcode.network.service.DeviceService
 import com.getcode.oct24.BuildConfig
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper
+import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.Kin
 import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
@@ -53,11 +49,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object ApiModule {
 
-    @Provides
-    fun provideNetworkOracle(): NetworkOracle {
-        return NetworkOracleImpl()
-    }
-
     @Singleton
     @Provides
     fun provideCompositeDisposable(): CompositeDisposable {
@@ -66,35 +57,6 @@ object ApiModule {
 
     @Provides
     fun provideScheduler(): Scheduler = Schedulers.io()
-
-    @Singleton
-    @Provides
-    fun provideManagedChannel(@ApplicationContext context: Context): ManagedChannel {
-        val TLS_PORT = 443
-        val PROD_URL = "api.codeinfra.net"
-
-        return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(PROD_URL, TLS_PORT))
-            .context(context)
-            .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
-            .keepAliveTime(4, TimeUnit.MINUTES)
-            .build()
-    }
-
-    @Singleton
-    @Provides
-    @DevManagedChannel
-    fun provideDevManagedChannel(@ApplicationContext context: Context): ManagedChannel {
-        val TLS_PORT = 443
-        val DEV_URL = "api.codeinfra.dev"
-
-        return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(DEV_URL, TLS_PORT))
-            .context(context)
-            .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
-            .keepAliveTime(4, TimeUnit.MINUTES)
-            .build()
-    }
 
     @Singleton
     @Provides
@@ -143,7 +105,7 @@ object ApiModule {
         transactionReceiver: TransactionReceiver,
         networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
         resources: ResourceHelper,
-        currencyUtils: com.getcode.utils.CurrencyUtils,
+        currencyUtils: CurrencyUtils,
     ): BalanceController {
         return BalanceController(
             exchange = exchange,
@@ -163,7 +125,7 @@ object ApiModule {
     fun providesExchange(
         currencyService: CurrencyService,
         locale: LocaleHelper,
-        currencyUtils: com.getcode.utils.CurrencyUtils,
+        currencyUtils: CurrencyUtils,
         prefRepository: PrefRepository,
     ): Exchange = CodeExchange(
         currencyService = currencyService,

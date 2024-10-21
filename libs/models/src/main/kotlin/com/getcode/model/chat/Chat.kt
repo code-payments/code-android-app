@@ -34,6 +34,7 @@ data class Chat(
     val imageData: Any?
         get() {
             return when (type) {
+                ChatType.GroupChat -> null
                 ChatType.Unknown -> id
                 ChatType.TwoWay -> {
                     members

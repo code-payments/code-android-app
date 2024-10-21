@@ -132,24 +132,24 @@ object AccountUtils {
             }
         }
 
-        // attempt to pull from Code App
-        runCatching {
-            context.contentResolver.query(
-                Uri.parse("content://${context.getString(R.string.account_provider)}/accounts"),
-                null,
-                null,
-                null,
-                null
-            )?.use {
-                while (it.moveToNext()) {
-                    val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
-                    if (token != null) {
-                        println("Code account on device found. Sharing with FC")
-                        return TokenResult.Code(token)
-                    }
-                }
-            }
-        }.onFailure { it.printStackTrace() }
+//        // attempt to pull from Code App
+//        runCatching {
+//            context.contentResolver.query(
+//                Uri.parse("content://${context.getString(R.string.account_provider)}/accounts"),
+//                null,
+//                null,
+//                null,
+//                null
+//            )?.use {
+//                while (it.moveToNext()) {
+//                    val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
+//                    if (token != null) {
+//                        println("Code account on device found. Sharing with FC")
+//                        return TokenResult.Code(token)
+//                    }
+//                }
+//            }
+//        }.onFailure { it.printStackTrace() }
 
         val token = retryable(
             call = { getAccountNoActivity(context) },

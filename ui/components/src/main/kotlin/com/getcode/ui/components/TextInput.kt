@@ -247,7 +247,7 @@ private fun DecoratorBox(
             }
             if (state.text.isEmpty() && placeholder.isNotEmpty()) {
                 Text(
-                    modifier = Modifier.then(Modifier.padding(contentPadding)),
+                    modifier = Modifier.fillMaxWidth().then(Modifier.padding(contentPadding)),
                     text = placeholder,
                     style = placeholderStyle.copy(color = placeholderColor),
                     maxLines = 1,

@@ -15,22 +15,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import cafe.adriel.voyager.core.screen.Screen
-import com.getcode.manager.ModalManager
+import com.getcode.services.manager.ModalManager
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.addIf
 
 fun buildMessageContent(
-    message: ModalManager.Message,
-    onClose: (ModalManager.ActionType?) -> Unit
+    message: com.getcode.services.manager.ModalManager.Message,
+    onClose: (com.getcode.services.manager.ModalManager.ActionType?) -> Unit
 ): Screen {
     return ModalContainerMessage(message, onClose)
 }
 
 private data class ModalContainerMessage(
-    val message: ModalManager.Message,
-    val onClose: (ModalManager.ActionType?) -> Unit,
+    val message: com.getcode.services.manager.ModalManager.Message,
+    val onClose: (com.getcode.services.manager.ModalManager.ActionType?) -> Unit,
 ) : Screen, NamedScreen, ModalRoot {
 
     @Composable
@@ -89,7 +89,7 @@ private data class ModalContainerMessage(
                     text = message.positiveText,
                     onClick = {
                         message.onPositive()
-                        onClose(ModalManager.ActionType.Positive)
+                        onClose(com.getcode.services.manager.ModalManager.ActionType.Positive)
                     }
                 )
 
@@ -101,7 +101,7 @@ private data class ModalContainerMessage(
                             text = negativeText,
                             onClick = {
                                 message.onNegative()
-                                onClose(ModalManager.ActionType.Negative)
+                                onClose(com.getcode.services.manager.ModalManager.ActionType.Negative)
                             }
                         )
                     }
@@ -115,7 +115,7 @@ private data class ModalContainerMessage(
                             text = tertiaryText,
                             onClick = {
                                 message.onTertiary()
-                                onClose(ModalManager.ActionType.Tertiary)
+                                onClose(com.getcode.services.manager.ModalManager.ActionType.Tertiary)
                             }
                         )
                     }

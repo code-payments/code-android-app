@@ -1,6 +1,7 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.chat.v1.ChatService
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
@@ -31,6 +32,7 @@ import com.getcode.model.chat.SetSubscriptionStateResponseV1 as SetSubscriptionS
 
 @Deprecated("Replaced with V2")
 class ChatApiV1 @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel).withWaitForReady()

@@ -7,6 +7,7 @@
     <string name="account_provider" translatable="false">com.getcode.accountprovider</string>
     <string name="account_read_permission" translatable="false">com.getcode.READ_ACCOUNT</string>
 
+    <string name="subtitle_yourName">Your Name</string>
 
     <string name="action_nevermind">Nevermind</string>
 

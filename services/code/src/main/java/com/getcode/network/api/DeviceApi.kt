@@ -3,6 +3,7 @@ package com.getcode.network.api
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.device.v1.DeviceGrpc
 import com.codeinc.gen.device.v1.DeviceService
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.sign
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class DeviceApi @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
 ): GrpcApi(managedChannel) {
 

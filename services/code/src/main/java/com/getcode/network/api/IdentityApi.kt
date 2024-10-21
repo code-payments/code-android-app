@@ -5,6 +5,7 @@ import com.codeinc.gen.user.v1.IdentityService
 import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
+import com.getcode.annotations.CodeManagedChannel
 import com.getcode.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 
 class IdentityApi @Inject constructor(
+    @CodeManagedChannel
     managedChannel: ManagedChannel,
     private val scheduler: Scheduler = Schedulers.io(),
 ) : GrpcApi(managedChannel) {

@@ -2,7 +2,8 @@ package com.getcode.model.chat
 
 enum class ChatType {
     Unknown,
-    TwoWay;
+    TwoWay,
+    GroupChat;
 
     companion object {
         val types = entries

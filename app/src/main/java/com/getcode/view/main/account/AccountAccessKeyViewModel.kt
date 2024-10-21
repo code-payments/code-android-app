@@ -3,8 +3,7 @@ package com.getcode.view.main.account
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
 import com.getcode.media.MediaScanner
-import com.getcode.manager.MnemonicManager
-import com.getcode.navigation.core.CodeNavigator
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.login.BaseAccessKeyViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +20,7 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 class AccountAccessKeyViewModel @Inject constructor(
     resources: ResourceHelper,
-    mnemonicManager: MnemonicManager,
+    mnemonicManager: com.getcode.services.manager.MnemonicManager,
     mediaScanner: MediaScanner,
 ) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
     @SuppressLint("CheckResult")

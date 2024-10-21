@@ -13,10 +13,15 @@ import com.flipchat.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.oct24.features.login.accesskey.SeedInputScreen
+import com.getcode.oct24.features.login.register.RegisterScreen
 
 @Composable
 fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
+        register<NavScreenProvider.Registration> {
+            RegisterScreen
+        }
+
         register<NavScreenProvider.Login.Home> {
             LoginScreen(it.seed)
         }
@@ -35,10 +40,6 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.Chat.List> {
             ChatListScreen
-        }
-
-        register<NavScreenProvider.Chat.ChatByUsername> {
-            ChatByUsernameScreen
         }
 
         register<NavScreenProvider.Chat.Conversation> {
