@@ -4,7 +4,7 @@ import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.push.v1.PushService
 import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.manager.SessionManager
-import com.getcode.model.PrefsString
+import com.getcode.services.model.PrefsString
 import com.getcode.network.api.PushApi
 import com.getcode.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils

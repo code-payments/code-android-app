@@ -1,15 +1,14 @@
 package com.getcode.oct24.network.controllers
 
-import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageStatus
-import com.getcode.model.chat.OutgoingMessageContent
-import com.getcode.oct24.domain.ChatMessageMapper
+import com.getcode.services.model.chat.OutgoingMessageContent
+import com.getcode.oct24.data.mapper.ChatMessageMapper
 import com.getcode.oct24.internal.network.service.MessagingService
-import com.getcode.oct24.model.chat.Room
-import com.getcode.oct24.model.query.QueryOptions
+import com.getcode.oct24.data.Room
+import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.user.UserManager
+import com.getcode.model.chat.ChatMessage
 import com.getcode.utils.ErrorUtils
 import javax.inject.Inject
 

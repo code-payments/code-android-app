@@ -1,7 +1,7 @@
 package com.getcode.network.exchange
 
-import com.getcode.db.Database
-import com.getcode.model.PrefsString
+import com.getcode.db.CodeAppDatabase
+import com.getcode.services.model.PrefsString
 import com.getcode.model.Rate
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.service.CurrencyService
@@ -31,7 +31,7 @@ class CodeExchange @Inject constructor(
     private val defaultCurrency: suspend () -> com.getcode.model.Currency?,
 ) : Exchange, CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    private val db = Database.getInstance()
+    private val db = CodeAppDatabase.getInstance()
 
     private var _entryRate = MutableStateFlow(Rate.oneToOne)
     override val entryRate: Rate

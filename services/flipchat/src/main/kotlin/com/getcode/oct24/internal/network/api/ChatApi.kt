@@ -2,21 +2,17 @@ package com.getcode.oct24.internal.network.api
 
 import com.codeinc.flipchat.gen.chat.v1.ChatGrpc
 import com.codeinc.flipchat.gen.chat.v1.ChatService
-import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.oct24.annotations.FcManagedChannel
-import com.getcode.oct24.model.chat.ChatIdentifier
-import com.getcode.oct24.model.chat.StartChatRequestType
+import com.getcode.oct24.data.ChatIdentifier
+import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toChatId
-import com.getcode.oct24.internal.network.extensions.toPagingToken
 import com.getcode.oct24.internal.network.extensions.toProto
 import com.getcode.oct24.internal.network.extensions.toUserId
-import com.getcode.oct24.model.query.QueryOptions
-import com.getcode.utils.toByteString
+import com.getcode.oct24.domain.model.query.QueryOptions
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

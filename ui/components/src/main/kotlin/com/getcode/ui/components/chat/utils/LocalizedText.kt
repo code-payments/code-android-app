@@ -102,12 +102,6 @@ fun MessageContent.localizedText(
         }
 
         is MessageContent.Decrypted -> content.data
-        is MessageContent.IdentityRevealed -> {
-            val resId = if (content.isFromSelf) R.string.title_chat_announcement_identityRevealed
-            else R.string.title_chat_announcement_identityRevealedToYou
-
-            resources.getString(resId, content.identity.username)
-        }
 
         is MessageContent.RawText -> content.value
         is MessageContent.ThankYou -> {
@@ -119,7 +113,7 @@ fun MessageContent.localizedText(
     }
 }
 
-internal val MessageContent.localizedText: String
+val MessageContent.localizedText: String
     @Composable get() {
         val context = LocalContext.current
         return when (val content = this) {
@@ -191,14 +185,6 @@ internal val MessageContent.localizedText: String
 
             is MessageContent.SodiumBox -> "<! encrypted content !>"
             is MessageContent.Decrypted -> content.data
-            is MessageContent.IdentityRevealed -> {
-                with(LocalContext.current) {
-                    val resId = if (content.isFromSelf) R.string.title_chat_announcement_identityRevealed
-                    else R.string.title_chat_announcement_identityRevealedToYou
-
-                    getString(resId, content.identity.username)
-                }
-            }
             is MessageContent.RawText -> content.value
             is MessageContent.ThankYou -> {
                 with(LocalContext.current) {

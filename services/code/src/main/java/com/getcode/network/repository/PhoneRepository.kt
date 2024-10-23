@@ -2,7 +2,7 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.phone.v1.PhoneVerificationService
 import com.getcode.annotations.CodeNetworkOracle
-import com.getcode.db.Database
+import com.getcode.db.CodeAppDatabase
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.PhoneApi
 import com.getcode.network.core.NetworkOracle
@@ -121,7 +121,7 @@ class PhoneRepository @Inject constructor(
                     phone.phoneNumber.value
                 )
             }
-            .flatMap { response -> Database.isInit.map { response } }
+            .flatMap { response -> CodeAppDatabase.isInit.map { response } }
             .doOnNext { phone ->
                 phoneNumber = phone.phoneNumber
                 phoneLinked.value = phone.isLinked

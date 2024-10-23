@@ -10,10 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -39,13 +37,10 @@ import com.getcode.oct24.R
 import com.getcode.model.Currency
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Rate
-import com.getcode.model.chat.Chat
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
-import com.getcode.theme.White10
-import com.getcode.ui.components.chat.ChatNode
 import com.getcode.ui.components.text.AmountArea
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.utils.Kin
@@ -77,7 +72,7 @@ fun BalanceScreenContent(
         state = state,
         dispatch = dispatch,
         faqOpen = {  },
-        openChat = {  },
+//        openChat = {  },
         buyMoreKin = {  }
     )
 }
@@ -87,15 +82,16 @@ fun BalanceContent(
     state: BalanceSheetViewModel.State,
     dispatch: (BalanceSheetViewModel.Event) -> Unit,
     faqOpen: () -> Unit,
-    openChat: (Chat) -> Unit,
+//    openChat: (Chat) -> Unit,
     buyMoreKin: () -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
     val navigator = LocalCodeNavigator.current
 
-    val chatsEmpty by remember(state.chats) {
-        derivedStateOf { state.chats.isEmpty() }
-    }
+    val chatsEmpty = false
+//    val chatsEmpty by remember(state.chats) {
+//        derivedStateOf { state.chats.isEmpty() }
+//    }
 
     val canClickBalance by remember(state.currencySelection.enabled) {
         derivedStateOf { state.currencySelection.enabled }
@@ -134,17 +130,17 @@ fun BalanceContent(
             }
         }
 
-        itemsIndexed(
-            state.chats,
-            key = { _, item -> item.id },
-            contentType = { _, item -> item }
-        ) { index, chat ->
-            ChatNode(chat = chat, onClick = { openChat(chat) })
-            Divider(
-                modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                color = White10,
-            )
-        }
+//        itemsIndexed(
+//            state.chats,
+//            key = { _, item -> item.id },
+//            contentType = { _, item -> item }
+//        ) { index, chat ->
+//            ChatNode(chat = chat, onClick = { openChat(chat) })
+//            Divider(
+//                modifier = Modifier.padding(start = CodeTheme.dimens.inset),
+//                color = White10,
+//            )
+//        }
 
         when {
             state.chatsLoading -> {
@@ -331,7 +327,7 @@ private fun TopPreview() {
             selectedRate = Rate(Currency.Kin.rate, CurrencyCode.KIN),
             chatsLoading = false,
             currencyFlag = R.drawable.ic_currency_kin,
-            chats = emptyList(),
+//            chats = emptyList(),
             isBucketDebuggerEnabled = false,
             isBucketDebuggerVisible = false,
         )

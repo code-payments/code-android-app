@@ -13,11 +13,10 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Title
-import com.getcode.model.chat.isNotification
 import com.getcode.network.client.Client
 import com.getcode.network.client.advancePointer
+import com.getcode.network.client.fetchChats
 import com.getcode.network.client.fetchMessagesFor
-import com.getcode.network.client.fetchV1Chats
 import com.getcode.network.client.setMuted
 import com.getcode.network.client.setSubscriptionState
 import com.getcode.network.source.CollectionPagingSource
@@ -51,7 +50,6 @@ class NotificationCollectionHistoryController @Inject constructor(
 
     val notifications: StateFlow<List<NotificationCollectionEntity>?>
         get() = collectionEntries
-            .map { it?.filter { entry -> entry.isNotification } }
             .stateIn(this, SharingStarted.Eagerly, emptyList())
 
     var loadingCollections: Boolean = false
@@ -212,7 +210,7 @@ class NotificationCollectionHistoryController @Inject constructor(
 
     private suspend fun fetchCollectionsWithoutMessages(): List<NotificationCollectionEntity> {
         val owner = owner() ?: return emptyList()
-        val result = client.fetchV1Chats(owner)
+        val result = client.fetchChats(owner)
         return result.getOrNull().orEmpty()
     }
 }

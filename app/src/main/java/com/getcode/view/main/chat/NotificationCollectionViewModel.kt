@@ -11,7 +11,6 @@ import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
-import com.getcode.oct24.network.controllers.ConversationController
 import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -41,7 +40,6 @@ import javax.inject.Inject
 @HiltViewModel
 class NotificationCollectionViewModel @Inject constructor(
     historyController: NotificationCollectionHistoryController,
-    conversationController: com.getcode.oct24.network.controllers.ConversationController,
     betaFlags: BetaFlagsRepository,
 ) : BaseViewModel2<NotificationCollectionViewModel.State, NotificationCollectionViewModel.Event>(
     initialState = State(
@@ -160,17 +158,9 @@ class NotificationCollectionViewModel @Inject constructor(
         }
         .mapLatest { page ->
             page.map { (message, contents) ->
-                val content =
-                    if (contents is MessageContent.Exchange && contents.verb is Verb.ReceivedTip) {
-                        val hasMessaged = conversationController.hasInteracted(message.id)
-                        contents.copy(hasInteracted = hasMessaged)
-                    } else {
-                        contents
-                    }
-
                 ChatItem.Message(
                     chatMessageId = message.id,
-                    message = content,
+                    message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
                     status = if (message.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
                     isFromSelf = message.isFromSelf

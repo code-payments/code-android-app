@@ -10,13 +10,11 @@ fun ChatMessage.decryptingUsing(keyPair: Ed25519.KeyPair): ChatMessage {
         senderId = senderId,
         isFromSelf = isFromSelf,
         dateMillis = dateMillis,
-        cursor = cursor,
         contents = contents.map {
             when (it) {
                 is MessageContent.Exchange,
                 is MessageContent.Localized,
                 is MessageContent.Decrypted,
-                is MessageContent.IdentityRevealed,
                 is MessageContent.RawText,
                 is MessageContent.ThankYou -> it // passthrough
                 is MessageContent.SodiumBox -> {

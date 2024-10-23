@@ -1,6 +1,7 @@
 package com.getcode.analytics
 
-import com.getcode.model.AppSetting
+import com.getcode.services.model.AppSetting
+import com.getcode.model.CurrencyCode
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.solana.keys.PublicKey
@@ -13,31 +14,31 @@ interface AnalyticsService {
     fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?)
     fun billTimeoutReached(
         kin: Kin,
-        currencyCode: com.getcode.model.CurrencyCode,
+        currencyCode: CurrencyCode,
         animation: AnalyticsManager.BillPresentationStyle
     )
     fun billShown(
         kin: Kin,
-        currencyCode: com.getcode.model.CurrencyCode,
+        currencyCode: CurrencyCode,
         animation: AnalyticsManager.BillPresentationStyle
     )
     fun billHidden(
         kin: Kin,
-        currencyCode: com.getcode.model.CurrencyCode,
+        currencyCode: CurrencyCode,
         animation: AnalyticsManager.BillPresentationStyle
     )
     fun transfer(amount: KinAmount, successful: Boolean)
     fun transferForRequest(amount: KinAmount, successful: Boolean)
     fun transferForTip(amount: KinAmount, successful: Boolean)
-    fun remoteSendOutgoing(kin: Kin, currencyCode: com.getcode.model.CurrencyCode)
-    fun remoteSendIncoming(kin: Kin, currencyCode: com.getcode.model.CurrencyCode, isVoiding: Boolean)
+    fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode)
+    fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean)
     fun recomputed(fxIn: Double, fxOut: Double)
     fun grabStart()
-    fun grab(kin: Kin, currencyCode: com.getcode.model.CurrencyCode)
+    fun grab(kin: Kin, currencyCode: CurrencyCode)
     fun requestShown(amount: KinAmount)
     fun requestHidden(amount: KinAmount)
     fun cashLinkGrabStart()
-    fun cashLinkGrab(kin: Kin, currencyCode: com.getcode.model.CurrencyCode)
+    fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode)
     fun migration(amount: Kin)
     fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int)
     fun onBillReceived()
@@ -64,17 +65,17 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun createAccount(isSuccessful: Boolean, ownerPublicKey: String?) = Unit
     override fun billTimeoutReached(
         kin: Kin,
-        currencyCode: com.getcode.model.CurrencyCode,
+        currencyCode: CurrencyCode,
         animation: AnalyticsManager.BillPresentationStyle
     ) = Unit
     override fun billShown(
         kin: Kin,
-        currencyCode: com.getcode.model.CurrencyCode,
+        currencyCode: CurrencyCode,
         animation: AnalyticsManager.BillPresentationStyle
     ) = Unit
     override fun billHidden(
         kin: Kin,
-        currencyCode: com.getcode.model.CurrencyCode,
+        currencyCode: CurrencyCode,
         animation: AnalyticsManager.BillPresentationStyle
     ) = Unit
     override fun transfer(amount: KinAmount, successful: Boolean) = Unit
@@ -82,15 +83,15 @@ class AnalyticsServiceNull : AnalyticsService {
     override fun transferForTip(amount: KinAmount, successful: Boolean) = Unit
     override fun withdrawal(amount: KinAmount, successful: Boolean) = Unit
 
-    override fun remoteSendOutgoing(kin: Kin, currencyCode: com.getcode.model.CurrencyCode) = Unit
-    override fun remoteSendIncoming(kin: Kin, currencyCode: com.getcode.model.CurrencyCode, isVoiding: Boolean) = Unit
+    override fun remoteSendOutgoing(kin: Kin, currencyCode: CurrencyCode) = Unit
+    override fun remoteSendIncoming(kin: Kin, currencyCode: CurrencyCode, isVoiding: Boolean) = Unit
     override fun recomputed(fxIn: Double, fxOut: Double) = Unit
     override fun grabStart() = Unit
-    override fun grab(kin: Kin, currencyCode: com.getcode.model.CurrencyCode) = Unit
+    override fun grab(kin: Kin, currencyCode: CurrencyCode) = Unit
     override fun requestShown(amount: KinAmount) = Unit
     override fun requestHidden(amount: KinAmount) = Unit
     override fun cashLinkGrabStart() = Unit
-    override fun cashLinkGrab(kin: Kin, currencyCode: com.getcode.model.CurrencyCode) = Unit
+    override fun cashLinkGrab(kin: Kin, currencyCode: CurrencyCode) = Unit
     override fun migration(amount: Kin) = Unit
     override fun upgradePrivacy(successful: Boolean, intentId: PublicKey, actionCount: Int) = Unit
     override fun onBillReceived() = Unit

@@ -1,18 +1,13 @@
 package com.getcode.oct24.inject
 
 import androidx.paging.PagingData
-import com.getcode.mapper.ConversationMapper
-import com.getcode.mapper.ConversationMessageWithContentMapper
-import com.getcode.model.Conversation
-import com.getcode.model.ConversationMessageWithContent
-import com.getcode.model.ConversationWithLastPointers
+import com.getcode.oct24.domain.model.chat.Conversation
+import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
+import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.model.SocialUser
 import com.getcode.model.chat.MessageStatus
 import com.getcode.oct24.network.controllers.ConversationController
-import com.getcode.network.TipController
-import com.getcode.network.exchange.Exchange
-import com.getcode.network.service.ChatServiceV2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,11 +25,6 @@ object DataModule {
     @Provides
     @Singleton
     fun providesConversationController(
-        chatServiceV2: ChatServiceV2,
-        exchange: Exchange,
-        conversationMapper: ConversationMapper,
-        messageWithContentMapper: ConversationMessageWithContentMapper,
-        tipController: TipController,
     ): ConversationController = object : ConversationController {
         override fun observeConversation(id: ID): Flow<ConversationWithLastPointers?> = flowOf(null)
 

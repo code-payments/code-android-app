@@ -9,12 +9,11 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.db.Database
 import com.getcode.db.InMemoryDao
 import com.getcode.model.AirdropType
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
+import com.getcode.services.model.PrefsBool
+import com.getcode.services.model.PrefsString
 import com.getcode.model.description
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.IdentityRepository
@@ -60,7 +59,6 @@ class AuthManager @Inject constructor(
     private val exchange: Exchange,
     private val balanceController: BalanceController,
     private val notificationCollectionHistory: NotificationCollectionHistoryController,
-    private val chatHistory: com.getcode.oct24.network.controllers.ChatHistoryController,
     private val inMemoryDao: InMemoryDao,
     private val analytics: AnalyticsService,
     private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
@@ -291,7 +289,6 @@ class AuthManager @Inject constructor(
                 launch { savePrefs(phone!!, user!!) }
                 launch { exchange.fetchRatesIfNeeded() }
                 launch { notificationCollectionHistory.fetch() }
-                launch { chatHistory.fetch() }
             }
     }
 

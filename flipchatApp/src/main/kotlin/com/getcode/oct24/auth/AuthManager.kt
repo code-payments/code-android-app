@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.analytics.AnalyticsService
-import com.getcode.db.Database
+import com.getcode.db.CodeAppDatabase
 import com.getcode.db.InMemoryDao
 import com.getcode.ed25519.Ed25519
 import com.getcode.manager.SessionManager
@@ -14,10 +14,12 @@ import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.isMock
 import com.getcode.oct24.BuildConfig
+import com.getcode.oct24.db.FcAppDatabase
 import com.getcode.oct24.network.controllers.AccountController
 import com.getcode.oct24.user.UserManager
 import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.util.TokenResult
+import com.getcode.services.db.Database
 import com.getcode.services.utils.installationId
 import com.getcode.services.utils.token
 import com.getcode.utils.ErrorUtils
@@ -102,8 +104,14 @@ class AuthManager @Inject constructor(
 
         softLoginDisabled = true
 
-        if (!Database.isOpen()) {
-            Database.init(context, entropyB64)
+        if (!CodeAppDatabase.isOpen()) {
+            CodeAppDatabase.init(context, entropyB64)
+            Database.register(CodeAppDatabase.requireInstance())
+        }
+
+        if (!FcAppDatabase.isOpen()) {
+            FcAppDatabase.init(context, entropyB64)
+            Database.register(FcAppDatabase.requireInstance())
         }
 
         val originalSessionState = SessionManager.authState.value
@@ -151,8 +159,14 @@ class AuthManager @Inject constructor(
             return Result.failure(Throwable("Provided entropy was empty"))
         }
 
-        if (!Database.isOpen()) {
-            Database.init(context, entropyB64)
+        if (!CodeAppDatabase.isOpen()) {
+            CodeAppDatabase.init(context, entropyB64)
+            Database.register(CodeAppDatabase.requireInstance())
+        }
+
+        if (!FcAppDatabase.isOpen()) {
+            FcAppDatabase.init(context, entropyB64)
+            Database.register(FcAppDatabase.requireInstance())
         }
 
         val originalSessionState = SessionManager.authState.value

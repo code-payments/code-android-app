@@ -1,13 +1,9 @@
 package com.getcode.view.main.account
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.R
 import com.getcode.mapper.AppSettingsMapper
-import com.getcode.model.APP_SETTINGS
-import com.getcode.model.AppSetting
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.AppSetting
 import com.getcode.models.SettingItem
-import com.getcode.network.repository.AppSettings
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel

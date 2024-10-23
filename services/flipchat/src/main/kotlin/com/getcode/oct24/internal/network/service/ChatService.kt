@@ -4,14 +4,13 @@ import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.codeinc.flipchat.gen.chat.v1.ChatService.GetChatsResponse
 import com.codeinc.flipchat.gen.chat.v1.ChatService.StartChatResponse
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.oct24.annotations.FcNetworkOracle
 import com.getcode.oct24.internal.network.api.ChatApi
 import com.getcode.oct24.internal.network.core.NetworkOracle
-import com.getcode.oct24.model.chat.ChatIdentifier
-import com.getcode.oct24.model.chat.StartChatRequestType
-import com.getcode.oct24.model.query.QueryOptions
+import com.getcode.oct24.data.ChatIdentifier
+import com.getcode.oct24.data.StartChatRequestType
+import com.getcode.oct24.domain.model.query.QueryOptions
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber

@@ -1,6 +1,6 @@
 package com.getcode.model.notifications
 
-import com.codeinc.gen.chat.v2.ChatService
+import com.codeinc.gen.chat.v1.ChatService
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.protomapping.invoke
 import com.getcode.utils.ErrorUtils
@@ -59,7 +59,7 @@ fun RemoteMessage.parse(): CodeNotification? {
         }
         it
     }
-    val content = MessageContent(rawContent).let {
+    val content = MessageContent.invoke(rawContent).let {
         if (it == null) {
             Timber.e("failed to convert MessageContent")
             ErrorUtils.handleError(Throwable("failed to convert MessageContent"))

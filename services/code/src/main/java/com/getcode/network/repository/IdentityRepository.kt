@@ -8,11 +8,11 @@ import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppResponse
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
 import com.getcode.annotations.CodeNetworkOracle
-import com.getcode.db.Database
+import com.getcode.db.CodeAppDatabase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.AirdropType
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
+import com.getcode.services.model.PrefsBool
+import com.getcode.services.model.PrefsString
 import com.getcode.model.TwitterUser
 import com.getcode.model.protomapping.invoke
 import com.getcode.network.core.NetworkOracle
@@ -90,7 +90,7 @@ class IdentityRepository @Inject constructor(
                 //       view inconsistencies with expected state, since I suspect Database.isOpen()
                 //       is false by the time we execute this piece of code in some flows (eg. in
                 //       particular I've noticed logging in through seed phrase input).
-                if (Database.isOpen()) {
+                if (CodeAppDatabase.isOpen()) {
                     prefRepository.set(
                         PrefsString.KEY_USER_ID,
                         user.userId.toByteArray().encodeBase64()

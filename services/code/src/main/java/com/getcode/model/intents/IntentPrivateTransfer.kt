@@ -1,12 +1,12 @@
 package com.getcode.model.intents
 
 import com.codeinc.gen.chat.v2.ChatService
+import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.Fee
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.SocialUser
-import com.getcode.model.chat.ChatIdV2
 import com.getcode.model.chat.Platform
 import com.getcode.model.intents.actions.ActionFeePayment
 import com.getcode.model.intents.actions.ActionOpenAccount
@@ -60,7 +60,7 @@ class IntentPrivateTransfer(
                         is PrivateTransferMetadata.Chat -> {
                             setIsChat(true)
                             setChatId(
-                                ChatIdV2.newBuilder()
+                                Model.ChatId.newBuilder()
                                 .setValue(metadata.socialUser.chatId.toByteString())
                             )
                         }

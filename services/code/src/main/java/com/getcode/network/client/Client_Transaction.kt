@@ -1,8 +1,8 @@
 package com.getcode.network.client
 
 import android.annotation.SuppressLint
+import com.getcode.db.CodeAppDatabase
 import com.getcode.services.BuildConfig
-import com.getcode.db.Database
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
@@ -158,7 +158,7 @@ fun Client.sendRemotely(
                             amount = truncatedAmount.kin.quarks,
                             date = System.currentTimeMillis()
                         )
-                        Database.requireInstance().giftCardDao().insert(giftCardItem)
+                        CodeAppDatabase.requireInstance().giftCardDao().insert(giftCardItem)
                     }
             )
     }
@@ -472,7 +472,7 @@ private var lastLimitsFetch: Long = 0L
 
 fun Client.fetchLimits(isForce: Boolean = false): Completable {
     val owner = SessionManager.getKeyPair() ?: return Completable.complete()
-    if (!Database.isOpen()) return Completable.complete()
+    if (!CodeAppDatabase.isOpen()) return Completable.complete()
     fetchTransactionLimits(owner, isForce)
     return Completable.complete()
 }

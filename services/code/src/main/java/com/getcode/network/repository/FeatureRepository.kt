@@ -3,7 +3,7 @@ package com.getcode.network.repository
 import com.getcode.model.BalanceCurrencyFeature
 import com.getcode.model.BuyModuleFeature
 import com.getcode.model.CameraGesturesFeature
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.TipCardFeature
 import com.getcode.model.TipCardOnHomeScreenFeature

@@ -4,7 +4,7 @@ import android.app.Activity
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.AuthManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.network.repository.AppSettingsRepository
 import com.getcode.network.repository.BetaFlagsRepository
 import com.getcode.network.repository.BetaOptions

@@ -72,7 +72,7 @@ sealed interface MessageContent {
     data class Exchange(
         val amount: GenericAmount,
         val verb: Verb,
-        val reference: Reference,
+        val reference: Reference?,
         val hasInteracted: Boolean,
         override val isFromSelf: Boolean,
     ) : MessageContent {
@@ -81,7 +81,7 @@ sealed interface MessageContent {
         override fun hashCode(): Int {
             var result = amount.hashCode()
             result += verb.hashCode()
-            result += reference.hashCode()
+            result += (reference?.hashCode() ?: 0)
             result += hasInteracted.hashCode()
             result += isFromSelf.hashCode()
             result += kind.hashCode()
@@ -157,38 +157,6 @@ sealed interface MessageContent {
             other as ThankYou
 
             if (tipIntentId != other.tipIntentId) return false
-            if (isFromSelf != other.isFromSelf) return false
-            if (kind != other.kind) return false
-
-            return true
-        }
-    }
-
-    @Serializable
-    data class IdentityRevealed(
-        val memberId: ID,
-        val identity: Identity,
-        override val isFromSelf: Boolean,
-    ) : MessageContent {
-        override val kind: Int = 5
-
-        override fun hashCode(): Int {
-            var result = memberId.hashCode()
-            result += identity.hashCode()
-            result += isFromSelf.hashCode()
-            result += kind.hashCode()
-
-            return result
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (javaClass != other?.javaClass) return false
-
-            other as IdentityRevealed
-
-            if (memberId != other.memberId) return false
-            if (identity != other.identity) return false
             if (isFromSelf != other.isFromSelf) return false
             if (kind != other.kind) return false
 

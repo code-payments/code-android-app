@@ -2,8 +2,8 @@ package com.getcode.network
 
 import com.getcode.manager.SessionManager
 import com.getcode.model.CodePayload
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
+import com.getcode.services.model.PrefsBool
+import com.getcode.services.model.PrefsString
 import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
 import com.getcode.network.client.Client

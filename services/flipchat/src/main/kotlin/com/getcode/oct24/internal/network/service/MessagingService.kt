@@ -5,15 +5,14 @@ import com.codeinc.flipchat.gen.messaging.v1.MessagingService.AdvancePointerResp
 import com.codeinc.flipchat.gen.messaging.v1.MessagingService.GetMessagesResponse
 import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
-import com.getcode.model.chat.OutgoingMessageContent
+import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.model.description
 import com.getcode.oct24.annotations.FcNetworkOracle
 import com.getcode.oct24.internal.network.api.MessagingApi
 import com.getcode.oct24.internal.network.core.NetworkOracle
-import com.getcode.oct24.model.query.QueryOptions
+import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace

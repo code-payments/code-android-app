@@ -1,9 +1,9 @@
 package com.getcode.oct24.network.controllers
 
 import androidx.paging.PagingData
-import com.getcode.model.Conversation
-import com.getcode.model.ConversationMessageWithContent
-import com.getcode.model.ConversationWithLastPointers
+import com.getcode.oct24.domain.model.chat.Conversation
+import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
+import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.model.SocialUser
 import com.getcode.model.chat.MessageStatus

@@ -18,7 +18,6 @@ import com.getcode.model.notifications.NotificationType
 import com.getcode.model.notifications.parse
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.PushRepository
@@ -76,9 +75,6 @@ class CodePushMessagingService : FirebaseMessagingService(),
     lateinit var notificationHistory: NotificationCollectionHistoryController
 
     @Inject
-    lateinit var chatHistory: com.getcode.oct24.network.controllers.ChatHistoryController
-
-    @Inject
     lateinit var tipController: TipController
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -116,7 +112,6 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 when (type) {
                     NotificationType.ChatMessage -> {
                         launch { notificationHistory.fetch() }
-                        launch { chatHistory.fetch() }
                         launch { balanceController.fetchBalanceSuspend() }
                     }
 

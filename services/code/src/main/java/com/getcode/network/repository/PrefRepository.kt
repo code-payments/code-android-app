@@ -1,27 +1,27 @@
 package com.getcode.network.repository
 
-import com.getcode.db.Database
-import com.getcode.model.*
+import com.getcode.db.CodeAppDatabase
+import com.getcode.services.model.PrefBool
+import com.getcode.services.model.PrefInt
+import com.getcode.services.model.PrefString
+import com.getcode.services.model.PrefsBool
+import com.getcode.services.model.PrefsInt
+import com.getcode.services.model.PrefsString
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.reactive.asFlow
 import timber.log.Timber
 import javax.inject.Inject
-
 
 
 class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dispatchers.IO) {
@@ -40,7 +40,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
 
 
     fun getFlowable(key: PrefsString): Flowable<String> {
-        val db = Database.getInstance() ?: return Flowable.empty()
+        val db = CodeAppDatabase.getInstance() ?: return Flowable.empty()
         return db.prefStringDao().get(key.value)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
@@ -48,7 +48,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun getFlowable(key: PrefsBool): Flowable<Boolean> {
-        val db = Database.getInstance() ?: return Flowable.empty()
+        val db = CodeAppDatabase.getInstance() ?: return Flowable.empty()
         return db.prefBoolDao().get(key.value)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
@@ -56,9 +56,9 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun observeOrDefault(key: PrefsBool, default: Boolean): Flow<Boolean> {
-        return Database.isInit
+        return CodeAppDatabase.isInit
             .asFlow()
-            .map { Database.getInstance() }
+            .map { CodeAppDatabase.getInstance() }
             .flatMapLatest {
                 it ?: return@flatMapLatest flowOf(default)
                 it.prefBoolDao().observe(key.value).map { it?.value ?: default }
@@ -68,9 +68,9 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun observeOrDefault(key: PrefsString, default: String): Flow<String> {
-        return Database.isInit
+        return CodeAppDatabase.isInit
             .asFlow()
-            .map { Database.getInstance() }
+            .map { CodeAppDatabase.getInstance() }
             .flatMapLatest {
                 it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe string ; DB not available") }
                 it.prefStringDao().observe(key.value)
@@ -80,9 +80,9 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun observeOrDefault(key: PrefsInt, default: Long): Flow<Long> {
-        return Database.isInit
+        return CodeAppDatabase.isInit
             .asFlow()
-            .map { Database.getInstance() }
+            .map { CodeAppDatabase.getInstance() }
             .flatMapLatest {
                 it ?: return@flatMapLatest flowOf(default).also { Timber.e("observe long ; DB not available") }
                 it.prefIntDao().observe(key.value)
@@ -92,7 +92,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun getFlowable(key: String): Flowable<Long> {
-        val db = Database.getInstance() ?: return Flowable.empty()
+        val db = CodeAppDatabase.getInstance() ?: return Flowable.empty()
         return db.prefIntDao().get(key)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
@@ -100,7 +100,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun getFirstOrDefault(key: PrefsString, default: String): Single<String> {
-        val db = Database.getInstance() ?: return Single.just(default)
+        val db = CodeAppDatabase.getInstance() ?: return Single.just(default)
         return db.prefStringDao().getMaybe(key.value)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
@@ -108,7 +108,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun getFirstOrDefault(key: PrefsBool, default: Boolean): Single<Boolean> {
-        val db = Database.getInstance() ?: return Single.just(default)
+        val db = CodeAppDatabase.getInstance() ?: return Single.just(default)
         return db.prefBoolDao().getMaybe(key.value)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
@@ -116,7 +116,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
     }
 
     fun getFirstOrDefault(key: String, default: Int): Single<Long> {
-        val db = Database.getInstance() ?: return Single.just(default.toLong())
+        val db = CodeAppDatabase.getInstance() ?: return Single.just(default.toLong())
         return db.prefIntDao().getMaybe(key)
             .subscribeOn(Schedulers.computation())
             .map { it.value }
@@ -125,7 +125,7 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
 
     suspend fun set(vararg list: Pair<PrefsString, String>) {
         list.forEach { pair ->
-            Database.getInstance()?.prefStringDao()?.insert(PrefString(pair.first.value, pair.second))
+            CodeAppDatabase.getInstance()?.prefStringDao()?.insert(PrefString(pair.first.value, pair.second))
         }
     }
 
@@ -137,14 +137,14 @@ class PrefRepository @Inject constructor(): CoroutineScope by CoroutineScope(Dis
 
     fun set(key: String, value: Long) {
         launch {
-            Database.getInstance()?.prefIntDao()?.insert(PrefInt(key, value))
+            CodeAppDatabase.getInstance()?.prefIntDao()?.insert(PrefInt(key, value))
         }
     }
 
     fun set(key: PrefsBool, value: Boolean) {
         launch {
             runCatching {
-                val db = Database.getInstance() ?: throw IllegalStateException("No DB")
+                val db = CodeAppDatabase.getInstance() ?: throw IllegalStateException("No DB")
                 db.prefBoolDao().insert(PrefBool(key.value, value))
             }.onFailure { Timber.d(it.message) }.onSuccess { Timber.d("saved ${key.value} => $value") }
         }

@@ -47,7 +47,6 @@ class MessageNodeScope(
     val isAnnouncement: Boolean
         @Composable get() = remember {
             when (contents) {
-                is MessageContent.IdentityRevealed -> true
                 is MessageContent.ThankYou -> true
                 else -> false
             }
@@ -149,12 +148,6 @@ fun MessageNode(
                     )
                 }
 
-                is MessageContent.IdentityRevealed -> {
-                    AnnouncementMessage(
-                        modifier = Modifier.align(Alignment.Center),
-                        text = contents.localizedText
-                    )
-                }
                 is MessageContent.RawText -> {
                     MessageText(
                         modifier = Modifier.fillMaxWidth(),

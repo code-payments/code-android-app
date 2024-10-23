@@ -13,7 +13,7 @@ import androidx.paging.map
 import com.getcode.oct24.BuildConfig
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationCashFeature
-import com.getcode.model.ConversationWithLastPointers
+import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.Feature
 import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
@@ -24,10 +24,10 @@ import com.getcode.oct24.network.controllers.ConversationController
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
+import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
 import com.getcode.payments.PaymentController
 import com.getcode.payments.PaymentEvent
 import com.getcode.ui.components.chat.utils.ChatItem
-import com.getcode.ui.components.chat.utils.ConversationMessageIndice
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
@@ -83,11 +83,11 @@ class ConversationViewModel @Inject constructor(
     ) {
         data class User(
             val memberId: com.getcode.model.ID,
-            val username: String?,
+            val displayName: String?,
             val imageUrl: String?,
         ) {
             val isRevealed: Boolean
-                get() = username != null
+                get() = displayName != null
         }
 
         companion object {
@@ -175,7 +175,7 @@ class ConversationViewModel @Inject constructor(
                 val member = user.let {
                     State.User(
                         memberId = UUID.randomUUID().bytes,
-                        username = user.username,
+                        displayName = user.username,
                         imageUrl = user.imageUrl
                     )
                 }
@@ -311,9 +311,9 @@ class ConversationViewModel @Inject constructor(
             .flatMapLatest { users ->
                 users.asFlow() // Convert the list to a flow
             }
-            .filter { it.username != null }
+            .filter { it.displayName != null }
             .mapNotNull { user ->
-                val username = user.username ?: return@mapNotNull null
+                val username = user.displayName ?: return@mapNotNull null
                 runCatching { tipController.fetch(username) }
                     .getOrNull() to user
             }
@@ -435,7 +435,7 @@ class ConversationViewModel @Inject constructor(
                         users = members.map {
                             State.User(
                                 memberId = it.id,
-                                username = it.identity?.username,
+                                displayName = it.identity?.displayName,
                                 imageUrl = null,
                             )
                         }
@@ -496,7 +496,7 @@ class ConversationViewModel @Inject constructor(
                     val updatedUsers = users.map {
                         if (it.memberId == event.memberId) {
                             it.copy(
-                                username = event.username ?: it.username,
+                                displayName = event.username ?: it.displayName,
                                 imageUrl = event.imageUrl ?: it.imageUrl,
                             )
                         } else {

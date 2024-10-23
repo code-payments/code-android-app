@@ -1,8 +1,8 @@
 package com.getcode.network.repository
 
 import com.getcode.analytics.AnalyticsService
-import com.getcode.model.AppSetting
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.AppSetting
+import com.getcode.services.model.PrefsBool
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject

@@ -4,8 +4,8 @@ import androidx.compose.runtime.Stable
 import androidx.lifecycle.viewModelScope
 import com.getcode.R
 import com.getcode.model.Currency
-import com.getcode.model.PrefsBool
-import com.getcode.model.PrefsString
+import com.getcode.services.model.PrefsBool
+import com.getcode.services.model.PrefsString
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.PrefRepository
 import com.getcode.util.locale.LocaleHelper

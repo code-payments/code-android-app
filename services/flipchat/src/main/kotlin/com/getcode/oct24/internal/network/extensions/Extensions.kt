@@ -5,7 +5,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
 import com.getcode.oct24.internal.network.utils.sign
-import com.getcode.oct24.model.query.QueryOptions
+import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.utils.toByteString
 
 internal fun ByteArray.toSignature(): Flipchat.Signature {

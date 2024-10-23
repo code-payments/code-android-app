@@ -1,10 +1,10 @@
 package com.getcode.analytics
 
 import com.getcode.services.BuildConfig
-import com.getcode.model.AppSetting
+import com.getcode.services.model.AppSetting
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.google.firebase.ktx.Firebase

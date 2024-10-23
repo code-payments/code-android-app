@@ -26,7 +26,7 @@ import com.getcode.model.IntentMetadata
 import com.getcode.model.InvertedDragZoomFeature
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.model.RequestKinFeature
 import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
@@ -43,7 +43,6 @@ import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.oct24.network.controllers.ChatHistoryController
 import com.getcode.network.TipController
 import com.getcode.network.client.Client
 import com.getcode.network.client.RemoteSendException
@@ -188,7 +187,6 @@ class SessionController @Inject constructor(
     private val paymentRepository: PaymentRepository,
     private val balanceController: BalanceController,
     private val historyController: NotificationCollectionHistoryController,
-    private val chatHistoryController: com.getcode.oct24.network.controllers.ChatHistoryController,
     private val tipController: TipController,
     private val prefRepository: PrefRepository,
     private val analytics: AnalyticsService,
@@ -396,13 +394,6 @@ class SessionController @Inject constructor(
             .map { it }
             .onEach { count ->
                 state.update { it.copy(notificationUnreadCount = count) }
-            }.launchIn(scope)
-
-        chatHistoryController.unreadCount
-            .distinctUntilChanged()
-            .map { it }
-            .onEach { count ->
-                state.update { it.copy(chatUnreadCount = count) }
             }.launchIn(scope)
 
         prefRepository.observeOrDefault(PrefsBool.LOG_SCAN_TIMES, false)

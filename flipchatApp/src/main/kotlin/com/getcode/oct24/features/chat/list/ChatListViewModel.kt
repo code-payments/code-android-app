@@ -1,7 +1,7 @@
 package com.flipchat.features.chat.list
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.model.chat.ConversationEntity
+import com.getcode.oct24.data.Room
 //import com.getcode.oct24.network.controllers.ConversationListController
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
@@ -24,12 +24,12 @@ class ChatListViewModel @Inject constructor(
 ) {
     data class State(
         val loading: Boolean = false,
-        val conversations: List<ConversationEntity> = emptyList(),
+        val conversations: List<Room> = emptyList(),
     )
 
     sealed interface Event {
         data class OnChatsLoading(val loading: Boolean) : Event
-        data class OnChatsUpdated(val chats: List<ConversationEntity>) : Event
+        data class OnChatsUpdated(val chats: List<Room>) : Event
         data object OnOpened: Event
     }
 

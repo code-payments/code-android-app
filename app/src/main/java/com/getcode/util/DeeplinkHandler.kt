@@ -7,7 +7,7 @@ import android.os.Parcelable
 import androidx.core.net.toUri
 import cafe.adriel.voyager.core.screen.Screen
 import com.getcode.R
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.models.DeepLinkRequest
 import com.getcode.navigation.screens.ScanScreen
 import com.getcode.navigation.screens.LoginScreen

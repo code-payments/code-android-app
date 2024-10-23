@@ -191,7 +191,7 @@ private fun ConversationTitle(
         }
 
         Column {
-            val title = state.users.mapNotNull { it.username }
+            val title = state.users.mapNotNull { it.displayName }
                 .joinToString()
                 .takeIf { it.isNotEmpty() } ?: "Anonymous Tipper"
             Text(

@@ -6,7 +6,7 @@ import com.getcode.model.BuyModuleFeature
 import com.getcode.model.chat.Chat
 import com.getcode.model.Currency
 import com.getcode.model.Feature
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.PrefsBool
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
 import com.getcode.network.NotificationCollectionHistoryController
@@ -17,8 +17,6 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map

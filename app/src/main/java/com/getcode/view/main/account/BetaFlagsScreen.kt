@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.R
-import com.getcode.model.Immutable
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.Immutable
+import com.getcode.services.model.PrefsBool
 import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState

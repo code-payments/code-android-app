@@ -29,6 +29,7 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.NamedScreen
+import com.getcode.oct24.features.chat.list.ChatNode
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.ui.components.chat.ChatNode
@@ -91,7 +92,7 @@ private fun ChatListScreenContent(
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(state.conversations, key = { it.id }) { chat ->
-                ChatNode(chat = chat, showAvatar = true) {
+                ChatNode(chat = chat) {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = chat.id)))
                 }
                 Divider(

@@ -2,8 +2,8 @@ package com.getcode.mapper
 
 import androidx.biometric.BiometricManager
 import com.getcode.R
-import com.getcode.model.APP_SETTINGS
-import com.getcode.model.PrefsBool
+import com.getcode.services.model.APP_SETTINGS
+import com.getcode.services.model.PrefsBool
 import com.getcode.models.SettingItem
 import com.getcode.network.repository.AppSettings
 import com.getcode.services.mapper.SuspendMapper

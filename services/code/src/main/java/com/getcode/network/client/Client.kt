@@ -12,8 +12,7 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.service.ChatServiceV1
-import com.getcode.network.service.ChatServiceV2
+import com.getcode.network.service.ChatService
 import com.getcode.network.service.DeviceService
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.utils.ErrorUtils
@@ -48,8 +47,7 @@ class Client @Inject constructor(
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
     internal val networkObserver: NetworkConnectivityListener,
-    internal val chatServiceV1: ChatServiceV1,
-    internal val chatServiceV2: ChatServiceV2,
+    internal val chatService: ChatService,
     internal val deviceService: DeviceService,
     internal val mnemonicManager: MnemonicManager,
 ) : LifecycleObserver {

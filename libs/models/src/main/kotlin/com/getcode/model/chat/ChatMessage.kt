@@ -10,7 +10,6 @@ import kotlinx.serialization.Serializable
  * @param id Globally unique ID for this message
  * This is a time based UUID in v2
  * @param senderId The chat member that sent the message.
- * For [ChatType.Unknown] chats, this field is omitted since the chat has exactly 1 member.
  * @param cursor Cursor value for this message for reference in a paged GetMessagesRequest
  * @param dateMillis Timestamp this message was generated at
  * @param contents Ordered message content. A message may have more than one piece of content.

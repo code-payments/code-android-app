@@ -4,13 +4,10 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.accounts.AuthenticatorException
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
-import androidx.core.database.getStringOrNull
 import androidx.core.os.bundleOf
 import com.getcode.oct24.BuildConfig
-import com.getcode.oct24.R
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
 import com.getcode.utils.trace
