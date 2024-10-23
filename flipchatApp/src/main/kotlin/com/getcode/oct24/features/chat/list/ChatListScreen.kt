@@ -19,6 +19,8 @@ import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
@@ -71,9 +73,9 @@ private fun ChatListScreenContent(
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
 
-    val chatsEmpty by remember(state.conversations) {
-        derivedStateOf { state.conversations.isEmpty() }
-    }
+    val chats = viewModel.chats.collectAsLazyPagingItems()
+    val isLoading = chats.loadState.refresh is LoadState.Loading
+    val isEmpty = chats.itemCount == 0 && chats.loadState.refresh is LoadState.NotLoading
 
     CodeScaffold(
         bottomBar = {
@@ -91,18 +93,20 @@ private fun ChatListScreenContent(
         }
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(state.conversations, key = { it.id }) { chat ->
-                ChatNode(chat = chat) {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = chat.id)))
+            items(chats.itemCount) { index ->
+                chats[index]?.let {
+                    ChatNode(chat = it) {
+                        navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it.id)))
+                    }
+                    Divider(
+                        modifier = Modifier.padding(start = CodeTheme.dimens.inset),
+                        color = White10,
+                    )
                 }
-                Divider(
-                    modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                    color = White10,
-                )
             }
 
             when {
-                state.loading -> {
+                isLoading -> {
                     item {
                         Column(
                             modifier = Modifier.fillParentMaxSize(),
@@ -121,7 +125,7 @@ private fun ChatListScreenContent(
                         }
                     }
                 }
-                chatsEmpty -> {
+                isEmpty -> {
                     item {
                         Column(
                             modifier = Modifier.fillParentMaxSize(),

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "4fad99b2f8c71223a41006719864b8c3",
+    "identityHash": "0e592a169e2095597fcc79e76aa24765",
     "entities": [
       {
         "tableName": "PrefInt",
@@ -110,7 +110,7 @@
       },
       {
         "tableName": "conversations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `title` TEXT, `members` TEXT NOT NULL DEFAULT '', `lastActivity` INTEGER, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `title` TEXT, `imageUri` TEXT, `members` TEXT NOT NULL DEFAULT '', `lastActivity` INTEGER, `isMuted` INTEGER NOT NULL, `unreadCount` INTEGER NOT NULL, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -121,6 +121,12 @@
           {
             "fieldPath": "title",
             "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "imageUri",
+            "columnName": "imageUri",
             "affinity": "TEXT",
             "notNull": false
           },
@@ -136,6 +142,18 @@
             "columnName": "lastActivity",
             "affinity": "INTEGER",
             "notNull": false
+          },
+          {
+            "fieldPath": "isMuted",
+            "columnName": "isMuted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "unreadCount",
+            "columnName": "unreadCount",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -213,32 +231,6 @@
         "foreignKeys": []
       },
       {
-        "tableName": "conversation_intent_id_mapping",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationIdBase58` TEXT NOT NULL, `intentIdBase58` TEXT NOT NULL, PRIMARY KEY(`conversationIdBase58`))",
-        "fields": [
-          {
-            "fieldPath": "conversationIdBase58",
-            "columnName": "conversationIdBase58",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "intentIdBase58",
-            "columnName": "intentIdBase58",
-            "affinity": "TEXT",
-            "notNull": true
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "conversationIdBase58"
-          ]
-        },
-        "indices": [],
-        "foreignKeys": []
-      },
-      {
         "tableName": "message_contents",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`messageIdBase58` TEXT NOT NULL, `content` TEXT NOT NULL, PRIMARY KEY(`messageIdBase58`, `content`))",
         "fields": [
@@ -269,7 +261,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4fad99b2f8c71223a41006719864b8c3')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0e592a169e2095597fcc79e76aa24765')"
     ]
   }
 }

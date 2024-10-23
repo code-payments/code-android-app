@@ -7,8 +7,8 @@ import com.getcode.model.ID
 import com.getcode.oct24.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.asPublicKey
-import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toUserId
+import com.getcode.oct24.internal.network.utils.authenticate
 import com.getcode.oct24.internal.network.utils.sign
 import com.google.protobuf.Timestamp
 import io.grpc.ManagedChannel
@@ -45,7 +45,7 @@ class AccountApi @Inject constructor(
     fun login(owner: KeyPair): Flow<AccountService.LoginResponse> {
         val request = AccountService.LoginRequest.newBuilder()
             .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::login
@@ -65,7 +65,7 @@ class AccountApi @Inject constructor(
         val request = AccountService.AuthorizePublicKeyRequest.newBuilder()
             .setPublicKey(newKeyPair.asPublicKey())
             .setUserId(userId.toUserId())
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .apply { setSignature(sign(newKeyPair)) }
             .build()
 
@@ -89,7 +89,7 @@ class AccountApi @Inject constructor(
         val request = AccountService.RevokePublicKeyRequest.newBuilder()
             .setPublicKey(keypair.asPublicKey())
             .setUserId(userId.toUserId())
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::revokePublicKey

@@ -5,6 +5,7 @@ import com.getcode.domain.BillController
 import com.getcode.libs.payments.R
 import com.getcode.manager.TopBarManager
 import com.getcode.model.CodePayload
+import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.Kind
 import com.getcode.model.SocialUser
@@ -36,7 +37,7 @@ data class PaymentState(
 
 sealed interface PaymentEvent {
     data object PresentPaymentEntry : PaymentEvent
-    data class OnChatPaidForSuccessfully(val intentId: com.getcode.model.ID, val user: SocialUser): PaymentEvent
+    data class OnChatPaidForSuccessfully(val intentId: ID, val user: SocialUser): PaymentEvent
 }
 
 val LocalPaymentController = staticCompositionLocalOf<PaymentController?> { null }

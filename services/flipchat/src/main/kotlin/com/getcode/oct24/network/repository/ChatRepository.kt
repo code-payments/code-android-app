@@ -1,4 +1,4 @@
-package com.getcode.oct24.network.controllers
+package com.getcode.oct24.network.repository
 
 import com.getcode.model.ID
 import com.getcode.oct24.data.mapper.RoomMapper
@@ -13,7 +13,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ChatController @Inject constructor(
+class ChatRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: ChatService,
     private val roomMapper: RoomMapper,

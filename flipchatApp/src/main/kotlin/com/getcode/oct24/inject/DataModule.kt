@@ -7,6 +7,7 @@ import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.ID
 import com.getcode.model.SocialUser
 import com.getcode.model.chat.MessageStatus
+import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.network.controllers.ConversationController
 import dagger.Module
 import dagger.Provides
@@ -28,7 +29,7 @@ object DataModule {
     ): ConversationController = object : ConversationController {
         override fun observeConversation(id: ID): Flow<ConversationWithLastPointers?> = flowOf(null)
 
-        override suspend fun createConversation(identifier: ID, with: SocialUser): Conversation {
+        override suspend fun createConversation(request: StartChatRequestType): Conversation {
            throw NotImplementedError()
         }
 

@@ -7,6 +7,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
 import androidx.core.os.bundleOf
+import com.getcode.model.ID
 import com.getcode.oct24.BuildConfig
 import com.getcode.utils.TraceType
 import com.getcode.utils.network.retryable
@@ -117,13 +118,52 @@ object AccountUtils {
         )
     }
 
+    suspend fun getUserId(context: Context): String? {
+        val accountManager = AccountManager.get(context)
+        val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE)
+        val account = accounts.firstOrNull()
+        println("accounts=${accounts.count()}")
+        if (account != null) {
+            val pw = runCatching { accountManager.getPassword(account) }
+                .getOrNull()?.takeIf { it.isNotEmpty() }
+            if (pw != null) {
+                return pw
+            }
+        }
+
+        val (_, acct) = retryable(
+            call = { getAccountNoActivity(context) },
+            onRetry = { currentAttempt ->
+                trace(
+                    tag = "Account",
+                    message = "Retrying call",
+                    metadata = {
+                        "count" to currentAttempt
+                    },
+                    type = TraceType.Process,
+                )
+            }
+        ) ?: return null
+
+        if (acct != null) {
+            val pw = runCatching { accountManager.getPassword(acct) }
+                .getOrNull()?.takeIf { it.isNotEmpty() }
+            if (pw != null) {
+                return pw
+            }
+        }
+
+        return null
+    }
+
     suspend fun getToken(context: Context): TokenResult? {
         val accountManager = AccountManager.get(context)
-        val account = accountManager.accounts.firstOrNull()
+        val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE)
+        val account = accounts.firstOrNull()
+        println("accounts=${accounts.count()}")
         if (account != null) {
             val token = runCatching { accountManager.peekAuthToken(account, ACCOUNT_TYPE) }
                 .getOrNull()?.takeIf { it.isNotEmpty() }
-
             if (token != null) {
                 return TokenResult.Account(token)
             }

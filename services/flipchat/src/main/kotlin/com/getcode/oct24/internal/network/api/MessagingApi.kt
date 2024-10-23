@@ -10,10 +10,10 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.oct24.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
-import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toChatId
 import com.getcode.oct24.internal.network.extensions.toProto
 import com.getcode.oct24.domain.model.query.QueryOptions
+import com.getcode.oct24.internal.network.utils.authenticate
 import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
@@ -39,7 +39,7 @@ class MessagingApi @Inject constructor(
         val request = MessagingService.GetMessagesRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setQueryOptions(queryOptions.toProto())
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::getMessages
@@ -70,7 +70,7 @@ class MessagingApi @Inject constructor(
                         }
                     )
             )
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::advancePointer
@@ -98,7 +98,7 @@ class MessagingApi @Inject constructor(
         val request = MessagingService.SendMessageRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .addContent(contentProto)
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         api.sendMessage(request, observer)
@@ -113,7 +113,7 @@ class MessagingApi @Inject constructor(
         val request = MessagingService.NotifyIsTypingRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setIsTyping(isTyping)
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         api.notifyIsTyping(request, observer)

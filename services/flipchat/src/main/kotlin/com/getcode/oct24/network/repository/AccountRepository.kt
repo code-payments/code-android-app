@@ -1,4 +1,4 @@
-package com.getcode.oct24.network.controllers
+package com.getcode.oct24.network.repository
 
 import com.getcode.model.ID
 import com.getcode.oct24.internal.network.service.AccountService
@@ -10,13 +10,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AccountController @Inject constructor(
+class AccountRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: AccountService
 ) {
     @Throws(AccountService.RegisterError::class, IllegalStateException::class)
     suspend fun register(displayName: String): Result<ID> {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
+        println("reg=${owner.publicKey}")
         return service.register(
             owner = owner,
             displayName = displayName
@@ -33,6 +34,7 @@ class AccountController @Inject constructor(
 
     suspend fun login(): Result<ID> {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
+        println("login=${owner.publicKey}")
         return service.login(owner)
             .onFailure {
                 ErrorUtils.handleError(it)

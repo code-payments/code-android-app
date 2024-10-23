@@ -202,8 +202,8 @@ fun BottomBarView(
                         onClose(BottomBarManager.BottomBarActionType.Negative)
                     },
                     textColor = when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.ERROR -> White
-                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White
+                        BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
+                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                         BottomBarManager.BottomBarMessageType.THEMED -> {
                             when (bottomBarMessage.positiveStyle) {
                                 BottomBarManager.BottomBarButtonStyle.Filled -> Brand

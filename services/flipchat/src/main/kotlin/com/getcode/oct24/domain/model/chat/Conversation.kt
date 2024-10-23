@@ -21,9 +21,12 @@ data class Conversation(
     @PrimaryKey
     val idBase58: String,
     val title: String?,
+    val imageUri: String?,
     @ColumnInfo(defaultValue = "")
     val members: List<Member>,
     val lastActivity: Long?,
+    val isMuted: Boolean,
+    val unreadCount: Int,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
@@ -42,7 +45,7 @@ data class Conversation(
             {
             id:${idBase58},
             title:$title,
-            members:${members.joinToString()}
+            image: $imageUri
             }
         """.trimIndent()
     }
@@ -114,16 +117,3 @@ data class ConversationMessageWithContent(
     )
     val contents: List<MessageContent>,
 )
-
-@Entity(tableName = "conversation_intent_id_mapping")
-data class ConversationIntentIdReference(
-    @PrimaryKey
-    val conversationIdBase58: String,
-    val intentIdBase58: String,
-) {
-    @Ignore
-    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
-
-    @Ignore
-    val intentId: ID = Base58.decode(intentIdBase58).toList()
-}

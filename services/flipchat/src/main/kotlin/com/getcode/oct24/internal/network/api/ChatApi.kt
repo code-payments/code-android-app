@@ -8,11 +8,11 @@ import com.getcode.oct24.annotations.FcManagedChannel
 import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.network.core.GrpcApi
-import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toChatId
 import com.getcode.oct24.internal.network.extensions.toProto
 import com.getcode.oct24.internal.network.extensions.toUserId
 import com.getcode.oct24.domain.model.query.QueryOptions
+import com.getcode.oct24.internal.network.utils.authenticate
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -58,7 +58,7 @@ class ChatApi @Inject constructor(
             }
         }
 
-        val request = builder.setAuth(owner.forAuth()).build()
+        val request = builder.apply { setAuth(authenticate(owner)) }.build()
 
         return api::startChat
             .callAsCancellableFlow(request)
@@ -73,7 +73,7 @@ class ChatApi @Inject constructor(
         val request = ChatService.GetChatsRequest.newBuilder()
             .setAccount(userId.toUserId())
             .setQueryOptions(queryOptions.toProto())
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::getChats
@@ -92,7 +92,7 @@ class ChatApi @Inject constructor(
             is ChatIdentifier.RoomNumber -> builder.setRoomNumber(identifier.number)
         }
 
-        builder.setAuth(owner.forAuth())
+        builder.apply { setAuth(authenticate(owner)) }
 
         val request = builder.build()
 
@@ -114,7 +114,7 @@ class ChatApi @Inject constructor(
             is ChatIdentifier.RoomNumber -> builder.setRoomId(identifier.number)
         }
 
-        builder.setAuth(owner.forAuth())
+        builder.apply { setAuth(authenticate(owner)) }
 
         val request = builder.build()
 
@@ -131,7 +131,7 @@ class ChatApi @Inject constructor(
         val request = ChatService.LeaveChatRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setUserId(userId.toUserId())
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::leaveChat
@@ -147,7 +147,7 @@ class ChatApi @Inject constructor(
         val request = ChatService.SetMuteStateRequest.newBuilder()
             .setChatId(chatId.toChatId())
             .setIsMuted(muted)
-            .setAuth(owner.forAuth())
+            .apply { setAuth(authenticate(owner)) }
             .build()
 
         return api::setMuteState

@@ -6,7 +6,6 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.getcode.oct24.domain.model.chat.Conversation
-import com.getcode.oct24.domain.model.chat.ConversationIntentIdReference
 import com.getcode.oct24.domain.model.chat.ConversationMessage
 import com.getcode.oct24.domain.model.chat.ConversationMessageContent
 import com.getcode.oct24.domain.model.chat.ConversationPointerCrossRef
@@ -34,7 +33,6 @@ import java.io.File
         Conversation::class,
         ConversationPointerCrossRef::class,
         ConversationMessage::class,
-        ConversationIntentIdReference::class,
         ConversationMessageContent::class,
     ],
     autoMigrations = [],
@@ -50,7 +48,6 @@ abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     abstract fun conversationDao(): ConversationDao
     abstract fun conversationPointersDao(): ConversationPointerDao
     abstract fun conversationMessageDao(): ConversationMessageDao
-    abstract fun conversationIntentMappingDao(): ConversationIntentMappingDao
 
     override fun closeDb() {
         instance?.close()

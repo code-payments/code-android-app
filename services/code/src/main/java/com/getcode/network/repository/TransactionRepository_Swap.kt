@@ -7,7 +7,7 @@ import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
 import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.model.intents.SwapIntent
 import com.getcode.model.intents.requestToSubmitSignatures
-import com.getcode.network.core.BidirectionalStreamReference
+import com.getcode.services.observers.BidirectionalStreamReference
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
 import com.getcode.solana.keys.base58

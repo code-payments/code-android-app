@@ -1,10 +1,9 @@
 package com.getcode.oct24.domain.model.query
 
-import com.getcode.model.Cursor
+typealias PagingToken = List<Byte>
 
 data class QueryOptions(
     val limit: Int = 100,
-    val offset: Int? = null,
-    val cursor: Cursor? = null,
+    val token: PagingToken? = null,
     val descending: Boolean = true
 )

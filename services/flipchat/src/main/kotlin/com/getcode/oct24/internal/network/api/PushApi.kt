@@ -7,8 +7,8 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.oct24.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
-import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toUserId
+import com.getcode.oct24.internal.network.utils.authenticate
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +34,7 @@ class PushApi @Inject constructor(
                 .setPushToken(token)
                 .setAppInstall(Flipchat.AppInstallId.newBuilder().setValue(installationId))
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
-                .setAuth(owner.forAuth())
+                .apply { setAuth(authenticate(owner)) }
                 .build()
 
         return api::addToken
@@ -55,7 +55,7 @@ class PushApi @Inject constructor(
                 .setPushToken(token)
                 .setAppInstall(Flipchat.AppInstallId.newBuilder().setValue(installationId))
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
-                .setAuth(owner.forAuth())
+                .apply { setAuth(authenticate(owner)) }
                 .build()
 
         return api::deleteToken

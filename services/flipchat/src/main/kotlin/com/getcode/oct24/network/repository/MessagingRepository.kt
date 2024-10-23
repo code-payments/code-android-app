@@ -1,4 +1,4 @@
-package com.getcode.oct24.network.controllers
+package com.getcode.oct24.network.repository
 
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
@@ -12,7 +12,7 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.utils.ErrorUtils
 import javax.inject.Inject
 
-class MessagingController @Inject constructor(
+class MessagingRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: MessagingService,
     private val messageMapper: ChatMessageMapper,

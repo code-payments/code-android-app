@@ -9,10 +9,10 @@ import kotlinx.serialization.Serializable
 data class Room(
     val id: ID,
     val type: ChatType,
-    val _title: String?,
+    private val _title: String?,
     val roomNumber: Long = -1,
     val members: List<Member>,
-    val _muted: Boolean,
+    private val _muted: Boolean,
     val muteable: Boolean,
     private val _unread: Int,
     val messages: List<ChatMessage> = emptyList(),
@@ -28,7 +28,7 @@ data class Room(
             return nonSelf.mapNotNull { it.identity?.displayName }
                 .joinToString()
         }
-    val imageData: Any?
+    val imageData: String?
         get() {
             val nonSelf = members.filterNot { it.isSelf }
             if (nonSelf.count() == 1) {

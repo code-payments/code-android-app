@@ -15,7 +15,7 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.isMock
 import com.getcode.oct24.BuildConfig
 import com.getcode.oct24.db.FcAppDatabase
-import com.getcode.oct24.network.controllers.AccountController
+import com.getcode.oct24.network.repository.AccountRepository
 import com.getcode.oct24.user.UserManager
 import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.util.TokenResult
@@ -46,7 +46,7 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
-    private val accountController: AccountController,
+    private val accountRepository: AccountRepository,
     private val userManager: UserManager,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
@@ -121,12 +121,12 @@ class AuthManager @Inject constructor(
             userManager.set(keyPair = it)
         }
 
-        return accountController.register(displayName)
+        return accountRepository.register(displayName)
             .onSuccess {
                 AccountUtils.addAccount(
                     context = context,
-                    name = it.base58,
-                    password = entropyB64,
+                    name = displayName,
+                    password = it.base58,
                     token = entropyB64
                 )
 
@@ -172,16 +172,19 @@ class AuthManager @Inject constructor(
         val originalSessionState = SessionManager.authState.value
         sessionManager.set(entropyB64)
         SessionManager.getOrganizer()?.ownerKeyPair?.let {
+            println("attempting login with ${it.publicKey}")
             // relay owner keypair to user manager
             userManager.set(keyPair = it)
         }
+
 
         if (!isSoftLogin) {
             loginAnalytics(entropyB64)
         }
 
         if (!isSoftLogin) softLoginDisabled = true
-        return accountController.login()
+
+        return accountRepository.login()
             .onSuccess {
                 userManager.set(userId = it)
             }
@@ -194,7 +197,8 @@ class AuthManager @Inject constructor(
                         rollbackOnError = false
                     )
                 } else {
-//                    clearToken()
+                    logout(context)
+                    clearToken()
                 }
             }
     }

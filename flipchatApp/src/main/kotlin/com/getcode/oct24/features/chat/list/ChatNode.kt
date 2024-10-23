@@ -6,20 +6,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import com.getcode.model.chat.MessageContent
 import com.getcode.oct24.data.Room
+import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.ui.components.chat.utils.localizedText
 
 @Composable
 fun ChatNode(
-    chat: Room,
+    chat: Conversation,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     com.getcode.ui.components.chat.ChatNode(
         modifier = modifier,
-        title = chat.title,
-        messagePreview = chat.messagePreview,
-        avatar = chat.imageData,
-        timestamp = chat.lastMessageMillis,
+        title = chat.title.orEmpty(),
+        messagePreview = AnnotatedString("") to emptyMap(),
+        avatar = chat.imageUri,
+        timestamp = chat.lastActivity,
         isMuted = chat.isMuted,
         unreadCount = chat.unreadCount,
         onClick = onClick

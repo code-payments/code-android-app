@@ -1,18 +1,21 @@
 package com.getcode.oct24.network.controllers
 
 import androidx.paging.PagingData
-import com.getcode.oct24.domain.model.chat.Conversation
-import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
-import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
+import com.codeinc.flipchat.gen.messaging.v1.MessagingService
 import com.getcode.model.ID
 import com.getcode.model.SocialUser
 import com.getcode.model.chat.MessageStatus
+import com.getcode.oct24.data.StartChatRequestType
+import com.getcode.oct24.domain.model.chat.Conversation
+import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
+import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
+import com.getcode.services.observers.BidirectionalStreamReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 
 interface ConversationController {
     fun observeConversation(id: ID): Flow<ConversationWithLastPointers?>
-    suspend fun createConversation(identifier: ID, with: SocialUser): Conversation
+    suspend fun createConversation(request: StartChatRequestType): Conversation
     suspend fun getConversation(identifier: ID): ConversationWithLastPointers?
     suspend fun getOrCreateConversation(
         identifier: ID,
@@ -31,17 +34,18 @@ interface ConversationController {
     suspend fun onUserStoppedTypingIn(conversationId: ID)
 }
 
+typealias ChatMessageStreamReference = BidirectionalStreamReference<MessagingService.StreamMessagesRequest, MessagingService.StreamMessagesResponse>
+
+
 //class ConversationStreamController @Inject constructor(
-//    private val historyController: ChatHistoryController,
+//    private val userManager: UserManager,
 //    private val exchange: Exchange,
-//    private val chatService: ChatServiceV2,
+//    private val chatRepository: ChatRepository,
+//    private val messagingRepository: MessagingRepository,
 //    private val conversationMapper: ConversationMapper,
 //    private val messageWithContentMapper: ConversationMessageWithContentMapper,
-//    private val tipController: TipController,
 //) : ConversationController {
-//    private val pagingConfig = PagingConfig(pageSize = 20)
-//
-//    private val db: AppDatabase by lazy { Database.requireInstance() }
+//    private val db: FcAppDatabase by lazy { FcAppDatabase.requireInstance() }
 //
 //    private var stream: ChatMessageStreamReference? = null
 //
@@ -54,24 +58,10 @@ interface ConversationController {
 //        return db.conversationDao().observeConversation(id)
 //    }
 //
-//    override suspend fun createConversation(identifier: ID, with: SocialUser): Conversation {
-//        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
-//        val self = tipController.connectedAccount.value ?: throw IllegalStateException()
-//        return chatService.startChat(owner, self, with, identifier, ChatType.TwoWay)
-//            .onSuccess { historyController.addChat(it) }
+//    override suspend fun createConversation(request: StartChatRequestType): Conversation {
+//        return chatRepository.startChat(request)
+////            .onSuccess { historyController.addChat(it) }
 //            .map { conversationMapper.map(it) }
-//            .onSuccess {
-//                // TODO: remove
-//                // stop gap until startChat rejects created chats for the same identifier
-//                db.conversationIntentMappingDao()
-//                    .insert(
-//                        ConversationIntentIdReference(
-//                            conversationIdBase58 = it.id.base58,
-//                            intentIdBase58 = identifier.base58
-//                        )
-//                    )
-//                db.conversationDao().upsertConversations(it)
-//            }
 //            .getOrThrow()
 //    }
 //
@@ -105,12 +95,6 @@ interface ConversationController {
 //    @Throws(IllegalStateException::class)
 //    override fun openChatStream(scope: CoroutineScope, conversation: Conversation) {
 //        runCatching { closeChatStream() }
-//        val owner = SessionManager.getOrganizer()?.ownerKeyPair ?: throw IllegalStateException()
-//
-//        val chat = historyController.findChat { it.id == conversation.id }
-//            ?: throw IllegalArgumentException("Unable to resolve chat for this conversation")
-//        val memberId = chat.selfId ?: throw IllegalStateException("Not a member of this chat")
-//
 //        scope.launch(Dispatchers.IO) {
 //            savePointers(conversationId = conversation.id,
 //                pointers = chat.members.flatMap { member ->
@@ -218,6 +202,7 @@ interface ConversationController {
 //    }
 //
 //    override suspend fun resetUnreadCount(conversationId: ID) {
+//        db.conversationDao().findConversation()
 //        val chat = historyController.findChat { it.id == conversationId } ?: return
 //        historyController.resetUnreadCount(chat.id)
 //    }
