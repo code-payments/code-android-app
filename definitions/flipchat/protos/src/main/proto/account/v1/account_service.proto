@@ -3,7 +3,7 @@ package flipchat.account.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/account/v1;acountpb";
 option java_package = "com.codeinc.flipchat.gen.account.v1";
 option objc_class_prefix = "FCPBAccountV1";
-import "common/v1/model.proto";
+import "common/v1/flipchat.proto";
 import "google/protobuf/timestamp.proto";
 
 service Account {
@@ -59,8 +59,7 @@ message LoginResponse {
 	enum Result {
 		OK                = 0;
 		INVALID_TIMESTAMP = 1;
-		NOT_FOUND         = 2;
-		DENIED            = 3;
+		DENIED            = 2;
 	}
 	// UserId is the user associated with the PubKey/Auth.
 	common.v1.UserId user_id = 2;

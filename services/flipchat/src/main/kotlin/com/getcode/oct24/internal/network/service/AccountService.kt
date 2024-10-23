@@ -72,11 +72,6 @@ class AccountService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
-                        LoginResponse.Result.NOT_FOUND -> {
-                            val error = LoginError.InvalidTimestamp("Failed to login. User not found")
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
                         LoginResponse.Result.DENIED -> {
                             val error = LoginError.Denied("Failed to login")
                             Timber.e(t = error)

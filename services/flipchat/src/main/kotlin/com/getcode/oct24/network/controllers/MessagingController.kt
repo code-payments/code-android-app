@@ -8,6 +8,7 @@ import com.getcode.model.chat.OutgoingMessageContent
 import com.getcode.oct24.domain.ChatMessageMapper
 import com.getcode.oct24.internal.network.service.MessagingService
 import com.getcode.oct24.model.chat.Room
+import com.getcode.oct24.model.query.QueryOptions
 import com.getcode.oct24.user.UserManager
 import com.getcode.utils.ErrorUtils
 import javax.inject.Inject
@@ -19,14 +20,12 @@ class MessagingController @Inject constructor(
 ) {
     suspend fun getMessages(
         chat: Room,
-        limit: Int = 100,
-        cursor: Cursor? = null,
-        descending: Boolean = true
+        queryOptions: QueryOptions = QueryOptions(),
     ): Result<List<ChatMessage>> {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
 
-        return service.getMessages(owner, userId, limit, cursor, descending)
+        return service.getMessages(owner, userId, queryOptions)
             .map { it.map { meta -> messageMapper.map(chat to meta) } }
             .onFailure { ErrorUtils.handleError(it) }
     }

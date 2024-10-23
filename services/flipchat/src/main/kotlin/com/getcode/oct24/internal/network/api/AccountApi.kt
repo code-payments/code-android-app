@@ -2,15 +2,14 @@ package com.getcode.oct24.internal.network.api
 
 import com.codeinc.flipchat.gen.account.v1.AccountGrpc
 import com.codeinc.flipchat.gen.account.v1.AccountService
-import com.codeinc.flipchat.gen.common.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.oct24.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.asPublicKey
 import com.getcode.oct24.internal.network.extensions.forAuth
+import com.getcode.oct24.internal.network.extensions.toUserId
 import com.getcode.oct24.internal.network.utils.sign
-import com.getcode.utils.toByteString
 import com.google.protobuf.Timestamp
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +64,7 @@ class AccountApi @Inject constructor(
 
         val request = AccountService.AuthorizePublicKeyRequest.newBuilder()
             .setPublicKey(newKeyPair.asPublicKey())
-            .setUserId(Model.UserId.newBuilder().setValue(userId.toByteString()))
+            .setUserId(userId.toUserId())
             .setAuth(owner.forAuth())
             .apply { setSignature(sign(newKeyPair)) }
             .build()
@@ -89,7 +88,7 @@ class AccountApi @Inject constructor(
 
         val request = AccountService.RevokePublicKeyRequest.newBuilder()
             .setPublicKey(keypair.asPublicKey())
-            .setUserId(Model.UserId.newBuilder().setValue(userId.toByteString()))
+            .setUserId(userId.toUserId())
             .setAuth(owner.forAuth())
             .build()
 

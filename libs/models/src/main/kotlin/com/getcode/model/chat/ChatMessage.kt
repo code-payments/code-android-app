@@ -20,7 +20,7 @@ data class ChatMessage(
     val id: ID, // time based UUID in v2
     val senderId: ID?,
     val isFromSelf: Boolean,
-    val cursor: Cursor,
+    val cursor: Cursor? = null,
     val dateMillis: Long,
     val contents: List<MessageContent>,
 ) {

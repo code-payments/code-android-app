@@ -3,7 +3,7 @@ package flipchat.push.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/push/v1;pushpb";
 option java_package = "com.codeinc.flipchat.gen.push.v1";
 option objc_class_prefix = "FPBPushV1";
-import "common/v1/model.proto";
+import "common/v1/flipchat.proto";
 
 service Push {
     // AddToken adds a push token associated with a user/device.

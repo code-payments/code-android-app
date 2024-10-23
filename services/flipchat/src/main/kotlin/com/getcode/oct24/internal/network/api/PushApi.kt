@@ -1,6 +1,6 @@
 package com.getcode.oct24.internal.network.api
 
-import com.codeinc.flipchat.gen.common.v1.Model
+import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.codeinc.flipchat.gen.push.v1.PushGrpc
 import com.codeinc.flipchat.gen.push.v1.PushService
 import com.getcode.ed25519.Ed25519.KeyPair
@@ -32,7 +32,7 @@ class PushApi @Inject constructor(
             PushService.AddTokenRequest.newBuilder()
                 .setUserId(userId.toUserId())
                 .setPushToken(token)
-                .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
+                .setAppInstall(Flipchat.AppInstallId.newBuilder().setValue(installationId))
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
                 .setAuth(owner.forAuth())
                 .build()
@@ -53,7 +53,7 @@ class PushApi @Inject constructor(
             PushService.DeleteTokenRequest.newBuilder()
                 .setUserId(userId.toUserId())
                 .setPushToken(token)
-                .setAppInstall(Model.AppInstallId.newBuilder().setValue(installationId))
+                .setAppInstall(Flipchat.AppInstallId.newBuilder().setValue(installationId))
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
                 .setAuth(owner.forAuth())
                 .build()

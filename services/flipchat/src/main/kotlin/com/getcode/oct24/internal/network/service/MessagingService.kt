@@ -13,6 +13,7 @@ import com.getcode.model.description
 import com.getcode.oct24.annotations.FcNetworkOracle
 import com.getcode.oct24.internal.network.api.MessagingApi
 import com.getcode.oct24.internal.network.core.NetworkOracle
+import com.getcode.oct24.model.query.QueryOptions
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
@@ -31,37 +32,36 @@ class MessagingService @Inject constructor(
     suspend fun getMessages(
         owner: KeyPair,
         chatId: ID,
-        limit: Int = 100,
-        cursor: Cursor? = null,
-        descending: Boolean = true
+        queryOptions: QueryOptions = QueryOptions(),
     ): Result<List<Model.Message>> {
         return try {
-            networkOracle.managedRequest(api.getMessages(owner, chatId, limit, cursor, descending))
-                .map { response ->
-                    when (response.result) {
-                        GetMessagesResponse.Result.OK -> {
-                            Result.success(response.messagesList)
-                        }
-
-                        GetMessagesResponse.Result.UNRECOGNIZED -> {
-                            val error = GetMessagesError.Unrecognized
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
-
-                        GetMessagesResponse.Result.DENIED -> {
-                            val error = GetMessagesError.Denied
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
-
-                        else -> {
-                            val error = GetMessagesError.Other()
-                            Timber.e(t = error)
-                            Result.failure(error)
-                        }
+            networkOracle.managedRequest(
+                api.getMessages(owner = owner, chatId = chatId, queryOptions = queryOptions)
+            ).map { response ->
+                when (response.result) {
+                    GetMessagesResponse.Result.OK -> {
+                        Result.success(response.messagesList)
                     }
-                }.first()
+
+                    GetMessagesResponse.Result.UNRECOGNIZED -> {
+                        val error = GetMessagesError.Unrecognized
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    GetMessagesResponse.Result.DENIED -> {
+                        val error = GetMessagesError.Denied
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+
+                    else -> {
+                        val error = GetMessagesError.Other()
+                        Timber.e(t = error)
+                        Result.failure(error)
+                    }
+                }
+            }.first()
         } catch (e: Exception) {
             val error = GetMessagesError.Other(cause = e)
             Result.failure(error)
@@ -205,11 +205,13 @@ class MessagingService @Inject constructor(
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
+
                             MessagingService.NotifyIsTypingResponse.Result.UNRECOGNIZED -> {
                                 val error = TypingChangeError.Unrecognized
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
+
                             else -> {
                                 val error = TypingChangeError.Other()
                                 Timber.e(t = error)

@@ -3,7 +3,7 @@ package flipchat.chat.v1;
 option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/chat/v1;chatpb";
 option java_package = "com.codeinc.flipchat.gen.chat.v1";
 option objc_class_prefix = "FCPBChatV1";
-import "common/v1/model.proto";
+import "common/v1/flipchat.proto";
 import "messaging/v1/model.proto";
 
 service Chat {
@@ -87,13 +87,7 @@ message StreamChatEventsResponse {
 }
 message GetChatsRequest {
     common.v1.UserId account = 1;
-    uint32 page_size = 2;
-    Cursor cursor = 3;
-    Direction direction = 4;
-    enum Direction {
-        ASC  = 0;
-        DESC = 1;
-    }
+    common.v1.QueryOptions query_options = 2;
     common.v1.Auth auth = 5;
 }
 message GetChatsResponse {
@@ -218,21 +212,19 @@ message Metadata {
         TWO_WAY = 1;
         GROUP   = 2;
     }
-    // Cursor value for this chat for reference in subsequent GetChatsRequest
-    Cursor cursor = 3;
     // The chat title, which is _only_ set by server if an explicit title
     // was set. Otherwise, clients should fill in an appropriate chat title.
-    string title = 4 ;
+    string title = 3 ;
     // If non-zero, the room number associated with the chat.
-    uint64 room_number = 5;
+    uint64 room_number = 4;
     // The members in this chat.
-    repeated Member members = 6 ;
+    repeated Member members = 5 ;
     // Whether or not the chat is muted (from the perspective of the caller).
-    bool is_muted = 7;
+    bool is_muted = 6;
     // Whether or not the chat is mutable (from the persective of the caller).
-    bool muteable = 8;
+    bool muteable = 7;
     // Number of (estimated) unread message (from the perspective of the caller).
-    uint32 num_unread = 9;
+    uint32 num_unread = 8;
 }
 message Member {
     common.v1.UserId user_id = 1;
@@ -254,10 +246,4 @@ message MemberIdentity {
     string display_name = 1 ;
     // If present, the URL of the users profile pic.
     string profile_pic_url = 2 ;
-}
-// Opaque cursor used across paged APIs. Underlying bytes may change as paging
-// strategies evolve. Expected length value will vary based on the RPC being
-// executed.
-message Cursor {
-    bytes value = 1 ;
 }

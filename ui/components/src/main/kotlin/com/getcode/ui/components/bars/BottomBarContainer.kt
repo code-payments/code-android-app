@@ -34,7 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
 import com.getcode.manager.BottomBarManager
+import com.getcode.theme.Black10
 import com.getcode.theme.Black40
+import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
@@ -185,7 +187,7 @@ fun BottomBarView(
                     textColor = when (bottomBarMessage.type) {
                         BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
-                        BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
+                        BottomBarManager.BottomBarMessageType.THEMED -> Brand
                     },
                     buttonState = when (bottomBarMessage.positiveStyle) {
                         BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
@@ -204,7 +206,7 @@ fun BottomBarView(
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White
                         BottomBarManager.BottomBarMessageType.THEMED -> {
                             when (bottomBarMessage.positiveStyle) {
-                                BottomBarManager.BottomBarButtonStyle.Filled -> CodeTheme.colors.brand
+                                BottomBarManager.BottomBarButtonStyle.Filled -> Brand
                                 BottomBarManager.BottomBarButtonStyle.Filled10 -> White
                             }
                         }

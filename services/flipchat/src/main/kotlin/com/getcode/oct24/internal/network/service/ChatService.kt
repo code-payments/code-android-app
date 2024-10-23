@@ -11,6 +11,7 @@ import com.getcode.oct24.internal.network.api.ChatApi
 import com.getcode.oct24.internal.network.core.NetworkOracle
 import com.getcode.oct24.model.chat.ChatIdentifier
 import com.getcode.oct24.model.chat.StartChatRequestType
+import com.getcode.oct24.model.query.QueryOptions
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
@@ -24,12 +25,16 @@ class ChatService @Inject constructor(
     suspend fun getChats(
         owner: KeyPair,
         self: ID,
-        limit: Int = 100,
-        cursor: Cursor? = null,
-        descending: Boolean = true
+        queryOptions: QueryOptions = QueryOptions()
     ): Result<List<ChatService.Metadata>> {
         return try {
-            networkOracle.managedRequest(api.fetchChats(owner, self, limit, cursor, descending))
+            networkOracle.managedRequest(
+                api.fetchChats(
+                    owner = owner,
+                    userId = self,
+                    queryOptions = queryOptions,
+                )
+            )
                 .map { response ->
                     when (response.result) {
                         GetChatsResponse.Result.OK -> {
@@ -41,6 +46,7 @@ class ChatService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = GetChatsError.Other()
                             Timber.e(t = error)
@@ -77,6 +83,7 @@ class ChatService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = GetChatError.Other()
                             Timber.e(t = error)
@@ -158,6 +165,7 @@ class ChatService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = JoinChatError.Other()
                             Timber.e(t = error)
@@ -227,11 +235,13 @@ class ChatService @Inject constructor(
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         ChatService.SetMuteStateResponse.Result.CANT_MUTE -> {
                             val error = MuteStateError.CantMute
                             Timber.e(t = error)
                             Result.failure(error)
                         }
+
                         else -> {
                             val error = MuteStateError.Other()
                             Timber.e(t = error)

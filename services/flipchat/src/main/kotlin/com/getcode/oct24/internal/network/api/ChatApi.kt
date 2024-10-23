@@ -2,6 +2,7 @@ package com.getcode.oct24.internal.network.api
 
 import com.codeinc.flipchat.gen.chat.v1.ChatGrpc
 import com.codeinc.flipchat.gen.chat.v1.ChatService
+import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
@@ -11,7 +12,10 @@ import com.getcode.oct24.model.chat.StartChatRequestType
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toChatId
+import com.getcode.oct24.internal.network.extensions.toPagingToken
+import com.getcode.oct24.internal.network.extensions.toProto
 import com.getcode.oct24.internal.network.extensions.toUserId
+import com.getcode.oct24.model.query.QueryOptions
 import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
@@ -68,23 +72,13 @@ class ChatApi @Inject constructor(
     fun fetchChats(
         owner: KeyPair,
         userId: ID,
-        limit: Int,
-        cursor: Cursor? = null,
-        descending: Boolean = true,
+        queryOptions: QueryOptions,
     ): Flow<ChatService.GetChatsResponse> {
-        val builder = ChatService.GetChatsRequest.newBuilder()
+        val request = ChatService.GetChatsRequest.newBuilder()
             .setAccount(userId.toUserId())
-            .setDirection(
-                if (descending) ChatService.GetChatsRequest.Direction.DESC
-                else ChatService.GetChatsRequest.Direction.ASC
-            )
-            .setPageSize(limit)
-
-        if (cursor != null) {
-            builder.setCursor(ChatService.Cursor.newBuilder().setValue(cursor.toByteString()))
-        }
-
-        val request = builder.build()
+            .setQueryOptions(queryOptions.toProto())
+            .setAuth(owner.forAuth())
+            .build()
 
         return api::getChats
             .callAsCancellableFlow(request)

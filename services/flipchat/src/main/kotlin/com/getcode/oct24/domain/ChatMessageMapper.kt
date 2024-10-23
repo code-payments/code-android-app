@@ -20,7 +20,6 @@ class ChatMessageMapper @Inject constructor(): Mapper<Pair<Room, Model.Message>,
             id = messageId,
             senderId = messageSenderId,
             isFromSelf = isFromSelf,
-            cursor = message.cursor.value.toList(),
             dateMillis = message.ts.seconds  * 1_000L,
             contents = message.contentList.mapNotNull {
                 MessageContent.invoke(

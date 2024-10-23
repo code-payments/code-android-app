@@ -1,5 +1,6 @@
 package com.getcode.oct24.internal.network.api
 
+import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.codeinc.flipchat.gen.messaging.v1.MessagingGrpc
 import com.codeinc.flipchat.gen.messaging.v1.MessagingService
 import com.codeinc.flipchat.gen.messaging.v1.Model
@@ -13,6 +14,9 @@ import com.getcode.oct24.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.forAuth
 import com.getcode.oct24.internal.network.extensions.toChatId
+import com.getcode.oct24.internal.network.extensions.toPagingToken
+import com.getcode.oct24.internal.network.extensions.toProto
+import com.getcode.oct24.model.query.QueryOptions
 import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
@@ -33,24 +37,13 @@ class MessagingApi @Inject constructor(
     fun getMessages(
         owner: KeyPair,
         chatId: ID,
-        limit: Int,
-        cursor: Cursor? = null,
-        descending: Boolean = true,
+        queryOptions: QueryOptions,
     ): Flow<MessagingService.GetMessagesResponse> {
-        val builder = MessagingService.GetMessagesRequest.newBuilder()
+        val request = MessagingService.GetMessagesRequest.newBuilder()
             .setChatId(chatId.toChatId())
-            .setDirection(
-                if (descending) MessagingService.GetMessagesRequest.Direction.DESC
-                else MessagingService.GetMessagesRequest.Direction.ASC
-            ).setPageSize(limit)
-
-        if (cursor != null) {
-            builder.setCursor(Model.Cursor.newBuilder().setValue(cursor.toByteString()))
-        }
-
-        builder.setAuth(owner.forAuth())
-
-        val request = builder.build()
+            .setQueryOptions(queryOptions.toProto())
+            .setAuth(owner.forAuth())
+            .build()
 
         return api::getMessages
             .callAsCancellableFlow(request)
@@ -79,7 +72,8 @@ class MessagingApi @Inject constructor(
                             MessageStatus.Unknown -> Model.Pointer.Type.UNKNOWN
                         }
                     )
-            ).setAuth(owner.forAuth())
+            )
+            .setAuth(owner.forAuth())
             .build()
 
         return api::advancePointer
