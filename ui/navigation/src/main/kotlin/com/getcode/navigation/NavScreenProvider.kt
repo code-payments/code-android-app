@@ -8,6 +8,7 @@ import kotlinx.parcelize.Parcelize
 
 sealed class NavScreenProvider : ScreenProvider {
     data object Registration: NavScreenProvider()
+    data class NotificationPermission(val fromOnboarding: Boolean = false): NavScreenProvider()
 
     sealed class Login {
         data class Home(val seed: String? = null): NavScreenProvider()

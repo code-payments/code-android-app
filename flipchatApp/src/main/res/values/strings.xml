@@ -37,4 +37,6 @@
     <string name="action_createNewRoom">Create a New Room</string>
     <string name="title_joinRoom">Join a Room</string>
 
+    <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
+
 </resources>

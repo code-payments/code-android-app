@@ -6,7 +6,6 @@ import com.flipchat.features.balance.BalanceScreen
 import com.flipchat.features.balance.BalanceSheetViewModel
 import com.flipchat.features.chat.conversation.ConversationScreen
 import com.flipchat.features.chat.list.ChatListScreen
-import com.flipchat.features.chat.list.ChatListViewModel
 import com.flipchat.features.home.TabbedHomeScreen
 import com.flipchat.features.login.LoginScreen
 import com.flipchat.features.settings.SettingsScreen
@@ -14,6 +13,7 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.oct24.features.chat.lookup.LookupRoomScreen
 import com.getcode.oct24.features.login.accesskey.SeedInputScreen
+import com.getcode.oct24.features.login.permissions.NotificationPermissionScreen
 import com.getcode.oct24.features.login.register.RegisterScreen
 
 @Composable
@@ -21,6 +21,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
         register<NavScreenProvider.Registration> {
             RegisterScreen
+        }
+
+        register<NavScreenProvider.NotificationPermission> {
+            NotificationPermissionScreen(it.fromOnboarding)
         }
 
         register<NavScreenProvider.Login.Home> {

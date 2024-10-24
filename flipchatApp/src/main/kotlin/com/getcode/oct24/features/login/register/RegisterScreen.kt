@@ -92,7 +92,7 @@ private fun RegisterScreenContent(
         viewModel.eventFlow
             .filterIsInstance<Event.OnSuccess>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                navigator.push(ScreenRegistry.get(NavScreenProvider.NotificationPermission(true)))
             }.launchIn(this)
     }
 
