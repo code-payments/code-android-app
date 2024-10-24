@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -33,6 +34,7 @@ internal object ChatTab : Tab {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
+        val context = LocalContext.current
         Column {
             AppBarWithTitle(
                 title = options.title,
@@ -41,12 +43,16 @@ internal object ChatTab : Tab {
                         modifier = Modifier.unboundedClickable {
                             BottomBarManager.showMessage(
                                 BottomBarManager.BottomBarMessage(
-                                    positiveText = "Join a Room",
-                                    negativeText = "Create a New Room",
+                                    positiveText = context.getString(R.string.action_joinRoom),
+                                    negativeText = context.getString(R.string.action_createNewRoom),
                                     negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
-                                    tertiaryText = "Cancel",
-                                    onPositive = {},
-                                    onNegative = {},
+                                    tertiaryText = context.getString(R.string.action_cancel),
+                                    onPositive = {
+                                        navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Lookup.Entry))
+                                    },
+                                    onNegative = {
+                                        // TODO: create a new room
+                                    },
                                     type = BottomBarManager.BottomBarMessageType.THEMED,
                                     showScrim = true,
                                 )

@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
@@ -90,10 +91,19 @@ fun CodeButton(
     val isSuccessful by remember(isSuccess) {
         derivedStateOf { isSuccess }
     }
-    val colors = getButtonColors(buttonState, contentColor)
-    val border = getButtonBorder(buttonState, isEnabled)
+    val derivedState by remember(enabled, buttonState) {
+        derivedStateOf {
+            when {
+                enabled -> buttonState
+                else -> ButtonState.Bordered
+            }
+        }
+    }
+
+    val colors = getButtonColors(enabled, derivedState, contentColor)
+    val border = getButtonBorder(derivedState, isEnabled)
     val ripple = getRipple(
-        buttonState = buttonState,
+        buttonState = derivedState,
         contentColor = colors.contentColor(enabled = isEnabled).value
     )
 
@@ -181,6 +191,7 @@ fun getRipple(
 
 @Composable
 fun getButtonColors(
+    enabled: Boolean,
     buttonState: ButtonState = ButtonState.Bordered,
     textColor: Color = Color.Unspecified,
 ): ButtonColors {
@@ -195,7 +206,7 @@ fun getButtonColors(
         ButtonState.Bordered ->
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = Transparent,
-                disabledContentColor = Color.LightGray,
+                disabledContentColor = Color.White.copy(0.30f),
                 contentColor = textColor.takeOrElse { Color.LightGray }
             )
 

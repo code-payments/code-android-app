@@ -54,8 +54,8 @@ class NumberInputHelper {
         return formatAmount(amount)
     }
 
-    fun getFormattedStringForAnimation(): AmountAnimatedData {
-        return formatAmountForAnimation(amount)
+    fun getFormattedStringForAnimation(includeCommas: Boolean = true): AmountAnimatedData {
+        return formatAmountForAnimation(amount, includeCommas)
     }
 
     private fun getValueWithoutTrailingPeriod(v: String): String {
@@ -76,7 +76,7 @@ class NumberInputHelper {
         }
     }
 
-    private fun formatAmountForAnimation(amount: Double): AmountAnimatedData {
+    private fun formatAmountForAnimation(amount: Double, includeCommas: Boolean = true): AmountAnimatedData {
         val isContainsDot = amountText.contains(DECIMAL_SEPARATOR)
         val decimalLength = min(
             amountText.split(DECIMAL_SEPARATOR).getOrNull(1)?.length ?: 0, 2
@@ -85,20 +85,21 @@ class NumberInputHelper {
             2 -> String.format("%,.2f", amount)
             1 -> String.format("%,.1f", amount)
             else -> String.format("%,.0f", amount).let { if (isContainsDot) "$it$DECIMAL_SEPARATOR" else it }
-        }
-            .let {
-                val amountWithoutCommas = it.replace(GROUPING_SEPARATOR.toString(), "")
-                val lengthWithoutCommas = amountWithoutCommas.length
-                val commaVisibility = mutableListOf(*Array(lengthWithoutCommas) { false })
+        }.let {
+            val amountWithoutCommas = it.replace(GROUPING_SEPARATOR.toString(), "")
+            val lengthWithoutCommas = amountWithoutCommas.length
+            val commaVisibility = mutableListOf(*Array(lengthWithoutCommas) { false })
+            if (includeCommas) {
                 var offset = 0
                 it.forEachIndexed { index, c ->
                     val isComma = c == GROUPING_SEPARATOR
-                    commaVisibility[index-offset] = isComma || commaVisibility[index-offset]
+                    commaVisibility[index - offset] = isComma || commaVisibility[index - offset]
                     if (isComma) offset++
                 }
-
-                AmountAnimatedData(amountWithoutCommas, commaVisibility)
             }
+
+            AmountAnimatedData(amountWithoutCommas, commaVisibility)
+        }
     }
 
     companion object {

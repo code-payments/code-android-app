@@ -98,6 +98,7 @@ fun Digit(
 @Composable
 fun AnimatedPlaceholderDigit(
     text: String,
+    placeholder: String,
     digitVisible: Boolean,
     placeholderVisible: Boolean,
     fontSize: TextUnit,
@@ -110,7 +111,7 @@ fun AnimatedPlaceholderDigit(
         Row {
             Digit(
                 isVisible = placeholderVisible,
-                text = "0",
+                text = placeholder,
                 fontSize = fontSize,
                 density = density,
                 enter = placeholderEnter,
@@ -136,6 +137,7 @@ internal fun AmountTextAnimated(
     currencyResId: Int?,
     amountPrefix: String,
     amountSuffix: String,
+    placeholder: String = "0",
     uiModel: AmountAnimatedInputUiModel?,
     textStyle: TextStyle,
     isClickable: Boolean,
@@ -170,7 +172,7 @@ internal fun AmountTextAnimated(
     val length1 = amountSplit[0].length
     val length2 = if (amountSplit.size > 1) amountSplit[1].length else 0
     val isDecimal = amountSplit.size > 1
-    val isZero = amountSplit[0] == "0"
+    val isZero = amountSplit[0] == "0" || amountSplit[0].isEmpty()
 
     if (amountSplit.firstOrNull() != null && !isZero) {
         firstDigit = uiModel.amountData.amount.first().toString()
@@ -369,6 +371,7 @@ internal fun AmountTextAnimated(
                 AnimatedPlaceholderDigit(
                     text = firstDigit,
                     digitVisible = digitVisibility[0],
+                    placeholder = placeholder,
                     placeholderVisible = zeroVisibility,
                     fontSize = textSize,
                     density = density,
@@ -416,6 +419,7 @@ internal fun AmountTextAnimated(
                             text = getValue(1, i) ?: getLastValue(1, i) ?: "0",
                             digitVisible = digitDecimalVisibility[i],
                             placeholderVisible = digitDecimalZeroVisibility[i],
+                            placeholder = "0",
                             fontSize = textSize,
                             density = density,
                             placeholderEnter = decimalZeroEnter,

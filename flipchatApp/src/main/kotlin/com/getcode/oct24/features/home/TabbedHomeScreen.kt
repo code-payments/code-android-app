@@ -81,13 +81,13 @@ data object TabbedHomeScreen : Screen, Parcelable {
                         Box(
                             modifier = Modifier
                                 .background(backgroundColor)
+                                .navigationBarsPadding()
                                 .weight(1f)
                                 .clickable { tabNavigator.current = tab },
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .navigationBarsPadding()
                                     .padding(vertical = CodeTheme.dimens.grid.x2),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(

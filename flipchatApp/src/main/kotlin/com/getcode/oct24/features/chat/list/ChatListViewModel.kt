@@ -1,7 +1,6 @@
 package com.flipchat.features.chat.list
 
 import androidx.lifecycle.viewModelScope
-import androidx.paging.cachedIn
 import com.getcode.oct24.network.controllers.ChatsController
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
