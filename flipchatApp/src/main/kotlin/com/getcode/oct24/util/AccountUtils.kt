@@ -122,7 +122,6 @@ object AccountUtils {
         val accountManager = AccountManager.get(context)
         val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE)
         val account = accounts.firstOrNull()
-        println("accounts=${accounts.count()}")
         if (account != null) {
             val pw = runCatching { accountManager.getPassword(account) }
                 .getOrNull()?.takeIf { it.isNotEmpty() }
@@ -160,7 +159,6 @@ object AccountUtils {
         val accountManager = AccountManager.get(context)
         val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE)
         val account = accounts.firstOrNull()
-        println("accounts=${accounts.count()}")
         if (account != null) {
             val token = runCatching { accountManager.peekAuthToken(account, ACCOUNT_TYPE) }
                 .getOrNull()?.takeIf { it.isNotEmpty() }
@@ -168,25 +166,6 @@ object AccountUtils {
                 return TokenResult.Account(token)
             }
         }
-
-//        // attempt to pull from Code App
-//        runCatching {
-//            context.contentResolver.query(
-//                Uri.parse("content://${context.getString(R.string.account_provider)}/accounts"),
-//                null,
-//                null,
-//                null,
-//                null
-//            )?.use {
-//                while (it.moveToNext()) {
-//                    val token = it.getStringOrNull(it.getColumnIndex(AccountManager.KEY_AUTHTOKEN))
-//                    if (token != null) {
-//                        println("Code account on device found. Sharing with FC")
-//                        return TokenResult.Code(token)
-//                    }
-//                }
-//            }
-//        }.onFailure { it.printStackTrace() }
 
         val token = retryable(
             call = { getAccountNoActivity(context) },

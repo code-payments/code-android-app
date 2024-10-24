@@ -172,7 +172,6 @@ class AuthManager @Inject constructor(
         val originalSessionState = SessionManager.authState.value
         sessionManager.set(entropyB64)
         SessionManager.getOrganizer()?.ownerKeyPair?.let {
-            println("attempting login with ${it.publicKey}")
             // relay owner keypair to user manager
             userManager.set(keyPair = it)
         }

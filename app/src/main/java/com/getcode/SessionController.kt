@@ -539,7 +539,6 @@ class SessionController @Inject constructor(
     }
 
     private fun presentSend(data: List<Byte>, bill: Bill, isVibrate: Boolean = false) {
-        println("present send")
         if (bill.didReceive) {
             state.update {
                 val billState = it.billState

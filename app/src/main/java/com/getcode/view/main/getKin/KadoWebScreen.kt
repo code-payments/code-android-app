@@ -45,7 +45,6 @@ fun BoxScope.KadoWebScreen(
         object : AccompanistWebViewClient() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
-                println("url=$url")
                 if (url?.startsWith("https://app.kado.money/ramp/order/") == true) {
                     // order created, extract order id
                     orderId = Uri.parse(url).lastPathSegment.orEmpty()
