@@ -59,7 +59,7 @@ data object ChatListScreen: Screen, NamedScreen, Parcelable {
             onStarted = {
                 val disposedScreen = navigator.lastItem
                 if (disposedScreen !is ChatListScreen) {
-                    viewModel.dispatchEvent(ChatListViewModel.Event.OnOpened)
+                    viewModel.dispatchEvent(ChatListViewModel.Event.OnOpen)
                 }
             }
         )

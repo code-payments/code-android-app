@@ -3,7 +3,7 @@ package com.getcode.oct24.internal.network.service
 import com.codeinc.flipchat.gen.account.v1.AccountService.*
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
-import com.getcode.oct24.annotations.FcNetworkOracle
+import com.getcode.oct24.internal.annotations.FcNetworkOracle
 import com.getcode.oct24.internal.network.api.AccountApi
 import com.getcode.oct24.internal.network.core.NetworkOracle
 import kotlinx.coroutines.flow.first
@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
 
-class AccountService @Inject constructor(
+internal class AccountService @Inject constructor(
     private val api: AccountApi,
     @FcNetworkOracle private val networkOracle: NetworkOracle,
 ) {

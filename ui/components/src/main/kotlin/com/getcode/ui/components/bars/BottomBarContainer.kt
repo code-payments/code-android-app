@@ -12,9 +12,11 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -158,7 +160,8 @@ fun BottomBarView(
                         BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                     }
                 )
-                .padding(CodeTheme.dimens.inset)
+                .padding(top = CodeTheme.dimens.inset)
+                .padding(horizontal = CodeTheme.dimens.inset)
                 .windowInsetsPadding(WindowInsets.navigationBars),
             verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3)
         ) {
@@ -217,7 +220,7 @@ fun BottomBarView(
                     },
                     text = bottomBarMessage.negativeText
                 )
-                bottomBarMessage.tertiaryText?.let {
+                if (bottomBarMessage.tertiaryText != null) {
                     Text(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -225,7 +228,7 @@ fun BottomBarView(
                                 bottomBarMessage.onTertiary()
                                 onClose(BottomBarManager.BottomBarActionType.Tertiary)
                             }
-                            .padding(vertical = CodeTheme.dimens.grid.x2),
+                            .padding(vertical = CodeTheme.dimens.grid.x3),
                         style = CodeTheme.typography.textMedium,
                         textAlign = TextAlign.Center,
                         color = when (bottomBarMessage.type) {
@@ -234,8 +237,10 @@ fun BottomBarView(
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary
                         },
-                        text = it
+                        text = bottomBarMessage.tertiaryText!!
                     )
+                } else {
+                    Spacer(Modifier.height(CodeTheme.dimens.inset))
                 }
             }
         }

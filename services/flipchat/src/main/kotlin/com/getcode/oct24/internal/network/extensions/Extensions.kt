@@ -1,6 +1,7 @@
 package com.getcode.oct24.internal.network.extensions
 
 import com.codeinc.flipchat.gen.common.v1.Flipchat
+import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
@@ -20,6 +21,10 @@ internal fun KeyPair.asPublicKey(): Flipchat.PublicKey {
 
 internal fun ID.toUserId(): Flipchat.UserId {
     return Flipchat.UserId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun ID.toMessageId(): Model.MessageId {
+    return Model.MessageId.newBuilder().setValue(toByteString()).build()
 }
 
 internal fun ID.toChatId(): Flipchat.ChatId {

@@ -14,8 +14,9 @@ import com.getcode.network.NotificationCollectionHistoryController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.isMock
 import com.getcode.oct24.BuildConfig
-import com.getcode.oct24.db.FcAppDatabase
-import com.getcode.oct24.network.repository.AccountRepository
+import com.getcode.oct24.FlipchatServices
+import com.getcode.oct24.network.controllers.AuthController
+import com.getcode.oct24.network.controllers.ProfileController
 import com.getcode.oct24.user.UserManager
 import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.util.TokenResult
@@ -46,7 +47,7 @@ import javax.inject.Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
-    private val accountRepository: AccountRepository,
+    private val authController: AuthController,
     private val userManager: UserManager,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
@@ -109,10 +110,7 @@ class AuthManager @Inject constructor(
             Database.register(CodeAppDatabase.requireInstance())
         }
 
-        if (!FcAppDatabase.isOpen()) {
-            FcAppDatabase.init(context, entropyB64)
-            Database.register(FcAppDatabase.requireInstance())
-        }
+        FlipchatServices.openDatabase(context, entropyB64)
 
         val originalSessionState = SessionManager.authState.value
         sessionManager.set(entropyB64)
@@ -121,7 +119,7 @@ class AuthManager @Inject constructor(
             userManager.set(keyPair = it)
         }
 
-        return accountRepository.register(displayName)
+        return authController.register(displayName)
             .onSuccess {
                 AccountUtils.addAccount(
                     context = context,
@@ -164,10 +162,7 @@ class AuthManager @Inject constructor(
             Database.register(CodeAppDatabase.requireInstance())
         }
 
-        if (!FcAppDatabase.isOpen()) {
-            FcAppDatabase.init(context, entropyB64)
-            Database.register(FcAppDatabase.requireInstance())
-        }
+        FlipchatServices.openDatabase(context, entropyB64)
 
         val originalSessionState = SessionManager.authState.value
         sessionManager.set(entropyB64)
@@ -183,7 +178,7 @@ class AuthManager @Inject constructor(
 
         if (!isSoftLogin) softLoginDisabled = true
 
-        return accountRepository.login()
+        return authController.login()
             .onSuccess {
                 userManager.set(userId = it)
             }

@@ -10,8 +10,6 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
-import com.getcode.oct24.BuildConfig
-import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationCashFeature
 import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.Feature
@@ -20,13 +18,12 @@ import com.getcode.model.TwitterUser
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
-import com.getcode.oct24.network.controllers.ConversationController
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
 import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
+import com.getcode.oct24.network.controllers.RoomController
 import com.getcode.payments.PaymentController
-import com.getcode.payments.PaymentEvent
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
@@ -56,7 +53,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
-    private val conversationController: ConversationController,
+    private val roomController: RoomController,
     features: FeatureRepository,
     tipController: TipController,
     exchange: Exchange,
@@ -154,7 +151,7 @@ class ConversationViewModel @Inject constructor(
             .map { it.chatId }
             .filterNotNull()
             .mapNotNull {
-                conversationController.getConversation(it)
+                roomController.getConversation(it)
             }.onEach {
                 dispatchEvent(Event.OnConversationChanged(it))
             }.launchIn(viewModelScope)
@@ -197,47 +194,47 @@ class ConversationViewModel @Inject constructor(
                 )
             }.launchIn(viewModelScope)
 
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnChatPaidForSuccessfully>()
-            .onEach { event ->
-                runCatching {
-                    val conversation = conversationController.getOrCreateConversation(
-                        identifier = event.intentId,
-                        with = event.user
-                    )
-                    dispatchEvent(Event.OnConversationChanged(conversation))
-                }.onFailure {
-                    it.printStackTrace()
-                    TopBarManager.showMessage(
-                        "Failed to Start Chat",
-                        "We were unable to start a chat with ${event.user.username}. Please try again.",
-                    )
-
-                    dispatchEvent(
-                        Event.Error(
-                            message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
-                            show = false,
-                            fatal = true
-                        )
-                    )
-                }.getOrNull()
-            }
-            .launchIn(viewModelScope)
+//        paymentController.eventFlow
+//            .filterIsInstance<PaymentEvent.OnChatPaidForSuccessfully>()
+//            .onEach { event ->
+//                runCatching {
+//                    val conversation = conversationController.getOrCreateConversation(
+//                        identifier = event.intentId,
+//                        with = event.user
+//                    )
+//                    dispatchEvent(Event.OnConversationChanged(conversation))
+//                }.onFailure {
+//                    it.printStackTrace()
+//                    TopBarManager.showMessage(
+//                        "Failed to Start Chat",
+//                        "We were unable to start a chat with ${event.user.username}. Please try again.",
+//                    )
+//
+//                    dispatchEvent(
+//                        Event.Error(
+//                            message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
+//                            show = false,
+//                            fatal = true
+//                        )
+//                    )
+//                }.getOrNull()
+//            }
+//            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnConversationChanged>()
             .map { it.conversationWithPointers }
             .distinctUntilChangedBy { it.conversation.id }
-            .onEach { conversationController.resetUnreadCount(it.conversation.id) }
+            .onEach { roomController.resetUnreadCount(it.conversation.id) }
             .onEach { (conversation, _) ->
                 runCatching {
-                    conversationController.openChatStream(viewModelScope, conversation)
+                    roomController.openMessageStream(viewModelScope, conversation)
                 }.onFailure {
                     it.printStackTrace()
                     ErrorUtils.handleError(it)
                 }
             }.flatMapLatest { (conversation, _) ->
-                conversationController.observeConversation(conversation.id)
+                roomController.observeConversation(conversation.id)
             }.filterNotNull()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
@@ -258,7 +255,7 @@ class ConversationViewModel @Inject constructor(
             .filter { stateFlow.value.conversationId != null }
             .map { it to stateFlow.value.conversationId!! }
             .onEach { (messageId, conversationId) ->
-                conversationController.advanceReadPointer(
+                roomController.advanceReadPointer(
                     conversationId,
                     messageId,
                     MessageStatus.Read
@@ -271,7 +268,7 @@ class ConversationViewModel @Inject constructor(
             .filter { stateFlow.value.conversationId != null }
             .map { it to stateFlow.value.conversationId!! }
             .onEach { (messageId, conversationId) ->
-                conversationController.advanceReadPointer(
+                roomController.advanceReadPointer(
                     conversationId,
                     messageId,
                     MessageStatus.Delivered
@@ -286,7 +283,7 @@ class ConversationViewModel @Inject constructor(
                 val text = textFieldState.text.toString()
                 textFieldState.clearText()
 
-                conversationController.sendMessage(it.conversationId!!, text)
+                roomController.sendMessage(it.conversationId!!, text)
                     .onSuccess {
                         trace(
                             tag = "Conversation",
@@ -334,7 +331,7 @@ class ConversationViewModel @Inject constructor(
             .map { it.conversationId }
             .filterNotNull()
             .distinctUntilChanged()
-            .flatMapLatest { conversationController.observeTyping(it) }
+            .flatMapLatest { roomController.observeTyping(it) }
             .onEach { isOtherUserTyping ->
                 if (isOtherUserTyping) {
                     dispatchEvent(Event.OnTypingStarted)
@@ -361,21 +358,21 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.OnUserTypingStarted>()
             .mapNotNull { stateFlow.value.conversationId }
             .onEach {
-                conversationController.onUserStartedTypingIn(it)
+                roomController.onUserStartedTypingIn(it)
             }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnUserTypingStopped>()
             .mapNotNull { stateFlow.value.conversationId }
             .onEach {
-                conversationController.onUserStoppedTypingIn(it)
+                roomController.onUserStoppedTypingIn(it)
             }.launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
         .map { it.conversationId }
         .filterNotNull()
-        .flatMapLatest { conversationController.conversationPagingData(it) }
+        .flatMapLatest { roomController.conversationPagingData(it) }
         .map { page ->
             page.flatMap { mwc ->
                 mwc.contents.map {
@@ -417,7 +414,7 @@ class ConversationViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        conversationController.closeChatStream()
+        roomController.closeMessageStream()
     }
 
     internal companion object {

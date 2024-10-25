@@ -1,7 +1,6 @@
 package com.getcode.oct24.features.chat.lookup
 
 import androidx.lifecycle.viewModelScope
-import com.getcode.oct24.network.repository.ChatRepository
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.view.BaseViewModel2
@@ -14,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LookupRoomViewModel @Inject constructor(
-    private val chatRepository: ChatRepository
+
 ): BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent

@@ -4,7 +4,7 @@ import com.codeinc.flipchat.gen.account.v1.AccountGrpc
 import com.codeinc.flipchat.gen.account.v1.AccountService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
-import com.getcode.oct24.annotations.FcManagedChannel
+import com.getcode.oct24.internal.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.asPublicKey
 import com.getcode.oct24.internal.network.extensions.toUserId

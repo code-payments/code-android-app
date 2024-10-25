@@ -4,7 +4,7 @@ import com.codeinc.flipchat.gen.chat.v1.ChatGrpc
 import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
-import com.getcode.oct24.annotations.FcManagedChannel
+import com.getcode.oct24.internal.annotations.FcManagedChannel
 import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.network.core.GrpcApi
@@ -14,6 +14,7 @@ import com.getcode.oct24.internal.network.extensions.toUserId
 import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.internal.network.utils.authenticate
 import io.grpc.ManagedChannel
+import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -25,6 +26,8 @@ class ChatApi @Inject constructor(
 ) : GrpcApi(managedChannel) {
     private val api = ChatGrpc.newStub(managedChannel).withWaitForReady()
 
+    // StartChat starts a chat. The RPC call is idempotent and will use existing
+    // chats whenever applicable within the context of message routing.
     fun startChat(
         owner: KeyPair,
         self: ID,
@@ -65,7 +68,9 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    fun fetchChats(
+    // GetChats gets the set of chats for an owner account using a paged API.
+    // This RPC is aware of all identities tied to the owner account.
+    fun getChats(
         owner: KeyPair,
         userId: ID,
         queryOptions: QueryOptions,
@@ -81,7 +86,8 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    fun fetchChat(
+    // GetChat returns the metadata for a specific chat.
+    fun getChat(
         owner: KeyPair,
         identifier: ChatIdentifier,
     ): Flow<ChatService.GetChatResponse> {
@@ -101,6 +107,7 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // JoinChat joins a given chat.
     fun joinChat(
         owner: KeyPair,
         userId: ID,
@@ -123,6 +130,7 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // LeaveChat leaves a given chat.
     fun leaveChat(
         owner: KeyPair,
         userId: ID,
@@ -139,6 +147,7 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // SetMuteState configures a chat member's mute state.
     fun setMuteState(
         owner: KeyPair,
         chatId: ID,
@@ -153,5 +162,26 @@ class ChatApi @Inject constructor(
         return api::setMuteState
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
+    }
+
+    // StreamChatEvents streams all chat events for the requesting user.
+    //
+    // Chat events will include any update to a chat, including:
+    //   1. Metadata changes.
+    //   2. Membership changes.
+    //   3. Latest messages.
+    //
+    // The server will optionally filter out some events depending on load
+    // and chat type. For example, Broadcast chats will not receive latest
+    // messages.
+    //
+    // Clients should use GetMessages to backfill in any historical messages
+    // for a chat. It should be sufficient to rely on ChatEvents for some types
+    // of chats, but using StreamMessages provides a guarentee of message events
+    // for all chats.
+    fun streamEvents(
+        observer: StreamObserver<ChatService.StreamChatEventsResponse>
+    ): StreamObserver<ChatService.StreamChatEventsRequest>? {
+        return api.streamChatEvents(observer)
     }
 }

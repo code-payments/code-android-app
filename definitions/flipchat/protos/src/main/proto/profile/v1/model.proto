@@ -1,0 +1,10 @@
+syntax = "proto3";
+package flipchat.profile.v1;
+option go_package = "github.com/code-payments/flipchat-protobuf-api/generated/go/profile/v1;profilepb";
+option java_package = "com.codeinc.flipchat.gen.profile.v1";
+option objc_class_prefix = "FCPBProfileV1";
+
+message UserProfile {
+	// DisplayName is the display name of the user (if found).
+	string display_name = 1 ;
+}

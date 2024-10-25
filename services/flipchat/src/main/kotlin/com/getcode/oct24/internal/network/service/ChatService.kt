@@ -3,24 +3,38 @@ package com.getcode.oct24.internal.network.service
 import com.codeinc.flipchat.gen.chat.v1.ChatService
 import com.codeinc.flipchat.gen.chat.v1.ChatService.GetChatsResponse
 import com.codeinc.flipchat.gen.chat.v1.ChatService.StartChatResponse
+import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
-import com.getcode.oct24.annotations.FcNetworkOracle
+import com.getcode.oct24.internal.annotations.FcNetworkOracle
 import com.getcode.oct24.internal.network.api.ChatApi
 import com.getcode.oct24.internal.network.core.NetworkOracle
 import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.domain.model.query.QueryOptions
+import com.getcode.oct24.internal.network.extensions.toUserId
+import com.getcode.oct24.internal.network.utils.authenticate
+import com.getcode.services.observers.BidirectionalStreamReference
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import com.google.protobuf.Timestamp
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
+import io.grpc.stub.StreamObserver
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
 
-class ChatService @Inject constructor(
+typealias ChatHomeStreamReference = BidirectionalStreamReference<com.codeinc.flipchat.gen.chat.v1.ChatService.StreamChatEventsRequest, com.codeinc.flipchat.gen.chat.v1.ChatService.StreamChatEventsResponse>
+
+
+internal class ChatService @Inject constructor(
     private val api: ChatApi,
     @FcNetworkOracle private val networkOracle: NetworkOracle,
 ) {
-
     suspend fun getChats(
         owner: KeyPair,
         self: ID,
@@ -28,7 +42,7 @@ class ChatService @Inject constructor(
     ): Result<List<ChatService.Metadata>> {
         return try {
             networkOracle.managedRequest(
-                api.fetchChats(
+                api.getChats(
                     owner = owner,
                     userId = self,
                     queryOptions = queryOptions,
@@ -64,7 +78,7 @@ class ChatService @Inject constructor(
         identifier: ChatIdentifier,
     ): Result<ChatService.Metadata> {
         return try {
-            networkOracle.managedRequest(api.fetchChat(owner, identifier))
+            networkOracle.managedRequest(api.getChat(owner, identifier))
                 .map { response ->
                     when (response.result) {
                         ChatService.GetChatResponse.Result.OK -> {
@@ -253,6 +267,122 @@ class ChatService @Inject constructor(
             Result.failure(error)
         }
     }
+
+    fun openChatStream(
+        scope: CoroutineScope,
+        owner: KeyPair,
+        userId: ID,
+        onEvent: (Result<ChatService.StreamChatEventsResponse.ChatUpdate>) -> Unit
+    ): ChatHomeStreamReference {
+        trace("Chat Opening stream.")
+        val streamReference = ChatHomeStreamReference(scope)
+        streamReference.retain()
+        streamReference.timeoutHandler = {
+            trace("Chat Stream timed out")
+            openChatStream(
+                owner = owner,
+                userId = userId,
+                reference = streamReference,
+                onEvent = onEvent
+            )
+        }
+
+        openChatStream(owner, userId, streamReference, onEvent)
+
+        return streamReference
+    }
+
+    private fun openChatStream(
+        owner: KeyPair,
+        userId: ID,
+        reference: ChatHomeStreamReference,
+        onEvent: (Result<ChatService.StreamChatEventsResponse.ChatUpdate>) -> Unit
+    ) {
+        try {
+            reference.cancel()
+            reference.stream =
+                api.streamEvents(object : StreamObserver<ChatService.StreamChatEventsResponse> {
+                    override fun onNext(value: ChatService.StreamChatEventsResponse?) {
+                        val result = value?.typeCase
+                        if (result == null) {
+                            trace(
+                                message = "Chat Stream Server sent empty message. This is unexpected.",
+                                type = TraceType.Error
+                            )
+                            return
+                        }
+
+                        when (result) {
+                            ChatService.StreamChatEventsResponse.TypeCase.EVENTS -> {
+                                value.events.updatesList.onEach { update ->
+                                    onEvent(Result.success(update))
+                                }
+                            }
+
+                            ChatService.StreamChatEventsResponse.TypeCase.PING -> {
+                                val stream = reference.stream ?: return
+                                val request = ChatService.StreamChatEventsRequest.newBuilder()
+                                    .setPong(
+                                        Flipchat.ClientPong.newBuilder()
+                                            .setTimestamp(
+                                                Timestamp.newBuilder()
+                                                    .setSeconds(System.currentTimeMillis() / 1_000)
+                                            )
+                                    ).build()
+
+                                reference.receivedPing(updatedTimeout = value.ping.pingDelay.seconds * 1_000L)
+                                stream.onNext(request)
+                                trace("Pong Chat Stream Server timestamp: ${value.ping.timestamp}")
+                            }
+
+                            ChatService.StreamChatEventsResponse.TypeCase.TYPE_NOT_SET -> Unit
+                            ChatService.StreamChatEventsResponse.TypeCase.ERROR -> {
+                                trace(
+                                    type = TraceType.Error,
+                                    message = "Chat Stream hit a snag. ${value.error.code}"
+                                )
+                            }
+                        }
+                    }
+
+                    override fun onError(t: Throwable?) {
+                        val statusException = t as? StatusRuntimeException
+                        if (statusException?.status?.code == Status.Code.UNAVAILABLE) {
+                            trace("Chat Reconnecting keepalive stream...")
+                            openChatStream(
+                                owner,
+                                userId,
+                                reference,
+                                onEvent
+                            )
+                        } else {
+                            t?.printStackTrace()
+                        }
+                    }
+
+                    override fun onCompleted() {
+
+                    }
+                })
+
+            val request = ChatService.StreamChatEventsRequest.newBuilder()
+                .setParams(
+                    ChatService.StreamChatEventsRequest.Params.newBuilder()
+                        .setUserId(userId.toUserId())
+                        .apply { authenticate(owner) }
+                ).build()
+
+            reference.stream?.onNext(request)
+            trace("Chat Stream Initiating a connection...")
+        } catch (e: Exception) {
+            if (e is IllegalStateException && e.message == "call already half-closed") {
+                // ignore
+            } else {
+                ErrorUtils.handleError(e)
+            }
+        }
+    }
+
 
     sealed class StartChatError : Throwable() {
         data object UserNotFound : StartChatError()

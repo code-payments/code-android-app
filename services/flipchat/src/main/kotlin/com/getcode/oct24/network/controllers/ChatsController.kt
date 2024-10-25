@@ -7,34 +7,43 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
-import com.getcode.oct24.db.FcAppDatabase
+import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.query.QueryOptions
-import com.getcode.oct24.network.repository.ChatRepository
+import com.getcode.oct24.internal.network.repository.chat.ChatRepository
+import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
 
 class ChatsController @Inject constructor(
-    chatRepository: ChatRepository,
     conversationMapper: ConversationMapper,
+    private val repository: ChatRepository
 ) {
-    val db = FcAppDatabase.requireInstance()
+    private val db = FcAppDatabase.requireInstance()
 
     @OptIn(ExperimentalPagingApi::class)
     val chats = Pager(
         config = PagingConfig(pageSize = 20),
-        remoteMediator = ChatsRemoteMediator(chatRepository, conversationMapper)
+        remoteMediator = ChatsRemoteMediator(repository, conversationMapper)
     ) {
         db.conversationDao().observeConversations()
     }
 
-    fun fetch() {
+    fun openEventStream(coroutineScope: CoroutineScope) {
+        runCatching {
+            repository.openEventStream(coroutineScope)
+        }
+    }
 
+    fun closeEventStream() {
+        runCatching {
+            repository.closeEventStream()
+        }
     }
 }
 
 @OptIn(ExperimentalPagingApi::class)
-class ChatsRemoteMediator(
+private class ChatsRemoteMediator(
     private val repository: ChatRepository,
     private val conversationMapper: ConversationMapper,
 ) : RemoteMediator<Int, Conversation>() {

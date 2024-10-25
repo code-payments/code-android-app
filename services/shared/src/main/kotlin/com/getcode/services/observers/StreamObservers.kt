@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 
-class BidirectionalStreamReference<Request, Response>(private val scope: CoroutineScope) : AutoCloseable {
+class BidirectionalStreamReference<Request, Response>(val scope: CoroutineScope) : AutoCloseable {
 
     var stream: StreamObserver<Request>? = null
         set(value) {

@@ -8,7 +8,7 @@ import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
-import com.getcode.oct24.annotations.FcManagedChannel
+import com.getcode.oct24.internal.annotations.FcManagedChannel
 import com.getcode.oct24.internal.network.core.GrpcApi
 import com.getcode.oct24.internal.network.extensions.toChatId
 import com.getcode.oct24.internal.network.extensions.toProto
