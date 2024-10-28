@@ -1,4 +1,4 @@
-package com.getcode.oct24
+package com.getcode.oct24.features.settings
 
 import android.app.Activity
 import androidx.lifecycle.ViewModel

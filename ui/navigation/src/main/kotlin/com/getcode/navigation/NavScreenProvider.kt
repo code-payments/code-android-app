@@ -23,7 +23,6 @@ sealed class NavScreenProvider : ScreenProvider {
             data class Confirm(val id: ID): NavScreenProvider()
         }
         data class Conversation(
-            val user: TwitterUser? = null,
             val chatId: ID? = null,
             val intentId: ID? = null
         ) : NavScreenProvider()

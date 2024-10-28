@@ -1,7 +1,6 @@
 package com.flipchat.features.settings
 
 import android.os.Parcelable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,14 +11,11 @@ import androidx.compose.ui.platform.LocalContext
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
-import com.flipchat.features.login.LoginScreen
 import com.getcode.manager.BottomBarManager
-import com.getcode.manager.SessionManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.oct24.MainRoot
 import com.getcode.oct24.R
-import com.getcode.oct24.SettingsViewModel
+import com.getcode.oct24.features.settings.SettingsViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton

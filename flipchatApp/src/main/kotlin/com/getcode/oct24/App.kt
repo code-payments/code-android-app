@@ -25,7 +25,8 @@ import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.transitions.SheetSlideTransition
-import com.getcode.services.manager.ModalManager
+import com.getcode.oct24.ui.navigation.AppScreenContent
+import com.getcode.oct24.ui.navigation.MainRoot
 import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer

@@ -1,4 +1,4 @@
-package com.getcode.oct24
+package com.getcode.oct24.ui.navigation
 
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -55,7 +55,6 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             ConversationScreen(
                 chatId = it.chatId,
                 intentId = it.intentId,
-                user = it.user
             )
         }
 

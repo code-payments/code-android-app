@@ -23,6 +23,9 @@
     <string name="error_title_usernameNotFound">Username not found</string>
     <string name="error_description_usernameNotFound">This X username isn\'t on Code yet. Please try a different username.</string>
 
+    <string name="error_title_failedToCreateGroup">Something Went Wrong</string>
+    <string name="error_description_failedToCreateGroup">You were unable to create a new room at this time. Please try again later.</string>
+
     <string name="prompt_title_revealIdentity">Reveal your identity?</string>
     <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
 

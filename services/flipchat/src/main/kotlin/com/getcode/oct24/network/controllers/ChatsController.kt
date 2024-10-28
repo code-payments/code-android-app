@@ -7,6 +7,9 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
+import com.getcode.model.ID
+import com.getcode.oct24.data.Room
+import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
@@ -39,6 +42,17 @@ class ChatsController @Inject constructor(
         runCatching {
             repository.closeEventStream()
         }
+    }
+
+    suspend fun createDirectMessage(recipient: ID): Result<Room> {
+        return repository.startChat(StartChatRequestType.TwoWay(recipient))
+    }
+
+    suspend fun createGroup(
+        title: String? = null,
+        participants: List<ID> = emptyList()
+    ): Result<Room> {
+        return repository.startChat(StartChatRequestType.Group(title, participants))
     }
 }
 

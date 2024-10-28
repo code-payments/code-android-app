@@ -1,4 +1,4 @@
-package com.getcode.oct24
+package com.getcode.oct24.ui.navigation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,8 +25,6 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
-import com.flipchat.features.login.LoginScreen
-import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.oct24.R
 import com.getcode.manager.SessionManager
 import com.getcode.navigation.NavScreenProvider

@@ -11,7 +11,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.exchange.LocalExchange
-import com.getcode.oct24.BuildConfig
 import com.getcode.payments.LocalPaymentController
 import com.getcode.payments.PaymentController
 import com.getcode.util.resources.LocalResources

@@ -26,6 +26,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import com.getcode.model.ID
 import com.getcode.oct24.R
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -41,7 +42,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data object ChatListScreen: Screen, NamedScreen, Parcelable {
+data object ChatListScreen : Screen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -53,7 +54,12 @@ data object ChatListScreen: Screen, NamedScreen, Parcelable {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val viewModel = getActivityScopedViewModel<ChatListViewModel>()
-        ChatListScreenContent(viewModel)
+        ChatListScreenContent(
+            viewModel = viewModel,
+            openChat = {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it)))
+            }
+        )
 
         LifecycleEffect(
             onStarted = {
@@ -69,6 +75,7 @@ data object ChatListScreen: Screen, NamedScreen, Parcelable {
 @Composable
 private fun ChatListScreenContent(
     viewModel: ChatListViewModel,
+    openChat: (ID) -> Unit,
 ) {
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
@@ -95,9 +102,7 @@ private fun ChatListScreenContent(
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(chats.itemCount) { index ->
                 chats[index]?.let {
-                    ChatNode(chat = it) {
-                        navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it.id)))
-                    }
+                    ChatNode(chat = it) { openChat(it.id) }
                     Divider(
                         modifier = Modifier.padding(start = CodeTheme.dimens.inset),
                         color = White10,
@@ -125,6 +130,7 @@ private fun ChatListScreenContent(
                         }
                     }
                 }
+
                 isEmpty -> {
                     item {
                         Column(
