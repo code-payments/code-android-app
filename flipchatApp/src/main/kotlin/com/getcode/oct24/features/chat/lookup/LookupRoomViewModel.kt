@@ -1,8 +1,14 @@
 package com.getcode.oct24.features.chat.lookup
 
 import androidx.lifecycle.viewModelScope
+import com.getcode.manager.TopBarManager
+import com.getcode.oct24.R
+import com.getcode.oct24.data.RoomWithMembers
+import com.getcode.oct24.features.login.register.onResult
+import com.getcode.oct24.network.controllers.ChatsController
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
@@ -13,7 +19,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LookupRoomViewModel @Inject constructor(
-
+    chatsController: ChatsController,
+    resources: ResourceHelper,
 ): BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -21,6 +28,8 @@ class LookupRoomViewModel @Inject constructor(
     private val numberInputHelper = NumberInputHelper()
 
     data class State(
+        val lookingUp: Boolean = false,
+        val success: Boolean = false,
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(
             amountData = NumberInputHelper.AmountAnimatedData("")
         ),
@@ -28,10 +37,14 @@ class LookupRoomViewModel @Inject constructor(
     )
 
     sealed interface Event {
+        data class OnLookingUpRoom(val requesting: Boolean): Event
         data class OnNumberPressed(val number: Int): Event
         data object OnBackspace: Event
         data class OnEnteredNumberChanged(val backspace: Boolean = false): Event
         data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel): Event
+        data object OnLookupRoom: Event
+        data object OnRoomFound: Event
+        data class OnOpenConfirmation(val room: RoomWithMembers): Event
     }
 
     init {
@@ -71,6 +84,28 @@ class LookupRoomViewModel @Inject constructor(
 
                 dispatchEvent(Event.OnRoomNumberChanged(updated))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnLookupRoom>()
+            .onEach { dispatchEvent(Event.OnLookingUpRoom(true)) }
+            .map { stateFlow.value.amountAnimatedModel.amountData.amount.toLong() }
+            .map { chatsController.lookupRoom(it) }
+            .onResult(
+                onError = {
+                    dispatchEvent(Event.OnLookingUpRoom(false))
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            resources.getString(R.string.error_title_failedToJoinRoom),
+                            resources.getString(R.string.error_description_failedToJoinRoom, stateFlow.value.amountAnimatedModel.amountData.amount)
+                        )
+                    )
+                },
+                onSuccess = {
+                    dispatchEvent(Event.OnLookingUpRoom(true))
+                    dispatchEvent(Event.OnRoomFound)
+                    dispatchEvent(Event.OnOpenConfirmation(it))
+                }
+            ).launchIn(viewModelScope)
     }
 
 
@@ -87,7 +122,12 @@ class LookupRoomViewModel @Inject constructor(
 
                 Event.OnBackspace,
                 is Event.OnEnteredNumberChanged,
+                Event.OnLookupRoom,
+                is Event.OnOpenConfirmation,
                 is Event.OnNumberPressed -> { state -> state }
+
+                is Event.OnRoomFound -> { state -> state.copy(success = true) }
+                is Event.OnLookingUpRoom -> { state -> state.copy(lookingUp = event.requesting) }
             }
         }
     }

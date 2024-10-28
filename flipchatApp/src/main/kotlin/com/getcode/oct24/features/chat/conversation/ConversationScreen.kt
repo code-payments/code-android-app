@@ -77,7 +77,6 @@ import kotlinx.parcelize.RawValue
 
 @Parcelize
 data class ConversationScreen(
-    val user: @RawValue TwitterUser? = null,
     val chatId: com.getcode.model.ID? = null,
     val intentId: com.getcode.model.ID? = null
 ) : Screen, NamedScreen, Parcelable {
@@ -134,14 +133,6 @@ data class ConversationScreen(
                         navigator.popAll()
                     }
                 }.launchIn(this)
-        }
-
-        LaunchedEffect(user) {
-            if (user != null) {
-                vm.dispatchEvent(
-                    ConversationViewModel.Event.OnTwitterUserChanged(user)
-                )
-            }
         }
 
         LaunchedEffect(chatId) {
@@ -223,46 +214,27 @@ private fun ConversationScreenContent(
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
-                val canChat = remember(state.twitterUser) {
-                    state.twitterUser == null || state.twitterUser.isFriend
-                }
-                if (canChat) {
-                    AnimatedVisibility(
-                        visible = state.showTypingIndicator,
-                        enter = slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) { it } + scaleIn() + fadeIn(),
-                        exit = fadeOut() + scaleOut() + slideOutVertically { it }
-                    ) {
-                        TypingIndicator(
-                            modifier = Modifier
-                                .padding(horizontal = CodeTheme.dimens.grid.x2)
+                AnimatedVisibility(
+                    visible = state.showTypingIndicator,
+                    enter = slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
                         )
-                    }
-                    ChatInput(
-                        state = state.textFieldState,
-                        sendCashEnabled = state.tipChatCash.enabled,
-                        onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
-                        onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
-                    )
-                } else {
-                    CodeButton(
+                    ) { it } + scaleIn() + fadeIn(),
+                    exit = fadeOut() + scaleOut() + slideOutVertically { it }
+                ) {
+                    TypingIndicator(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = CodeTheme.dimens.grid.x2)
-                            .padding(horizontal = CodeTheme.dimens.inset),
-                        buttonState = ButtonState.Filled,
-                        text = stringResource(
-                            R.string.action_payToChat,
-                            state.costToChat.formatted(suffix = "")
-                        )
-                    ) {
-                        dispatchEvent(ConversationViewModel.Event.PresentPaymentConfirmation)
-                    }
+                            .padding(horizontal = CodeTheme.dimens.grid.x2)
+                    )
                 }
+                ChatInput(
+                    state = state.textFieldState,
+                    sendCashEnabled = state.tipChatCash.enabled,
+                    onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
+                    onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                )
             }
         }
     ) { padding ->

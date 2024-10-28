@@ -93,10 +93,10 @@ data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
                         .navigationBarsPadding(),
                     buttonState = ButtonState.Filled,
                     text = stringResource(R.string.action_next),
-                    isLoading = false,
-                    isSuccess = false,
+                    isLoading = state.lookingUp,
+                    isSuccess = state.success,
                 ) {
-
+                    viewModel.dispatchEvent(LookupRoomViewModel.Event.OnLookupRoom)
                 }
             }
         }

@@ -21,8 +21,7 @@ internal class RealProfileRepository @Inject constructor(
 
     override suspend fun setDisplayName(name: String): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
-        val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
-        return service.setDisplayName(owner, userId, name)
+        return service.setDisplayName(owner, name)
             .onFailure { ErrorUtils.handleError(it) }
     }
 }

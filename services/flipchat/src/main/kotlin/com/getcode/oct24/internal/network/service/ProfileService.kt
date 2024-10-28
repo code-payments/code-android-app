@@ -46,9 +46,9 @@ internal class ProfileService @Inject constructor(
         }
     }
 
-    suspend fun setDisplayName(owner: KeyPair, userId: ID, displayName: String): Result<Unit> {
+    suspend fun setDisplayName(owner: KeyPair, displayName: String): Result<Unit> {
         return try {
-            networkOracle.managedRequest(api.setDisplayName(owner, userId, displayName))
+            networkOracle.managedRequest(api.setDisplayName(owner, displayName))
                 .map {
                     when (it.result) {
                         ProfileService.SetDisplayNameResponse.Result.OK -> Result.success(Unit)

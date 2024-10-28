@@ -11,7 +11,9 @@ import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
-import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
+import com.getcode.oct24.domain.model.chat.ConversationWithMembers
+import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
+import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import com.getcode.oct24.internal.network.repository.messaging.MessagingRepository
 import com.getcode.services.model.chat.OutgoingMessageContent
@@ -27,7 +29,7 @@ class RoomController @Inject constructor(
 ) {
     private val db: FcAppDatabase by lazy { FcAppDatabase.requireInstance() }
 
-    fun observeConversation(id: ID): Flow<ConversationWithLastPointers?> {
+    fun observeConversation(id: ID): Flow<ConversationWithMembersAndLastPointers?> {
         return db.conversationDao().observeConversation(id)
     }
 
@@ -38,7 +40,7 @@ class RoomController @Inject constructor(
             .getOrThrow()
     }
 
-    suspend fun getConversation(identifier: ID): ConversationWithLastPointers? {
+    suspend fun getConversation(identifier: ID): ConversationWithMembersAndLastPointers? {
         return db.conversationDao().findConversation(identifier)
     }
 
@@ -46,7 +48,7 @@ class RoomController @Inject constructor(
         identifier: ID,
         recipients: List<ID>,
         title: String?
-    ): ConversationWithLastPointers {
+    ): ConversationWithMembersAndLastPointers {
         val conversationByChatId = getConversation(identifier)
         if (conversationByChatId != null) {
             return conversationByChatId
@@ -59,7 +61,13 @@ class RoomController @Inject constructor(
             StartChatRequestType.Group(title, recipients)
         }
 
-        return ConversationWithLastPointers(createConversation(request), emptyList())
+        val created = createConversation(request)
+
+        return ConversationWithMembersAndLastPointers(
+            conversation = created,
+            members = emptyList(),
+            pointersCrossRef = emptyList()
+        )
     }
 
     fun openMessageStream(scope: CoroutineScope, conversation: Conversation) {

@@ -6,12 +6,18 @@ import com.getcode.model.chat.ChatType
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class RoomWithMembers(
+    val room: Room,
+    val members: List<Member>
+)
+
+@Serializable
 data class Room(
     val id: ID,
     val type: ChatType,
     private val _title: String?,
     val roomNumber: Long = -1,
-    val members: List<Member>,
+    val members: List<Member> = emptyList(),
     private val _muted: Boolean,
     val muteable: Boolean,
     private val _unread: Int,

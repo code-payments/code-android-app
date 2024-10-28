@@ -3,9 +3,12 @@ package com.getcode.oct24.internal.inject
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.mapper.ConversationMessageWithContentMapper
 import com.getcode.oct24.internal.data.mapper.ChatMessageMapper
+import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.data.mapper.LastMessageMapper
+import com.getcode.oct24.internal.data.mapper.MemberUpdateMapper
 import com.getcode.oct24.internal.data.mapper.ProfileMapper
 import com.getcode.oct24.internal.data.mapper.RoomMapper
+import com.getcode.oct24.internal.data.mapper.RoomWithMembersMapper
 import com.getcode.oct24.internal.network.repository.accounts.AccountRepository
 import com.getcode.oct24.internal.network.repository.accounts.RealAccountRepository
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
@@ -42,14 +45,20 @@ internal object RepositoryModule {
         userManager: UserManager,
         service: ChatService,
         roomMapper: RoomMapper,
+        roomWithMembersMapper: RoomWithMembersMapper,
         conversationMapper: ConversationMapper,
+        memberUpdateMapper: MemberUpdateMapper,
+        conversationMemberMapper: ConversationMemberMapper,
         messageMapper: LastMessageMapper,
         messageWithContentMapper: ConversationMessageWithContentMapper,
     ): ChatRepository = RealChatRepository(
         userManager = userManager,
         service = service,
         roomMapper = roomMapper,
+        roomWithMembersMapper = roomWithMembersMapper,
         conversationMapper = conversationMapper,
+        memberUpdateMapper = memberUpdateMapper,
+        conversationMemberMapper = conversationMemberMapper,
         messageMapper = messageMapper,
         messageWithContentMapper = messageWithContentMapper
     )

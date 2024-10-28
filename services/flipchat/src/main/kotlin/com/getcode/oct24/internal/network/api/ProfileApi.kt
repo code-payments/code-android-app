@@ -33,9 +33,8 @@ class ProfileApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    fun setDisplayName(owner: KeyPair, userId: ID, displayName: String): Flow<ProfileService.SetDisplayNameResponse> {
+    fun setDisplayName(owner: KeyPair, displayName: String): Flow<ProfileService.SetDisplayNameResponse> {
         val request = SetDisplayNameRequest.newBuilder()
-            .setUserId(userId.toUserId())
             .setDisplayName(displayName)
             .apply { authenticate(owner) }
             .build()

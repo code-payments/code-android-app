@@ -6,6 +6,7 @@ import com.getcode.oct24.internal.annotations.FcManagedChannel
 import com.getcode.oct24.internal.annotations.FcNetworkOracle
 import com.getcode.oct24.internal.network.core.NetworkOracle
 import com.getcode.oct24.internal.network.core.NetworkOracleImpl
+import com.getcode.oct24.internal.network.utils.logging.LoggingClientInterceptor
 import com.getcode.oct24.services.BuildConfig
 import dagger.Module
 import dagger.Provides
@@ -39,6 +40,7 @@ internal object FcApiModule {
             .context(context)
             .userAgent("Flipchat/Android/${BuildConfig.VERSION_NAME}")
             .keepAliveTime(4, TimeUnit.MINUTES)
+            .intercept(LoggingClientInterceptor())
             .build()
     }
 

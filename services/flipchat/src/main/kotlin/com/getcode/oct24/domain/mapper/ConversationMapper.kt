@@ -13,7 +13,6 @@ class ConversationMapper @Inject constructor(
             idBase58 = from.id.base58,
             title = from.title,
             imageUri = from.imageData,
-            members = from.members,
             unreadCount = from.unreadCount,
             isMuted = from.isMuted,
             lastActivity = null, // TODO: ?

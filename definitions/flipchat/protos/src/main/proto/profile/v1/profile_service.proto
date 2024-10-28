@@ -26,10 +26,9 @@ message GetProfileResponse {
 	UserProfile user_profile = 2;
 }
 message SetDisplayNameRequest {
-	common.v1.UserId user_id = 1;
 	// DisplayName is the new name to set.
-	string display_name = 2 ;
-	common.v1.Auth auth = 3;
+	string display_name = 1 ;
+	common.v1.Auth auth = 10;
 }
 message SetDisplayNameResponse {
 	Result result = 1;

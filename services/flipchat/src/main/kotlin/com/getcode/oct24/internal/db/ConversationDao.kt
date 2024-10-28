@@ -8,8 +8,10 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import com.getcode.oct24.domain.model.chat.Conversation
-import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.ID
+import com.getcode.oct24.domain.model.chat.ConversationMember
+import com.getcode.oct24.domain.model.chat.ConversationWithMembers
+import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
 
@@ -21,21 +23,21 @@ internal interface ConversationDao {
 
     @RewriteQueriesToDropUnusedColumns
     @Query("SELECT * FROM conversations")
-    fun observeConversations(): PagingSource<Int, Conversation>
+    fun observeConversations(): PagingSource<Int, ConversationWithMembers>
 
     @RewriteQueriesToDropUnusedColumns
-    @Query("SELECT * FROM conversations LEFT JOIN conversation_pointers ON conversations.idBase58 = conversation_pointers.conversationIdBase58 WHERE conversations.idBase58 = :id")
-    fun observeConversation(id: String): Flow<ConversationWithLastPointers?>
+    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    fun observeConversation(id: String): Flow<ConversationWithMembersAndLastPointers?>
 
-    fun observeConversation(id: ID): Flow<ConversationWithLastPointers?> {
+    fun observeConversation(id: ID): Flow<ConversationWithMembersAndLastPointers?> {
         return observeConversation(id.base58)
     }
 
     @RewriteQueriesToDropUnusedColumns
-    @Query("SELECT * FROM conversations LEFT JOIN conversation_pointers ON conversations.idBase58 = conversation_pointers.conversationIdBase58 WHERE conversations.idBase58 = :id")
-    suspend fun findConversation(id: String): ConversationWithLastPointers?
+    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    suspend fun findConversation(id: String): ConversationWithMembersAndLastPointers?
 
-    suspend fun findConversation(id: ID): ConversationWithLastPointers? {
+    suspend fun findConversation(id: ID): ConversationWithMembersAndLastPointers? {
         return findConversation(id.base58)
     }
 
@@ -48,13 +50,6 @@ internal interface ConversationDao {
     suspend fun hasInteracted(conversationId: ID): Boolean {
         return hasInteracted(conversationId.base58)
     }
-
-//    @Query("SELECT EXISTS (SELECT * FROM messages WHERE conversationIdBase58 = :messageId AND content LIKE '%4|%')")
-//    suspend fun hasRevealedIdentity(messageId: String): Boolean
-//
-//    suspend fun hasRevealedIdentity(messageId: ID): Boolean {
-//        return hasRevealedIdentity(messageId.base58)
-//    }
 
     @Delete
     fun deleteConversation(conversation: Conversation)
@@ -74,4 +69,10 @@ internal interface ConversationDao {
 
     @Query("DELETE FROM conversations")
     fun clearConversations()
+
+    @Query("DELETE FROM members WHERE memberIdBase58 NOT IN (:memberIds) AND conversationIdBase58 = :conversationId")
+    suspend fun purgeMembersNotInByString(conversationId: String, memberIds: List<String>)
+    suspend fun refreshMembers(conversationId: ID, members: List<ConversationMember>) {
+        purgeMembersNotInByString(conversationId.base58, members.map { it.memberIdBase58 })
+    }
 }

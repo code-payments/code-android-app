@@ -1,6 +1,5 @@
 package com.getcode.oct24.domain.model.chat
 
-import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -9,7 +8,7 @@ import androidx.room.Relation
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
-import com.getcode.oct24.data.Member
+import com.getcode.utils.base58
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -22,23 +21,12 @@ data class Conversation(
     val idBase58: String,
     val title: String?,
     val imageUri: String?,
-    @ColumnInfo(defaultValue = "")
-    val members: List<Member>,
     val lastActivity: Long?,
     val isMuted: Boolean,
     val unreadCount: Int,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
-
-    val name: String?
-        get() = nonSelfMembers
-            .mapNotNull { it.identity?.displayName }
-            .joinToString()
-            .takeIf { it.isNotEmpty() }
-
-    val nonSelfMembers: List<Member>
-        get() = members.filterNot { it.isSelf }
 
     override fun toString(): String {
         return """
@@ -67,15 +55,31 @@ data class ConversationPointerCrossRef(
 }
 
 @Serializable
-data class ConversationWithLastPointers(
+data class ConversationWithMembersAndLastPointers(
     @Embedded val conversation: Conversation,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "conversationIdBase58"
+    )
+    val members: List<ConversationMember>,
     @Relation(
         parentColumn = "idBase58",
         entityColumn = "conversationIdBase58",
         entity = ConversationPointerCrossRef::class,
     )
-    val pointersCrossRef: List<ConversationPointerCrossRef>
+    val pointersCrossRef: List<ConversationPointerCrossRef>,
 ) {
+    fun name(selfId: ID?): String? {
+        return nonSelfMembers(selfId)
+            .mapNotNull { it.memberName }
+            .joinToString()
+            .takeIf { it.isNotEmpty() }
+    }
+
+    fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
+        return members.filterNot { it.memberIdBase58 != selfId?.base58 }
+    }
+
     val pointers: Map<UUID, MessageStatus>
         get() {
             return pointersCrossRef
@@ -83,6 +87,40 @@ data class ConversationWithLastPointers(
                 .mapKeys { it.value.messageId }
                 .mapValues { it.value.status }
         }
+}
+
+data class ConversationWithMembers(
+    @Embedded val conversation: Conversation,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "conversationIdBase58"
+    )
+    val members: List<ConversationMember>
+) {
+    val imageUri: String?
+        get() = conversation.imageUri
+
+    val lastActivity: Long?
+        get() = conversation.lastActivity
+
+    val isMuted: Boolean
+        get() = conversation.isMuted
+
+    val unreadCount: Int
+        get() = conversation.unreadCount
+
+    fun name(selfId: ID?): String? {
+        if (conversation.title != null) return conversation.title
+
+        return nonSelfMembers(selfId)
+            .mapNotNull { it.memberName }
+            .joinToString()
+            .takeIf { it.isNotEmpty() }
+    }
+
+    fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
+        return members.filterNot { it.memberIdBase58 != selfId?.base58 }
+    }
 }
 
 @Serializable
@@ -117,3 +155,22 @@ data class ConversationMessageWithContent(
     )
     val contents: List<MessageContent>,
 )
+
+@Serializable
+@Entity(
+    tableName = "members",
+    primaryKeys = ["memberIdBase58", "conversationIdBase58"]
+)
+data class ConversationMember(
+    val memberIdBase58: String, // Server-provided ID in base58 string format
+    val conversationIdBase58: String, // Foreign key to `Conversation`
+    val memberName: String?, // Other member-specific fields
+    val imageUri: String?,
+) {
+    @Ignore
+    val id: ID = Base58.decode(memberIdBase58).toList()
+
+    @Ignore
+    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+}
+

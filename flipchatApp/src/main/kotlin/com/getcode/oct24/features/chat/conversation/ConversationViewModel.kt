@@ -10,19 +10,23 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
+import com.flipchat.features.chat.list.ChatListViewModel.Event
 import com.getcode.model.ConversationCashFeature
-import com.getcode.oct24.domain.model.chat.ConversationWithLastPointers
 import com.getcode.model.Feature
+import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.TwitterUser
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.chat.Reference
 import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
+import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
 import com.getcode.oct24.network.controllers.RoomController
+import com.getcode.oct24.user.UserManager
 import com.getcode.payments.PaymentController
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.resources.ResourceHelper
@@ -53,6 +57,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
+    private val userManager: UserManager,
     private val roomController: RoomController,
     features: FeatureRepository,
     tipController: TipController,
@@ -65,10 +70,10 @@ class ConversationViewModel @Inject constructor(
 ) {
 
     data class State(
-        val conversationId: com.getcode.model.ID?,
-        val twitterUser: TwitterUser?,
+        val selfId: ID?,
+        val conversationId: ID?,
         val costToChat: KinAmount,
-        val reference: com.getcode.model.chat.Reference.IntentId?,
+        val reference: Reference.IntentId?,
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
@@ -79,7 +84,7 @@ class ConversationViewModel @Inject constructor(
         val isSelfTyping: Boolean,
     ) {
         data class User(
-            val memberId: com.getcode.model.ID,
+            val memberId: ID,
             val displayName: String?,
             val imageUrl: String?,
         ) {
@@ -89,8 +94,8 @@ class ConversationViewModel @Inject constructor(
 
         companion object {
             val Default = State(
-                twitterUser = null,
                 costToChat = KinAmount.Zero,
+                selfId = null,
                 conversationId = null,
                 reference = null,
                 tipChatCash = ConversationCashFeature(),
@@ -106,15 +111,15 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnTwitterUserChanged(val user: TwitterUser?) : Event
+        data class OnSelfIdChanged(val id: ID?): Event
         data class OnCostToChatChanged(val cost: KinAmount) : Event
         data class OnMembersChanged(val members: List<State.User>) : Event
-        data class OnChatIdChanged(val chatId: com.getcode.model.ID?) : Event
-        data class OnConversationChanged(val conversationWithPointers: ConversationWithLastPointers) :
+        data class OnChatIdChanged(val chatId: ID?) : Event
+        data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
 
         data class OnUserRevealed(
-            val memberId: com.getcode.model.ID,
+            val memberId: ID,
             val username: String? = null,
             val imageUrl: String? = null,
         ) : Event
@@ -129,8 +134,8 @@ class ConversationViewModel @Inject constructor(
         data class OnIdentityAvailable(val available: Boolean) : Event
 
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
-        data class MarkRead(val messageId: com.getcode.model.ID) : Event
-        data class MarkDelivered(val messageId: com.getcode.model.ID) : Event
+        data class MarkRead(val messageId: ID) : Event
+        data class MarkDelivered(val messageId: ID) : Event
 
         data object PresentPaymentConfirmation : Event
 
@@ -145,6 +150,13 @@ class ConversationViewModel @Inject constructor(
     }
 
     init {
+        userManager.state
+            .map { it.userId }
+            .distinctUntilChanged()
+            .onEach {
+                dispatchEvent(Event.OnSelfIdChanged(it))
+            }.launchIn(viewModelScope)
+
         // this is an existing conversation so we fetch the chat directly
         eventFlow
             .filterIsInstance<Event.OnChatIdChanged>()
@@ -156,43 +168,18 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnConversationChanged(it))
             }.launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnTwitterUserChanged>()
-            .map { it.user }
-            .filterNotNull()
-            .mapNotNull { user ->
-                val currencySymbol = user.costOfFriendship.currency
-                val rate = exchange.rateFor(currencySymbol) ?: exchange.rateForUsd()!!
-
-                user to KinAmount.fromFiatAmount(fiat = user.costOfFriendship, rate = rate)
-            }.map { (user, cost) ->
-                dispatchEvent(Event.OnCostToChatChanged(cost))
-                user
-            }.onEach { user ->
-                val member = user.let {
-                    State.User(
-                        memberId = UUID.randomUUID().bytes,
-                        displayName = user.username,
-                        imageUrl = user.imageUrl
-                    )
-                }
-
-                dispatchEvent(Event.OnMembersChanged(listOf(member)))
-            }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.PresentPaymentConfirmation>()
-            .mapNotNull {
-                val state = stateFlow.value
-                if (state.twitterUser == null) return@mapNotNull null
-                state.twitterUser to state.costToChat
-            }.onEach { (user, amount) ->
-                paymentController.presentPrivatePaymentConfirmation(
-                    socialUser = user,
-                    amount = amount
-                )
-            }.launchIn(viewModelScope)
+//        eventFlow
+//            .filterIsInstance<Event.PresentPaymentConfirmation>()
+//            .mapNotNull {
+//                val state = stateFlow.value
+//                if (state.twitterUser == null) return@mapNotNull null
+//                state.twitterUser to state.costToChat
+//            }.onEach { (user, amount) ->
+//                paymentController.presentPrivatePaymentConfirmation(
+//                    socialUser = user,
+//                    amount = amount
+//                )
+//            }.launchIn(viewModelScope)
 
 //        paymentController.eventFlow
 //            .filterIsInstance<PaymentEvent.OnChatPaidForSuccessfully>()
@@ -423,17 +410,16 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _) = event.conversationWithPointers
-                    val members = conversation.nonSelfMembers
+                    val members = event.conversationWithPointers.nonSelfMembers(state.selfId)
 
                     state.copy(
                         conversationId = conversation.id,
                         pointers = event.conversationWithPointers.pointers,
-                        twitterUser = null,
                         users = members.map {
                             State.User(
                                 memberId = it.id,
-                                displayName = it.identity?.displayName,
-                                imageUrl = null,
+                                displayName = it.memberName,
+                                imageUrl = it.imageUri,
                             )
                         }
                     )
@@ -459,10 +445,6 @@ class ConversationViewModel @Inject constructor(
 
                 is Event.OnIdentityAvailable -> { state ->
                     state.copy(identityAvailable = event.available)
-                }
-
-                is Event.OnTwitterUserChanged -> { state ->
-                    state.copy(twitterUser = event.user)
                 }
 
                 is Event.OnTypingStarted -> { state ->
@@ -507,6 +489,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnUserActivity -> { state ->
                     state.copy(lastSeen = event.activity)
                 }
+
+                is Event.OnSelfIdChanged -> { state -> state.copy(selfId = event.id) }
             }
         }
     }

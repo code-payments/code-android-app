@@ -1,11 +1,13 @@
 package com.getcode.oct24.internal.db
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import com.getcode.oct24.domain.model.chat.Conversation
+import com.getcode.oct24.domain.model.chat.ConversationMember
 import com.getcode.oct24.domain.model.chat.ConversationMessage
 import com.getcode.oct24.domain.model.chat.ConversationMessageContent
 import com.getcode.oct24.domain.model.chat.ConversationPointerCrossRef
@@ -31,12 +33,15 @@ import java.io.File
         PrefBool::class,
         PrefDouble::class,
         Conversation::class,
+        ConversationMember::class,
         ConversationPointerCrossRef::class,
         ConversationMessage::class,
         ConversationMessageContent::class,
     ],
-    autoMigrations = [],
-    version = 1
+    autoMigrations = [
+        AutoMigration(from = 1, to = 2)
+    ],
+    version = 2
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -94,7 +99,7 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
 
             instance =
                 Room.databaseBuilder(context, FcAppDatabase::class.java, dbName)
-                .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
+                    .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                     .fallbackToDestructiveMigration()
                     .build()
 

@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 1,
-    "identityHash": "21df295ddc43f1ac6661169bf5cca785",
+    "version": 2,
+    "identityHash": "cd5033d328a6d0a8130e8cd2b17150ca",
     "entities": [
       {
         "tableName": "PrefInt",
@@ -159,6 +159,45 @@
         "foreignKeys": []
       },
       {
+        "tableName": "members",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`memberIdBase58` TEXT NOT NULL, `conversationIdBase58` TEXT NOT NULL, `memberName` TEXT, `imageUri` TEXT, PRIMARY KEY(`memberIdBase58`, `conversationIdBase58`))",
+        "fields": [
+          {
+            "fieldPath": "memberIdBase58",
+            "columnName": "memberIdBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationIdBase58",
+            "columnName": "conversationIdBase58",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "memberName",
+            "columnName": "memberName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "imageUri",
+            "columnName": "imageUri",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "memberIdBase58",
+            "conversationIdBase58"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
         "tableName": "conversation_pointers",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`conversationIdBase58` TEXT NOT NULL, `messageIdString` TEXT NOT NULL, `status` TEXT NOT NULL, PRIMARY KEY(`conversationIdBase58`, `status`))",
         "fields": [
@@ -254,7 +293,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '21df295ddc43f1ac6661169bf5cca785')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cd5033d328a6d0a8130e8cd2b17150ca')"
     ]
   }
 }

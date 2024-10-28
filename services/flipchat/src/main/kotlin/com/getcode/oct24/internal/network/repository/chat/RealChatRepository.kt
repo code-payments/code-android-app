@@ -3,12 +3,17 @@ package com.getcode.oct24.internal.network.repository.chat
 import com.getcode.model.ID
 import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.Room
+import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.mapper.ConversationMessageWithContentMapper
+import com.getcode.oct24.domain.model.chat.MemberUpdate
 import com.getcode.oct24.domain.model.query.QueryOptions
+import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.data.mapper.LastMessageMapper
+import com.getcode.oct24.internal.data.mapper.MemberUpdateMapper
 import com.getcode.oct24.internal.data.mapper.RoomMapper
+import com.getcode.oct24.internal.data.mapper.RoomWithMembersMapper
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.internal.network.model.chat.ChatStreamUpdate
 import com.getcode.oct24.internal.network.service.ChatHomeStreamReference
@@ -29,7 +34,10 @@ internal class RealChatRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: ChatService,
     private val roomMapper: RoomMapper,
+    private val roomWithMembersMapper: RoomWithMembersMapper,
     private val conversationMapper: ConversationMapper,
+    private val memberUpdateMapper: MemberUpdateMapper,
+    private val conversationMemberMapper: ConversationMemberMapper,
     private val messageMapper: LastMessageMapper,
     private val messageWithContentMapper: ConversationMessageWithContentMapper,
 ): ChatRepository {
@@ -41,42 +49,40 @@ internal class RealChatRepository @Inject constructor(
         queryOptions: QueryOptions,
     ): Result<List<Room>> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
-        val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.getChats(owner, userId, queryOptions)
+        return service.getChats(owner, queryOptions)
             .map { it.map { meta -> roomMapper.map(meta) } }
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun getChat(identifier: ChatIdentifier): Result<Room> {
+    override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
 
         return service.getChat(owner, identifier)
-            .map { roomMapper.map(it) }
+            .map { roomWithMembersMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }
 
     override suspend fun startChat(type: StartChatRequestType): Result<Room> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
-        val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.startChat(owner, userId, type)
+        return service.startChat(owner, type)
             .map { roomMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun joinChat(identifier: ChatIdentifier): Result<Unit> {
+    override suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
-        val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.joinChat(owner, userId, identifier)
+        return service.joinChat(owner, identifier)
+            .map { roomWithMembersMapper.map(it) }
+            .onFailure { ErrorUtils.handleError(it) }
     }
 
     override suspend fun leaveChat(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
-        val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.leaveChat(owner, userId, chatId)
+        return service.leaveChat(owner, chatId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 
@@ -99,47 +105,67 @@ internal class RealChatRepository @Inject constructor(
 
     override fun openEventStream(coroutineScope: CoroutineScope) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
-        val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
+        if (homeStreamReference != null) {
+            homeStreamReference = service.openChatStream(coroutineScope, owner) { result ->
+                if (result.isSuccess) {
+                    val data = result.getOrNull()
+                    val update = ChatStreamUpdate.invoke(data) ?: return@openChatStream
 
-        homeStreamReference = service.openChatStream(coroutineScope, owner, userId) { result ->
-            if (result.isSuccess) {
-                val data = result.getOrNull()
-                val update = ChatStreamUpdate.invoke(data) ?: return@openChatStream
-
-                // handle typing state changes
-                if (update.isTyping != null && update.id != null) {
-                    if (update.isTyping) {
-                        typingChats.value + listOf(update.id).toSet()
-                    } else {
-                        typingChats.value - listOf(update.id).toSet()
+                    // handle typing state changes
+                    if (update.isTyping != null) {
+                        if (update.isTyping) {
+                            typingChats.value + listOf(update.id).toSet()
+                        } else {
+                            typingChats.value - listOf(update.id).toSet()
+                        }
                     }
-                }
 
-                val updatedChat = update.chat?.let {
-                    roomMapper.map(it)
-                }
-
-                val conversation = updatedChat?.let { conversationMapper.map(it) }
-
-                // handle last message update
-                val message = update.lastMessage?.let {
-                    val chatId = update.id ?: return@let null
-                    val mapped = messageMapper.map(it)
-                    messageWithContentMapper.map(chatId to mapped)
-                }
-
-                // update conversation if metadata changed
-                coroutineScope.launch(Dispatchers.IO) {
-                    if (conversation != null) {
-                        db.conversationDao().upsertConversations(conversation)
+                    val memberUpdate = update.memberUpdate?.let {
+                        memberUpdateMapper.map(it)
                     }
-                    if (message != null) {
-                        db.conversationMessageDao().upsertMessagesWithContent(message)
+
+                    val updatedChat = update.chat?.let {
+                        roomMapper.map(it)
                     }
-                }
-            } else {
-                result.exceptionOrNull()?.let {
-                    ErrorUtils.handleError(it)
+
+                    val conversation = updatedChat?.let { conversationMapper.map(it) }
+
+                    // handle last message update
+                    val message = update.lastMessage?.let {
+                        val chatId = update.id ?: return@let null
+                        val mapped = messageMapper.map(it)
+                        messageWithContentMapper.map(chatId to mapped)
+                    }
+
+                    // update conversation if metadata changed
+                    coroutineScope.launch(Dispatchers.IO) {
+                        if (conversation != null) {
+                            db.conversationDao().upsertConversations(conversation)
+                        }
+
+                        if (memberUpdate != null) {
+                            when (memberUpdate) {
+                                is MemberUpdate.Refresh -> {
+                                    val members = memberUpdate.members.map {
+                                        conversationMemberMapper.map(
+                                            Pair(
+                                                update.id,
+                                                it
+                                            )
+                                        )
+                                    }
+                                    db.conversationDao().refreshMembers(update.id, members)
+                                }
+                            }
+                        }
+                        if (message != null) {
+                            db.conversationMessageDao().upsertMessagesWithContent(message)
+                        }
+                    }
+                } else {
+                    result.exceptionOrNull()?.let {
+                        ErrorUtils.handleError(it)
+                    }
                 }
             }
         }

@@ -8,11 +8,14 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
 import com.getcode.model.ID
+import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.Room
+import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
+import com.getcode.oct24.domain.model.chat.ConversationWithMembers
 import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import kotlinx.coroutines.CoroutineScope
@@ -25,7 +28,7 @@ class ChatsController @Inject constructor(
     private val db = FcAppDatabase.requireInstance()
 
     @OptIn(ExperimentalPagingApi::class)
-    val chats = Pager(
+    val chats: Pager<Int, ConversationWithMembers> = Pager(
         config = PagingConfig(pageSize = 20),
         remoteMediator = ChatsRemoteMediator(repository, conversationMapper)
     ) {
@@ -44,6 +47,10 @@ class ChatsController @Inject constructor(
         }
     }
 
+    suspend fun lookupRoom(roomNumber: Long): Result<RoomWithMembers> {
+        return repository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
+    }
+
     suspend fun createDirectMessage(recipient: ID): Result<Room> {
         return repository.startChat(StartChatRequestType.TwoWay(recipient))
     }
@@ -60,7 +67,7 @@ class ChatsController @Inject constructor(
 private class ChatsRemoteMediator(
     private val repository: ChatRepository,
     private val conversationMapper: ConversationMapper,
-) : RemoteMediator<Int, Conversation>() {
+) : RemoteMediator<Int, ConversationWithMembers>() {
     private val db = FcAppDatabase.requireInstance()
 
     override suspend fun initialize(): InitializeAction {
@@ -69,7 +76,7 @@ private class ChatsRemoteMediator(
 
     override suspend fun load(
         loadType: LoadType,
-        state: PagingState<Int, Conversation>
+        state: PagingState<Int, ConversationWithMembers>
     ): MediatorResult {
         return try {
             // The network load method takes an optional `after=<user.id>` parameter. For every
@@ -89,7 +96,7 @@ private class ChatsRemoteMediator(
                     // If lastItem is `null` it means no items were loaded after the initial
                     // REFRESH and there are no more items to load.
 
-                    lastItem.id
+                    lastItem.conversation.id
                 }
             }
             val query = QueryOptions(
