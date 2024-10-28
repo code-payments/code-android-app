@@ -38,7 +38,7 @@ internal class RealMessagingRepository @Inject constructor(
         val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
         return service.getMessages(owner, userId, queryOptions)
-            .map { it.map { meta -> messageMapper.map(chat to meta) } }
+            .map { it.map { meta -> messageMapper.map(userId to meta) } }
             .onFailure { ErrorUtils.handleError(it) }
     }
 

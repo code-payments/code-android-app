@@ -1,20 +1,19 @@
 package com.getcode.oct24.internal.data.mapper
 
 import com.codeinc.flipchat.gen.messaging.v1.Model
+import com.getcode.model.ID
+import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
 import com.getcode.oct24.internal.protomapping.invoke
-import com.getcode.oct24.data.Room
 import com.getcode.services.mapper.Mapper
-import com.getcode.model.chat.ChatMessage
 import javax.inject.Inject
 
-class ChatMessageMapper @Inject constructor(): Mapper<Pair<Room, Model.Message>, ChatMessage> {
-    override fun map(from: Pair<Room, Model.Message>): ChatMessage {
-        val (room, message) = from
+class ChatMessageMapper @Inject constructor(): Mapper<Pair<ID, Model.Message>, ChatMessage> {
+    override fun map(from: Pair<ID, Model.Message>): ChatMessage {
+        val (selfId, message) = from
         val messageId = message.messageId.value.toByteArray().toList()
         val messageSenderId = message.senderId.value.toByteArray().toList()
-        val selfMember = room.members.firstOrNull { it.isSelf }
-        val isFromSelf = selfMember?.id == messageSenderId
+        val isFromSelf = selfId == messageSenderId
 
         return ChatMessage(
             id = messageId,

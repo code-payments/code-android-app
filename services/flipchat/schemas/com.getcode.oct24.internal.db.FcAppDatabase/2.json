@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "cd5033d328a6d0a8130e8cd2b17150ca",
+    "identityHash": "73d09888385f047520f90e3ae9fc75f1",
     "entities": [
       {
         "tableName": "PrefInt",
@@ -110,7 +110,7 @@
       },
       {
         "tableName": "conversations",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `title` TEXT, `imageUri` TEXT, `lastActivity` INTEGER, `isMuted` INTEGER NOT NULL, `unreadCount` INTEGER NOT NULL, PRIMARY KEY(`idBase58`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`idBase58` TEXT NOT NULL, `title` TEXT NOT NULL, `imageUri` TEXT, `lastActivity` INTEGER, `isMuted` INTEGER NOT NULL, `unreadCount` INTEGER NOT NULL, PRIMARY KEY(`idBase58`))",
         "fields": [
           {
             "fieldPath": "idBase58",
@@ -122,7 +122,7 @@
             "fieldPath": "title",
             "columnName": "title",
             "affinity": "TEXT",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "imageUri",
@@ -293,7 +293,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cd5033d328a6d0a8130e8cd2b17150ca')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '73d09888385f047520f90e3ae9fc75f1')"
     ]
   }
 }

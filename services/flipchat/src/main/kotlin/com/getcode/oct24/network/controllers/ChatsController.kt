@@ -20,12 +20,14 @@ import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import kotlinx.coroutines.CoroutineScope
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class ChatsController @Inject constructor(
     conversationMapper: ConversationMapper,
     private val repository: ChatRepository
 ) {
-    private val db = FcAppDatabase.requireInstance()
+    private val db by lazy { FcAppDatabase.requireInstance() }
 
     @OptIn(ExperimentalPagingApi::class)
     val chats: Pager<Int, ConversationWithMembers> = Pager(

@@ -19,7 +19,7 @@ import java.util.UUID
 data class Conversation(
     @PrimaryKey
     val idBase58: String,
-    val title: String?,
+    val title: String,
     val imageUri: String?,
     val lastActivity: Long?,
     val isMuted: Boolean,
@@ -69,13 +69,6 @@ data class ConversationWithMembersAndLastPointers(
     )
     val pointersCrossRef: List<ConversationPointerCrossRef>,
 ) {
-    fun name(selfId: ID?): String? {
-        return nonSelfMembers(selfId)
-            .mapNotNull { it.memberName }
-            .joinToString()
-            .takeIf { it.isNotEmpty() }
-    }
-
     fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
         return members.filterNot { it.memberIdBase58 != selfId?.base58 }
     }
@@ -97,6 +90,8 @@ data class ConversationWithMembers(
     )
     val members: List<ConversationMember>
 ) {
+    val title: String
+        get() = conversation.title
     val imageUri: String?
         get() = conversation.imageUri
 
@@ -108,15 +103,6 @@ data class ConversationWithMembers(
 
     val unreadCount: Int
         get() = conversation.unreadCount
-
-    fun name(selfId: ID?): String? {
-        if (conversation.title != null) return conversation.title
-
-        return nonSelfMembers(selfId)
-            .mapNotNull { it.memberName }
-            .joinToString()
-            .takeIf { it.isNotEmpty() }
-    }
 
     fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
         return members.filterNot { it.memberIdBase58 != selfId?.base58 }

@@ -102,7 +102,7 @@ private fun ChatListScreenContent(
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(chats.itemCount) { index ->
                 chats[index]?.let {
-                    ChatNode(chat = it, selfId = state.selfId) { openChat(it.conversation.id) }
+                    ChatNode(chat = it) { openChat(it.conversation.id) }
                     Divider(
                         modifier = Modifier.padding(start = CodeTheme.dimens.inset),
                         color = White10,

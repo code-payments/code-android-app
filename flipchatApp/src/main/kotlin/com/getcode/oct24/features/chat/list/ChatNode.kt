@@ -4,10 +4,8 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
-import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
 import com.getcode.oct24.data.Room
-import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationWithMembers
 import com.getcode.ui.components.chat.utils.localizedText
 
@@ -15,12 +13,11 @@ import com.getcode.ui.components.chat.utils.localizedText
 fun ChatNode(
     chat: ConversationWithMembers,
     modifier: Modifier = Modifier,
-    selfId: ID?,
     onClick: () -> Unit,
 ) {
     com.getcode.ui.components.chat.ChatNode(
         modifier = modifier,
-        title = chat.name(selfId).orEmpty(),
+        title = chat.title,
         messagePreview = AnnotatedString("") to emptyMap(),
         avatar = chat.imageUri,
         timestamp = chat.lastActivity,
