@@ -38,7 +38,7 @@ import com.getcode.utils.trace
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
-internal val tabs = listOf(ChatTab, CashTab, SettingsTab)
+internal val tabs = listOf(ChatTab, CashTab)
 
 @Parcelize
 data object TabbedHomeScreen : Screen, Parcelable {
