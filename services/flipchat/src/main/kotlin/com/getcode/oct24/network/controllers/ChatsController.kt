@@ -16,6 +16,7 @@ import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.mapper.ConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationWithMembers
+import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +31,7 @@ class ChatsController @Inject constructor(
     private val db by lazy { FcAppDatabase.requireInstance() }
 
     @OptIn(ExperimentalPagingApi::class)
-    val chats: Pager<Int, ConversationWithMembers> = Pager(
+    val chats: Pager<Int, ConversationWithMembersAndLastMessage> = Pager(
         config = PagingConfig(pageSize = 20),
         remoteMediator = ChatsRemoteMediator(repository, conversationMapper)
     ) {
@@ -69,7 +70,7 @@ class ChatsController @Inject constructor(
 private class ChatsRemoteMediator(
     private val repository: ChatRepository,
     private val conversationMapper: ConversationMapper,
-) : RemoteMediator<Int, ConversationWithMembers>() {
+) : RemoteMediator<Int, ConversationWithMembersAndLastMessage>() {
     private val db = FcAppDatabase.requireInstance()
 
     override suspend fun initialize(): InitializeAction {
@@ -78,7 +79,7 @@ private class ChatsRemoteMediator(
 
     override suspend fun load(
         loadType: LoadType,
-        state: PagingState<Int, ConversationWithMembers>
+        state: PagingState<Int, ConversationWithMembersAndLastMessage>
     ): MediatorResult {
         return try {
             // The network load method takes an optional `after=<user.id>` parameter. For every

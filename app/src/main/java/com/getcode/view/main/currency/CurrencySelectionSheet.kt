@@ -331,7 +331,7 @@ private fun GroupHeader(modifier: Modifier = Modifier, text: String) {
             )
         }
         Divider(
-            color = White05,
+            color = CodeTheme.colors.dividerVariant,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
@@ -433,7 +433,7 @@ private fun ListRowItem(
             }
 
             Divider(
-                color = White05,
+                color = CodeTheme.colors.dividerVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)

@@ -77,6 +77,7 @@ class ConversationViewModel @Inject constructor(
         val textFieldState: TextFieldState,
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
+        val title: String,
         val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
@@ -102,6 +103,7 @@ class ConversationViewModel @Inject constructor(
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
                 users = emptyList(),
+                title = "",
                 lastSeen = null,
                 pointers = emptyMap(),
                 showTypingIndicator = false,
@@ -414,6 +416,7 @@ class ConversationViewModel @Inject constructor(
 
                     state.copy(
                         conversationId = conversation.id,
+                        title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
                         users = members.map {
                             State.User(

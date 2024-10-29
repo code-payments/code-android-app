@@ -215,7 +215,7 @@ fun ListItem(item: AccountMainItem, onClick: () -> Unit) {
 
     Divider(
         modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset),
-        color = White10,
+        color = CodeTheme.colors.divider,
         thickness = 0.5.dp
     )
 }

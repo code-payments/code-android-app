@@ -181,7 +181,7 @@ fun BalanceContent(
             ChatNode(chat = chat, onClick = { openChat(chat) })
             Divider(
                 modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                color = White10,
+                color = CodeTheme.colors.divider,
             )
         }
 

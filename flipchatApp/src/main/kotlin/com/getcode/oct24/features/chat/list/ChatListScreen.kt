@@ -105,7 +105,7 @@ private fun ChatListScreenContent(
                     ChatNode(chat = it) { openChat(it.conversation.id) }
                     Divider(
                         modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                        color = White10,
+                        color = CodeTheme.colors.divider,
                     )
                 }
             }

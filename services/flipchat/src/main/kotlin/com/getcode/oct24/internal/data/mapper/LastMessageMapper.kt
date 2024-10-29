@@ -6,6 +6,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.oct24.internal.protomapping.invoke
 import com.getcode.oct24.user.UserManager
 import com.getcode.services.mapper.Mapper
+import com.getcode.utils.base58
 import javax.inject.Inject
 
 class LastMessageMapper @Inject constructor(
@@ -16,6 +17,7 @@ class LastMessageMapper @Inject constructor(
         val messageSenderId = from.senderId.value.toByteArray().toList()
         val isFromSelf = userManager.userId == messageSenderId
 
+        println("senderId=${messageSenderId.base58}, self=${userManager.userId?.base58}")
         return ChatMessage(
             id = messageId,
             senderId = messageSenderId,

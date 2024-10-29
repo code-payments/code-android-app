@@ -12,6 +12,7 @@ import com.getcode.oct24.domain.model.chat.ConversationMessageContent
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.utils.base58
 
 @Dao

@@ -40,7 +40,9 @@ private val colors = ColorScheme(
     error = Error,
     errorText = Alert,
     textMain = TextMain,
-    textSecondary = FC_TextWithPrimary
+    textSecondary = FC_TextWithPrimary,
+    divider = FC_Secondary,
+    dividerVariant = FC_Tertiary
 )
 
 @Composable

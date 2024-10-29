@@ -356,10 +356,14 @@ internal class MessagingService @Inject constructor(
             reference.scope.launch {
                 val request = MessagingService.StreamMessagesRequest.newBuilder()
                     .setParams(
-                        MessagingService.StreamMessagesRequest.Params.newBuilder()
+                        Params.newBuilder()
                             .setChatId(chatId.toChatId())
-                            .setLastKnownMessageId(lastMessageId()?.toMessageId())
-                            .apply { authenticate(owner) }
+                            .apply {
+                                lastMessageId()?.let {
+                                    setLastKnownMessageId(it.toMessageId())
+                                }
+                            }
+                            .apply { setAuth(authenticate(owner)) }
                     ).build()
 
                 reference.stream?.onNext(request)

@@ -101,6 +101,7 @@ internal class ChatService @Inject constructor(
                     }
                 }.first()
         } catch (e: Exception) {
+            e.printStackTrace()
             val error = GetChatError.Other(cause = e)
             Result.failure(error)
         }
@@ -144,6 +145,7 @@ internal class ChatService @Inject constructor(
                     }
                 }.first()
         } catch (e: Exception) {
+            e.printStackTrace()
             val error = StartChatError.Other(cause = e)
             Result.failure(error)
         }

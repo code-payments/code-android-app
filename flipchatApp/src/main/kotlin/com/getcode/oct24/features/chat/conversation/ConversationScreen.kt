@@ -181,12 +181,10 @@ private fun ConversationTitle(
             }
         }
 
+
         Column {
-            val title = state.users.mapNotNull { it.displayName }
-                .joinToString()
-                .takeIf { it.isNotEmpty() } ?: "Anonymous Tipper"
             Text(
-                text = title,
+                text = state.title,
                 style = CodeTheme.typography.screenTitle
             )
             state.lastSeen?.let {

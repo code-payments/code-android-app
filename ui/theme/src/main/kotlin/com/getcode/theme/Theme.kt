@@ -38,7 +38,9 @@ internal val CodeDefaultColorScheme = ColorScheme(
     error = Error,
     errorText = TextError,
     textMain = TextMain,
-    textSecondary = TextSecondary
+    textSecondary = TextSecondary,
+    divider = White10,
+    dividerVariant = White05,
 )
 
 @Composable
@@ -104,6 +106,8 @@ class ColorScheme(
     surface: Color,
     surfaceVariant: Color,
     onSurface: Color,
+    divider: Color,
+    dividerVariant: Color,
     error: Color,
     errorText: Color,
     textMain: Color,
@@ -151,6 +155,10 @@ class ColorScheme(
         private set
     var onAction by mutableStateOf(onAction)
         private set
+    var divider by mutableStateOf(divider)
+        private set
+    var dividerVariant by mutableStateOf(dividerVariant)
+        private set
 
     fun update(other: ColorScheme) {
         brand = other.brand
@@ -174,6 +182,8 @@ class ColorScheme(
         indicator = other.indicator
         action = other.action
         onAction = other.onAction
+        divider = other.divider
+        dividerVariant = other.dividerVariant
     }
 
     fun copy(): ColorScheme = ColorScheme(
@@ -197,7 +207,9 @@ class ColorScheme(
         tertiary = tertiary,
         indicator = indicator,
         action = action,
-        onAction = onAction
+        onAction = onAction,
+        divider = divider,
+        dividerVariant = dividerVariant
     )
 }
 

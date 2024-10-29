@@ -81,7 +81,7 @@ private fun PhoneCountrySelection(
                 )
             }
             Divider(
-                color = White05,
+                color = CodeTheme.colors.dividerVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)

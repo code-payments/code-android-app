@@ -7,10 +7,13 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
+import androidx.room.Transaction
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.model.ID
 import com.getcode.oct24.domain.model.chat.ConversationMember
+import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
 import com.getcode.oct24.domain.model.chat.ConversationWithMembers
+import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
@@ -23,7 +26,7 @@ internal interface ConversationDao {
 
     @RewriteQueriesToDropUnusedColumns
     @Query("SELECT * FROM conversations")
-    fun observeConversations(): PagingSource<Int, ConversationWithMembers>
+    fun observeConversations(): PagingSource<Int, ConversationWithMembersAndLastMessage>
 
     @RewriteQueriesToDropUnusedColumns
     @Query("SELECT * FROM conversations WHERE idBase58 = :id")
@@ -75,4 +78,11 @@ internal interface ConversationDao {
     suspend fun refreshMembers(conversationId: ID, members: List<ConversationMember>) {
         purgeMembersNotInByString(conversationId.base58, members.map { it.memberIdBase58 })
     }
+
+    @Transaction
+    @Query("""
+        SELECT * FROM conversations 
+        WHERE idBase58 = :conversationId 
+    """)
+    suspend fun getConversationWithMembersAndLastMessage(conversationId: String): ConversationWithMembersAndLastMessage?
 }

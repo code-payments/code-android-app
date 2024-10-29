@@ -81,7 +81,7 @@ fun TipConfirmation(
 
         Divider(
             modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x8),
-            color = White10,
+            color = CodeTheme.colors.divider,
         )
 
         val amount by remember(confirmation?.amount) {
