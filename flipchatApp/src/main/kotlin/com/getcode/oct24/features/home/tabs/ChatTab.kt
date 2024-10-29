@@ -33,6 +33,7 @@ import com.getcode.oct24.R
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.oct24.features.chat.openChatDirectiveBottomModal
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -74,22 +75,7 @@ internal object ChatTab : Tab {
                     endContent = {
                         Image(
                             modifier = Modifier.unboundedClickable {
-                                BottomBarManager.showMessage(
-                                    BottomBarManager.BottomBarMessage(
-                                        positiveText = context.getString(R.string.action_joinRoom),
-                                        negativeText = context.getString(R.string.action_createNewRoom),
-                                        negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
-                                        tertiaryText = context.getString(R.string.action_cancel),
-                                        onPositive = {
-                                            navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Lookup.Entry))
-                                        },
-                                        onNegative = {
-                                            viewModel.dispatchEvent(ChatListViewModel.Event.CreateRoom)
-                                        },
-                                        type = BottomBarManager.BottomBarMessageType.THEMED,
-                                        showScrim = true,
-                                    )
-                                )
+                                openChatDirectiveBottomModal(context, viewModel, navigator)
                             },
                             imageVector = Icons.Default.Add,
                             contentDescription = null,

@@ -17,7 +17,6 @@ class LastMessageMapper @Inject constructor(
         val messageSenderId = from.senderId.value.toByteArray().toList()
         val isFromSelf = userManager.userId == messageSenderId
 
-        println("senderId=${messageSenderId.base58}, self=${userManager.userId?.base58}")
         return ChatMessage(
             id = messageId,
             senderId = messageSenderId,

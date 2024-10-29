@@ -12,7 +12,6 @@ class ConversationMapper @Inject constructor(
     private val resources: ResourceHelper,
 ) : Mapper<Room, Conversation> {
     override fun map(from: Room): Conversation {
-        println("room title=${from.title}")
         return Conversation(
             idBase58 = from.id.base58,
             title = from.title ?: resources.getString(

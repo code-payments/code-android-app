@@ -180,7 +180,6 @@ class AuthManager @Inject constructor(
 
         return authController.login()
             .onSuccess {
-                println("logged in as ${it.base58}")
                 userManager.set(userId = it)
             }
             .onFailure {

@@ -2,6 +2,7 @@ package com.flipchat.features.chat.list
 
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.paging.LoadState
@@ -33,9 +35,12 @@ import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.oct24.features.chat.list.ChatNode
+import com.getcode.oct24.features.chat.openChatDirectiveBottomModal
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White10
 import com.getcode.ui.components.chat.ChatNode
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
 import kotlinx.parcelize.IgnoredOnParcel
@@ -79,26 +84,12 @@ private fun ChatListScreenContent(
 ) {
     val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
-
+    val context = LocalContext.current
     val chats = viewModel.chats.collectAsLazyPagingItems()
     val isLoading = chats.loadState.refresh is LoadState.Loading
     val isEmpty = chats.itemCount == 0 && chats.loadState.refresh is LoadState.NotLoading
 
-    CodeScaffold(
-        bottomBar = {
-//            Box(modifier = Modifier.fillMaxWidth()) {
-//                CodeButton(
-//                    modifier = Modifier
-//                        .fillMaxWidth()
-//                        .padding(horizontal = CodeTheme.dimens.inset),
-//                    buttonState = ButtonState.Filled,
-//                    text = stringResource(R.string.action_startNewChat)
-//                ) {
-//                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.ChatByUsername))
-//                }
-//            }
-        }
-    ) { padding ->
+    CodeScaffold { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(chats.itemCount) { index ->
                 chats[index]?.let {
@@ -130,22 +121,20 @@ private fun ChatListScreenContent(
                         }
                     }
                 }
-
-                isEmpty -> {
+                else -> {
                     item {
-                        Column(
-                            modifier = Modifier.fillParentMaxSize(),
-                            horizontalAlignment = CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(
-                                CodeTheme.dimens.grid.x2,
-                                CenterVertically
-                            ),
+                        CodeButton(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = CodeTheme.dimens.grid.x6)
+                                .padding(horizontal = CodeTheme.dimens.inset),
+                            buttonState = ButtonState.Filled,
+                            text = stringResource(R.string.action_startChatting)
                         ) {
-                            Text(
-                                modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x1),
-                                text = stringResource(R.string.subtitle_dontHaveChats),
-                                color = CodeTheme.colors.textSecondary,
-                                style = CodeTheme.typography.textMedium
+                            openChatDirectiveBottomModal(
+                                context =  context,
+                                viewModel = viewModel,
+                                navigator = navigator
                             )
                         }
                     }

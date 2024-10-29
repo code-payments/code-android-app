@@ -74,8 +74,6 @@ class LookupRoomViewModel @Inject constructor(
                 val model = stateFlow.value.amountAnimatedModel
                 val amount = numberInputHelper.getFormattedStringForAnimation(includeCommas = false)
 
-                println(amount)
-
                 val updated = model.copy(
                     amountDataLast = current.amountData,
                     amountData = amount,

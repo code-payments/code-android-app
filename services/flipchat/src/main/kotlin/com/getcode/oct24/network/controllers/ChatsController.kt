@@ -31,11 +31,13 @@ class ChatsController @Inject constructor(
     private val db by lazy { FcAppDatabase.requireInstance() }
 
     @OptIn(ExperimentalPagingApi::class)
-    val chats: Pager<Int, ConversationWithMembersAndLastMessage> = Pager(
-        config = PagingConfig(pageSize = 20),
-        remoteMediator = ChatsRemoteMediator(repository, conversationMapper)
-    ) {
-        db.conversationDao().observeConversations()
+    val chats: Pager<Int, ConversationWithMembersAndLastMessage> by lazy {
+        Pager(
+            config = PagingConfig(pageSize = 20),
+            remoteMediator = ChatsRemoteMediator(repository, conversationMapper)
+        ) {
+            db.conversationDao().observeConversations()
+        }
     }
 
     fun openEventStream(coroutineScope: CoroutineScope) {
