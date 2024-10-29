@@ -31,6 +31,7 @@ internal fun MessagePayment(
     contents: MessageContent.Exchange,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
+    showStatus: Boolean = true,
 ) {
     Column(
         modifier = modifier
@@ -99,6 +100,7 @@ internal fun MessagePayment(
             date = date,
             status = status,
             isFromSelf = contents.isFromSelf,
+            showStatus = showStatus
         )
     }
 }

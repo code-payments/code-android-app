@@ -3,27 +3,23 @@ package com.getcode.oct24.network.controllers
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import com.codeinc.flipchat.gen.messaging.v1.MessagingService
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.db.FcAppDatabase
-import com.getcode.oct24.domain.mapper.ConversationMapper
+import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
-import com.getcode.oct24.domain.model.chat.ConversationWithMembers
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
-import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import com.getcode.oct24.internal.network.repository.messaging.MessagingRepository
+import com.getcode.oct24.user.UserManager
 import com.getcode.services.model.chat.OutgoingMessageContent
-import com.getcode.services.observers.BidirectionalStreamReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class RoomController @Inject constructor(
-    private val conversationMapper: ConversationMapper,
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
 ) {
@@ -33,41 +29,8 @@ class RoomController @Inject constructor(
         return db.conversationDao().observeConversation(id)
     }
 
-    suspend fun createConversation(request: StartChatRequestType): Conversation {
-        return chatRepository.startChat(request)
-            .map { conversationMapper.map(it) }
-            .onSuccess { db.conversationDao().upsertConversations(it) }
-            .getOrThrow()
-    }
-
     suspend fun getConversation(identifier: ID): ConversationWithMembersAndLastPointers? {
         return db.conversationDao().findConversation(identifier)
-    }
-
-    suspend fun getOrCreateConversation(
-        identifier: ID,
-        recipients: List<ID>,
-        title: String?
-    ): ConversationWithMembersAndLastPointers {
-        val conversationByChatId = getConversation(identifier)
-        if (conversationByChatId != null) {
-            return conversationByChatId
-        }
-
-        // create request
-        val request = if (recipients.count() == 1) {
-            StartChatRequestType.TwoWay(recipients.first())
-        } else {
-            StartChatRequestType.Group(title, recipients)
-        }
-
-        val created = createConversation(request)
-
-        return ConversationWithMembersAndLastPointers(
-            conversation = created,
-            members = emptyList(),
-            pointersCrossRef = emptyList()
-        )
     }
 
     fun openMessageStream(scope: CoroutineScope, conversation: Conversation) {

@@ -8,7 +8,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.base58
 import javax.inject.Inject
 
-class ConversationMapper @Inject constructor(
+class RoomConversationMapper @Inject constructor(
     private val resources: ResourceHelper,
 ) : Mapper<Room, Conversation> {
     override fun map(from: Room): Conversation {

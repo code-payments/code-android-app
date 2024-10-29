@@ -33,7 +33,9 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
 import com.getcode.utils.bytes
+import com.getcode.utils.network.retryable
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
@@ -54,6 +56,7 @@ import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
@@ -165,7 +168,10 @@ class ConversationViewModel @Inject constructor(
             .map { it.chatId }
             .filterNotNull()
             .mapNotNull {
-                roomController.getConversation(it)
+                retryable(
+                    maxRetries = 5,
+                    delayDuration = 3.seconds,
+                ) { roomController.getConversation(it) }
             }.onEach {
                 dispatchEvent(Event.OnConversationChanged(it))
             }.launchIn(viewModelScope)
@@ -395,6 +401,7 @@ class ConversationViewModel @Inject constructor(
                     message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
+                    showStatus = false, // TODO: support DMs in the future
                     isFromSelf = contents.isFromSelf,
                     key = contents.hashCode() + message.id.hashCode()
                 )
@@ -408,7 +415,12 @@ class ConversationViewModel @Inject constructor(
 
     internal companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
-            Timber.d("event=${event}")
+            when (event) {
+                is Event.OnChatIdChanged -> Timber.d("onChatID changed ${event.chatId?.base58}")
+                is Event.OnSelfIdChanged -> Timber.d("onSelfID changed ${event.id?.base58}")
+                else ->  Timber.d("event=${event}")
+            }
+
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _) = event.conversationWithPointers

@@ -76,6 +76,7 @@ fun MessageNode(
     contents: MessageContent,
     date: Instant,
     status: MessageStatus,
+    showStatus: Boolean,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
 ) {
@@ -114,7 +115,8 @@ fun MessageNode(
                         content = contents.localizedText,
                         date = date,
                         status = status,
-                        isFromSelf = contents.isFromSelf
+                        isFromSelf = contents.isFromSelf,
+                        showStatus = showStatus
                     )
                 }
 
@@ -144,7 +146,8 @@ fun MessageNode(
                         content = contents.data,
                         date = date,
                         status = status,
-                        isFromSelf = contents.isFromSelf
+                        isFromSelf = contents.isFromSelf,
+                        showStatus = showStatus
                     )
                 }
 
@@ -154,7 +157,8 @@ fun MessageNode(
                         content = contents.value,
                         date = date,
                         status = status,
-                        isFromSelf = contents.isFromSelf
+                        isFromSelf = contents.isFromSelf,
+                        showStatus = showStatus
                     )
                 }
                 is MessageContent.ThankYou -> {

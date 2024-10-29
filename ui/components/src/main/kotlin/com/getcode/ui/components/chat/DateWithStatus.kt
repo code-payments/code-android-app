@@ -39,7 +39,8 @@ internal fun DateWithStatus(
     modifier: Modifier = Modifier,
     date: Instant,
     isFromSelf: Boolean,
-    status: MessageStatus
+    showStatus: Boolean = true,
+    status: MessageStatus,
 ) {
     Row(
         modifier = modifier,
@@ -52,7 +53,7 @@ internal fun DateWithStatus(
             color = CodeTheme.colors.textSecondary,
             maxLines = 1
         )
-        if (status.isValid() && isFromSelf) {
+        if (status.isValid() && isFromSelf && showStatus) {
             Icon(
                 modifier = Modifier
                     .requiredWidth(width = DateWithStatusDefaults.IconWidth)

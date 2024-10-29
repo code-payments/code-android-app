@@ -33,6 +33,7 @@ fun MessageNodeScope.MessageText(
     isFromSelf: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
+    showStatus: Boolean = true,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -46,7 +47,7 @@ fun MessageNodeScope.MessageText(
                 )
                 .padding(CodeTheme.dimens.grid.x2)
         ) contents@{
-            val maxWidthPx = with (LocalDensity.current) { maxWidth.roundToPx() }
+            val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
             Column(
                 modifier = Modifier
                     .background(color)
@@ -55,7 +56,12 @@ fun MessageNodeScope.MessageText(
             ) {
                 MessageContent(
                     maxWidth = maxWidthPx,
-                    message = content, date = date, status = status, isFromSelf = isFromSelf)
+                    message = content,
+                    date = date,
+                    status = status,
+                    isFromSelf = isFromSelf,
+                    showStatus = showStatus
+                )
             }
         }
     }
@@ -70,9 +76,9 @@ private fun rememberAlignmentRule(
 ): State<AlignmentRule?> {
     val density = LocalDensity.current
     val dateTextStyle = DateWithStatusDefaults.DateTextStyle
-    val iconSizePx = with (density) { DateWithStatusDefaults.IconWidth.roundToPx() }
-    val spacingPx = with (density) { DateWithStatusDefaults.Spacing.roundToPx() }
-    val contentPaddingPx = with (density) { CodeTheme.dimens.grid.x2.roundToPx() }
+    val iconSizePx = with(density) { DateWithStatusDefaults.IconWidth.roundToPx() }
+    val spacingPx = with(density) { DateWithStatusDefaults.Spacing.roundToPx() }
+    val contentPaddingPx = with(density) { CodeTheme.dimens.grid.x2.roundToPx() }
 
     return remember(maxWidth, message, date) {
         mutableStateOf<AlignmentRule?>(null)
@@ -95,7 +101,7 @@ private fun rememberAlignmentRule(
 
         if (value == null) {
             Text(
-                modifier = Modifier.drawWithContent {  },
+                modifier = Modifier.drawWithContent { },
                 text = message,
                 style = contentTextStyle,
                 onTextLayout = { textLayoutResult ->
@@ -120,7 +126,14 @@ private fun rememberAlignmentRule(
 }
 
 @Composable
-private fun MessageContent(maxWidth: Int, message: String, date: Instant, status: MessageStatus, isFromSelf: Boolean) {
+private fun MessageContent(
+    maxWidth: Int,
+    message: String,
+    date: Instant,
+    status: MessageStatus,
+    isFromSelf: Boolean,
+    showStatus: Boolean = true
+) {
     val contentStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = contentStyle,
@@ -141,10 +154,12 @@ private fun MessageContent(maxWidth: Int, message: String, date: Instant, status
                         .align(Alignment.End),
                     date = date,
                     status = status,
-                    isFromSelf = isFromSelf
+                    isFromSelf = isFromSelf,
+                    showStatus = showStatus,
                 )
             }
         }
+
         AlignmentRule.ParagraphLastLine -> {
             Column(verticalArrangement = Arrangement.spacedBy(-(CodeTheme.dimens.grid.x2))) {
                 Text(
@@ -156,10 +171,12 @@ private fun MessageContent(maxWidth: Int, message: String, date: Instant, status
                         .align(Alignment.End),
                     date = date,
                     status = status,
-                    isFromSelf = isFromSelf
+                    isFromSelf = isFromSelf,
+                    showStatus = showStatus
                 )
             }
         }
+
         AlignmentRule.SingleLineEnd -> {
             Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
                 Text(
@@ -171,16 +188,18 @@ private fun MessageContent(maxWidth: Int, message: String, date: Instant, status
                         .padding(top = CodeTheme.dimens.grid.x1),
                     date = date,
                     status = status,
-                    isFromSelf = isFromSelf
+                    isFromSelf = isFromSelf,
+                    showStatus = showStatus
                 )
             }
         }
+
         else -> Unit
     }
 }
 
 sealed interface AlignmentRule {
-    data object ParagraphLastLine: AlignmentRule
-    data object Column: AlignmentRule
-    data object SingleLineEnd: AlignmentRule
+    data object ParagraphLastLine : AlignmentRule
+    data object Column : AlignmentRule
+    data object SingleLineEnd : AlignmentRule
 }

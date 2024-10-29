@@ -6,12 +6,12 @@ import com.getcode.oct24.data.Room
 import com.getcode.services.mapper.Mapper
 import javax.inject.Inject
 
-class RoomMapper @Inject constructor(
+class MetadataRoomMapper @Inject constructor(
 ): Mapper<FlipchatService.Metadata, Room> {
     override fun map(from: FlipchatService.Metadata): Room {
         return Room(
-            id = from.chatId.toByteArray().toList(),
-            _title = from.title,
+            id = from.chatId.value.toByteArray().toList(),
+            _title = from.title.nullIfEmpty(),
             roomNumber = from.roomNumber,
             type = ChatType.entries[from.type.ordinal],
             _unread = from.numUnread,
@@ -20,3 +20,5 @@ class RoomMapper @Inject constructor(
         )
     }
 }
+
+private fun String?.nullIfEmpty() = if (this?.isEmpty() == true) null else this

@@ -13,9 +13,7 @@ import com.getcode.oct24.data.Room
 import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.db.FcAppDatabase
-import com.getcode.oct24.domain.mapper.ConversationMapper
-import com.getcode.oct24.domain.model.chat.Conversation
-import com.getcode.oct24.domain.model.chat.ConversationWithMembers
+import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
@@ -25,7 +23,7 @@ import javax.inject.Singleton
 
 @Singleton
 class ChatsController @Inject constructor(
-    conversationMapper: ConversationMapper,
+    private val conversationMapper: RoomConversationMapper,
     private val repository: ChatRepository
 ) {
     private val db by lazy { FcAppDatabase.requireInstance() }
@@ -58,6 +56,9 @@ class ChatsController @Inject constructor(
 
     suspend fun createDirectMessage(recipient: ID): Result<Room> {
         return repository.startChat(StartChatRequestType.TwoWay(recipient))
+            .onSuccess {
+                db.conversationDao().upsertConversations(conversationMapper.map(it))
+            }
     }
 
     suspend fun createGroup(
@@ -65,13 +66,16 @@ class ChatsController @Inject constructor(
         participants: List<ID> = emptyList()
     ): Result<Room> {
         return repository.startChat(StartChatRequestType.Group(title, participants))
+            .onSuccess {
+                db.conversationDao().upsertConversations(conversationMapper.map(it))
+            }
     }
 }
 
 @OptIn(ExperimentalPagingApi::class)
 private class ChatsRemoteMediator(
     private val repository: ChatRepository,
-    private val conversationMapper: ConversationMapper,
+    private val conversationMapper: RoomConversationMapper,
 ) : RemoteMediator<Int, ConversationWithMembersAndLastMessage>() {
     private val db = FcAppDatabase.requireInstance()
 

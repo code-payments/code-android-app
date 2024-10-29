@@ -68,7 +68,7 @@ open class BalanceController @Inject constructor(
             .map { it.connected }
             .onEach { connected ->
                 if (connected) {
-                    com.getcode.utils.network.retryable({ fetchBalanceSuspend() })
+                    com.getcode.utils.network.retryable { fetchBalanceSuspend() }
                 }
             }
             .flatMapLatest {

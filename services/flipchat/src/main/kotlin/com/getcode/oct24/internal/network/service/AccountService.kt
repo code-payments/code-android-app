@@ -21,7 +21,7 @@ internal class AccountService @Inject constructor(
                 .map { response ->
                     when (response.result) {
                         RegisterResponse.Result.OK -> {
-                            Result.success(response.userId.toByteArray().toList())
+                            Result.success(response.userId.value.toByteArray().toList())
                         }
 
                         RegisterResponse.Result.INVALID_SIGNATURE -> {
@@ -58,7 +58,7 @@ internal class AccountService @Inject constructor(
                 .map { response ->
                     when (response.result) {
                         LoginResponse.Result.OK -> {
-                            Result.success(response.userId.toByteArray().toList())
+                            Result.success(response.userId.value.toByteArray().toList())
                         }
 
                         LoginResponse.Result.UNRECOGNIZED -> {

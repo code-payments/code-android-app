@@ -90,6 +90,7 @@ fun MessageList(
                         modifier = Modifier.fillMaxWidth(),
                         contents = item.message,
                         status = item.status,
+                        showStatus = item.showStatus,
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
                         isNextSameMessage = next == item.chatMessageId,

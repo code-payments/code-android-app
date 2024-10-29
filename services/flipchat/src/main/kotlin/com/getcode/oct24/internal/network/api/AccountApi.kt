@@ -29,7 +29,6 @@ class AccountApi @Inject constructor(
      * If the PublicKey is already in use, the previous user account is returned.
      */
     fun register(owner: KeyPair, displayName: String): Flow<AccountService.RegisterResponse> {
-
         val request = AccountService.RegisterRequest.newBuilder()
             .setPublicKey(owner.asPublicKey())
             .setDisplayName(displayName)
@@ -39,7 +38,6 @@ class AccountApi @Inject constructor(
         return api::register
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
-
     }
 
     fun login(owner: KeyPair): Flow<AccountService.LoginResponse> {

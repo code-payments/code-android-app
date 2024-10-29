@@ -6,7 +6,7 @@ import com.getcode.services.mapper.Mapper
 import javax.inject.Inject
 
 class RoomWithMembersMapper @Inject constructor(
-    private val roomMapper: RoomMapper,
+    private val roomMapper: MetadataRoomMapper,
     private val memberMapper: MemberMapper,
 ) : Mapper<GetOrJoinChatResponse, RoomWithMembers> {
     override fun map(from: GetOrJoinChatResponse): RoomWithMembers {

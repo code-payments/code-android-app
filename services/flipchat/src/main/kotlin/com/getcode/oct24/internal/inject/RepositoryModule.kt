@@ -1,13 +1,13 @@
 package com.getcode.oct24.internal.inject
 
-import com.getcode.oct24.domain.mapper.ConversationMapper
+import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.mapper.ConversationMessageWithContentMapper
 import com.getcode.oct24.internal.data.mapper.ChatMessageMapper
 import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.data.mapper.LastMessageMapper
 import com.getcode.oct24.internal.data.mapper.MemberUpdateMapper
 import com.getcode.oct24.internal.data.mapper.ProfileMapper
-import com.getcode.oct24.internal.data.mapper.RoomMapper
+import com.getcode.oct24.internal.data.mapper.MetadataRoomMapper
 import com.getcode.oct24.internal.data.mapper.RoomWithMembersMapper
 import com.getcode.oct24.internal.network.repository.accounts.AccountRepository
 import com.getcode.oct24.internal.network.repository.accounts.RealAccountRepository
@@ -44,9 +44,9 @@ internal object RepositoryModule {
     internal fun provideChatRepository(
         userManager: UserManager,
         service: ChatService,
-        roomMapper: RoomMapper,
+        roomMapper: MetadataRoomMapper,
         roomWithMembersMapper: RoomWithMembersMapper,
-        conversationMapper: ConversationMapper,
+        conversationMapper: RoomConversationMapper,
         memberUpdateMapper: MemberUpdateMapper,
         conversationMemberMapper: ConversationMemberMapper,
         messageMapper: LastMessageMapper,

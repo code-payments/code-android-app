@@ -11,7 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 
 interface MessagingRepository {
     suspend fun getMessages(
-        chat: Room,
+        chatId: ID,
         queryOptions: QueryOptions = QueryOptions(),
     ): Result<List<ChatMessage>>
     suspend fun sendMessage(chatId: ID, content: OutgoingMessageContent): Result<ChatMessage>

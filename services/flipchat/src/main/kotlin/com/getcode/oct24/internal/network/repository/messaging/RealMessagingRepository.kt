@@ -31,13 +31,13 @@ internal class RealMessagingRepository @Inject constructor(
     private var messageStream: ChatMessageStreamReference? = null
 
     override suspend fun getMessages(
-        chat: Room,
+        chatId: ID,
         queryOptions: QueryOptions,
     ): Result<List<ChatMessage>> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
         val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.getMessages(owner, userId, queryOptions)
+        return service.getMessages(owner, chatId, queryOptions)
             .map { it.map { meta -> messageMapper.map(userId to meta) } }
             .onFailure { ErrorUtils.handleError(it) }
     }

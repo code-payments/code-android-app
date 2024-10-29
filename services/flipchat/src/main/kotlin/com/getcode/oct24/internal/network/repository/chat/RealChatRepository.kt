@@ -5,14 +5,14 @@ import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.Room
 import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
-import com.getcode.oct24.domain.mapper.ConversationMapper
+import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.mapper.ConversationMessageWithContentMapper
 import com.getcode.oct24.domain.model.chat.MemberUpdate
 import com.getcode.oct24.domain.model.query.QueryOptions
 import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.data.mapper.LastMessageMapper
 import com.getcode.oct24.internal.data.mapper.MemberUpdateMapper
-import com.getcode.oct24.internal.data.mapper.RoomMapper
+import com.getcode.oct24.internal.data.mapper.MetadataRoomMapper
 import com.getcode.oct24.internal.data.mapper.RoomWithMembersMapper
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.internal.network.model.chat.ChatStreamUpdate
@@ -33,9 +33,9 @@ import javax.inject.Singleton
 internal class RealChatRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: ChatService,
-    private val roomMapper: RoomMapper,
+    private val roomMapper: MetadataRoomMapper,
     private val roomWithMembersMapper: RoomWithMembersMapper,
-    private val conversationMapper: ConversationMapper,
+    private val conversationMapper: RoomConversationMapper,
     private val memberUpdateMapper: MemberUpdateMapper,
     private val conversationMemberMapper: ConversationMemberMapper,
     private val messageMapper: LastMessageMapper,

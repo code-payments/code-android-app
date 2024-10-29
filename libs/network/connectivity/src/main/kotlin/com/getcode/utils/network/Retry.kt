@@ -8,7 +8,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 suspend fun <T> retryable(
-    call: suspend () -> T,
     maxRetries: Int = 3,
     delayDuration: Duration = 2.seconds,
     onRetry: (Int) -> Unit = { currentAttempt ->
@@ -26,6 +25,7 @@ suspend fun <T> retryable(
             type = TraceType.Error
         )
     },
+    call: suspend () -> T,
 ): T? {
     var currentAttempt = 0
     val startTime = TimeSource.Monotonic.markNow()

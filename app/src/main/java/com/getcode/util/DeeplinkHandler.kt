@@ -58,7 +58,6 @@ class DeeplinkHandler @Inject constructor(
     val intent = MutableStateFlow(debounceIntent)
 
     suspend fun handle(intent: Intent? = debounceIntent): DeeplinkResult? {
-        println(intent)
         var uri = when {
             intent?.data != null -> intent.data
             intent?.getStringExtra(Intent.EXTRA_TEXT) != null -> {
