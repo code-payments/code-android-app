@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -33,53 +32,45 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.compose.ui.zIndex
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import com.getcode.oct24.R
 import com.flipchat.features.home.TabbedHomeScreen
-import com.getcode.extensions.formatted
-import com.getcode.model.TwitterUser
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.NamedScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.theme.ButtonState
-import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.ChatItem
-import com.getcode.ui.components.chat.utils.HandleMessageChanges
+import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import kotlinx.parcelize.RawValue
 
 @Parcelize
 data class ConversationScreen(
     val chatId: com.getcode.model.ID? = null,
     val intentId: com.getcode.model.ID? = null
-) : Screen, NamedScreen, Parcelable {
+) : Screen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
@@ -104,6 +95,9 @@ data class ConversationScreen(
                 titleAlignment = Alignment.Start,
                 leftIcon = {
                     AppBarDefaults.UpNavigation { goBack() }
+                },
+                rightContents = {
+                    AppBarDefaults.Overflow { navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Info(state.roomInfoArgs))) }
                 }
             )
             ConversationScreenContent(state, messages, vm::dispatchEvent)

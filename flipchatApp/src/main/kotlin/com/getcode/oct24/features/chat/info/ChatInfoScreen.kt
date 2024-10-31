@@ -1,6 +1,7 @@
-package com.getcode.oct24.features.chat.lookup.confirm
+package com.getcode.oct24.features.chat.info
 
 import android.os.Parcelable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,51 +15,37 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.navigation.RoomInfoArgs
-import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.oct24.R
+import com.getcode.oct24.features.chat.lookup.confirm.JoinConfirmationViewModel
 import com.getcode.oct24.ui.room.RoomCard
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data class JoinConfirmationScreen(val args: RoomInfoArgs) : Screen, Parcelable {
+class ChatInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
-        val viewModel = getViewModel<JoinConfirmationViewModel>()
+        val viewModel = getViewModel<ChatInfoViewModel>()
         val navigator = LocalCodeNavigator.current
 
-        LaunchedEffect(args) {
-            viewModel.dispatchEvent(JoinConfirmationViewModel.Event.OnJoinArgsChanged(args))
-        }
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<JoinConfirmationViewModel.Event.OnJoinedSuccessfully>()
-                .map { it.roomId }
-                .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
-                }.launchIn(this)
+        LaunchedEffect(info) {
+            viewModel.dispatchEvent(ChatInfoViewModel.Event.OnInfoChanged(info))
         }
 
         Column(
@@ -67,31 +54,47 @@ data class JoinConfirmationScreen(val args: RoomInfoArgs) : Screen, Parcelable {
         ) {
             AppBarWithTitle(
                 backButton = true,
-                onBackIconClicked = { navigator.popUntil { it is TabbedHomeScreen } }
+                onBackIconClicked = { navigator.pop() }
             )
-            JoinRoomScreenContent(viewModel)
+            ChatInfoScreenContent(viewModel)
         }
     }
 }
 
 @Composable
-private fun JoinRoomScreenContent(viewModel: JoinConfirmationViewModel) {
+private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel) {
     val state by viewModel.stateFlow.collectAsState()
 
     CodeScaffold(
         bottomBar = {
-            CodeButton(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset)
                     .padding(bottom = CodeTheme.dimens.grid.x2)
                     .navigationBarsPadding(),
-                buttonState = ButtonState.Filled,
-                text = stringResource(R.string.action_joinRoomByName, state.roomInfo.title),
-                isLoading = false,
-                isSuccess = false,
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
             ) {
-                viewModel.dispatchEvent(JoinConfirmationViewModel.Event.JoinRoom)
+                if (state.isHost) {
+                    CodeButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        buttonState = ButtonState.Filled,
+                        enabled = false,
+                        text = "Change Cover Charge",
+                    ) {
+
+                    }
+                }
+
+                CodeButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    buttonState = ButtonState.Filled,
+                    enabled = false,
+                    text = "Leave Room",
+                    isLoading = state.requestBeingSent,
+                ) {
+                    viewModel.dispatchEvent(ChatInfoViewModel.Event.LeaveRoom)
+                }
             }
         }
     ) { padding ->

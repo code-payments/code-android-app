@@ -1,5 +1,6 @@
 package com.getcode.oct24.domain.model.chat
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
@@ -20,6 +21,8 @@ data class Conversation(
     @PrimaryKey
     val idBase58: String,
     val title: String,
+    @ColumnInfo(defaultValue = "0")
+    val roomNumber: Long,
     val imageUri: String?,
     val lastActivity: Long?,
     val isMuted: Boolean,

@@ -2,9 +2,8 @@ package com.getcode.oct24.features.chat.lookup
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
-import com.getcode.navigation.ConfirmJoinArgs
+import com.getcode.navigation.RoomInfoArgs
 import com.getcode.oct24.R
-import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.extensions.titleOrFallback
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
@@ -46,7 +45,7 @@ class LookupRoomViewModel @Inject constructor(
         data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel): Event
         data object OnLookupRoom: Event
         data object OnRoomFound: Event
-        data class OnOpenConfirmation(val args: ConfirmJoinArgs): Event
+        data class OnOpenConfirmation(val args: RoomInfoArgs): Event
     }
 
     init {
@@ -104,7 +103,7 @@ class LookupRoomViewModel @Inject constructor(
                     dispatchEvent(Event.OnLookingUpRoom(false))
                     dispatchEvent(Event.OnRoomFound)
 
-                    val confirmJoinArgs = ConfirmJoinArgs(
+                    val confirmJoinArgs = RoomInfoArgs(
                         roomId = it.room.id,
                         roomTitle = it.room.titleOrFallback(resources),
                         roomNumber = it.room.roomNumber,

@@ -17,6 +17,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
+import com.getcode.navigation.RoomInfoArgs
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
@@ -84,6 +85,7 @@ class ConversationViewModel @Inject constructor(
         val pointers: Map<UUID, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
+        val roomInfoArgs: RoomInfoArgs,
     ) {
         data class User(
             val memberId: ID,
@@ -109,6 +111,7 @@ class ConversationViewModel @Inject constructor(
                 pointers = emptyMap(),
                 showTypingIndicator = false,
                 isSelfTyping = false,
+                roomInfoArgs = RoomInfoArgs(),
             )
         }
     }
@@ -421,9 +424,9 @@ class ConversationViewModel @Inject constructor(
 
             when (event) {
                 is Event.OnConversationChanged -> { state ->
-                    val (conversation, _) = event.conversationWithPointers
+                    val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.nonSelfMembers(state.selfId)
-
+                    val lastMemberCount = state.users.count()
                     state.copy(
                         conversationId = conversation.id,
                         title = conversation.title,
@@ -434,7 +437,13 @@ class ConversationViewModel @Inject constructor(
                                 displayName = it.memberName,
                                 imageUrl = it.imageUri,
                             )
-                        }
+                        },
+                        roomInfoArgs = RoomInfoArgs(
+                            roomId = conversation.id,
+                            roomNumber = conversation.roomNumber,
+                            roomTitle = conversation.title,
+                            memberCount = if (members.isNotEmpty()) members.count() else lastMemberCount
+                        )
                     )
                 }
 

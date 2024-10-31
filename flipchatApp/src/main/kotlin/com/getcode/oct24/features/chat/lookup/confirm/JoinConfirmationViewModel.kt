@@ -3,7 +3,7 @@ package com.getcode.oct24.features.chat.lookup.confirm
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
-import com.getcode.navigation.ConfirmJoinArgs
+import com.getcode.navigation.RoomInfoArgs
 import com.getcode.oct24.R
 import com.getcode.oct24.data.RoomInfo
 import com.getcode.oct24.features.login.register.onResult
@@ -33,7 +33,7 @@ class JoinConfirmationViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnJoinArgsChanged(val args: ConfirmJoinArgs): Event
+        data class OnJoinArgsChanged(val args: RoomInfoArgs): Event
         data class OnJoiningChanged(val joining: Boolean): Event
         data object JoinRoom: Event
         data class OnJoinedSuccessfully(val roomId: ID): Event
@@ -54,7 +54,9 @@ class JoinConfirmationViewModel @Inject constructor(
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
                             resources.getString(R.string.error_title_failedToJoinRoom),
-                            resources.getString(R.string.error_description_failedToJoinRoom, stateFlow.value.roomInfo.title.orEmpty())
+                            resources.getString(R.string.error_description_failedToJoinRoom,
+                                stateFlow.value.roomInfo.title
+                            )
                         )
                     )
                 },

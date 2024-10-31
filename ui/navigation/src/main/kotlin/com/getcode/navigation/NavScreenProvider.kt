@@ -1,9 +1,9 @@
 package com.getcode.navigation
 
 import android.os.Parcelable
+import androidx.compose.ui.graphics.Color
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.getcode.model.ID
-import com.getcode.model.TwitterUser
 import kotlinx.parcelize.Parcelize
 
 sealed class NavScreenProvider : ScreenProvider {
@@ -20,12 +20,16 @@ sealed class NavScreenProvider : ScreenProvider {
         data object List : NavScreenProvider()
         sealed class Lookup {
             data object Entry : NavScreenProvider()
-            data class Confirm(val args: ConfirmJoinArgs = ConfirmJoinArgs()): NavScreenProvider()
+            data class Confirm(val args: RoomInfoArgs = RoomInfoArgs()): NavScreenProvider()
         }
         data class Conversation(
             val chatId: ID? = null,
             val intentId: ID? = null
         ) : NavScreenProvider()
+
+        data class Info(
+            val args: RoomInfoArgs = RoomInfoArgs()
+        ): NavScreenProvider()
     }
 
     data object Balance : NavScreenProvider()
@@ -41,10 +45,17 @@ data class LoginArgs(
 ): Parcelable
 
 @Parcelize
-data class ConfirmJoinArgs(
+data class RoomInfoArgs(
     val roomId: ID? = null,
     val roomNumber: Long = 0,
     val roomTitle: String? = null,
     val memberCount: Int = 0,
+    val hostId: ID? = null,
     val hostName: String? = null,
+    val coverCharge: Long? = null,
+    val gradientColors: Triple<Color, Color, Color> = Triple(
+        Color(0xFFFFBB00),
+        Color(0xFF7306B7),
+        Color(0xFF3E32C4),
+    )
 ): Parcelable

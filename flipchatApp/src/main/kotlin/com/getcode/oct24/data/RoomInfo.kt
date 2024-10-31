@@ -10,7 +10,7 @@ data class RoomInfo(
     val title: String = "",
     val memberCount: Int = 0,
     val hostName: String? = null,
-    val coverCharge: KinAmount? = null,
+    val coverCharge: Long? = null,
     val gradientColors: Triple<Color, Color, Color> = Triple(
         Color(0xFFFFBB00),
         Color(0xFF7306B7),
