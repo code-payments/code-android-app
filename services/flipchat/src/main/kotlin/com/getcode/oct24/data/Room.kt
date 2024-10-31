@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RoomWithMembers(
     val room: Room,
-    val members: List<Member>
+    val members: Int
 )
 
 @Serializable
@@ -17,10 +17,9 @@ data class Room(
     val type: ChatType,
     private val _title: String?,
     val roomNumber: Long,
-    private val _muted: Boolean,
+    private val muted: Boolean,
     val muteable: Boolean,
-    private val _unread: Int,
-    val messages: List<ChatMessage> = emptyList(),
+    private val unread: Int,
 ) {
     val title: String?
         get() {
@@ -39,26 +38,12 @@ data class Room(
 
     val unreadCount: Int
         get() {
-            return _unread
+            return unread
         }
-
-    fun resetUnreadCount(): Room {
-        return copy(_unread = 0)
-    }
 
     val isMuted: Boolean
         get() {
-            return _muted
+            return muted
         }
-
-    fun setMuteState(muted: Boolean): Room {
-        return copy(_muted = muted)
-    }
-
-    val newestMessage: ChatMessage?
-        get() = messages.maxByOrNull { it.dateMillis }
-
-    val lastMessageMillis: Long?
-        get() = newestMessage?.dateMillis
 }
 

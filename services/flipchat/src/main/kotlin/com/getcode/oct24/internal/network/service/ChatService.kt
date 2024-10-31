@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import javax.inject.Inject
 
-typealias ChatHomeStreamReference = BidirectionalStreamReference<com.codeinc.flipchat.gen.chat.v1.FlipchatService.StreamChatEventsRequest, com.codeinc.flipchat.gen.chat.v1.FlipchatService.StreamChatEventsResponse>
+typealias ChatHomeStreamReference = BidirectionalStreamReference<FlipchatService.StreamChatEventsRequest, FlipchatService.StreamChatEventsResponse>
 
 
 internal class ChatService @Inject constructor(

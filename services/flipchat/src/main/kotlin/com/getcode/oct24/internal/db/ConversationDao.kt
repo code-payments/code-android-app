@@ -11,8 +11,6 @@ import androidx.room.Transaction
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.model.ID
 import com.getcode.oct24.domain.model.chat.ConversationMember
-import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
-import com.getcode.oct24.domain.model.chat.ConversationWithMembers
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.utils.base58
@@ -25,7 +23,17 @@ internal interface ConversationDao {
     suspend fun upsertConversations(vararg conversation: Conversation)
 
     @RewriteQueriesToDropUnusedColumns
-    @Query("SELECT * FROM conversations")
+    @Query(
+        """
+    SELECT * FROM conversations
+    LEFT JOIN (
+        SELECT conversationIdBase58, MAX(dateMillis) as lastMessageTimestamp 
+        FROM messages 
+        GROUP BY conversationIdBase58
+    ) AS lastMessages ON conversations.idBase58 = lastMessages.conversationIdBase58
+    ORDER BY lastMessageTimestamp DESC
+    """
+    )
     fun observeConversations(): PagingSource<Int, ConversationWithMembersAndLastMessage>
 
     @RewriteQueriesToDropUnusedColumns
@@ -46,13 +54,6 @@ internal interface ConversationDao {
 
     @Query("SELECT * FROM conversations")
     suspend fun queryConversations(): List<Conversation>
-
-    @Query("SELECT EXISTS (SELECT 1 FROM messages WHERE conversationIdBase58 = :conversationId)")
-    suspend fun hasInteracted(conversationId: String): Boolean
-
-    suspend fun hasInteracted(conversationId: ID): Boolean {
-        return hasInteracted(conversationId.base58)
-    }
 
     @Delete
     fun deleteConversation(conversation: Conversation)
@@ -75,8 +76,18 @@ internal interface ConversationDao {
 
     @Query("DELETE FROM members WHERE memberIdBase58 NOT IN (:memberIds) AND conversationIdBase58 = :conversationId")
     suspend fun purgeMembersNotInByString(conversationId: String, memberIds: List<String>)
+
     suspend fun refreshMembers(conversationId: ID, members: List<ConversationMember>) {
         purgeMembersNotInByString(conversationId.base58, members.map { it.memberIdBase58 })
+    }
+
+    suspend fun resetUnreadCount(conversationId: String) {
+        val conversation = findConversation(conversationId)?.conversation ?: return
+        upsertConversations(conversation.copy(unreadCount = 0))
+    }
+
+    suspend fun resetUnreadCount(conversationId: ID) {
+        resetUnreadCount(conversationId.base58)
     }
 
     @Transaction

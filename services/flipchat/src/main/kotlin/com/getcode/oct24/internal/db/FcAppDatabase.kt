@@ -3,9 +3,12 @@ package com.getcode.oct24.internal.db
 import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
+import androidx.room.DeleteColumn
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationMember
 import com.getcode.oct24.domain.model.chat.ConversationMessage
@@ -39,7 +42,7 @@ import java.io.File
         ConversationMessageContent::class,
     ],
     autoMigrations = [
-        AutoMigration(from = 1, to = 2)
+        AutoMigration(from = 1, to = 2),
     ],
     version = 2
 )

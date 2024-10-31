@@ -97,5 +97,6 @@ internal class RealMessagingRepository @Inject constructor(
 
     override fun closeMessageStream() {
         messageStream?.destroy()
+        messageStream = null
     }
 }

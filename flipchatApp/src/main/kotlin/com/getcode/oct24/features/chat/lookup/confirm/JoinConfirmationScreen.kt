@@ -1,4 +1,110 @@
 package com.getcode.oct24.features.chat.lookup.confirm
 
-class JoinConfirmationScreen {
+import android.graphics.Paint.Align
+import android.os.Parcelable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.hilt.getViewModel
+import com.flipchat.features.home.TabbedHomeScreen
+import com.getcode.navigation.ConfirmJoinArgs
+import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.oct24.R
+import com.getcode.oct24.ui.room.RoomCard
+import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.debugBounds
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+data class JoinConfirmationScreen(val args: ConfirmJoinArgs) : Screen, Parcelable {
+
+    @Composable
+    override fun Content() {
+        val viewModel = getViewModel<JoinConfirmationViewModel>()
+        val navigator = LocalCodeNavigator.current
+
+        LaunchedEffect(args) {
+            viewModel.dispatchEvent(JoinConfirmationViewModel.Event.OnJoinArgsChanged(args))
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<JoinConfirmationViewModel.Event.OnJoinedSuccessfully>()
+                .map { it.roomId }
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
+                }.launchIn(this)
+        }
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AppBarWithTitle(
+                backButton = true,
+                onBackIconClicked = { navigator.popUntil { it is TabbedHomeScreen } }
+            )
+            JoinRoomScreenContent(viewModel)
+        }
+    }
+}
+
+@Composable
+private fun JoinRoomScreenContent(viewModel: JoinConfirmationViewModel) {
+    val state by viewModel.stateFlow.collectAsState()
+
+    CodeScaffold(
+        bottomBar = {
+            CodeButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .padding(bottom = CodeTheme.dimens.grid.x2)
+                    .navigationBarsPadding(),
+                buttonState = ButtonState.Filled,
+                text = stringResource(R.string.action_joinRoomByName, state.roomInfo.title),
+                isLoading = false,
+                isSuccess = false,
+            ) {
+                viewModel.dispatchEvent(JoinConfirmationViewModel.Event.JoinRoom)
+            }
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = CodeTheme.dimens.grid.x12)
+                .padding(bottom = CodeTheme.dimens.grid.x20)
+        ) {
+            RoomCard(
+                modifier = Modifier.align(Alignment.Center),
+                roomInfo = state.roomInfo
+            )
+        }
+    }
 }

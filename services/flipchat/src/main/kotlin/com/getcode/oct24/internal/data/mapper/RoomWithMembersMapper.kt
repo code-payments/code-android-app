@@ -7,12 +7,11 @@ import javax.inject.Inject
 
 class RoomWithMembersMapper @Inject constructor(
     private val roomMapper: MetadataRoomMapper,
-    private val memberMapper: MemberMapper,
 ) : Mapper<GetOrJoinChatResponse, RoomWithMembers> {
     override fun map(from: GetOrJoinChatResponse): RoomWithMembers {
         return RoomWithMembers(
             room = roomMapper.map(from.metadata),
-            members = from.members.map { memberMapper.map(it) }
+            members = from.members.count()
         )
     }
 }

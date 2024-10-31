@@ -14,8 +14,8 @@ class MetadataRoomMapper @Inject constructor(
             _title = from.title.nullIfEmpty(),
             roomNumber = from.roomNumber,
             type = ChatType.entries[from.type.ordinal],
-            _unread = from.numUnread,
-            _muted = from.isMuted,
+            unread = from.numUnread,
+            muted = from.isMuted,
             muteable = from.muteable,
         )
     }

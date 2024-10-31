@@ -56,7 +56,10 @@ fun calculateDimensions(
                 35.dp,
                 37.5.dp,
                 40.dp,
-                42.5.dp
+                42.5.dp,
+                45.dp,
+                47.5.dp,
+                50.dp
             )
 
             WindowSizeClass.NORMAL -> GridDimensionSet(
@@ -76,7 +79,10 @@ fun calculateDimensions(
                 70.dp,
                 75.dp,
                 80.dp,
-                85.dp
+                85.dp,
+                90.dp,
+                95.dp,
+                100.dp
             )
 
             WindowSizeClass.MEDIUM,
@@ -98,7 +104,10 @@ fun calculateDimensions(
                 105.dp,
                 112.5.dp,
                 120.dp,
-                127.5.dp
+                127.5.dp,
+                135.dp,
+                142.5.dp,
+                150.dp
             )
         },
         widthWindowSizeClass = widthSizeClass,
@@ -136,7 +145,10 @@ private val staticGridPreset =
         x14 = 56.dp,
         x15 = 60.dp,
         x16 = 64.dp,
-        x17 = 68.dp
+        x17 = 68.dp,
+        x18 = 72.dp,
+        x19 = 76.dp,
+        x20 = 80.dp,
     )
 
 /** Fixed 5pt grid **/
@@ -158,7 +170,10 @@ private val static5GridPreset =
         x14 = 70.dp,
         x15 = 75.dp,
         x16 = 80.dp,
-        x17 = 85.dp
+        x17 = 85.dp,
+        x18 = 90.dp,
+        x19 = 95.dp,
+        x20 = 100.dp
     )
 
 class Dimensions(
@@ -206,4 +221,7 @@ data class GridDimensionSet(
     val x15: Dp,
     val x16: Dp,
     val x17: Dp,
+    val x18: Dp,
+    val x19: Dp,
+    val x20: Dp,
 )

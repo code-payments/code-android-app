@@ -65,15 +65,6 @@ data object ChatListScreen : Screen, NamedScreen, Parcelable {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it)))
             }
         )
-
-        LifecycleEffect(
-            onStarted = {
-                val disposedScreen = navigator.lastItem
-                if (disposedScreen !is ChatListScreen) {
-                    viewModel.dispatchEvent(ChatListViewModel.Event.OnOpen)
-                }
-            }
-        )
     }
 }
 

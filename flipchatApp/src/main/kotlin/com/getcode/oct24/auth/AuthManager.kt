@@ -39,6 +39,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -178,7 +179,16 @@ class AuthManager @Inject constructor(
 
         if (!isSoftLogin) softLoginDisabled = true
 
-        return authController.login()
+        val ret = if (isSoftLogin) {
+            val userId = AccountUtils.getUserId(context)
+            userId?.let {
+                Result.success(Base58.decode(it).toList())
+            } ?: authController.login()
+        } else {
+            authController.login()
+        }
+
+        return ret
             .onSuccess {
                 userManager.set(userId = it)
             }

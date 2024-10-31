@@ -2,8 +2,10 @@ package com.getcode.oct24.features.chat.lookup
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.ConfirmJoinArgs
 import com.getcode.oct24.R
 import com.getcode.oct24.data.RoomWithMembers
+import com.getcode.oct24.extensions.titleOrFallback
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
@@ -44,7 +46,7 @@ class LookupRoomViewModel @Inject constructor(
         data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel): Event
         data object OnLookupRoom: Event
         data object OnRoomFound: Event
-        data class OnOpenConfirmation(val room: RoomWithMembers): Event
+        data class OnOpenConfirmation(val args: ConfirmJoinArgs): Event
     }
 
     init {
@@ -93,15 +95,22 @@ class LookupRoomViewModel @Inject constructor(
                     dispatchEvent(Event.OnLookingUpRoom(false))
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
-                            resources.getString(R.string.error_title_failedToJoinRoom),
-                            resources.getString(R.string.error_description_failedToJoinRoom, stateFlow.value.amountAnimatedModel.amountData.amount)
+                            resources.getString(R.string.error_title_failedToGetRoom),
+                            resources.getString(R.string.error_description_failedToGetRoom, stateFlow.value.amountAnimatedModel.amountData.amount)
                         )
                     )
                 },
                 onSuccess = {
-                    dispatchEvent(Event.OnLookingUpRoom(true))
+                    dispatchEvent(Event.OnLookingUpRoom(false))
                     dispatchEvent(Event.OnRoomFound)
-                    dispatchEvent(Event.OnOpenConfirmation(it))
+
+                    val confirmJoinArgs = ConfirmJoinArgs(
+                        roomId = it.room.id,
+                        roomTitle = it.room.titleOrFallback(resources),
+                        roomNumber = it.room.roomNumber,
+                        memberCount = it.members,
+                    )
+                    dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
                 }
             ).launchIn(viewModelScope)
     }

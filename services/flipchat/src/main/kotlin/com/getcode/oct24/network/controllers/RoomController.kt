@@ -5,15 +5,13 @@ import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
-import com.getcode.oct24.data.StartChatRequestType
+import com.getcode.model.uuid
 import com.getcode.oct24.internal.db.FcAppDatabase
-import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import com.getcode.oct24.internal.network.repository.messaging.MessagingRepository
-import com.getcode.oct24.user.UserManager
 import com.getcode.services.model.chat.OutgoingMessageContent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -42,20 +40,45 @@ class RoomController @Inject constructor(
     }
 
     suspend fun resetUnreadCount(conversationId: ID) {
-
+        db.conversationDao().resetUnreadCount(conversationId)
     }
 
-    suspend fun advanceReadPointer(
+    suspend fun advancePointer(
         conversationId: ID,
         messageId: ID,
         status: MessageStatus
     ) {
-        messagingRepository.advancePointer(conversationId, messageId, status)
+        when (status) {
+            MessageStatus.Sent -> {
+                messagingRepository.advancePointer(conversationId, messageId, status)
+                    .onSuccess {
+                        db.conversationPointersDao().insert(conversationId, messageId.uuid!!, status)
+                    }
+            }
+            MessageStatus.Delivered -> {
+                messagingRepository.advancePointer(conversationId, messageId, status)
+                    .onSuccess {
+                        db.conversationPointersDao().insert(conversationId, messageId.uuid!!, status)
+                    }
+            }
+            MessageStatus.Read -> {
+                messagingRepository.advancePointer(conversationId, messageId, status)
+                    .onSuccess {
+                        db.conversationPointersDao().insert(conversationId, messageId.uuid!!, status)
+                    }
+            }
+            MessageStatus.Unknown -> Unit
+        }
     }
 
     suspend fun sendMessage(conversationId: ID, message: String): Result<ID> {
         val output = OutgoingMessageContent.Text(message)
-        return messagingRepository.sendMessage(conversationId, output).map { it.id }
+        return messagingRepository.sendMessage(conversationId, output)
+            .map { it.id }
+            .onSuccess {
+                // mark as delivered once we get confirmation from server
+                advancePointer(conversationId, it, MessageStatus.Delivered)
+            }
     }
 
     private val pagingConfig = PagingConfig(pageSize = 20)

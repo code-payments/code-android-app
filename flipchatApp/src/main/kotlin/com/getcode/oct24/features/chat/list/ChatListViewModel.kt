@@ -6,7 +6,6 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.oct24.R
 import com.getcode.oct24.data.Room
-import com.getcode.oct24.domain.model.chat.ConversationWithMembers
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
@@ -63,11 +62,6 @@ class ChatListViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.OnOpen>()
-             .onEach { chatsController.openEventStream(viewModelScope) }
-            .launchIn(viewModelScope)
-
-        eventFlow
             .filterIsInstance<Event.CreateRoom>()
             .onEach { dispatchEvent(Event.ShowFullScreenSpinner(true)) }
             .map { chatsController.createGroup() }
@@ -90,11 +84,6 @@ class ChatListViewModel @Inject constructor(
     }
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> get() = chatsController.chats.flow
-
-    override fun onCleared() {
-        super.onCleared()
-        chatsController.closeEventStream()
-    }
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->

@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import com.getcode.network.client.Client
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.exchange.LocalExchange
 import com.getcode.payments.LocalPaymentController
@@ -51,6 +52,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var paymentController: PaymentController
 
+    @Inject
+    lateinit var client: Client
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -68,6 +72,16 @@ class MainActivity : FragmentActivity() {
                 App(tipsEngine = tipsEngine)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        client.startTimer()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        client.stopTimer()
     }
 }
 

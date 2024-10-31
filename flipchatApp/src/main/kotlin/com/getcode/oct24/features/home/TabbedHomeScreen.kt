@@ -16,23 +16,36 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
+import cafe.adriel.voyager.core.lifecycle.LifecycleEffect
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.TabDisposable
 import cafe.adriel.voyager.navigator.tab.TabNavigator
+import com.flipchat.features.chat.list.ChatListScreen
+import com.flipchat.features.chat.list.ChatListViewModel
 import com.flipchat.features.home.tabs.CashTab
 import com.flipchat.features.home.tabs.ChatTab
 import com.flipchat.features.home.tabs.SettingsTab
+import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.oct24.features.home.HomeViewModel
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
+import com.getcode.ui.utils.RepeatOnLifecycle
 import com.getcode.ui.utils.withTopBorder
 import com.getcode.utils.trace
 import kotlinx.parcelize.IgnoredOnParcel
@@ -47,7 +60,27 @@ data object TabbedHomeScreen : Screen, Parcelable {
 
     @Composable
     override fun Content() {
-        trace("home rendered")
+        val viewModel = getActivityScopedViewModel<HomeViewModel>()
+
+        val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_START -> {
+                        viewModel.openStream()
+                    }
+                    Lifecycle.Event.ON_STOP -> {
+                        viewModel.closeStream()
+                    }
+                    else -> { }
+                }
+            }
+
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
 
         TabNavigator(
             tab = ChatTab,

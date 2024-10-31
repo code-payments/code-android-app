@@ -20,7 +20,7 @@ sealed class NavScreenProvider : ScreenProvider {
         data object List : NavScreenProvider()
         sealed class Lookup {
             data object Entry : NavScreenProvider()
-            data class Confirm(val id: ID): NavScreenProvider()
+            data class Confirm(val args: ConfirmJoinArgs = ConfirmJoinArgs()): NavScreenProvider()
         }
         data class Conversation(
             val chatId: ID? = null,
@@ -38,4 +38,13 @@ data class LoginArgs(
     val isPhoneLinking: Boolean = false,
     val isNewAccount: Boolean = false,
     val phoneNumber: String? = null
+): Parcelable
+
+@Parcelize
+data class ConfirmJoinArgs(
+    val roomId: ID? = null,
+    val roomNumber: Long = 0,
+    val roomTitle: String? = null,
+    val memberCount: Int = 0,
+    val hostName: String? = null,
 ): Parcelable

@@ -12,6 +12,7 @@ import com.flipchat.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.oct24.features.chat.lookup.LookupRoomScreen
+import com.getcode.oct24.features.chat.lookup.confirm.JoinConfirmationScreen
 import com.getcode.oct24.features.login.accesskey.SeedInputScreen
 import com.getcode.oct24.features.login.permissions.NotificationPermissionScreen
 import com.getcode.oct24.features.login.register.RegisterScreen
@@ -49,6 +50,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.Chat.Lookup.Entry> {
             LookupRoomScreen
+        }
+
+        register<NavScreenProvider.Chat.Lookup.Confirm> {
+            JoinConfirmationScreen(it.args)
         }
 
         register<NavScreenProvider.Chat.Conversation> {

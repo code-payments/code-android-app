@@ -249,9 +249,5 @@ private fun ConversationScreenContent(
                 }
             }
         )
-
-        HandleMessageChanges(listState = lazyListState, items = messages) { message ->
-            dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
-        }
     }
 }

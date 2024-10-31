@@ -10,15 +10,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
-import com.flipchat.features.chat.list.ChatListViewModel.Event
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.TwitterUser
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
-import com.getcode.model.fromFiatAmount
 import com.getcode.model.uuid
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
@@ -34,7 +31,6 @@ import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
-import com.getcode.utils.bytes
 import com.getcode.utils.network.retryable
 import com.getcode.utils.timestamp
 import com.getcode.utils.trace
@@ -42,6 +38,7 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
@@ -56,6 +53,7 @@ import kotlinx.datetime.Instant
 import timber.log.Timber
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
@@ -250,7 +248,7 @@ class ConversationViewModel @Inject constructor(
             .filter { stateFlow.value.conversationId != null }
             .map { it to stateFlow.value.conversationId!! }
             .onEach { (messageId, conversationId) ->
-                roomController.advanceReadPointer(
+                roomController.advancePointer(
                     conversationId,
                     messageId,
                     MessageStatus.Read
@@ -263,7 +261,7 @@ class ConversationViewModel @Inject constructor(
             .filter { stateFlow.value.conversationId != null }
             .map { it to stateFlow.value.conversationId!! }
             .onEach { (messageId, conversationId) ->
-                roomController.advanceReadPointer(
+                roomController.advancePointer(
                     conversationId,
                     messageId,
                     MessageStatus.Delivered
@@ -339,6 +337,7 @@ class ConversationViewModel @Inject constructor(
         stateFlow
             .map { it.textFieldState }
             .flatMapLatest { it.textAsFlow() }
+            .debounce(300.milliseconds)
             .onEach {
                 if (it.isEmpty()) {
                     dispatchEvent(Event.OnUserTypingStopped)
@@ -401,7 +400,6 @@ class ConversationViewModel @Inject constructor(
                     message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
-                    showStatus = false, // TODO: support DMs in the future
                     isFromSelf = contents.isFromSelf,
                     key = contents.hashCode() + message.id.hashCode()
                 )

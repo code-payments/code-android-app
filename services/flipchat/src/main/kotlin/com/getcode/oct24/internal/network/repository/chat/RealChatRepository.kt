@@ -105,7 +105,7 @@ internal class RealChatRepository @Inject constructor(
 
     override fun openEventStream(coroutineScope: CoroutineScope) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
-        if (homeStreamReference != null) {
+        if (homeStreamReference == null) {
             homeStreamReference = service.openChatStream(coroutineScope, owner) { result ->
                 if (result.isSuccess) {
                     val data = result.getOrNull()
@@ -173,5 +173,6 @@ internal class RealChatRepository @Inject constructor(
 
     override fun closeEventStream() {
         homeStreamReference?.destroy()
+        homeStreamReference = null
     }
 }

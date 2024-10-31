@@ -57,7 +57,6 @@ import com.getcode.R
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White05
 import com.getcode.theme.White50
 import com.getcode.theme.inputColors
 import com.getcode.ui.theme.CodeCircularProgressIndicator

@@ -8,25 +8,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.navigation.ConfirmJoinArgs
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.oct24.R
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
-import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.AmountArea
-import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeKeyPad
 import com.getcode.utils.network.LocalNetworkObserver
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -39,10 +45,6 @@ data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
     override fun Content() {
         val viewModel = getViewModel<LookupRoomViewModel>()
         val navigator = LocalCodeNavigator.current
-        val networkObserver = LocalNetworkObserver.current
-        val networkState by networkObserver.state.collectAsState()
-
-        val state by viewModel.stateFlow.collectAsState()
 
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -53,7 +55,30 @@ data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
                 backButton = true,
                 onBackIconClicked = navigator::pop
             )
+            LookupRoomScreenContent(viewModel)
+        }
 
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<LookupRoomViewModel.Event.OnOpenConfirmation>()
+                .map { it.args }
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Lookup.Confirm(it)))
+                }.launchIn(this)
+        }
+    }
+
+    @Composable
+    private fun LookupRoomScreenContent(
+        viewModel: LookupRoomViewModel,
+    ) {
+        val networkObserver = LocalNetworkObserver.current
+        val networkState by networkObserver.state.collectAsState()
+
+        val state by viewModel.stateFlow.collectAsState()
+        Column(
+            modifier = Modifier.fillMaxSize(),
+        ) {
             Box(
                 modifier = Modifier.weight(0.65f)
             ) {
@@ -101,5 +126,4 @@ data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
             }
         }
     }
-
 }

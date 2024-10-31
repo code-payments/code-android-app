@@ -1,5 +1,6 @@
 package com.getcode.oct24.network.controllers
 
+import android.provider.MediaStore.Audio.Media
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.Pager
@@ -70,6 +71,20 @@ class ChatsController @Inject constructor(
                 db.conversationDao().upsertConversations(conversationMapper.map(it))
             }
     }
+
+    suspend fun joinRoom(roomId: ID): Result<RoomWithMembers> {
+        return repository.joinChat(ChatIdentifier.Id(roomId))
+            .onSuccess {
+                db.conversationDao().upsertConversations(conversationMapper.map(it.room))
+            }
+    }
+
+    suspend fun joinRoom(roomNumber: Long): Result<RoomWithMembers> {
+        return repository.joinChat(ChatIdentifier.RoomNumber(roomNumber))
+            .onSuccess {
+                db.conversationDao().upsertConversations(conversationMapper.map(it.room))
+            }
+    }
 }
 
 @OptIn(ExperimentalPagingApi::class)
@@ -82,6 +97,8 @@ private class ChatsRemoteMediator(
     override suspend fun initialize(): InitializeAction {
         return InitializeAction.LAUNCH_INITIAL_REFRESH
     }
+
+    private var lastFetchedItems: List<Room>? = null
 
     override suspend fun load(
         loadType: LoadType,
@@ -116,9 +133,20 @@ private class ChatsRemoteMediator(
 
             val response = repository.getChats(query)
             val rooms = response.getOrNull().orEmpty()
+            if (rooms == lastFetchedItems) {
+                return MediatorResult.Success(endOfPaginationReached = true)
+            }
+
+            lastFetchedItems = rooms
 
             val conversations = rooms.map { conversationMapper.map(it) }
+
             db.withTransaction {
+                if (loadType == LoadType.REFRESH) {
+                    db.conversationDao().clearConversations()
+                }
+
+                println("paging chats: ${conversations.joinToString { it.title }}")
                 db.conversationDao().upsertConversations(*conversations.toTypedArray())
             }
 

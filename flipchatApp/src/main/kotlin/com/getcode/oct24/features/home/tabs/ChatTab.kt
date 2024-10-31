@@ -7,7 +7,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
@@ -74,7 +76,10 @@ internal object ChatTab : Tab {
                     title = options.title,
                     endContent = {
                         Image(
-                            modifier = Modifier.unboundedClickable {
+                            modifier = Modifier
+                                .background(color = CodeTheme.colors.tertiary, shape = CircleShape)
+                                .padding(CodeTheme.dimens.grid.x1)
+                                .unboundedClickable {
                                 openChatDirectiveBottomModal(context, viewModel, navigator)
                             },
                             imageVector = Icons.Default.Add,
