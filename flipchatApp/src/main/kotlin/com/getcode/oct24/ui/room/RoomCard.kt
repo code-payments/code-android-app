@@ -36,12 +36,13 @@ import com.getcode.oct24.theme.FlipchatTheme
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.dropShadow
 import com.getcode.ui.utils.Geometry
+import com.getcode.ui.utils.debugBounds
 
 
 private class RoomCardGeometry(width: Dp, height: Dp) : Geometry(width, height) {
 
     val topSpacer: Dp
-        get() = size.height * 0.14f
+        get() = size.height * 0.06f
 
     val iconWidth: Dp
         get() = size.width * 0.2f
@@ -50,13 +51,13 @@ private class RoomCardGeometry(width: Dp, height: Dp) : Geometry(width, height) 
         get() = size.width * 0.2f
 
     val titleTopPadding: Dp
-        get() = size.height * 0.14f
+        get() = size.height * 0.2f
 
     val titleBottomPadding: Dp
-        get() = size.height * 0.14f
+        get() = size.height * 0.2f
 
     val bottomSpacer: Dp
-        get() = size.height * 0f
+        get() = size.height * 0.1f
 }
 
 
@@ -68,7 +69,7 @@ fun RoomCard(
     Box(
         modifier = modifier
             .dropShadow(blurRadius = 40.dp, color = Color.Black.copy(alpha = 0.30f))
-            .aspectRatio(0.6f)
+            .aspectRatio(0.65f)
             .clip(CodeTheme.shapes.small)
             .background(Color(0xFFD9D9D9))
             .background(
@@ -81,9 +82,9 @@ fun RoomCard(
                 ),
             ).background(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color.White.copy(0.4f), Color.Transparent),
-                    center = Offset(-100f, -100f),
-                    radius = 2000f
+                    colors = listOf(Color.White.copy(0.65f), Color.Transparent),
+                    center = Offset(-200f, -200f),
+                    radius = 1800f
                 ),
             ),
         contentAlignment = Alignment.Center
@@ -91,7 +92,9 @@ fun RoomCard(
         BoxWithConstraints {
             val geometry = RoomCardGeometry(maxWidth, maxHeight)
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Spacer(Modifier.requiredHeight(geometry.topSpacer))
@@ -113,7 +116,6 @@ fun RoomCard(
                 Spacer(Modifier.requiredHeight(geometry.titleBottomPadding))
                 Column(
                     modifier = Modifier
-                        .weight(1f)
                         .padding(horizontal = CodeTheme.dimens.grid.x6),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -130,9 +132,10 @@ fun RoomCard(
                     Text(
                         text = "Cover Charge: 1,000 Kin",
                         style = CodeTheme.typography.textSmall,
-                        color = Color.White.copy(0.80f)
+                        color = CodeTheme.colors.textSecondary
                     )
                 }
+                Spacer(Modifier.requiredHeight(geometry.bottomSpacer))
             }
         }
     }
