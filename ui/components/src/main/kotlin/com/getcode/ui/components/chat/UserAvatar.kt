@@ -2,6 +2,7 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,7 +21,7 @@ import java.util.UUID
 fun UserAvatar(
     data: Any?,
     modifier: Modifier = Modifier,
-    anonymousType: AnonymousRender = AnonymousRender.Gradient
+    overlay: @Composable BoxScope.() -> Unit = { },
 ) {
     Box(modifier = modifier) {
         var imgLoading by remember(data) { mutableStateOf(true) }
@@ -53,14 +54,16 @@ fun UserAvatar(
                     AnonymousAvatar(
                         modifier = Modifier.matchParentSize(),
                         data = data as List<Byte>,
-                        type = anonymousType
+                        type = AnonymousRender.Gradient,
+                        overlay = overlay,
                     )
                 }
             } else if (data is UUID) {
                 AnonymousAvatar(
                     modifier = Modifier.matchParentSize(),
                     memberId = data,
-                    type = anonymousType
+                    type = AnonymousRender.EightBit,
+                    icon = overlay,
                 )
             } else {
                 Image(

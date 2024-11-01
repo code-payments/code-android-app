@@ -1,11 +1,17 @@
 package com.getcode.oct24.features.chat.list
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
-import com.getcode.oct24.data.Room
+import com.getcode.oct24.R
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.ui.components.chat.utils.localizedText
 
@@ -19,7 +25,15 @@ fun ChatNode(
         modifier = modifier,
         title = chat.title,
         messagePreview = chat.messagePreview,
-        avatar = chat.imageUri,
+        avatar = chat.imageUri ?: chat.id,
+        avatarIconWhenFallback = {
+            Image(
+                modifier = Modifier.padding(5.dp),
+                painter = painterResource(R.drawable.ic_fc_chats),
+                colorFilter = ColorFilter.tint(Color.White),
+                contentDescription = null,
+            )
+        },
         timestamp = chat.lastMessage?.message?.dateMillis,
         isMuted = chat.isMuted,
         unreadCount = chat.unreadCount,

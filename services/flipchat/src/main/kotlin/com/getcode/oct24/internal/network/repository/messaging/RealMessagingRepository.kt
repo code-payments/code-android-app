@@ -17,6 +17,7 @@ import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -48,6 +49,11 @@ internal class RealMessagingRepository @Inject constructor(
         return service.sendMessage(owner, chatId, content)
             .map { lastMessageMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun deleteMessage(chatId: ID, messageId: ID): Result<Unit> {
+        delay(300)
+        return Result.success(Unit)
     }
 
     override suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit> {

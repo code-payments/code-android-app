@@ -47,6 +47,7 @@ internal class ChatService @Inject constructor(
                 .map { response ->
                     when (response.result) {
                         FlipchatService.GetChatsResponse.Result.OK -> {
+                            println("chats=${response.chatsList.joinToString { it.roomNumber.toString() }}")
                             Result.success(response.chatsList)
                         }
 

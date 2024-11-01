@@ -16,7 +16,7 @@ class ConversationMessageMapper @Inject constructor() :
             idBase58 = message.id.base58,
             conversationIdBase58 = conversationId.base58,
             dateMillis = message.dateMillis,
-//            status = message.status
+            deleted = false // TODO:
         )
     }
 }

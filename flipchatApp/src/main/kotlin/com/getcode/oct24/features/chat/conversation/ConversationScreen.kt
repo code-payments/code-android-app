@@ -58,6 +58,7 @@ import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.formatDateRelatively
 import kotlinx.coroutines.flow.filterIsInstance
@@ -149,33 +150,7 @@ private fun ConversationTitle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy((-8).dp)
-        ) {
-            val imageModifier = Modifier
-                .padding(start = CodeTheme.dimens.grid.x7)
-                .size(CodeTheme.dimens.staticGrid.x6)
-                .clip(CircleShape)
-
-            state.users.fastForEachIndexed { index, user ->
-                UserAvatar(
-                    modifier = imageModifier
-                        .zIndex((state.users.size - index).toFloat()),
-                    data = if (user.isRevealed) {
-                        user.imageUrl
-                    } else {
-                        user.memberId
-                    }
-                )
-            }
-
-            if (state.users.isEmpty()) {
-                Spacer(modifier = Modifier.requiredWidth(CodeTheme.dimens.grid.x3))
-            }
-        }
-
-
+        Spacer(Modifier.requiredWidth(CodeTheme.dimens.grid.x2))
         Column {
             Text(
                 text = state.title,
@@ -243,5 +218,9 @@ private fun ConversationScreenContent(
                 }
             }
         )
+
+        HandleMessageChanges(listState = lazyListState, items = messages) { message ->
+            dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
+        }
     }
 }

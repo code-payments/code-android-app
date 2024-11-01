@@ -198,28 +198,30 @@ fun BottomBarView(
                     },
                     text = bottomBarMessage.positiveText
                 )
-                CodeButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = {
-                        bottomBarMessage.onNegative()
-                        onClose(BottomBarManager.BottomBarActionType.Negative)
-                    },
-                    textColor = when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
-                        BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
-                        BottomBarManager.BottomBarMessageType.THEMED -> {
-                            when (bottomBarMessage.positiveStyle) {
-                                BottomBarManager.BottomBarButtonStyle.Filled -> Brand
-                                BottomBarManager.BottomBarButtonStyle.Filled10 -> White
+                if (bottomBarMessage.negativeText.isNotEmpty()) {
+                    CodeButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            bottomBarMessage.onNegative()
+                            onClose(BottomBarManager.BottomBarActionType.Negative)
+                        },
+                        textColor = when (bottomBarMessage.type) {
+                            BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
+                            BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
+                            BottomBarManager.BottomBarMessageType.THEMED -> {
+                                when (bottomBarMessage.positiveStyle) {
+                                    BottomBarManager.BottomBarButtonStyle.Filled -> Brand
+                                    BottomBarManager.BottomBarButtonStyle.Filled10 -> White
+                                }
                             }
-                        }
-                    },
-                    buttonState = when (bottomBarMessage.positiveStyle) {
-                        BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
-                        BottomBarManager.BottomBarButtonStyle.Filled10 -> ButtonState.Filled10
-                    },
-                    text = bottomBarMessage.negativeText
-                )
+                        },
+                        buttonState = when (bottomBarMessage.negativeStyle) {
+                            BottomBarManager.BottomBarButtonStyle.Filled -> ButtonState.Filled
+                            BottomBarManager.BottomBarButtonStyle.Filled10 -> ButtonState.Filled10
+                        },
+                        text = bottomBarMessage.negativeText
+                    )
+                }
                 if (bottomBarMessage.tertiaryText != null) {
                     Text(
                         modifier = Modifier

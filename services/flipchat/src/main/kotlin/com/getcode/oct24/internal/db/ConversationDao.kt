@@ -31,6 +31,7 @@ internal interface ConversationDao {
         FROM messages 
         GROUP BY conversationIdBase58
     ) AS lastMessages ON conversations.idBase58 = lastMessages.conversationIdBase58
+    WHERE roomNumber > 0
     ORDER BY lastMessageTimestamp DESC
     """
     )

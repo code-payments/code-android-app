@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ fun ChatNode(
     title: String,
     modifier: Modifier = Modifier,
     avatar: Any? = null,
+    avatarIconWhenFallback: @Composable BoxScope.() -> Unit = { },
     messagePreview: Pair<AnnotatedString, Map<String, InlineTextContent>>,
     timestamp: Long? = null,
     isMuted: Boolean = false,
@@ -51,7 +53,7 @@ fun ChatNode(
                 .size(CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape)
 
-            UserAvatar(modifier = imageModifier, data = it)
+            UserAvatar(modifier = imageModifier, data = it, overlay = avatarIconWhenFallback)
         }
 
         Column(

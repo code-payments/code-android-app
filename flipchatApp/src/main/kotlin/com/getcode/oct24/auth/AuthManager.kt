@@ -179,16 +179,17 @@ class AuthManager @Inject constructor(
 
         if (!isSoftLogin) softLoginDisabled = true
 
-        val ret = if (isSoftLogin) {
-            val userId = AccountUtils.getUserId(context)
-            userId?.let {
-                Result.success(Base58.decode(it).toList())
-            } ?: authController.login()
-        } else {
-            authController.login()
-        }
+        // Add back once server persistence is in
+//        val ret = if (isSoftLogin) {
+//            val userId = AccountUtils.getUserId(context)
+//            userId?.let {
+//                Result.success(Base58.decode(it).toList())
+//            } ?: authController.login()
+//        } else {
+//
+//        }
 
-        return ret
+        return authController.login()
             .onSuccess {
                 userManager.set(userId = it)
             }

@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -37,6 +38,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.dropShadow
 import com.getcode.ui.utils.Geometry
 import com.getcode.ui.utils.debugBounds
+import java.security.SecureRandom
 
 
 private class RoomCardGeometry(width: Dp, height: Dp) : Geometry(width, height) {
@@ -75,9 +77,9 @@ fun RoomCard(
             .background(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0.14f to roomInfo.gradientColors.first,
-                        0.38f to roomInfo.gradientColors.second,
-                        0.67f to roomInfo.gradientColors.third
+                        0.14f to roomInfo.gradientColors[0],
+                        0.38f to roomInfo.gradientColors[1],
+                        0.67f to roomInfo.gradientColors[2]
                     ),
                 ),
             ).background(
@@ -122,12 +124,12 @@ fun RoomCard(
                     Text(
                         text = "Hosted by ${roomInfo.hostName.let { "???" }}",
                         style = CodeTheme.typography.textSmall,
-                        color = Color.White.copy(0.80f)
+                        color = CodeTheme.colors.textSecondary
                     )
                     Text(
                         text = "${roomInfo.memberCount} People Inside",
                         style = CodeTheme.typography.textSmall,
-                        color = Color.White.copy(0.80f)
+                        color = CodeTheme.colors.textSecondary
                     )
                     Text(
                         text = "Cover Charge: 1,000 Kin",
@@ -219,11 +221,14 @@ fun RoomCard(
 @Preview
 @Composable
 private fun Preview_RoomCard() {
+    val random = SecureRandom()
+    val id = ByteArray(32).also { random.nextBytes(it) }.toList()
     FlipchatTheme {
         Box(modifier = Modifier.size(375.dp, 812.dp)) {
             RoomCard(
                 modifier = Modifier.align(Alignment.Center),
                 roomInfo = RoomInfo(
+                    id = id,
                     title = "Room #237",
                     hostName = "Ivy",
                     memberCount = 24,

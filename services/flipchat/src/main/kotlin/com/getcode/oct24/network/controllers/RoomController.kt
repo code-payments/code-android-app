@@ -75,9 +75,12 @@ class RoomController @Inject constructor(
         val output = OutgoingMessageContent.Text(message)
         return messagingRepository.sendMessage(conversationId, output)
             .map { it.id }
+    }
+
+    suspend fun deleteMessage(conversationId: ID, messageId: ID): Result<Unit> {
+        return messagingRepository.deleteMessage(conversationId, messageId)
             .onSuccess {
-                // mark as delivered once we get confirmation from server
-                advancePointer(conversationId, it, MessageStatus.Delivered)
+                db.conversationMessageDao().markDeletedAndRemoveContents(messageId)
             }
     }
 
@@ -102,5 +105,14 @@ class RoomController @Inject constructor(
 
     suspend fun onUserStoppedTypingIn(conversationId: ID) {
         messagingRepository.onStoppedTyping(conversationId)
+    }
+
+    suspend fun leaveRoom(conversationId: ID): Result<Unit> {
+        return chatRepository.leaveChat(conversationId)
+            .onSuccess {
+                db.conversationDao().deleteConversationById(conversationId)
+                db.conversationPointersDao().deletePointerForConversation(conversationId)
+                db.conversationMessageDao().removeForConversation(conversationId)
+            }
     }
 }

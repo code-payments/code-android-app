@@ -43,21 +43,6 @@ data class Conversation(
 }
 
 @Serializable
-@Entity(tableName = "conversation_pointers", primaryKeys = ["conversationIdBase58", "status"])
-data class ConversationPointerCrossRef(
-    val conversationIdBase58: String,
-    val messageIdString: String,
-    val status: MessageStatus,
-) {
-    @Ignore
-    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
-
-    @Ignore
-    @Transient
-    val messageId: UUID = UUID.fromString(messageIdString)
-}
-
-@Serializable
 data class ConversationWithMembersAndLastPointers(
     @Embedded val conversation: Conversation,
     @Relation(
@@ -112,57 +97,6 @@ data class ConversationWithMembers(
     }
 }
 
-@Serializable
-@Entity(tableName = "messages")
-data class ConversationMessage(
-    @PrimaryKey
-    val idBase58: String,
-    val conversationIdBase58: String,
-    val dateMillis: Long,
-) {
-    @Ignore
-    val id: ID = Base58.decode(idBase58).toList()
-
-    @Ignore
-    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
-}
-
-@Serializable
-@Entity(tableName = "message_contents", primaryKeys = ["messageIdBase58", "content"])
-data class ConversationMessageContent(
-    val messageIdBase58: String,
-    val content: MessageContent
-)
-
-data class ConversationMessageWithContent(
-    @Embedded val message: ConversationMessage,
-    @Relation(
-        parentColumn = "idBase58",
-        entityColumn = "messageIdBase58",
-        entity = ConversationMessageContent::class,
-        projection = ["content"]
-    )
-    val contents: List<MessageContent>,
-)
-
-@Serializable
-@Entity(
-    tableName = "members",
-    primaryKeys = ["memberIdBase58", "conversationIdBase58"]
-)
-data class ConversationMember(
-    val memberIdBase58: String, // Server-provided ID in base58 string format
-    val conversationIdBase58: String, // Foreign key to `Conversation`
-    val memberName: String?, // Other member-specific fields
-    val imageUri: String?,
-) {
-    @Ignore
-    val id: ID = Base58.decode(memberIdBase58).toList()
-
-    @Ignore
-    val conversationId: ID = Base58.decode(conversationIdBase58).toList()
-}
-
 data class ConversationWithMembersAndLastMessage(
     @Embedded val conversation: Conversation,
     @Relation(
@@ -178,6 +112,8 @@ data class ConversationWithMembersAndLastMessage(
     )
     val lastMessage: ConversationMessageWithContent?
 ) {
+    val id: ID
+        get() = conversation.id
     val title: String
         get() = conversation.title
     val imageUri: String?

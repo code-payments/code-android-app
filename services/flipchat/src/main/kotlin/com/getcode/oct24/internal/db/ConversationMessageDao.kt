@@ -12,7 +12,6 @@ import com.getcode.oct24.domain.model.chat.ConversationMessageContent
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
-import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.utils.base58
 
 @Dao
@@ -75,10 +74,29 @@ internal interface ConversationMessageDao {
     }
 
     @Query("DELETE FROM messages WHERE conversationIdBase58 = :conversationId")
-    suspend fun deleteForConversation(conversationId: String)
+    suspend fun removeForConversation(conversationId: String)
 
-    suspend fun deleteForConversation(conversationId: ID) {
-        deleteForConversation(conversationId.base58)
+    suspend fun removeForConversation(conversationId: ID) {
+        removeForConversation(conversationId.base58)
+    }
+
+    @Query("UPDATE messages SET deleted = 1 WHERE idBase58 = :messageId")
+    suspend fun markDeleted(messageId: String)
+
+    suspend fun markDeleted(messageId: ID) {
+        markDeleted(messageId.base58)
+    }
+
+    @Query("DELETE FROM message_contents WHERE messageIdBase58 = :messageId")
+    suspend fun removeContentsForMessage(messageId: String)
+
+    suspend fun removeContentsForMessage(messageId: ID) {
+        removeContentsForMessage(messageId.base58)
+    }
+
+    suspend fun markDeletedAndRemoveContents(messageId: ID) {
+        markDeleted(messageId)
+        removeContentsForMessage(messageId)
     }
 
     @Query("DELETE FROM messages WHERE conversationIdBase58 NOT IN (:chatIds)")

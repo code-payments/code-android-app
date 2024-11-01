@@ -14,12 +14,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.flipchat.features.chat.list.ChatListViewModel
 import com.flipchat.features.home.TabbedHomeScreen
+import com.getcode.manager.BottomBarManager
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.oct24.R
@@ -30,6 +35,9 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -46,6 +54,14 @@ class ChatInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
 
         LaunchedEffect(info) {
             viewModel.dispatchEvent(ChatInfoViewModel.Event.OnInfoChanged(info))
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatInfoViewModel.Event.OnLeftRoom>()
+                .onEach {
+                    navigator.popUntil { it is TabbedHomeScreen }
+                }.launchIn(this)
         }
 
         Column(
@@ -89,7 +105,6 @@ private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel) {
                 CodeButton(
                     modifier = Modifier.fillMaxWidth(),
                     buttonState = ButtonState.Filled,
-                    enabled = false,
                     text = "Leave Room",
                     isLoading = state.requestBeingSent,
                 ) {
