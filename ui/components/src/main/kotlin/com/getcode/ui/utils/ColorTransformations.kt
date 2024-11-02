@@ -39,6 +39,18 @@ val Rgb.color: Color
     get() = rgbToHls(this).color
 
 
+val Color.saturation: Float
+    get() {
+        val max = maxOf(red, green, blue)
+        val min = minOf(red, green, blue)
+        return if (max == 0f) 0f else (max - min) / max
+    }
+
+fun Color.value(): Float {
+    return maxOf(red, green, blue)
+}
+
+
 private fun colorToRgb(color: Color): Rgb {
     return Rgb(
         r = (color.red * 255),

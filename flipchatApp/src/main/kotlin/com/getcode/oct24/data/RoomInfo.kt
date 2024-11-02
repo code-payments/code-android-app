@@ -2,6 +2,8 @@ package com.getcode.oct24.data
 
 import androidx.compose.ui.graphics.Color
 import com.getcode.model.ID
+import com.getcode.ui.utils.generateComplementaryColorPalette
+import com.getcode.utils.sha512
 
 data class RoomInfo(
     val id: ID? = null,
@@ -19,5 +21,8 @@ data class RoomInfo(
         )
     }
 
-    val gradientColors = DEFAULT_GRADIENT_SAMPLE.toList()
+    val gradientColors: Triple<Color, Color, Color>
+        get() {
+            return id?.let { generateComplementaryColorPalette(it) } ?: DEFAULT_GRADIENT_SAMPLE
+        }
 }

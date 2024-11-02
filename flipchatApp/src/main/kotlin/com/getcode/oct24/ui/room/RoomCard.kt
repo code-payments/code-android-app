@@ -38,6 +38,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.dropShadow
 import com.getcode.ui.utils.Geometry
 import com.getcode.ui.utils.debugBounds
+import com.getcode.utils.decodeBase58
 import java.security.SecureRandom
 
 
@@ -77,9 +78,9 @@ fun RoomCard(
             .background(
                 brush = Brush.verticalGradient(
                     colorStops = arrayOf(
-                        0.14f to roomInfo.gradientColors[0],
-                        0.38f to roomInfo.gradientColors[1],
-                        0.67f to roomInfo.gradientColors[2]
+                        0.14f to roomInfo.gradientColors.first,
+                        0.38f to roomInfo.gradientColors.second,
+                        0.67f to roomInfo.gradientColors.third,
                     ),
                 ),
             ).background(
@@ -124,17 +125,17 @@ fun RoomCard(
                     Text(
                         text = "Hosted by ${roomInfo.hostName.let { "???" }}",
                         style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary
+                        color = Color.White.copy(0.80f)
                     )
                     Text(
                         text = "${roomInfo.memberCount} People Inside",
                         style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary
+                        color = Color.White.copy(0.80f)
                     )
                     Text(
                         text = "Cover Charge: 1,000 Kin",
                         style = CodeTheme.typography.textSmall,
-                        color = CodeTheme.colors.textSecondary
+                        color = Color.White.copy(0.80f)
                     )
                 }
                 Spacer(Modifier.requiredHeight(geometry.bottomSpacer))
@@ -143,86 +144,11 @@ fun RoomCard(
     }
 }
 
-//@Composable
-//private fun RoomCardContents(
-//    roomInfo: RoomInfo,
-//) {
-//    BoxWithConstraints(
-//        modifier = modifier
-//            .dropShadow(blurRadius = 40.dp, color = Color.Black.copy(alpha = 0.30f))
-//            .height(IntrinsicSize.Min)
-//            .clip(CodeTheme.shapes.small)
-//            .background(Color(0xFFD9D9D9))
-//            .background(
-//                brush = Brush.verticalGradient(
-//                    colorStops = arrayOf(
-//                        0.14f to roomInfo.gradientColors.first,
-//                        0.38f to roomInfo.gradientColors.second,
-//                        0.67f to roomInfo.gradientColors.third
-//                    ),
-//                ),
-//            ).background(
-//                brush = Brush.radialGradient(
-//                    colors = listOf(Color.White.copy(0.4f), Color.Transparent),
-//                    center = Offset(-100f, -100f),
-//                    radius = 2000f
-//                ),
-//            ),
-//        contentAlignment = Alignment.Center
-//    ) {
-//        val geometry = RoomCardGeometry(maxWidth, maxHeight)
-//        Column(
-//            modifier = Modifier.fillMaxHeight().fillMaxWidth(),
-//            horizontalAlignment = Alignment.CenterHorizontally,
-//        ) {
-//            Spacer(Modifier.requiredHeight(geometry.topSpacer))
-//            Image(
-//                modifier = Modifier
-//                    .size(
-//                        geometry.iconWidth,
-//                        geometry.iconHeight
-//                    ),
-//                painter = painterResource(R.drawable.flipchat_logo),
-//                contentDescription = null
-//            )
-//            Spacer(Modifier.requiredHeight(geometry.titleTopPadding))
-//            Text(
-//                text = roomInfo.title,
-//                style = CodeTheme.typography.displaySmall,
-//                color = Color.White,
-//            )
-//            Spacer(Modifier.requiredHeight(geometry.titleBottomPadding))
-//            Column(
-//                modifier = Modifier
-//                    .weight(1f)
-//                    .padding(horizontal = CodeTheme.dimens.grid.x6),
-//                horizontalAlignment = Alignment.CenterHorizontally
-//            ) {
-//                Text(
-//                    text = "Hosted by ${roomInfo.hostName.let { "???" }}",
-//                    style = CodeTheme.typography.textSmall,
-//                    color = Color.White.copy(0.80f)
-//                )
-//                Text(
-//                    text = "${roomInfo.memberCount} People Inside",
-//                    style = CodeTheme.typography.textSmall,
-//                    color = Color.White.copy(0.80f)
-//                )
-//                Text(
-//                    text = "Cover Charge: 1,000 Kin",
-//                    style = CodeTheme.typography.textSmall,
-//                    color = Color.White.copy(0.80f)
-//                )
-//            }
-//        }
-//    }
-//}
+val id = "4T7DtS9CEZKVJrBgujQLcjBYnMqZSzZV6CqJewME6zVp".decodeBase58().toList()
 
 @Preview
 @Composable
 private fun Preview_RoomCard() {
-    val random = SecureRandom()
-    val id = ByteArray(32).also { random.nextBytes(it) }.toList()
     FlipchatTheme {
         Box(modifier = Modifier.size(375.dp, 812.dp)) {
             RoomCard(
