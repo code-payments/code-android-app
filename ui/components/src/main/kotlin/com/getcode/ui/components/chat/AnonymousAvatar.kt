@@ -97,6 +97,10 @@ fun AnonymousAvatar(
                         onDrawWithContent {
                             if (gradient != null) {
                                 drawRect(brush = gradient)
+                                drawRect(brush = Brush.radialGradient(
+                                    colors = listOf(Color.White.copy(0.25f), Color.Transparent),
+                                    radius = size.width
+                                ))
                             } else {
                                 drawRect(Color.Transparent)
                             }
