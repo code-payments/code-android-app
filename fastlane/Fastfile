@@ -84,6 +84,7 @@ platform :android do
         skip_upload_changelogs: true,
         skip_upload_images: true,
         package_name: "com.getcode.oct24",
+        release_status: "draft",
         mapping: Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH]
       #  mapping: mapping_file_exists() ? Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] : nil
       )
