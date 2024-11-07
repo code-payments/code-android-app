@@ -13,7 +13,7 @@ object BottomBarManager {
         val subtitle: String = "",
         val positiveText: String,
         val positiveStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled,
-        val negativeText: String,
+        val negativeText: String = "",
         val negativeStyle: BottomBarButtonStyle = BottomBarButtonStyle.Filled10,
         val tertiaryText: String? = null,
         val onPositive: () -> Unit,

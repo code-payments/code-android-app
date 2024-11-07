@@ -31,6 +31,7 @@ import com.getcode.theme.LocalCodeColors
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
+import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
@@ -45,22 +46,24 @@ fun App(
             AppNavHost {
                 val codeNavigator = LocalCodeNavigator.current
                 TipScaffold(tipsEngine = tipsEngine) {
-                    CodeScaffold { innerPaddingModifier ->
-                        PaymentScaffold {
-                            Navigator(
-                                screen = MainRoot,
-                            ) { navigator ->
-                                LaunchedEffect(navigator.lastItem) {
-                                    // update global navigator for platform access to support push/pop from a single
-                                    // navigator current
-                                    codeNavigator.screensNavigator = navigator
-                                }
+                    ScrimSupport {
+                        CodeScaffold { innerPaddingModifier ->
+                            PaymentScaffold {
+                                Navigator(
+                                    screen = MainRoot,
+                                ) { navigator ->
+                                    LaunchedEffect(navigator.lastItem) {
+                                        // update global navigator for platform access to support push/pop from a single
+                                        // navigator current
+                                        codeNavigator.screensNavigator = navigator
+                                    }
 
-                                Box(
-                                    modifier = Modifier
-                                        .padding(innerPaddingModifier)
-                                ) {
-                                    SlideTransition(navigator)
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(innerPaddingModifier)
+                                    ) {
+                                        SlideTransition(navigator)
+                                    }
                                 }
                             }
                         }

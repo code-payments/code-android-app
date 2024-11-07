@@ -1,4 +1,4 @@
-package com.getcode.ui.components.chat
+package com.getcode.ui.components.chat.messagecontents
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

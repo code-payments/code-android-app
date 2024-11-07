@@ -19,12 +19,13 @@ import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.formatDateRelatively
 
 sealed interface MessageListEvent {
-    data class OpenMessageChat(val reference: Reference): MessageListEvent
     data class AdvancePointer(val messageId: ID): MessageListEvent
+    data class OpenMessageActions(val actions: List<MessageControlAction>): MessageListEvent
 }
 @Composable
 fun MessageList(
@@ -90,10 +91,15 @@ fun MessageList(
                         modifier = Modifier.fillMaxWidth(),
                         contents = item.message,
                         status = item.status,
+                        isDeleted = item.isDeleted,
+                        isFromSelf = item.isFromSelf,
+                        senderName = item.senderName,
                         showStatus = item.showStatus,
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
                         isNextSameMessage = next == item.chatMessageId,
+                        isInteractive = item.messageControls.hasAny,
+                        openMessageControls = { dispatch(MessageListEvent.OpenMessageActions(item.messageControls.actions)) }
                     )
                 }
 

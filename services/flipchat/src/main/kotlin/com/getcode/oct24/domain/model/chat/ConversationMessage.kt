@@ -17,6 +17,8 @@ data class ConversationMessage(
     @PrimaryKey
     val idBase58: String,
     val conversationIdBase58: String,
+    @ColumnInfo(defaultValue = "")
+    val senderIdBase58: String,
     val dateMillis: Long,
     private val deleted: Boolean?,
 ) {
@@ -25,6 +27,9 @@ data class ConversationMessage(
 
     @Ignore
     val conversationId: ID = Base58.decode(conversationIdBase58).toList()
+
+    @Ignore
+    val senderId: ID = Base58.decode(senderIdBase58).toList()
 
     @Ignore
     val isDeleted: Boolean = deleted == true
@@ -46,4 +51,21 @@ data class ConversationMessageWithContent(
         projection = ["content"]
     )
     val contents: List<MessageContent>,
+)
+
+data class ConversationMessageWithContentAndMember(
+    @Embedded val message: ConversationMessage,
+    @Relation(
+        parentColumn = "idBase58",
+        entityColumn = "messageIdBase58",
+        entity = ConversationMessageContent::class,
+        projection = ["content"]
+    )
+    val contents: List<MessageContent>,
+    @Relation(
+        parentColumn = "senderIdBase58",
+        entityColumn = "memberIdBase58",
+        entity = ConversationMember::class
+    )
+    val member: ConversationMember?
 )

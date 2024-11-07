@@ -45,8 +45,9 @@ import java.io.File
         AutoMigration(from = 1, to = 2),
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4),
+        AutoMigration(from = 4, to = 5),
     ],
-    version = 4,
+    version = 5,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -58,6 +59,7 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     abstract fun conversationDao(): ConversationDao
     abstract fun conversationPointersDao(): ConversationPointerDao
     abstract fun conversationMessageDao(): ConversationMessageDao
+    abstract fun conversationMembersDao(): ConversationMemberDao
 
     override fun closeDb() {
         instance?.close()
@@ -104,7 +106,7 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
 
             instance =
                 Room.databaseBuilder(context, FcAppDatabase::class.java, dbName)
-                    .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
+//                    .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                     .fallbackToDestructiveMigration()
                     .build()
 

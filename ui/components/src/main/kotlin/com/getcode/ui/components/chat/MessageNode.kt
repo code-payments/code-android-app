@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,16 +9,41 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.Divider
+import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEachIndexed
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.zIndex
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
+import com.getcode.ui.components.chat.messagecontents.DeletedMessage
+import com.getcode.ui.components.chat.messagecontents.EncryptedContent
+import com.getcode.ui.components.chat.messagecontents.MessageControlAction
+import com.getcode.ui.components.chat.messagecontents.MessageControls
+import com.getcode.ui.components.chat.messagecontents.MessagePayment
+import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.ui.decor.LocalScrimHandler
+import com.getcode.ui.decor.ScrimStateChange
+import com.getcode.ui.utils.keyboardAsState
+import com.getcode.ui.utils.measured
+import com.getcode.ui.window.ShowcaseDropdownMenu
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
 
 object MessageNodeDefaults {
@@ -74,99 +100,184 @@ private fun rememberMessageNodeScope(
 fun MessageNode(
     modifier: Modifier = Modifier,
     contents: MessageContent,
+    isDeleted: Boolean,
     date: Instant,
+    isFromSelf: Boolean,
+    senderName: String?,
     status: MessageStatus,
     showStatus: Boolean,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
+    isInteractive: Boolean,
+    openMessageControls: () -> Unit,
 ) {
     BoxWithConstraints(
         modifier = modifier
             .padding(vertical = CodeTheme.dimens.grid.x1)
+            .zIndex(8f)
     ) {
         val scope = rememberMessageNodeScope(contents = contents, boxScope = this)
 
         with(scope) {
-            when (contents) {
-                is MessageContent.Exchange -> {
-                    MessagePayment(
-                        modifier = Modifier
-                            .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
-                            .sizeableWidth()
-                            .background(
-                                color = color,
-                                shape = when {
-                                    isAnnouncement -> MessageNodeDefaults.DefaultShape
-                                    isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
-                                    isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
-                                    isNextSameMessage -> MessageNodeDefaults.NextSameShape
-                                    else -> MessageNodeDefaults.DefaultShape
-                                }
-                            ),
-                        contents = contents,
-                        status = status,
-                        date = date,
-                    )
+            if (isDeleted) {
+                DeletedMessage(
+                    modifier = Modifier.fillMaxWidth(),
+                    isFromSelf = isFromSelf,
+                    date = date,
+                )
+            } else {
+                val contentsWithSender: (String) -> String = { contents: String ->
+                    if (senderName != null) {
+                        "$senderName: $contents"
+                    } else {
+                        contents
+                    }
                 }
 
-                is MessageContent.Localized -> {
-                    MessageText(
-                        modifier = Modifier.fillMaxWidth(),
-                        content = contents.localizedText,
-                        date = date,
-                        status = status,
-                        isFromSelf = contents.isFromSelf,
-                        showStatus = showStatus
-                    )
-                }
+                when (contents) {
+                    is MessageContent.Exchange -> {
+                        MessagePayment(
+                            modifier = Modifier
+                                .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
+                                .sizeableWidth()
+                                .background(
+                                    color = color,
+                                    shape = when {
+                                        isAnnouncement -> MessageNodeDefaults.DefaultShape
+                                        isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
+                                        isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
+                                        isNextSameMessage -> MessageNodeDefaults.NextSameShape
+                                        else -> MessageNodeDefaults.DefaultShape
+                                    }
+                                ),
+                            contents = contents,
+                            status = status,
+                            date = date,
+                        )
+                    }
 
-                is MessageContent.SodiumBox -> {
-                    EncryptedContent(
-                        modifier = Modifier
-                            .align(if (status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
-                            .sizeableWidth()
-                            .background(
-                                color = color,
-                                shape = when {
-                                    isAnnouncement -> MessageNodeDefaults.DefaultShape
-                                    isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
-                                    isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
-                                    isNextSameMessage -> MessageNodeDefaults.NextSameShape
-                                    else -> MessageNodeDefaults.DefaultShape
-                                }
-                            )
-                            .padding(CodeTheme.dimens.grid.x2),
-                        date = date
-                    )
-                }
+                    is MessageContent.Localized -> {
+                        MessageText(
+                            modifier = Modifier.fillMaxWidth(),
+                            content = contentsWithSender(contents.localizedText),
+                            date = date,
+                            status = status,
+                            isFromSelf = isFromSelf,
+                            showStatus = showStatus,
+                            isInteractive = isInteractive,
+                            showControls = openMessageControls
+                        )
+                    }
 
-                is MessageContent.Decrypted -> {
-                    MessageText(
-                        modifier = Modifier.fillMaxWidth(),
-                        content = contents.data,
-                        date = date,
-                        status = status,
-                        isFromSelf = contents.isFromSelf,
-                        showStatus = showStatus
-                    )
-                }
+                    is MessageContent.SodiumBox -> {
+                        EncryptedContent(
+                            modifier = Modifier
+                                .align(if (status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
+                                .sizeableWidth()
+                                .background(
+                                    color = color,
+                                    shape = when {
+                                        isAnnouncement -> MessageNodeDefaults.DefaultShape
+                                        isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
+                                        isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
+                                        isNextSameMessage -> MessageNodeDefaults.NextSameShape
+                                        else -> MessageNodeDefaults.DefaultShape
+                                    }
+                                )
+                                .padding(CodeTheme.dimens.grid.x2),
+                            date = date
+                        )
+                    }
 
-                is MessageContent.RawText -> {
-                    MessageText(
-                        modifier = Modifier.fillMaxWidth(),
-                        content = contents.value,
-                        date = date,
-                        status = status,
-                        isFromSelf = contents.isFromSelf,
-                        showStatus = showStatus
-                    )
+                    is MessageContent.Decrypted -> {
+                        MessageText(
+                            modifier = Modifier.fillMaxWidth(),
+                            content = contentsWithSender(contents.data),
+                            date = date,
+                            status = status,
+                            isFromSelf = isFromSelf,
+                            showStatus = showStatus,
+                            isInteractive = isInteractive,
+                            showControls = openMessageControls
+                        )
+                    }
+
+                    is MessageContent.RawText -> {
+                        MessageText(
+                            modifier = Modifier.fillMaxWidth(),
+                            content = contentsWithSender(contents.value),
+                            date = date,
+                            status = status,
+                            isFromSelf = isFromSelf,
+                            showStatus = showStatus,
+                            isInteractive = isInteractive,
+                            showControls = openMessageControls
+                        )
+                    }
+
+                    is MessageContent.ThankYou -> {
+                        AnnouncementMessage(
+                            modifier = Modifier.align(Alignment.Center),
+                            text = contents.localizedText
+                        )
+                    }
                 }
-                is MessageContent.ThankYou -> {
-                    AnnouncementMessage(
-                        modifier = Modifier.align(Alignment.Center),
-                        text = contents.localizedText
-                    )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MessageActionsMenu(
+    actions: List<MessageControlAction>,
+    isVisible: Boolean,
+    message: @Composable () -> Unit,
+    messageSize: DpSize,
+    onDismiss: () -> Unit,
+) {
+    ShowcaseDropdownMenu(
+        modifier = Modifier
+            .background(Color.White)
+            .fillMaxWidth(0.9f),
+        content = {
+            Box(Modifier.fillMaxWidth(0.9f)) {
+                message()
+            }
+        },
+        contentSize = messageSize,
+        spacing = CodeTheme.dimens.grid.x1,
+        expanded = isVisible,
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(
+            focusable = false,
+            dismissOnClickOutside = true,
+            dismissOnBackPress = true,
+        )
+    ) {
+        actions.fastForEachIndexed { index, action ->
+            DropdownMenuItem(
+                onClick = {
+                    onDismiss()
+                    action.onSelect()
                 }
+            ) {
+                Text(
+                    text = when (action) {
+                        is MessageControlAction.Copy -> "Copy"
+                        is MessageControlAction.Delete -> "Delete"
+                        is MessageControlAction.RemoveUser -> "Remove ${action.name}"
+                    },
+                    color = Color.Black,
+                    style = CodeTheme.typography.textMedium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (index < actions.lastIndex) {
+                Divider(
+                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x2),
+                    color = Color(0xFFD9D9D9)
+                )
             }
         }
     }

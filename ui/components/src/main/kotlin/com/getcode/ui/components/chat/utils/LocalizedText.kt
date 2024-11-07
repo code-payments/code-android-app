@@ -21,7 +21,6 @@ import java.util.Locale
 val LocalLocalizeCurrencyFormatting = staticCompositionLocalOf { true }
 
 fun MessageContent.localizedText(
-    title: String,
     resources: ResourceHelper,
     localizeCurrency: Boolean = true,
     currencyUtils: com.getcode.utils.CurrencyUtils,

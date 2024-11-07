@@ -34,6 +34,7 @@ import cafe.adriel.voyager.core.stack.Stack
 import cafe.adriel.voyager.navigator.CurrentScreen
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.compositionUniqueId
+import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.extraLarge
 import kotlinx.coroutines.CoroutineScope
@@ -52,7 +53,7 @@ val LocalBottomSheetNavigator: ProvidableCompositionLocal<BottomSheetNavigator> 
 fun BottomSheetNavigator(
     modifier: Modifier = Modifier,
     hideOnBackPress: Boolean = true,
-    scrimColor: Color = CodeTheme.colors.surface.copy(alpha = 0.32f),
+    scrimColor: Color = Black40,
     sheetShape: Shape = CodeTheme.shapes.extraLarge.copy(
         bottomStart = ZeroCornerSize, bottomEnd = ZeroCornerSize
     ),

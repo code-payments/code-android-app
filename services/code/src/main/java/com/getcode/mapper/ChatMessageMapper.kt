@@ -19,7 +19,7 @@ class ChatMessageMapper @Inject constructor(
 
         return ChatMessage(
             id = messageId,
-            senderId = null,
+            senderId = emptyList(),
             isFromSelf = isFromSelf,
             cursor = from.cursor.value.toList(),
             dateMillis = from.ts.seconds  * 1_000L,

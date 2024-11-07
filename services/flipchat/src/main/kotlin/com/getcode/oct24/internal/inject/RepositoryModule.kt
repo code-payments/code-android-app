@@ -8,6 +8,7 @@ import com.getcode.oct24.internal.data.mapper.LastMessageMapper
 import com.getcode.oct24.internal.data.mapper.MemberUpdateMapper
 import com.getcode.oct24.internal.data.mapper.ProfileMapper
 import com.getcode.oct24.internal.data.mapper.MetadataRoomMapper
+import com.getcode.oct24.internal.data.mapper.RoomWithMemberCountMapper
 import com.getcode.oct24.internal.data.mapper.RoomWithMembersMapper
 import com.getcode.oct24.internal.network.repository.accounts.AccountRepository
 import com.getcode.oct24.internal.network.repository.accounts.RealAccountRepository
@@ -45,8 +46,9 @@ internal object RepositoryModule {
         userManager: UserManager,
         service: ChatService,
         roomMapper: MetadataRoomMapper,
-        roomWithMembersMapper: RoomWithMembersMapper,
         conversationMapper: RoomConversationMapper,
+        roomWithMemberCountMapper: RoomWithMemberCountMapper,
+        roomWithMembersMapper: RoomWithMembersMapper,
         memberUpdateMapper: MemberUpdateMapper,
         conversationMemberMapper: ConversationMemberMapper,
         messageMapper: LastMessageMapper,
@@ -55,6 +57,7 @@ internal object RepositoryModule {
         userManager = userManager,
         service = service,
         roomMapper = roomMapper,
+        roomWithMemberCountMapper = roomWithMemberCountMapper,
         roomWithMembersMapper = roomWithMembersMapper,
         conversationMapper = conversationMapper,
         memberUpdateMapper = memberUpdateMapper,

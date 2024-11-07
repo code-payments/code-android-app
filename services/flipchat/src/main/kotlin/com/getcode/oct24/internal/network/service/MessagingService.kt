@@ -258,11 +258,11 @@ internal class MessagingService @Inject constructor(
         lastMessageId: suspend () -> ID?,
         onEvent: (Result<Model.Message>) -> Unit
     ): ChatMessageStreamReference {
-        trace("Chat Opening stream.")
+        trace("Message Opening stream.")
         val streamReference = ChatMessageStreamReference(scope)
         streamReference.retain()
         streamReference.timeoutHandler = {
-            trace("Chat Stream timed out")
+            trace("Message Stream timed out")
             openMessageStream(
                 owner = owner,
                 chatId = chatId,

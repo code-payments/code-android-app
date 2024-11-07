@@ -15,18 +15,21 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,11 +37,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastForEachIndexed
-import androidx.compose.ui.zIndex
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -48,19 +51,24 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.navigation.NavScreenProvider
+import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.Black10
+import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White05
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.TypingIndicator
-import com.getcode.ui.components.chat.UserAvatar
+import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.formatDateRelatively
+import io.grpc.Status.Code
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -98,10 +106,23 @@ data class ConversationScreen(
                     AppBarDefaults.UpNavigation { goBack() }
                 },
                 rightContents = {
-                    AppBarDefaults.Overflow { navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Info(state.roomInfoArgs))) }
+                    AppBarDefaults.Overflow {
+                        navigator.push(
+                            ScreenRegistry.get(
+                                NavScreenProvider.Chat.Info(
+                                    state.roomInfoArgs
+                                )
+                            )
+                        )
+                    }
                 }
             )
-            ConversationScreenContent(state, messages, vm::dispatchEvent)
+            ConversationScreenContent(
+                navigator = navigator,
+                state = state,
+                messages = messages,
+                dispatchEvent = vm::dispatchEvent
+            )
         }
 
         BackHandler {
@@ -169,6 +190,7 @@ private fun ConversationTitle(
 
 @Composable
 private fun ConversationScreenContent(
+    navigator: CodeNavigator,
     state: ConversationViewModel.State,
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
@@ -206,6 +228,7 @@ private fun ConversationScreenContent(
         }
     ) { padding ->
         val lazyListState = rememberLazyListState()
+
         MessageList(
             modifier = Modifier
                 .fillMaxSize()
@@ -213,14 +236,56 @@ private fun ConversationScreenContent(
             messages = messages,
             listState = lazyListState,
             dispatch = { event ->
-                if (event is MessageListEvent.AdvancePointer) {
-                    dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
+                when (event) {
+                    is MessageListEvent.AdvancePointer -> {
+                        dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
+                    }
+
+                    is MessageListEvent.OpenMessageActions -> {
+                        navigator.show(MessageActionContextSheet(event.actions))
+                    }
                 }
             }
         )
 
         HandleMessageChanges(listState = lazyListState, items = messages) { message ->
             dispatchEvent(ConversationViewModel.Event.MarkDelivered(message.chatMessageId))
+        }
+    }
+}
+
+private data class MessageActionContextSheet(val actions: List<MessageControlAction>) : Screen {
+    @Composable
+    override fun Content() {
+        val navigator = LocalCodeNavigator.current
+        Column(
+            modifier = Modifier
+                .background(Color(0xFF171921))
+                .padding(vertical = CodeTheme.dimens.inset)
+        ) {
+            actions.fastForEachIndexed { index, action ->
+                Text(
+                    text = when (action) {
+                        is MessageControlAction.Copy -> "Copy"
+                        is MessageControlAction.Delete -> "Delete"
+                        is MessageControlAction.RemoveUser -> "Remove ${action.name}"
+                    },
+                    style = CodeTheme.typography.textMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            navigator.hide()
+                            action.onSelect()
+                        }
+                        .padding(
+                            horizontal = CodeTheme.dimens.inset,
+                            vertical = CodeTheme.dimens.grid.x3
+                        )
+                )
+                if (index < actions.lastIndex) {
+                    Divider(color = White05)
+                }
+            }
         }
     }
 }

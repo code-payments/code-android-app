@@ -1,4 +1,4 @@
-package com.getcode.ui.components.chat
+package com.getcode.ui.components.chat.messagecontents
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +21,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
 import com.getcode.ui.components.R
+import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.util.formatTimeRelatively
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant

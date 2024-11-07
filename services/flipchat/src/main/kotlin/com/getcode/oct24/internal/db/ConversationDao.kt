@@ -10,7 +10,6 @@ import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.model.ID
-import com.getcode.oct24.domain.model.chat.ConversationMember
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.utils.base58
@@ -74,13 +73,6 @@ internal interface ConversationDao {
 
     @Query("DELETE FROM conversations")
     fun clearConversations()
-
-    @Query("DELETE FROM members WHERE memberIdBase58 NOT IN (:memberIds) AND conversationIdBase58 = :conversationId")
-    suspend fun purgeMembersNotInByString(conversationId: String, memberIds: List<String>)
-
-    suspend fun refreshMembers(conversationId: ID, members: List<ConversationMember>) {
-        purgeMembersNotInByString(conversationId.base58, members.map { it.memberIdBase58 })
-    }
 
     suspend fun resetUnreadCount(conversationId: String) {
         val conversation = findConversation(conversationId)?.conversation ?: return

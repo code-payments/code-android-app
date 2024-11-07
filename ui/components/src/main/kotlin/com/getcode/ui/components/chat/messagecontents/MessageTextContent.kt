@@ -1,4 +1,4 @@
-package com.getcode.ui.components.chat
+package com.getcode.ui.components.chat.messagecontents
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,17 +23,46 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.MessageNodeDefaults
+import com.getcode.ui.components.chat.MessageNodeScope
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
 
+sealed interface MessageControlAction {
+    val onSelect: () -> Unit
+    data class Copy(override val onSelect: () -> Unit): MessageControlAction
+    data class Delete(override val onSelect: () -> Unit): MessageControlAction
+    data class RemoveUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
+}
+
+data class MessageControls(
+    val actions: List<MessageControlAction> = emptyList()
+) {
+    val hasAny: Boolean
+        get() = actions.isNotEmpty()
+
+    val canCopy: Boolean
+        get() = actions.any { it is MessageControlAction.Copy }
+
+    val canDelete: Boolean
+        get() = actions.any { it is MessageControlAction.Delete }
+
+    val canRemoveUser: Boolean
+        get() = actions.any { it is MessageControlAction.RemoveUser }
+}
+
 @Composable
-fun MessageNodeScope.MessageText(
+internal fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
     content: String,
     isFromSelf: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showStatus: Boolean = true,
+    isInteractive: Boolean = false,
+    showControls: () -> Unit,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
 
@@ -45,6 +74,11 @@ fun MessageNodeScope.MessageText(
                     color = color,
                     shape = MessageNodeDefaults.DefaultShape
                 )
+                .addIf(isInteractive) {
+                    Modifier.rememberedLongClickable {
+                        showControls()
+                    }
+                }
                 .padding(CodeTheme.dimens.grid.x2)
         ) contents@{
             val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
@@ -60,7 +94,7 @@ fun MessageNodeScope.MessageText(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus
+                    showStatus = showStatus,
                 )
             }
         }
@@ -126,13 +160,13 @@ private fun rememberAlignmentRule(
 }
 
 @Composable
-private fun MessageContent(
+internal fun MessageContent(
     maxWidth: Int,
     message: String,
     date: Instant,
     status: MessageStatus,
     isFromSelf: Boolean,
-    showStatus: Boolean = true
+    showStatus: Boolean = true,
 ) {
     val contentStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
     val alignmentRule by rememberAlignmentRule(

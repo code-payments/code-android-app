@@ -35,6 +35,12 @@
     <string name="error_title_failedToLeaveRoom">Something Went Wrong</string>
     <string name="error_description_failedToLeaveRoom">You were unable to leave the room at this time. Please try again later.</string>
 
+    <string name="error_title_failedToDeleteMessage">Something Went Wrong</string>
+    <string name="error_description_failedToDeleteMessage">This message could not be deleted. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToRemoveUser">Something Went Wrong</string>
+    <string name="error_description_failedToRemoveUser">This user could not be removed. Please check your network connection and try again</string>
+
 
     <string name="prompt_title_revealIdentity">Reveal your identity?</string>
     <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
@@ -55,6 +61,14 @@
     <string name="title_leaveRoom">Leave Room?</string>
     <string name="subtitle_leaveRoom">We won\'t tell people you left.</string>
     <string name="action_leaveRoomByName">Leave %1$s</string>
+
+    <string name="title_deleteMessage">Delete Message?</string>
+    <string name="subtitle_deleteMessage">Their messages will be deleted for everyone</string>
+    <string name="action_delete">Delete</string>
+
+    <string name="title_removeUserFromRoom">Remove %1$s?</string>
+    <string name="subtitle_removeUserFromRoom">They will be able to rejoin after waiting an hour, but will have to pay the cover charge again.</string>
+    <string name="action_remove">Remove</string>
 
     <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
 

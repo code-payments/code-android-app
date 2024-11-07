@@ -1,14 +1,18 @@
 package com.getcode.oct24.data
 
 import com.getcode.model.ID
-import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.ChatType
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class RoomWithMembers(
+data class RoomWithMemberCount(
     val room: Room,
     val members: Int
+)
+
+data class RoomWithMembers(
+    val room: Room,
+    val members: List<Member>
 )
 
 @Serializable

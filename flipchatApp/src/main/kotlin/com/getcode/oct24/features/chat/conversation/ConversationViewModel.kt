@@ -2,6 +2,8 @@
 
 package com.flipchat.features.chat.conversation
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.compose.foundation.text2.input.clearText
@@ -10,10 +12,13 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
 import androidx.paging.map
+import com.getcode.manager.BottomBarManager
+import com.getcode.manager.TopBarManager
 import com.getcode.model.ConversationCashFeature
 import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
 import com.getcode.model.uuid
@@ -21,14 +26,20 @@ import com.getcode.navigation.RoomInfoArgs
 import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.FeatureRepository
+import com.getcode.oct24.R
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
 import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
+import com.getcode.oct24.features.login.register.onError
 import com.getcode.oct24.network.controllers.RoomController
 import com.getcode.oct24.user.UserManager
 import com.getcode.payments.PaymentController
+import com.getcode.ui.components.chat.messagecontents.MessageControlAction
+import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
+import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
@@ -38,7 +49,6 @@ import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -64,8 +74,10 @@ class ConversationViewModel @Inject constructor(
     features: FeatureRepository,
     tipController: TipController,
     exchange: Exchange,
-    resources: ResourceHelper,
+    private val resources: ResourceHelper,
+    clipboardManager: ClipboardManager,
     paymentController: PaymentController,
+    currencyUtils: CurrencyUtils,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -80,22 +92,12 @@ class ConversationViewModel @Inject constructor(
         val tipChatCash: Feature,
         val identityAvailable: Boolean,
         val title: String,
-        val users: List<User>,
         val lastSeen: Instant?,
         val pointers: Map<UUID, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
         val roomInfoArgs: RoomInfoArgs,
     ) {
-        data class User(
-            val memberId: ID,
-            val displayName: String?,
-            val imageUrl: String?,
-        ) {
-            val isRevealed: Boolean
-                get() = displayName != null
-        }
-
         companion object {
             val Default = State(
                 costToChat = KinAmount.Zero,
@@ -105,7 +107,6 @@ class ConversationViewModel @Inject constructor(
                 tipChatCash = ConversationCashFeature(),
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
-                users = emptyList(),
                 title = "",
                 lastSeen = null,
                 pointers = emptyMap(),
@@ -117,18 +118,11 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnSelfIdChanged(val id: ID?): Event
+        data class OnSelfIdChanged(val id: ID?) : Event
         data class OnCostToChatChanged(val cost: KinAmount) : Event
-        data class OnMembersChanged(val members: List<State.User>) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
-
-        data class OnUserRevealed(
-            val memberId: ID,
-            val username: String? = null,
-            val imageUrl: String? = null,
-        ) : Event
 
         data class OnTipsChatCashChanged(val module: Feature) : Event
 
@@ -145,11 +139,15 @@ class ConversationViewModel @Inject constructor(
 
         data object PresentPaymentConfirmation : Event
 
-        data object OnTypingStarted: Event
-        data object OnTypingStopped: Event
+        data object OnTypingStarted : Event
+        data object OnTypingStopped : Event
 
-        data object OnUserTypingStarted: Event
-        data object OnUserTypingStopped: Event
+        data class CopyMessage(val text: String) : Event
+        data class DeleteMessage(val conversationId: ID, val messageId: ID) : Event
+        data class RemoveUser(val conversationId: ID, val userId: ID) : Event
+
+        data object OnUserTypingStarted : Event
+        data object OnUserTypingStopped : Event
 
         data class Error(val fatal: Boolean, val message: String = "", val show: Boolean = true) :
             Event
@@ -168,6 +166,12 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.OnChatIdChanged>()
             .map { it.chatId }
             .filterNotNull()
+            .map {
+                // TODO: HACK
+                //  remove this once home stream is returning member updates
+                roomController.getChatMembers(it)
+                it
+            }
             .mapNotNull {
                 retryable(
                     maxRetries = 5,
@@ -299,31 +303,6 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         stateFlow
-            .mapNotNull { it.users }
-            .distinctUntilChanged()
-            .flatMapLatest { users ->
-                users.asFlow() // Convert the list to a flow
-            }
-            .filter { it.displayName != null }
-            .mapNotNull { user ->
-                val username = user.displayName ?: return@mapNotNull null
-                runCatching { tipController.fetch(username) }
-                    .getOrNull() to user
-            }
-            .onEach { (result, user) ->
-                if (result != null) {
-                    dispatchEvent(
-                        Event.OnUserRevealed(
-                            memberId = user.memberId,
-                            result.username,
-                            result.imageUrl
-                        )
-                    )
-                }
-            }
-            .launchIn(viewModelScope)
-
-        stateFlow
             .map { it.conversationId }
             .filterNotNull()
             .distinctUntilChanged()
@@ -364,6 +343,41 @@ class ConversationViewModel @Inject constructor(
             .onEach {
                 roomController.onUserStoppedTypingIn(it)
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.DeleteMessage>()
+            .map { (conversationId, messageId) ->
+                roomController.deleteMessage(conversationId, messageId)
+            }.onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        title = resources.getString(R.string.error_title_failedToDeleteMessage),
+                        message = resources.getString(R.string.error_description_failedToDeleteMessage)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.RemoveUser>()
+            .map { (conversationId, userId) ->
+                roomController.removeUser(conversationId, userId)
+            }.onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        title = resources.getString(R.string.error_title_failedToRemoveUser),
+                        message = resources.getString(R.string.error_description_failedToRemoveUser)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CopyMessage>()
+            .map { it.text }
+            .onEach {
+                clipboardManager.setPrimaryClip(ClipData.newPlainText("", it))
+            }.launchIn(viewModelScope)
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -372,17 +386,28 @@ class ConversationViewModel @Inject constructor(
         .flatMapLatest { roomController.conversationPagingData(it) }
         .map { page ->
             page.flatMap { mwc ->
-                mwc.contents.map {
-                    ConversationMessageIndice(
-                        mwc.message,
-                        it
+                if (mwc.message.isDeleted) {
+                    listOf(
+                        ConversationMessageIndice(
+                            mwc.message,
+                            mwc.member,
+                            MessageContent.RawText("", mwc.message.senderId == userManager.userId),
+                        )
                     )
+                } else {
+                    mwc.contents.map {
+                        ConversationMessageIndice(
+                            mwc.message,
+                            mwc.member,
+                            it
+                        )
+                    }
                 }
             }
         }
         .map { page ->
             page.map { indice ->
-                val (message, contents) = indice
+                val (message, sender, contents) = indice
 
                 val pointers = stateFlow.value.pointers
                 val pointerRefs = pointers
@@ -398,16 +423,85 @@ class ConversationViewModel @Inject constructor(
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
 
+                // TODO: only if host
+                val selfDefenseActions = mutableListOf<MessageControlAction>().apply {
+                    add(
+                        MessageControlAction.Delete {
+                            confirmMessageDelete(
+                                conversationId = message.conversationId,
+                                messageId = message.id
+                            )
+                        }
+                    )
+                    if (sender?.memberName?.isNotEmpty() == true) {
+                        add(
+                            MessageControlAction.RemoveUser(sender.memberName.orEmpty()) {
+                                confirmUserRemoval(
+                                    conversationId = message.conversationId,
+                                    user = sender.memberName,
+                                    userId = message.senderId
+                                )
+                            }
+                        )
+                    }
+                }
+
                 ChatItem.Message(
                     chatMessageId = message.id,
                     message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
+                    isDeleted = message.isDeleted,
                     isFromSelf = contents.isFromSelf,
+                    senderName = sender?.memberName.takeIf { !contents.isFromSelf },
+                    messageControls = MessageControls(
+                        actions = listOf(
+                            MessageControlAction.Copy {
+                                dispatchEvent(
+                                    Event.CopyMessage(
+                                        contents.localizedText(
+                                            resources = resources,
+                                            currencyUtils = currencyUtils
+                                        )
+                                    )
+                                )
+                            }
+                        ) + selfDefenseActions,
+                    ),
                     key = contents.hashCode() + message.id.hashCode()
                 )
             }
         }
+
+    private fun confirmMessageDelete(conversationId: ID, messageId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_deleteMessage),
+                subtitle = resources.getString(R.string.subtitle_deleteMessage),
+                positiveText = resources.getString(R.string.action_delete),
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.DeleteMessage(conversationId, messageId)) },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserRemoval(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_removeUserFromRoom, user.orEmpty()),
+                subtitle = resources.getString(R.string.subtitle_removeUserFromRoom),
+                positiveText = resources.getString(R.string.action_remove),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.RemoveUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.THEMED,
+                showScrim = true,
+            )
+        )
+    }
 
     override fun onCleared() {
         super.onCleared()
@@ -419,30 +513,22 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnChatIdChanged -> Timber.d("onChatID changed ${event.chatId?.base58}")
                 is Event.OnSelfIdChanged -> Timber.d("onSelfID changed ${event.id?.base58}")
-                else ->  Timber.d("event=${event}")
+                else -> Timber.d("event=${event}")
             }
 
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.nonSelfMembers(state.selfId)
-                    val lastMemberCount = state.users.count()
                     state.copy(
                         conversationId = conversation.id,
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
-                        users = members.map {
-                            State.User(
-                                memberId = it.id,
-                                displayName = it.memberName,
-                                imageUrl = it.imageUri,
-                            )
-                        },
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
                             roomTitle = conversation.title,
-                            memberCount = if (members.isNotEmpty()) members.count() else lastMemberCount
+                            memberCount = members.count(),
                         )
                     )
                 }
@@ -457,10 +543,6 @@ class ConversationViewModel @Inject constructor(
                     state.copy(costToChat = event.cost)
                 }
 
-                is Event.OnMembersChanged -> { state ->
-                    state.copy(users = event.members)
-                }
-
                 is Event.OnPointersUpdated -> { state ->
                     state.copy(pointers = event.pointers)
                 }
@@ -472,6 +554,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnTypingStarted -> { state ->
                     state.copy(showTypingIndicator = true)
                 }
+
                 is Event.OnTypingStopped -> { state ->
                     state.copy(showTypingIndicator = false)
                 }
@@ -479,6 +562,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnUserTypingStarted -> { state ->
                     state.copy(isSelfTyping = true)
                 }
+
                 is Event.OnUserTypingStopped -> { state ->
                     state.copy(isSelfTyping = false)
                 }
@@ -490,23 +574,10 @@ class ConversationViewModel @Inject constructor(
                 Event.SendCash,
                 is Event.MarkRead,
                 is Event.MarkDelivered,
+                is Event.DeleteMessage,
+                is Event.CopyMessage,
+                is Event.RemoveUser,
                 is Event.SendMessage -> { state -> state }
-
-                is Event.OnUserRevealed -> { state ->
-                    val users = state.users
-                    val updatedUsers = users.map {
-                        if (it.memberId == event.memberId) {
-                            it.copy(
-                                displayName = event.username ?: it.displayName,
-                                imageUrl = event.imageUrl ?: it.imageUrl,
-                            )
-                        } else {
-                            it
-                        }
-                    }
-
-                    state.copy(users = updatedUsers)
-                }
 
                 is Event.OnUserActivity -> { state ->
                     state.copy(lastSeen = event.activity)

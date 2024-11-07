@@ -97,10 +97,6 @@ fun AnonymousAvatar(
                         onDrawWithContent {
                             if (gradient != null) {
                                 drawRect(brush = gradient)
-                                drawRect(brush = Brush.radialGradient(
-                                    colors = listOf(Color.White.copy(0.25f), Color.Transparent),
-                                    radius = size.width
-                                ))
                             } else {
                                 drawRect(Color.Transparent)
                             }
@@ -119,25 +115,9 @@ fun AnonymousAvatar(
 @Composable
 fun Preview_Avatars() {
     DesignSystem {
-        val provider = IDPreviewParameterProvider(39)
+        val provider = IDPreviewParameterProvider(40)
         LazyVerticalGrid(columns = GridCells.Fixed(8)) {
-            item {
-                Box(modifier = Modifier.padding(8.dp)) {
-                    val id = "4T7DtS9CEZKVJrBgujQLcjBYnMqZSzZV6CqJewME6zVp".decodeBase58().toList()
-                    AnonymousAvatar(
-                        modifier = Modifier.fillMaxSize(),
-                        data = id,
-                        type = AnonymousRender.Gradient
-                    ) {
-                        Image(
-                            modifier = Modifier.padding(5.dp),
-                            painter = painterResource(R.drawable.ic_chat),
-                            colorFilter = ColorFilter.tint(Color.White),
-                            contentDescription = null,
-                        )
-                    }
-                }
-            }
+
             items(provider.values.toList()) {
                 Box(modifier = Modifier.padding(8.dp)) {
                     AnonymousAvatar(

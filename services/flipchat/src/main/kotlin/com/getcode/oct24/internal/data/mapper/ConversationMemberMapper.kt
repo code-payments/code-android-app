@@ -10,6 +10,7 @@ import javax.inject.Inject
 class ConversationMemberMapper @Inject constructor(): Mapper<Pair<ID, Member>, ConversationMember> {
     override fun map(from: Pair<ID, Member>): ConversationMember {
         val (conversationId, member) = from
+        println("member=$member")
         return ConversationMember(
             memberIdBase58 = member.id.base58,
             conversationIdBase58 = conversationId.base58,

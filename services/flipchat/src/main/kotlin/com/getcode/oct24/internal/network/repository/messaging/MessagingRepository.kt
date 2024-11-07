@@ -14,10 +14,13 @@ interface MessagingRepository {
         queryOptions: QueryOptions = QueryOptions(),
     ): Result<List<ChatMessage>>
     suspend fun sendMessage(chatId: ID, content: OutgoingMessageContent): Result<ChatMessage>
-    suspend fun deleteMessage(chatId: ID, messageId: ID): Result<Unit>
     suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit>
     suspend fun onStartedTyping(chatId: ID): Result<Unit>
     suspend fun onStoppedTyping(chatId: ID): Result<Unit>
     fun openMessageStream(coroutineScope: CoroutineScope, conversation: Conversation)
     fun closeMessageStream()
+
+    // Self Defense Room Controls
+    // Self Defense Room Controls
+    suspend fun deleteMessage(chatId: ID, messageId: ID): Result<Unit>
 }

@@ -102,7 +102,6 @@ class CodePushMessagingService : FirebaseMessagingService(),
                 if (type.isNotifiable()) {
                     val title = titleKey.localizedStringByKey(resources) ?: titleKey
                     val body = messageContent.localizedText(
-                        title = title,
                         resources = resources,
                         currencyUtils = currencyUtils
                     )

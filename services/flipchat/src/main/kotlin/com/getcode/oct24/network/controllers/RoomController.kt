@@ -6,10 +6,14 @@ import androidx.paging.PagingData
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
+import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.model.chat.Conversation
+import com.getcode.oct24.domain.model.chat.ConversationMember
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
+import com.getcode.oct24.domain.model.chat.ConversationMessageWithContentAndMember
 import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
+import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import com.getcode.oct24.internal.network.repository.messaging.MessagingRepository
 import com.getcode.services.model.chat.OutgoingMessageContent
@@ -20,6 +24,7 @@ import javax.inject.Inject
 class RoomController @Inject constructor(
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
+    private val conversationMemberMapper: ConversationMemberMapper,
 ) {
     private val db: FcAppDatabase by lazy { FcAppDatabase.requireInstance() }
 
@@ -29,6 +34,14 @@ class RoomController @Inject constructor(
 
     suspend fun getConversation(identifier: ID): ConversationWithMembersAndLastPointers? {
         return db.conversationDao().findConversation(identifier)
+    }
+
+    suspend fun getChatMembers(identifier: ID) {
+        chatRepository.getChatMembers(ChatIdentifier.Id(identifier))
+            .onSuccess { members ->
+                val mapped = members.map { conversationMemberMapper.map(identifier to it) }
+                db.conversationMembersDao().upsertMembers(*mapped.toTypedArray())
+            }
     }
 
     fun openMessageStream(scope: CoroutineScope, conversation: Conversation) {
@@ -77,18 +90,11 @@ class RoomController @Inject constructor(
             .map { it.id }
     }
 
-    suspend fun deleteMessage(conversationId: ID, messageId: ID): Result<Unit> {
-        return messagingRepository.deleteMessage(conversationId, messageId)
-            .onSuccess {
-                db.conversationMessageDao().markDeletedAndRemoveContents(messageId)
-            }
-    }
-
     private val pagingConfig = PagingConfig(pageSize = 20)
     private fun conversationPagingSource(conversationId: ID) =
         db.conversationMessageDao().observeConversationMessages(conversationId)
 
-    fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessageWithContent>> {
+    fun conversationPagingData(conversationId: ID): Flow<PagingData<ConversationMessageWithContentAndMember>> {
         return Pager(
             config = pagingConfig,
             initialKey = null,
@@ -113,6 +119,26 @@ class RoomController @Inject constructor(
                 db.conversationDao().deleteConversationById(conversationId)
                 db.conversationPointersDao().deletePointerForConversation(conversationId)
                 db.conversationMessageDao().removeForConversation(conversationId)
+            }
+    }
+
+    suspend fun deleteMessage(
+        conversationId: ID,
+        messageId: ID,
+    ): Result<Unit> {
+        return messagingRepository.deleteMessage(conversationId, messageId)
+            .onSuccess {
+                db.conversationMessageDao().markDeletedAndRemoveContents(messageId)
+            }
+    }
+
+    suspend fun removeUser(
+        conversationId: ID,
+        userId: ID
+    ): Result<Unit> {
+        return chatRepository.removeUser(conversationId, userId)
+            .onSuccess {
+                db.conversationMembersDao().removeMemberFromConversation(userId, conversationId)
             }
     }
 }

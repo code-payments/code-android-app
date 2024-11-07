@@ -2,8 +2,9 @@ package com.getcode.oct24.internal.network.repository.chat
 
 import com.getcode.model.ID
 import com.getcode.oct24.data.ChatIdentifier
+import com.getcode.oct24.data.Member
 import com.getcode.oct24.data.Room
-import com.getcode.oct24.data.RoomWithMembers
+import com.getcode.oct24.data.RoomWithMemberCount
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.mapper.ConversationMessageWithContentMapper
@@ -13,6 +14,7 @@ import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.data.mapper.LastMessageMapper
 import com.getcode.oct24.internal.data.mapper.MemberUpdateMapper
 import com.getcode.oct24.internal.data.mapper.MetadataRoomMapper
+import com.getcode.oct24.internal.data.mapper.RoomWithMemberCountMapper
 import com.getcode.oct24.internal.data.mapper.RoomWithMembersMapper
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.internal.network.model.chat.ChatStreamUpdate
@@ -34,6 +36,7 @@ internal class RealChatRepository @Inject constructor(
     private val userManager: UserManager,
     private val service: ChatService,
     private val roomMapper: MetadataRoomMapper,
+    private val roomWithMemberCountMapper: RoomWithMemberCountMapper,
     private val roomWithMembersMapper: RoomWithMembersMapper,
     private val conversationMapper: RoomConversationMapper,
     private val memberUpdateMapper: MemberUpdateMapper,
@@ -55,11 +58,20 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
+    override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMemberCount> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
+
+        return service.getChat(owner, identifier)
+            .map { roomWithMemberCountMapper.map(it) }
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun getChatMembers(identifier: ChatIdentifier): Result<List<Member>> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
 
         return service.getChat(owner, identifier)
             .map { roomWithMembersMapper.map(it) }
+            .map { it.members }
             .onFailure { ErrorUtils.handleError(it) }
     }
 
@@ -71,11 +83,11 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
+    override suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMemberCount> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
 
         return service.joinChat(owner, identifier)
-            .map { roomWithMembersMapper.map(it) }
+            .map { roomWithMemberCountMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }
 
@@ -154,7 +166,8 @@ internal class RealChatRepository @Inject constructor(
                                             )
                                         )
                                     }
-                                    db.conversationDao().refreshMembers(update.id, members)
+                                    db.conversationMembersDao().refreshMembers(update.id, members)
+                                    db.conversationMembersDao().upsertMembers(*members.toTypedArray())
                                 }
                             }
                         }
@@ -174,5 +187,9 @@ internal class RealChatRepository @Inject constructor(
     override fun closeEventStream() {
         homeStreamReference?.destroy()
         homeStreamReference = null
+    }
+
+    override suspend fun removeUser(conversationId: ID, userId: ID): Result<Unit> {
+        TODO("Not yet implemented")
     }
 }

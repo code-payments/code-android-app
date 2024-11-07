@@ -86,8 +86,14 @@ class RegisterDisplayNameViewModel @Inject constructor(
     }
 }
 
-fun <T> Flow<Result<T>>.onResult(onError: (Throwable) -> Unit = { }, onSuccess: (T) -> Unit): Flow<Result<T>> {
+fun <T> Flow<Result<T>>.onResult(onError: (Throwable) -> Unit = { }, onSuccess: (T) -> Unit = { }): Flow<Result<T>> {
     return this.map {
         it.onSuccess(onSuccess).onFailure(onError)
+    }
+}
+
+fun <T> Flow<Result<T>>.onError(block: (Throwable) -> Unit): Flow<Result<T>> {
+    return this.map {
+        it.onFailure(block)
     }
 }

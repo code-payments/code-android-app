@@ -41,12 +41,6 @@ fun ChatScreen(
             modifier = Modifier.weight(1f),
             listState = listState,
             messages = messages,
-            dispatch = {
-                when (it) {
-                    is MessageListEvent.OpenMessageChat -> dispatch(NotificationCollectionViewModel.Event.OpenMessageChat(it.reference))
-                    is MessageListEvent.AdvancePointer -> Unit // handled on conversation open
-                }
-            }
         )
 
         Row(

@@ -17,7 +17,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ChatMessage(
     val id: ID, // time based UUID in v2
-    val senderId: ID?,
+    val senderId: ID,
     val isFromSelf: Boolean,
     val cursor: Cursor = id,
     val dateMillis: Long,

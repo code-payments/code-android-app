@@ -12,6 +12,7 @@ import com.getcode.oct24.domain.model.chat.ConversationMessageContent
 import com.getcode.oct24.domain.model.chat.ConversationMessageWithContent
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import com.getcode.oct24.domain.model.chat.ConversationMessageWithContentAndMember
 import com.getcode.utils.base58
 
 @Dao
@@ -52,10 +53,16 @@ internal interface ConversationMessageDao {
 
     @RewriteQueriesToDropUnusedColumns
     @Transaction
-    @Query("SELECT * FROM messages JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58 WHERE conversationIdBase58 = :id ORDER BY dateMillis DESC")
-    fun observeConversationMessages(id: String): PagingSource<Int, ConversationMessageWithContent>
+    @Query("""
+        SELECT * FROM messages
+        LEFT JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58
+        LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58
+        WHERE messages.conversationIdBase58 = :id
+        ORDER BY dateMillis DESC
+    """)
+    fun observeConversationMessages(id: String): PagingSource<Int, ConversationMessageWithContentAndMember>
 
-    fun observeConversationMessages(id: ID): PagingSource<Int, ConversationMessageWithContent> {
+    fun observeConversationMessages(id: ID): PagingSource<Int, ConversationMessageWithContentAndMember> {
         return observeConversationMessages(id.base58)
     }
 
