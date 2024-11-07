@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -39,8 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEach
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -53,8 +51,7 @@ import com.flipchat.features.home.TabbedHomeScreen
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.theme.Black10
-import com.getcode.theme.Brand
+import com.getcode.oct24.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.components.AppBarDefaults
@@ -68,7 +65,6 @@ import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.util.formatDateRelatively
-import io.grpc.Status.Code
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -261,14 +257,15 @@ private data class MessageActionContextSheet(val actions: List<MessageControlAct
         Column(
             modifier = Modifier
                 .background(Color(0xFF171921))
-                .padding(vertical = CodeTheme.dimens.inset)
+                .padding(top = CodeTheme.dimens.inset)
+                .navigationBarsPadding()
         ) {
             actions.fastForEachIndexed { index, action ->
                 Text(
                     text = when (action) {
-                        is MessageControlAction.Copy -> "Copy"
-                        is MessageControlAction.Delete -> "Delete"
-                        is MessageControlAction.RemoveUser -> "Remove ${action.name}"
+                        is MessageControlAction.Copy -> stringResource(R.string.action_copyMessage)
+                        is MessageControlAction.Delete -> stringResource(R.string.action_deleteMessage)
+                        is MessageControlAction.RemoveUser -> stringResource(R.string.action_removeUser, action.name)
                     },
                     style = CodeTheme.typography.textMedium,
                     modifier = Modifier

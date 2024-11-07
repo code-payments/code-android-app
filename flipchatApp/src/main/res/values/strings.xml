@@ -72,4 +72,8 @@
 
     <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
 
+    <string name="action_copyMessage">Copy</string>
+    <string name="action_deleteMessage">Delete</string>
+    <string name="action_removeUser">Remove %1$s</string>
+
 </resources>

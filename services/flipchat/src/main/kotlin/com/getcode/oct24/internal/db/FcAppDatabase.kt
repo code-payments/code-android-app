@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.DeleteColumn
+import androidx.room.DeleteTable
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
 import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.getcode.oct24.domain.model.chat.Conversation
 import com.getcode.oct24.domain.model.chat.ConversationMember
 import com.getcode.oct24.domain.model.chat.ConversationMessage
@@ -47,8 +49,9 @@ import java.io.File
         AutoMigration(from = 3, to = 4),
         AutoMigration(from = 4, to = 5),
         AutoMigration(from = 5, to = 6),
+        AutoMigration(from = 6, to = 7, spec = FcAppDatabase.Migration6To7::class),
     ],
-    version = 6,
+    version = 7,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -61,6 +64,12 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     abstract fun conversationPointersDao(): ConversationPointerDao
     abstract fun conversationMessageDao(): ConversationMessageDao
     abstract fun conversationMembersDao(): ConversationMemberDao
+
+    class Migration6To7 : Migration(6, 7), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM members")
+        }
+    }
 
     override fun closeDb() {
         instance?.close()

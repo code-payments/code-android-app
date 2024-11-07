@@ -62,7 +62,7 @@ fun MessageList(
     ) {
         items(
             count = messages.itemCount,
-            key = messages.itemKey { item -> item.key },
+//            key = messages.itemKey { item -> item.key },
             contentType = messages.itemContentType { item ->
                 when (item) {
                     is ChatItem.Date -> "separators"

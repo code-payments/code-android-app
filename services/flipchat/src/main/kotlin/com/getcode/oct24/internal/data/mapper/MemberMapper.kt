@@ -11,7 +11,7 @@ class MemberMapper @Inject constructor(
     private val pointerModelMapper: PointerModelMapper,
 ): Mapper<FlipchatService.Member, Member> {
     override fun map(from: FlipchatService.Member): Member {
-        val memberId = from.userId.toByteArray().toList()
+        val memberId = from.userId.value.toByteArray().toList()
         return Member(
             id = memberId,
             isSelf = from.isSelf,

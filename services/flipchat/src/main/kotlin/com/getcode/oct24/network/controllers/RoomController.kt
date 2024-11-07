@@ -16,7 +16,9 @@ import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointer
 import com.getcode.oct24.internal.data.mapper.ConversationMemberMapper
 import com.getcode.oct24.internal.network.repository.chat.ChatRepository
 import com.getcode.oct24.internal.network.repository.messaging.MessagingRepository
+import com.getcode.oct24.user.UserManager
 import com.getcode.services.model.chat.OutgoingMessageContent
+import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -24,6 +26,7 @@ import javax.inject.Inject
 class RoomController @Inject constructor(
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
+    private val userManager: UserManager,
     private val conversationMemberMapper: ConversationMemberMapper,
 ) {
     private val db: FcAppDatabase by lazy { FcAppDatabase.requireInstance() }

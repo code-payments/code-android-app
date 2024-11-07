@@ -54,9 +54,9 @@ internal interface ConversationMessageDao {
     @RewriteQueriesToDropUnusedColumns
     @Transaction
     @Query("""
-        SELECT * FROM messages
+        SELECT DISTINCT * FROM messages
         LEFT JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58
-        LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58
+        LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 AND messages.conversationIdBase58 = members.conversationIdBase58
         WHERE messages.conversationIdBase58 = :id
         ORDER BY dateMillis DESC
     """)

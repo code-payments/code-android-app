@@ -176,6 +176,7 @@ class ConversationViewModel @Inject constructor(
             .map {
                 // TODO: HACK
                 //  remove this once home stream is returning member updates
+                println("chatId=${it.base58}")
                 roomController.getChatMembers(it)
                 it
             }
@@ -430,7 +431,7 @@ class ConversationViewModel @Inject constructor(
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
 
-                println("hostId=${stateFlow.value.hostId?.base58}, selfId=${userManager.userId?.base58}")
+                println("sender=$sender")
                 val selfDefenseActions = mutableListOf<MessageControlAction>().apply {
                     if (stateFlow.value.isHost) {
                         add(
