@@ -106,7 +106,7 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
 
             instance =
                 Room.databaseBuilder(context, FcAppDatabase::class.java, dbName)
-//                    .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
+                    .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                     .fallbackToDestructiveMigration()
                     .build()
 
