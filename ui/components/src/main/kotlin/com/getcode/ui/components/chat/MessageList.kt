@@ -55,7 +55,6 @@ fun MessageList(
         reverseLayout = true,
 
         contentPadding = PaddingValues(
-            horizontal = CodeTheme.dimens.inset,
             vertical = CodeTheme.dimens.inset,
         ),
         verticalArrangement = verticalArrangement,
