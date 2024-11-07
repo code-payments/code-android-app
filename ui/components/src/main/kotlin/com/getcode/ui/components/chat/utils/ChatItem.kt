@@ -20,6 +20,7 @@ sealed class ChatItem(open val key: Any) {
         val message: MessageContent,
         val senderName: String?,
         val date: Instant,
+        val isFromHost: Boolean = false,
         val isDeleted: Boolean = false,
         val status: MessageStatus,
         val showStatus: Boolean = true,

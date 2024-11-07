@@ -1,7 +1,6 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,23 +8,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.material.Divider
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastForEachIndexed
-import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
@@ -33,17 +21,9 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
 import com.getcode.ui.components.chat.messagecontents.DeletedMessage
 import com.getcode.ui.components.chat.messagecontents.EncryptedContent
-import com.getcode.ui.components.chat.messagecontents.MessageControlAction
-import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.ui.decor.LocalScrimHandler
-import com.getcode.ui.decor.ScrimStateChange
-import com.getcode.ui.utils.keyboardAsState
-import com.getcode.ui.utils.measured
-import com.getcode.ui.window.ShowcaseDropdownMenu
-import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
 
 object MessageNodeDefaults {
@@ -103,6 +83,7 @@ fun MessageNode(
     isDeleted: Boolean,
     date: Instant,
     isFromSelf: Boolean,
+    isFromHost: Boolean,
     senderName: String?,
     status: MessageStatus,
     showStatus: Boolean,
@@ -222,62 +203,6 @@ fun MessageNode(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MessageActionsMenu(
-    actions: List<MessageControlAction>,
-    isVisible: Boolean,
-    message: @Composable () -> Unit,
-    messageSize: DpSize,
-    onDismiss: () -> Unit,
-) {
-    ShowcaseDropdownMenu(
-        modifier = Modifier
-            .background(Color.White)
-            .fillMaxWidth(0.9f),
-        content = {
-            Box(Modifier.fillMaxWidth(0.9f)) {
-                message()
-            }
-        },
-        contentSize = messageSize,
-        spacing = CodeTheme.dimens.grid.x1,
-        expanded = isVisible,
-        onDismissRequest = onDismiss,
-        properties = PopupProperties(
-            focusable = false,
-            dismissOnClickOutside = true,
-            dismissOnBackPress = true,
-        )
-    ) {
-        actions.fastForEachIndexed { index, action ->
-            DropdownMenuItem(
-                onClick = {
-                    onDismiss()
-                    action.onSelect()
-                }
-            ) {
-                Text(
-                    text = when (action) {
-                        is MessageControlAction.Copy -> "Copy"
-                        is MessageControlAction.Delete -> "Delete"
-                        is MessageControlAction.RemoveUser -> "Remove ${action.name}"
-                    },
-                    color = Color.Black,
-                    style = CodeTheme.typography.textMedium,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            if (index < actions.lastIndex) {
-                Divider(
-                    modifier = Modifier.padding(horizontal = CodeTheme.dimens.grid.x2),
-                    color = Color(0xFFD9D9D9)
-                )
             }
         }
     }

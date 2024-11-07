@@ -1,5 +1,6 @@
 package com.getcode.oct24.domain.model.chat
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import com.getcode.model.ID
@@ -16,6 +17,8 @@ data class ConversationMember(
     val conversationIdBase58: String, // Foreign key to `Conversation`
     val memberName: String?, // Other member-specific fields
     val imageUri: String?,
+    @ColumnInfo(defaultValue = "false")
+    val isHost: Boolean,
 ) {
     @Ignore
     val id: ID = Base58.decode(memberIdBase58).toList()

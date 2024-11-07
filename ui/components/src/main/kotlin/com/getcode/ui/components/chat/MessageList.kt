@@ -92,6 +92,7 @@ fun MessageList(
                         contents = item.message,
                         status = item.status,
                         isDeleted = item.isDeleted,
+                        isFromHost = item.isFromHost,
                         isFromSelf = item.isFromSelf,
                         senderName = item.senderName,
                         showStatus = item.showStatus,

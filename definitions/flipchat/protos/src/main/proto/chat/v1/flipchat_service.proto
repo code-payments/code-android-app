@@ -254,6 +254,8 @@ message Member {
     repeated messaging.v1.Pointer pointers = 3 ;
     // If the member is the caller (where applicable), will be set to true.
     bool is_self = 4;
+    // NOTE: We may switch to 'roles' in the future.
+    bool is_host = 5;
 }
 message MemberIdentity {
     // If present, the display name of the user.

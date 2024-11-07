@@ -5,6 +5,7 @@ import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.Member
 import com.getcode.oct24.data.Room
 import com.getcode.oct24.data.RoomWithMemberCount
+import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.domain.model.query.QueryOptions
 import kotlinx.coroutines.CoroutineScope
@@ -15,10 +16,10 @@ interface ChatRepository {
         queryOptions: QueryOptions = QueryOptions()
     ): Result<List<Room>>
 
-    suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMemberCount>
+    suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers>
     suspend fun getChatMembers(identifier: ChatIdentifier): Result<List<Member>>
     suspend fun startChat(type: StartChatRequestType): Result<Room>
-    suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMemberCount>
+    suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMembers>
     suspend fun leaveChat(chatId: ID): Result<Unit>
     suspend fun mute(chatId: ID): Result<Unit>
     suspend fun unmute(chatId: ID): Result<Unit>

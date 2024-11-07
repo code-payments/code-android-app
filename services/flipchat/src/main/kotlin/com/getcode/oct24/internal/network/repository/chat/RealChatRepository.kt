@@ -5,6 +5,7 @@ import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.Member
 import com.getcode.oct24.data.Room
 import com.getcode.oct24.data.RoomWithMemberCount
+import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.domain.mapper.RoomConversationMapper
 import com.getcode.oct24.domain.mapper.ConversationMessageWithContentMapper
@@ -58,11 +59,11 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMemberCount> {
+    override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
 
         return service.getChat(owner, identifier)
-            .map { roomWithMemberCountMapper.map(it) }
+            .map { roomWithMembersMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }
 
@@ -83,11 +84,11 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMemberCount> {
+    override suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No keypair found for owner"))
 
         return service.joinChat(owner, identifier)
-            .map { roomWithMemberCountMapper.map(it) }
+            .map { roomWithMembersMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }
 

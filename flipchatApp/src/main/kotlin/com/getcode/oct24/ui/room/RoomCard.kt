@@ -122,11 +122,13 @@ fun RoomCard(
                         .padding(horizontal = CodeTheme.dimens.grid.x6),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Hosted by ${roomInfo.hostName.let { "???" }}",
-                        style = CodeTheme.typography.textSmall,
-                        color = Color.White.copy(0.80f)
-                    )
+                    if (roomInfo.hostName != null) {
+                        Text(
+                            text = "Hosted by ${roomInfo.hostName}",
+                            style = CodeTheme.typography.textSmall,
+                            color = Color.White.copy(0.80f)
+                        )
+                    }
                     Text(
                         text = "${roomInfo.memberCount} People Inside",
                         style = CodeTheme.typography.textSmall,

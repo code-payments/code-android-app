@@ -452,6 +452,7 @@ class ConversationViewModel @Inject constructor(
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
                     isDeleted = message.isDeleted,
+                    isFromHost = sender?.isHost == true,
                     isFromSelf = contents.isFromSelf,
                     senderName = sender?.memberName.takeIf { !contents.isFromSelf },
                     messageControls = MessageControls(
@@ -519,7 +520,8 @@ class ConversationViewModel @Inject constructor(
             when (event) {
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _, _) = event.conversationWithPointers
-                    val members = event.conversationWithPointers.nonSelfMembers(state.selfId)
+                    val members = event.conversationWithPointers.members
+                    val host = members.firstOrNull { it.isHost }
                     state.copy(
                         conversationId = conversation.id,
                         title = conversation.title,
@@ -528,6 +530,8 @@ class ConversationViewModel @Inject constructor(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
                             roomTitle = conversation.title,
+                            hostId = host?.id,
+                            hostName = host?.memberName,
                             memberCount = members.count(),
                         )
                     )

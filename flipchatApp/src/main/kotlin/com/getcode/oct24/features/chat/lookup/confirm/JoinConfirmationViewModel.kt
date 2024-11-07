@@ -77,7 +77,8 @@ class JoinConfirmationViewModel @Inject constructor(
                             id = args.roomId,
                             title = args.roomTitle.orEmpty(),
                             number = args.roomNumber,
-                            memberCount = args.memberCount
+                            memberCount = args.memberCount,
+                            hostName = args.hostName,
                         ),
                     )
                 }

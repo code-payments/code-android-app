@@ -11,6 +11,7 @@ import com.getcode.model.ID
 import com.getcode.oct24.data.ChatIdentifier
 import com.getcode.oct24.data.Room
 import com.getcode.oct24.data.RoomWithMemberCount
+import com.getcode.oct24.data.RoomWithMembers
 import com.getcode.oct24.data.StartChatRequestType
 import com.getcode.oct24.internal.db.FcAppDatabase
 import com.getcode.oct24.domain.mapper.RoomConversationMapper
@@ -50,7 +51,7 @@ class ChatsController @Inject constructor(
         }
     }
 
-    suspend fun lookupRoom(roomNumber: Long): Result<RoomWithMemberCount> {
+    suspend fun lookupRoom(roomNumber: Long): Result<RoomWithMembers> {
         return repository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
     }
 
@@ -71,14 +72,14 @@ class ChatsController @Inject constructor(
             }
     }
 
-    suspend fun joinRoom(roomId: ID): Result<RoomWithMemberCount> {
+    suspend fun joinRoom(roomId: ID): Result<RoomWithMembers> {
         return repository.joinChat(ChatIdentifier.Id(roomId))
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))
             }
     }
 
-    suspend fun joinRoom(roomNumber: Long): Result<RoomWithMemberCount> {
+    suspend fun joinRoom(roomNumber: Long): Result<RoomWithMembers> {
         return repository.joinChat(ChatIdentifier.RoomNumber(roomNumber))
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))

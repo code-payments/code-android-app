@@ -3,7 +3,6 @@ package com.getcode.oct24.data
 import androidx.compose.ui.graphics.Color
 import com.getcode.model.ID
 import com.getcode.ui.utils.generateComplementaryColorPalette
-import com.getcode.utils.sha512
 
 data class RoomInfo(
     val id: ID? = null,
