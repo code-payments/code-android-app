@@ -105,18 +105,15 @@ class LookupRoomViewModel @Inject constructor(
                     dispatchEvent(Event.OnLookingUpRoom(false))
                     dispatchEvent(Event.OnRoomFound)
 
-                    val host = it.members.firstOrNull { it.isHost }
-                    val selfId = userManager.userId
-                    val selfName = userManager.displayName
+                    val host = it.members.firstOrNull { m -> m.isHost }
 
-                    val (hostId, hostName) = (host?.id ?: selfId) to (host?.identity?.displayName ?: selfName)
                     val confirmJoinArgs = RoomInfoArgs(
                         roomId = it.room.id,
                         roomTitle = it.room.titleOrFallback(resources),
                         roomNumber = it.room.roomNumber,
                         memberCount = it.members.count(),
-                        hostId = hostId,
-                        hostName = hostName,
+                        hostId = host?.id,
+                        hostName = host?.identity?.displayName,
                     )
                     dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
                 }

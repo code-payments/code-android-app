@@ -173,13 +173,9 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.OnChatIdChanged>()
             .map { it.chatId }
             .filterNotNull()
-            .map {
-                // TODO: HACK
-                //  remove this once home stream is returning member updates
-                println("chatId=${it.base58}")
-                roomController.getChatMembers(it)
-                it
-            }
+            // TODO: HACK
+            //  remove this once home stream is returning member updates
+            .onEach { roomController.getChatMembers(it) }
             .mapNotNull {
                 retryable(
                     maxRetries = 5,
@@ -431,7 +427,6 @@ class ConversationViewModel @Inject constructor(
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
 
-                println("sender=$sender")
                 val selfDefenseActions = mutableListOf<MessageControlAction>().apply {
                     if (stateFlow.value.isHost) {
                         add(
@@ -532,19 +527,18 @@ class ConversationViewModel @Inject constructor(
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
-                    val hostId = host?.id ?: state.selfId // no host member implies we are the host
-                    val hostName = host?.memberName ?: state.selfName // no host member implies we are the host
+
                     state.copy(
                         conversationId = conversation.id,
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
-                        hostId = hostId,
+                        hostId = host?.id,
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
                             roomTitle = conversation.title,
-                            hostId = hostId,
-                            hostName = hostName,
+                            hostId = host?.id,
+                            hostName = host?.memberName,
                             memberCount = members.count(),
                         )
                     )

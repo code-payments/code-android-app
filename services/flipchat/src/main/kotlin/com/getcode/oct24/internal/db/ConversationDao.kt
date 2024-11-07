@@ -37,7 +37,15 @@ internal interface ConversationDao {
     fun observeConversations(): PagingSource<Int, ConversationWithMembersAndLastMessage>
 
     @RewriteQueriesToDropUnusedColumns
-    @Query("SELECT * FROM conversations WHERE idBase58 = :id")
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM conversations AS c
+        LEFT JOIN members AS m ON c.idBase58 = m.conversationIdBase58
+        LEFT JOIN conversation_pointers AS p ON c.idBase58 = p.conversationIdBase58
+        WHERE c.idBase58 = :id
+    """
+    )
     fun observeConversation(id: String): Flow<ConversationWithMembersAndLastPointers?>
 
     fun observeConversation(id: ID): Flow<ConversationWithMembersAndLastPointers?> {
