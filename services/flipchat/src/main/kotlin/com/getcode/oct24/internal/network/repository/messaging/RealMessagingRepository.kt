@@ -52,8 +52,7 @@ internal class RealMessagingRepository @Inject constructor(
     }
 
     override suspend fun deleteMessage(chatId: ID, messageId: ID): Result<Unit> {
-        delay(300)
-        return Result.success(Unit)
+        return Result.failure(NotImplementedError())
     }
 
     override suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit> {

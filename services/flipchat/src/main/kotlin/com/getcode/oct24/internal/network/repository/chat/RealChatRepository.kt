@@ -191,6 +191,6 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun removeUser(conversationId: ID, userId: ID): Result<Unit> {
-        TODO("Not yet implemented")
+        return Result.failure(NotImplementedError())
     }
 }

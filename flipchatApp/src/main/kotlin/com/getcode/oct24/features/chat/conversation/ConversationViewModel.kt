@@ -437,7 +437,7 @@ class ConversationViewModel @Inject constructor(
                                 )
                             }
                         )
-                        if (sender?.memberName?.isNotEmpty() == true) {
+                        if (sender?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
                             add(
                                 MessageControlAction.RemoveUser(sender.memberName.orEmpty()) {
                                     confirmUserRemoval(
