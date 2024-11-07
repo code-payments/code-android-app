@@ -7,6 +7,7 @@ import com.getcode.oct24.R
 import com.getcode.oct24.extensions.titleOrFallback
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
+import com.getcode.oct24.user.UserManager
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -21,6 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
+    userManager: UserManager,
     resources: ResourceHelper,
 ): BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
@@ -104,14 +106,17 @@ class LookupRoomViewModel @Inject constructor(
                     dispatchEvent(Event.OnRoomFound)
 
                     val host = it.members.firstOrNull { it.isHost }
+                    val selfId = userManager.userId
+                    val selfName = userManager.displayName
 
+                    val (hostId, hostName) = (host?.id ?: selfId) to (host?.identity?.displayName ?: selfName)
                     val confirmJoinArgs = RoomInfoArgs(
                         roomId = it.room.id,
                         roomTitle = it.room.titleOrFallback(resources),
                         roomNumber = it.room.roomNumber,
                         memberCount = it.members.count(),
-                        hostId = host?.id,
-                        hostName = host?.identity?.displayName,
+                        hostId = hostId,
+                        hostName = hostName,
                     )
                     dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
                 }

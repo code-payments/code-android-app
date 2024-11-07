@@ -39,7 +39,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -49,6 +48,7 @@ class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val sessionManager: SessionManager,
     private val authController: AuthController,
+    private val profileController: ProfileController,
     private val userManager: UserManager,
     private val exchange: Exchange,
     private val balanceController: BalanceController,
@@ -128,7 +128,7 @@ class AuthManager @Inject constructor(
                     password = it.base58,
                     token = entropyB64
                 )
-
+                userManager.set(displayName = displayName)
                 userManager.set(userId = it)
             }
             .onFailure {
@@ -190,6 +190,11 @@ class AuthManager @Inject constructor(
 //        }
 
         return authController.login()
+            .map { it to profileController.getProfile(it) }
+            .map { (id, profileResult) ->
+                profileResult.onSuccess { userManager.set(displayName = it.displayName) }
+                id
+            }
             .onSuccess {
                 userManager.set(userId = it)
             }

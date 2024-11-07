@@ -12,7 +12,6 @@ class MemberMapper @Inject constructor(
 ): Mapper<FlipchatService.Member, Member> {
     override fun map(from: FlipchatService.Member): Member {
         val memberId = from.userId.toByteArray().toList()
-        println("member mapper=${memberId.base58}, isHost=${from.isHost}, isSelf=${from.isSelf}")
         return Member(
             id = memberId,
             isSelf = from.isSelf,

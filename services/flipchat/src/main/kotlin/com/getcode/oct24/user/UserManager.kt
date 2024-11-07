@@ -21,9 +21,13 @@ class UserManager @Inject constructor() {
     val userId: ID?
         get() = _state.value.userId
 
+    val displayName: String?
+        get() = _state.value.displayName
+
     data class State(
         val keyPair: KeyPair? = null,
         val userId: ID? = null,
+        val displayName: String? = null,
     )
 
     fun set(keyPair: KeyPair) {
@@ -38,9 +42,15 @@ class UserManager @Inject constructor() {
         }
     }
 
-    fun set(keyPair: KeyPair, userId: ID) {
+    fun set(displayName: String) {
         _state.update {
-            it.copy(keyPair = keyPair, userId = userId)
+            it.copy(displayName = displayName)
+        }
+    }
+
+    fun set(keyPair: KeyPair, userId: ID, displayName: String) {
+        _state.update {
+            it.copy(keyPair = keyPair, userId = userId, displayName = displayName)
         }
     }
 

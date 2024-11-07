@@ -57,10 +57,6 @@ data class ConversationWithMembersAndLastPointers(
     )
     val pointersCrossRef: List<ConversationPointerCrossRef>,
 ) {
-    fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
-        return members.filterNot { it.memberIdBase58 != selfId?.base58 }
-    }
-
     val pointers: Map<UUID, MessageStatus>
         get() {
             return pointersCrossRef

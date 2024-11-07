@@ -85,6 +85,8 @@ class ConversationViewModel @Inject constructor(
 
     data class State(
         val selfId: ID?,
+        val selfName: String?,
+        val hostId: ID?,
         val conversationId: ID?,
         val costToChat: KinAmount,
         val reference: Reference.IntentId?,
@@ -98,10 +100,15 @@ class ConversationViewModel @Inject constructor(
         val isSelfTyping: Boolean,
         val roomInfoArgs: RoomInfoArgs,
     ) {
+        val isHost: Boolean
+            get() = selfId != null && hostId != null && selfId == hostId
+
         companion object {
             val Default = State(
                 costToChat = KinAmount.Zero,
                 selfId = null,
+                selfName = null,
+                hostId = null,
                 conversationId = null,
                 reference = null,
                 tipChatCash = ConversationCashFeature(),
@@ -118,7 +125,7 @@ class ConversationViewModel @Inject constructor(
     }
 
     sealed interface Event {
-        data class OnSelfIdChanged(val id: ID?) : Event
+        data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
         data class OnCostToChatChanged(val cost: KinAmount) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
@@ -155,10 +162,10 @@ class ConversationViewModel @Inject constructor(
 
     init {
         userManager.state
-            .map { it.userId }
+            .map { it.userId to it.displayName }
             .distinctUntilChanged()
-            .onEach {
-                dispatchEvent(Event.OnSelfIdChanged(it))
+            .onEach { (id, displayName) ->
+                dispatchEvent(Event.OnSelfChanged(id, displayName))
             }.launchIn(viewModelScope)
 
         // this is an existing conversation so we fetch the chat directly
@@ -423,26 +430,28 @@ class ConversationViewModel @Inject constructor(
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
 
-                // TODO: only if host
+                println("hostId=${stateFlow.value.hostId?.base58}, selfId=${userManager.userId?.base58}")
                 val selfDefenseActions = mutableListOf<MessageControlAction>().apply {
-                    add(
-                        MessageControlAction.Delete {
-                            confirmMessageDelete(
-                                conversationId = message.conversationId,
-                                messageId = message.id
-                            )
-                        }
-                    )
-                    if (sender?.memberName?.isNotEmpty() == true) {
+                    if (stateFlow.value.isHost) {
                         add(
-                            MessageControlAction.RemoveUser(sender.memberName.orEmpty()) {
-                                confirmUserRemoval(
+                            MessageControlAction.Delete {
+                                confirmMessageDelete(
                                     conversationId = message.conversationId,
-                                    user = sender.memberName,
-                                    userId = message.senderId
+                                    messageId = message.id
                                 )
                             }
                         )
+                        if (sender?.memberName?.isNotEmpty() == true) {
+                            add(
+                                MessageControlAction.RemoveUser(sender.memberName.orEmpty()) {
+                                    confirmUserRemoval(
+                                        conversationId = message.conversationId,
+                                        user = sender.memberName,
+                                        userId = message.senderId
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -513,7 +522,7 @@ class ConversationViewModel @Inject constructor(
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnChatIdChanged -> Timber.d("onChatID changed ${event.chatId?.base58}")
-                is Event.OnSelfIdChanged -> Timber.d("onSelfID changed ${event.id?.base58}")
+                is Event.OnSelfChanged -> Timber.d("onSelf changed ${event.id?.base58}")
                 else -> Timber.d("event=${event}")
             }
 
@@ -522,16 +531,19 @@ class ConversationViewModel @Inject constructor(
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
+                    val hostId = host?.id ?: state.selfId // no host member implies we are the host
+                    val hostName = host?.memberName ?: state.selfName // no host member implies we are the host
                     state.copy(
                         conversationId = conversation.id,
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
+                        hostId = hostId,
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
                             roomTitle = conversation.title,
-                            hostId = host?.id,
-                            hostName = host?.memberName,
+                            hostId = hostId,
+                            hostName = hostName,
                             memberCount = members.count(),
                         )
                     )
@@ -587,7 +599,7 @@ class ConversationViewModel @Inject constructor(
                     state.copy(lastSeen = event.activity)
                 }
 
-                is Event.OnSelfIdChanged -> { state -> state.copy(selfId = event.id) }
+                is Event.OnSelfChanged -> { state -> state.copy(selfId = event.id, selfName = event.displayName) }
             }
         }
     }
