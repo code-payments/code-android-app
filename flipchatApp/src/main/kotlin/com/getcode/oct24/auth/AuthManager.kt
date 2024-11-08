@@ -263,7 +263,6 @@ class AuthManager @Inject constructor(
         FirebaseMessaging.getInstance().deleteToken()
         analytics.logout()
         sessionManager.clear()
-        Database.close()
         notificationCollectionHistory.reset()
         inMemoryDao.clear()
         Database.delete(context)
