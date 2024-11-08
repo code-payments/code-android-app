@@ -96,6 +96,7 @@ class ConversationViewModel @Inject constructor(
         val identityAvailable: Boolean,
         val title: String,
         val lastSeen: Instant?,
+        val members: Map<ID, Int>,
         val pointers: Map<UUID, MessageStatus>,
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
@@ -118,6 +119,7 @@ class ConversationViewModel @Inject constructor(
                 title = "",
                 lastSeen = null,
                 pointers = emptyMap(),
+                members = emptyMap(),
                 showTypingIndicator = false,
                 isSelfTyping = false,
                 roomInfoArgs = RoomInfoArgs(),
@@ -452,6 +454,15 @@ class ConversationViewModel @Inject constructor(
                     }
                 }
 
+                val countOfName = stateFlow.value.members[member?.id] ?: -1
+                val displayName =  member?.memberName.takeIf { !contents.isFromSelf }?.let {
+                    if (countOfName > 1) {
+                        "$it ($countOfName)"
+                    } else {
+                        it
+                    }
+                }
+
                 ChatItem.Message(
                     chatMessageId = message.id,
                     message = contents,
@@ -461,7 +472,7 @@ class ConversationViewModel @Inject constructor(
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = member?.memberName.takeIf { !contents.isFromSelf },
+                        displayName = displayName,
                         isSelf = contents.isFromSelf,
                         isHost = member?.id == stateFlow.value.hostId && !contents.isFromSelf,
                     ),
@@ -537,6 +548,7 @@ class ConversationViewModel @Inject constructor(
                         conversationId = conversation.id,
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
+                        members = event.conversationWithPointers.membersUnique,
                         hostId = host?.id,
                         roomInfoArgs = RoomInfoArgs(
                             roomId = conversation.id,

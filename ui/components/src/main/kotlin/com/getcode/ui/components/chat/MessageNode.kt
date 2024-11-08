@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -243,21 +242,6 @@ fun MessageNode(
                         painter = painterResource(R.drawable.ic_crown),
                         contentDescription = null,
                         colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
-                    )
-                }
-
-                !sender.isSelf -> {
-                    UserAvatar(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .offset(
-                                x = -(CodeTheme.dimens.grid.x1),
-                                y = -(CodeTheme.dimens.grid.x1)
-                            )
-                            .size(CodeTheme.dimens.staticGrid.x4)
-                            .clip(CircleShape),
-                        data = sender.profileImage ?: sender.id
                     )
                 }
             }

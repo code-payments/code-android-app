@@ -57,6 +57,34 @@ data class ConversationWithMembersAndLastPointers(
     )
     val pointersCrossRef: List<ConversationPointerCrossRef>,
 ) {
+    @Ignore
+    private val nameCounts = members
+        .mapNotNull { it.memberName }
+        .groupingBy { it }
+        .eachCount()
+        .filter { it.value > 1 } // Only keep duplicates
+
+    @Ignore
+    val membersUnique: Map<ID, Int> = nameCounts.let { nameCounts ->
+        val nameSuffixMap = mutableMapOf<String, Int>()
+        members.reversed().associate { member ->
+            val originalName = member.memberName
+            val memberId = member.id
+
+            // Assign a unique suffix if the name is a duplicate
+            val suffix = if (originalName != null && nameCounts.containsKey(originalName)) {
+                // Get the current suffix and increment it for the next use
+                val currentSuffix = nameSuffixMap.getOrPut(originalName) { 1 }
+                nameSuffixMap[originalName] = currentSuffix + 1
+                currentSuffix
+            } else {
+                1 // Default suffix for unique names
+            }
+
+            memberId to suffix
+        }
+    }
+
     val pointers: Map<UUID, MessageStatus>
         get() {
             return pointersCrossRef
