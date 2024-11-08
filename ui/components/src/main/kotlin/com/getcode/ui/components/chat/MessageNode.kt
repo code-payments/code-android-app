@@ -17,14 +17,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.chat.Sender
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.R
 import com.getcode.ui.components.chat.messagecontents.AnnouncementMessage
@@ -33,7 +37,6 @@ import com.getcode.ui.components.chat.messagecontents.EncryptedContent
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.localizedText
-import com.getcode.ui.utils.debugBounds
 import kotlinx.datetime.Instant
 
 object MessageNodeDefaults {
@@ -51,6 +54,9 @@ object MessageNodeDefaults {
             topStart = CornerSize(3.dp),
             bottomStart = CornerSize(3.dp)
         )
+
+    val ContentStyle: TextStyle
+        @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
 }
 
 class MessageNodeScope(
@@ -88,18 +94,17 @@ private fun rememberMessageNodeScope(
 
 @Composable
 fun MessageNode(
-    modifier: Modifier = Modifier,
     contents: MessageContent,
     isDeleted: Boolean,
     date: Instant,
-    isFromSelf: Boolean,
-    isFromHost: Boolean,
-    senderName: String?,
+    sender: Sender,
     status: MessageStatus,
     showStatus: Boolean,
     isPreviousSameMessage: Boolean,
     isNextSameMessage: Boolean,
     isInteractive: Boolean,
+    modifier: Modifier = Modifier,
+    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
     openMessageControls: () -> Unit,
 ) {
     Box(
@@ -114,13 +119,13 @@ fun MessageNode(
                 if (isDeleted) {
                     DeletedMessage(
                         modifier = Modifier.fillMaxWidth(),
-                        isFromSelf = isFromSelf,
+                        isFromSelf = sender.isSelf,
                         date = date,
                     )
                 } else {
                     val contentsWithSender: (String) -> String = { contents: String ->
-                        if (senderName != null) {
-                            "$senderName: $contents"
+                        if (sender.displayName != null) {
+                            "${sender.displayName}: $contents"
                         } else {
                             contents
                         }
@@ -152,9 +157,10 @@ fun MessageNode(
                             MessageText(
                                 modifier = Modifier.fillMaxWidth(),
                                 content = contentsWithSender(contents.localizedText),
+                                contentStyle = contentStyle,
                                 date = date,
                                 status = status,
-                                isFromSelf = isFromSelf,
+                                isFromSelf = sender.isSelf,
                                 showStatus = showStatus,
                                 isInteractive = isInteractive,
                                 showControls = openMessageControls
@@ -185,9 +191,10 @@ fun MessageNode(
                             MessageText(
                                 modifier = Modifier.fillMaxWidth(),
                                 content = contentsWithSender(contents.data),
+                                contentStyle = contentStyle,
                                 date = date,
                                 status = status,
-                                isFromSelf = isFromSelf,
+                                isFromSelf = sender.isSelf,
                                 showStatus = showStatus,
                                 isInteractive = isInteractive,
                                 showControls = openMessageControls
@@ -198,9 +205,10 @@ fun MessageNode(
                             MessageText(
                                 modifier = Modifier.fillMaxWidth(),
                                 content = contentsWithSender(contents.value),
+                                contentStyle = contentStyle,
                                 date = date,
                                 status = status,
-                                isFromSelf = isFromSelf,
+                                isFromSelf = sender.isSelf,
                                 showStatus = showStatus,
                                 isInteractive = isInteractive,
                                 showControls = openMessageControls
@@ -218,19 +226,41 @@ fun MessageNode(
             }
         }
 
-        if (isFromHost) {
-            Image(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(horizontal = CodeTheme.dimens.inset)
-                    .offset(x = -(CodeTheme.dimens.grid.x1), y = -(CodeTheme.dimens.grid.x1))
-                    .size(CodeTheme.dimens.staticGrid.x4)
-                    .background(color = Color(0xFFE9C432), shape = CircleShape)
-                    .padding(4.dp),
-                painter = painterResource(R.drawable.ic_crown),
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
-            )
+        if (!isDeleted) {
+            when {
+                sender.isHost && !sender.isSelf -> {
+                    Image(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .offset(
+                                x = -(CodeTheme.dimens.grid.x1),
+                                y = -(CodeTheme.dimens.grid.x1)
+                            )
+                            .size(CodeTheme.dimens.staticGrid.x4)
+                            .background(color = Color(0xFFE9C432), shape = CircleShape)
+                            .padding(4.dp),
+                        painter = painterResource(R.drawable.ic_crown),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
+                    )
+                }
+
+                !sender.isSelf -> {
+                    UserAvatar(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(horizontal = CodeTheme.dimens.inset)
+                            .offset(
+                                x = -(CodeTheme.dimens.grid.x1),
+                                y = -(CodeTheme.dimens.grid.x1)
+                            )
+                            .size(CodeTheme.dimens.staticGrid.x4)
+                            .clip(CircleShape),
+                        data = sender.profileImage ?: sender.id
+                    )
+                }
+            }
         }
     }
 }

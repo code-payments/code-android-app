@@ -57,6 +57,7 @@ data class MessageControls(
 internal fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
     content: String,
+    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
     isFromSelf: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
@@ -95,6 +96,7 @@ internal fun MessageNodeScope.MessageText(
                     status = status,
                     isFromSelf = isFromSelf,
                     showStatus = showStatus,
+                    contentStyle = contentStyle,
                 )
             }
         }
@@ -167,8 +169,8 @@ internal fun MessageContent(
     status: MessageStatus,
     isFromSelf: Boolean,
     showStatus: Boolean = true,
+    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
 ) {
-    val contentStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = contentStyle,
         maxWidth = maxWidth,

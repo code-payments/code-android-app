@@ -115,4 +115,10 @@ internal interface ConversationMessageDao {
 
     @Query("DELETE FROM messages")
     fun clearMessages()
+
+    @Query("DELETE FROM messages WHERE conversationIdBase58 = :chatId")
+    suspend fun clearMessagesForChat(chatId: String)
+    suspend fun clearMessagesForChat(chatId: ID) {
+        clearMessagesForChat(chatId.base58)
+    }
 }

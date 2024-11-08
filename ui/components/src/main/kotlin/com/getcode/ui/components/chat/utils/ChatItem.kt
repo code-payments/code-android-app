@@ -4,6 +4,7 @@ import com.getcode.model.ID
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
+import com.getcode.model.chat.Sender
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import kotlinx.datetime.Instant
 import java.util.UUID
@@ -18,13 +19,11 @@ sealed class ChatItem(open val key: Any) {
         val id: String = UUID.randomUUID().toString(),
         val chatMessageId: ID,
         val message: MessageContent,
-        val senderName: String?,
+        val sender: Sender,
         val date: Instant,
-        val isFromHost: Boolean = false,
         val isDeleted: Boolean = false,
         val status: MessageStatus,
         val showStatus: Boolean = true,
-        val isFromSelf: Boolean,
         val messageControls: MessageControls = MessageControls(),
         override val key: Any = id
     ) : ChatItem(key)

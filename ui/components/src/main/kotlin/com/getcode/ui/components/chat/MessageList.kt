@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
@@ -32,6 +33,7 @@ fun MessageList(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
     verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
     messages: LazyPagingItems<ChatItem>,
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
@@ -89,11 +91,10 @@ fun MessageList(
                     MessageNode(
                         modifier = Modifier.fillMaxWidth(),
                         contents = item.message,
+                        contentStyle = contentStyle,
                         status = item.status,
                         isDeleted = item.isDeleted,
-                        isFromHost = item.isFromHost,
-                        isFromSelf = item.isFromSelf,
-                        senderName = item.senderName,
+                        sender = item.sender,
                         showStatus = item.showStatus,
                         date = item.date,
                         isPreviousSameMessage = prev == item.chatMessageId,
@@ -130,7 +131,7 @@ private fun List<ChatItem?>.getClosestChat(index: Int): Triple<ID, Boolean, Mess
     if (index !in indices) return null
     val item = this[index]
     return when {
-        item is ChatItem.Message -> Triple(item.chatMessageId, item.isFromSelf, item.status)
+        item is ChatItem.Message -> Triple(item.chatMessageId, item.sender.isSelf, item.status)
         index > 0 -> getClosestChat(index - 1)
         else -> null
     }

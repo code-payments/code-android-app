@@ -36,10 +36,10 @@ import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
 import com.flipchat.features.chat.list.ChatListViewModel
 import com.getcode.manager.BottomBarManager
-import com.getcode.oct24.R
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.oct24.R
 import com.getcode.oct24.features.chat.openChatDirectiveBottomModal
 import com.getcode.oct24.features.settings.SettingsViewModel
 import com.getcode.theme.Black40
@@ -99,8 +99,8 @@ internal object ChatTab : Tab {
                                 .background(color = CodeTheme.colors.tertiary, shape = CircleShape)
                                 .padding(CodeTheme.dimens.grid.x1)
                                 .unboundedClickable {
-                                openChatDirectiveBottomModal(context, viewModel, navigator)
-                            },
+                                    openChatDirectiveBottomModal(context, viewModel, navigator)
+                                },
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             colorFilter = ColorFilter.tint(CodeTheme.colors.onBackground)
@@ -110,7 +110,10 @@ internal object ChatTab : Tab {
                 Navigator(ScreenRegistry.get(NavScreenProvider.Chat.List))
             }
 
-            val scrimAlpha by animateFloatAsState(if (state.showFullscreenSpinner) 1f else 0f, label = "scrim visibility")
+            val scrimAlpha by animateFloatAsState(
+                if (state.showFullscreenSpinner) 1f else 0f,
+                label = "scrim visibility"
+            )
 
             if (state.showFullscreenSpinner) {
                 Box(
@@ -150,7 +153,8 @@ private fun HiddenLogoutButton(modifier: Modifier = Modifier, onLogout: () -> Un
             Modifier.noRippleClickable {
                 debugClickCount++
             }
-        }.addIf(enabledDebug) {
+        }
+        .addIf(enabledDebug) {
             Modifier.unboundedClickable {
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(

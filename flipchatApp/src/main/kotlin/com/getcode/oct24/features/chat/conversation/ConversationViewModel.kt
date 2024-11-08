@@ -21,6 +21,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
+import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.network.TipController
@@ -387,7 +388,7 @@ class ConversationViewModel @Inject constructor(
     val messages: Flow<PagingData<ChatItem>> = stateFlow
         .map { it.conversationId }
         .filterNotNull()
-        .flatMapLatest { roomController.conversationPagingData(it) }
+        .flatMapLatest { roomController.messages(it).flow }
         .map { page ->
             page.flatMap { mwc ->
                 if (mwc.message.isDeleted) {
@@ -411,7 +412,7 @@ class ConversationViewModel @Inject constructor(
         }
         .map { page ->
             page.map { indice ->
-                val (message, sender, contents) = indice
+                val (message, member, contents) = indice
 
                 val pointers = stateFlow.value.pointers
                 val pointerRefs = pointers
@@ -437,12 +438,12 @@ class ConversationViewModel @Inject constructor(
                                 )
                             }
                         )
-                        if (sender?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
+                        if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
                             add(
-                                MessageControlAction.RemoveUser(sender.memberName.orEmpty()) {
+                                MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
                                     confirmUserRemoval(
                                         conversationId = message.conversationId,
-                                        user = sender.memberName,
+                                        user = member.memberName,
                                         userId = message.senderId
                                     )
                                 }
@@ -457,9 +458,13 @@ class ConversationViewModel @Inject constructor(
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
                     isDeleted = message.isDeleted,
-                    isFromHost = sender?.id == stateFlow.value.hostId && !contents.isFromSelf,
-                    isFromSelf = contents.isFromSelf,
-                    senderName = sender?.memberName.takeIf { !contents.isFromSelf },
+                    sender = Sender(
+                        id = message.senderId,
+                        profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
+                        displayName = member?.memberName.takeIf { !contents.isFromSelf },
+                        isSelf = contents.isFromSelf,
+                        isHost = member?.id == stateFlow.value.hostId && !contents.isFromSelf,
+                    ),
                     messageControls = MessageControls(
                         actions = listOf(
                             MessageControlAction.Copy {
