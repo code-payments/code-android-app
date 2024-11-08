@@ -106,6 +106,25 @@ fun AppBarWithTitle(
 @Composable
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
+    title: String = "",
+    titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    startContent: @Composable () -> Unit = { },
+    endContent: @Composable () -> Unit = { },
+) {
+    TopAppBarBase(
+        modifier = modifier.statusBarsPadding(),
+        leftIcon =  startContent,
+        titleRegion = {
+            AppBarDefaults.Title(title)
+        },
+        titleAlignment = titleAlignment,
+        rightContents = endContent
+    )
+}
+
+@Composable
+fun AppBarWithTitle(
+    modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
     titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     contentPadding: PaddingValues = PaddingValues(horizontal = CodeTheme.dimens.grid.x2),

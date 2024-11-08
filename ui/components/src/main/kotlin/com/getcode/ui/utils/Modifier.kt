@@ -53,6 +53,15 @@ inline fun Modifier.addIf(
     }
 }
 
+fun Modifier.noRippleClickable(enabled: Boolean = true, onClick: () -> Unit) = composed {
+    this.clickable(
+        enabled = enabled,
+        indication = null,
+        interactionSource = remember { MutableInteractionSource() },
+        onClick = onClick
+    )
+}
+
 fun Modifier.unboundedClickable(
     enabled: Boolean = true,
     role: Role = Role.Button,
