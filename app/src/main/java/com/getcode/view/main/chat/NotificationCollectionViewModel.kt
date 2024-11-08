@@ -9,6 +9,7 @@ import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.NotificationCollectionEntity
 import com.getcode.model.chat.Reference
+import com.getcode.model.chat.Sender
 import com.getcode.model.chat.Title
 import com.getcode.model.chat.Verb
 import com.getcode.network.NotificationCollectionHistoryController
@@ -163,7 +164,14 @@ class NotificationCollectionViewModel @Inject constructor(
                     message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
                     status = if (message.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
-                    isFromSelf = message.isFromSelf
+                    sender = Sender(
+                        id = null,
+                        displayName = null,
+                        profileImage = null,
+                        isHost = false,
+                        isSelf = message.isFromSelf,
+
+                    )
                 )
             }
         }

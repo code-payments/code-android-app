@@ -6,7 +6,7 @@ import com.bugsnag.android.Bugsnag
 import com.getcode.BuildConfig
 import com.getcode.analytics.AnalyticsService
 import com.getcode.crypt.MnemonicPhrase
-import com.getcode.db.Database
+import com.getcode.db.CodeAppDatabase
 import com.getcode.db.InMemoryDao
 import com.getcode.model.AirdropType
 import com.getcode.services.model.PrefsBool
@@ -21,6 +21,7 @@ import com.getcode.network.repository.PhoneRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.PushRepository
 import com.getcode.network.repository.isMock
+import com.getcode.services.db.Database
 import com.getcode.services.utils.installationId
 import com.getcode.services.utils.makeE164
 import com.getcode.services.utils.token
@@ -102,8 +103,9 @@ class AuthManager @Inject constructor(
         return Single.create {
             softLoginDisabled = true
 
-            if (!Database.isOpen()) {
-                Database.init(context, entropyB64)
+            if (!CodeAppDatabase.isOpen()) {
+                CodeAppDatabase.init(context, entropyB64)
+                Database.register(CodeAppDatabase.requireInstance())
             }
 
             val originalSessionState = SessionManager.authState.value
@@ -135,8 +137,9 @@ class AuthManager @Inject constructor(
         return Single.create {
             if (!isSoftLogin) softLoginDisabled = true
 
-            if (!Database.isOpen()) {
-                Database.init(context, entropyB64)
+            if (!CodeAppDatabase.isOpen()) {
+                CodeAppDatabase.init(context, entropyB64)
+                Database.register(CodeAppDatabase.requireInstance())
             }
 
             val originalSessionState = SessionManager.authState.value
@@ -306,7 +309,6 @@ class AuthManager @Inject constructor(
         FirebaseMessaging.getInstance().deleteToken()
         analytics.logout()
         sessionManager.clear()
-        Database.close()
         notificationCollectionHistory.reset()
         inMemoryDao.clear()
         Database.delete(context)
