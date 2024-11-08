@@ -457,7 +457,7 @@ class ConversationViewModel @Inject constructor(
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
                     isDeleted = message.isDeleted,
-                    isFromHost = sender?.isHost == true && sender.id != stateFlow.value.selfId,
+                    isFromHost = sender?.id == stateFlow.value.hostId && !contents.isFromSelf,
                     isFromSelf = contents.isFromSelf,
                     senderName = sender?.memberName.takeIf { !contents.isFromSelf },
                     messageControls = MessageControls(
