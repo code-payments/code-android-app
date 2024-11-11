@@ -5,6 +5,7 @@ option java_package = "com.codeinc.flipchat.gen.chat.v1";
 option objc_class_prefix = "FCPBChatV1";
 import "common/v1/flipchat.proto";
 import "messaging/v1/model.proto";
+import "google/protobuf/timestamp.proto";
 
 service Chat {
     // StreamChatEvents streams all chat events for the requesting user.
@@ -45,6 +46,11 @@ message StreamChatEventsRequest {
     }
     message Params {
         common.v1.Auth auth = 1;
+        // ts contains the time for stream open.
+        //
+        // It is used primarily as a nonce for auth. Server may reject
+        // timestamps that are too far in the future or past.
+        google.protobuf.Timestamp ts = 2;
     }
 }
 message StreamChatEventsResponse {
@@ -236,6 +242,11 @@ message Metadata {
     bool muteable = 6;
     // Number of (estimated) unread message (from the perspective of the caller).
     uint32 num_unread = 7;
+    // Owner is the owner/creator of the chat.
+    //
+    // This is a super priviledge role, in which there can only be one.
+    // This role is displayed as a 'host' currently.
+    common.v1.UserId owner = 8;
 }
 message Member {
     common.v1.UserId user_id = 1;

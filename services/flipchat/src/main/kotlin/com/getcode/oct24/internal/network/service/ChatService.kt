@@ -359,6 +359,7 @@ internal class ChatService @Inject constructor(
             val request = FlipchatService.StreamChatEventsRequest.newBuilder()
                 .setParams(
                     FlipchatService.StreamChatEventsRequest.Params.newBuilder()
+                        .setTs(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
                         .apply { setAuth(authenticate(owner)) }
                         .build()
                 ).build()
