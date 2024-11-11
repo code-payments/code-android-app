@@ -15,6 +15,7 @@ class RoomConversationMapper @Inject constructor(
     override fun map(from: Room): Conversation {
         return Conversation(
             idBase58 = from.id.base58,
+            ownerIdBase58 = from.ownerId.base58,
             title = from.titleOrFallback(resources),
             imageUri = from.imageData,
             unreadCount = from.unreadCount,

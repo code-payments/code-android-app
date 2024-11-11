@@ -11,6 +11,7 @@ class MetadataRoomMapper @Inject constructor(
     override fun map(from: FlipchatService.Metadata): Room {
         return Room(
             id = from.chatId.value.toByteArray().toList(),
+            ownerId = from.owner.value.toByteArray().toList(),
             _title = from.title.nullIfEmpty(),
             roomNumber = from.roomNumber,
             type = ChatType.entries[from.type.ordinal],

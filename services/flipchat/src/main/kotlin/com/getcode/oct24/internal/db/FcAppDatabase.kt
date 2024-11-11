@@ -50,8 +50,9 @@ import java.io.File
         AutoMigration(from = 4, to = 5),
         AutoMigration(from = 5, to = 6),
         AutoMigration(from = 6, to = 7, spec = FcAppDatabase.Migration6To7::class),
+        AutoMigration(from = 7, to = 8, spec = FcAppDatabase.Migration7To8::class),
     ],
-    version = 7,
+    version = 8,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -68,6 +69,12 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     class Migration6To7 : Migration(6, 7), AutoMigrationSpec {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("DELETE FROM members")
+        }
+    }
+
+    class Migration7To8 : Migration(7, 8), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DELETE FROM conversations")
         }
     }
 

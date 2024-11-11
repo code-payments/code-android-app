@@ -20,6 +20,7 @@ import java.util.UUID
 data class Conversation(
     @PrimaryKey
     val idBase58: String,
+    val ownerIdBase58: String?,
     val title: String,
     @ColumnInfo(defaultValue = "0")
     val roomNumber: Long,
@@ -31,15 +32,8 @@ data class Conversation(
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
 
-    override fun toString(): String {
-        return """
-            {
-            id:${idBase58},
-            title:$title,
-            image: $imageUri
-            }
-        """.trimIndent()
-    }
+    @Ignore
+    val ownerId: ID? = ownerIdBase58?.let { Base58.decode(it).toList() }
 }
 
 @Serializable
