@@ -43,6 +43,12 @@ class AccountApi @Inject constructor(
             .subscribeOn(scheduler)
     }
 
+    fun getTokenAccountInfosFlow(request: AccountService.GetTokenAccountInfosRequest): Flow<AccountService.GetTokenAccountInfosResponse> {
+        return api::getTokenAccountInfos
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
     fun linkAdditionalAccounts(owner: KeyPair, linkedAccount: KeyPair): Flow<LinkAdditionalAccountsResponse> {
         val request = LinkAdditionalAccountsRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())

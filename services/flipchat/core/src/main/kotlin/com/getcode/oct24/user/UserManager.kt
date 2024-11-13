@@ -2,6 +2,7 @@ package com.getcode.oct24.user
 
 import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
+import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.solana.organizer.Organizer
@@ -14,7 +15,8 @@ import javax.inject.Singleton
 
 @Singleton
 class UserManager @Inject constructor(
-    private val mnemonicManager: MnemonicManager
+    private val mnemonicManager: MnemonicManager,
+    private val organizerGenerator: OrganizerGenerator,
 ) {
     private val _state: MutableStateFlow<State> = MutableStateFlow(State())
     val state: StateFlow<State>
@@ -46,8 +48,9 @@ class UserManager @Inject constructor(
     fun establish(entropy: String) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
+        val organizer = organizerGenerator.generate(mnemonic)
         _state.update {
-            it.copy(entropy = entropy, keyPair = authority.keyPair)
+            it.copy(entropy = entropy, keyPair = authority.keyPair, organizer = organizer)
         }
     }
 

@@ -9,8 +9,6 @@ import com.flipchat.features.home.TabbedHomeScreen
 import com.flipchat.features.login.LoginScreen
 import com.flipchat.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
-import com.getcode.navigation.extensions.getActivityScopedViewModel
-import com.getcode.oct24.TopLevelViewModel
 import com.getcode.oct24.features.chat.info.ChatInfoScreen
 import com.getcode.oct24.features.chat.lookup.LookupRoomScreen
 import com.getcode.oct24.features.chat.lookup.confirm.JoinConfirmationScreen
@@ -72,8 +70,5 @@ fun AppScreenContent(content: @Composable () -> Unit) {
             SettingsScreen
         }
     }
-
-    getActivityScopedViewModel<TopLevelViewModel>()
-
     content()
 }

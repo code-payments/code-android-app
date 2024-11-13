@@ -59,6 +59,7 @@ data object TabbedHomeScreen : Screen, Parcelable {
                 when (event) {
                     Lifecycle.Event.ON_START -> {
                         viewModel.openStream()
+                        viewModel.requestAirdrop()
                     }
                     Lifecycle.Event.ON_STOP -> {
                         viewModel.closeStream()

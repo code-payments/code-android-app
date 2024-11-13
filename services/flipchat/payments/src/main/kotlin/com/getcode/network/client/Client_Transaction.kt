@@ -180,42 +180,6 @@ fun Client.receiveRemote(giftCard: GiftCardAccount): Single<KinAmount> {
         }
 }
 
-suspend fun Client.receiveRemoteSuspend(giftCard: GiftCardAccount): KinAmount =
-    withContext(Dispatchers.IO) {
-        // Before we can receive from the gift card account
-        // we have to determine the balance of the account
-
-        val information =
-            accountRepository.getTokenAccountInfosSuspend(giftCard.cluster.authority.keyPair)
-
-        val info: AccountInfo = information.values.firstOrNull()
-            ?: throw RemoteSendException.FailedToFetchGiftCardInfoException()
-
-        val kinAmount = info.originalKinAmount
-            ?: throw RemoteSendException.GiftCardBalanceNotFoundException()
-
-        if (info.claimState == AccountInfo.ClaimState.Claimed) {
-            throw RemoteSendException.GiftCardClaimedException()
-        }
-
-        if (info.claimState == AccountInfo.ClaimState.Claimed || info.claimState == AccountInfo.ClaimState.Unknown) {
-            throw RemoteSendException.GiftCardExpiredException()
-        }
-
-        val organizer = SessionManager.getOrganizer()!!
-
-        transactionReceiver.receiveRemotelySuspend(
-            giftCard = giftCard,
-            amount = info.balance,
-            organizer = organizer,
-            isVoiding = false
-        )
-
-        balanceController.getBalance()
-
-        return@withContext kinAmount
-    }
-
 @SuppressLint("CheckResult")
 suspend fun Client.cancelRemoteSend(
     giftCard: GiftCardAccount,

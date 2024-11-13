@@ -3,11 +3,11 @@ package com.getcode.model.extensions
 import com.getcode.crypt.Sha256Hash
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
+import com.getcode.solana.builder.vmTimeAuthority
 import com.getcode.solana.instructions.programs.*
 import com.getcode.solana.keys.Hash
 import com.getcode.solana.keys.Key32.Companion.splitter
 import com.getcode.solana.keys.Key32.Companion.subsidizer
-import com.getcode.solana.keys.Key32.Companion.timeAuthority
 import com.getcode.solana.keys.ProgramDerivedAccount
 import com.getcode.solana.keys.PublicKey
 import org.kin.sdk.base.tools.longToByteArray
@@ -28,7 +28,7 @@ fun PublicKey.Companion.deriveTimelockStateAccount(
     val seeds: List<ByteArray> = listOf(
         "timelock_state".toByteArray(Charsets.UTF_8),
         kin.bytes.toByteArray(),
-        timeAuthority.bytes.toByteArray(),
+        vmTimeAuthority.bytes.toByteArray(),
         owner.bytes.toByteArray(),
         byteArrayOf(lockout.toByte())
     )

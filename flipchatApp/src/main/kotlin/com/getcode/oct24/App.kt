@@ -12,14 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import com.flipchat.features.payments.PaymentScaffold
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
 import com.getcode.oct24.theme.FlipchatTheme
 import com.getcode.oct24.ui.navigation.AppScreenContent
@@ -30,7 +28,6 @@ import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
 import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.RepeatOnLifecycle
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
 
@@ -38,12 +35,6 @@ import dev.bmcreations.tipkit.engines.TipsEngine
 fun App(
     tipsEngine: TipsEngine,
 ) {
-    val viewModel = getActivityScopedViewModel<TopLevelViewModel>()
-
-    RepeatOnLifecycle(targetState = Lifecycle.State.RESUMED) {
-        viewModel.requestAirdrop()
-    }
-
     FlipchatTheme {
         AppScreenContent {
             val barManager = rememberBarManager()

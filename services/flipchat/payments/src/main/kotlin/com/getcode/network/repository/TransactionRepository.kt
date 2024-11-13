@@ -131,12 +131,11 @@ class TransactionRepository @Inject constructor(
                 actionGroup = ActionGroup(),
                 organizer = organizer
             ) as IntentType
-        )
-            .delay(1, TimeUnit.SECONDS)
+        ).delay(1, TimeUnit.SECONDS)
 
         val createAccounts = IntentCreateAccounts.newInstance(organizer)
 
-        return submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, "")
+        return submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, null)
     }
 
     fun transfer(

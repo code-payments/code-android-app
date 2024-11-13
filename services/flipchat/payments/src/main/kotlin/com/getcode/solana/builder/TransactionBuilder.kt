@@ -12,12 +12,12 @@ import com.getcode.solana.keys.description
 import com.getcode.solana.instructions.programs.*
 import com.getcode.solana.keys.Key32.Companion.mock
 import com.getcode.solana.keys.Key32.Companion.subsidizer
-import com.getcode.solana.keys.Key32.Companion.timeAuthority
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PreSwapStateAccount
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.TimelockDerivedAccounts
 import com.getcode.solana.organizer.AccountCluster
+import com.getcode.vendor.Base58
 import timber.log.Timber
 
 object TransactionBuilder {
@@ -41,7 +41,7 @@ object TransactionBuilder {
                     timelock = timelockDerivedAccounts.state.publicKey,
                     vault = timelockDerivedAccounts.vault.publicKey,
                     vaultOwner = timelockDerivedAccounts.owner,
-                    timeAuthority = timeAuthority,
+                    timeAuthority = vmTimeAuthority,
                     mint = Mint.kin,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
@@ -88,7 +88,7 @@ object TransactionBuilder {
                     timelock = timelockDerivedAccounts.state.publicKey,
                     vault = timelockDerivedAccounts.vault.publicKey,
                     vaultOwner = timelockDerivedAccounts.owner,
-                    timeAuthority = timeAuthority,
+                    timeAuthority = vmTimeAuthority,
                     destination = destination,
                     payer = subsidizer,
                     bump = timelockDerivedAccounts.state.bump.toByte(),
@@ -98,6 +98,7 @@ object TransactionBuilder {
         )
     }
 
+    @Deprecated("No longer exists in VM")
     fun closeDormantAccount(
         authority: PublicKey,
         timelockDerivedAccounts: TimelockDerivedAccounts,
@@ -258,5 +259,6 @@ object TransactionBuilder {
             )
         )
     }
-
 }
+
+val vmTimeAuthority = PublicKey(Base58.decode("f1ipC31qd2u88MjNYp1T4Cc7rnWfM9ivYpTV1Z8FHnD").toList())

@@ -4,11 +4,9 @@ import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionType
-import com.getcode.model.intents.actions.ActionWithdraw
 import com.getcode.model.toPublicKey
-import com.getcode.solana.organizer.AccountType
-import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.keys.PublicKey
+import com.getcode.solana.organizer.Organizer
 
 class IntentCreateAccounts(
     override val id: PublicKey,
@@ -32,17 +30,7 @@ class IntentCreateAccounts(
                         owner = organizer.tray.owner.getCluster().authority.keyPair.publicKeyBytes.toPublicKey(),
                         type = type,
                         accountCluster = cluster
-                    )
-                        .let { this.add(it) }
-
-                    if (type != AccountType.Primary) {
-                        ActionWithdraw.newInstance(
-                            kind = ActionWithdraw.Kind.CloseDormantAccount(type),
-                            cluster = cluster,
-                            destination = organizer.tray.owner.getCluster().vaultPublicKey
-                        )
-                            .let { this.add(it) }
-                    }
+                    ).let { this.add(it) }
                 }
             }
 

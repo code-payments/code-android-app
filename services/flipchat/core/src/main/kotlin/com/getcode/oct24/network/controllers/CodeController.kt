@@ -17,6 +17,10 @@ class CodeController @Inject constructor(
         val owner = storedEcda().algorithm ?: return Result.failure(Throwable("No owner"))
         return transactionRepository.requestFirstKinAirdrop(owner)
     }
+
+    suspend fun fetchBalance(): Result<Unit> {
+        return balanceController.fetchBalance()
+    }
 }
 //class CodeController @Inject constructor(
 //    private val accountInfo: AccountInfoRepository,

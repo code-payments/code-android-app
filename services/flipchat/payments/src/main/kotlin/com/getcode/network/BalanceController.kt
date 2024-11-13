@@ -29,10 +29,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 data class BalanceDisplay(
     val marketValue: Double = 0.0,
@@ -157,36 +159,59 @@ open class BalanceController @Inject constructor(
     }
 
 
-    suspend fun fetchBalance() {
+    suspend fun fetchBalance(): Result<Unit> {
         Timber.d("fetching balance")
-        val owner = storedEcda().algorithm ?: throw IllegalStateException("Missing Owner")
+        val owner = storedEcda().algorithm
+            ?: return Result.failure(IllegalStateException("Missing Owner"))
 
         try {
-            val accountInfo = accountRepository.getTokenAccountInfos(owner).blockingGet()
-            val organizer = organizerLookup() ?: throw IllegalStateException("Missing Organizer")
+            val accountInfoResult = accountRepository.getTokenAccountInfosSuspend(owner)
+            accountInfoResult.exceptionOrNull()?.let {
+                throw it
+            }
+
+            val accountInfo = accountInfoResult.getOrNull().orEmpty()
+            val organizer = organizerLookup()
+                ?: return Result.failure(IllegalStateException("Missing Organizer"))
+
 
             organizer.setAccountInfo(accountInfo)
             onOrganizerUpdated(organizer)
             balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
             transactionReceiver.receiveFromIncoming(organizer)
-            transactionRepository.swapIfNeeded(organizer)
+            scope.launch {
+                transactionRepository.swapIfNeeded(organizer)
+            }
+
+            return Result.success(Unit)
         } catch (ex: Exception) {
             Timber.i("Error: ${ex.javaClass.simpleName} ${ex.message}")
-            val organizer = organizerLookup() ?: throw IllegalStateException("Missing Organizer")
+            val organizer = organizerLookup()
+                ?: return Result.failure(IllegalStateException("Missing Organizer"))
 
-            when (ex) {
-                is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
-                    val amountToMigrate = ex.accountInfo.balance
-                    privacyMigration.migrateToPrivacy(
-                        amountToMigrate = amountToMigrate,
-                        organizer = organizer
-                    )
-                }
+            return suspendCancellableCoroutine { cont ->
+                when (ex) {
+                    is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
+                        val amountToMigrate = ex.accountInfo.balance
+                        privacyMigration.migrateToPrivacy(
+                            amountToMigrate = amountToMigrate,
+                            organizer = organizer
+                        ).doOnError { cont.resume(Result.failure(it)) }
+                            .doAfterSuccess { cont.resume(Result.success(Unit)) }
+                            .subscribe()
+                    }
 
-                is AccountRepository.FetchAccountInfosException.NotFoundException -> {
-                    transactionRepository.createAccounts(
-                        organizer = organizer
-                    )
+                    is AccountRepository.FetchAccountInfosException.NotFoundException -> {
+                        println("account not found")
+                        transactionRepository.createAccounts(
+                            organizer = organizer
+                        ).doOnError { cont.resume(Result.failure(it)) }
+                            .doAfterSuccess { cont.resume(Result.success(Unit)) }
+                            .subscribe()
+                    }
+                    else -> {
+                        cont.resume(Result.failure(ex))
+                    }
                 }
             }
         }

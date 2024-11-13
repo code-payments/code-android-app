@@ -5,5 +5,5 @@ import com.getcode.services.ChannelConfig
 
 internal data class FcChatConfig(
     override val baseUrl: String = "chat.api.flipchat-infra.xyz",
-    override val userAgent: String = "Flipchat/Android/${BuildConfig.VERSION_NAME}",
+    override val userAgent: String = "Flipchat/Chat/Android/${BuildConfig.VERSION_NAME}",
 ): ChannelConfig

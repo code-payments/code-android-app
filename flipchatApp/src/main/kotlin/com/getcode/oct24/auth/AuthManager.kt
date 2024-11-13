@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.ed25519.Ed25519
+import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
 import com.getcode.oct24.BuildConfig
 import com.getcode.oct24.FlipchatServices
