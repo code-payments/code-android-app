@@ -2,11 +2,11 @@ package com.getcode.network.repository
 
 import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.IntentMetadata
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
+import com.getcode.services.model.Kind
 import com.getcode.model.toPublicKey
 import com.getcode.network.client.Client
 import com.getcode.network.client.pollIntentMetadata

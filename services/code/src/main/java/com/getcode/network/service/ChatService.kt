@@ -1,7 +1,6 @@
 package com.getcode.network.service
 
 import com.codeinc.gen.chat.v1.ChatService
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.mapper.ChatMessageMapper
 import com.getcode.mapper.ChatMetadataMapper
@@ -12,7 +11,7 @@ import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.description
 import com.getcode.network.api.ChatApi
-import com.getcode.network.core.NetworkOracle
+import com.getcode.services.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -27,7 +26,7 @@ class ChatService @Inject constructor(
     private val api: ChatApi,
     private val chatMapper: ChatMetadataMapper,
     private val messageMapper: ChatMessageMapper,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle,
+    private val networkOracle: NetworkOracle,
 ) {
     private fun observeChats(owner: KeyPair): Flow<Result<List<Chat>>> {
         return networkOracle.managedRequest(api.fetchChats(owner))

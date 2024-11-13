@@ -7,7 +7,7 @@ import com.getcode.navigation.RoomInfoArgs
 import com.getcode.oct24.R
 import com.getcode.oct24.data.RoomInfo
 import com.getcode.oct24.features.login.register.onResult
-import com.getcode.oct24.network.controllers.RoomController
+import com.getcode.oct24.chat.RoomController
 import com.getcode.oct24.user.UserManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2

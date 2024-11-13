@@ -1,13 +1,12 @@
 package com.getcode.network.repository
 
 import com.codeinc.gen.phone.v1.PhoneVerificationService
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.db.CodeAppDatabase
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.api.PhoneApi
-import com.getcode.network.core.NetworkOracle
 import com.getcode.network.integrity.DeviceCheck
 import com.getcode.network.integrity.toDeviceToken
+import com.getcode.services.network.core.NetworkOracle
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +16,7 @@ import javax.inject.Singleton
 @Singleton
 class PhoneRepository @Inject constructor(
     private val phoneApi: PhoneApi,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle
+    private val networkOracle: NetworkOracle
 ) {
 
     var phoneNumber: String = ""

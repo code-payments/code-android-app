@@ -71,10 +71,10 @@ import com.getcode.utils.Kin
 import com.getcode.extensions.formatted
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.Domain
-import com.getcode.model.Kind
-import com.getcode.model.Username
+import com.getcode.services.model.Kind
+import com.getcode.services.model.Username
 import com.getcode.model.toPublicKey
 import com.getcode.services.utils.catchSafely
 import com.getcode.services.utils.nonce

@@ -3,16 +3,8 @@ package com.getcode.oct24.auth
 import android.annotation.SuppressLint
 import android.content.Context
 import com.bugsnag.android.Bugsnag
-import com.getcode.analytics.AnalyticsService
-import com.getcode.db.CodeAppDatabase
-import com.getcode.db.InMemoryDao
 import com.getcode.ed25519.Ed25519
-import com.getcode.manager.SessionManager
 import com.getcode.model.ID
-import com.getcode.network.BalanceController
-import com.getcode.network.NotificationCollectionHistoryController
-import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.isMock
 import com.getcode.oct24.BuildConfig
 import com.getcode.oct24.FlipchatServices
 import com.getcode.oct24.network.controllers.AuthController
@@ -27,14 +19,12 @@ import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
-import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
 import com.ionspin.kotlin.crypto.LibsodiumInitializer
-import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,17 +36,13 @@ import javax.inject.Singleton
 @Singleton
 class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val sessionManager: SessionManager,
     private val authController: AuthController,
     private val profileController: ProfileController,
     private val userManager: UserManager,
-    private val exchange: Exchange,
-    private val balanceController: BalanceController,
-    private val notificationCollectionHistory: NotificationCollectionHistoryController,
-    private val inMemoryDao: InMemoryDao,
-    private val analytics: AnalyticsService,
-    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
-    private val mixpanelAPI: MixpanelAPI
+//    private val balanceController: BalanceController,
+//    private val notificationCollectionHistory: NotificationCollectionHistoryController,
+//    private val analytics: AnalyticsService,
+//    private val mixpanelAPI: MixpanelAPI
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
     private var softLoginDisabled: Boolean = false
 
@@ -83,10 +69,10 @@ class AuthManager @Inject constructor(
     }
 
     private fun setupAsNew(): String {
-        val entropyB64 = SessionManager.entropyB64
+        val entropyB64 = userManager.entropy
         return if (entropyB64 == null) {
             val seedB64 = Ed25519.createSeed16().encodeBase64()
-            sessionManager.set(seedB64)
+            userManager.establish(seedB64)
             return seedB64
         } else {
             entropyB64
@@ -95,30 +81,17 @@ class AuthManager @Inject constructor(
 
     suspend fun createAccount(
         displayName: String,
-        rollbackOnError: Boolean = false,
     ): Result<ID> {
         val entropyB64 = setupAsNew()
         if (entropyB64.isEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
-            sessionManager.clear()
+            userManager.clear()
             return Result.failure(Throwable("Provided entropy was empty"))
         }
 
         softLoginDisabled = true
 
-        if (!CodeAppDatabase.isOpen()) {
-            CodeAppDatabase.init(context, entropyB64)
-            Database.register(CodeAppDatabase.requireInstance())
-        }
-
         FlipchatServices.openDatabase(context, entropyB64)
-
-        val originalSessionState = SessionManager.authState.value
-        sessionManager.set(entropyB64)
-        SessionManager.getOrganizer()?.ownerKeyPair?.let {
-            // relay owner keypair to user manager
-            userManager.set(keyPair = it)
-        }
 
         return authController.register(displayName)
             .onSuccess {
@@ -132,16 +105,9 @@ class AuthManager @Inject constructor(
                 userManager.set(userId = it)
             }
             .onFailure {
+                it.printStackTrace()
                 softLoginDisabled = false
-                if (rollbackOnError) {
-                    login(
-                        originalSessionState.entropyB64.orEmpty(),
-                        false,
-                        rollbackOnError = false
-                    )
-                } else {
-                    clearToken()
-                }
+                clearToken()
             }
     }
 
@@ -154,27 +120,18 @@ class AuthManager @Inject constructor(
 
         if (entropyB64.isEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
-            sessionManager.clear()
+            userManager.clear()
             return Result.failure(Throwable("Provided entropy was empty"))
-        }
-
-        if (!CodeAppDatabase.isOpen()) {
-            CodeAppDatabase.init(context, entropyB64)
-            Database.register(CodeAppDatabase.requireInstance())
         }
 
         FlipchatServices.openDatabase(context, entropyB64)
 
-        val originalSessionState = SessionManager.authState.value
-        sessionManager.set(entropyB64)
-        SessionManager.getOrganizer()?.ownerKeyPair?.let {
-            // relay owner keypair to user manager
-            userManager.set(keyPair = it)
-        }
+        val originalEntropy = userManager.entropy
+        userManager.establish(entropy = entropyB64)
 
 
         if (!isSoftLogin) {
-            loginAnalytics(entropyB64)
+            loginAnalytics()
         }
 
         if (!isSoftLogin) softLoginDisabled = true
@@ -202,7 +159,7 @@ class AuthManager @Inject constructor(
                 it.printStackTrace()
                 if (rollbackOnError) {
                     login(
-                        originalSessionState.entropyB64.orEmpty(),
+                        originalEntropy.orEmpty(),
                         isSoftLogin,
                         rollbackOnError = false
                     )
@@ -249,22 +206,21 @@ class AuthManager @Inject constructor(
             }.map { Result.success(Unit) }
     }
 
-    private fun loginAnalytics(entropyB64: String) {
-        val owner = mnemonicManager.getKeyPair(entropyB64)
+    private fun loginAnalytics() {
         taggedTrace("analytics login event")
-        analytics.login(
-            ownerPublicKey = owner.getPublicKeyBase58(),
-            autoCompleteCount = 0,
-            inputChangeCount = 0
-        )
+//        analytics.login(
+//            ownerPublicKey = owner.getPublicKeyBase58(),
+//            autoCompleteCount = 0,
+//            inputChangeCount = 0
+//        )
     }
 
     private fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
-        analytics.logout()
-        sessionManager.clear()
-        notificationCollectionHistory.reset()
-        inMemoryDao.clear()
+//        analytics.logout()
+        userManager.clear()
+//        notificationCollectionHistory.reset()
+//        inMemoryDao.clear()
         Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
@@ -273,13 +229,10 @@ class AuthManager @Inject constructor(
         Timber.d("saving prefs")
 
         updateFcmToken()
-        sessionManager.comeAlive()
     }
 
     @SuppressLint("CheckResult")
     private suspend fun updateFcmToken() {
-        if (isMock()) return
-
         val installationId = Firebase.installations.installationId()
         val pushToken = Firebase.messaging.token() ?: return
 

@@ -113,8 +113,7 @@ android {
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
 
-    implementation(project(":services:code"))
-    implementation(project(":services:flipchat"))
+    implementation(project(":services:flipchat:core"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale"))
@@ -129,7 +128,7 @@ dependencies {
     implementation(project(":libs:messaging"))
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
-    implementation(project(":libs:payments"))
+//    implementation(project(":libs:payments"))
     implementation(project(":libs:permissions"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:components"))

@@ -9,11 +9,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
-import com.getcode.network.client.Client
-import com.getcode.network.exchange.Exchange
+import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.exchange.LocalExchange
-import com.getcode.payments.LocalPaymentController
-import com.getcode.payments.PaymentController
+import com.getcode.oct24.ui.LocalUserManager
+import com.getcode.oct24.user.UserManager
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.LocalVibrator
@@ -41,19 +40,13 @@ class MainActivity : FragmentActivity() {
     lateinit var networkObserver: NetworkConnectivityListener
 
     @Inject
-    lateinit var exchange: Exchange
-
-    @Inject
     lateinit var currencyUtils: CurrencyUtils
 
     @Inject
     lateinit var vibrator: Vibrator
 
     @Inject
-    lateinit var paymentController: PaymentController
-
-    @Inject
-    lateinit var client: Client
+    lateinit var userManager: UserManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,24 +57,15 @@ class MainActivity : FragmentActivity() {
             CompositionLocalProvider(
                 LocalResources provides resources,
                 LocalNetworkObserver provides networkObserver,
-                LocalExchange provides exchange,
+                LocalExchange provides ExchangeNull(),
                 LocalCurrencyUtils provides currencyUtils,
                 LocalVibrator provides vibrator,
-                LocalPaymentController provides paymentController
+                LocalUserManager provides userManager,
+//                LocalPaymentController provides paymentController
             ) {
                 App(tipsEngine = tipsEngine)
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        client.startTimer()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        client.stopTimer()
     }
 }
 

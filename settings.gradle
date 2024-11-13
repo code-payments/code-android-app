@@ -38,7 +38,9 @@ include(
         // Services definition for app and lib access
         ":services:shared",
         ":services:code",
-        ":services:flipchat",
+        ":services:flipchat:core",
+        ":services:flipchat:chat",
+        ":services:flipchat:payments",
 
         // common UI
         ":ui:components",

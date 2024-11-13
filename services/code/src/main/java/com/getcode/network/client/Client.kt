@@ -12,6 +12,7 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.service.AccountService
 import com.getcode.network.service.ChatService
 import com.getcode.network.service.DeviceService
 import com.getcode.services.manager.MnemonicManager

@@ -2,10 +2,8 @@ package com.getcode.network.client
 
 import android.annotation.SuppressLint
 import com.getcode.db.CodeAppDatabase
-import com.getcode.services.BuildConfig
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.manager.TopBarManager
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
 import com.getcode.model.Fee
@@ -27,13 +25,13 @@ import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.WithdrawException
 import com.getcode.network.repository.initiateSwap
+import com.getcode.services.utils.flowInterval
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.TraceType
-import com.getcode.services.utils.flowInterval
 import com.getcode.utils.trace
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Single
@@ -558,14 +556,6 @@ fun Client.fetchPrivacyUpgrades(): Completable {
                                 actionCount = intent.actions.size
                             )
                             Timber.i("Privacy Upgrade - success")
-
-                            if (BuildConfig.DEBUG) {
-                                TopBarManager.showMessage(
-                                    "Privacy Upgrade",
-                                    "Success. Index: $index, Count: ${intents.size}",
-                                    TopBarManager.TopBarMessageType.NOTIFICATION
-                                )
-                            }
                         }
                         .doOnError {
                             analyticsManager.upgradePrivacy(
@@ -574,9 +564,6 @@ fun Client.fetchPrivacyUpgrades(): Completable {
                                 actionCount = intent.actions.size
                             )
                             Timber.i("Privacy Upgrade - failure")
-                            if (BuildConfig.DEBUG) {
-                                TopBarManager.showMessage("Privacy Upgrade", "Failure")
-                            }
                         }
                         .ignoreElement()
 

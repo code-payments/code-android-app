@@ -6,11 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
+import com.getcode.services.model.Kind
 import com.getcode.model.fromFiatAmount
 import com.getcode.models.Bill
 import com.getcode.theme.DesignSystem

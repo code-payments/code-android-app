@@ -3,14 +3,12 @@ package com.getcode.oct24.ui.navigation
 import androidx.compose.runtime.Composable
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import com.flipchat.features.balance.BalanceScreen
-import com.flipchat.features.balance.BalanceSheetViewModel
 import com.flipchat.features.chat.conversation.ConversationScreen
 import com.flipchat.features.chat.list.ChatListScreen
 import com.flipchat.features.home.TabbedHomeScreen
 import com.flipchat.features.login.LoginScreen
 import com.flipchat.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
-import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.oct24.features.chat.info.ChatInfoScreen
 import com.getcode.oct24.features.chat.lookup.LookupRoomScreen
 import com.getcode.oct24.features.chat.lookup.confirm.JoinConfirmationScreen
@@ -74,7 +72,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
     }
 
     // preload balance VM
-    getActivityScopedViewModel<BalanceSheetViewModel>()
+//    getActivityScopedViewModel<BalanceSheetViewModel>()
 
     content()
 }

@@ -6,7 +6,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.getcode.extensions.formatted
 import com.getcode.libs.requests.R
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.SocialUser
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount

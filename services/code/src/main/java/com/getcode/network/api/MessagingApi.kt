@@ -9,7 +9,7 @@ import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.SendMessageRequest
 import com.codeinc.gen.messaging.v1.MessagingService.SendMessageResponse
 import com.getcode.annotations.CodeManagedChannel
-import com.getcode.network.core.GrpcApi
+import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Scheduler

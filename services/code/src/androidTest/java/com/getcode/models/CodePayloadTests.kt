@@ -1,8 +1,8 @@
 package com.getcode.models
 
-import com.getcode.model.CodePayload
-import com.getcode.model.Kind
-import com.getcode.model.Username
+import com.getcode.services.model.CodePayload
+import com.getcode.services.model.Kind
+import com.getcode.services.model.Username
 import junit.framework.Assert
 import org.junit.Test
 

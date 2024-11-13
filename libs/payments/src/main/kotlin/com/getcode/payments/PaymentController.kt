@@ -4,12 +4,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import com.getcode.domain.BillController
 import com.getcode.libs.payments.R
 import com.getcode.manager.TopBarManager
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
+import com.getcode.services.model.Kind
 import com.getcode.model.SocialUser
-import com.getcode.model.Username
+import com.getcode.services.model.Username
 import com.getcode.models.BillState
 import com.getcode.models.ConfirmationState
 import com.getcode.models.SocialUserPaymentConfirmation

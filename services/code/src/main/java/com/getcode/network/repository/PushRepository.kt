@@ -2,11 +2,10 @@ package com.getcode.network.repository
 
 import com.codeinc.gen.common.v1.Model
 import com.codeinc.gen.push.v1.PushService
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.manager.SessionManager
 import com.getcode.services.model.PrefsString
 import com.getcode.network.api.PushApi
-import com.getcode.network.core.NetworkOracle
+import com.getcode.services.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.toByteString
@@ -18,7 +17,7 @@ import javax.inject.Inject
 
 class PushRepository @Inject constructor(
     private val pushApi: PushApi,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle,
+    private val networkOracle: NetworkOracle,
     private val prefs: PrefRepository,
 ) {
 

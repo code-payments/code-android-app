@@ -1,8 +1,8 @@
 package com.getcode.codeScanner
 
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.Kin
-import com.getcode.model.Kind
+import com.getcode.services.model.Kind
 import junit.framework.Assert.assertEquals
 import org.junit.Test
 

@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import com.getcode.analytics.AnalyticsService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.manager.SessionManager
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount

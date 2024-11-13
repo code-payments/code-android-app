@@ -5,7 +5,7 @@ import com.codeinc.gen.transaction.v2.TransactionService
 import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
 import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
 import com.getcode.annotations.CodeManagedChannel
-import com.getcode.network.core.GrpcApi
+import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
 import io.reactivex.rxjava3.core.Scheduler

@@ -1,9 +1,8 @@
 package com.getcode.network.service
 
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.model.Rate
 import com.getcode.network.api.CurrencyApi
-import com.getcode.network.core.NetworkOracle
+import com.getcode.services.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -20,7 +19,7 @@ data class ApiRateResult(
 
 class CurrencyService @Inject constructor(
     private val api: CurrencyApi,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle,
+    private val networkOracle: NetworkOracle,
 ) {
     @OptIn(ExperimentalTime::class)
     suspend fun getRates(): Result<ApiRateResult> {

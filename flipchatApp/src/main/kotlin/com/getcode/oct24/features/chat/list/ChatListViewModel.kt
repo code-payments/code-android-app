@@ -5,8 +5,6 @@ import androidx.paging.PagingData
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.oct24.R
-import com.getcode.oct24.data.Room
-import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
 import com.getcode.oct24.user.UserManager
@@ -20,6 +18,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import javax.inject.Inject
 
 @HiltViewModel
@@ -44,7 +43,7 @@ class ChatListViewModel @Inject constructor(
         data class OnNetworkChanged(val connected: Boolean): Event
         data object OnOpen: Event
         data object CreateRoom: Event
-        data class OpenRoom(val room: Room): Event
+        data class OpenRoom(val roomId: ID): Event
     }
 
     init {
@@ -77,7 +76,7 @@ class ChatListViewModel @Inject constructor(
                 },
                 onSuccess = {
                     dispatchEvent(Event.ShowFullScreenSpinner(false))
-                    dispatchEvent(Event.OpenRoom(it))
+                    dispatchEvent(Event.OpenRoom(it.id))
                 }
             )
             .launchIn(viewModelScope)

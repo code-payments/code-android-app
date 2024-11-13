@@ -26,8 +26,9 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.LocalNavigator
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.oct24.R
-import com.getcode.manager.SessionManager
 import com.getcode.navigation.NavScreenProvider
+import com.getcode.oct24.ui.LocalUserManager
+import com.getcode.oct24.user.UserManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator
@@ -42,7 +43,8 @@ internal data object MainRoot : Screen {
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val sessionState by SessionManager.authState.collectAsState()
+        val userManager = LocalUserManager.currentOrThrow
+        val sessionState by userManager.state.collectAsState()
         var showLoading by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
@@ -78,16 +80,17 @@ internal data object MainRoot : Screen {
             Spacer(Modifier.weight(1f))
         }
 
-        LaunchedEffect(sessionState.isAuthenticated) {
-            if (sessionState.isAuthenticated == null) {
+        LaunchedEffect(sessionState.userId) {
+            val userId = sessionState.userId
+            if (userId == null) {
                 delay(500)
                 showLoading = true
                 return@LaunchedEffect
             }
-            if (sessionState.isAuthenticated == true) {
-                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
-            } else {
+            if (userId.isEmpty()) {
                 navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+            } else {
+                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
             }
         }
     }

@@ -107,17 +107,3 @@ private fun AppNavHost(content: @Composable () -> Unit) {
         }
     }
 }
-
-@Composable
-private fun CrossfadeTransition(
-    navigator: Navigator,
-    modifier: Modifier = Modifier,
-    content: ScreenTransitionContent = { it.Content() }
-) {
-    ScreenTransition(
-        navigator = navigator,
-        modifier = modifier,
-        content = content,
-        transition = { fadeIn() togetherWith fadeOut() }
-    )
-}

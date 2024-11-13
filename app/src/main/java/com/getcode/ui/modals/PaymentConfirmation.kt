@@ -25,12 +25,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.R
-import com.getcode.model.CodePayload
+import com.getcode.services.model.CodePayload
 import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.Kin.Companion.fromFiat
 import com.getcode.model.KinAmount
-import com.getcode.model.Kind
+import com.getcode.services.model.Kind
 import com.getcode.model.Rate
 import com.getcode.model.fromFiatAmount
 import com.getcode.models.PaymentConfirmation

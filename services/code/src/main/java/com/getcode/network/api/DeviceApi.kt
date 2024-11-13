@@ -5,9 +5,9 @@ import com.codeinc.gen.device.v1.DeviceGrpc
 import com.codeinc.gen.device.v1.DeviceService
 import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.sign
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

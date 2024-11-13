@@ -1,0 +1,48 @@
+package xyz.flipchat.services.internal.network.repository.accounts
+
+import com.getcode.model.ID
+import com.getcode.services.model.EcdsaTuple
+import com.getcode.utils.ErrorUtils
+import com.getcode.utils.TraceType
+import com.getcode.utils.trace
+import xyz.flipchat.services.internal.network.service.AccountService
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+internal class RealAccountRepository @Inject constructor(
+    private val storedEcda: () -> EcdsaTuple,
+    private val service: AccountService
+) : AccountRepository {
+    @Throws(AccountService.RegisterError::class, IllegalStateException::class)
+    override suspend fun register(displayName: String): Result<ID> {
+        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        return service.register(
+            owner = owner,
+            displayName = displayName
+        ).onFailure {
+            ErrorUtils.handleError(it)
+        }.onSuccess {
+            trace(
+                tag = "Accounts",
+                type = TraceType.Silent,
+                message = "Registered successfully"
+            )
+        }
+    }
+
+    override suspend fun login(): Result<ID> {
+        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        return service.login(owner)
+            .onFailure {
+                ErrorUtils.handleError(it)
+            }
+            .onSuccess {
+                trace(
+                    tag = "Accounts",
+                    type = TraceType.Silent,
+                    message = "Logged in successfully"
+                )
+            }
+    }
+}

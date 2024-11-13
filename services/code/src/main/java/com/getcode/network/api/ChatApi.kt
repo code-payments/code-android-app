@@ -6,8 +6,8 @@ import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Cursor
 import com.getcode.model.ID
-import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.services.network.core.GrpcApi
 import com.getcode.utils.sign
 import com.getcode.utils.toByteString
 import io.grpc.ManagedChannel

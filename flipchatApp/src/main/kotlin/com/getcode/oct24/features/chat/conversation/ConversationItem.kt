@@ -1,8 +1,8 @@
 package com.getcode.oct24.features.chat.conversation
 
 import com.getcode.model.chat.MessageContent
-import com.getcode.oct24.domain.model.chat.ConversationMember
-import com.getcode.oct24.domain.model.chat.ConversationMessage
+import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
 
 data class ConversationMessageIndice(
     val message: ConversationMessage,

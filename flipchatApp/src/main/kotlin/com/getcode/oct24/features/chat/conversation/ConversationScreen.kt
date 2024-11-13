@@ -217,7 +217,7 @@ private fun ConversationScreenContent(
                 }
                 ChatInput(
                     state = state.textFieldState,
-                    sendCashEnabled = state.tipChatCash.enabled,
+                    sendCashEnabled = false,
                     onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
                     onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
                 )

@@ -12,8 +12,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
 import com.getcode.oct24.R
-import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastMessage
 import com.getcode.ui.components.chat.utils.localizedText
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 
 @Composable
 fun ChatNode(

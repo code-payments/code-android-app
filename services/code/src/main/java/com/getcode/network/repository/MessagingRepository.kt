@@ -7,8 +7,6 @@ import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
 import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
 import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
 import com.codeinc.gen.transaction.v2.TransactionService
-import com.getcode.annotations.CodeNetworkOracle
-import com.google.protobuf.ByteString
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Domain
@@ -16,12 +14,13 @@ import com.getcode.model.Fiat
 import com.getcode.model.PaymentRequest
 import com.getcode.model.StreamMessage
 import com.getcode.model.toPublicKey
-import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.MessagingApi
-import com.getcode.network.core.INFINITE_STREAM_TIMEOUT
+import com.getcode.services.network.core.INFINITE_STREAM_TIMEOUT
+import com.getcode.services.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.getPublicKeyBase58
 import com.getcode.utils.hexEncodedString
+import com.google.protobuf.ByteString
 import com.google.protobuf.Timestamp
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Flowable
@@ -36,7 +35,7 @@ private const val TAG = "MessagingRepository"
 
 class MessagingRepository @Inject constructor(
     private val messagingApi: MessagingApi,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle,
+    private val networkOracle: NetworkOracle,
 ) {
 
     fun openMessageStream(

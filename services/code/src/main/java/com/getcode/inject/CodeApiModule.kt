@@ -1,18 +1,14 @@
 package com.getcode.inject
 
 import android.content.Context
+import com.getcode.CodeServicesConfig
 import com.getcode.analytics.AnalyticsService
-import com.getcode.annotations.CodeDevManagedChannel
 import com.getcode.annotations.CodeManagedChannel
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.TransactionApiV2
-import com.getcode.network.client.AccountService
 import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
-import com.getcode.network.core.NetworkOracle
-import com.getcode.network.core.NetworkOracleImpl
 import com.getcode.network.exchange.CodeExchange
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
@@ -21,12 +17,13 @@ import com.getcode.network.repository.IdentityRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.PrefRepository
 import com.getcode.network.repository.TransactionRepository
+import com.getcode.network.service.AccountService
 import com.getcode.network.service.ChatService
 import com.getcode.network.service.CurrencyService
 import com.getcode.network.service.DeviceService
-import com.getcode.services.BuildConfig
 import com.getcode.services.db.CurrencyProvider
 import com.getcode.services.manager.MnemonicManager
+import com.getcode.services.utils.logging.LoggingClientInterceptor
 import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.Module
@@ -42,40 +39,20 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object CodeApiModule {
-    @CodeNetworkOracle
-    @Provides
-    fun provideNetworkOracle(): NetworkOracle {
-        return NetworkOracleImpl()
-    }
-
+internal object CodeApiModule {
     @Singleton
     @Provides
     @CodeManagedChannel
-    fun provideManagedChannel(@ApplicationContext context: Context): ManagedChannel {
-        val TLS_PORT = 443
-        val PROD_URL = "api.codeinfra.net"
-
+    fun provideManagedChannel(
+        @ApplicationContext context: Context,
+        config: CodeServicesConfig,
+        ): ManagedChannel {
         return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(PROD_URL, TLS_PORT))
+            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(config.baseUrl, config.port))
             .context(context)
-            .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
-            .keepAliveTime(4, TimeUnit.MINUTES)
-            .build()
-    }
-
-    @Singleton
-    @Provides
-    @CodeDevManagedChannel
-    fun provideDevManagedChannel(@ApplicationContext context: Context): ManagedChannel {
-        val TLS_PORT = 443
-        val DEV_URL = "api.codeinfra.dev"
-
-        return AndroidChannelBuilder
-            .usingBuilder(OkHttpChannelBuilderForcedTls12.forAddress(DEV_URL, TLS_PORT))
-            .context(context)
-            .userAgent("Code/Android/${BuildConfig.VERSION_NAME}")
-            .keepAliveTime(4, TimeUnit.MINUTES)
+            .userAgent(config.userAgent)
+            .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .intercept(LoggingClientInterceptor())
             .build()
     }
 

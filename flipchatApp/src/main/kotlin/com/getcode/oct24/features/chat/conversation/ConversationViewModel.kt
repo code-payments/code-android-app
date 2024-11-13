@@ -14,8 +14,6 @@ import androidx.paging.flatMap
 import androidx.paging.map
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
-import com.getcode.model.ConversationCashFeature
-import com.getcode.model.Feature
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
@@ -24,16 +22,12 @@ import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.navigation.RoomInfoArgs
-import com.getcode.network.TipController
 import com.getcode.network.exchange.Exchange
-import com.getcode.network.repository.FeatureRepository
 import com.getcode.oct24.R
-import com.getcode.oct24.domain.model.chat.ConversationWithMembersAndLastPointers
+import com.getcode.oct24.chat.RoomController
 import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
 import com.getcode.oct24.features.login.register.onError
-import com.getcode.oct24.network.controllers.RoomController
 import com.getcode.oct24.user.UserManager
-import com.getcode.payments.PaymentController
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -49,10 +43,10 @@ import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
@@ -61,28 +55,27 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
     private val userManager: UserManager,
     private val roomController: RoomController,
-    features: FeatureRepository,
-    tipController: TipController,
-    exchange: Exchange,
     private val resources: ResourceHelper,
     clipboardManager: ClipboardManager,
-    paymentController: PaymentController,
     currencyUtils: CurrencyUtils,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
 ) {
+
+    private var typingJob: Job? = null
 
     data class State(
         val selfId: ID?,
@@ -92,7 +85,6 @@ class ConversationViewModel @Inject constructor(
         val costToChat: KinAmount,
         val reference: Reference.IntentId?,
         val textFieldState: TextFieldState,
-        val tipChatCash: Feature,
         val identityAvailable: Boolean,
         val title: String,
         val lastSeen: Instant?,
@@ -113,7 +105,6 @@ class ConversationViewModel @Inject constructor(
                 hostId = null,
                 conversationId = null,
                 reference = null,
-                tipChatCash = ConversationCashFeature(),
                 textFieldState = TextFieldState(),
                 identityAvailable = false,
                 title = "",
@@ -133,8 +124,6 @@ class ConversationViewModel @Inject constructor(
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
-
-        data class OnTipsChatCashChanged(val module: Feature) : Event
 
         data class OnUserActivity(val activity: Instant) : Event
         data object SendCash : Event
@@ -228,33 +217,23 @@ class ConversationViewModel @Inject constructor(
 //            }
 //            .launchIn(viewModelScope)
 
-        eventFlow
-            .filterIsInstance<Event.OnConversationChanged>()
-            .map { it.conversationWithPointers }
-            .distinctUntilChangedBy { it.conversation.id }
-            .onEach { roomController.resetUnreadCount(it.conversation.id) }
-            .onEach { (conversation, _) ->
+        stateFlow
+            .mapNotNull { it.conversationId }
+            .distinctUntilChanged()
+            .onEach { roomController.resetUnreadCount(it) }
+            .onEach {
                 runCatching {
-                    roomController.openMessageStream(viewModelScope, conversation)
+                    roomController.openMessageStream(viewModelScope, it)
                 }.onFailure {
                     it.printStackTrace()
                     ErrorUtils.handleError(it)
                 }
-            }.flatMapLatest { (conversation, _) ->
-                roomController.observeConversation(conversation.id)
+            }.flatMapLatest {
+                roomController.observeConversation(it)
             }.filterNotNull()
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
-
-        features.conversationsCash
-            .onEach { dispatchEvent(Event.OnTipsChatCashChanged(it)) }
-            .launchIn(viewModelScope)
-
-        tipController.connectedAccount
-            .onEach {
-                dispatchEvent(Event.OnIdentityAvailable(it != null))
-            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.MarkRead>()
@@ -313,7 +292,10 @@ class ConversationViewModel @Inject constructor(
             .map { it.conversationId }
             .filterNotNull()
             .distinctUntilChanged()
-            .flatMapLatest { roomController.observeTyping(it) }
+            .flatMapLatest {
+                println("observing typing for ${it.base58}")
+                roomController.observeTyping(it)
+            }
             .onEach { isOtherUserTyping ->
                 if (isOtherUserTyping) {
                     dispatchEvent(Event.OnTypingStarted)
@@ -326,16 +308,24 @@ class ConversationViewModel @Inject constructor(
         stateFlow
             .map { it.textFieldState }
             .flatMapLatest { it.textAsFlow() }
-            .debounce(300.milliseconds)
-            .onEach {
-                if (it.isEmpty()) {
+            .distinctUntilChanged()
+            .onEach { text ->
+                typingJob?.cancel()
+
+                if (text.isEmpty()) {
                     dispatchEvent(Event.OnUserTypingStopped)
-                } else if (it.isNotEmpty()) {
+                } else {
                     if (!stateFlow.value.isSelfTyping) {
                         dispatchEvent(Event.OnUserTypingStarted)
                     }
+
+                    typingJob = viewModelScope.launch {
+                        delay(1.seconds)
+                        dispatchEvent(Event.OnUserTypingStopped)
+                    }
                 }
-            }.launchIn(viewModelScope)
+            }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnUserTypingStarted>()
@@ -390,6 +380,7 @@ class ConversationViewModel @Inject constructor(
     val messages: Flow<PagingData<ChatItem>> = stateFlow
         .map { it.conversationId }
         .filterNotNull()
+        .distinctUntilChanged()
         .flatMapLatest { roomController.messages(it).flow }
         .map { page ->
             page.flatMap { mwc ->
@@ -528,6 +519,11 @@ class ConversationViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         roomController.closeMessageStream()
+        viewModelScope.launch {
+            stateFlow.value.conversationId?.let {
+                roomController.onUserStoppedTypingIn(it)
+            }
+        }
     }
 
     internal companion object {
@@ -558,12 +554,6 @@ class ConversationViewModel @Inject constructor(
                             hostName = host?.memberName,
                             memberCount = members.count(),
                         )
-                    )
-                }
-
-                is Event.OnTipsChatCashChanged -> { state ->
-                    state.copy(
-                        tipChatCash = event.module
                     )
                 }
 

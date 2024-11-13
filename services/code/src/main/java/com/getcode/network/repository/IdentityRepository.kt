@@ -7,7 +7,6 @@ import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppResponse
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.db.CodeAppDatabase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.AirdropType
@@ -15,8 +14,8 @@ import com.getcode.services.model.PrefsBool
 import com.getcode.services.model.PrefsString
 import com.getcode.model.TwitterUser
 import com.getcode.model.protomapping.invoke
-import com.getcode.network.core.NetworkOracle
 import com.getcode.network.api.IdentityApi
+import com.getcode.services.network.core.NetworkOracle
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.encodeBase64
@@ -33,7 +32,7 @@ import javax.inject.Inject
 
 class IdentityRepository @Inject constructor(
     private val identityApi: IdentityApi,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle,
+    private val networkOracle: NetworkOracle,
     private val prefRepository: PrefRepository,
     private val phoneRepository: PhoneRepository
 ) {

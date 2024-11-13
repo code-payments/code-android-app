@@ -6,7 +6,7 @@ import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserRequest
 import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
 import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
 import com.getcode.annotations.CodeManagedChannel
-import com.getcode.network.core.GrpcApi
+import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Scheduler

@@ -3,7 +3,7 @@ package com.getcode.network.api
 import com.codeinc.gen.push.v1.PushGrpc
 import com.codeinc.gen.push.v1.PushService
 import com.getcode.annotations.CodeManagedChannel
-import com.getcode.network.core.GrpcApi
+import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull
 import io.reactivex.rxjava3.core.Scheduler

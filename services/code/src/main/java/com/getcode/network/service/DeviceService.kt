@@ -1,10 +1,9 @@
 package com.getcode.network.service
 
 import com.codeinc.gen.device.v1.DeviceService
-import com.getcode.annotations.CodeNetworkOracle
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.api.DeviceApi
-import com.getcode.network.core.NetworkOracle
+import com.getcode.services.network.core.NetworkOracle
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.flow.first
@@ -14,7 +13,7 @@ import javax.inject.Inject
 
 class DeviceService @Inject constructor(
     private val api: DeviceApi,
-    @CodeNetworkOracle private val networkOracle: NetworkOracle,
+    private val networkOracle: NetworkOracle,
 ) {
     suspend fun registerInstallation(owner: KeyPair, installationId: String): Result<Unit> {
         return try {

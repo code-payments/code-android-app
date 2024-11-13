@@ -6,8 +6,8 @@ import com.codeinc.gen.account.v1.AccountService.LinkAdditionalAccountsRequest
 import com.codeinc.gen.account.v1.AccountService.LinkAdditionalAccountsResponse
 import com.getcode.annotations.CodeManagedChannel
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.network.core.GrpcApi
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.services.network.core.GrpcApi
 import com.getcode.utils.sign
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.core.Scheduler

@@ -76,7 +76,7 @@ internal object ChatTab : Tab {
             viewModel.eventFlow
                 .filterIsInstance<ChatListViewModel.Event.OpenRoom>()
                 .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it.room.id)))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it.roomId)))
                 }.launchIn(this)
         }
 

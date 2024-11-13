@@ -4,7 +4,6 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.oct24.R
-import com.getcode.oct24.extensions.titleOrFallback
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
 import com.getcode.oct24.user.UserManager
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import xyz.flipchat.services.extensions.titleOrFallback
 import javax.inject.Inject
 
 @HiltViewModel
