@@ -44,7 +44,6 @@ android {
 }
 
 dependencies {
-    implementation(project(":services:code"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:messaging"))

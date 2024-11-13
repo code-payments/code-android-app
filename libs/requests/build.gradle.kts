@@ -44,7 +44,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":services:code"))
+    implementation(project(":services:shared"))
     implementation(project(":libs:currency"))
     implementation(project(":libs:logging"))
     implementation(project(":libs:encryption:base58"))

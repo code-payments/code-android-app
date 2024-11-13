@@ -6,12 +6,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.getcode.extensions.formatted
 import com.getcode.libs.requests.R
-import com.getcode.services.model.CodePayload
-import com.getcode.model.SocialUser
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
+import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
+import com.getcode.services.model.CodePayload
 
 data class BillState(
     val bill: Bill?,

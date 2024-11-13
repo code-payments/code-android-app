@@ -9,9 +9,9 @@ import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
-import com.getcode.oct24.analytics.AnalyticsService
-import com.getcode.oct24.analytics.AnalyticsServiceNull
 import com.getcode.oct24.util.AndroidLocale
+import com.getcode.services.analytics.AnalyticsService
+import com.getcode.services.analytics.AnalyticsServiceNull
 import com.getcode.util.resources.AndroidResources
 import com.getcode.util.locale.LocaleHelper
 import com.getcode.util.resources.ResourceHelper

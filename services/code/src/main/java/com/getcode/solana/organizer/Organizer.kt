@@ -4,7 +4,6 @@ import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
 import com.getcode.model.Kin
-import com.getcode.model.unusable
 import com.getcode.solana.keys.*
 import com.getcode.utils.TraceType
 import com.getcode.utils.getPublicKeyBase58

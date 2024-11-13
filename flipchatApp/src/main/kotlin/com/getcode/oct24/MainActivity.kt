@@ -9,6 +9,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.fragment.app.FragmentActivity
+import com.getcode.network.client.Client
 import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.exchange.LocalExchange
 import com.getcode.oct24.ui.LocalUserManager
@@ -47,6 +48,9 @@ class MainActivity : FragmentActivity() {
 
     @Inject
     lateinit var userManager: UserManager
+
+    @Inject
+    lateinit var client: Client
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

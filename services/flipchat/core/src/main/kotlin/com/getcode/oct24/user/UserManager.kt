@@ -4,6 +4,7 @@ import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.services.manager.MnemonicManager
+import com.getcode.solana.organizer.Organizer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +29,9 @@ class UserManager @Inject constructor(
     val userId: ID?
         get() = _state.value.userId
 
+    val organizer: Organizer?
+        get() = _state.value.organizer
+
     val displayName: String?
         get() = _state.value.displayName
 
@@ -36,6 +40,7 @@ class UserManager @Inject constructor(
         val keyPair: KeyPair? = null,
         val userId: ID? = null,
         val displayName: String? = null,
+        val organizer: Organizer? = null,
     )
 
     fun establish(entropy: String) {
@@ -58,9 +63,15 @@ class UserManager @Inject constructor(
         }
     }
 
+    fun set(organizer: Organizer) {
+        _state.update {
+            it.copy(organizer = organizer)
+        }
+    }
+
     fun clear() {
         _state.update {
-            it.copy(entropy = null, keyPair = null, userId = emptyList())
+            it.copy(entropy = null, keyPair = null, userId = emptyList(), organizer = null)
         }
     }
 }

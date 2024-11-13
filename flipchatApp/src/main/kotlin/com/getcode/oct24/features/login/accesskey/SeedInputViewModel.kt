@@ -10,9 +10,9 @@ import com.getcode.manager.TopBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.oct24.R
-import com.getcode.oct24.analytics.AnalyticsService
 import com.getcode.oct24.auth.AuthManager
 import com.getcode.oct24.util.AccountManager
+import com.getcode.services.analytics.AnalyticsService
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.ErrorUtils
 import com.getcode.view.BaseViewModel

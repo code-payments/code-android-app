@@ -1,5 +1,7 @@
 package com.getcode.solana.organizer
 
+import com.getcode.crypt.DerivePath
+import com.getcode.crypt.DerivedKey
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
@@ -274,13 +276,13 @@ class Tray(
                 outgoing = PartialAccount(outgoing( 0, mnemonic)),
                 owner = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
-                        authority = com.getcode.crypt.DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic),
+                        authority = DerivedKey.derive(DerivePath.primary, mnemonic),
                         kind = AccountCluster.Kind.Timelock,
                     )
                 ),
                 swap = PartialAccount(
                     cluster = AccountCluster.newInstanceLazy(
-                        authority = com.getcode.crypt.DerivedKey.derive(com.getcode.crypt.DerivePath.swap, mnemonic),
+                        authority = DerivedKey.derive(DerivePath.swap, mnemonic),
                         kind = AccountCluster.Kind.Usdc,
                     )
                 )
@@ -290,8 +292,8 @@ class Tray(
         fun incoming(index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
             return lazy {
                 AccountCluster.newInstance(
-                    authority = com.getcode.crypt.DerivedKey.derive(
-                        com.getcode.crypt.DerivePath.getBucketIncoming(index),
+                    authority = DerivedKey.derive(
+                        DerivePath.getBucketIncoming(index),
                         mnemonic
                     ),
                     index = index,
@@ -303,8 +305,8 @@ class Tray(
         fun outgoing(index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
             return lazy {
                 AccountCluster.newInstance(
-                    authority = com.getcode.crypt.DerivedKey.derive(
-                        com.getcode.crypt.DerivePath.getBucketOutgoing(index),
+                    authority = DerivedKey.derive(
+                        DerivePath.getBucketOutgoing(index),
                         mnemonic
                     ),
                     index = index,
