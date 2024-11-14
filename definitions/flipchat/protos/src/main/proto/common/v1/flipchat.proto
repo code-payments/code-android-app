@@ -45,6 +45,9 @@ message Locale {
 message PublicKey {
     bytes value = 1 ;
 }
+message IntentId {
+    bytes value = 1 ;
+}
 message Signature {
     bytes value = 1 ;
 }

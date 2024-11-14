@@ -185,7 +185,7 @@ message JoinChatRequest {
         common.v1.ChatId chat_id = 1;
         uint64 room_id = 2;
     }
-    // TODO: Payment information (if required)
+    common.v1.IntentId payment_intent = 9;
     common.v1.Auth auth = 10;
 }
 message JoinChatResponse {
@@ -198,6 +198,13 @@ message JoinChatResponse {
     Metadata metadata = 2;
     // The members of the chat, if join was successful.
     repeated Member members = 3;
+}
+message JoinChatPaymentMetadata {
+    common.v1.UserId user_id = 1;
+    oneof identifier {
+        common.v1.ChatId chat_id = 2;
+        uint64 room_id = 3;
+    }
 }
 message LeaveChatRequest {
     common.v1.ChatId chat_id = 1;
