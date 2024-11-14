@@ -99,6 +99,8 @@ class JoinConfirmationViewModel @Inject constructor(
                     typeUrl = joinChatMetadata.typeUrl
                 )
 
+                dispatchEvent(Event.OnJoiningChanged(true))
+
                 paymentController.presentPublicPaymentConfirmation(
                     amount = amount,
                     destination = destination,
@@ -106,12 +108,18 @@ class JoinConfirmationViewModel @Inject constructor(
                 )
             }.launchIn(viewModelScope)
 
+        paymentController.eventFlow
+            .filterIsInstance<PaymentEvent.OnPaymentCancelled>()
+            .onEach { dispatchEvent(Event.OnJoiningChanged(false)) }
+            .launchIn(viewModelScope)
+
+        paymentController.eventFlow
+            .filterIsInstance<PaymentEvent.OnPaymentError>()
+            .onEach { dispatchEvent(Event.OnJoiningChanged(false)) }
+            .launchIn(viewModelScope)
 
         paymentController.eventFlow
             .filterIsInstance<PaymentEvent.OnPaymentSuccess>()
-            .onEach {
-                dispatchEvent(Event.OnJoiningChanged(true))
-            }
             .map {
                 val roomId = stateFlow.value.roomInfo.id.orEmpty()
                 chatsController.joinRoom(roomId, it.intentId)

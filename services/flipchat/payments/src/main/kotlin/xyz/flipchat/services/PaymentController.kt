@@ -34,7 +34,9 @@ data class PaymentState(
 
 sealed interface PaymentEvent {
     data object PresentPaymentEntry : PaymentEvent
-    data class OnPaymentSuccess(val intentId: ID, val destination: PublicKey): PaymentEvent
+    data class OnPaymentSuccess(val intentId: ID, val destination: PublicKey) : PaymentEvent
+    data object OnPaymentCancelled : PaymentEvent
+    data class OnPaymentError(val error: Throwable): PaymentEvent
 }
 
 val LocalPaymentController = staticCompositionLocalOf<PaymentController?> { null }
@@ -54,7 +56,11 @@ class PaymentController @Inject constructor(
     private val _eventFlow: MutableSharedFlow<PaymentEvent> = MutableSharedFlow()
     val eventFlow: SharedFlow<PaymentEvent> = _eventFlow.asSharedFlow()
 
-    fun presentPublicPaymentConfirmation(destination: PublicKey, amount: KinAmount, metadata: ExtendedMetadata) {
+    fun presentPublicPaymentConfirmation(
+        destination: PublicKey,
+        amount: KinAmount,
+        metadata: ExtendedMetadata
+    ) {
         billController.update {
             it.copy(
                 publicPaymentConfirmation = PublicPaymentConfirmation(
@@ -67,45 +73,51 @@ class PaymentController @Inject constructor(
         }
     }
 
-    fun completePublicPayment(onSuccess: () -> Unit = { }, onError: (Throwable) -> Unit = { }) = scope.launch {
-        val confirmation = billController.state.value.publicPaymentConfirmation ?: return@launch
-        val destination = confirmation.destination
-        val amount = confirmation.amount
-        val metadata = confirmation.metadata
+    fun completePublicPayment(onSuccess: () -> Unit = { }, onError: (Throwable) -> Unit = { }) =
+        scope.launch {
+            val confirmation = billController.state.value.publicPaymentConfirmation ?: return@launch
+            val destination = confirmation.destination
+            val amount = confirmation.amount
+            val metadata = confirmation.metadata
 
-        billController.update {
-            it.copy(
-                publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.Sending),
-            )
-        }
-
-        runCatching {
-            paymentRepository.payPublicly(amount, destination, metadata)
-        }.onSuccess {
-            onSuccess()
-
-            billController.update { billState ->
-                val publicPaymentConfirmation = billState.publicPaymentConfirmation ?: return@update billState
-                billState.copy(
-                    publicPaymentConfirmation = publicPaymentConfirmation.copy(state = ConfirmationState.Sent),
+            billController.update {
+                it.copy(
+                    publicPaymentConfirmation = it.publicPaymentConfirmation?.copy(state = ConfirmationState.Sending),
                 )
             }
-            delay(1.seconds)
-            cancelPayment()
-            delay(400.milliseconds)
-            _eventFlow.emit(PaymentEvent.OnPaymentSuccess(it, destination))
-        }.onFailure {
-            onError(it)
-            TopBarManager.showMessage(
-                resources.getString(R.string.error_title_payment_failed),
-                resources.getString(R.string.error_description_payment_failed),
-            )
 
-            billController.reset()
+            runCatching {
+                paymentRepository.payPublicly(amount, destination, metadata)
+            }.onSuccess {
+                onSuccess()
+
+                billController.update { billState ->
+                    val publicPaymentConfirmation =
+                        billState.publicPaymentConfirmation ?: return@update billState
+                    billState.copy(
+                        publicPaymentConfirmation = publicPaymentConfirmation.copy(state = ConfirmationState.Sent),
+                    )
+                }
+                delay(1.seconds)
+                cancelPayment(fromUser = false)
+                delay(400.milliseconds)
+                _eventFlow.emit(PaymentEvent.OnPaymentSuccess(it, destination))
+            }.onFailure {
+                onError(it)
+                TopBarManager.showMessage(
+                    resources.getString(R.string.error_title_payment_failed),
+                    resources.getString(R.string.error_description_payment_failed),
+                )
+                _eventFlow.emit(PaymentEvent.OnPaymentError(it))
+
+                billController.reset()
+            }
         }
-    }
 
-    fun cancelPayment() {
+    fun cancelPayment(fromUser: Boolean = true) {
         billController.reset()
+        if (fromUser) {
+            _eventFlow.tryEmit(PaymentEvent.OnPaymentCancelled)
+        }
     }
 }
