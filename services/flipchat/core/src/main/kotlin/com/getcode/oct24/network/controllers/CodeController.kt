@@ -1,21 +1,38 @@
 package com.getcode.oct24.network.controllers
 
+import android.annotation.SuppressLint
 import com.getcode.model.KinAmount
 import com.getcode.network.BalanceController
+import com.getcode.network.client.Client
+import com.getcode.network.client.receiveFromPrimaryIfWithinLimits
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.services.annotations.EcdsaLookup
 import com.getcode.services.model.EcdsaTuple
+import com.getcode.solana.organizer.Organizer
+import io.reactivex.rxjava3.core.Completable
 import javax.inject.Inject
 
 class CodeController @Inject constructor(
     @EcdsaLookup
     private val storedEcda: () -> EcdsaTuple,
+    private val organizerLookup: () -> Organizer?,
     private val balanceController: BalanceController,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val client: Client,
 ) {
+    @SuppressLint("CheckResult")
     suspend fun requestAirdrop(): Result<KinAmount> {
         val owner = storedEcda().algorithm ?: return Result.failure(Throwable("No owner"))
         return transactionRepository.requestFirstKinAirdrop(owner)
+            .onSuccess {
+                balanceController.fetchBalance()
+
+                val organizer = organizerLookup()
+                val receiveWithinLimits = organizer?.let {
+                    client.receiveFromPrimaryIfWithinLimits(it)
+                } ?: Completable.complete()
+                receiveWithinLimits.subscribe({}, {})
+            }
     }
 
     suspend fun fetchBalance(): Result<Unit> {

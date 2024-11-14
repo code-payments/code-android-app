@@ -19,6 +19,7 @@ import com.getcode.services.model.EcdsaTuple
 import com.getcode.services.model.EcdsaTupleQuery
 import com.getcode.services.network.core.NetworkOracle
 import com.getcode.services.network.core.NetworkOracleImpl
+import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.Module
@@ -45,6 +46,11 @@ internal object FlipchatServicesModule {
     @Provides
     fun provideNetworkOracle(): NetworkOracle {
         return NetworkOracleImpl()
+    }
+
+    @Provides
+    fun providesOrganizerLookup(userManager: UserManager): () -> Organizer? {
+        return { userManager.organizer }
     }
 
     @Singleton
