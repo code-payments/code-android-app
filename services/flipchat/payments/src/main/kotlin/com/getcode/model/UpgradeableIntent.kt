@@ -1,6 +1,6 @@
 package com.getcode.model
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.solana.keys.PublicKey
 
 class UpgradeableIntent(

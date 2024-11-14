@@ -120,7 +120,6 @@ object TransactionBuilder {
         )
 
         when (metadata) {
-            is PrivateTransferMetadata.Chat -> Unit
             is PrivateTransferMetadata.Tip -> {
                 instructions.add(MemoProgram_Memo.newInstance(metadata.socialUser).instruction())
             }

@@ -1,7 +1,7 @@
 package com.getcode.model.intents
 
 import android.content.Context
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.model.Kin
 import com.getcode.model.generate
 import com.getcode.model.intents.actions.ActionWithdraw

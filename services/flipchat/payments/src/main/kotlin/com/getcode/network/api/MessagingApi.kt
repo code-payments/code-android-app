@@ -1,13 +1,13 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.messaging.v1.MessagingGrpc
-import com.codeinc.gen.messaging.v1.MessagingService.AckMessagesRequest
-import com.codeinc.gen.messaging.v1.MessagingService.AckMesssagesResponse
-import com.codeinc.gen.messaging.v1.MessagingService.OpenMessageStreamRequest
-import com.codeinc.gen.messaging.v1.MessagingService.OpenMessageStreamResponse
-import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
-import com.codeinc.gen.messaging.v1.MessagingService.SendMessageRequest
-import com.codeinc.gen.messaging.v1.MessagingService.SendMessageResponse
+import com.codeinc.gen.messaging.v1.CodeMessagingService.AckMessagesRequest
+import com.codeinc.gen.messaging.v1.CodeMessagingService.AckMesssagesResponse
+import com.codeinc.gen.messaging.v1.CodeMessagingService.OpenMessageStreamRequest
+import com.codeinc.gen.messaging.v1.CodeMessagingService.OpenMessageStreamResponse
+import com.codeinc.gen.messaging.v1.CodeMessagingService.PollMessagesRequest
+import com.codeinc.gen.messaging.v1.CodeMessagingService.SendMessageRequest
+import com.codeinc.gen.messaging.v1.CodeMessagingService.SendMessageResponse
 import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.core.Flowable

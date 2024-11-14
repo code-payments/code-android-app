@@ -1,6 +1,6 @@
 package com.getcode.model.intents
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.model.KinAmount
 import com.getcode.model.generate
 import com.getcode.model.intents.actions.ActionTransfer

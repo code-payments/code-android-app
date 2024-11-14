@@ -1,6 +1,6 @@
 package com.getcode.model
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 
 sealed class IntentMetadata {
     data object OpenAccounts : IntentMetadata()
@@ -9,7 +9,6 @@ sealed class IntentMetadata {
     data object ReceivePaymentsPrivately : IntentMetadata()
     data class ReceivePaymentsPublicly(val metadata: PaymentMetadata) : IntentMetadata()
     data object UpgradePrivacy : IntentMetadata()
-    data object MigrateToPrivacy2022 : IntentMetadata()
 
     companion object {
         fun newInstance(metadata: TransactionService.Metadata): IntentMetadata? {
@@ -21,17 +20,16 @@ sealed class IntentMetadata {
                         metadata.receivePaymentsPublicly.exchangeData.currency,
                         metadata.receivePaymentsPublicly.exchangeData.quarks,
                         metadata.receivePaymentsPublicly.exchangeData.exchangeRate,
-                        metadata.sendPrivatePayment.isChat,
+                        metadata.sendPrivatePayment.isTip,
                     )?.let { ReceivePaymentsPublicly(it) }
                 }
                 TransactionService.Metadata.TypeCase.UPGRADE_PRIVACY -> UpgradePrivacy
-                TransactionService.Metadata.TypeCase.MIGRATE_TO_PRIVACY_2022 -> MigrateToPrivacy2022
                 TransactionService.Metadata.TypeCase.SEND_PRIVATE_PAYMENT -> {
                     getPaymentMetadata(
                         metadata.sendPrivatePayment.exchangeData.currency,
                         metadata.sendPrivatePayment.exchangeData.quarks,
                         metadata.sendPrivatePayment.exchangeData.exchangeRate,
-                        metadata.sendPrivatePayment.isChat,
+                        metadata.sendPrivatePayment.isTip,
                     )?.let { SendPrivatePayment(it) }
                 }
                 TransactionService.Metadata.TypeCase.SEND_PUBLIC_PAYMENT -> {
@@ -39,7 +37,7 @@ sealed class IntentMetadata {
                         metadata.sendPublicPayment.exchangeData.currency,
                         metadata.sendPrivatePayment.exchangeData.quarks,
                         metadata.sendPublicPayment.exchangeData.exchangeRate,
-                        metadata.sendPrivatePayment.isChat,
+                        metadata.sendPrivatePayment.isTip,
                     )?.let { SendPublicPayment(it) }
                 }
                 else -> null
@@ -50,7 +48,7 @@ sealed class IntentMetadata {
             currencyString: String,
             quarks: Long,
             exchangeRate: Double,
-            isChat: Boolean,
+            isTip: Boolean,
         ): PaymentMetadata? {
             val currency = CurrencyCode.tryValueOf(currencyString.uppercase())
                 ?: return null
@@ -63,7 +61,7 @@ sealed class IntentMetadata {
                         currency = currency
                     )
                 ),
-                isChat = isChat,
+                isTip = isTip,
             )
         }
     }
@@ -71,5 +69,5 @@ sealed class IntentMetadata {
 
 data class PaymentMetadata(
     val amount: KinAmount,
-    val isChat: Boolean,
+    val isTip: Boolean,
 )

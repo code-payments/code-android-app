@@ -1,9 +1,9 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.account.v1.AccountGrpc
-import com.codeinc.gen.account.v1.AccountService
-import com.codeinc.gen.account.v1.AccountService.LinkAdditionalAccountsRequest
-import com.codeinc.gen.account.v1.AccountService.LinkAdditionalAccountsResponse
+import com.codeinc.gen.account.v1.CodeAccountService as AccountService
+import com.codeinc.gen.account.v1.CodeAccountService.LinkAdditionalAccountsRequest
+import com.codeinc.gen.account.v1.CodeAccountService.LinkAdditionalAccountsResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.services.network.core.GrpcApi

@@ -1,6 +1,6 @@
 package com.getcode.model.intents
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.model.Kin
 import com.getcode.model.UpgradeableIntent

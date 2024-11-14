@@ -3,21 +3,21 @@ package com.getcode.network.client
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import com.getcode.manager.SessionManager
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.network.service.AccountService
-import com.getcode.network.service.DeviceService
 import com.getcode.services.analytics.AnalyticsService
 import com.getcode.services.manager.MnemonicManager
+import com.getcode.services.model.EcdsaTuple
+import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
@@ -29,22 +29,22 @@ import java.util.Timer
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.fixedRateTimer
+import kotlin.time.Duration.Companion.seconds
 
 internal const val TAG = "Client"
 
 @Singleton
 class Client @Inject constructor(
+    internal val storedEcda: () -> EcdsaTuple,
+    internal val organizerLookup: () -> Organizer?,
     internal val transactionRepository: TransactionRepository,
     internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
-    internal val accountService: AccountService,
     internal val analyticsManager: AnalyticsService,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
     internal val networkObserver: NetworkConnectivityListener,
-    internal val deviceService: DeviceService,
-    internal val mnemonicManager: MnemonicManager,
 ) : LifecycleObserver {
 
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -55,15 +55,12 @@ class Client @Inject constructor(
     private fun startPollTimerWhenAuthenticated() {
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
-            SessionManager.authState
-                .map { it.isAuthenticated }
-                .filterNotNull()
-                .filter { it }
-                .onEach {
-                    Timber.tag(TAG).i("User Authenticated - starting timer")
+            while(storedEcda().id == null) {
+                delay(1.seconds)
+                if (storedEcda().id != null) {
                     startPollTimer()
-                    this.cancel()
-                }.launchIn(this)
+                }
+            }
         }
     }
 
@@ -76,7 +73,7 @@ class Client @Inject constructor(
                 val time = System.currentTimeMillis()
                 val isPastThrottle = time - lastPoll > 1000 * 30 || lastPoll == 0L
 
-                if (SessionManager.isAuthenticated() == true && isPastThrottle) {
+                if (storedEcda().id != null && isPastThrottle) {
                     poll()
                     lastPoll = time
                 }

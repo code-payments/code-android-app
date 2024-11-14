@@ -1,8 +1,8 @@
 package com.getcode.model
 
-import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.BuyModuleLimit
-import com.codeinc.gen.transaction.v2.TransactionService.DepositLimit
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService.BuyModuleLimit
+import com.codeinc.gen.transaction.v2.CodeTransactionService.DepositLimit
 import kotlin.time.Duration.Companion.hours
 
 data class Limits(

@@ -2,14 +2,14 @@ package com.getcode.network.repository
 
 import android.annotation.SuppressLint
 import android.content.Context
-import com.codeinc.gen.common.v1.Model
-import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.DeclareFiatOnrampPurchaseAttemptResponse
-import com.codeinc.gen.transaction.v2.TransactionService.ExchangeDataWithoutRate
-import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse
-import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.ERROR
-import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
-import com.codeinc.gen.transaction.v2.TransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
+import com.codeinc.gen.common.v1.CodeModel as Model
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService.DeclareFiatOnrampPurchaseAttemptResponse
+import com.codeinc.gen.transaction.v2.CodeTransactionService.ExchangeDataWithoutRate
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.ERROR
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.BuyLimit
@@ -30,7 +30,6 @@ import com.getcode.model.intents.ActionGroup
 import com.getcode.model.intents.IntentCreateAccounts
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentEstablishRelationship
-import com.getcode.model.intents.IntentMigratePrivacy
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentReceive
@@ -46,6 +45,7 @@ import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.base58
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.GiftCardAccount
@@ -127,7 +127,7 @@ class TransactionRepository @Inject constructor(
     fun createAccounts(organizer: Organizer): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentCreateAccounts(
-                id = com.getcode.solana.keys.PublicKey(bytes = listOf()),
+                id = PublicKey(bytes = listOf()),
                 actionGroup = ActionGroup(),
                 organizer = organizer
             ) as IntentType
@@ -138,19 +138,34 @@ class TransactionRepository @Inject constructor(
         return submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, null)
     }
 
+    fun transferPublicly(
+        amount: KinAmount,
+        organizer: Organizer,
+        destination: PublicKey
+    ): Single<IntentType> {
+        val intent = IntentPublicTransfer.newInstance(
+            organizer = organizer,
+            source = AccountType.Primary,
+            destination = IntentPublicTransfer.Destination.External(destination),
+            amount = amount.copy(kin = amount.kin.toKinTruncating()),
+        )
+
+        return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
+    }
+
     fun transfer(
         amount: KinAmount,
         fee: Kin,
         additionalFees: List<Fee>,
         organizer: Organizer,
-        rendezvousKey: com.getcode.solana.keys.PublicKey,
-        destination: com.getcode.solana.keys.PublicKey,
+        rendezvousKey: PublicKey,
+        destination: PublicKey,
         isWithdrawal: Boolean,
         metadata: PrivateTransferMetadata? = null,
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
-                id = com.getcode.solana.keys.PublicKey(bytes = listOf()),
+                id = PublicKey(bytes = listOf()),
                 actionGroup = ActionGroup(),
                 organizer = organizer,
                 destination = destination,
@@ -237,7 +252,7 @@ class TransactionRepository @Inject constructor(
     fun withdraw(
         amount: KinAmount,
         organizer: Organizer,
-        destination: com.getcode.solana.keys.PublicKey
+        destination: PublicKey
     ): Single<IntentType> {
         val intent = IntentPublicTransfer.newInstance(
             organizer = organizer,
@@ -263,7 +278,7 @@ class TransactionRepository @Inject constructor(
     fun sendRemotely(
         amount: KinAmount,
         organizer: Organizer,
-        rendezvousKey: com.getcode.solana.keys.PublicKey,
+        rendezvousKey: PublicKey,
         giftCard: GiftCardAccount
     ): Single<IntentType> {
         val intent = IntentRemoteSend.newInstance(
@@ -290,18 +305,6 @@ class TransactionRepository @Inject constructor(
             amount = amount,
             isVoidingGiftCard = isVoiding
         )
-        return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
-    }
-
-    fun migrateToPrivacy(
-        amount: Kin,
-        organizer: Organizer
-    ): Single<IntentType> {
-        val intent = IntentMigratePrivacy.newInstance(
-            organizer = organizer,
-            amount = amount,
-        )
-
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
@@ -540,7 +543,7 @@ class TransactionRepository @Inject constructor(
 
     suspend fun fetchIntentMetadata(
         owner: KeyPair,
-        intentId: com.getcode.solana.keys.PublicKey
+        intentId: PublicKey
     ): Result<IntentMetadata> {
         val request = TransactionService.GetIntentMetadataRequest.newBuilder()
             .setIntentId(intentId.toIntentId())
@@ -610,7 +613,7 @@ class TransactionRepository @Inject constructor(
             .toFlowable()
     }
 
-    fun fetchDestinationMetadata(destination: com.getcode.solana.keys.PublicKey): Single<DestinationMetadata> {
+    fun fetchDestinationMetadata(destination: PublicKey): Single<DestinationMetadata> {
         val request = TransactionService.CanWithdrawToAccountRequest.newBuilder()
             .setAccount(destination.bytes.toSolanaAccount())
             .build()
@@ -664,12 +667,12 @@ class TransactionRepository @Inject constructor(
     }
 
     data class DestinationMetadata(
-        val destination: com.getcode.solana.keys.PublicKey,
+        val destination: PublicKey,
         val isValid: Boolean,
         val kind: Kind,
 
         val hasResolvedDestination: Boolean,
-        val resolvedDestination: com.getcode.solana.keys.PublicKey
+        val resolvedDestination: PublicKey
     ) {
         enum class Kind {
             Unknown,
@@ -689,12 +692,12 @@ class TransactionRepository @Inject constructor(
 
         companion object {
             fun newInstance(
-                destination: com.getcode.solana.keys.PublicKey,
+                destination: PublicKey,
                 isValid: Boolean,
                 kind: Kind
             ): DestinationMetadata {
                 val hasResolvedDestination: Boolean
-                val resolvedDestination: com.getcode.solana.keys.PublicKey
+                val resolvedDestination: PublicKey
 
                 when (kind) {
                     Kind.Unknown, Kind.TokenAccount -> {

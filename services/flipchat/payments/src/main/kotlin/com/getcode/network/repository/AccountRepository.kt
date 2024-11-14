@@ -1,7 +1,6 @@
 package com.getcode.network.repository
 
-import com.codeinc.gen.account.v1.AccountService
-import com.codeinc.gen.common.v1.Model
+import com.codeinc.gen.account.v1.CodeAccountService as AccountService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.*
 import com.getcode.network.api.AccountApi
@@ -44,13 +43,6 @@ class AccountRepository @Inject constructor(
                                 if (accountInfo == null) {
                                     Timber.i("Failed to parse account info: $info")
                                     continue
-                                }
-
-                                if (info.accountType == Model.AccountType.LEGACY_PRIMARY_2022) {
-                                    Timber.i("Owner requires migration: ${owner.getPublicKeyBase58()}")
-                                    throw FetchAccountInfosException.MigrationRequiredException(
-                                        accountInfo
-                                    )
                                 }
 
                                 container[account] = accountInfo
@@ -100,11 +92,6 @@ class AccountRepository @Inject constructor(
                                 continue
                             }
 
-                            if (info.accountType == Model.AccountType.LEGACY_PRIMARY_2022) {
-                                Timber.i("Owner requires migration: ${owner.getPublicKeyBase58()}")
-                                return@flatMap Single.error(FetchAccountInfosException.MigrationRequiredException(accountInfo))
-                            }
-
                             container[account] = accountInfo
                         }
                         Timber.d("token account infos handled")
@@ -123,7 +110,6 @@ class AccountRepository @Inject constructor(
     }
 
     sealed class FetchAccountInfosException : Exception() {
-        class MigrationRequiredException(val accountInfo: AccountInfo) : FetchAccountInfosException()
         class NotFoundException : FetchAccountInfosException()
         class UnknownException : FetchAccountInfosException()
     }

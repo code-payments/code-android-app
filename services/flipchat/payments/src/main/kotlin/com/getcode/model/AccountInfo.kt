@@ -1,6 +1,6 @@
 package com.getcode.model
 
-import com.codeinc.gen.account.v1.AccountService
+import com.codeinc.gen.account.v1.CodeAccountService as AccountService
 import com.getcode.solana.organizer.AccountType
 
 data class AccountInfo (

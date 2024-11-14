@@ -1,8 +1,8 @@
 package com.getcode.model.intents
 
-import com.codeinc.gen.common.v1.Model.InstructionAccount
-import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
-import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
+import com.codeinc.gen.common.v1.CodeModel.InstructionAccount
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapRequest
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.generate
 import com.getcode.model.toHash

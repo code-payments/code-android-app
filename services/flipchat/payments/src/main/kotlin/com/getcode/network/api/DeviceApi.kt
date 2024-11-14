@@ -1,8 +1,8 @@
 package com.getcode.network.api
 
-import com.codeinc.gen.common.v1.Model
+import com.codeinc.gen.common.v1.CodeModel as Model
 import com.codeinc.gen.device.v1.DeviceGrpc
-import com.codeinc.gen.device.v1.DeviceService
+import com.codeinc.gen.device.v1.CodeDeviceService as DeviceService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.network.repository.sign
 import com.getcode.network.repository.toSolanaAccount

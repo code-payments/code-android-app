@@ -1,6 +1,6 @@
 package com.getcode.network.repository
 
-import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.CodeMessagingService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.IntentMetadata
 import com.getcode.model.toPublicKey
@@ -22,7 +22,7 @@ class ReceiveTransactionRepository @Inject constructor(
             rendezvousKeyPair = rendezvous
         )
             .flatMap { paymentRequestResponse ->
-                if (paymentRequestResponse.result != MessagingService.SendMessageResponse.Result.OK) {
+                if (paymentRequestResponse.result != CodeMessagingService.SendMessageResponse.Result.OK) {
                     Flowable.error(Exception("Error: ${paymentRequestResponse.result.name}"))
                 } else {
                     client.pollIntentMetadata(

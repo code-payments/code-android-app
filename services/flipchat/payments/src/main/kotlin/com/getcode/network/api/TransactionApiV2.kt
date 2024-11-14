@@ -1,9 +1,8 @@
 package com.getcode.network.api
 
+import com.codeinc.gen.transaction.v2.CodeTransactionService
 import com.codeinc.gen.transaction.v2.TransactionGrpc
-import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
-import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
@@ -39,12 +38,6 @@ class TransactionApiV2 @Inject constructor(
             .subscribeOn(scheduler)
     }
 
-    fun getPaymentHistory(request: TransactionService.GetPaymentHistoryRequest): Single<TransactionService.GetPaymentHistoryResponse> {
-        return api::getPaymentHistory
-            .callAsSingle(request)
-            .subscribeOn(scheduler)
-    }
-
     fun getLimits(request: TransactionService.GetLimitsRequest): Single<TransactionService.GetLimitsResponse> {
         return api::getLimits
             .callAsSingle(request)
@@ -69,7 +62,7 @@ class TransactionApiV2 @Inject constructor(
             .subscribeOn(scheduler)
     }
 
-    fun swap(observer: StreamObserver<SwapResponse>): StreamObserver<SwapRequest> {
+    fun swap(observer: StreamObserver<CodeTransactionService.SwapResponse>): StreamObserver<CodeTransactionService.SwapRequest> {
         return api.swap(observer)
     }
 

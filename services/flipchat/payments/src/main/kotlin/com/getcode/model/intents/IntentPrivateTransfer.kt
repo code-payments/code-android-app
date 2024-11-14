@@ -1,8 +1,6 @@
 package com.getcode.model.intents
 
 import com.codeinc.gen.chat.v2.ChatService
-import com.codeinc.gen.common.v1.Model
-import com.codeinc.gen.transaction.v2.TransactionService
 import com.getcode.model.Fee
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
@@ -18,12 +16,11 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
-import com.getcode.utils.toByteString
 import timber.log.Timber
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 
 sealed interface PrivateTransferMetadata {
     data class Tip(val socialUser: SocialUser): PrivateTransferMetadata
-    data class Chat(val socialUser: SocialUser): PrivateTransferMetadata
 }
 
 class IntentPrivateTransfer(
@@ -57,13 +54,6 @@ class IntentPrivateTransfer(
                     )
 
                     when (metadata) {
-                        is PrivateTransferMetadata.Chat -> {
-                            setIsChat(true)
-                            setChatId(
-                                Model.ChatId.newBuilder()
-                                .setValue(metadata.socialUser.chatId.toByteString())
-                            )
-                        }
                         is PrivateTransferMetadata.Tip -> {
                             setIsTip(true)
                             setTippedUser(TransactionService.TippedUser.newBuilder()
@@ -200,11 +190,6 @@ class IntentPrivateTransfer(
                     type = AccountType.Outgoing,
                     accountCluster = newOutgoing.getCluster()
                 ),
-                ActionWithdraw.newInstance(
-                    kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.Outgoing),
-                    cluster = newOutgoing.getCluster(),
-                    destination = currentTray.owner.getCluster().vaultPublicKey
-                )
             )
 
             val endBalance = currentTray.availableBalance

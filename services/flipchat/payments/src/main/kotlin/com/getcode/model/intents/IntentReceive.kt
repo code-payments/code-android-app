@@ -1,7 +1,7 @@
 package com.getcode.model.intents
 
 import android.content.Context
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.model.Kin
 import com.getcode.model.generate
 import com.getcode.model.intents.actions.*
@@ -73,24 +73,14 @@ class IntentReceive(
 
             // 3. Rotate incoming account
 
-            val oldIncoming = currentTray.incoming
             currentTray.incrementIncoming()
             val newIncoming = currentTray.incoming
 
             val rotation = mutableListOf(
-                ActionCloseEmptyAccount.newInstance(
-                    type = AccountType.Incoming,
-                    cluster = oldIncoming.getCluster()
-                ),
                 ActionOpenAccount.newInstance(
                     owner = organizer.tray.owner.getCluster().authority.keyPair.publicKeyBytes.toPublicKey(),
                     type = AccountType.Incoming,
                     accountCluster = newIncoming.getCluster()
-                ),
-                ActionWithdraw.newInstance(
-                    kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.Incoming),
-                    cluster = newIncoming.getCluster(),
-                    destination = organizer.tray.owner.getCluster().vaultPublicKey
                 )
             )
 

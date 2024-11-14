@@ -43,9 +43,15 @@ android {
 }
 
 dependencies {
-    implementation(project(":definitions:code:models"))
+    implementation(project(":definitions:code-vm:models"))
     api(project(":services:shared"))
     implementation(project(":ui:resources"))
+
+    implementation(project(":libs:messaging"))
+    implementation(project(":libs:requests"))
+
+    implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_ui)
 
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)

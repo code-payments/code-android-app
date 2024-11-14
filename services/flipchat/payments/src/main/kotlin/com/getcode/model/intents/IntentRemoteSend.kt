@@ -1,7 +1,7 @@
 package com.getcode.model.intents
 
 import android.content.Context
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.model.KinAmount
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionTransfer
@@ -127,12 +127,6 @@ class IntentRemoteSend(
 
             // 6. Close gift card account
 
-            val closeGiftCard = ActionWithdraw.newInstance(
-                kind = ActionWithdraw.Kind.CloseDormantAccount(AccountType.RemoteSend),
-                cluster = giftCard.cluster,
-                destination = currentTray.owner.getCluster().vaultPublicKey
-            )
-
             val endBalance = currentTray.availableBalance
 
             if (startBalance - endBalance != amount.kin) {
@@ -150,7 +144,6 @@ class IntentRemoteSend(
                     outgoing,
                     *redistributes.toTypedArray(),
                     *rotation.toTypedArray(),
-                    closeGiftCard
                 )
             }
 

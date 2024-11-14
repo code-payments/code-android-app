@@ -2,7 +2,6 @@ package com.getcode.network.repository
 
 import android.annotation.SuppressLint
 import com.getcode.ed25519.Ed25519.KeyPair
-import com.getcode.manager.SessionManager
 import com.getcode.services.model.CodePayload
 import com.getcode.model.ID
 import com.getcode.model.Kin
@@ -43,161 +42,9 @@ class PaymentRepository @Inject constructor(
     private val balanceController: BalanceController,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
-    fun attemptLogin(payload: CodePayload): Pair<CodePayload, LoginRequest>? {
-        return runCatching {
-            // 1. Fetch message metadata for this payload to get the
-            // domain for which we'll need to establish a relationship
-            val loginAttempt = messagingRepository
-                .fetchMessages(payload.rendezvous)
-                .getOrNull()
-                ?.takeIf { it.isNotEmpty() && it.first().loginRequest != null }
-                ?.firstOrNull()?.loginRequest
-                ?: throw PaymentError.MessageForRendezvousNotFound()
-
-            codeScanned(payload.rendezvous)
-            return payload to loginAttempt
-        }.onFailure { ErrorUtils.handleError(it) }.getOrNull()
-    }
-
-    suspend fun attemptRequest(payload: CodePayload): Pair<KinAmount, CodePayload>? {
-        val fiat = payload.fiat
-        if (fiat == null) {
-            Timber.d("payload does not contain Fiat value")
-            return null
-        }
-
-        exchange.fetchRatesIfNeeded()
-        val rate = exchange.rateFor(fiat.currency)
-        if (rate == null) {
-            Timber.d("Unable to determine rate")
-            return null
-        }
-
-        Timber.d("Rate for ${rate.currency.name}: ${rate.fx}")
-        Timber.d("fiat value = ${fiat.amount}")
-
-        val amount = KinAmount.fromFiatAmount(fiat.amount, rate.fx, fiat.currency)
-
-        Timber.d("amount=${amount.fiat}, ${amount.kin}, ${amount.rate}")
-
-        codeScanned(payload.rendezvous)
-
-        return amount to payload
-    }
-
-    private fun codeScanned(rendezvousKey: KeyPair) = launch {
-        messagingRepository.codeScanned(rendezvousKey)
-            .onSuccess {
-                Timber.d("code scanned message sent successfully")
-            }.onFailure {
-                Timber.e(t = it, message = "code scanned message sent unsuccessfully")
-            }
-    }
-
-    @SuppressLint("CheckResult")
-    suspend fun completePayment(amount: KinAmount, rendezvousKey: KeyPair) {
-        // 1. ensure we have exchange rates and compute the fees for this transaction
-        withContext(Dispatchers.IO) {
-            exchange.fetchRatesIfNeeded()
-        }
-
-        var paymentAmount = amount
+    suspend fun payPublicly(destination: PublicKey, amount: KinAmount): ID {
         return suspendCancellableCoroutine { cont ->
-            runCatching {
-                val rateUsd = exchange.rateForUsd() ?: throw PaymentError.NoExchangeData()
-
-                val fee = KinAmount.fromFiatAmount(fiat = 0.01, rate = rateUsd)
-                Timber.d("Computed fee for transaction=${fee.kin}")
-
-
-                // 2. Between the time the kin value was computed previously and
-                // now, the exchange rates might have changed. Let's recompute the
-                // Kin value from the fiat value we had before but using a more
-                // current exchange rate
-                val newRate = exchange.rateFor(amount.rate.currency)
-                    ?: throw PaymentError.ExchangeForCurrencyNotFound()
-                paymentAmount = KinAmount.fromFiatAmount(
-                    fiat = amount.fiat,
-                    rate = newRate
-                )
-
-                // TODO: analytics
-                // analytics.recomputed(amount.rate.fx, newRate.fx)
-                Timber.d("In: ${amount.rate.fx}, Out:${newRate.fx}")
-
-                // 3. Fetch message metadata for this payload that
-                // will tell us where to send the funds.
-                val messages = messagingRepository
-                    .fetchMessages(rendezvousKey)
-                    .getOrNull()
-                    ?.takeIf { it.isNotEmpty() && it.first().receiveRequest != null }
-                    ?: throw PaymentError.MessageForRendezvousNotFound()
-
-                val message = messages.first()
-                val receiveRequest = message.receiveRequest!!
-
-                val organizer =
-                    SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
-
-                // 4. Establish a relationship if a domain is provided. If a verifier
-                // is present that means the domain has been verified by the server.
-                val domain = receiveRequest.domain
-                if (domain != null) {
-                    if (
-                        receiveRequest.verifier != null &&
-                        organizer.relationshipFor(domain) == null
-                    ) {
-                        client.establishRelationshipSingle(organizer, domain).blockingGet()
-                    }
-                }
-
-                // 5. Complete the transfer.
-                val transferResult = client.transferWithResult(
-                    amount = paymentAmount.copy(kin = paymentAmount.kin.toKinTruncating()),
-                    fee = fee.kin,
-                    additionalFees = receiveRequest.additionalFees,
-                    organizer = organizer,
-                    rendezvousKey = rendezvousKey.publicKeyBytes.toPublicKey(),
-                    destination = receiveRequest.account,
-                    isWithdrawal = true
-                )
-
-                if (transferResult.isSuccess) {
-                    Completable.concatArray(
-                        balanceController.getBalance(),
-                        client.fetchLimits(isForce = true)
-                    ).observeOn(Schedulers.io()).doOnComplete {
-                        // TODO: analytics
-//                        analytics.transfer(
-//                            amount = paymentAmount,
-//                            successful = true,
-//                        )
-                        cont.resume(Unit)
-                    }.subscribe()
-                } else {
-                    // pass exception down to onFailure for isolated handling
-                    throw transferResult.exceptionOrNull()
-                        ?: Throwable("Unable to complete payment")
-                }
-            }.onFailure { error ->
-                // TODO: analytics
-//                analytics.transfer(
-//                    amount = paymentAmount,
-//                    successful = false
-//                )
-                ErrorUtils.handleError(error)
-                cont.resumeWithException(error)
-            }
-        }
-    }
-
-    suspend fun rejectPayment(payload: CodePayload) {
-        messagingRepository.rejectPayment(payload.rendezvous)
-    }
-
-    suspend fun completeTipPayment(socialUser: SocialUser, amount: KinAmount) {
-        return suspendCancellableCoroutine { cont ->
-            val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
+            val organizer = client.organizerLookup() ?: throw PaymentError.OrganizerNotFound()
 
             // Generally, we would use the rendezvous key that
             // was generated from the scan code payload, however,
@@ -212,52 +59,8 @@ class PaymentRepository @Inject constructor(
                     fee = Kin.fromKin(0),
                     additionalFees = emptyList(),
                     rendezvousKey = rendezvous,
-                    destination = socialUser.tipAddress,
+                    destination = destination,
                     isWithdrawal = true,
-                    metadata = PrivateTransferMetadata.Tip(socialUser),
-                )
-
-                if (transferResult.isSuccess) {
-                    Completable.concatArray(
-                        balanceController.getBalance(),
-                        client.fetchLimits(isForce = true)
-                    ).observeOn(Schedulers.io()).doOnComplete {
-                        // TODO: analytics
-//                        analytics.transferForTip(amount = amount, successful = true)
-                        cont.resume(Unit)
-                    }.subscribe()
-                } else {
-                    // pass exception down to onFailure for isolated handling
-                    throw transferResult.exceptionOrNull()
-                        ?: Throwable("Unable to complete payment")
-                }
-            }.onFailure { error ->
-                ErrorUtils.handleError(error)
-                cont.resumeWithException(error)
-            }
-        }
-    }
-
-    suspend fun payForFriendship(user: SocialUser, amount: KinAmount): ID {
-        return suspendCancellableCoroutine { cont ->
-            val organizer = SessionManager.getOrganizer() ?: throw PaymentError.OrganizerNotFound()
-
-            // Generally, we would use the rendezvous key that
-            // was generated from the scan code payload, however,
-            // tip codes are inherently deterministic and won't
-            // change so we need a unique rendezvous for every tx.
-            val rendezvous = PublicKey.generate()
-
-            runCatching {
-                val transferResult = client.transferWithResult(
-                    amount = amount,
-                    organizer = organizer,
-                    fee = Kin.fromKin(0),
-                    additionalFees = emptyList(),
-                    rendezvousKey = rendezvous,
-                    destination = user.tipAddress,
-                    isWithdrawal = true,
-                    metadata = PrivateTransferMetadata.Chat(user),
                 )
 
                 if (transferResult.isSuccess) {

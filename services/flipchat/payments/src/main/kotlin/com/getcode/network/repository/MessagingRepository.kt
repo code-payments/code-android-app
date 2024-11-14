@@ -1,12 +1,12 @@
 package com.getcode.network.repository
 
-import com.codeinc.gen.common.v1.Model
-import com.codeinc.gen.messaging.v1.MessagingService
-import com.codeinc.gen.messaging.v1.MessagingService.ClientRejectedLogin
-import com.codeinc.gen.messaging.v1.MessagingService.CodeScanned
-import com.codeinc.gen.messaging.v1.MessagingService.PollMessagesRequest
-import com.codeinc.gen.messaging.v1.MessagingService.RendezvousKey
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.common.v1.CodeModel as Model
+import com.codeinc.gen.messaging.v1.CodeMessagingService as MessagingService
+import com.codeinc.gen.messaging.v1.CodeMessagingService.ClientRejectedLogin
+import com.codeinc.gen.messaging.v1.CodeMessagingService.CodeScanned
+import com.codeinc.gen.messaging.v1.CodeMessagingService.PollMessagesRequest
+import com.codeinc.gen.messaging.v1.CodeMessagingService.RendezvousKey
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.Domain

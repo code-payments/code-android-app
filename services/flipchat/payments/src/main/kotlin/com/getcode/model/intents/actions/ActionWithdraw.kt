@@ -1,6 +1,6 @@
 package com.getcode.model.intents.actions
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
 import com.getcode.model.intents.PrivateTransferMetadata
@@ -48,19 +48,6 @@ class ActionWithdraw(
                     this@ActionWithdraw.id
 
                 when (kind) {
-                    is Kind.CloseDormantAccount -> {
-                        this.closeDormantAccount =
-                            TransactionService.CloseDormantAccountAction.newBuilder().apply {
-                            this.accountType =
-                                this@ActionWithdraw.kind.accountType.getAccountType()
-                            this.authority =
-                                this@ActionWithdraw.cluster.authority.keyPair.publicKeyBytes.toSolanaAccount()
-                            this.token =
-                                this@ActionWithdraw.cluster.vaultPublicKey.bytes.toSolanaAccount()
-                            this.destination =
-                                this@ActionWithdraw.destination.bytes.toSolanaAccount()
-                        }.build()
-                    }
                     is Kind.NoPrivacyWithdraw -> {
                         this.noPrivacyWithdraw =
                             TransactionService.NoPrivacyWithdrawAction.newBuilder().apply {
@@ -104,7 +91,6 @@ class ActionWithdraw(
     }
 
     sealed class Kind {
-        data class CloseDormantAccount(val accountType: AccountType) : Kind()
         data class NoPrivacyWithdraw(val amount: Kin): Kind()
     }
 }

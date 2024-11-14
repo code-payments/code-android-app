@@ -1,6 +1,6 @@
 package com.getcode.model.intents
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.intents.actions.ActionOpenAccount
 import com.getcode.model.intents.actions.ActionType

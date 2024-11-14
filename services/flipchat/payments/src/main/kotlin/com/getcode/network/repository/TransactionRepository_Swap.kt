@@ -1,9 +1,9 @@
 package com.getcode.network.repository
 
-import com.codeinc.gen.transaction.v2.TransactionService
-import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest
-import com.codeinc.gen.transaction.v2.TransactionService.SwapRequest.Initiate
-import com.codeinc.gen.transaction.v2.TransactionService.SwapResponse
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapRequest
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapRequest.Initiate
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapResponse
 import com.getcode.model.intents.SwapConfigParameters
 import com.getcode.model.intents.SwapIntent
 import com.getcode.model.intents.requestToSubmitSignatures

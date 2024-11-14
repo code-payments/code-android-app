@@ -1,10 +1,10 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.user.v1.IdentityGrpc
-import com.codeinc.gen.user.v1.IdentityService
-import com.codeinc.gen.user.v1.IdentityService.GetTwitterUserRequest
-import com.codeinc.gen.user.v1.IdentityService.LoginToThirdPartyAppRequest
-import com.codeinc.gen.user.v1.IdentityService.UpdatePreferencesRequest
+import com.codeinc.gen.user.v1.CodeIdentityService as IdentityService
+import com.codeinc.gen.user.v1.CodeIdentityService.GetTwitterUserRequest
+import com.codeinc.gen.user.v1.CodeIdentityService.LoginToThirdPartyAppRequest
+import com.codeinc.gen.user.v1.CodeIdentityService.UpdatePreferencesRequest
 import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.reactivex.rxjava3.annotations.NonNull

@@ -1,7 +1,7 @@
 package com.getcode.network.api
 
 import com.codeinc.gen.currency.v1.CurrencyGrpc
-import com.codeinc.gen.currency.v1.CurrencyService
+import com.codeinc.gen.currency.v1.CodeCurrencyService as CurrencyService
 import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers

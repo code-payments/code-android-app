@@ -1,6 +1,6 @@
 package com.getcode.model.intents
 
-import com.codeinc.gen.transaction.v2.TransactionService
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.model.Kin
 import com.getcode.model.toHash
 import com.getcode.model.toPublicKey
@@ -88,8 +88,6 @@ class ServerParameter(
                         FeePayment(optionalDestination)
                     }
                     TransactionService.ServerParameter.TypeCase.OPEN_ACCOUNT,
-                    TransactionService.ServerParameter.TypeCase.CLOSE_EMPTY_ACCOUNT,
-                    TransactionService.ServerParameter.TypeCase.CLOSE_DORMANT_ACCOUNT,
                     TransactionService.ServerParameter.TypeCase.NO_PRIVACY_WITHDRAW,
                     TransactionService.ServerParameter.TypeCase.TYPE_NOT_SET,
                     TransactionService.ServerParameter.TypeCase.NO_PRIVACY_TRANSFER -> null

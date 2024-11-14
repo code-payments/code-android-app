@@ -1,12 +1,12 @@
 package com.getcode.utils
 
-import com.codeinc.gen.common.v1.Model
+import com.codeinc.gen.common.v1.CodeModel
 import com.getcode.ed25519.Ed25519
 import com.getcode.network.repository.toSignature
 import com.google.protobuf.GeneratedMessageLite
 import java.io.ByteArrayOutputStream
 
-fun <M : GeneratedMessageLite<M?, B?>, B : GeneratedMessageLite.Builder<M?, B?>> GeneratedMessageLite.Builder<M, B>.sign(owner: Ed25519.KeyPair): Model.Signature {
+fun <M : GeneratedMessageLite<M?, B?>, B : GeneratedMessageLite.Builder<M?, B?>> GeneratedMessageLite.Builder<M, B>.sign(owner: Ed25519.KeyPair): CodeModel.Signature {
     // dump message up until this point into a ByteArray
     val bos = ByteArrayOutputStream()
     this.buildPartial().writeTo(bos)

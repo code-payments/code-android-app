@@ -1,6 +1,6 @@
 package com.getcode.solana.organizer
 
-import com.codeinc.gen.common.v1.Model
+import com.codeinc.gen.common.v1.CodeModel as Model
 import com.getcode.model.Domain
 
 sealed interface AccountType {

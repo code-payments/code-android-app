@@ -1,15 +1,18 @@
 package com.getcode.oct24.internal.inject
 
 import com.getcode.network.BalanceController
-import com.getcode.network.PrivacyMigration
+import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
+import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.oct24.user.UserManager
+import com.getcode.services.analytics.AnalyticsService
 import com.getcode.services.annotations.EcdsaLookup
 import com.getcode.services.db.CurrencyProvider
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.services.model.EcdsaTuple
 import com.getcode.services.model.EcdsaTupleQuery
 import com.getcode.services.network.core.NetworkOracle
@@ -43,6 +46,34 @@ internal object FlipchatServicesModule {
 
     @Singleton
     @Provides
+    fun provideClient(
+        @EcdsaLookup lookup: EcdsaTupleQuery,
+        userManager: UserManager,
+        transactionRepository: TransactionRepository,
+        messagingRepository: MessagingRepository,
+        accountRepository: AccountRepository,
+        balanceController: BalanceController,
+        analytics: AnalyticsService,
+        transactionReceiver: TransactionReceiver,
+        exchange: Exchange,
+        networkObserver: NetworkConnectivityListener,
+    ): Client {
+        return Client(
+            storedEcda = lookup,
+            organizerLookup = { userManager.organizer },
+            transactionRepository,
+            messagingRepository,
+            balanceController,
+            accountRepository,
+            analytics,
+            exchange,
+            transactionReceiver,
+            networkObserver,
+        )
+    }
+
+    @Singleton
+    @Provides
     fun provideBalanceController(
         @EcdsaLookup lookup: EcdsaTupleQuery,
         userManager: UserManager,
@@ -50,7 +81,6 @@ internal object FlipchatServicesModule {
         balanceRepository: BalanceRepository,
         transactionRepository: TransactionRepository,
         accountRepository: AccountRepository,
-        privacyMigration: PrivacyMigration,
         transactionReceiver: TransactionReceiver,
         networkObserver: NetworkConnectivityListener,
         currencyUtils: CurrencyUtils,
@@ -62,7 +92,6 @@ internal object FlipchatServicesModule {
             balanceRepository = balanceRepository,
             transactionRepository = transactionRepository,
             accountRepository = accountRepository,
-            privacyMigration = privacyMigration,
             transactionReceiver = transactionReceiver,
             networkObserver = networkObserver,
             getCurrencyFromCode = {

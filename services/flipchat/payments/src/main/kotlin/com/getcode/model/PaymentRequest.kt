@@ -1,6 +1,6 @@
 package com.getcode.model
 
-import com.codeinc.gen.messaging.v1.MessagingService
+import com.codeinc.gen.messaging.v1.CodeMessagingService as MessagingService
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.keys.Signature
 

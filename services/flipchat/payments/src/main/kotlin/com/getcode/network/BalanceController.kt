@@ -48,7 +48,6 @@ open class BalanceController @Inject constructor(
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository,
     private val accountRepository: AccountRepository,
-    private val privacyMigration: PrivacyMigration,
     private val transactionReceiver: TransactionReceiver,
     private val getCurrencyFromCode: (CurrencyCode?) -> Currency?,
     private val storedEcda: () -> EcdsaTuple,
@@ -137,14 +136,6 @@ open class BalanceController @Inject constructor(
                 )
 
                 when (it) {
-                    is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
-                        val amountToMigrate = it.accountInfo.balance
-                        privacyMigration.migrateToPrivacy(
-                            amountToMigrate = amountToMigrate,
-                            organizer = organizer
-                        ).ignoreElement().concatWith(getTokenAccountInfos())
-                    }
-
                     is AccountRepository.FetchAccountInfosException.NotFoundException -> {
                         transactionRepository.createAccounts(
                             organizer = organizer
@@ -191,16 +182,6 @@ open class BalanceController @Inject constructor(
 
             return suspendCancellableCoroutine { cont ->
                 when (ex) {
-                    is AccountRepository.FetchAccountInfosException.MigrationRequiredException -> {
-                        val amountToMigrate = ex.accountInfo.balance
-                        privacyMigration.migrateToPrivacy(
-                            amountToMigrate = amountToMigrate,
-                            organizer = organizer
-                        ).doOnError { cont.resume(Result.failure(it)) }
-                            .doAfterSuccess { cont.resume(Result.success(Unit)) }
-                            .subscribe()
-                    }
-
                     is AccountRepository.FetchAccountInfosException.NotFoundException -> {
                         println("account not found")
                         transactionRepository.createAccounts(
