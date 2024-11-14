@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.toByteString
 import xyz.flipchat.services.domain.model.query.PagingToken
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -27,6 +28,14 @@ internal fun ID.toMessageId(): Model.MessageId {
 
 internal fun ID.toChatId(): Flipchat.ChatId {
     return Flipchat.ChatId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun ID.toIntentId(): Flipchat.IntentId {
+    return Flipchat.IntentId.newBuilder().setValue(toByteString()).build()
+}
+
+internal fun Flipchat.PublicKey.toPublicKey(): PublicKey {
+    return PublicKey(this.value.toByteArray().toList())
 }
 
 internal fun QueryOptions.toProto(): Flipchat.QueryOptions {

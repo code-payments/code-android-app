@@ -12,6 +12,7 @@ val BrandAction = Color(0xFF212121)
 val BrandOverlay = Color(0xBF1E1E1E)
 val BrandAccent = Color(0xFF443091)
 val BrandIndicator = Color(0xFF31BB00)
+val BrandSlideToConfirm = Color(0xFF11142A)
 
 val White = Color(0xffffffff)
 val White50 = Color(0x80FFFFFF)

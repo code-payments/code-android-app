@@ -33,7 +33,7 @@ import com.getcode.model.KinAmount
 import com.getcode.services.model.Kind
 import com.getcode.model.Rate
 import com.getcode.model.fromFiatAmount
-import com.getcode.models.PaymentConfirmation
+import com.getcode.models.PrivatePaymentConfirmation
 import com.getcode.models.ConfirmationState
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
@@ -50,7 +50,7 @@ import kotlinx.coroutines.delay
 internal fun PaymentConfirmation(
     modifier: Modifier = Modifier,
     balance: KinAmount?,
-    confirmation: PaymentConfirmation?,
+    confirmation: PrivatePaymentConfirmation?,
     onAddKin: () -> Unit = { },
     onSend: () -> Unit,
     onCancel: () -> Unit,
@@ -108,7 +108,7 @@ private val payload = CodePayload(
     ).map { it.toByte() }
 )
 
-private fun confirmationWithState(state: ConfirmationState) = PaymentConfirmation(
+private fun confirmationWithState(state: ConfirmationState) = PrivatePaymentConfirmation(
     state = state,
     payload = payload,
     requestedAmount = KinAmount.fromFiatAmount(
@@ -196,8 +196,8 @@ fun Preview_PaymentConfirmModal_Interactive() {
                 .background(Color.White)
         ) {
             var confirmation by remember {
-                mutableStateOf<PaymentConfirmation?>(
-                    PaymentConfirmation(
+                mutableStateOf<PrivatePaymentConfirmation?>(
+                    PrivatePaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         payload = payload,
                         requestedAmount = KinAmount.fromFiatAmount(
@@ -276,7 +276,6 @@ private fun PaymentConfirmationContent(
     }
     SlideToConfirm(
         isLoading = isSending,
-        trackColor = SlideToConfirmDefaults.BlueTrackColor,
         isSuccess = state is ConfirmationState.Sent,
         onConfirm = { onApproved() },
     )

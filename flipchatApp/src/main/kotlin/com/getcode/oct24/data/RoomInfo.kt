@@ -9,8 +9,9 @@ data class RoomInfo(
     val number: Long = 0,
     val title: String = "",
     val memberCount: Int = 0,
+    val hostId: ID? = null,
     val hostName: String? = null,
-    val coverCharge: Long? = null,
+    val coverCharge: Long = 200,
 ) {
     companion object {
         val DEFAULT_GRADIENT_SAMPLE = Triple(

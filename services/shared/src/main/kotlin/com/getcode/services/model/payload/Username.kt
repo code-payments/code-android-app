@@ -1,4 +1,4 @@
-package com.getcode.services.model
+package com.getcode.services.model.payload
 
 import com.getcode.model.Value
 

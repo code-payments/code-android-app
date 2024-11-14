@@ -1,14 +1,18 @@
 package xyz.flipchat.services.internal.network.service
 
+import com.codeinc.flipchat.gen.account.v1.AccountService
 import com.codeinc.flipchat.gen.account.v1.AccountService.LoginResponse
 import com.codeinc.flipchat.gen.account.v1.AccountService.RegisterResponse
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.services.network.core.NetworkOracle
+import com.getcode.solana.keys.PublicKey
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import xyz.flipchat.services.data.PaymentTarget
 import xyz.flipchat.services.internal.network.api.AccountApi
+import xyz.flipchat.services.internal.network.extensions.toPublicKey
 import javax.inject.Inject
 
 internal class AccountService @Inject constructor(
@@ -90,6 +94,35 @@ internal class AccountService @Inject constructor(
         }
     }
 
+    suspend fun getPaymentDestination(target: PaymentTarget): Result<PublicKey> {
+        return try {
+            networkOracle.managedRequest(api.getPaymentDestination(target))
+                .map { response ->
+                    when (response.result) {
+                        AccountService.GetPaymentDestinationResponse.Result.OK -> Result.success(response.paymentDestination.toPublicKey())
+                        AccountService.GetPaymentDestinationResponse.Result.NOT_FOUND -> {
+                            val error = GetPaymentDestinationError.NotFound()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        AccountService.GetPaymentDestinationResponse.Result.UNRECOGNIZED -> {
+                            val error = GetPaymentDestinationError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        else -> {
+                            val error = GetPaymentDestinationError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = GetPaymentDestinationError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     sealed class LoginError(override val message: String): Throwable(message) {
         data class InvalidTimestamp(override val message: String): LoginError(message)
         data class NotFound(override val message: String): LoginError(message)
@@ -103,5 +136,11 @@ internal class AccountService @Inject constructor(
         data class InvalidDisplayName(override val message: String): RegisterError(message)
         data class Unrecognized(override val message: String): RegisterError(message)
         data class Other(override val message: String, override val cause: Throwable? = null): RegisterError(message)
+    }
+
+    sealed class GetPaymentDestinationError : Throwable() {
+        class Unrecognized : GetPaymentDestinationError()
+        class NotFound : GetPaymentDestinationError()
+        data class Other(override val cause: Throwable? = null) : GetPaymentDestinationError()
     }
 }

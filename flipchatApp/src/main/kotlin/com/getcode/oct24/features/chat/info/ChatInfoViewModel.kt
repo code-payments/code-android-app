@@ -116,6 +116,7 @@ class ChatInfoViewModel @Inject constructor(
                             number = args.roomNumber,
                             title = args.roomTitle.orEmpty(),
                             memberCount = args.memberCount,
+                            hostId = args.hostId,
                             hostName = args.hostName,
                         )
                     )

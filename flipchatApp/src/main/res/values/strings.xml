@@ -32,6 +32,9 @@
     <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
     <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later.</string>
 
+    <string name="error_title_failedToLookupPaymentDestination">Something Went Wrong</string>
+    <string name="error_description_failedToLookupPaymentDestination">You were unable to get payment information at this time. Please try again later.</string>
+
     <string name="error_title_failedToLeaveRoom">Something Went Wrong</string>
     <string name="error_description_failedToLeaveRoom">You were unable to leave the room at this time. Please try again later.</string>
 

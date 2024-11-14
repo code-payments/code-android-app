@@ -126,7 +126,7 @@ fun RoomCard(
                         color = Color.White.copy(0.80f)
                     )
                     Text(
-                        text = "Cover Charge: 1,000 Kin",
+                        text = "Cover Charge: ${roomInfo.coverCharge} Kin",
                         style = CodeTheme.typography.textSmall,
                         color = Color.White.copy(0.80f)
                     )

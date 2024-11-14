@@ -37,7 +37,7 @@ import com.getcode.models.BillToast
 import com.getcode.models.ConfirmationState
 import com.getcode.models.DeepLinkRequest
 import com.getcode.models.LoginConfirmation
-import com.getcode.models.PaymentConfirmation
+import com.getcode.models.PrivatePaymentConfirmation
 import com.getcode.models.PaymentValuation
 import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.models.amountFloored
@@ -74,7 +74,7 @@ import com.getcode.manager.TopBarManager
 import com.getcode.services.model.CodePayload
 import com.getcode.model.Domain
 import com.getcode.services.model.Kind
-import com.getcode.services.model.Username
+import com.getcode.services.model.payload.Username
 import com.getcode.model.toPublicKey
 import com.getcode.services.utils.catchSafely
 import com.getcode.services.utils.nonce
@@ -1152,7 +1152,7 @@ class SessionController @Inject constructor(
 
             if (isReceived) {
                 billState = billState.copy(
-                    paymentConfirmation = PaymentConfirmation(
+                    privatePaymentConfirmation = PrivatePaymentConfirmation(
                         state = ConfirmationState.AwaitingConfirmation,
                         payload = code,
                         requestedAmount = amount,
@@ -1186,12 +1186,12 @@ class SessionController @Inject constructor(
         // keep bill active while sending
         cashLinkManager.cancelBillTimeout()
 
-        val paymentConfirmation = state.value.billState.paymentConfirmation ?: return@launch
+        val paymentConfirmation = state.value.billState.privatePaymentConfirmation ?: return@launch
         state.update {
             val billState = it.billState
             it.copy(
                 billState = billState.copy(
-                    paymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
+                    privatePaymentConfirmation = paymentConfirmation.copy(state = ConfirmationState.Sending)
                 ),
             )
         }
@@ -1205,11 +1205,11 @@ class SessionController @Inject constructor(
 
             state.update {
                 val billState = it.billState
-                val confirmation = it.billState.paymentConfirmation ?: return@update it
+                val confirmation = it.billState.privatePaymentConfirmation ?: return@update it
 
                 it.copy(
                     billState = billState.copy(
-                        paymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
+                        privatePaymentConfirmation = confirmation.copy(state = ConfirmationState.Sent),
                     ),
                 )
             }
@@ -1232,7 +1232,7 @@ class SessionController @Inject constructor(
                     billState = uiModel.billState.copy(
                         bill = null,
                         showToast = false,
-                        paymentConfirmation = null,
+                        privatePaymentConfirmation = null,
                         toast = null,
                         valuation = null,
                         primaryAction = null,
@@ -1244,7 +1244,7 @@ class SessionController @Inject constructor(
     }
 
     private fun cancelPayment(rejected: Boolean, ignoreRedirect: Boolean = false) {
-        val paymentRendezous = state.value.billState.paymentConfirmation
+        val paymentRendezous = state.value.billState.privatePaymentConfirmation
         val bill = state.value.billState.bill ?: return
         val amount = bill.amount
         val request = bill.metadata.request
@@ -1263,7 +1263,7 @@ class SessionController @Inject constructor(
                 presentationStyle = PresentationStyle.Slide,
                 billState = it.billState.copy(
                     bill = null,
-                    paymentConfirmation = null,
+                    privatePaymentConfirmation = null,
                     valuation = null,
                     primaryAction = null,
                     secondaryAction = null,
@@ -1304,7 +1304,7 @@ class SessionController @Inject constructor(
     }
 
     fun rejectPayment(ignoreRedirect: Boolean = false) {
-        val payload = state.value.billState.paymentConfirmation?.payload
+        val payload = state.value.billState.privatePaymentConfirmation?.payload
         cancelPayment(true, ignoreRedirect)
         payload ?: return
 
@@ -1429,7 +1429,7 @@ class SessionController @Inject constructor(
                 billState = it.billState.copy(
                     bill = null,
                     showToast = false,
-                    paymentConfirmation = null,
+                    privatePaymentConfirmation = null,
                     loginConfirmation = null,
                     toast = null,
                     valuation = null,

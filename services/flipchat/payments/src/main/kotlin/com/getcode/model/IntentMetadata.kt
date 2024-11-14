@@ -1,5 +1,7 @@
 package com.getcode.model
 
+import com.getcode.solana.keys.PublicKey
+import com.getcode.utils.toByteString
 import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 
 sealed class IntentMetadata {
@@ -20,7 +22,8 @@ sealed class IntentMetadata {
                         metadata.receivePaymentsPublicly.exchangeData.currency,
                         metadata.receivePaymentsPublicly.exchangeData.quarks,
                         metadata.receivePaymentsPublicly.exchangeData.exchangeRate,
-                        metadata.sendPrivatePayment.isTip,
+                        false,
+                        null
                     )?.let { ReceivePaymentsPublicly(it) }
                 }
                 TransactionService.Metadata.TypeCase.UPGRADE_PRIVACY -> UpgradePrivacy
@@ -30,14 +33,16 @@ sealed class IntentMetadata {
                         metadata.sendPrivatePayment.exchangeData.quarks,
                         metadata.sendPrivatePayment.exchangeData.exchangeRate,
                         metadata.sendPrivatePayment.isTip,
+                        metadata.sendPrivatePayment.destination.toByteArray()
                     )?.let { SendPrivatePayment(it) }
                 }
                 TransactionService.Metadata.TypeCase.SEND_PUBLIC_PAYMENT -> {
                     getPaymentMetadata(
                         metadata.sendPublicPayment.exchangeData.currency,
-                        metadata.sendPrivatePayment.exchangeData.quarks,
+                        metadata.sendPublicPayment.exchangeData.quarks,
                         metadata.sendPublicPayment.exchangeData.exchangeRate,
-                        metadata.sendPrivatePayment.isTip,
+                        false,
+                        metadata.sendPrivatePayment.destination.toByteArray()
                     )?.let { SendPublicPayment(it) }
                 }
                 else -> null
@@ -49,6 +54,7 @@ sealed class IntentMetadata {
             quarks: Long,
             exchangeRate: Double,
             isTip: Boolean,
+            destination: ByteArray?,
         ): PaymentMetadata? {
             val currency = CurrencyCode.tryValueOf(currencyString.uppercase())
                 ?: return null
@@ -62,6 +68,7 @@ sealed class IntentMetadata {
                     )
                 ),
                 isTip = isTip,
+                destination = destination?.let { PublicKey.fromByteString(it.toByteString()) },
             )
         }
     }
@@ -70,4 +77,5 @@ sealed class IntentMetadata {
 data class PaymentMetadata(
     val amount: KinAmount,
     val isTip: Boolean,
+    val destination: PublicKey?
 )

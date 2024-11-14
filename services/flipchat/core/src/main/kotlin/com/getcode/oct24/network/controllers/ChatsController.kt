@@ -78,15 +78,15 @@ class ChatsController @Inject constructor(
             }
     }
 
-    suspend fun joinRoom(roomId: ID): Result<RoomWithMembers> {
-        return repository.joinChat(ChatIdentifier.Id(roomId))
+    suspend fun joinRoom(roomId: ID, paymentId: ID): Result<RoomWithMembers> {
+        return repository.joinChat(ChatIdentifier.Id(roomId), paymentId)
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))
             }
     }
 
-    suspend fun joinRoom(roomNumber: Long): Result<RoomWithMembers> {
-        return repository.joinChat(ChatIdentifier.RoomNumber(roomNumber))
+    suspend fun joinRoom(roomNumber: Long, paymentId: ID): Result<RoomWithMembers> {
+        return repository.joinChat(ChatIdentifier.RoomNumber(roomNumber), paymentId)
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))
             }

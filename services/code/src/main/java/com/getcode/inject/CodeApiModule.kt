@@ -3,6 +3,7 @@ package com.getcode.inject
 import android.content.Context
 import com.getcode.CodeServicesConfig
 import com.getcode.analytics.AnalyticsService
+import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.annotations.CodeManagedChannel
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
@@ -23,9 +24,12 @@ import com.getcode.network.service.CurrencyService
 import com.getcode.network.service.DeviceService
 import com.getcode.services.db.CurrencyProvider
 import com.getcode.services.manager.MnemonicManager
+import com.getcode.services.network.core.NetworkOracle
+import com.getcode.services.network.core.NetworkOracleImpl
 import com.getcode.services.utils.logging.LoggingClientInterceptor
 import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.mixpanel.android.mpmetrics.MixpanelAPI
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,6 +44,18 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 internal object CodeApiModule {
+
+    @Provides
+    fun provideNetworkOracle(): NetworkOracle {
+        return NetworkOracleImpl()
+    }
+
+    @Singleton
+    @Provides
+    fun providesServicesConfig(): CodeServicesConfig {
+        return CodeServicesConfig()
+    }
+
     @Singleton
     @Provides
     @CodeManagedChannel
@@ -160,4 +176,10 @@ internal object CodeApiModule {
     ): TransactionRepository {
         return TransactionRepository(transactionApi = transactionApi, context = context)
     }
+
+    // TODO:
+    @Provides
+    fun providesAnalyticsService(
+        mixpanelAPI: MixpanelAPI
+    ): AnalyticsService = AnalyticsServiceNull()
 }

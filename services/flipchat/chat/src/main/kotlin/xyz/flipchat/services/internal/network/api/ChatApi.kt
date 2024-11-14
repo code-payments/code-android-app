@@ -15,6 +15,7 @@ import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
+import xyz.flipchat.services.internal.network.extensions.toIntentId
 import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.extensions.toUserId
 import xyz.flipchat.services.internal.network.utils.authenticate
@@ -90,7 +91,7 @@ class ChatApi @Inject constructor(
 
         val builder = FlipchatService.GetChatRequest.newBuilder()
         when (identifier) {
-            is ChatIdentifier.Id -> builder.setChatId(identifier.id.toChatId())
+            is ChatIdentifier.Id -> builder.setChatId(identifier.roomId.toChatId())
             is ChatIdentifier.RoomNumber -> builder.setRoomNumber(identifier.number)
         }
 
@@ -107,11 +108,13 @@ class ChatApi @Inject constructor(
     fun joinChat(
         owner: KeyPair,
         identifier: ChatIdentifier,
+        paymentId: ID,
     ): Flow<FlipchatService.JoinChatResponse> {
         val builder = FlipchatService.JoinChatRequest.newBuilder()
+            .setPaymentIntent(paymentId.toIntentId())
 
         when (identifier) {
-            is ChatIdentifier.Id -> builder.setChatId(identifier.id.toChatId())
+            is ChatIdentifier.Id -> builder.setChatId(identifier.roomId.toChatId())
             is ChatIdentifier.RoomNumber -> builder.setRoomId(identifier.number)
         }
 

@@ -7,10 +7,12 @@ import com.getcode.model.intents.actions.numberActions
 import com.getcode.network.repository.*
 import com.getcode.solana.Message
 import com.getcode.solana.SolanaTransaction
+import com.getcode.solana.keys.Hash
+import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.sign
 
 abstract class IntentType {
-    abstract val id: com.getcode.solana.keys.PublicKey
+    abstract val id: PublicKey
     abstract val actionGroup: ActionGroup
 
     fun getActions() = actionGroup.actions
@@ -27,6 +29,12 @@ abstract class IntentType {
             }
             actionGroup.actions[index].serverParameter = parameter
         }
+    }
+
+    fun vixnHash(): Hash {
+        return actionGroup.actions.flatMap { it.compactMessages() }
+            .flatMap { it.toList() }
+            .take(32).let { Hash(it) }
     }
 
     fun transaction(): SolanaTransaction {
@@ -77,3 +85,15 @@ class ActionGroup {
             field = value.numberActions()
         }
 }
+
+sealed interface CompactMessageArgs {
+
+    data class Transfer(
+        val source: PublicKey,
+        val destination: PublicKey,
+        val amountInQuarks: Long,
+        val nonce: PublicKey,
+        val nonceValue: Hash,
+    ): CompactMessageArgs
+}
+typealias CompactMessage = ByteArray

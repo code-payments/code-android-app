@@ -4,11 +4,13 @@ import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionServi
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
 import com.getcode.model.extensions.newInstance
+import com.getcode.model.intents.CompactMessageArgs
 import com.getcode.model.intents.ServerParameter
 import com.getcode.model.intents.actions.ActionTransfer.Kind.*
 import com.getcode.network.repository.toSolanaAccount
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountCluster
 
 class ActionTransfer(
@@ -17,10 +19,10 @@ class ActionTransfer(
     override val signer: Ed25519.KeyPair? = null,
 
     val kind: Kind,
-    val intentId: com.getcode.solana.keys.PublicKey,
+    val intentId: PublicKey,
     val amount: Kin,
     val source: AccountCluster,
-    val destination: com.getcode.solana.keys.PublicKey,
+    val destination: PublicKey,
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> {
@@ -29,7 +31,7 @@ class ActionTransfer(
 
         val tempPrivacyParameter = serverParameter.parameter
 
-        val resolvedDestination: com.getcode.solana.keys.PublicKey = if (tempPrivacyParameter is ServerParameter.Parameter.TempPrivacy) {
+        val resolvedDestination: PublicKey = if (tempPrivacyParameter is ServerParameter.Parameter.TempPrivacy) {
             val splitterAccounts = com.getcode.solana.keys.SplitterCommitmentAccounts.newInstance(
                 source = source,
                 destination = destination,
@@ -47,15 +49,34 @@ class ActionTransfer(
 
         return serverParameter.configs.map { config ->
             TransactionBuilder.transfer(
-            timelockDerivedAccounts = timelock,
-            destination = resolvedDestination,
-            amount = amount,
-            nonce = config.nonce,
-            recentBlockhash = config.blockhash,
-            kreIndex = kreIndex
+                timelockDerivedAccounts = timelock,
+                destination = resolvedDestination,
+                amount = amount,
+                nonce = config.nonce,
+                recentBlockhash = config.blockhash,
+                kreIndex = kreIndex
             )
         }
     }
+
+    override fun compactMessageArgs(): List<CompactMessageArgs> {
+        val configs = serverParameter?.configs ?: return emptyList()
+        return configs.map {
+
+            val amountInQuarks = amount.quarks
+            val nonceAccount = it.nonce
+            val nonceValue = it.blockhash
+
+            CompactMessageArgs.Transfer(
+                source = source.vaultPublicKey,
+                destination = destination,
+                amountInQuarks = amountInQuarks,
+                nonce = nonceAccount,
+                nonceValue = nonceValue
+            )
+        }
+    }
+
 
     override fun action(): TransactionService.Action {
         return TransactionService.Action.newBuilder()
@@ -112,10 +133,10 @@ class ActionTransfer(
     companion object {
         fun newInstance(
             kind: Kind,
-            intentId: com.getcode.solana.keys.PublicKey,
+            intentId: PublicKey,
             amount: Kin,
             source: AccountCluster,
-            destination: com.getcode.solana.keys.PublicKey
+            destination: PublicKey
         ): ActionTransfer {
             return ActionTransfer(
                 id = 0,

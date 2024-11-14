@@ -2,9 +2,11 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -13,10 +15,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -153,17 +158,21 @@ fun MessageNode(
                         }
 
                         is MessageContent.Localized -> {
-                            MessageText(
+                            ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
-                                content = contentsWithSender(contents.localizedText),
-                                contentStyle = contentStyle,
-                                date = date,
-                                status = status,
-                                isFromSelf = sender.isSelf,
-                                showStatus = showStatus,
-                                isInteractive = isInteractive,
-                                showControls = openMessageControls
-                            )
+                                sender = sender
+                            ) {
+                                MessageText(
+                                    content = contentsWithSender(contents.localizedText),
+                                    contentStyle = contentStyle,
+                                    date = date,
+                                    status = status,
+                                    isFromSelf = sender.isSelf,
+                                    showStatus = showStatus,
+                                    isInteractive = isInteractive,
+                                    showControls = openMessageControls
+                                )
+                            }
                         }
 
                         is MessageContent.SodiumBox -> {
@@ -187,31 +196,39 @@ fun MessageNode(
                         }
 
                         is MessageContent.Decrypted -> {
-                            MessageText(
+                            ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
-                                content = contentsWithSender(contents.data),
-                                contentStyle = contentStyle,
-                                date = date,
-                                status = status,
-                                isFromSelf = sender.isSelf,
-                                showStatus = showStatus,
-                                isInteractive = isInteractive,
-                                showControls = openMessageControls
-                            )
+                                sender = sender
+                            ) {
+                                MessageText(
+                                    content = contentsWithSender(contents.data),
+                                    contentStyle = contentStyle,
+                                    date = date,
+                                    status = status,
+                                    isFromSelf = sender.isSelf,
+                                    showStatus = showStatus,
+                                    isInteractive = isInteractive,
+                                    showControls = openMessageControls
+                                )
+                            }
                         }
 
                         is MessageContent.RawText -> {
-                            MessageText(
+                            ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
-                                content = contentsWithSender(contents.value),
-                                contentStyle = contentStyle,
-                                date = date,
-                                status = status,
-                                isFromSelf = sender.isSelf,
-                                showStatus = showStatus,
-                                isInteractive = isInteractive,
-                                showControls = openMessageControls
-                            )
+                                sender = sender
+                            ) {
+                                MessageText(
+                                    content = contentsWithSender(contents.value),
+                                    contentStyle = contentStyle,
+                                    date = date,
+                                    status = status,
+                                    isFromSelf = sender.isSelf,
+                                    showStatus = showStatus,
+                                    isInteractive = isInteractive,
+                                    showControls = openMessageControls
+                                )
+                            }
                         }
 
                         is MessageContent.ThankYou -> {
@@ -245,6 +262,38 @@ fun MessageNode(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ContentFromSender(
+    modifier: Modifier = Modifier,
+    sender: Sender,
+    content: @Composable () -> Unit
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
+    ) {
+        if (!sender.isSelf) {
+            UserAvatar(
+                modifier = Modifier
+                    .size(CodeTheme.dimens.staticGrid.x8)
+                    .clip(CircleShape),
+                data = sender.profileImage ?: sender.id,
+                overlay = {
+                    Image(
+                        modifier = Modifier.padding(5.dp),
+                        imageVector = Icons.Default.Person,
+                        colorFilter = ColorFilter.tint(Color.White),
+                        contentDescription = null,
+                    )
+                }
+            )
+        }
+        Box(modifier = Modifier.weight(1f)) {
+            content()
         }
     }
 }

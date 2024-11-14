@@ -25,7 +25,6 @@ import com.getcode.model.TwitterUser
 import com.getcode.models.ConfirmationState
 import com.getcode.models.SocialUserPaymentConfirmation
 import com.getcode.theme.CodeTheme
-import com.getcode.theme.White10
 import com.getcode.theme.bolded
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
@@ -40,7 +39,7 @@ import com.getcode.ui.components.TwitterUsernameDisplay
 fun TipConfirmation(
     modifier: Modifier = Modifier,
     confirmation: SocialUserPaymentConfirmation?,
-    trackColor: Color = SlideToConfirmDefaults.BlueTrackColor,
+    trackColor: Color = SlideToConfirmDefaults.ThemedColor,
     onSend: () -> Unit,
     onCancel: () -> Unit,
 ) {

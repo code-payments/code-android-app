@@ -12,13 +12,16 @@ import com.getcode.model.Rate
 import com.getcode.model.SocialUser
 import com.getcode.model.TwitterUser
 import com.getcode.services.model.CodePayload
+import com.getcode.services.model.ExtendedMetadata
+import com.getcode.solana.keys.PublicKey
 
 data class BillState(
     val bill: Bill?,
     val showToast: Boolean,
     val toast: BillToast?,
     val valuation: Valuation?,
-    val paymentConfirmation: PaymentConfirmation?,
+    val privatePaymentConfirmation: PrivatePaymentConfirmation?,
+    val publicPaymentConfirmation: PublicPaymentConfirmation?,
     val loginConfirmation: LoginConfirmation?,
     val socialUserPaymentConfirmation: SocialUserPaymentConfirmation?,
     val primaryAction: Action?,
@@ -36,7 +39,8 @@ data class BillState(
             showToast = false,
             toast = null,
             valuation = null,
-            paymentConfirmation = null,
+            privatePaymentConfirmation = null,
+            publicPaymentConfirmation = null,
             loginConfirmation = null,
             socialUserPaymentConfirmation = null,
             primaryAction = null,
@@ -194,7 +198,7 @@ sealed class Confirmation(
     open val state: ConfirmationState,
 )
 
-data class PaymentConfirmation(
+data class PrivatePaymentConfirmation(
     override val state: ConfirmationState,
     val payload: CodePayload,
     val requestedAmount: KinAmount,
@@ -207,6 +211,14 @@ data class LoginConfirmation(
     val payload: CodePayload,
     val domain: com.getcode.model.Domain,
     override val showScrim: Boolean = false,
+): Confirmation(showScrim, state)
+
+data class PublicPaymentConfirmation(
+    override val state: ConfirmationState,
+    val amount: KinAmount,
+    val destination: PublicKey,
+    val metadata: ExtendedMetadata,
+    override val showScrim: Boolean = true,
 ): Confirmation(showScrim, state)
 
 data class SocialUserPaymentConfirmation(

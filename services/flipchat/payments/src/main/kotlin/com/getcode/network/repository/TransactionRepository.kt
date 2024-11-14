@@ -1,15 +1,15 @@
 package com.getcode.network.repository
 
 import android.annotation.SuppressLint
-import android.content.Context
-import com.codeinc.gen.common.v1.CodeModel as Model
-import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.codeinc.gen.transaction.v2.CodeTransactionService.DeclareFiatOnrampPurchaseAttemptResponse
 import com.codeinc.gen.transaction.v2.CodeTransactionService.ExchangeDataWithoutRate
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentRequest
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.ERROR
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapRequest
+import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapResponse
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.BuyLimit
@@ -31,16 +31,21 @@ import com.getcode.model.intents.IntentCreateAccounts
 import com.getcode.model.intents.IntentDeposit
 import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
+import com.getcode.model.intents.IntentPublicPayment
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentReceive
 import com.getcode.model.intents.IntentRemoteReceive
 import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
-import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.ServerParameter
+import com.getcode.model.intents.SwapConfigParameters
+import com.getcode.model.intents.SwapIntent
+import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.oct24.services.payments.BuildConfig
+import com.getcode.services.model.ExtendedMetadata
+import com.getcode.services.observers.BidirectionalStreamReference
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.diff
 import com.getcode.solana.keys.AssociatedTokenAccount
@@ -53,11 +58,11 @@ import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Relationship
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
+import com.getcode.utils.base58
 import com.getcode.utils.bytes
 import com.getcode.utils.toByteString
 import com.getcode.utils.trace
 import com.google.protobuf.Timestamp
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.grpc.stub.StreamObserver
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
@@ -69,18 +74,23 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
+import com.codeinc.gen.common.v1.CodeModel as Model
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 
 private const val TAG = "TransactionRepositoryV2"
 
+typealias BidirectionalIntentStream = BidirectionalStreamReference<SubmitIntentRequest, SubmitIntentResponse>
+
 @Singleton
 class TransactionRepository @Inject constructor(
-    @ApplicationContext val context: Context,
     val transactionApi: TransactionApiV2,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
@@ -138,19 +148,24 @@ class TransactionRepository @Inject constructor(
         return submit(createAccounts, organizer.tray.owner.getCluster().authority.keyPair, null)
     }
 
-    fun transferPublicly(
+    suspend fun publicPayment(
         amount: KinAmount,
         organizer: Organizer,
-        destination: PublicKey
-    ): Single<IntentType> {
-        val intent = IntentPublicTransfer.newInstance(
+        destination: PublicKey,
+        extendedMetadata: ExtendedMetadata? = null,
+    ): Result<IntentType> {
+        val intent = IntentPublicPayment.newInstance(
             organizer = organizer,
-            source = AccountType.Primary,
-            destination = IntentPublicTransfer.Destination.External(destination),
+            destination = destination,
             amount = amount.copy(kin = amount.kin.toKinTruncating()),
+            source = AccountType.Primary,
+            extendedMetadata = extendedMetadata
         )
 
-        return submit(intent = intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
+        return submitForResult(
+            intent = intent,
+            owner = organizer.tray.owner.getCluster().authority.keyPair
+        )
     }
 
     fun transfer(
@@ -161,7 +176,7 @@ class TransactionRepository @Inject constructor(
         rendezvousKey: PublicKey,
         destination: PublicKey,
         isWithdrawal: Boolean,
-        metadata: PrivateTransferMetadata? = null,
+        metadata: ExtendedMetadata? = null,
     ): Single<IntentType> {
         if (isMock()) return Single.just(
             IntentPrivateTransfer(
@@ -195,12 +210,10 @@ class TransactionRepository @Inject constructor(
     }
 
     fun receiveFromIncoming(
-        context: Context,
         amount: Kin,
         organizer: Organizer
     ): Single<IntentType> {
         val intent = IntentReceive.newInstance(
-            context = context,
             organizer = organizer,
             amount = amount.toKinTruncating()
         )
@@ -282,7 +295,6 @@ class TransactionRepository @Inject constructor(
         giftCard: GiftCardAccount
     ): Single<IntentType> {
         val intent = IntentRemoteSend.newInstance(
-            context = context,
             rendezvousKey = rendezvousKey,
             organizer = organizer,
             giftCard = giftCard,
@@ -292,14 +304,12 @@ class TransactionRepository @Inject constructor(
     }
 
     fun receiveRemotely(
-        context: Context,
         amount: Kin,
         organizer: Organizer,
         giftCard: GiftCardAccount,
         isVoiding: Boolean
     ): Single<IntentType> {
         val intent = IntentRemoteReceive.newInstance(
-            context = context,
             organizer = organizer,
             giftCard = giftCard,
             amount = amount,
@@ -308,7 +318,139 @@ class TransactionRepository @Inject constructor(
         return submit(intent, owner = organizer.tray.owner.getCluster().authority.keyPair)
     }
 
-    private fun submit(intent: IntentType, owner: KeyPair, deviceToken: String? = null): Single<IntentType> {
+    private suspend fun submitForResult(
+        intent: IntentType,
+        owner: KeyPair,
+        deviceToken: String? = null
+    ): Result<IntentType> = suspendCancellableCoroutine { cont ->
+        val reference = BidirectionalIntentStream(this)
+
+        // Intentionally creates a retain-cycle using closures to ensure that we have
+        // a strong reference to the stream at all times. Doing so ensures that the
+        // callers don't have to manage the pointer to this stream and keep it alive
+        reference.retain()
+
+        reference.stream =
+            transactionApi.submitIntent(object : StreamObserver<SubmitIntentResponse> {
+                override fun onNext(value: SubmitIntentResponse?) {
+                    when (value?.responseCase) {
+                        // 2. Upon successful submission of intent action the server will
+                        // respond with parameters that we'll need to apply to the intent
+                        // before crafting and signing the transactions.
+                        SERVER_PARAMETERS -> {
+                            try {
+                                intent.apply(
+                                    value.serverParameters.serverParametersList
+                                        .map { p -> ServerParameter.newInstance(p) }
+                                )
+
+                                Timber.i(
+                                    "Received ${value.serverParameters.serverParametersList.size} parameters. Submitting signatures..."
+                                )
+
+                                val submitSignatures = intent.requestToSubmitSignatures()
+                                reference.stream?.onNext(submitSignatures)
+                            } catch (e: Exception) {
+                                if (BuildConfig.DEBUG) {
+                                    e.printStackTrace()
+                                }
+                                Timber.i(
+                                    "Received ${value.serverParameters.serverParametersList.size} parameters but failed to apply them: ${e.javaClass.simpleName} ${e.message})"
+                                )
+                                reference.stream?.onError(
+                                    ErrorSubmitIntentException(
+                                        ErrorSubmitIntent.Unknown
+                                    )
+                                )
+                            }
+                        }
+                        // 3. If submitted transaction signatures are valid and match
+                        // the server, we'll receive a success for the submitted intent.
+                        SUCCESS -> {
+                            Timber.i("Success.")
+                            reference.stream?.onCompleted()
+                            cont.resume(Result.success(intent))
+                        }
+                        // 3. If the submitted transaction signatures don't match, the
+                        // intent is considered failed. Something must have gone wrong
+                        // on the transaction creation or signing on our side.
+                        ERROR -> {
+                            val errors = mutableListOf<String>()
+
+                            value.error.errorDetailsList.forEach { error ->
+                                when (error.typeCase) {
+                                    TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
+                                        errors.add("Reason: ${error.reasonString}")
+                                    }
+
+                                    TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
+                                        val expectedVixn =
+                                            error.invalidSignature.expectedVixnHash.value.toByteArray()
+                                        val produced = intent.vixnHash()
+                                        errors.add("Signature mismatch: :: VIXN:: expected=${expectedVixn.base58}, produced=${produced.base58()}")
+                                    }
+
+                                    TransactionService.ErrorDetails.TypeCase.DENIED -> {
+                                        errors.add("Denied: ${error.denied.reason}")
+                                    }
+
+                                    else -> Unit
+                                }
+                            }
+
+                            trace(
+                                "Error: ${errors.joinToString("\n")}",
+                                type = TraceType.Error
+                            )
+
+                            reference.stream?.onCompleted()
+                            cont.resume(
+                                Result.failure(
+                                    ErrorSubmitIntentException(
+                                        ErrorSubmitIntent.invoke(
+                                            value.error
+                                        ),
+                                    )
+                                )
+                            )
+                        }
+
+                        else -> {
+                            Timber.i("Else case. ${value?.responseCase}")
+                            reference.stream?.onCompleted()
+                            cont.resume(Result.failure(ErrorSubmitIntentException(ErrorSubmitIntent.Unknown)))
+                        }
+                    }
+                }
+
+                override fun onError(t: Throwable?) {
+                    Timber.i("onError: " + t?.message.orEmpty())
+                    t?.let {
+                        ErrorUtils.handleError(it)
+                    }
+                    cont.resume(
+                        Result.failure(
+                            ErrorSubmitSwapIntentException(ErrorSubmitSwapIntent.Unknown, t)
+                        )
+                    )
+                }
+
+                override fun onCompleted() {
+                    Timber.i("onCompleted")
+                }
+            })
+
+
+        // 1. Send `submitActions` request with
+        // actions generated by the intent
+        reference.stream?.onNext(intent.requestToSubmitActions(owner, deviceToken))
+    }
+
+    private fun submit(
+        intent: IntentType,
+        owner: KeyPair,
+        deviceToken: String? = null
+    ): Single<IntentType> {
         Timber.i("Submit ${intent.javaClass.simpleName}")
         val subject = SingleSubject.create<IntentType>()
 
@@ -328,12 +470,12 @@ class TransactionRepository @Inject constructor(
                                     .map { p -> ServerParameter.newInstance(p) }
                             )
 
-                            val submitSignatures = intent.requestToSubmitSignatures()
-                            serverMessageStream?.onNext(submitSignatures)
-
                             Timber.i(
                                 "Received ${value.serverParameters.serverParametersList.size} parameters. Submitting signatures..."
                             )
+
+                            val submitSignatures = intent.requestToSubmitSignatures()
+                            serverMessageStream?.onNext(submitSignatures)
                         } catch (e: Exception) {
                             if (BuildConfig.DEBUG) {
                                 e.printStackTrace()
@@ -362,36 +504,26 @@ class TransactionRepository @Inject constructor(
                                 TransactionService.ErrorDetails.TypeCase.REASON_STRING -> {
                                     errors.add("Reason: ${error.reasonString}")
                                 }
-                                TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
-                                    val expected = SolanaTransaction.fromList(error.invalidSignature.expectedTransaction.value.toByteArray().toList())
-                                    val produced = intent.transaction()
-                                    errors.addAll(
-                                        listOf(
-                                            "Action index: ${error.invalidSignature.actionId}",
-                                            "Invalid signature: ${
-                                                com.getcode.solana.keys.Signature(
-                                                    error.invalidSignature.providedSignature.value.toByteArray()
-                                                        .toList()
-                                                ).base58()}",
-                                            "Transaction bytes: ${error.invalidSignature.expectedTransaction.value}",
-                                            "Transaction expected: $expected",
-                                            "Android produced: $produced"
-                                        )
-                                    )
 
-                                    expected?.diff(produced)
+                                TransactionService.ErrorDetails.TypeCase.INVALID_SIGNATURE -> {
+                                    val expectedVixn =
+                                        error.invalidSignature.expectedVixnHash.value.toByteArray()
+                                    val produced = intent.vixnHash()
+                                    errors.add("Signature mismatch: :: VIXN:: expected=${expectedVixn.base58}, produced=${produced.base58()}")
                                 }
+
                                 TransactionService.ErrorDetails.TypeCase.DENIED -> {
                                     errors.add("Denied: ${error.denied.reason}")
                                 }
+
                                 else -> Unit
                             }
-
-                            trace(
-                                "Error: ${errors.joinToString("\n")}",
-                                type = TraceType.Error
-                            )
                         }
+
+                        trace(
+                            "Error: ${errors.joinToString("\n")}",
+                            type = TraceType.Error
+                        )
 
                         serverMessageStream?.onCompleted()
                         subject.onError(
@@ -430,7 +562,7 @@ class TransactionRepository @Inject constructor(
     fun establishRelationshipSingle(
         organizer: Organizer,
         domain: Domain,
-    ) : Single<IntentEstablishRelationship> {
+    ): Single<IntentEstablishRelationship> {
         val intent = IntentEstablishRelationship.newInstance(organizer, domain)
 
         return submit(intent = intent, organizer.tray.owner.getCluster().authority.keyPair)
@@ -463,9 +595,10 @@ class TransactionRepository @Inject constructor(
     suspend fun declareFiatPurchase(owner: KeyPair, amount: KinAmount, nonce: UUID): Result<Unit> {
         val request = TransactionService.DeclareFiatOnrampPurchaseAttemptRequest.newBuilder()
             .setOwner(owner.publicKeyBytes.toSolanaAccount())
-            .setPurchaseAmount(ExchangeDataWithoutRate.newBuilder()
-                .setCurrency(amount.rate.currency.name.lowercase())
-                .setNativeAmount(amount.fiat)
+            .setPurchaseAmount(
+                ExchangeDataWithoutRate.newBuilder()
+                    .setCurrency(amount.rate.currency.name.lowercase())
+                    .setNativeAmount(amount.fiat)
             ).setNonce(
                 Model.UUID.newBuilder().setValue(nonce.bytes.toByteString())
             ).apply { setSignature(sign(owner)) }.build()
@@ -481,21 +614,25 @@ class TransactionRepository @Inject constructor(
                     ErrorUtils.handleError(error)
                     Result.failure(error)
                 }
+
                 DeclareFiatOnrampPurchaseAttemptResponse.Result.UNSUPPORTED_CURRENCY -> {
                     val error = Throwable("Error: UNSUPPORTED_CURRENCY")
                     ErrorUtils.handleError(error)
                     Result.failure(error)
                 }
+
                 DeclareFiatOnrampPurchaseAttemptResponse.Result.AMOUNT_EXCEEDS_MAXIMUM -> {
                     val error = Throwable("Error: AMOUNT_EXCEEDS_MAXIMUM")
                     ErrorUtils.handleError(error)
                     Result.failure(error)
                 }
+
                 DeclareFiatOnrampPurchaseAttemptResponse.Result.UNRECOGNIZED -> {
                     val error = Throwable("Error: UNRECOGNIZED")
                     ErrorUtils.handleError(error)
                     Result.failure(error)
                 }
+
                 else -> {
                     val error = Throwable("Error: Unknown Error")
                     ErrorUtils.handleError(error)
@@ -708,7 +845,10 @@ class TransactionRepository @Inject constructor(
                     Kind.OwnerAccount -> {
                         hasResolvedDestination = true
                         resolvedDestination =
-                            AssociatedTokenAccount.newInstance(owner = destination, mint = Mint.kin).ata.publicKey
+                            AssociatedTokenAccount.newInstance(
+                                owner = destination,
+                                mint = Mint.kin
+                            ).ata.publicKey
                     }
                 }
 
@@ -748,12 +888,12 @@ enum class DeniedReason {
 }
 
 sealed class ErrorSubmitIntent(val value: Int) {
-    data class Denied(val reasons: List<DeniedReason> = emptyList()): ErrorSubmitIntent(0)
-    data class InvalidIntent(val reasons: List<String>): ErrorSubmitIntent(1)
-    data object SignatureError: ErrorSubmitIntent(2)
-    data class StaleState(val reasons: List<String>): ErrorSubmitIntent(3)
-    data object Unknown: ErrorSubmitIntent(-1)
-    data object DeviceTokenUnavailable: ErrorSubmitIntent(-2)
+    data class Denied(val reasons: List<DeniedReason> = emptyList()) : ErrorSubmitIntent(0)
+    data class InvalidIntent(val reasons: List<String>) : ErrorSubmitIntent(1)
+    data object SignatureError : ErrorSubmitIntent(2)
+    data class StaleState(val reasons: List<String>) : ErrorSubmitIntent(3)
+    data object Unknown : ErrorSubmitIntent(-1)
+    data object DeviceTokenUnavailable : ErrorSubmitIntent(-2)
 
     override fun toString(): String {
         return when (this) {
@@ -772,6 +912,7 @@ sealed class ErrorSubmitIntent(val value: Int) {
                 when (it.typeCase) {
                     TransactionService.ErrorDetails.TypeCase.REASON_STRING ->
                         it.reasonString.reason.takeIf { reason -> reason.isNotEmpty() }
+
                     else -> null
                 }
             }
@@ -784,6 +925,7 @@ sealed class ErrorSubmitIntent(val value: Int) {
 
                     Denied(reasons)
                 }
+
                 SubmitIntentResponse.Error.Code.INVALID_INTENT -> InvalidIntent(reasonStrings)
                 SubmitIntentResponse.Error.Code.SIGNATURE_ERROR -> SignatureError
                 SubmitIntentResponse.Error.Code.STALE_STATE -> StaleState(reasonStrings)

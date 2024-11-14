@@ -7,7 +7,7 @@ import com.getcode.model.CurrencyCode
 import com.getcode.model.Fiat
 import com.getcode.model.Kin
 import com.getcode.model.Value
-import com.getcode.services.model.Username
+import com.getcode.services.model.payload.Username
 import com.getcode.utils.DataSlice.byteToUnsignedInt
 import com.getcode.utils.DataSlice.suffix
 import com.getcode.utils.DataSlice.toLong
@@ -189,7 +189,7 @@ enum class Kind(val value: Int) {
     RequestPayment(2),
     Login(3),
     RequestPaymentV2(4),
-    Tip(5)
+    Tip(5),
 }
 
 /*

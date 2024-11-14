@@ -3,8 +3,8 @@ package com.getcode.solana.builder
 import com.getcode.solana.keys.Hash
 import com.getcode.model.Kin
 import com.getcode.model.extensions.newInstance
-import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.SwapConfigParameters
+import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.Instruction
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.TransferType
@@ -21,45 +21,6 @@ import com.getcode.vendor.Base58
 import timber.log.Timber
 
 object TransactionBuilder {
-
-    fun closeEmptyAccount(
-        timelockDerivedAccounts: TimelockDerivedAccounts,
-        maxDustAmount: Kin,
-        nonce: PublicKey,
-        recentBlockhash: Hash,
-        legacy: Boolean = false
-    ): SolanaTransaction {
-        return SolanaTransaction.newInstance(
-            payer = subsidizer,
-            recentBlockhash = recentBlockhash,
-            instructions = listOf(
-                SystemProgram_AdvanceNonce(
-                    nonce = nonce,
-                    authority = subsidizer
-                ).instruction(),
-                TimelockProgram_BurnDustWithAuthority(
-                    timelock = timelockDerivedAccounts.state.publicKey,
-                    vault = timelockDerivedAccounts.vault.publicKey,
-                    vaultOwner = timelockDerivedAccounts.owner,
-                    timeAuthority = vmTimeAuthority,
-                    mint = Mint.kin,
-                    payer = subsidizer,
-                    bump = timelockDerivedAccounts.state.bump.toByte(),
-                    maxAmount = maxDustAmount,
-                    legacy = legacy
-                ).instruction(),
-
-                TimelockProgram_CloseAccounts(
-                    timelock = timelockDerivedAccounts.state.publicKey,
-                    vault = timelockDerivedAccounts.vault.publicKey,
-                    closeAuthority = subsidizer,
-                    payer = subsidizer,
-                    bump = timelockDerivedAccounts.state.bump.toByte(),
-                    legacy = legacy
-                ).instruction(),
-            )
-        )
-    }
 
 
     fun transfer(
@@ -107,7 +68,7 @@ object TransactionBuilder {
         recentBlockhash: Hash,
         kreIndex: Int,
         legacy: Boolean = false,
-        metadata: PrivateTransferMetadata? = null,
+        metadata: ExtendedMetadata? = null,
     ): SolanaTransaction {
         val instructions = mutableListOf<Instruction>()
 
@@ -120,10 +81,10 @@ object TransactionBuilder {
         )
 
         when (metadata) {
-            is PrivateTransferMetadata.Tip -> {
+            is ExtendedMetadata.Tip -> {
                 instructions.add(MemoProgram_Memo.newInstance(metadata.socialUser).instruction())
             }
-            null -> Unit
+            else -> Unit
         }
 
         instructions.addAll(

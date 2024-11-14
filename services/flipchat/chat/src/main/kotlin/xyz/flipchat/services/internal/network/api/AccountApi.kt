@@ -10,6 +10,7 @@ import io.grpc.ManagedChannel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
+import xyz.flipchat.services.data.PaymentTarget
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.asPublicKey
 import xyz.flipchat.services.internal.network.extensions.toUserId
@@ -91,6 +92,25 @@ class AccountApi @Inject constructor(
             .build()
 
         return api::revokePublicKey
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    /**
+     * Gets the payment destination for a target
+     */
+    fun getPaymentDestination(
+        target: PaymentTarget
+    ): Flow<AccountService.GetPaymentDestinationResponse> {
+        val builder = AccountService.GetPaymentDestinationRequest.newBuilder()
+
+        when (target) {
+            is PaymentTarget.User -> builder.setUserId(target.id.toUserId())
+        }
+
+        val request = builder.build()
+
+        return api::getPaymentDestination
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

@@ -1,15 +1,15 @@
 package com.getcode.model.intents
 
-import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.model.KinAmount
 import com.getcode.model.generate
 import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.network.repository.toSolanaAccount
-import com.getcode.solana.keys.*
+import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountCluster
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
+import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 
 class IntentPublicTransfer(
     override val id: PublicKey,
@@ -94,7 +94,6 @@ class IntentPublicTransfer(
                 },
                 resultTray = currentTray,
             )
-
         }
     }
 }

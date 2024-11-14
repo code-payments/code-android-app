@@ -116,6 +116,7 @@ dependencies {
     // libs (not included with services)
     implementation(project(":libs:locale"))
     implementation(project(":libs:vibrator"))
+    implementation(project(":libs:messaging"))
     implementation(project(":libs:permissions"))
     implementation(project(":libs:requests"))
 

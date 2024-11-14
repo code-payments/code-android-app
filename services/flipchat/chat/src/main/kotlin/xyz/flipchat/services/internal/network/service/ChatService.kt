@@ -153,9 +153,10 @@ internal class ChatService @Inject constructor(
     suspend fun joinChat(
         owner: KeyPair,
         identifier: ChatIdentifier,
+        paymentId: ID,
     ): Result<GetOrJoinChatResponse> {
         return try {
-            networkOracle.managedRequest(api.joinChat(owner, identifier))
+            networkOracle.managedRequest(api.joinChat(owner, identifier, paymentId))
                 .map { response ->
                     when (response.result) {
                         FlipchatService.JoinChatResponse.Result.OK -> {

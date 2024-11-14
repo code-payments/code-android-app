@@ -4,7 +4,6 @@ import com.codeinc.gen.chat.v2.ChatService
 import com.getcode.model.Fee
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.SocialUser
 import com.getcode.model.chat.Platform
 import com.getcode.model.intents.actions.ActionFeePayment
 import com.getcode.model.intents.actions.ActionOpenAccount
@@ -12,16 +11,13 @@ import com.getcode.model.intents.actions.ActionTransfer
 import com.getcode.model.intents.actions.ActionWithdraw
 import com.getcode.model.toPublicKey
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.AccountType
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import timber.log.Timber
 import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
-
-sealed interface PrivateTransferMetadata {
-    data class Tip(val socialUser: SocialUser): PrivateTransferMetadata
-}
 
 class IntentPrivateTransfer(
     override val id: PublicKey,
@@ -34,7 +30,7 @@ class IntentPrivateTransfer(
     private val fee: Kin,
     private val additionalFees: List<Fee>,
     private val isWithdrawal: Boolean,
-    private val metadata: PrivateTransferMetadata?,
+    private val metadata: ExtendedMetadata?,
     val resultTray: Tray,
 
     override val actionGroup: ActionGroup,
@@ -54,7 +50,7 @@ class IntentPrivateTransfer(
                     )
 
                     when (metadata) {
-                        is PrivateTransferMetadata.Tip -> {
+                        is ExtendedMetadata.Tip -> {
                             setIsTip(true)
                             setTippedUser(TransactionService.TippedUser.newBuilder()
                                 .setPlatformValue(when (Platform.named(metadata.socialUser.platform)) {
@@ -64,7 +60,7 @@ class IntentPrivateTransfer(
                                 .setUsername(metadata.socialUser.username)
                             )
                         }
-                        null -> Unit
+                        else -> Unit
                     }
                 }
             )
@@ -80,7 +76,7 @@ class IntentPrivateTransfer(
             fee: Kin,
             additionalFees: List<Fee>,
             isWithdrawal: Boolean,
-            metadata: PrivateTransferMetadata?,
+            metadata: ExtendedMetadata?,
         ): IntentPrivateTransfer {
             if (fee > amount.kin) {
                 throw IntentPrivateTransferException.InvalidFeeException()

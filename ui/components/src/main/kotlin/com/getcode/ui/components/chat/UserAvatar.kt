@@ -21,6 +21,7 @@ import java.util.UUID
 fun UserAvatar(
     data: Any?,
     modifier: Modifier = Modifier,
+    anonymousRender: AnonymousRender = AnonymousRender.Gradient,
     overlay: @Composable BoxScope.() -> Unit = { },
 ) {
     Box(modifier = modifier) {
@@ -54,7 +55,7 @@ fun UserAvatar(
                     AnonymousAvatar(
                         modifier = Modifier.matchParentSize(),
                         data = data as List<Byte>,
-                        type = AnonymousRender.Gradient,
+                        type = anonymousRender,
                         overlay = overlay,
                     )
                 }
@@ -62,7 +63,7 @@ fun UserAvatar(
                 AnonymousAvatar(
                     modifier = Modifier.matchParentSize(),
                     memberId = data,
-                    type = AnonymousRender.EightBit,
+                    type = anonymousRender,
                     icon = overlay,
                 )
             } else {

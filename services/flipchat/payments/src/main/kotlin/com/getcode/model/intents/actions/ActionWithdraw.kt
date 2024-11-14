@@ -3,14 +3,13 @@ package com.getcode.model.intents.actions
 import com.codeinc.gen.transaction.v2.CodeTransactionService as TransactionService
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.Kin
-import com.getcode.model.intents.PrivateTransferMetadata
 import com.getcode.model.intents.ServerParameter
 import com.getcode.model.toPublicKey
 import com.getcode.network.repository.toSolanaAccount
+import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.SolanaTransaction
 import com.getcode.solana.builder.TransactionBuilder
 import com.getcode.solana.organizer.AccountCluster
-import com.getcode.solana.organizer.AccountType
 
 class ActionWithdraw(
     override var id: Int,
@@ -22,7 +21,7 @@ class ActionWithdraw(
     val cluster: AccountCluster,
     val destination: com.getcode.solana.keys.PublicKey,
     val legacy: Boolean,
-    val metadata: PrivateTransferMetadata? = null,
+    val metadata: ExtendedMetadata? = null,
 ) : ActionType() {
 
     override fun transactions(): List<SolanaTransaction> {
@@ -73,7 +72,7 @@ class ActionWithdraw(
             cluster: AccountCluster,
             destination: com.getcode.solana.keys.PublicKey,
             legacy: Boolean = false,
-            metadata: PrivateTransferMetadata? = null,
+            metadata: ExtendedMetadata? = null,
         ): ActionWithdraw {
             return ActionWithdraw(
                 id = 0,

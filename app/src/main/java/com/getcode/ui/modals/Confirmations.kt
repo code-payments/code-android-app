@@ -42,7 +42,7 @@ fun ConfirmationModals(
         val showScrim by remember(billState) {
             derivedStateOf {
                 val loginConfirmation = billState.loginConfirmation
-                val paymentConfirmation = billState.paymentConfirmation
+                val paymentConfirmation = billState.privatePaymentConfirmation
                 val socialPaymentConfirmation = billState.socialUserPaymentConfirmation
 
                 listOf(loginConfirmation, paymentConfirmation, socialPaymentConfirmation).any {
@@ -67,7 +67,7 @@ fun ConfirmationModals(
         // Payment Confirmation container
         AnimatedContent(
             modifier = Modifier.align(BottomCenter),
-            targetState = sessionState.billState.paymentConfirmation?.payload, // payload is constant across state changes
+            targetState = sessionState.billState.privatePaymentConfirmation?.payload, // payload is constant across state changes
             transitionSpec = AnimationUtils.modalAnimationSpec(),
             label = "payment confirmation",
         ) {
@@ -76,7 +76,7 @@ fun ConfirmationModals(
                     contentAlignment = BottomCenter
                 ) {
                     PaymentConfirmation(
-                        confirmation = sessionState.billState.paymentConfirmation,
+                        confirmation = sessionState.billState.privatePaymentConfirmation,
                         balance = sessionState.balance,
                         onAddKin = {
                             session.rejectPayment()

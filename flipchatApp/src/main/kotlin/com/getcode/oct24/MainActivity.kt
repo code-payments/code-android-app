@@ -25,6 +25,8 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
+import xyz.flipchat.services.LocalPaymentController
+import xyz.flipchat.services.PaymentController
 import javax.inject.Inject
 import kotlin.system.exitProcess
 
@@ -52,6 +54,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var client: Client
 
+    @Inject
+    lateinit var paymentController: PaymentController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -65,11 +70,21 @@ class MainActivity : FragmentActivity() {
                 LocalCurrencyUtils provides currencyUtils,
                 LocalVibrator provides vibrator,
                 LocalUserManager provides userManager,
-//                LocalPaymentController provides paymentController
+                LocalPaymentController provides paymentController
             ) {
                 App(tipsEngine = tipsEngine)
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        client.startTimer()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        client.stopTimer()
     }
 }
 

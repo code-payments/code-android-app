@@ -200,11 +200,10 @@ message JoinChatResponse {
     repeated Member members = 3;
 }
 message JoinChatPaymentMetadata {
+    // The user joining the chat
     common.v1.UserId user_id = 1;
-    oneof identifier {
-        common.v1.ChatId chat_id = 2;
-        uint64 room_id = 3;
-    }
+    // The chat that the user is joining
+    common.v1.ChatId chat_id = 2;
 }
 message LeaveChatRequest {
     common.v1.ChatId chat_id = 1;

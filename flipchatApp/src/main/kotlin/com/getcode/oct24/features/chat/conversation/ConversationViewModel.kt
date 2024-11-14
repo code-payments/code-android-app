@@ -22,7 +22,6 @@ import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.navigation.RoomInfoArgs
-import com.getcode.network.exchange.Exchange
 import com.getcode.oct24.R
 import com.getcode.oct24.chat.RoomController
 import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
@@ -176,46 +175,6 @@ class ConversationViewModel @Inject constructor(
             }.onEach {
                 dispatchEvent(Event.OnConversationChanged(it))
             }.launchIn(viewModelScope)
-
-//        eventFlow
-//            .filterIsInstance<Event.PresentPaymentConfirmation>()
-//            .mapNotNull {
-//                val state = stateFlow.value
-//                if (state.twitterUser == null) return@mapNotNull null
-//                state.twitterUser to state.costToChat
-//            }.onEach { (user, amount) ->
-//                paymentController.presentPrivatePaymentConfirmation(
-//                    socialUser = user,
-//                    amount = amount
-//                )
-//            }.launchIn(viewModelScope)
-
-//        paymentController.eventFlow
-//            .filterIsInstance<PaymentEvent.OnChatPaidForSuccessfully>()
-//            .onEach { event ->
-//                runCatching {
-//                    val conversation = conversationController.getOrCreateConversation(
-//                        identifier = event.intentId,
-//                        with = event.user
-//                    )
-//                    dispatchEvent(Event.OnConversationChanged(conversation))
-//                }.onFailure {
-//                    it.printStackTrace()
-//                    TopBarManager.showMessage(
-//                        "Failed to Start Chat",
-//                        "We were unable to start a chat with ${event.user.username}. Please try again.",
-//                    )
-//
-//                    dispatchEvent(
-//                        Event.Error(
-//                            message = if (BuildConfig.DEBUG) it.message.orEmpty() else "Failed to create conversation",
-//                            show = false,
-//                            fatal = true
-//                        )
-//                    )
-//                }.getOrNull()
-//            }
-//            .launchIn(viewModelScope)
 
         stateFlow
             .mapNotNull { it.conversationId }
@@ -445,15 +404,6 @@ class ConversationViewModel @Inject constructor(
                     }
                 }
 
-                val countOfName = stateFlow.value.members[member?.id] ?: -1
-                val displayName =  member?.memberName.takeIf { !contents.isFromSelf }?.let {
-                    if (countOfName > 1) {
-                        "$it ($countOfName)"
-                    } else {
-                        it
-                    }
-                }
-
                 ChatItem.Message(
                     chatMessageId = message.id,
                     message = contents,
@@ -463,7 +413,7 @@ class ConversationViewModel @Inject constructor(
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = displayName,
+                        displayName = null,
                         isSelf = contents.isFromSelf,
                         isHost = member?.id == stateFlow.value.hostId && !contents.isFromSelf,
                     ),

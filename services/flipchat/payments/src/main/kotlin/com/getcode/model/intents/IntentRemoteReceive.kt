@@ -37,7 +37,6 @@ class IntentRemoteReceive(
 
     companion object {
         fun newInstance(
-            context: Context,
             organizer: Organizer,
             giftCard: GiftCardAccount,
             amount: Kin,

@@ -34,7 +34,6 @@ class IntentReceive(
 
     companion object {
         fun newInstance(
-            context: Context,
             organizer: Organizer,
             amount: Kin
         ): IntentReceive {

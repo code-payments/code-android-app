@@ -17,12 +17,15 @@ import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
-import com.getcode.model.intents.PrivateTransferMetadata
+import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.WithdrawException
 import com.getcode.network.repository.initiateSwap
+import com.getcode.services.model.ExtendedMetadata
 import com.getcode.services.utils.flowInterval
+import com.getcode.services.utils.mapResult
+import com.getcode.services.utils.toKotlinResult
 import com.getcode.solana.keys.PublicKey
 import com.getcode.solana.organizer.GiftCardAccount
 import com.getcode.solana.organizer.Organizer
@@ -38,12 +41,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.resume
 import kotlin.math.min
 
 fun Client.createAccounts(organizer: Organizer): Completable {
@@ -59,7 +64,7 @@ fun Client.transfer(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    metadata: PrivateTransferMetadata? = null,
+    metadata: ExtendedMetadata? = null,
 ): Completable {
     return transferWithResultSingle(
         amount,
@@ -79,6 +84,15 @@ fun Client.transfer(
     }
 }
 
+suspend fun Client.publicPayment(
+    amount: KinAmount,
+    organizer: Organizer,
+    destination: PublicKey,
+    extendedMetadata: ExtendedMetadata? = null,
+): Result<ID> = getTransferPreflightAction(amount.kin).toKotlinResult()
+        .mapResult { transactionRepository.publicPayment(amount, organizer, destination, extendedMetadata) }
+    .map { it.id.bytes }
+
 fun Client.transferWithResultSingle(
     amount: KinAmount,
     fee: Kin,
@@ -87,12 +101,19 @@ fun Client.transferWithResultSingle(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    metadata: PrivateTransferMetadata? = null,
+    metadata: ExtendedMetadata? = null,
 ): Single<Result<ID>> {
     return getTransferPreflightAction(amount.kin)
         .andThen(Single.defer {
             transactionRepository.transfer(
-                amount, fee, additionalFees, organizer, rendezvousKey, destination, isWithdrawal, metadata
+                amount,
+                fee,
+                additionalFees,
+                organizer,
+                rendezvousKey,
+                destination,
+                isWithdrawal,
+                metadata
             )
         })
         .map {
@@ -112,7 +133,7 @@ fun Client.transferWithResult(
     rendezvousKey: PublicKey,
     destination: PublicKey,
     isWithdrawal: Boolean,
-    metadata: PrivateTransferMetadata? = null,
+    metadata: ExtendedMetadata? = null,
 ): Result<ID> {
     return transferWithResultSingle(
         amount = amount,
@@ -206,7 +227,7 @@ sealed class RemoteSendException : Exception() {
 fun Client.withdrawExternally(
     amount: KinAmount,
     organizer: Organizer,
-    destination: PublicKey
+    destination: PublicKey,
 ): Completable {
     if (amount.kin.fractionalQuarks().quarks != 0L) {
         throw WithdrawException.InvalidFractionalKinAmountException()
@@ -293,7 +314,7 @@ fun Client.withdrawExternally(
         withdraw(
             amount = amount,
             organizer = organizer,
-            destination = destination
+            destination = destination,
         )
     ).doOnComplete {
         trace(
@@ -471,15 +492,14 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
                 balanceController.setTray(organizer, intent.resultTray)
             }
         }
-        .ignoreElement()
-        .andThen {
+        .doOnSuccess {
             trace(
                 tag = "Trx",
                 message = "Received from primary",
                 type = TraceType.Process
             )
-        }
-        .andThen { fetchLimits(true) }
+            fetchLimits(isForce = true)
+        }.ignoreElement()
 }
 
 fun Client.fetchPrivacyUpgrades(): Completable {
@@ -522,7 +542,10 @@ fun Client.getTransferPreflightAction(amount: Kin): Completable {
         // missing in buckets after the receiving from primary
         if (receivedKin < neededKin) {
             Timber.d("attempt to pull funds from relationship to get to ${neededKin.quarks}")
-            val result = transactionReceiver.receiveFromRelationship(organizer, limit = neededKin - receivedKin)
+            val result = transactionReceiver.receiveFromRelationship(
+                organizer,
+                limit = neededKin - receivedKin
+            )
             Timber.d("received ${result.quarks} from relationships")
         }
 
@@ -546,7 +569,10 @@ fun Client.receiveFromRelationships(organizer: Organizer, upTo: Kin? = null): Ki
 
 @SuppressLint("CheckResult")
 @Throws
-fun Client.establishRelationshipSingle(organizer: Organizer, domain: Domain): Single<IntentEstablishRelationship> {
+fun Client.establishRelationshipSingle(
+    organizer: Organizer,
+    domain: Domain
+): Single<IntentEstablishRelationship> {
     return transactionRepository.establishRelationshipSingle(organizer, domain)
 }
 
@@ -565,6 +591,10 @@ suspend fun Client.initiateSwap(organizer: Organizer): Result<SwapIntent> {
     return transactionRepository.initiateSwap(organizer)
 }
 
-suspend fun Client.declareFiatPurchase(owner: KeyPair, amount: KinAmount, nonce: UUID) : Result<Unit> {
+suspend fun Client.declareFiatPurchase(
+    owner: KeyPair,
+    amount: KinAmount,
+    nonce: UUID
+): Result<Unit> {
     return transactionRepository.declareFiatPurchase(owner, amount, nonce)
 }

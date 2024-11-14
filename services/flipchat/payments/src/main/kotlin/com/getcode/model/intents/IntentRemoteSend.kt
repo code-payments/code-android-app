@@ -45,7 +45,6 @@ class IntentRemoteSend(
 
     companion object {
         fun newInstance(
-            context: Context,
             rendezvousKey: PublicKey,
             organizer: Organizer,
             giftCard: GiftCardAccount,

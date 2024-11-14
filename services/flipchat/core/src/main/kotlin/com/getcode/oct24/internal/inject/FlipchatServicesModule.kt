@@ -1,6 +1,8 @@
 package com.getcode.oct24.internal.inject
 
+import android.content.Context
 import com.getcode.network.BalanceController
+import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.client.Client
 import com.getcode.network.client.TransactionReceiver
 import com.getcode.network.exchange.Exchange
@@ -22,6 +24,7 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -101,6 +104,14 @@ internal object FlipchatServicesModule {
             organizerLookup = { userManager.organizer },
             suffix = { currency -> currencyProvider.suffix(currency) }
         )
+    }
+
+    @Singleton
+    @Provides
+    fun provideTransactionRepository(
+        transactionApi: TransactionApiV2,
+    ): TransactionRepository {
+        return TransactionRepository(transactionApi)
     }
 
 }

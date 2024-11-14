@@ -19,8 +19,6 @@ import timber.log.Timber
 import javax.inject.Inject
 
 class TransactionReceiver @Inject constructor(
-    @ApplicationContext
-    private val context: Context,
     private val balanceRepository: BalanceRepository,
     private val transactionRepository: TransactionRepository
 ) {
@@ -32,7 +30,7 @@ class TransactionReceiver @Inject constructor(
     ): Completable {
         return Completable.defer {
             transactionRepository.receiveRemotely(
-                context, amount, organizer, giftCard, isVoiding
+                amount, organizer, giftCard, isVoiding
             )
                 .map {
                     if (it is IntentRemoteReceive) {
@@ -50,7 +48,6 @@ class TransactionReceiver @Inject constructor(
         isVoiding: Boolean
     ) {
         val intent = transactionRepository.receiveRemotely(
-            context = context,
             amount = amount,
             organizer = organizer,
             giftCard = giftCard,
@@ -142,9 +139,7 @@ class TransactionReceiver @Inject constructor(
             "receiveFromIncoming $amount",
             type = TraceType.Silent
         )
-        return transactionRepository.receiveFromIncoming(
-            context, amount, organizer
-        ).map {
+        return transactionRepository.receiveFromIncoming(amount, organizer).map {
             if (it is IntentReceive) {
                 setTray(organizer, it.resultTray)
             }

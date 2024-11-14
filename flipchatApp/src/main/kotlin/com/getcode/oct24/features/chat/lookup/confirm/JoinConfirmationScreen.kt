@@ -88,10 +88,11 @@ private fun JoinRoomScreenContent(viewModel: JoinConfirmationViewModel) {
                     .navigationBarsPadding(),
                 buttonState = ButtonState.Filled,
                 text = stringResource(R.string.action_joinRoomByName, state.roomInfo.title),
-                isLoading = false,
+                enabled = state.canJoin,
+                isLoading = state.joining,
                 isSuccess = false,
             ) {
-                viewModel.dispatchEvent(JoinConfirmationViewModel.Event.JoinRoom)
+                viewModel.dispatchEvent(JoinConfirmationViewModel.Event.JoinRoomClicked)
             }
         }
     ) { padding ->

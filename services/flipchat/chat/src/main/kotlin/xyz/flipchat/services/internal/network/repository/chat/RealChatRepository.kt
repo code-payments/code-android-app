@@ -87,10 +87,10 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun joinChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
+    override suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID): Result<RoomWithMembers> {
         val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.joinChat(owner, identifier)
+        return service.joinChat(owner, identifier, paymentId)
             .map { roomWithMembersMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }

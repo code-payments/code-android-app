@@ -101,10 +101,10 @@ object SlideToConfirmDefaults {
     }
 
 
-    val SnapThreshold = 0.7f
-    val BlueTrackColor = Track.BlueColor
+    const val SnapThreshold = 0.7f
+    val ThemedColor: Color
+        @Composable get() = Track.ThemedColor
     val BlackTrackColor = Track.BlackColor
-    val PurpleTrackColor = Track.PurpleColor
 }
 
 private object Thumb {
@@ -120,9 +120,9 @@ private object Track {
     val Shape: Shape
         @Composable get() = CodeTheme.shapes.small
 
-    val BlueColor = Color(0xFF11142A)
     val BlackColor = Color(0xFF201D1D)
-    val PurpleColor = Color(0xFF241A4B)
+    val ThemedColor: Color
+        @Composable get() = CodeTheme.colors.trackColor
 }
 
 
@@ -160,7 +160,7 @@ fun SlideToConfirm(
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
     trackShape: Shape = Track.Shape,
-    trackColor: Color = Track.BlueColor,
+    trackColor: Color = Track.ThemedColor,
     thumbShape: Shape = Thumb.Shape,
     isLoading: Boolean = false,
     isSuccess: Boolean = false,

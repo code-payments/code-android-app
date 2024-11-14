@@ -42,7 +42,8 @@ private val colors = ColorScheme(
     textMain = TextMain,
     textSecondary = FC_TextWithPrimary,
     divider = FC_Secondary,
-    dividerVariant = FC_Tertiary
+    dividerVariant = FC_Tertiary,
+    trackColor = Color(0xFF241A4B)
 )
 
 @Composable
