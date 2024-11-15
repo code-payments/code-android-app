@@ -7,7 +7,7 @@ import com.getcode.model.ID
 import com.getcode.oct24.R
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
@@ -23,7 +23,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ChatListViewModel @Inject constructor(
-    userManager: UserManager,
+    userManager: xyz.flipchat.services.user.UserManager,
     private val chatsController: ChatsController,
     networkObserver: NetworkConnectivityListener,
     resources: ResourceHelper,

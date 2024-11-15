@@ -292,8 +292,8 @@ class Tray(
         fun incoming(index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
             return lazy {
                 AccountCluster.newInstance(
-                    authority = com.getcode.crypt.DerivedKey.derive(
-                        com.getcode.crypt.DerivePath.getBucketIncoming(index),
+                    authority = DerivedKey.derive(
+                        DerivePath.getBucketIncoming(index),
                         mnemonic
                     ),
                     index = index,
@@ -305,8 +305,8 @@ class Tray(
         fun outgoing(index: Int, mnemonic: MnemonicPhrase): Lazy<AccountCluster> {
             return lazy {
                 AccountCluster.newInstance(
-                    authority = com.getcode.crypt.DerivedKey.derive(
-                        com.getcode.crypt.DerivePath.getBucketOutgoing(index),
+                    authority = DerivedKey.derive(
+                        DerivePath.getBucketOutgoing(index),
                         mnemonic
                     ),
                     index = index,

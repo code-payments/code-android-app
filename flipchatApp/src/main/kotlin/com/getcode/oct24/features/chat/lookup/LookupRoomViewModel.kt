@@ -6,7 +6,7 @@ import com.getcode.navigation.RoomInfoArgs
 import com.getcode.oct24.R
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.ChatsController
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.ui.components.text.AmountAnimatedInputUiModel
 import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
@@ -22,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
-    userManager: UserManager,
+    userManager: xyz.flipchat.services.user.UserManager,
     resources: ResourceHelper,
 ): BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),

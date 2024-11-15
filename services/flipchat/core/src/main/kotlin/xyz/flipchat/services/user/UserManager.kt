@@ -1,4 +1,4 @@
-package com.getcode.oct24.user
+package xyz.flipchat.services.user
 
 import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair

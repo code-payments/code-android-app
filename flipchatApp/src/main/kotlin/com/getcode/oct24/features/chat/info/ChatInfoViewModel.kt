@@ -8,7 +8,7 @@ import com.getcode.oct24.R
 import com.getcode.oct24.data.RoomInfo
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.chat.RoomController
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +23,7 @@ import javax.inject.Inject
 class ChatInfoViewModel @Inject constructor(
     private val roomController: RoomController,
     private val resources: ResourceHelper,
-    private val userManager: UserManager,
+    private val userManager: xyz.flipchat.services.user.UserManager,
 ): BaseViewModel2<ChatInfoViewModel.State, ChatInfoViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent

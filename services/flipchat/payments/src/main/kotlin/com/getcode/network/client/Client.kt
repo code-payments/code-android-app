@@ -9,22 +9,14 @@ import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.services.analytics.AnalyticsService
-import com.getcode.services.manager.MnemonicManager
-import com.getcode.services.model.EcdsaTuple
-import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import xyz.flipchat.services.user.UserManager
 import java.util.Timer
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -35,13 +27,11 @@ internal const val TAG = "Client"
 
 @Singleton
 class Client @Inject constructor(
-    internal val storedEcda: () -> EcdsaTuple,
-    internal val organizerLookup: () -> Organizer?,
+    internal val userManager: UserManager,
     internal val transactionRepository: TransactionRepository,
     internal val messagingRepository: MessagingRepository,
     internal val balanceController: BalanceController,
     internal val accountRepository: AccountRepository,
-    internal val analyticsManager: AnalyticsService,
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
     internal val networkObserver: NetworkConnectivityListener,
@@ -55,9 +45,9 @@ class Client @Inject constructor(
     private fun startPollTimerWhenAuthenticated() {
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
-            while(storedEcda().id == null) {
+            while(userManager.userId == null) {
                 delay(1.seconds)
-                if (storedEcda().id != null) {
+                if (userManager.userId != null) {
                     startPollTimer()
                 }
             }
@@ -73,7 +63,7 @@ class Client @Inject constructor(
                 val time = System.currentTimeMillis()
                 val isPastThrottle = time - lastPoll > 1000 * 30 || lastPoll == 0L
 
-                if (storedEcda().id != null && isPastThrottle) {
+                if (userManager.userId != null && isPastThrottle) {
                     poll()
                     lastPoll = time
                 }

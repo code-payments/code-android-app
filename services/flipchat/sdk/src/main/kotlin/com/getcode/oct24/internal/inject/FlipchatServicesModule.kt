@@ -1,6 +1,5 @@
 package com.getcode.oct24.internal.inject
 
-import android.content.Context
 import com.getcode.network.BalanceController
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.network.client.Client
@@ -10,23 +9,16 @@ import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.MessagingRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.oct24.user.UserManager
-import com.getcode.services.analytics.AnalyticsService
-import com.getcode.services.annotations.EcdsaLookup
 import com.getcode.services.db.CurrencyProvider
-import com.getcode.services.manager.MnemonicManager
-import com.getcode.services.model.EcdsaTuple
-import com.getcode.services.model.EcdsaTupleQuery
 import com.getcode.services.network.core.NetworkOracle
 import com.getcode.services.network.core.NetworkOracleImpl
-import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.CurrencyUtils
 import com.getcode.utils.network.NetworkConnectivityListener
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Singleton
 
 @Module
@@ -34,47 +26,33 @@ import javax.inject.Singleton
 internal object FlipchatServicesModule {
 
     @Provides
-    @EcdsaLookup
-    fun providesEcdsaTuple(
-        userManager: UserManager
-    ): EcdsaTupleQuery {
-        return {
-            EcdsaTuple(userManager.keyPair, userManager.userId)
-        }
-    }
-
-    @Provides
     fun provideNetworkOracle(): NetworkOracle {
         return NetworkOracleImpl()
     }
 
     @Provides
-    fun providesOrganizerLookup(userManager: UserManager): () -> Organizer? {
+    fun providesOrganizerLookup(userManager: UserManager): () -> com.getcode.solana.organizer.Organizer? {
         return { userManager.organizer }
     }
 
     @Singleton
     @Provides
     fun provideClient(
-        @EcdsaLookup lookup: EcdsaTupleQuery,
         userManager: UserManager,
         transactionRepository: TransactionRepository,
         messagingRepository: MessagingRepository,
         accountRepository: AccountRepository,
         balanceController: BalanceController,
-        analytics: AnalyticsService,
         transactionReceiver: TransactionReceiver,
         exchange: Exchange,
         networkObserver: NetworkConnectivityListener,
     ): Client {
         return Client(
-            storedEcda = lookup,
-            organizerLookup = { userManager.organizer },
+            userManager = userManager,
             transactionRepository,
             messagingRepository,
             balanceController,
             accountRepository,
-            analytics,
             exchange,
             transactionReceiver,
             networkObserver,
@@ -84,7 +62,6 @@ internal object FlipchatServicesModule {
     @Singleton
     @Provides
     fun provideBalanceController(
-        @EcdsaLookup lookup: EcdsaTupleQuery,
         userManager: UserManager,
         exchange: Exchange,
         balanceRepository: BalanceRepository,
@@ -96,7 +73,7 @@ internal object FlipchatServicesModule {
         currencyProvider: CurrencyProvider,
     ): BalanceController {
         return BalanceController(
-            storedEcda = lookup,
+            userManager = userManager,
             exchange = exchange,
             balanceRepository = balanceRepository,
             transactionRepository = transactionRepository,
@@ -106,8 +83,6 @@ internal object FlipchatServicesModule {
             getCurrencyFromCode = {
                 it?.name?.let(currencyUtils::getCurrency)
             },
-            onOrganizerUpdated = { userManager.set(organizer = it) },
-            organizerLookup = { userManager.organizer },
             suffix = { currency -> currencyProvider.suffix(currency) }
         )
     }

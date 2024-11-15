@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "${Android.flipchatNamespace}.services.payments"
+    namespace = "${Android.flipchatNamespace}.services.sdk"
     compileSdk = Android.compileSdkVersion
     defaultConfig {
         minSdk = Android.minSdkVersion
@@ -15,6 +15,19 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
 
         buildConfigField("String", "VERSION_NAME", "\"${Packaging.versionName}\"")
+
+        buildConfigField("Boolean", "NOTIFY_ERRORS", "false")
+        buildConfigField(
+            "String",
+            "GOOGLE_CLOUD_PROJECT_NUMBER",
+            "\"${tryReadProperty(rootProject.rootDir, "GOOGLE_CLOUD_PROJECT_NUMBER", "-1L")}\""
+        )
+
+        buildConfigField(
+            "String",
+            "FINGERPRINT_API_KEY",
+            "\"${tryReadProperty(rootProject.rootDir, "FINGERPRINT_API_KEY")}\""
+        )
 
         javaCompileOptions {
             annotationProcessorOptions {
@@ -43,16 +56,10 @@ android {
 }
 
 dependencies {
-    implementation(project(":definitions:code-vm:models"))
-    implementation(project(":services:flipchat:core"))
-    api(project(":services:shared"))
+    api(project(":services:flipchat:core"))
+    api(project(":services:flipchat:chat"))
+    api(project(":services:flipchat:payments"))
     implementation(project(":ui:resources"))
-
-    implementation(project(":libs:messaging"))
-    implementation(project(":libs:requests"))
-
-    implementation(platform(Libs.compose_bom))
-    implementation(Libs.compose_ui)
 
     implementation(Libs.kotlinx_coroutines_core)
     implementation(Libs.kotlinx_serialization_json)

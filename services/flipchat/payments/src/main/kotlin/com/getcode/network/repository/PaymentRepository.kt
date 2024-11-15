@@ -6,22 +6,19 @@ import com.getcode.network.BalanceController
 import com.getcode.network.client.Client
 import com.getcode.network.client.fetchLimits
 import com.getcode.network.client.publicPayment
-import com.getcode.network.exchange.Exchange
-import com.getcode.services.analytics.AnalyticsService
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 
 class PaymentRepository @Inject constructor(
-    private val exchange: Exchange,
-    private val messagingRepository: MessagingRepository,
+    private val userManager: UserManager,
     private val client: Client,
-    private val analytics: AnalyticsService,
     private val balanceController: BalanceController,
 ) : CoroutineScope by CoroutineScope(Dispatchers.IO) {
 
@@ -30,7 +27,7 @@ class PaymentRepository @Inject constructor(
         destination: PublicKey,
         extendedMetadata: ExtendedMetadata
     ): ID {
-        val organizer = client.organizerLookup() ?: throw PaymentError.OrganizerNotFound()
+        val organizer = userManager.organizer ?: throw PaymentError.OrganizerNotFound()
         return client.publicPayment(
             amount = amount,
             organizer = organizer,

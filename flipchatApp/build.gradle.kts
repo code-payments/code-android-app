@@ -112,8 +112,7 @@ android {
 
 dependencies {
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-
-    implementation(project(":services:flipchat:core"))
+    implementation(project(":services:flipchat:sdk"))
 
     implementation(project(":libs:datetime"))
     implementation(project(":libs:locale"))

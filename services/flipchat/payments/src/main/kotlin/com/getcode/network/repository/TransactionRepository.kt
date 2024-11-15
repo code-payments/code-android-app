@@ -8,8 +8,6 @@ import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentRespons
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.ERROR
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.SERVER_PARAMETERS
 import com.codeinc.gen.transaction.v2.CodeTransactionService.SubmitIntentResponse.ResponseCase.SUCCESS
-import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapRequest
-import com.codeinc.gen.transaction.v2.CodeTransactionService.SwapResponse
 import com.getcode.crypt.MnemonicPhrase
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.BuyLimit
@@ -39,15 +37,10 @@ import com.getcode.model.intents.IntentRemoteSend
 import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
-import com.getcode.model.intents.SwapConfigParameters
-import com.getcode.model.intents.SwapIntent
-import com.getcode.model.intents.requestToSubmitSignatures
 import com.getcode.network.api.TransactionApiV2
 import com.getcode.oct24.services.payments.BuildConfig
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.services.observers.BidirectionalStreamReference
-import com.getcode.solana.SolanaTransaction
-import com.getcode.solana.diff
 import com.getcode.solana.keys.AssociatedTokenAccount
 import com.getcode.solana.keys.Mint
 import com.getcode.solana.keys.PublicKey

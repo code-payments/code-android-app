@@ -1,6 +1,6 @@
 package com.getcode.oct24.ui
 
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 
-val LocalUserManager = staticCompositionLocalOf<UserManager?> { null }
+val LocalUserManager = staticCompositionLocalOf<xyz.flipchat.services.user.UserManager?> { null }

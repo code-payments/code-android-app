@@ -23,7 +23,7 @@ class Relationship(
         ): Relationship {
             val cluster = AccountCluster.newInstanceLazy(
                 DerivedKey.derive(
-                    path =DerivePath.relationship(domain),
+                    path = DerivePath.relationship(domain),
                     mnemonic = mnemonic
                 ),
                 kind = AccountCluster.Kind.Timelock,

@@ -1,7 +1,6 @@
 package xyz.flipchat.services.internal.network.repository.chat
 
 import com.getcode.model.ID
-import com.getcode.services.model.EcdsaTuple
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
@@ -31,12 +30,13 @@ import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
 import xyz.flipchat.services.internal.network.chat.ChatStreamUpdate
 import xyz.flipchat.services.internal.network.service.ChatHomeStreamReference
 import xyz.flipchat.services.internal.network.service.ChatService
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 internal class RealChatRepository @Inject constructor(
-    private val storedEcda: () -> EcdsaTuple,
+    private val userManager: UserManager,
     private val service: ChatService,
     private val roomMapper: MetadataRoomMapper,
     private val roomWithMemberCountMapper: RoomWithMemberCountMapper,
@@ -55,7 +55,7 @@ internal class RealChatRepository @Inject constructor(
     override suspend fun getChats(
         queryOptions: QueryOptions,
     ): Result<List<Room>> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.getChats(owner, queryOptions)
             .map { it.map { meta -> roomMapper.map(meta) } }
@@ -63,7 +63,7 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.getChat(owner, identifier)
             .map { roomWithMembersMapper.map(it) }
@@ -71,7 +71,7 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun getChatMembers(identifier: ChatIdentifier): Result<List<Member>> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.getChat(owner, identifier)
             .map { roomWithMembersMapper.map(it) }
@@ -80,7 +80,7 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun startChat(type: StartChatRequestType): Result<Room> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.startChat(owner, type)
             .map { roomMapper.map(it) }
@@ -88,7 +88,7 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID): Result<RoomWithMembers> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.joinChat(owner, identifier, paymentId)
             .map { roomWithMembersMapper.map(it) }
@@ -96,21 +96,21 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override suspend fun leaveChat(chatId: ID): Result<Unit> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.leaveChat(owner, chatId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 
     override suspend fun mute(chatId: ID): Result<Unit> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.setMuteState(owner, chatId, true)
             .onFailure { ErrorUtils.handleError(it) }
     }
 
     override suspend fun unmute(chatId: ID): Result<Unit> {
-        val owner = storedEcda().algorithm ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.setMuteState(owner, chatId, false)
             .onFailure { ErrorUtils.handleError(it) }
@@ -123,8 +123,8 @@ internal class RealChatRepository @Inject constructor(
     }
 
     override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatDbUpdate) -> Unit) {
-        val owner = storedEcda().algorithm ?: throw IllegalStateException("No keypair found for owner")
-        val userId = storedEcda().id
+        val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
+        val userId = userManager.userId
         if (homeStreamReference == null) {
             homeStreamReference = service.openChatStream(coroutineScope, owner) { result ->
                 if (result.isSuccess) {

@@ -15,12 +15,6 @@ android {
         testInstrumentationRunner = Android.testInstrumentationRunner
 
         buildConfigField("String", "VERSION_NAME", "\"${Packaging.versionName}\"")
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
-            }
-        }
     }
 
     java {
@@ -44,6 +38,7 @@ android {
 
 dependencies {
     implementation(project(":definitions:flipchat:models"))
+    implementation(project(":services:flipchat:core"))
     api(project(":services:shared"))
     implementation(project(":ui:resources"))
 

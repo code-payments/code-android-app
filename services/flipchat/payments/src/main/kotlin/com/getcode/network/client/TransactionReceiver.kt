@@ -1,6 +1,5 @@
 package com.getcode.network.client
 
-import android.content.Context
 import com.getcode.model.Kin
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentReceive
@@ -13,7 +12,6 @@ import com.getcode.solana.organizer.Tray
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
-import dagger.hilt.android.qualifiers.ApplicationContext
 import io.reactivex.rxjava3.core.Completable
 import timber.log.Timber
 import javax.inject.Inject

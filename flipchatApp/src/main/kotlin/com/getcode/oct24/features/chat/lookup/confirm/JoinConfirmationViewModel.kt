@@ -11,7 +11,7 @@ import com.getcode.oct24.data.RoomInfo
 import com.getcode.oct24.features.login.register.onResult
 import com.getcode.oct24.network.controllers.AuthController
 import com.getcode.oct24.network.controllers.ChatsController
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
@@ -31,7 +31,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class JoinConfirmationViewModel @Inject constructor(
-    private val userManager: UserManager,
+    private val userManager: xyz.flipchat.services.user.UserManager,
     private val chatsController: ChatsController,
     private val authController: AuthController,
     private val paymentController: PaymentController,

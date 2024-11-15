@@ -13,7 +13,7 @@ import com.getcode.network.client.Client
 import com.getcode.network.exchange.ExchangeNull
 import com.getcode.network.exchange.LocalExchange
 import com.getcode.oct24.ui.LocalUserManager
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.LocalVibrator
@@ -49,7 +49,7 @@ class MainActivity : FragmentActivity() {
     lateinit var vibrator: Vibrator
 
     @Inject
-    lateinit var userManager: UserManager
+    lateinit var userManager: xyz.flipchat.services.user.UserManager
 
     @Inject
     lateinit var client: Client

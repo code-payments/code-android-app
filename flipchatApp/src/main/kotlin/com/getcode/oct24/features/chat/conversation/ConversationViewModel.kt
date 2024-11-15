@@ -26,7 +26,7 @@ import com.getcode.oct24.R
 import com.getcode.oct24.chat.RoomController
 import com.getcode.oct24.features.chat.conversation.ConversationMessageIndice
 import com.getcode.oct24.features.login.register.onError
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -64,7 +64,7 @@ import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class ConversationViewModel @Inject constructor(
-    private val userManager: UserManager,
+    private val userManager: xyz.flipchat.services.user.UserManager,
     private val roomController: RoomController,
     private val resources: ResourceHelper,
     clipboardManager: ClipboardManager,

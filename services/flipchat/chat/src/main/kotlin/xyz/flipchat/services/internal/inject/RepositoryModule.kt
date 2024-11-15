@@ -1,7 +1,5 @@
 package xyz.flipchat.services.internal.inject
 
-import com.getcode.services.annotations.EcdsaLookup
-import com.getcode.services.model.EcdsaTupleQuery
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,6 +29,7 @@ import xyz.flipchat.services.internal.network.service.ChatService
 import xyz.flipchat.services.internal.network.service.MessagingService
 import xyz.flipchat.services.internal.network.service.ProfileService
 import xyz.flipchat.services.internal.network.service.PushService
+import xyz.flipchat.services.user.UserManager
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -38,13 +37,13 @@ internal object RepositoryModule {
 
     @Provides
     internal fun providesAccountRepository(
-        @EcdsaLookup lookup: EcdsaTupleQuery,
+        userManager: UserManager,
         service: AccountService,
-    ): AccountRepository = RealAccountRepository(lookup, service)
+    ): AccountRepository = RealAccountRepository(userManager, service)
 
     @Provides
     internal fun provideChatRepository(
-        @EcdsaLookup lookup: EcdsaTupleQuery,
+        userManager: UserManager,
         service: ChatService,
         roomMapper: MetadataRoomMapper,
         conversationMapper: RoomConversationMapper,
@@ -55,7 +54,7 @@ internal object RepositoryModule {
         messageMapper: LastMessageMapper,
         messageWithContentMapper: ConversationMessageWithContentMapper,
     ): ChatRepository = RealChatRepository(
-        storedEcda = lookup,
+        userManager = userManager,
         service = service,
         roomMapper = roomMapper,
         roomWithMemberCountMapper = roomWithMemberCountMapper,
@@ -69,13 +68,13 @@ internal object RepositoryModule {
 
     @Provides
     internal fun providesMessagingRepository(
-        @EcdsaLookup lookup: EcdsaTupleQuery,
+        userManager: UserManager,
         service: MessagingService,
         messageMapper: ChatMessageMapper,
         lastMessageMapper: LastMessageMapper,
         messageWithContentMapper: ConversationMessageWithContentMapper
     ): MessagingRepository = RealMessagingRepository(
-        storedEcda = lookup,
+        userManager = userManager,
         service = service,
         messageMapper = messageMapper,
         lastMessageMapper = lastMessageMapper,
@@ -84,11 +83,11 @@ internal object RepositoryModule {
 
     @Provides
     internal fun providesProfileRepository(
-        @EcdsaLookup lookup: EcdsaTupleQuery,
+        userManager: UserManager,
         service: ProfileService,
         profileMapper: ProfileMapper,
     ): ProfileRepository = RealProfileRepository(
-        storedEcda = lookup,
+        userManager = userManager,
         service = service,
         profileMapper = profileMapper
     )

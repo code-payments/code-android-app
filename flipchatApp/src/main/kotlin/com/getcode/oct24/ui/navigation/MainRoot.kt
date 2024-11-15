@@ -28,7 +28,6 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.oct24.R
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.oct24.ui.LocalUserManager
-import com.getcode.oct24.user.UserManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator

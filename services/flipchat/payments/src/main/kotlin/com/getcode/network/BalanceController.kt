@@ -8,7 +8,6 @@ import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
 import com.getcode.network.repository.BalanceRepository
 import com.getcode.network.repository.TransactionRepository
-import com.getcode.services.model.EcdsaTuple
 import com.getcode.solana.organizer.Organizer
 import com.getcode.solana.organizer.Tray
 import com.getcode.utils.FormatUtils
@@ -31,6 +30,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
+import xyz.flipchat.services.user.UserManager
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -50,9 +50,7 @@ open class BalanceController @Inject constructor(
     private val accountRepository: AccountRepository,
     private val transactionReceiver: TransactionReceiver,
     private val getCurrencyFromCode: (CurrencyCode?) -> Currency?,
-    private val storedEcda: () -> EcdsaTuple,
-    private val organizerLookup: () -> Organizer?,
-    private val onOrganizerUpdated: (Organizer) -> Unit,
+    private val userManager: UserManager,
     val suffix: (Currency?) -> String,
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -105,18 +103,18 @@ open class BalanceController @Inject constructor(
 
     fun getBalance(): Completable {
         trace("fetchBalance")
-        val owner = storedEcda().algorithm
+        val owner = userManager.keyPair
             ?: return Completable.error(IllegalStateException("Missing Owner"))
 
         fun getTokenAccountInfos(): Completable {
             return accountRepository.getTokenAccountInfos(owner)
                 .flatMapCompletable { infos ->
-                    val organizer = organizerLookup() ?: return@flatMapCompletable Completable.error(
+                    val organizer = userManager.organizer ?: return@flatMapCompletable Completable.error(
                         IllegalStateException("Missing Organizer")
                     )
                     scope.launch {
                         organizer.setAccountInfo(infos)
-                        onOrganizerUpdated(organizer)
+                        userManager.set(organizer = organizer)
                     }
 
                     balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
@@ -131,7 +129,7 @@ open class BalanceController @Inject constructor(
             }
             .onErrorResumeNext {
                 Timber.i("Error: ${it.javaClass.simpleName} ${it.cause}")
-                val organizer = organizerLookup() ?: return@onErrorResumeNext Completable.error(
+                val organizer = userManager.organizer ?: return@onErrorResumeNext Completable.error(
                     IllegalStateException("Missing Organizer")
                 )
 
@@ -152,7 +150,7 @@ open class BalanceController @Inject constructor(
 
     suspend fun fetchBalance(): Result<Unit> {
         Timber.d("fetching balance")
-        val owner = storedEcda().algorithm
+        val owner = userManager.keyPair
             ?: return Result.failure(IllegalStateException("Missing Owner"))
 
         try {
@@ -162,12 +160,12 @@ open class BalanceController @Inject constructor(
             }
 
             val accountInfo = accountInfoResult.getOrNull().orEmpty()
-            val organizer = organizerLookup()
+            val organizer = userManager.organizer
                 ?: return Result.failure(IllegalStateException("Missing Organizer"))
 
 
             organizer.setAccountInfo(accountInfo)
-            onOrganizerUpdated(organizer)
+            userManager.set(organizer = organizer)
             balanceRepository.setBalance(organizer.availableBalance.toKinValueDouble())
             transactionReceiver.receiveFromIncoming(organizer)
             scope.launch {
@@ -177,7 +175,7 @@ open class BalanceController @Inject constructor(
             return Result.success(Unit)
         } catch (ex: Exception) {
             Timber.i("Error: ${ex.javaClass.simpleName} ${ex.message}")
-            val organizer = organizerLookup()
+            val organizer = userManager.organizer
                 ?: return Result.failure(IllegalStateException("Missing Organizer"))
 
             return suspendCancellableCoroutine { cont ->

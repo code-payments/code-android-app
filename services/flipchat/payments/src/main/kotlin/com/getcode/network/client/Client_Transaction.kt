@@ -1,6 +1,7 @@
 package com.getcode.network.client
 
 import android.annotation.SuppressLint
+import com.codeinc.gen.user.v1.user
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
@@ -17,7 +18,6 @@ import com.getcode.model.intents.IntentEstablishRelationship
 import com.getcode.model.intents.IntentPrivateTransfer
 import com.getcode.model.intents.IntentPublicTransfer
 import com.getcode.model.intents.IntentRemoteSend
-import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.SwapIntent
 import com.getcode.network.repository.TransactionRepository
 import com.getcode.network.repository.WithdrawException
@@ -41,14 +41,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
-import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
 import java.util.Calendar
 import java.util.GregorianCalendar
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.resume
 import kotlin.math.min
 
 fun Client.createAccounts(organizer: Organizer): Completable {
@@ -154,7 +152,7 @@ fun Client.sendRemotely(
     giftCard: GiftCardAccount
 ): Completable {
     return Completable.defer {
-        val organizer = organizerLookup()!!
+        val organizer = userManager.organizer ?: return@defer Completable.complete()
         val truncatedAmount = amount.truncating()
         getTransferPreflightAction(truncatedAmount.kin)
             .andThen(
@@ -186,7 +184,7 @@ fun Client.receiveRemote(giftCard: GiftCardAccount): Single<KinAmount> {
                 return@flatMap Single.error(RemoteSendException.GiftCardExpiredException())
             }
 
-            val organizer = organizerLookup()!!
+            val organizer = userManager.organizer ?: return@flatMap Single.error(Throwable("No organizer"))
 
             transactionReceiver.receiveRemotely(
                 giftCard = giftCard,
@@ -439,13 +437,13 @@ fun Client.fetchDestinationMetadata(destination: PublicKey): Single<TransactionR
 private var lastLimitsFetch: Long = 0L
 
 fun Client.fetchLimits(isForce: Boolean = false): Completable {
-    val owner = storedEcda().algorithm ?: return Completable.complete()
+    val owner = userManager.keyPair ?: return Completable.complete()
     fetchTransactionLimits(owner, isForce)
     return Completable.complete()
 }
 
 fun Client.receiveIfNeeded(): Completable {
-    val organizer = organizerLookup() ?: return Completable.complete()
+    val organizer = userManager.organizer ?: return Completable.complete()
 
     if (organizer.slotsBalance < transactionRepository.maxDeposit) {
         receiveFromRelationships(organizer, upTo = transactionRepository.maxDeposit)
@@ -503,8 +501,8 @@ fun Client.receiveFromPrimaryIfWithinLimits(organizer: Organizer): Completable {
 }
 
 fun Client.fetchPrivacyUpgrades(): Completable {
-    val owner = storedEcda().algorithm ?: return Completable.complete()
-    val organizer = organizerLookup() ?: return Completable.complete()
+    val owner = userManager.keyPair ?: return Completable.complete()
+    val organizer = userManager.organizer ?: return Completable.complete()
 
     return transactionRepository.fetchUpgradeableIntents(owner)
         .flatMapCompletable { intents ->
@@ -526,7 +524,7 @@ fun Client.fetchPrivacyUpgrades(): Completable {
 }
 
 fun Client.getTransferPreflightAction(amount: Kin): Completable {
-    val organizer = organizerLookup() ?: return Completable.complete()
+    val organizer = userManager.organizer ?: return Completable.complete()
     val neededKin =
         if (amount > organizer.slotsBalance) amount - organizer.slotsBalance else Kin.fromKin(0)
 

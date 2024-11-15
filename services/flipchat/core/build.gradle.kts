@@ -28,12 +28,6 @@ android {
             "FINGERPRINT_API_KEY",
             "\"${tryReadProperty(rootProject.rootDir, "FINGERPRINT_API_KEY")}\""
         )
-
-        javaCompileOptions {
-            annotationProcessorOptions {
-                arguments += mapOf("room.schemaLocation" to "$projectDir/schemas")
-            }
-        }
     }
 
     java {
@@ -56,8 +50,8 @@ android {
 }
 
 dependencies {
-    api(project(":services:flipchat:chat"))
-    api(project(":services:flipchat:payments"))
+    implementation(project(":definitions:code-vm:models"))
+    api(project(":services:shared"))
     implementation(project(":ui:resources"))
 
     implementation(Libs.kotlinx_coroutines_core)
@@ -68,10 +62,6 @@ dependencies {
     implementation(Libs.grpc_okhttp)
     implementation(Libs.grpc_kotlin)
     implementation(Libs.androidx_lifecycle_runtime)
-    implementation(Libs.androidx_room_runtime)
-    implementation(Libs.androidx_room_ktx)
-    implementation(Libs.androidx_room_paging)
-    implementation(Libs.androidx_room_rxjava3)
     implementation(Libs.okhttp)
     implementation(Libs.mixpanel)
 

@@ -4,13 +4,12 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.ed25519.Ed25519
-import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
 import com.getcode.oct24.BuildConfig
 import com.getcode.oct24.FlipchatServices
 import com.getcode.oct24.network.controllers.AuthController
 import com.getcode.oct24.network.controllers.ProfileController
-import com.getcode.oct24.user.UserManager
+import xyz.flipchat.services.user.UserManager
 import com.getcode.oct24.util.AccountUtils
 import com.getcode.oct24.util.TokenResult
 import com.getcode.services.db.Database
@@ -39,7 +38,7 @@ class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authController: AuthController,
     private val profileController: ProfileController,
-    private val userManager: UserManager,
+    private val userManager: xyz.flipchat.services.user.UserManager,
 //    private val balanceController: BalanceController,
 //    private val notificationCollectionHistory: NotificationCollectionHistoryController,
 //    private val analytics: AnalyticsService,
