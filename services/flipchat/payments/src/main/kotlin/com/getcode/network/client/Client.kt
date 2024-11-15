@@ -66,7 +66,7 @@ class Client @Inject constructor(
 
     private fun startPollTimer() {
         pollTimer?.cancel()
-        pollTimer = fixedRateTimer("pollTimer", false, 0, 1000 * 60) {
+        pollTimer = fixedRateTimer("pollTimer", false, 0, 1000 * 10) {
             scope.launch {
                 Timber.tag(TAG).i("Timer Polling")
 
