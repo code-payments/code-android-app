@@ -1,5 +1,7 @@
 @file:Suppress("ConstPropertyName")
 
+import kotlin.math.min
+
 
 object Android {
     const val codeNamespace = "com.getcode"
@@ -12,12 +14,24 @@ object Android {
     const val buildToolsVersion = "34.0.0"
 }
 
-object Packaging {
-    private const val majorVersion = 2
-    private const val minorVersion = 1
-    private const val patchVersion = 14
+sealed class Packaging(
+    majorVersion: Int,
+    minorVersion: Int,
+    patchVersion: Int
+) {
+    val versionName = "$majorVersion.$minorVersion.$patchVersion"
 
-    const val versionName = "$majorVersion.$minorVersion.$patchVersion"
+    object Code: Packaging(
+        majorVersion = 2,
+        minorVersion = 1,
+        patchVersion = 14
+    )
+
+    object Flipchat: Packaging(
+        majorVersion = 1,
+        minorVersion = 0,
+        patchVersion = 0
+    )
 }
 
 object Versions {

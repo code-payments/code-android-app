@@ -14,7 +14,7 @@ android {
         buildToolsVersion = Android.buildToolsVersion
         testInstrumentationRunner = Android.testInstrumentationRunner
 
-        buildConfigField("String", "VERSION_NAME", "\"${Packaging.versionName}\"")
+        buildConfigField("String", "VERSION_NAME", "\"${Packaging.Flipchat.versionName}\"")
     }
 
     java {

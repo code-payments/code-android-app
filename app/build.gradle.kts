@@ -26,7 +26,7 @@ android {
 
     defaultConfig {
         versionCode = versioning.getVersionCode()
-        versionName = Packaging.versionName
+        versionName = Packaging.Code.versionName
         applicationId = Android.codeNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion

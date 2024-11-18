@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         versionCode = versioning.getVersionCode()
-        versionName = Packaging.versionName
+        versionName = Packaging.Flipchat.versionName
         applicationId = appNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
