@@ -9,7 +9,6 @@ import com.getcode.models.BillState
 import com.getcode.models.ConfirmationState
 import com.getcode.models.PublicPaymentConfirmation
 import com.getcode.network.repository.PaymentRepository
-import com.getcode.oct24.services.payments.R
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import xyz.flipchat.services.payments.R
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds

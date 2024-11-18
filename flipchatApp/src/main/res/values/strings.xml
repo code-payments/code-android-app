@@ -4,8 +4,6 @@
     <string translatable="false" name="app_name">Flipchat</string>
     <string translatable="false" name="handle">\@flipchatapp</string>
     <string translatable="false" name="account_name_link">FlipchatAccount</string>
-    <string name="account_provider" translatable="false">com.getcode.accountprovider</string>
-    <string name="account_read_permission" translatable="false">com.getcode.READ_ACCOUNT</string>
 
     <string name="subtitle_yourName">Your Name</string>
 

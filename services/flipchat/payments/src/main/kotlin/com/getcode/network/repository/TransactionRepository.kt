@@ -38,7 +38,6 @@ import com.getcode.model.intents.IntentType
 import com.getcode.model.intents.IntentUpgradePrivacy
 import com.getcode.model.intents.ServerParameter
 import com.getcode.network.api.TransactionApiV2
-import com.getcode.oct24.services.payments.BuildConfig
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.services.observers.BidirectionalStreamReference
 import com.getcode.solana.keys.AssociatedTokenAccount
@@ -69,6 +68,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
+import xyz.flipchat.services.payments.BuildConfig
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject

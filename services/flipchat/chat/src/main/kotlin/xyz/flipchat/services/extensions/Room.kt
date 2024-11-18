@@ -1,8 +1,8 @@
 package xyz.flipchat.services.extensions
 
-import com.getcode.oct24.services.chat.R
 import xyz.flipchat.services.data.Room
 import com.getcode.util.resources.ResourceHelper
+import xyz.flipchat.services.chat.R
 
 fun Room.titleOrFallback(resources: ResourceHelper): String {
     return title ?: resources.getString(

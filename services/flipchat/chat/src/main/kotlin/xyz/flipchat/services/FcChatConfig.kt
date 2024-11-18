@@ -1,7 +1,7 @@
 package xyz.flipchat.services
 
-import com.getcode.oct24.services.chat.BuildConfig
 import com.getcode.services.ChannelConfig
+import xyz.flipchat.services.chat.BuildConfig
 
 internal data class FcChatConfig(
     override val baseUrl: String = "chat.api.flipchat-infra.xyz",

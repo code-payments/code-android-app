@@ -1,5 +1,3 @@
 <resources>
     <string name="app_name">Flipchat Dev</string>
-    <string name="account_provider" translatable="false">com.getcode.dev.accountprovider</string>
-    <string name="account_read_permission" translatable="false">com.getcode.dev.READ_ACCOUNT</string>
 </resources>

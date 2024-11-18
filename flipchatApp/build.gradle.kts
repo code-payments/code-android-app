@@ -18,16 +18,17 @@ plugins {
 }
 
 val contributorsSigningConfig = ContributorsSignatory(rootProject)
+val appNamespace = "${Android.flipchatNamespace}.app"
 
 android {
     // static namespace
-    namespace = Android.flipchatNamespace
+    namespace = appNamespace
     compileSdk = Android.compileSdkVersion
 
     defaultConfig {
         versionCode = versioning.getVersionCode()
         versionName = Packaging.versionName
-        applicationId = Android.flipchatNamespace
+        applicationId = appNamespace
         minSdk = Android.minSdkVersion
         targetSdk = Android.targetSdkVersion
         buildToolsVersion = Android.buildToolsVersion
@@ -58,14 +59,14 @@ android {
 
     buildTypes {
         getByName("release") {
-            resValue("string", "applicationId", Android.flipchatNamespace)
+            resValue("string", "applicationId", appNamespace)
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         getByName("debug") {
             applicationIdSuffix = ".dev"
-            resValue("string", "applicationId", "${Android.flipchatNamespace}.dev")
+            resValue("string", "applicationId", "${appNamespace}.dev")
             signingConfig = signingConfigs.getByName("contributors")
 
             val debugMinifyEnabled = tryReadProperty(rootProject.rootDir, "DEBUG_MINIFY", "false").toBooleanLenient() ?: false
