@@ -129,4 +129,5 @@ message GetUserFlagsResponse {
 message UserFlags {
 	bool is_staff = 1;
 	common.v1.PaymentAmount start_group_cost = 2;
+	common.v1.PublicKey fee_destination = 3;
 }

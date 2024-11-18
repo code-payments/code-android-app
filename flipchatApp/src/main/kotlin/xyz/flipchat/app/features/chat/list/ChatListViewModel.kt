@@ -100,7 +100,7 @@ class ChatListViewModel @Inject constructor(
 
                     paymentController.presentPublicPaymentConfirmation(
                         amount = amount,
-                        destination = PublicKey(Base58.decode("f1ipC31qd2u88MjNYp1T4Cc7rnWfM9ivYpTV1Z8FHnD").toList()),
+                        destination = it.feeDestination,
                         metadata = metadata
                     )
                 }
