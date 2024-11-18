@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_tos" translatable="false">https://app.getcode.com/tos</string>
+    <string name="app_privacy_policy" translatable="false">https://app.getcode.com/privacy-policy</string>
+
     <string translatable="false" name="app_download_link">https://getcode.com/d</string>
     <string translatable="false" name="app_download_link_with_ref">https://getcode.com/d?r=%1$s</string>
     <string translatable="false" name="app_download_link_qr_ref">aqr</string>

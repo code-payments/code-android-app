@@ -6,23 +6,24 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
-import xyz.flipchat.app.R
 import com.getcode.services.model.ExtendedMetadata
-import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
-import com.getcode.vendor.Base58
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
+import xyz.flipchat.app.R
+import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
-import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
 import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
@@ -83,9 +84,12 @@ class ChatListViewModel @Inject constructor(
                 )
             ) }
             .map { profileController.getUserFlags() }
-            .onResult(
-                onError = {},
-                onSuccess = {
+            .mapNotNull {
+                it.exceptionOrNull()?.let {
+                    return@mapNotNull null
+                }
+
+                it.getOrNull()?.let { flags ->
                     val startGroupMetadata = StartGroupChatPaymentMetadata(
                         userId = userManager.userId!!
                     )
@@ -96,43 +100,43 @@ class ChatListViewModel @Inject constructor(
                     )
 
                     val amount =
-                        KinAmount.newInstance(kin = it.createCost.quarks.toInt(), rate = Rate.oneToOne)
+                        KinAmount.newInstance(kin = flags.createCost.quarks.toInt(), rate = Rate.oneToOne)
 
                     paymentController.presentPublicPaymentConfirmation(
                         amount = amount,
-                        destination = it.feeDestination,
+                        destination = flags.feeDestination,
                         metadata = metadata
                     )
                 }
-            ).launchIn(viewModelScope)
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.mapNotNull {
+                when (it) {
+                    PaymentEvent.OnPaymentCancelled -> {
+                        dispatchEvent(
+                            Event.ShowFullScreenSpinner(
+                                showScrim = false,
+                                showSpinner = false
+                            )
+                        )
+                        return@mapNotNull null
 
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnPaymentCancelled>()
-            .onEach { dispatchEvent(
-                Event.ShowFullScreenSpinner(
-                    showScrim = false,
-                    showSpinner = false
-                )
-            ) }
-            .launchIn(viewModelScope)
-
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnPaymentError>()
-            .onEach { dispatchEvent(
-                Event.ShowFullScreenSpinner(
-                    showScrim = false,
-                    showSpinner = false
-                )
-            ) }
-            .launchIn(viewModelScope)
-
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnPaymentSuccess>()
-            .map {
-                dispatchEvent(Event.ShowFullScreenSpinner(showScrim = true, showSpinner = true))
-                chatsController.createGroup(title = null, participants = emptyList(), it.intentId)
-            }
-            .onResult(
+                    }
+                    is PaymentEvent.OnPaymentError -> {
+                        dispatchEvent(
+                            Event.ShowFullScreenSpinner(
+                                showScrim = false,
+                                showSpinner = false
+                            )
+                        )
+                        return@mapNotNull null
+                    }
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        dispatchEvent(Event.ShowFullScreenSpinner(showScrim = true, showSpinner = true))
+                        chatsController.createGroup(title = null, participants = emptyList(), it.intentId)
+                    }
+                }
+            }.onResult(
                 onError = {
                     dispatchEvent(
                         Event.ShowFullScreenSpinner(
@@ -142,7 +146,7 @@ class ChatListViewModel @Inject constructor(
                     )
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
-                            resources.getString(R.string.error_title_failedToJoinRoom),
+                            resources.getString(R.string.error_title_failedToCreateRoom),
                             resources.getString(R.string.error_description_failedToCreateRoom,)
                         )
                     )
@@ -156,7 +160,7 @@ class ChatListViewModel @Inject constructor(
                     )
                     dispatchEvent(Event.OpenRoom(it.id))
                 }
-            ).launchIn(viewModelScope)
+            )
     }
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> get() = chatsController.chats.flow

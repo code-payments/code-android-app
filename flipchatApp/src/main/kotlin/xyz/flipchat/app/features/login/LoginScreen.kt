@@ -1,4 +1,4 @@
-package xyz.flipchat.features.login
+package xyz.flipchat.app.features.login
 
 import android.os.Parcelable
 import androidx.compose.runtime.Composable
@@ -10,7 +10,7 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import xyz.flipchat.features.login.LoginHome
+import xyz.flipchat.app.features.login.LoginHome
 
 @Parcelize
 data class LoginScreen(val seed: String? = null) : Screen, Parcelable {

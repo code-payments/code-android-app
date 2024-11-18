@@ -3,7 +3,7 @@ package xyz.flipchat.services.internal.data.mapper
 import com.codeinc.flipchat.gen.account.v1.AccountService
 import com.getcode.model.Kin
 import com.getcode.services.mapper.Mapper
-import xyz.flipchat.services.data.UserFlags
+import xyz.flipchat.services.user.UserFlags
 import xyz.flipchat.services.internal.network.extensions.toPublicKey
 import javax.inject.Inject
 

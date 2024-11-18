@@ -37,12 +37,16 @@ class UserManager @Inject constructor(
     val displayName: String?
         get() = _state.value.displayName
 
+    val userFlags: UserFlags?
+        get() = _state.value.flags
+
     data class State(
         val entropy: String? = null,
         val keyPair: KeyPair? = null,
         val userId: ID? = null,
         val displayName: String? = null,
         val organizer: Organizer? = null,
+        val flags: UserFlags? = null,
     )
 
     fun establish(entropy: String) {
@@ -72,9 +76,15 @@ class UserManager @Inject constructor(
         }
     }
 
+    fun set(userFlags: UserFlags) {
+        _state.update {
+            it.copy(flags = userFlags)
+        }
+    }
+
     fun clear() {
         _state.update {
-            it.copy(entropy = null, keyPair = null, userId = emptyList(), organizer = null)
+            it.copy(entropy = null, keyPair = null, userId = emptyList(), organizer = null, flags = null)
         }
     }
 }

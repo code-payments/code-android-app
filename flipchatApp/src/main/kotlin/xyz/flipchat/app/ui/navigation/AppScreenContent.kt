@@ -6,7 +6,7 @@ import xyz.flipchat.app.features.balance.BalanceScreen
 import xyz.flipchat.app.features.chat.conversation.ConversationScreen
 import xyz.flipchat.app.features.chat.list.ChatListScreen
 import xyz.flipchat.app.features.home.TabbedHomeScreen
-import xyz.flipchat.features.login.LoginScreen
+import xyz.flipchat.app.features.login.LoginScreen
 import xyz.flipchat.app.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
 import xyz.flipchat.app.features.chat.info.ChatInfoScreen

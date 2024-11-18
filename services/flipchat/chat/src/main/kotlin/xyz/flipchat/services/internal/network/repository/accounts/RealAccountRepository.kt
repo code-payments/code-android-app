@@ -4,7 +4,7 @@ import com.getcode.model.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import xyz.flipchat.services.data.PaymentTarget
-import xyz.flipchat.services.data.UserFlags
+import xyz.flipchat.services.user.UserFlags
 import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.service.AccountService
 import xyz.flipchat.services.user.UserManager

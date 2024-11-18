@@ -7,21 +7,22 @@ import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.navigation.RoomInfoArgs
-import xyz.flipchat.app.R
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
+import xyz.flipchat.app.R
 import xyz.flipchat.app.data.RoomInfo
+import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
-import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.services.PaymentController
 import xyz.flipchat.services.PaymentEvent
 import xyz.flipchat.services.data.JoinChatPaymentMetadata
@@ -85,8 +86,8 @@ class JoinConfirmationViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.JoinRoomClicked>()
             .map { stateFlow.value.roomInfo }
-            .onEach {
-                val destination = stateFlow.value.paymentDestination ?: return@onEach
+            .mapNotNull {
+                val destination = stateFlow.value.paymentDestination ?: return@mapNotNull null
                 val amount =
                     KinAmount.newInstance(kin = it.coverCharge.quarks.toInt(), rate = Rate.oneToOne)
 
@@ -109,28 +110,27 @@ class JoinConfirmationViewModel @Inject constructor(
                     paymentController.presentPublicPaymentConfirmation(
                         amount = amount,
                         destination = destination,
-                        metadata = metadata
+                        metadata = metadata,
                     )
                 }
-            }.launchIn(viewModelScope)
-
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnPaymentCancelled>()
-            .onEach { dispatchEvent(Event.OnJoiningChanged(false)) }
-            .launchIn(viewModelScope)
-
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnPaymentError>()
-            .onEach { dispatchEvent(Event.OnJoiningChanged(false)) }
-            .launchIn(viewModelScope)
-
-        paymentController.eventFlow
-            .filterIsInstance<PaymentEvent.OnPaymentSuccess>()
-            .map {
-                val roomId = stateFlow.value.roomInfo.id.orEmpty()
-                chatsController.joinRoom(roomId, it.intentId)
-            }
-            .onResult(
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.mapNotNull {
+                when (it) {
+                    PaymentEvent.OnPaymentCancelled -> {
+                        dispatchEvent(Event.OnJoiningChanged(false))
+                        return@mapNotNull null
+                    }
+                    is PaymentEvent.OnPaymentError -> {
+                        dispatchEvent(Event.OnJoiningChanged(false))
+                        return@mapNotNull null
+                    }
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        val roomId = stateFlow.value.roomInfo.id.orEmpty()
+                        chatsController.joinRoom(roomId, it.intentId)
+                    }
+                }
+            }.onResult(
                 onError = {
                     dispatchEvent(Event.OnJoiningChanged(false))
                     TopBarManager.showMessage(
@@ -147,7 +147,8 @@ class JoinConfirmationViewModel @Inject constructor(
                     dispatchEvent(Event.OnJoiningChanged(false))
                     dispatchEvent(Event.OnJoinedSuccessfully(it.room.id))
                 }
-            ).launchIn(viewModelScope)
+            )
+            .launchIn(viewModelScope)
     }
 
     companion object {

@@ -106,7 +106,7 @@ fun LoginHome(
                 append(" ")
                 append(stringResource(R.string.login_description_agreeToOur))
                 append(" ")
-                pushStringAnnotation(tag = "tos", annotation = "https://app.getcode.com/tos")
+                pushStringAnnotation(tag = "tos", annotation = stringResource(R.string.app_privacy_policy))
                 withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
                     append(stringResource(R.string.title_termsOfService))
                 }
@@ -116,7 +116,7 @@ fun LoginHome(
                 append(" ")
                 pushStringAnnotation(
                     tag = "policy",
-                    annotation = "https://app.getcode.com/privacy-policy"
+                    annotation = stringResource(R.string.app_privacy_policy)
                 )
                 withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
                     append(stringResource(R.string.title_privacyPolicy))

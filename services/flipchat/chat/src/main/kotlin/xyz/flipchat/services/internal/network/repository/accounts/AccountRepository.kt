@@ -1,10 +1,9 @@
 package xyz.flipchat.services.internal.network.repository.accounts
 
-import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
 import com.getcode.solana.keys.PublicKey
 import xyz.flipchat.services.data.PaymentTarget
-import xyz.flipchat.services.data.UserFlags
+import xyz.flipchat.services.user.UserFlags
 
 interface AccountRepository {
     suspend fun register(displayName: String): Result<ID>

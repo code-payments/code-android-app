@@ -1,4 +1,4 @@
-package xyz.flipchat.services.data
+package xyz.flipchat.services.user
 
 import com.getcode.model.Kin
 import com.getcode.solana.keys.PublicKey

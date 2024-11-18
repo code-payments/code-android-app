@@ -39,7 +39,7 @@ jobs:
         with:
           fileName: google-services.json
           fileDir: ./flipchatApp/src
-          encodedString: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          encodedString: ${{ secrets.FLIPCHAT_GOOGLE_SERVICES_JSON }}
 
       - name: Decode Service Account Key JSON file
         uses: timheuer/base64-to-file@v1

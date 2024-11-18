@@ -33,8 +33,10 @@ data class PaymentState(
 )
 
 sealed interface PaymentEvent {
-    data object PresentPaymentEntry : PaymentEvent
-    data class OnPaymentSuccess(val intentId: ID, val destination: PublicKey) : PaymentEvent
+    data class OnPaymentSuccess(
+        val intentId: ID,
+        val destination: PublicKey
+    ) : PaymentEvent
     data object OnPaymentCancelled : PaymentEvent
     data class OnPaymentError(val error: Throwable): PaymentEvent
 }
@@ -67,7 +69,7 @@ class PaymentController @Inject constructor(
                     state = ConfirmationState.AwaitingConfirmation,
                     amount = amount,
                     destination = destination,
-                    metadata = metadata
+                    metadata = metadata,
                 )
             )
         }

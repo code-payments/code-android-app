@@ -3,13 +3,15 @@ package xyz.flipchat.controllers
 import com.getcode.model.ID
 import com.getcode.solana.keys.PublicKey
 import xyz.flipchat.services.data.PaymentTarget
-import xyz.flipchat.services.data.UserFlags
+import xyz.flipchat.services.user.UserFlags
 import xyz.flipchat.services.domain.model.profile.UserProfile
 import xyz.flipchat.services.internal.network.repository.accounts.AccountRepository
 import xyz.flipchat.services.internal.network.repository.profile.ProfileRepository
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 class ProfileController @Inject constructor(
+    private val userManager: UserManager,
     private val repository: ProfileRepository,
     private val accountRepository: AccountRepository,
 ) {
@@ -29,5 +31,6 @@ class ProfileController @Inject constructor(
 
     suspend fun getUserFlags(): Result<UserFlags> {
         return accountRepository.getUserFlags()
+            .onSuccess { userManager.set(userFlags = it) }
     }
 }

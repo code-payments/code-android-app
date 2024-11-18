@@ -213,6 +213,7 @@ data class LoginConfirmation(
     override val showScrim: Boolean = false,
 ): Confirmation(showScrim, state)
 
+
 data class PublicPaymentConfirmation(
     override val state: ConfirmationState,
     val amount: KinAmount,
