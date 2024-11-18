@@ -29,6 +29,8 @@ import xyz.flipchat.FlipchatServices
 import xyz.flipchat.app.BuildConfig
 import xyz.flipchat.controllers.AuthController
 import xyz.flipchat.controllers.ProfileController
+import xyz.flipchat.controllers.PushController
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,7 +39,8 @@ class AuthManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val authController: AuthController,
     private val profileController: ProfileController,
-    private val userManager: xyz.flipchat.services.user.UserManager,
+    private val userManager: UserManager,
+    private val pushController: PushController,
 //    private val balanceController: BalanceController,
 //    private val notificationCollectionHistory: NotificationCollectionHistoryController,
 //    private val analytics: AnalyticsService,
@@ -102,6 +105,7 @@ class AuthManager @Inject constructor(
                 )
                 userManager.set(displayName = displayName)
                 userManager.set(userId = it)
+                savePrefs()
             }
             .onFailure {
                 it.printStackTrace()
@@ -153,6 +157,7 @@ class AuthManager @Inject constructor(
             }
             .onSuccess {
                 userManager.set(userId = it)
+                savePrefs()
             }
             .onFailure {
                 it.printStackTrace()
@@ -222,23 +227,19 @@ class AuthManager @Inject constructor(
     }
 
     private suspend fun savePrefs() {
-        Timber.d("saving prefs")
-
         updateFcmToken()
     }
 
     @SuppressLint("CheckResult")
     private suspend fun updateFcmToken() {
-        val installationId = Firebase.installations.installationId()
         val pushToken = Firebase.messaging.token() ?: return
-
-        // TODO: add back once push controller is added
-//        pushRepository.updateToken(pushToken, installationId)
-//            .onSuccess {
-//                Timber.d("push token updated")
-//            }.onFailure {
-//                Timber.e(t = it, message = "Failure updating push token")
-//            }
+        println("pushToken=$pushToken")
+        pushController.addToken(pushToken)
+            .onSuccess {
+                trace("push token updated", type = TraceType.Silent)
+            }.onFailure {
+                trace(message = "Failure updating push token", error = it)
+            }
     }
 
     sealed class AuthManagerException : Exception() {

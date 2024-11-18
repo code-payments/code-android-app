@@ -160,7 +160,7 @@ class ChatListViewModel @Inject constructor(
                     )
                     dispatchEvent(Event.OpenRoom(it.id))
                 }
-            )
+            ).launchIn(viewModelScope)
     }
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> get() = chatsController.chats.flow

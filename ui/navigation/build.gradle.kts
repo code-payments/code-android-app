@@ -66,4 +66,6 @@ dependencies {
     api(Libs.compose_voyager_navigation_bottomsheet)
     api(Libs.compose_voyager_navigation_tabs)
     api(Libs.compose_voyager_navigation_hilt)
+
+    api(Libs.rinku)
 }

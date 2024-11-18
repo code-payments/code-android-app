@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -126,6 +127,18 @@ class RoomController @Inject constructor(
         )
     ) {
         conversationPagingSource(conversationId)
+    }
+
+    suspend fun fetchLatestMessages(
+        conversationId: ID,
+        limit: Int = 20,
+    ): Result<List<ConversationMessageWithContent>> {
+        return messagingRepository.getMessages(conversationId, QueryOptions(limit = limit))
+            .map { result ->
+                result.map { conversationMessageWithContentMapper.map(conversationId to it) }
+            }.onSuccess {
+                db.conversationMessageDao().upsertMessagesWithContent(it)
+            }
     }
 
     val typingChats = chatRepository.typingChats

@@ -40,7 +40,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.AppHomeScreen> {
-            TabbedHomeScreen
+            TabbedHomeScreen(it.deeplink)
         }
 
         register<NavScreenProvider.Chat.List> {

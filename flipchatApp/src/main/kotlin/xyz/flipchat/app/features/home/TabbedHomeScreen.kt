@@ -17,7 +17,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -32,25 +36,37 @@ import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.TabDisposable
 import cafe.adriel.voyager.navigator.tab.TabNavigator
-import xyz.flipchat.app.features.home.tabs.CashTab
-import xyz.flipchat.app.features.home.tabs.ChatTab
+import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.utils.withTopBorder
+import dev.theolm.rinku.DeepLink
+import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-
-internal val tabs = listOf(ChatTab, CashTab)
+import kotlinx.parcelize.RawValue
 
 @Parcelize
-data object TabbedHomeScreen : Screen, Parcelable {
+class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     @Composable
     override fun Content() {
         val viewModel = getActivityScopedViewModel<HomeViewModel>()
+        val router = viewModel.router
+
+        //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
+        //authenticated. Currently we will require authentication to see anything, but can be changed in future.
+        var deepLink by remember(deeplink) { mutableStateOf<DeepLink?>(deeplink) }
+        DeepLinkListener {
+            deepLink = it
+        }
+
+        val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
+        var currentTab: ChildNavTab? by remember { mutableStateOf(router.rootTabs.firstOrNull()) }
 
         val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {
@@ -74,14 +90,22 @@ data object TabbedHomeScreen : Screen, Parcelable {
         }
 
         TabNavigator(
-            tab = ChatTab,
+            tab = viewModel.router.rootTabs[initialTab],
             tabDisposable = {
                 TabDisposable(
                     navigator = it,
-                    tabs = tabs,
+                    tabs = router.rootTabs,
                 )
             }
         ) { tabNavigator ->
+            val codeNavigator = LocalCodeNavigator.current
+            LaunchedEffect(deepLink) {
+                if (deepLink != null) {
+                    val screenSet = router.processDestination(deepLink)
+                    tabNavigator.current = router.rootTabs[initialTab]
+                    codeNavigator.replaceAll(screenSet)
+                }
+            }
             Column(
                 modifier = Modifier
                     .statusBarsPadding()
@@ -97,7 +121,7 @@ data object TabbedHomeScreen : Screen, Parcelable {
                         .fillMaxWidth()
                         .withTopBorder()
                 ) {
-                    tabs.fastForEach { tab ->
+                    router.rootTabs.fastForEach { tab ->
                         val backgroundColor by animateColorAsState(
                             if (tabNavigator.current.options.index == tab.options.index) CodeTheme.colors.brandSubtle else CodeTheme.colors.surface,
                             label = "selected tab color"

@@ -24,6 +24,9 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
+import dev.theolm.rinku.RinkuInit
+import dev.theolm.rinku.compose.ext.Rinku
+import xyz.flipchat.app.util.Router
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController
 import javax.inject.Inject
@@ -71,7 +74,9 @@ class MainActivity : FragmentActivity() {
                 LocalUserManager provides userManager,
                 LocalPaymentController provides paymentController
             ) {
-                App(tipsEngine = tipsEngine)
+                Rinku {
+                    App(tipsEngine = tipsEngine)
+                }
             }
         }
     }

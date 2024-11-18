@@ -31,9 +31,11 @@ import xyz.flipchat.app.ui.LocalUserManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import dev.theolm.rinku.DeepLink
+import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.delay
 
-internal data object MainRoot : Screen {
+internal object MainRoot : Screen {
 
     override val key: ScreenKey = uniqueScreenKey
 
@@ -45,6 +47,14 @@ internal data object MainRoot : Screen {
         val userManager = LocalUserManager.currentOrThrow
         val sessionState by userManager.state.collectAsState()
         var showLoading by remember { mutableStateOf(false) }
+
+        //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
+        //authenticated. Currently we will require authentication to see anything, but can be changed in future.
+        var deeplink by remember { mutableStateOf<DeepLink?>(null) }
+        DeepLinkListener {
+            deeplink = it
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,7 +99,7 @@ internal data object MainRoot : Screen {
             if (userId.isEmpty()) {
                 navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
             } else {
-                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen()))
+                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
             }
         }
     }

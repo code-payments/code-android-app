@@ -6,6 +6,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import xyz.flipchat.app.util.Router
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.CodeController
 import javax.inject.Inject
@@ -14,21 +15,14 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val codeController: CodeController,
     private val chatsController: ChatsController,
+    val router: Router
 ): ViewModel() {
 
     fun requestAirdrop() {
         viewModelScope.launch {
             codeController.fetchBalance()
                 .onFailure { it.printStackTrace() }
-                .onSuccess {
-                    codeController.requestAirdrop()
-                        .onFailure {
-                            trace("Airdrop failed: \n ${it.printStackTrace()}", type = TraceType.Silent)
-                        }
-                        .onSuccess {
-                            trace("Airdrop received => ${it.kin} KIN", type = TraceType.Silent)
-                        }
-                }
+                .onSuccess { codeController.requestAirdrop() }
         }
     }
 

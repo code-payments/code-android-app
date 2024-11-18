@@ -51,124 +51,14 @@
             </intent-filter>
 
             <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="text/plain"/>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="app.flipchat.xyz" />
             </intent-filter>
-
-            <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="image/*"/>
-            </intent-filter>
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="app.getcode.com"-->
-<!--                    android:pathPattern="/login.*"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_app_no_protocol"-->
-<!--                    android:pathPattern="/cash/.*"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_app_no_protocol"-->
-<!--                    android:pathPattern="/c/.*"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_cash_no_protocol"-->
-<!--                    android:pathPattern="/cash/.*"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_cash_no_protocol"-->
-<!--                    android:pathPattern="/c/.*"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_jump_no_protocol"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_cash_no_protocol"-->
-<!--                    android:pathPattern="/c/.*"-->
-<!--                    android:scheme="codewallet" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_sdk_no_protocol"-->
-<!--                    android:pathPattern="/v1/elements/.*/"-->
-<!--                    android:scheme="codewallet" />-->
-<!--            </intent-filter>-->
-
-<!--            <intent-filter android:autoVerify="true">-->
-<!--                <action android:name="android.intent.action.VIEW" />-->
-
-<!--                <category android:name="android.intent.category.DEFAULT" />-->
-<!--                <category android:name="android.intent.category.BROWSABLE" />-->
-
-<!--                <data-->
-<!--                    android:host="@string/root_url_tipcard_no_protocol"-->
-<!--                    android:pathPattern="/x/.*"-->
-<!--                    android:scheme="https" />-->
-<!--            </intent-filter>-->
         </activity>
 
         <!--
@@ -198,22 +88,13 @@
                 android:resource="@xml/authenticator" />
         </service>
 
-<!--        <service-->
-<!--            android:name=".notifications.CodePushMessagingService"-->
-<!--            android:exported="false">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.google.firebase.MESSAGING_EVENT" />-->
-<!--            </intent-filter>-->
-<!--        </service>-->
-
-<!--        <receiver-->
-<!--            android:name=".util.OtpSmsBroadcastReceiver"-->
-<!--            android:exported="true"-->
-<!--            android:permission="com.google.android.gms.auth.api.phone.permission.SEND">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="com.google.android.gms.auth.api.phone.SMS_RETRIEVED" />-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
+        <service
+            android:name=".services.FcNotificationService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

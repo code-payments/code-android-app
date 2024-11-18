@@ -29,8 +29,13 @@ class ProfileController @Inject constructor(
         return accountRepository.getPaymentDestination(PaymentTarget.User(userId))
     }
 
-    suspend fun getUserFlags(): Result<UserFlags> {
+    suspend fun getUserFlags(): Result<UserFlags?> {
         return accountRepository.getUserFlags()
-            .onSuccess { userManager.set(userFlags = it) }
+            .recoverCatching { userManager.userFlags }
+            .onSuccess {
+                if (it != null) {
+                    userManager.set(userFlags = it)
+                }
+            }
     }
 }

@@ -18,14 +18,20 @@ import xyz.flipchat.services.domain.model.query.QueryOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import xyz.flipchat.internal.db.FcAppDatabase
+import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
+import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ChatsController @Inject constructor(
     private val conversationMapper: RoomConversationMapper,
-    private val repository: ChatRepository
+    private val conversationMemberMapper: ConversationMemberMapper,
+    private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
+    private val chatRepository: ChatRepository,
+    private val messagingRepository: MessagingRepository,
 ) {
     private val db by lazy { FcAppDatabase.requireInstance() }
 
@@ -33,15 +39,29 @@ class ChatsController @Inject constructor(
     val chats: Pager<Int, ConversationWithMembersAndLastMessage> by lazy {
         Pager(
             config = PagingConfig(pageSize = 20),
-            remoteMediator = ChatsRemoteMediator(repository, conversationMapper)
+            remoteMediator = ChatsRemoteMediator(chatRepository, conversationMapper)
         ) {
             db.conversationDao().observeConversations()
         }
     }
 
+    suspend fun fetchLatestChatsAndMessage() {
+        chatRepository.getChats(queryOptions = QueryOptions(limit = 10))
+            .map { rooms ->
+                rooms.onEach { room ->
+                    db.conversationDao().upsertConversations(conversationMapper.map(room))
+                    messagingRepository.getMessages(chatId = room.id, queryOptions = QueryOptions(limit = 10))
+                        .onSuccess { result ->
+                            val messages = result.map { conversationMessageWithContentMapper.map(room.id to it) }
+                            db.conversationMessageDao().upsertMessagesWithContent(messages)
+                        }
+                }
+            }
+    }
+
     fun openEventStream(coroutineScope: CoroutineScope) {
         runCatching {
-            repository.openEventStream(coroutineScope) { event ->
+            chatRepository.openEventStream(coroutineScope) { event ->
                 coroutineScope.launch {
                     db.conversationDao().upsertConversations(*event.conversations.toTypedArray())
                     db.conversationMessageDao().upsertMessagesWithContent(*event.messages.toTypedArray())
@@ -53,16 +73,16 @@ class ChatsController @Inject constructor(
 
     fun closeEventStream() {
         runCatching {
-            repository.closeEventStream()
+            chatRepository.closeEventStream()
         }
     }
 
     suspend fun lookupRoom(roomNumber: Long): Result<RoomWithMembers> {
-        return repository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
+        return chatRepository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
     }
 
     suspend fun createDirectMessage(recipient: ID): Result<Room> {
-        return repository.startChat(StartChatRequestType.TwoWay(recipient))
+        return chatRepository.startChat(StartChatRequestType.TwoWay(recipient))
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it))
             }
@@ -73,21 +93,21 @@ class ChatsController @Inject constructor(
         participants: List<ID> = emptyList(),
         paymentId: ID,
     ): Result<Room> {
-        return repository.startChat(StartChatRequestType.Group(title, participants, paymentId))
+        return chatRepository.startChat(StartChatRequestType.Group(title, participants, paymentId))
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it))
             }
     }
 
     suspend fun joinRoom(roomId: ID, paymentId: ID?): Result<RoomWithMembers> {
-        return repository.joinChat(ChatIdentifier.Id(roomId), paymentId)
+        return chatRepository.joinChat(ChatIdentifier.Id(roomId), paymentId)
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))
             }
     }
 
     suspend fun joinRoom(roomNumber: Long, paymentId: ID): Result<RoomWithMembers> {
-        return repository.joinChat(ChatIdentifier.RoomNumber(roomNumber), paymentId)
+        return chatRepository.joinChat(ChatIdentifier.RoomNumber(roomNumber), paymentId)
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))
             }

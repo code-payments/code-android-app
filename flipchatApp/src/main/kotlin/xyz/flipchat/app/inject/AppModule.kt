@@ -29,6 +29,11 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import xyz.flipchat.app.features.home.tabs.CashTab
+import xyz.flipchat.app.features.home.tabs.ChatTab
+import xyz.flipchat.app.util.FcTab
+import xyz.flipchat.app.util.Router
+import xyz.flipchat.app.util.RouterImpl
 import javax.inject.Singleton
 
 @Module
@@ -114,4 +119,20 @@ object AppModule {
     fun providesAnalyticsService(
         mixpanelAPI: MixpanelAPI
     ): AnalyticsService = AnalyticsServiceNull()
+
+    @Provides
+    fun providesDeeplinkRouter(): Router = RouterImpl(
+        rootTabs = listOf(
+            ChatTab,
+            CashTab
+        ).sortedBy { it.ordinal },
+        tabIndexResolver = { resolved ->
+            when (resolved) {
+                FcTab.Chat -> FcTab.Chat.ordinal
+                FcTab.Cash -> FcTab.Cash.ordinal
+                FcTab.Settings -> FcTab.Settings.ordinal
+            }
+        },
+        indexTabResolver = { index -> FcTab.entries[index] }
+    )
 }

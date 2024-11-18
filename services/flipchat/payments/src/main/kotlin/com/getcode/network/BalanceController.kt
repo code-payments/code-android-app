@@ -181,7 +181,6 @@ open class BalanceController @Inject constructor(
             return suspendCancellableCoroutine { cont ->
                 when (ex) {
                     is AccountRepository.FetchAccountInfosException.NotFoundException -> {
-                        println("account not found")
                         transactionRepository.createAccounts(
                             organizer = organizer
                         ).doOnError { cont.resume(Result.failure(it)) }

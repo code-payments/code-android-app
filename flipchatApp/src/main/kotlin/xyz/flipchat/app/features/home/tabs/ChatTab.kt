@@ -32,16 +32,12 @@ import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.Navigator
-import cafe.adriel.voyager.navigator.tab.Tab
 import cafe.adriel.voyager.navigator.tab.TabOptions
-import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
-import xyz.flipchat.app.R
-import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
-import xyz.flipchat.app.features.settings.SettingsViewModel
+import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.AppBarWithTitle
@@ -54,12 +50,18 @@ import com.getcode.ui.utils.unboundedClickable
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.list.ChatListViewModel
+import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
+import xyz.flipchat.app.features.settings.SettingsViewModel
 
-internal object ChatTab : Tab {
+internal object ChatTab : ChildNavTab {
+
+    override val ordinal: Int = 0
 
     override val options: TabOptions
         @Composable get() = TabOptions(
-            index = 1u,
+            index = ordinal.toUShort(),
             title = stringResource(R.string.title_chats),
             icon = painterResource(R.drawable.ic_fc_chats)
         )

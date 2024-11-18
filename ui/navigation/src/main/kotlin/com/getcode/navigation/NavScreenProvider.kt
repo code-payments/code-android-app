@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.compose.ui.graphics.Color
 import cafe.adriel.voyager.core.registry.ScreenProvider
 import com.getcode.model.ID
+import dev.theolm.rinku.DeepLink
 import kotlinx.parcelize.Parcelize
 
 sealed class NavScreenProvider : ScreenProvider {
@@ -15,7 +16,7 @@ sealed class NavScreenProvider : ScreenProvider {
         data object SeedInput: NavScreenProvider()
         data class PhoneVerification(val loginArgs: LoginArgs = LoginArgs()): NavScreenProvider()
     }
-    data class AppHomeScreen(val seed: String? = null,): NavScreenProvider()
+    data class AppHomeScreen(val deeplink: DeepLink? = null): NavScreenProvider()
     sealed class Chat {
         data object List : NavScreenProvider()
         sealed class Lookup {

@@ -56,6 +56,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":definitions:flipchat:models"))
     api(project(":services:flipchat:core"))
     api(project(":services:flipchat:chat"))
     api(project(":services:flipchat:payments"))

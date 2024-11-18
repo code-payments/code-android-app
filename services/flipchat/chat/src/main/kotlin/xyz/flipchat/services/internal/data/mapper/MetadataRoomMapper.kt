@@ -19,7 +19,7 @@ class MetadataRoomMapper @Inject constructor(
             unread = from.numUnread,
             muted = from.isMuted,
             muteable = from.muteable,
-            coverCharge = Kin.fromQuarks(from.coverCharge.quarks.ifZeroOrElse(200) { it / 100_000 }).also { println(it) }
+            coverCharge = Kin.fromQuarks(from.coverCharge.quarks.ifZeroOrElse(200) { it / 100_000 }),
         )
     }
 }

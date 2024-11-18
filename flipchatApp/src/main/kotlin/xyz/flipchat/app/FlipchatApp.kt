@@ -3,6 +3,7 @@ package xyz.flipchat.app
 import android.app.Application
 import androidx.appcompat.app.AppCompatDelegate
 import com.bugsnag.android.Bugsnag
+import com.getcode.crypt.MnemonicCache
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
@@ -23,8 +24,7 @@ class FlipchatApp : Application() {
         super.onCreate()
 
         Firebase.initialize(this)
-//        DeviceCheck.register(this)
-        com.getcode.crypt.MnemonicCache.init(this)
+        MnemonicCache.init(this)
         authManager.init { trace("NaCl init") }
 
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
