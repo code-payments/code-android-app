@@ -15,6 +15,7 @@ import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
+import com.getcode.vendor.Base58
 import com.google.firebase.Firebase
 import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
@@ -140,16 +141,16 @@ class AuthManager @Inject constructor(
         if (!isSoftLogin) softLoginDisabled = true
 
         // Add back once server persistence is in
-//        val ret = if (isSoftLogin) {
-//            val userId = AccountUtils.getUserId(context)
-//            userId?.let {
-//                Result.success(Base58.decode(it).toList())
-//            } ?: authController.login()
-//        } else {
-//
-//        }
+        val ret = if (isSoftLogin) {
+            val userId = AccountUtils.getUserId(context)
+            userId?.let {
+                Result.success(Base58.decode(it).toList())
+            } ?: Result.failure(Throwable("No user Id found"))
+        } else {
+            authController.login()
+        }
 
-        return authController.login()
+        return ret
             .map { it to profileController.getProfile(it) }
             .map { (id, profileResult) ->
                 profileResult.onSuccess { userManager.set(displayName = it.displayName) }
