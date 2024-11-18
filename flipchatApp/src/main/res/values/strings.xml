@@ -9,10 +9,12 @@
 
     <string name="action_nevermind">Nevermind</string>
 
+    <string name="login_description_byTapping">By tapping \"Create an Account\" you</string>
+
     <string name="action_payToChat">Send %1$s to Start Chatting</string>
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
     <string name="subtitle_loadingChats">Loading your chats</string>
-    <string name="action_startChatting">Start Chatting</string>
+    <string name="action_joinRoom">Join a Room</string>
     <string name="subtitle_dontHaveChats">You don\'t have any chats yet.</string>
 
     <string name="title_chat">Chat</string>
@@ -53,7 +55,7 @@
     <string name="title_kin">Kin</string>
     <string name="title_chats">Chats</string>
     <string name="title_settings">Settings</string>
-    <string name="action_joinRoom">Join a Room</string>
+    <string name="action_enterRoomNumber">Enter a Room Number</string>
     <string name="action_createNewRoom">Create a New Room</string>
     <string name="title_joinRoom">Join a Room</string>
 

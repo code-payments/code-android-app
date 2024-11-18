@@ -16,7 +16,7 @@ fun openChatDirectiveBottomModal(
 ) {
     BottomBarManager.showMessage(
         BottomBarManager.BottomBarMessage(
-            positiveText = context.getString(R.string.action_joinRoom),
+            positiveText = context.getString(R.string.action_enterRoomNumber),
             negativeText = context.getString(R.string.action_createNewRoom),
             negativeStyle = BottomBarManager.BottomBarButtonStyle.Filled,
             tertiaryText = context.getString(R.string.action_cancel),

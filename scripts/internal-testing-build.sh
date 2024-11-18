@@ -6,7 +6,7 @@ export NOTIFY_ERRORS=true
 export DEBUG_MINIFY=true
 export DEBUG_CRASHLYTICS_UPLOAD=true
 
-./gradlew assembleDebug
+./gradlew :app:assembleDebug
 
 outputDir="$(pwd)/app/build/outputs/apk/debug"
 mv "${outputDir}/app-debug.apk" "${outputDir}/app-${date}-debug.apk"

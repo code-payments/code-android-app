@@ -20,7 +20,7 @@ object BottomBarManager {
         val onNegative: () -> Unit = {},
         val onTertiary: () -> Unit = {},
         val onClose: (actionType: BottomBarActionType?) -> Unit = {},
-        val type: BottomBarMessageType = BottomBarMessageType.ERROR,
+        val type: BottomBarMessageType = BottomBarMessageType.DESTRUCTIVE,
         val isDismissible: Boolean = true,
         val showScrim: Boolean = false,
         val timeoutSeconds: Int? = null,
@@ -48,7 +48,7 @@ object BottomBarManager {
 
     fun clearByType(type: BottomBarMessageType) =  _messages.update { it.filterNot { m -> m.type == type } }
 
-    enum class BottomBarMessageType { ERROR, REMOTE_SEND, THEMED }
+    enum class BottomBarMessageType { DESTRUCTIVE, REMOTE_SEND, THEMED }
 
     enum class BottomBarActionType {
         Positive,

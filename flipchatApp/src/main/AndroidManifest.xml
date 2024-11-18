@@ -29,7 +29,7 @@
     </queries>
 
     <application
-        android:name="xyz.flipchat.FlipchatApp"
+        android:name="xyz.flipchat.app.FlipchatApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -38,7 +38,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.Code">
         <activity
-            android:name="xyz.flipchat.MainActivity"
+            android:name="xyz.flipchat.app.MainActivity"
             android:exported="true"
             android:hardwareAccelerated="true"
             android:launchMode="singleTask"

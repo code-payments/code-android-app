@@ -443,7 +443,7 @@ class ConversationViewModel @Inject constructor(
                 positiveText = resources.getString(R.string.action_delete),
                 tertiaryText = resources.getString(R.string.action_cancel),
                 onPositive = { dispatchEvent(Event.DeleteMessage(conversationId, messageId)) },
-                type = BottomBarManager.BottomBarMessageType.THEMED,
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                 showScrim = true,
             )
         )
@@ -459,7 +459,7 @@ class ConversationViewModel @Inject constructor(
                 tertiaryText = resources.getString(R.string.action_cancel),
                 onPositive = { dispatchEvent(Event.RemoveUser(conversationId, userId)) },
                 onNegative = { },
-                type = BottomBarManager.BottomBarMessageType.THEMED,
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                 showScrim = true,
             )
         )

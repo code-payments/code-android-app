@@ -101,7 +101,7 @@ private fun JoinRoomScreenContent(viewModel: JoinConfirmationViewModel) {
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = CodeTheme.dimens.grid.x12)
-                .padding(bottom = CodeTheme.dimens.grid.x20)
+                .padding(bottom = CodeTheme.dimens.grid.x15)
         ) {
             RoomCard(
                 modifier = Modifier.align(Alignment.Center),

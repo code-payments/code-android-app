@@ -112,7 +112,7 @@ private fun ChatListScreenContent(
                                 .padding(top = CodeTheme.dimens.grid.x6)
                                 .padding(horizontal = CodeTheme.dimens.inset),
                             buttonState = ButtonState.Filled,
-                            text = stringResource(R.string.action_startChatting)
+                            text = stringResource(R.string.action_joinRoom)
                         ) {
                             openChatDirectiveBottomModal(
                                 context =  context,

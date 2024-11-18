@@ -36,14 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
 import com.getcode.manager.BottomBarManager
-import com.getcode.theme.Black10
 import com.getcode.theme.Black40
 import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedClickable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -155,7 +153,7 @@ fun BottomBarView(
             modifier = Modifier
                 .background(
                     when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
+                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                         BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.brand
                     }
@@ -188,7 +186,7 @@ fun BottomBarView(
                         onClose(BottomBarManager.BottomBarActionType.Positive)
                     },
                     textColor = when (bottomBarMessage.type) {
-                        BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
+                        BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
                         BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                         BottomBarManager.BottomBarMessageType.THEMED -> Brand
                     },
@@ -206,7 +204,7 @@ fun BottomBarView(
                             onClose(BottomBarManager.BottomBarActionType.Negative)
                         },
                         textColor = when (bottomBarMessage.type) {
-                            BottomBarManager.BottomBarMessageType.ERROR -> CodeTheme.colors.error
+                            BottomBarManager.BottomBarMessageType.DESTRUCTIVE -> CodeTheme.colors.error
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> CodeTheme.colors.brandLight
                             BottomBarManager.BottomBarMessageType.THEMED -> {
                                 when (bottomBarMessage.positiveStyle) {
@@ -234,7 +232,7 @@ fun BottomBarView(
                         style = CodeTheme.typography.textMedium,
                         textAlign = TextAlign.Center,
                         color = when (bottomBarMessage.type) {
-                            BottomBarManager.BottomBarMessageType.ERROR,
+                            BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                             BottomBarManager.BottomBarMessageType.REMOTE_SEND -> White
 
                             BottomBarManager.BottomBarMessageType.THEMED -> CodeTheme.colors.textSecondary

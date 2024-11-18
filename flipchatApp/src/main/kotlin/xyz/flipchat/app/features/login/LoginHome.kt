@@ -76,14 +76,14 @@ fun LoginHome(
             text = stringResource(R.string.action_createAccount),
             buttonState = ButtonState.Filled,
         )
-        CodeButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CodeTheme.dimens.inset),
-            onClick = login,
-            text = stringResource(R.string.action_logIn),
-            buttonState = ButtonState.Subtle,
-        )
+//        CodeButton(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(horizontal = CodeTheme.dimens.inset),
+//            onClick = login,
+//            text = stringResource(R.string.action_logIn),
+//            buttonState = ButtonState.Subtle,
+//        )
 
 
         val bottomString = buildAnnotatedString {

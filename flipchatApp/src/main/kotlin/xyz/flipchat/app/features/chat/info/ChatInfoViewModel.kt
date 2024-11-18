@@ -66,7 +66,7 @@ class ChatInfoViewModel @Inject constructor(
                         tertiaryText = resources.getString(R.string.action_cancel),
                         onPositive = { dispatchEvent(Event.OnLeaveRoomConfirmed) },
                         onNegative = { },
-                        type = BottomBarManager.BottomBarMessageType.THEMED,
+                        type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                         showScrim = true,
                     )
                 )
