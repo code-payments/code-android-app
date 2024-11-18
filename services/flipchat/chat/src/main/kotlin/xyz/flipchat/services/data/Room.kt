@@ -1,7 +1,9 @@
 package xyz.flipchat.services.data
 
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.model.chat.ChatType
+import com.getcode.utils.serializer.KinQuarksSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -25,6 +27,8 @@ data class Room(
     private val muted: Boolean,
     val muteable: Boolean,
     private val unread: Int,
+    @Serializable(with = KinQuarksSerializer::class)
+    val coverCharge: Kin,
 ) {
     val title: String?
         get() {

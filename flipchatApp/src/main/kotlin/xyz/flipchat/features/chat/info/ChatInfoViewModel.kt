@@ -3,6 +3,7 @@ package xyz.flipchat.features.chat.info
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.model.Kin
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.oct24.R
 import xyz.flipchat.features.login.register.onResult
@@ -117,6 +118,7 @@ class ChatInfoViewModel @Inject constructor(
                             memberCount = args.memberCount,
                             hostId = args.hostId,
                             hostName = args.hostName,
+                            coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
                         )
                     )
                 }

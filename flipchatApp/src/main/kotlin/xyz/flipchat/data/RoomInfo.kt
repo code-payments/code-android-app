@@ -2,6 +2,7 @@ package xyz.flipchat.data
 
 import androidx.compose.ui.graphics.Color
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.ui.utils.generateComplementaryColorPalette
 
 data class RoomInfo(
@@ -11,7 +12,7 @@ data class RoomInfo(
     val memberCount: Int = 0,
     val hostId: ID? = null,
     val hostName: String? = null,
-    val coverCharge: Long = 200,
+    val coverCharge: Kin = Kin.fromQuarks(0)
 ) {
     companion object {
         val DEFAULT_GRADIENT_SAMPLE = Triple(

@@ -9,6 +9,7 @@ import androidx.room.Query
 import androidx.room.RewriteQueriesToDropUnusedColumns
 import androidx.room.Transaction
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.utils.base58
 import kotlinx.coroutines.flow.Flow
 import xyz.flipchat.services.domain.model.chat.Conversation
@@ -89,6 +90,12 @@ interface ConversationDao {
 
     suspend fun resetUnreadCount(conversationId: ID) {
         resetUnreadCount(conversationId.base58)
+    }
+
+    @Query("UPDATE conversations SET coverChargeQuarks = :quarks WHERE idBase58 = :conversationId")
+    suspend fun updateCoverCharge(conversationId: String, quarks: Long)
+    suspend fun updateCoverCharge(conversationId: ID, kin: Kin) {
+        updateCoverCharge(conversationId.base58, kin.quarks)
     }
 
     @Transaction

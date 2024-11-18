@@ -22,6 +22,8 @@ service Account {
 	rpc RevokePublicKey(RevokePublicKeyRequest) returns (RevokePublicKeyResponse);
 	// GetPaymentDestination gets the payment destination for a UserId
 	rpc GetPaymentDestination(GetPaymentDestinationRequest) returns (GetPaymentDestinationResponse);
+	// GetUserFlags gets user-specific flags
+	rpc GetUserFlags(GetUserFlagsRequest) returns (GetUserFlagsResponse);
 }
 message RegisterRequest {
 	// PublicKey the public key that is authorized to perform actions on the
@@ -110,4 +112,21 @@ message GetPaymentDestinationResponse {
 	}
 	// Payment destination for the UserId.
 	common.v1.PublicKey payment_destination = 2;
+}
+message GetUserFlagsRequest {
+	// UserId to get user flags for.
+	common.v1.UserId user_id = 1;
+	common.v1.Auth auth = 2;
+}
+message GetUserFlagsResponse {
+	Result result = 1;
+	enum Result {
+		OK     = 0;
+		DENIED = 1;
+	}
+	UserFlags user_flags = 2;
+}
+message UserFlags {
+	bool is_staff = 1;
+	common.v1.PaymentAmount start_group_cost = 2;
 }

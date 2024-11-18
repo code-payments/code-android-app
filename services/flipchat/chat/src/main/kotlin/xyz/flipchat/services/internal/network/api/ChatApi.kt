@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.chat.v1.ChatGrpc
 import com.codeinc.flipchat.gen.chat.v1.FlipchatService
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.services.network.core.GrpcApi
 import io.grpc.ManagedChannel
 import io.grpc.stub.StreamObserver
@@ -16,6 +17,7 @@ import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
 import xyz.flipchat.services.internal.network.extensions.toIntentId
+import xyz.flipchat.services.internal.network.extensions.toPaymentAmount
 import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.extensions.toUserId
 import xyz.flipchat.services.internal.network.utils.authenticate
@@ -52,6 +54,8 @@ class ChatApi @Inject constructor(
                             .map { it.toUserId() }
                             .onEachIndexed { index, user -> setUsers(index, user) }
                     }
+
+                    groupBuilder.setPaymentIntent(type.paymentId.toIntentId())
 
                     setGroupChat(groupBuilder)
                 }
@@ -108,10 +112,13 @@ class ChatApi @Inject constructor(
     fun joinChat(
         owner: KeyPair,
         identifier: ChatIdentifier,
-        paymentId: ID,
+        paymentId: ID?,
     ): Flow<FlipchatService.JoinChatResponse> {
         val builder = FlipchatService.JoinChatRequest.newBuilder()
-            .setPaymentIntent(paymentId.toIntentId())
+
+        if (paymentId != null) {
+            builder.setPaymentIntent(paymentId.toIntentId())
+        }
 
         when (identifier) {
             is ChatIdentifier.Id -> builder.setChatId(identifier.roomId.toChatId())
@@ -155,6 +162,23 @@ class ChatApi @Inject constructor(
             .build()
 
         return api::setMuteState
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // SetCoverCharge sets a chat's cover charge
+    fun setCoverCharge(
+        owner: KeyPair,
+        chatId: ID,
+        amount: KinAmount,
+    ): Flow<FlipchatService.SetCoverChargeResponse> {
+        val request = FlipchatService.SetCoverChargeRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setCoverCharge(amount.toPaymentAmount())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::setCoverCharge
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

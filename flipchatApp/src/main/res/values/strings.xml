@@ -79,4 +79,19 @@
     <string name="action_deleteMessage">Delete</string>
     <string name="action_removeUser">Remove %1$s</string>
 
+    <string name="title_roomCardHostedBy">Hosted by %1$s</string>
+    <string name="title_roomCardJoinCost">Cover Charge: %1$d Kin</string>
+
+    <string name="title_roomCardMemberCountEmpty">0 people inside</string>
+    <string name="title_roomCardMemberCountSingle">1 person inside</string>
+    <string name="title_roomCardMemberCountMany">%d people inside</string>
+    <plurals name="title_roomCardMemberCount">
+        <item quantity="zero">@string/title_roomCardMemberCountEmpty</item>
+        <item quantity="one">@string/title_roomCardMemberCountSingle</item>
+        <item quantity="two">@string/title_roomCardMemberCountMany</item>
+        <item quantity="many">@string/title_roomCardMemberCountMany</item>
+        <item quantity="few">@string/title_roomCardMemberCountMany</item>
+        <item quantity="other">@string/title_roomCardMemberCountMany</item>
+    </plurals>
+
 </resources>

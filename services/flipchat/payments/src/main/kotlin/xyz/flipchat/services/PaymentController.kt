@@ -115,9 +115,11 @@ class PaymentController @Inject constructor(
         }
 
     fun cancelPayment(fromUser: Boolean = true) {
-        billController.reset()
-        if (fromUser) {
-            _eventFlow.tryEmit(PaymentEvent.OnPaymentCancelled)
+        scope.launch {
+            billController.reset()
+            if (fromUser) {
+                _eventFlow.emit(PaymentEvent.OnPaymentCancelled)
+            }
         }
     }
 }

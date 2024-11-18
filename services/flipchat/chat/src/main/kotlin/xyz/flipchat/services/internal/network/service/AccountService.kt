@@ -123,6 +123,35 @@ internal class AccountService @Inject constructor(
         }
     }
 
+    suspend fun getUserFlags(owner: KeyPair, userId: ID): Result<AccountService.UserFlags> {
+        return try {
+            networkOracle.managedRequest(api.getUserFlags(owner = owner, userId = userId))
+                .map { response ->
+                    when (response.result) {
+                        AccountService.GetUserFlagsResponse.Result.OK -> Result.success(response.userFlags)
+                        AccountService.GetUserFlagsResponse.Result.DENIED -> {
+                            val error = GetUserFlagsError.Denied()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        AccountService.GetUserFlagsResponse.Result.UNRECOGNIZED -> {
+                            val error = GetUserFlagsError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        else -> {
+                            val error = GetUserFlagsError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = GetUserFlagsError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     sealed class LoginError(override val message: String): Throwable(message) {
         data class InvalidTimestamp(override val message: String): LoginError(message)
         data class NotFound(override val message: String): LoginError(message)
@@ -142,5 +171,11 @@ internal class AccountService @Inject constructor(
         class Unrecognized : GetPaymentDestinationError()
         class NotFound : GetPaymentDestinationError()
         data class Other(override val cause: Throwable? = null) : GetPaymentDestinationError()
+    }
+
+    sealed class GetUserFlagsError : Throwable() {
+        class Unrecognized : GetUserFlagsError()
+        class Denied : GetUserFlagsError()
+        data class Other(override val cause: Throwable? = null) : GetUserFlagsError()
     }
 }

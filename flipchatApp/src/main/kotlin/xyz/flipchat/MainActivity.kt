@@ -79,12 +79,12 @@ class MainActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
-        client.startTimer()
+//        client.startTimer()
     }
 
     override fun onStop() {
         super.onStop()
-        client.stopTimer()
+//        client.stopTimer()
     }
 }
 

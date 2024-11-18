@@ -59,6 +59,7 @@ import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
+import com.getcode.ui.components.chat.MessageListPointerResult
 import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -231,6 +232,12 @@ private fun ConversationScreenContent(
                 .padding(padding),
             messages = messages,
             listState = lazyListState,
+            handleMessagePointers = { (current, previous, next) ->
+                MessageListPointerResult(
+                    current.sender.id == previous?.sender?.id,
+                    current.sender.id == next?.sender?.id
+                )
+            },
             dispatch = { event ->
                 when (event) {
                     is MessageListEvent.AdvancePointer -> {

@@ -1,6 +1,7 @@
 package xyz.flipchat.services.internal.network.repository.chat
 
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
@@ -87,7 +88,7 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID): Result<RoomWithMembers> {
+    override suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID?): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.joinChat(owner, identifier, paymentId)
@@ -113,6 +114,13 @@ internal class RealChatRepository @Inject constructor(
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return service.setMuteState(owner, chatId, false)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+
+        return service.setCoverCharge(owner, chatId, amount)
             .onFailure { ErrorUtils.handleError(it) }
     }
 

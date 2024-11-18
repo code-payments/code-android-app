@@ -70,15 +70,16 @@ class ChatsController @Inject constructor(
 
     suspend fun createGroup(
         title: String? = null,
-        participants: List<ID> = emptyList()
+        participants: List<ID> = emptyList(),
+        paymentId: ID,
     ): Result<Room> {
-        return repository.startChat(StartChatRequestType.Group(title, participants))
+        return repository.startChat(StartChatRequestType.Group(title, participants, paymentId))
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it))
             }
     }
 
-    suspend fun joinRoom(roomId: ID, paymentId: ID): Result<RoomWithMembers> {
+    suspend fun joinRoom(roomId: ID, paymentId: ID?): Result<RoomWithMembers> {
         return repository.joinChat(ChatIdentifier.Id(roomId), paymentId)
             .onSuccess {
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))

@@ -16,7 +16,7 @@ fun ChatMessage.decryptingUsing(keyPair: Ed25519.KeyPair): ChatMessage {
                 is MessageContent.Localized,
                 is MessageContent.Decrypted,
                 is MessageContent.RawText,
-                is MessageContent.ThankYou -> it // passthrough
+                is MessageContent.Announcement -> it // passthrough
                 is MessageContent.SodiumBox -> {
                     val decrypted = it.data.decryptMessageUsingNaClBox(keyPair = keyPair)
                     if (decrypted != null) {

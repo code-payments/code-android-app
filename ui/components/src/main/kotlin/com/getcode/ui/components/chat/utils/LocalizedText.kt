@@ -103,7 +103,7 @@ fun MessageContent.localizedText(
         is MessageContent.Decrypted -> content.data
 
         is MessageContent.RawText -> content.value
-        is MessageContent.ThankYou -> {
+        is MessageContent.Announcement -> {
             val resId = if (content.isFromSelf) R.string.title_chat_announcement_thanksSent
             else R.string.title_chat_announcement_thanksReceived
 
@@ -185,13 +185,7 @@ val MessageContent.localizedText: String
             is MessageContent.SodiumBox -> "<! encrypted content !>"
             is MessageContent.Decrypted -> content.data
             is MessageContent.RawText -> content.value
-            is MessageContent.ThankYou -> {
-                with(LocalContext.current) {
-                    val resId = if (content.isFromSelf) R.string.title_chat_announcement_thanksSent
-                    else R.string.title_chat_announcement_thanksReceived
-
-                    getString(resId, "some username")
-                }
+            is MessageContent.Announcement -> { content.value
             }
         }
     }

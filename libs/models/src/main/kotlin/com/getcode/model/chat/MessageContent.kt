@@ -2,7 +2,6 @@ package com.getcode.model.chat
 
 import com.getcode.model.EncryptedData
 import com.getcode.model.GenericAmount
-import com.getcode.model.ID
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -136,14 +135,14 @@ sealed interface MessageContent {
     }
 
     @Serializable
-    data class ThankYou(
-        val tipIntentId: ID,
+    data class Announcement(
+        val value: String,
         override val isFromSelf: Boolean,
     ) : MessageContent {
         override val kind: Int = 4
 
         override fun hashCode(): Int {
-            var result = tipIntentId.hashCode()
+            var result = value.hashCode()
             result += isFromSelf.hashCode()
             result += kind.hashCode()
 
@@ -154,9 +153,9 @@ sealed interface MessageContent {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
 
-            other as ThankYou
+            other as Announcement
 
-            if (tipIntentId != other.tipIntentId) return false
+            if (value != other.value) return false
             if (isFromSelf != other.isFromSelf) return false
             if (kind != other.kind) return false
 

@@ -4,6 +4,7 @@ import com.codeinc.flipchat.gen.chat.v1.FlipchatService
 import com.codeinc.flipchat.gen.common.v1.Flipchat
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.services.network.core.NetworkOracle
 import com.getcode.services.observers.BidirectionalStreamReference
 import com.getcode.utils.ErrorUtils
@@ -108,7 +109,7 @@ internal class ChatService @Inject constructor(
 
     suspend fun startChat(
         owner: KeyPair,
-        type: StartChatRequestType
+        type: StartChatRequestType,
     ): Result<FlipchatService.Metadata> {
         return try {
             networkOracle.managedRequest(api.startChat(owner, type))
@@ -153,7 +154,7 @@ internal class ChatService @Inject constructor(
     suspend fun joinChat(
         owner: KeyPair,
         identifier: ChatIdentifier,
-        paymentId: ID,
+        paymentId: ID?,
     ): Result<GetOrJoinChatResponse> {
         return try {
             networkOracle.managedRequest(api.joinChat(owner, identifier, paymentId))
@@ -259,6 +260,50 @@ internal class ChatService @Inject constructor(
                 }.first()
         } catch (e: Exception) {
             val error = MuteStateError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
+    suspend fun setCoverCharge(
+        owner: KeyPair,
+        chatId: ID,
+        amount: KinAmount
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.setCoverCharge(owner, chatId, amount))
+                .map { response ->
+                    when (response.result) {
+                        FlipchatService.SetCoverChargeResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        FlipchatService.SetCoverChargeResponse.Result.UNRECOGNIZED -> {
+                            val error = CoverChargeError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        FlipchatService.SetCoverChargeResponse.Result.DENIED -> {
+                            val error = CoverChargeError.Denied()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        FlipchatService.SetCoverChargeResponse.Result.CANT_SET -> {
+                            val error = CoverChargeError.CantSet()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = CoverChargeError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = CoverChargeError.Other(cause = e)
             Result.failure(error)
         }
     }
@@ -410,5 +455,12 @@ internal class ChatService @Inject constructor(
         data object NotFound : GetChatError()
         data object Unrecognized : GetChatError()
         data class Other(override val cause: Throwable? = null) : GetChatError()
+    }
+
+    sealed class CoverChargeError : Throwable() {
+        class Unrecognized : CoverChargeError()
+        class Denied : CoverChargeError()
+        class CantSet : CoverChargeError()
+        data class Other(override val cause: Throwable? = null) : CoverChargeError()
     }
 }

@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
@@ -25,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -47,17 +51,53 @@ object MessageNodeDefaults {
 
     val DefaultShape: CornerBasedShape
         @Composable get() = CodeTheme.shapes.small
-    val PreviousSameShape: CornerBasedShape
+
+    private val PreviousSameShapeIncoming: CornerBasedShape
         @Composable get() = DefaultShape.copy(topStart = CornerSize(3.dp))
 
-    val NextSameShape: CornerBasedShape
+    private val NextSameShapeIncoming: CornerBasedShape
         @Composable get() = DefaultShape.copy(bottomStart = CornerSize(3.dp))
 
-    val MiddleSameShape: CornerBasedShape
+    private val MiddleSameShapeIncoming: CornerBasedShape
         @Composable get() = DefaultShape.copy(
             topStart = CornerSize(3.dp),
             bottomStart = CornerSize(3.dp)
         )
+
+    private val PreviousSameShapeOutgoing: CornerBasedShape
+        @Composable get() = DefaultShape.copy(topEnd = CornerSize(3.dp))
+
+    private val NextSameShapeOutgoing: CornerBasedShape
+        @Composable get() = DefaultShape.copy(bottomEnd = CornerSize(3.dp))
+
+    private val MiddleSameShapeOutgoing: CornerBasedShape
+        @Composable get() = DefaultShape.copy(
+            bottomEnd = CornerSize(3.dp),
+            topEnd = CornerSize(3.dp)
+        )
+
+    @Composable
+    fun messageShape(
+        isIncoming: Boolean,
+        isPreviousInGroup: Boolean,
+        isNextInGroup: Boolean,
+    ): Shape {
+        return if (isIncoming) {
+            when {
+                isPreviousInGroup && isNextInGroup -> MiddleSameShapeIncoming
+                isPreviousInGroup -> PreviousSameShapeIncoming
+                isNextInGroup -> NextSameShapeIncoming
+                else -> DefaultShape
+            }
+        } else {
+            when {
+                isPreviousInGroup && isNextInGroup -> MiddleSameShapeOutgoing
+                isPreviousInGroup -> PreviousSameShapeOutgoing
+                isNextInGroup -> NextSameShapeOutgoing
+                else -> DefaultShape
+            }
+        }
+    }
 
     val ContentStyle: TextStyle
         @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
@@ -73,7 +113,7 @@ class MessageNodeScope(
     val isAnnouncement: Boolean
         @Composable get() = remember {
             when (contents) {
-                is MessageContent.ThankYou -> true
+                is MessageContent.Announcement -> true
                 else -> false
             }
         }
@@ -104,17 +144,15 @@ fun MessageNode(
     sender: Sender,
     status: MessageStatus,
     showStatus: Boolean,
-    isPreviousSameMessage: Boolean,
-    isNextSameMessage: Boolean,
+    isPreviousGrouped: Boolean,
+    isNextGrouped: Boolean,
     isInteractive: Boolean,
     modifier: Modifier = Modifier,
     contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
     openMessageControls: () -> Unit,
 ) {
     Box(
-        modifier = modifier
-            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-            .padding(vertical = CodeTheme.dimens.grid.x1)
+        modifier = modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
     ) {
         BoxWithConstraints(modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset)) {
             val scope = rememberMessageNodeScope(contents = contents, boxScope = this)
@@ -127,12 +165,11 @@ fun MessageNode(
                         date = date,
                     )
                 } else {
-                    val contentsWithSender: (String) -> String = { contents: String ->
-                        if (sender.displayName != null) {
-                            "${sender.displayName}: $contents"
-                        } else {
-                            contents
-                        }
+                    val shape = when {
+                        isAnnouncement -> MessageNodeDefaults.DefaultShape
+                        else -> MessageNodeDefaults.messageShape(
+                            !sender.isSelf, isPreviousGrouped, isNextGrouped
+                        )
                     }
 
                     when (contents) {
@@ -141,16 +178,7 @@ fun MessageNode(
                                 modifier = Modifier
                                     .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
                                     .sizeableWidth()
-                                    .background(
-                                        color = color,
-                                        shape = when {
-                                            isAnnouncement -> MessageNodeDefaults.DefaultShape
-                                            isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
-                                            isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
-                                            isNextSameMessage -> MessageNodeDefaults.NextSameShape
-                                            else -> MessageNodeDefaults.DefaultShape
-                                        }
-                                    ),
+                                    .background(color = color, shape = shape),
                                 contents = contents,
                                 status = status,
                                 date = date,
@@ -160,11 +188,13 @@ fun MessageNode(
                         is MessageContent.Localized -> {
                             ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
-                                sender = sender
+                                sender = sender,
+                                isFirstInSeries = !isPreviousGrouped
                             ) {
                                 MessageText(
-                                    content = contentsWithSender(contents.localizedText),
+                                    content = contents.localizedText,
                                     contentStyle = contentStyle,
+                                    shape = shape,
                                     date = date,
                                     status = status,
                                     isFromSelf = sender.isSelf,
@@ -182,13 +212,7 @@ fun MessageNode(
                                     .sizeableWidth()
                                     .background(
                                         color = color,
-                                        shape = when {
-                                            isAnnouncement -> MessageNodeDefaults.DefaultShape
-                                            isPreviousSameMessage && isNextSameMessage -> MessageNodeDefaults.MiddleSameShape
-                                            isPreviousSameMessage -> MessageNodeDefaults.PreviousSameShape
-                                            isNextSameMessage -> MessageNodeDefaults.NextSameShape
-                                            else -> MessageNodeDefaults.DefaultShape
-                                        }
+                                        shape = shape,
                                     )
                                     .padding(CodeTheme.dimens.grid.x2),
                                 date = date
@@ -198,11 +222,13 @@ fun MessageNode(
                         is MessageContent.Decrypted -> {
                             ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
-                                sender = sender
+                                sender = sender,
+                                isFirstInSeries = !isPreviousGrouped
                             ) {
                                 MessageText(
-                                    content = contentsWithSender(contents.data),
+                                    content = contents.data,
                                     contentStyle = contentStyle,
+                                    shape = shape,
                                     date = date,
                                     status = status,
                                     isFromSelf = sender.isSelf,
@@ -216,11 +242,13 @@ fun MessageNode(
                         is MessageContent.RawText -> {
                             ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
-                                sender = sender
+                                sender = sender,
+                                isFirstInSeries = !isPreviousGrouped
                             ) {
                                 MessageText(
-                                    content = contentsWithSender(contents.value),
+                                    content = contents.value,
                                     contentStyle = contentStyle,
+                                    shape = shape,
                                     date = date,
                                     status = status,
                                     isFromSelf = sender.isSelf,
@@ -231,35 +259,13 @@ fun MessageNode(
                             }
                         }
 
-                        is MessageContent.ThankYou -> {
+                        is MessageContent.Announcement -> {
                             AnnouncementMessage(
                                 modifier = Modifier.align(Alignment.Center),
                                 text = contents.localizedText
                             )
                         }
                     }
-                }
-            }
-        }
-
-        if (!isDeleted) {
-            when {
-                sender.isHost && !sender.isSelf -> {
-                    Image(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(horizontal = CodeTheme.dimens.inset)
-                            .offset(
-                                x = -(CodeTheme.dimens.grid.x1),
-                                y = -(CodeTheme.dimens.grid.x1)
-                            )
-                            .size(CodeTheme.dimens.staticGrid.x4)
-                            .background(color = Color(0xFFE9C432), shape = CircleShape)
-                            .padding(4.dp),
-                        painter = painterResource(R.drawable.ic_crown),
-                        contentDescription = null,
-                        colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
-                    )
                 }
             }
         }
@@ -270,6 +276,7 @@ fun MessageNode(
 private fun ContentFromSender(
     modifier: Modifier = Modifier,
     sender: Sender,
+    isFirstInSeries: Boolean,
     content: @Composable () -> Unit
 ) {
     Row(
@@ -277,23 +284,64 @@ private fun ContentFromSender(
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
         if (!sender.isSelf) {
-            UserAvatar(
-                modifier = Modifier
-                    .size(CodeTheme.dimens.staticGrid.x8)
-                    .clip(CircleShape),
-                data = sender.profileImage ?: sender.id,
-                overlay = {
-                    Image(
-                        modifier = Modifier.padding(5.dp),
-                        imageVector = Icons.Default.Person,
-                        colorFilter = ColorFilter.tint(Color.White),
-                        contentDescription = null,
-                    )
+            if (isFirstInSeries) {
+                Column {
+                    Spacer(Modifier.size(CodeTheme.dimens.grid.x4))
+                    Box(
+                        modifier = Modifier
+                            .padding(top = CodeTheme.dimens.grid.x1)
+                    ) {
+                        UserAvatar(
+                            modifier = Modifier
+                                .size(CodeTheme.dimens.staticGrid.x8)
+                                .clip(CircleShape),
+                            data = sender.profileImage ?: sender.id,
+                            overlay = {
+                                Image(
+                                    modifier = Modifier.padding(5.dp),
+                                    imageVector = Icons.Default.Person,
+                                    colorFilter = ColorFilter.tint(Color.White),
+                                    contentDescription = null,
+                                )
+                            }
+                        )
+
+                        if (sender.isHost) {
+                            Image(
+                                modifier = Modifier
+                                    .align(Alignment.TopStart)
+                                    .offset(
+                                        x = -(CodeTheme.dimens.grid.x1),
+                                        y = -(CodeTheme.dimens.grid.x1)
+                                    )
+                                    .size(CodeTheme.dimens.staticGrid.x4)
+                                    .background(color = Color(0xFFE9C432), shape = CircleShape)
+                                    .padding(4.dp),
+                                painter = painterResource(R.drawable.ic_crown),
+                                contentDescription = null,
+                                colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
+                            )
+                        }
+                    }
                 }
-            )
+            } else {
+                Spacer(Modifier.size(CodeTheme.dimens.staticGrid.x8))
+            }
         }
         Box(modifier = Modifier.weight(1f)) {
-            content()
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+            ) {
+                if (!sender.isSelf && isFirstInSeries) {
+                    Text(
+                        text = sender.displayName.orEmpty(),
+                        style = CodeTheme.typography.caption,
+                        color = CodeTheme.colors.tertiary
+                    )
+                }
+                content()
+            }
         }
     }
 }

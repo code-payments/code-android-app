@@ -4,6 +4,8 @@ import com.getcode.model.ID
 import com.getcode.solana.keys.PublicKey
 import com.getcode.utils.ErrorUtils
 import xyz.flipchat.services.data.PaymentTarget
+import xyz.flipchat.services.data.UserFlags
+import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.service.AccountService
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
@@ -12,7 +14,8 @@ import javax.inject.Singleton
 @Singleton
 internal class RealAccountRepository @Inject constructor(
     private val userManager: UserManager,
-    private val service: AccountService
+    private val service: AccountService,
+    private val userFlagsMapper: UserFlagsMapper,
 ) : AccountRepository {
     @Throws(AccountService.RegisterError::class, IllegalStateException::class)
     override suspend fun register(displayName: String): Result<ID> {
@@ -31,6 +34,14 @@ internal class RealAccountRepository @Inject constructor(
 
     override suspend fun getPaymentDestination(target: PaymentTarget): Result<PublicKey> {
         return service.getPaymentDestination(target)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun getUserFlags(): Result<UserFlags> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found"))
+        return service.getUserFlags(owner, userId)
+            .map { userFlagsMapper.map(it) }
             .onFailure { ErrorUtils.handleError(it) }
     }
 }

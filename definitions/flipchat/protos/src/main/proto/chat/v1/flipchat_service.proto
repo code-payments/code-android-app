@@ -38,6 +38,8 @@ service Chat {
     rpc LeaveChat(LeaveChatRequest) returns (LeaveChatResponse);
     // SetMuteState configures a chat member's mute state.
     rpc SetMuteState(SetMuteStateRequest) returns (SetMuteStateResponse);
+    // SetCoverCharge sets a chat's cover charge
+    rpc SetCoverCharge(SetCoverChargeRequest) returns (SetCoverChargeResponse);
 }
 message StreamChatEventsRequest {
     oneof type {
@@ -149,22 +151,15 @@ message StartChatRequest {
     message StartTwoWayChatParameters {
         // The account id of the user the caller wishes to chat with.
         common.v1.UserId other_user_id = 1;
-        // The intent_id of the payment that initiated the chat/friendship.
-        //
-        // This field is optional. It is used as an optimization when the server has not
-        // yet observed the establishment of a friendship. In this case, the server will
-        // use the provided intent_id to verify the friendship.
-        //
-        // This is most likely to occur when initiating a chat with a user for the first
-        // time.
-        // common.v1.IntentId intent_id = 2;
     }
     message StartGroupChatParameters {
         // A set of users (not including self) to initially set in the group chat.
         repeated common.v1.UserId users = 1 ;
         // Optional title to set for the group.
         string title = 2;
-        // TODO: Initial cost/price of chat(?)
+        // Optional payment for creating the group. It's up to server to decide
+        // if the user is allowed to create a group without payment.
+        common.v1.IntentId payment_intent = 3;
     }
     common.v1.Auth auth = 10;
 }
@@ -180,11 +175,17 @@ message StartChatResponse {
     // The chat to use if the RPC was successful.
     Metadata chat = 2;
 }
+message StartGroupChatPaymentMetadata {
+    // The user creating the group chat, who will be the initial owner
+    common.v1.UserId user_id = 1;
+}
 message JoinChatRequest {
     oneof identifier {
         common.v1.ChatId chat_id = 1;
         uint64 room_id = 2;
     }
+    // The payment for joining a chat, which is required when the user isn't
+    // the chat owner
     common.v1.IntentId payment_intent = 9;
     common.v1.Auth auth = 10;
 }
@@ -228,6 +229,19 @@ message SetMuteStateResponse {
         CANT_MUTE      = 2;
     }
 }
+message SetCoverChargeRequest {
+    common.v1.ChatId chat_id = 1;
+    common.v1.PaymentAmount cover_charge = 2;
+    common.v1.Auth auth = 3;
+}
+message SetCoverChargeResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+        CANT_SET = 2;
+    }
+}
 message Metadata {
     common.v1.ChatId chat_id = 1;
     // The type of chat
@@ -253,6 +267,8 @@ message Metadata {
     // This is a super priviledge role, in which there can only be one.
     // This role is displayed as a 'host' currently.
     common.v1.UserId owner = 8;
+    // If present, the cover charge that must be paid to join the chat
+    common.v1.PaymentAmount cover_charge = 9;
 }
 message Member {
     common.v1.UserId user_id = 1;

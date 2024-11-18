@@ -412,7 +412,7 @@ class ConversationViewModel @Inject constructor(
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = null,
+                        displayName = member?.memberName,
                         isSelf = contents.isFromSelf,
                         isHost = member?.id == stateFlow.value.hostId && !contents.isFromSelf,
                     ),
@@ -502,6 +502,7 @@ class ConversationViewModel @Inject constructor(
                             hostId = host?.id,
                             hostName = host?.memberName,
                             memberCount = members.count(),
+                            coverChargeQuarks = conversation.coverChargeQuarks ?: 0,
                         )
                     )
                 }

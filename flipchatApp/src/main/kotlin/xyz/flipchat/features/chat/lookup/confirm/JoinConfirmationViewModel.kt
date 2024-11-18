@@ -3,6 +3,7 @@ package xyz.flipchat.features.chat.lookup.confirm
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.model.KinAmount
 import com.getcode.model.Rate
 import com.getcode.navigation.RoomInfoArgs
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.controllers.AuthController
 import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.data.RoomInfo
 import xyz.flipchat.features.login.register.onResult
 import xyz.flipchat.services.PaymentController
@@ -33,7 +35,7 @@ import javax.inject.Inject
 class JoinConfirmationViewModel @Inject constructor(
     private val userManager: UserManager,
     private val chatsController: ChatsController,
-    private val authController: AuthController,
+    private val profileController: ProfileController,
     private val paymentController: PaymentController,
     private val resources: ResourceHelper,
 ) : BaseViewModel2<JoinConfirmationViewModel.State, JoinConfirmationViewModel.Event>(
@@ -62,7 +64,7 @@ class JoinConfirmationViewModel @Inject constructor(
         eventFlow
             .filterIsInstance<Event.OnJoinArgsChanged>()
             .mapNotNull { it.args.hostId }
-            .map { authController.getPaymentDestinationForUser(it) }
+            .map { profileController.getPaymentDestinationForUser(it) }
             .onResult(
                 onError = {
                     TopBarManager.showMessage(
@@ -87,25 +89,30 @@ class JoinConfirmationViewModel @Inject constructor(
             .onEach {
                 val destination = stateFlow.value.paymentDestination ?: return@onEach
                 val amount =
-                    KinAmount.newInstance(kin = it.coverCharge.toInt(), rate = Rate.oneToOne)
-
-                val joinChatMetadata = JoinChatPaymentMetadata(
-                    userId = userManager.userId!!,
-                    chatId = it.id!!
-                )
-
-                val metadata = ExtendedMetadata.Any(
-                    data = joinChatMetadata.erased(),
-                    typeUrl = joinChatMetadata.typeUrl
-                )
+                    KinAmount.newInstance(kin = it.coverCharge.quarks.toInt(), rate = Rate.oneToOne)
 
                 dispatchEvent(Event.OnJoiningChanged(true))
+                if (userManager.userId == it.hostId) {
+                    // we are the host; just allow join
+                    val roomId = stateFlow.value.roomInfo.id.orEmpty()
+                    chatsController.joinRoom(roomId, paymentId = null)
+                } else {
+                    val joinChatMetadata = JoinChatPaymentMetadata(
+                        userId = userManager.userId!!,
+                        chatId = it.id!!
+                    )
 
-                paymentController.presentPublicPaymentConfirmation(
-                    amount = amount,
-                    destination = destination,
-                    metadata = metadata
-                )
+                    val metadata = ExtendedMetadata.Any(
+                        data = joinChatMetadata.erased(),
+                        typeUrl = joinChatMetadata.typeUrl
+                    )
+
+                    paymentController.presentPublicPaymentConfirmation(
+                        amount = amount,
+                        destination = destination,
+                        metadata = metadata
+                    )
+                }
             }.launchIn(viewModelScope)
 
         paymentController.eventFlow
@@ -157,6 +164,7 @@ class JoinConfirmationViewModel @Inject constructor(
                             memberCount = args.memberCount,
                             hostId = args.hostId,
                             hostName = args.hostName,
+                            coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
                         ),
                     )
                 }

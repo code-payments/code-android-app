@@ -1,6 +1,7 @@
 package xyz.flipchat.services.internal.data.mapper
 
 import com.codeinc.flipchat.gen.chat.v1.FlipchatService
+import com.getcode.model.Kin
 import com.getcode.model.chat.ChatType
 import com.getcode.services.mapper.Mapper
 import xyz.flipchat.services.data.Room
@@ -18,8 +19,10 @@ class MetadataRoomMapper @Inject constructor(
             unread = from.numUnread,
             muted = from.isMuted,
             muteable = from.muteable,
+            coverCharge = Kin.fromQuarks(from.coverCharge.quarks.ifZeroOrElse(200) { it / 100_000 }).also { println(it) }
         )
     }
 }
 
+internal fun Long.ifZeroOrElse(other: Long, block: (Long) -> Long) = takeIf { it > 0 }?.let(block) ?: other
 private fun String?.nullIfEmpty() = if (this?.isEmpty() == true) null else this

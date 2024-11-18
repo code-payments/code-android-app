@@ -51,6 +51,9 @@ message IntentId {
 message Signature {
     bytes value = 1 ;
 }
+message PaymentAmount {
+    uint64 quarks = 1;
+}
 message ServerPing {
     // Timestamp the ping was sent on the stream, for client to get a sense
     // of potential network latency

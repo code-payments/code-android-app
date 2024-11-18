@@ -2,8 +2,10 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -13,12 +15,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import com.getcode.model.ID
+import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
-import com.getcode.model.chat.Reference
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -28,13 +31,29 @@ sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID): MessageListEvent
     data class OpenMessageActions(val actions: List<MessageControlAction>): MessageListEvent
 }
+
+data class MessageListPointer(
+    val current: ChatItem.Message,
+    val previous: ChatItem.Message?,
+    val next: ChatItem.Message?
+)
+
+data class MessageListPointerResult(
+    val isPreviousGrouped: Boolean,
+    val isNextGrouped: Boolean,
+)
+
 @Composable
 fun MessageList(
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
     contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
     messages: LazyPagingItems<ChatItem>,
+    handleMessagePointers: (MessageListPointer) -> MessageListPointerResult = { (current, previous, next) ->
+        val prevGrouped = previous?.chatMessageId == current.chatMessageId
+        val nextGrouped = next?.chatMessageId == current.chatMessageId
+        MessageListPointerResult(prevGrouped, nextGrouped)
+    },
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
 
@@ -55,11 +74,10 @@ fun MessageList(
         modifier = modifier,
         state = listState,
         reverseLayout = true,
-
         contentPadding = PaddingValues(
             vertical = CodeTheme.dimens.inset,
         ),
-        verticalArrangement = verticalArrangement,
+        verticalArrangement = Arrangement.Top,
     ) {
         items(
             count = messages.itemCount,
@@ -80,16 +98,26 @@ fun MessageList(
                     // reverse layout so +1 to get previous
                     val prev = runCatching { messages[index + 1] }
                         .map { it as? ChatItem.Message }
-                        .map { it?.chatMessageId }
                         .getOrNull()
+
                     // reverse layout so -1 to get next
                     val next = runCatching { messages[index - 1] }
                         .map { it as? ChatItem.Message }
-                        .map { it?.chatMessageId }
                         .getOrNull()
 
+                    val pointerRef = MessageListPointer(item, prev, next)
+
+                    val (isPreviousGrouped, isNextGrouped) = handleMessagePointers(pointerRef)
+
+                    val spacingAfter = when {
+                        index >= messages.itemCount -> 0.dp
+                        item.message is MessageContent.Announcement -> CodeTheme.dimens.inset
+                        isNextGrouped -> CodeTheme.dimens.grid.x1
+                        else -> CodeTheme.dimens.grid.x3
+                    }
+
                     MessageNode(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = spacingAfter),
                         contents = item.message,
                         contentStyle = contentStyle,
                         status = item.status,
@@ -97,8 +125,8 @@ fun MessageList(
                         sender = item.sender,
                         showStatus = item.showStatus,
                         date = item.date,
-                        isPreviousSameMessage = prev == item.chatMessageId,
-                        isNextSameMessage = next == item.chatMessageId,
+                        isPreviousGrouped = isPreviousGrouped,
+                        isNextGrouped = isNextGrouped,
                         isInteractive = item.messageControls.hasAny,
                         openMessageControls = { dispatch(MessageListEvent.OpenMessageActions(item.messageControls.actions)) }
                     )

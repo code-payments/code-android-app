@@ -7,9 +7,11 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.getcode.model.ID
+import com.getcode.model.Kin
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.utils.base58
+import com.getcode.utils.serializer.KinQuarksSerializer
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -28,12 +30,17 @@ data class Conversation(
     val lastActivity: Long?,
     val isMuted: Boolean,
     val unreadCount: Int,
+    val coverChargeQuarks: Long?,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
 
     @Ignore
     val ownerId: ID? = ownerIdBase58?.let { Base58.decode(it).toList() }
+
+    @Ignore
+    @Serializable(with = KinQuarksSerializer::class)
+    val coverCharge: Kin = coverChargeQuarks?.let { Kin.fromQuarks(coverChargeQuarks) } ?: Kin.fromQuarks(0)
 }
 
 @Serializable

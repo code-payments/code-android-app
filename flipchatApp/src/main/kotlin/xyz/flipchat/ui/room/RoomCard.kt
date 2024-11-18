@@ -21,6 +21,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -115,18 +117,18 @@ fun RoomCard(
                 ) {
                     if (roomInfo.hostName != null) {
                         Text(
-                            text = "Hosted by ${roomInfo.hostName}",
+                            text = stringResource(R.string.title_roomCardHostedBy, roomInfo.hostName),
                             style = CodeTheme.typography.textSmall,
                             color = Color.White.copy(0.80f)
                         )
                     }
                     Text(
-                        text = "${roomInfo.memberCount} People Inside",
+                        text = pluralStringResource(R.plurals.title_roomCardMemberCount, roomInfo.memberCount, roomInfo.memberCount),
                         style = CodeTheme.typography.textSmall,
                         color = Color.White.copy(0.80f)
                     )
                     Text(
-                        text = "Cover Charge: ${roomInfo.coverCharge} Kin",
+                        text = stringResource(R.string.title_roomCardJoinCost, roomInfo.coverCharge.quarks),
                         style = CodeTheme.typography.textSmall,
                         color = Color.White.copy(0.80f)
                     )

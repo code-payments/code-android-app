@@ -111,11 +111,11 @@ internal object ChatTab : Tab {
             }
 
             val scrimAlpha by animateFloatAsState(
-                if (state.showFullscreenSpinner) 1f else 0f,
+                if (state.showScrim) 1f else 0f,
                 label = "scrim visibility"
             )
 
-            if (state.showFullscreenSpinner) {
+            if (state.showScrim) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -124,11 +124,13 @@ internal object ChatTab : Tab {
                         .rememberedClickable(indication = null,
                             interactionSource = remember { MutableInteractionSource() }) {}
                 ) {
-                    CodeCircularProgressIndicator(
-                        modifier = Modifier
-                            .size(50.dp)
-                            .align(Alignment.Center)
-                    )
+                    if (state.showFullscreenSpinner) {
+                        CodeCircularProgressIndicator(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .align(Alignment.Center)
+                        )
+                    }
                 }
             }
         }

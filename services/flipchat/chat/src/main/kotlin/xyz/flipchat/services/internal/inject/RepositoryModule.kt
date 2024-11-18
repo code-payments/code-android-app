@@ -14,6 +14,7 @@ import xyz.flipchat.services.internal.data.mapper.MetadataRoomMapper
 import xyz.flipchat.services.internal.data.mapper.ProfileMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMemberCountMapper
 import xyz.flipchat.services.internal.data.mapper.RoomWithMembersMapper
+import xyz.flipchat.services.internal.data.mapper.UserFlagsMapper
 import xyz.flipchat.services.internal.network.repository.accounts.AccountRepository
 import xyz.flipchat.services.internal.network.repository.accounts.RealAccountRepository
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
@@ -39,7 +40,8 @@ internal object RepositoryModule {
     internal fun providesAccountRepository(
         userManager: UserManager,
         service: AccountService,
-    ): AccountRepository = RealAccountRepository(userManager, service)
+        userFlagsMapper: UserFlagsMapper,
+    ): AccountRepository = RealAccountRepository(userManager, service, userFlagsMapper)
 
     @Provides
     internal fun provideChatRepository(

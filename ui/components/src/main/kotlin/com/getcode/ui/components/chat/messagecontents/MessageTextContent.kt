@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,7 @@ internal fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
     content: String,
     contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
+    shape: Shape = MessageNodeDefaults.DefaultShape,
     isFromSelf: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
@@ -73,7 +75,7 @@ internal fun MessageNodeScope.MessageText(
                 .sizeableWidth()
                 .background(
                     color = color,
-                    shape = MessageNodeDefaults.DefaultShape
+                    shape = shape,
                 )
                 .addIf(isInteractive) {
                     Modifier.rememberedLongClickable {

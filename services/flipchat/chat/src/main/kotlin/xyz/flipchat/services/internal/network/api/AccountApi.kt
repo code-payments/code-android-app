@@ -114,4 +114,18 @@ class AccountApi @Inject constructor(
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }
+
+    fun getUserFlags(
+        userId: ID,
+        owner: KeyPair,
+    ): Flow<AccountService.GetUserFlagsResponse> {
+        val request = AccountService.GetUserFlagsRequest.newBuilder()
+            .setUserId(userId.toUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::getUserFlags
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
 }

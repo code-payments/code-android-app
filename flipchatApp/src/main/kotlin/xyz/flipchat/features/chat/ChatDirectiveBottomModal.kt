@@ -24,7 +24,7 @@ fun openChatDirectiveBottomModal(
                 navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Lookup.Entry))
             },
             onNegative = {
-                viewModel.dispatchEvent(ChatListViewModel.Event.CreateRoom)
+                viewModel.dispatchEvent(ChatListViewModel.Event.CreateRoomSelected)
             },
             type = BottomBarManager.BottomBarMessageType.THEMED,
             showScrim = true,

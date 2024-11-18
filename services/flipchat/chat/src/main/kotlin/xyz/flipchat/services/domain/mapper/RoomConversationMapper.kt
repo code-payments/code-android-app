@@ -20,6 +20,7 @@ class RoomConversationMapper @Inject constructor(
             unreadCount = from.unreadCount,
             isMuted = from.isMuted,
             roomNumber = from.roomNumber,
+            coverChargeQuarks = from.coverCharge.quarks,
             lastActivity = null, // TODO: ?
         )
     }

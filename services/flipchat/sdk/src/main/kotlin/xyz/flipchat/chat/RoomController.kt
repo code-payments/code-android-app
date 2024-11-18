@@ -8,6 +8,7 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
 import com.getcode.model.chat.ChatMessage
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
@@ -165,6 +166,16 @@ class RoomController @Inject constructor(
         return chatRepository.removeUser(conversationId, userId)
             .onSuccess {
                 db.conversationMembersDao().removeMemberFromConversation(userId, conversationId)
+            }
+    }
+
+    suspend fun setCoverCharge(
+        conversationId: ID,
+        amount: KinAmount
+    ): Result<Unit> {
+        return chatRepository.setCoverCharge(conversationId, amount)
+            .onSuccess {
+                db.conversationDao().updateCoverCharge(conversationId, amount.kin)
             }
     }
 }
