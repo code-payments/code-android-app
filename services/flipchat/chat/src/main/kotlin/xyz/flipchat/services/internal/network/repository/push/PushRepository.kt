@@ -6,8 +6,12 @@ import com.getcode.model.ID
 interface PushRepository {
     suspend fun addToken(
         owner: KeyPair,
-        userId: ID,
         token: String,
         installationId: String?
+    ): Result<Unit>
+
+    suspend fun deleteToken(
+        owner: KeyPair,
+        token: String
     ): Result<Unit>
 }

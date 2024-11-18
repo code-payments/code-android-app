@@ -19,11 +19,10 @@ enum TokenType {
     FCM_APNS = 2;
 }
 message AddTokenRequest {
-    common.v1.UserId user_id = 1;
+    TokenType token_type = 1;
     string push_token = 2 ;
-    TokenType token_type = 3;
-    common.v1.AppInstallId app_install = 4;
-    common.v1.Auth auth = 5;
+    common.v1.AppInstallId app_install = 3;
+    common.v1.Auth auth = 4;
 }
 message AddTokenResponse {
     Result result = 1;
@@ -33,11 +32,9 @@ message AddTokenResponse {
     }
 }
 message DeleteTokenRequest {
-    common.v1.UserId user_id = 1;
+    TokenType token_type = 1;
     string push_token = 2 ;
-    TokenType token_type = 3;
-    common.v1.AppInstallId app_install = 4;
-    common.v1.Auth auth = 5;
+    common.v1.Auth auth = 3;
 }
 message DeleteTokenResponse {
 }

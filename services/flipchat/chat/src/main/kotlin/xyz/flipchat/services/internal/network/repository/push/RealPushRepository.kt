@@ -11,11 +11,14 @@ internal class RealPushRepository @Inject constructor(
 ) : PushRepository {
     override suspend fun addToken(
         owner: Ed25519.KeyPair,
-        userId: ID,
         token: String,
         installationId: String?
     ): Result<Unit> {
-        return service.addToken(owner, userId, token, installationId)
+        return service.addToken(owner, token, installationId)
             .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun deleteToken(owner: Ed25519.KeyPair, token: String): Result<Unit> {
+        return service.deleteToken(owner, token)
     }
 }

@@ -16,22 +16,21 @@ internal class PushService @Inject constructor(
 ) {
     suspend fun addToken(
         owner: KeyPair,
-        userId: ID,
         token: String,
         installationId: String?
     ): Result<Unit> {
         return try {
-            networkOracle.managedRequest(api.addToken(owner, userId, token, installationId))
+            networkOracle.managedRequest(api.addToken(owner, token, installationId))
                 .map {
                     when (it.result) {
                         PushService.AddTokenResponse.Result.OK -> Result.success(Unit)
                         PushService.AddTokenResponse.Result.INVALID_PUSH_TOKEN -> {
-                            val error = AddTokenError.InvalidPushToken
+                            val error = AddTokenError.InvalidPushToken()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
                         PushService.AddTokenResponse.Result.UNRECOGNIZED -> {
-                            val error = AddTokenError.Unrecognized
+                            val error = AddTokenError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -48,46 +47,22 @@ internal class PushService @Inject constructor(
         }
     }
 
-//    suspend fun deleteToken(
-//        owner: KeyPair,
-//        userId: ID,
-//        token: String,
-//        installationId: String?
-//    ): Result<Unit> {
-//        return try {
-//            networkOracle.managedRequest(api.deleteToken(owner, userId, token, installationId))
-//                .map {
-//                    when (it.result) {
-//                        PushService.AddTokenResponse.Result.OK -> Result.success(Unit)
-//                        PushService.AddTokenResponse.Result.INVALID_PUSH_TOKEN -> {
-//                            val error = AddTokenError.InvalidPushToken
-//                            Timber.e(t = error)
-//                            Result.failure(error)
-//                        }
-//                        PushService.AddTokenResponse.Result.UNRECOGNIZED -> {
-//                            val error = AddTokenError.Unrecognized
-//                            Timber.e(t = error)
-//                            Result.failure(error)
-//                        }
-//                        else -> {
-//                            val error = AddTokenError.Other()
-//                            Timber.e(t = error)
-//                            Result.failure(error)
-//                        }
-//                    }
-//                }.first()
-//        } catch (e: Exception) {
-//            val error = AddTokenError.Other(cause = e)
-//            Result.failure(error)
-//        }
-//    }
+    suspend fun deleteToken(
+        owner: KeyPair,
+        token: String,
+    ): Result<Unit> {
+        return Result.failure(NotImplementedError())
+    }
 
-    internal sealed class AddTokenError(
-        override val message: String? = null,
-        override val cause: Throwable? = null
-    ) : Throwable(message) {
-        data object InvalidPushToken : AddTokenError()
-        data object Unrecognized : AddTokenError()
-        data class Other(override val cause: Throwable? = null) : AddTokenError(cause = cause)
+    internal sealed class AddTokenError : Throwable() {
+        class InvalidPushToken : AddTokenError()
+        class Unrecognized : AddTokenError()
+        data class Other(override val cause: Throwable? = null) : AddTokenError()
+    }
+
+    internal sealed class DeleteTokenError : Throwable() {
+        class InvalidPushToken : DeleteTokenError()
+        class Unrecognized : DeleteTokenError()
+        data class Other(override val cause: Throwable? = null) : DeleteTokenError()
     }
 }

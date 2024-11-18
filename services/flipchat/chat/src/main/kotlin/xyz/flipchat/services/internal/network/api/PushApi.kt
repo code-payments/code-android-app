@@ -24,13 +24,11 @@ class PushApi @Inject constructor(
 
     fun addToken(
         owner: KeyPair,
-        userId: ID,
         token: String,
         installationId: String?
     ): Flow<PushService.AddTokenResponse> {
         val request =
             PushService.AddTokenRequest.newBuilder()
-                .setUserId(userId.toUserId())
                 .setPushToken(token)
                 .setAppInstall(Flipchat.AppInstallId.newBuilder().setValue(installationId))
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
@@ -40,20 +38,15 @@ class PushApi @Inject constructor(
         return api::addToken
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
-
     }
 
     fun deleteToken(
         owner: KeyPair,
-        userId: ID,
         token: String,
-        installationId: String?
     ): Flow<PushService.DeleteTokenResponse> {
         val request =
             PushService.DeleteTokenRequest.newBuilder()
-                .setUserId(userId.toUserId())
                 .setPushToken(token)
-                .setAppInstall(Flipchat.AppInstallId.newBuilder().setValue(installationId))
                 .setTokenType(PushService.TokenType.FCM_ANDROID)
                 .apply { setAuth(authenticate(owner)) }
                 .build()
@@ -61,7 +54,6 @@ class PushApi @Inject constructor(
         return api::deleteToken
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
-
     }
 }
 

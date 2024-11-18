@@ -1,7 +1,7 @@
 #!/bin/bash
 
 root=$(pwd)
-REPO_URL="https://github.com/code-payments/code-protobuf-api"  # Default repo URL
+REPO_URL="git@github.com:code-payments/code-protobuf-api.git"  # Default repo URL
 COMMIT_SHA=""
 RUN_STRIP_PROTO_VALIDATION=false  # Default to not running the script
 TEMP_DIR=$(mktemp -d)
@@ -18,6 +18,9 @@ while getopts ":r:t:x" opt; do
       ;;
     t )
       TARGET=$OPTARG
+      if [ "$TARGET" == "flipchat" ]; then
+        REPO_URL="git@github.com:code-payments/flipchat-protobuf-api.git"
+      fi
       ;;
     \? )
       echo "Invalid option: -$OPTARG" >&2
