@@ -40,6 +40,8 @@ service Chat {
     rpc SetMuteState(SetMuteStateRequest) returns (SetMuteStateResponse);
     // SetCoverCharge sets a chat's cover charge
     rpc SetCoverCharge(SetCoverChargeRequest) returns (SetCoverChargeResponse);
+    // RemoveUser removes a user from a chat
+    rpc RemoveUser(RemoveUserRequest) returns (RemoveUserResponse);
 }
 message StreamChatEventsRequest {
     oneof type {
@@ -240,6 +242,18 @@ message SetCoverChargeResponse {
         OK       = 0;
         DENIED   = 1;
         CANT_SET = 2;
+    }
+}
+message RemoveUserRequest{
+    common.v1.ChatId chat_id = 1;
+    common.v1.UserId user_id = 2;
+    common.v1.Auth auth = 3;
+}
+message RemoveUserResponse{
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
     }
 }
 message Metadata {

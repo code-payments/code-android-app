@@ -23,6 +23,8 @@ service Messaging {
     //
     // These requests are transient, and may be dropped at any point.
     rpc NotifyIsTyping(NotifyIsTypingRequest) returns (NotifyIsTypingResponse);
+    // DeleteMessage deletes a message
+    rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
 }
 message StreamMessagesRequest {
     oneof type {
@@ -74,7 +76,6 @@ message SendMessageRequest {
     common.v1.ChatId chat_id = 1;
     // Allowed content types that can be sent by client:
     //  - TextContent
-    //  - ThankYouContent
     repeated Content content = 2 ;
     common.v1.Auth auth = 3;
 }
@@ -112,5 +113,16 @@ message NotifyIsTypingResponse {
     enum Result {
         OK             = 0;
         DENIED         = 1;
+    }
+}
+message DeleteMessageRequest {
+    MessageId message_id = 1;
+    common.v1.Auth auth = 2;
+}
+message DeleteMessageResponse {
+    Result result = 1;
+    enum Result {
+        OK     = 0;
+        DENIED = 1;
     }
 }

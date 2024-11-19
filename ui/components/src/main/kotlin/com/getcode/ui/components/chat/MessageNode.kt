@@ -265,7 +265,7 @@ fun MessageNode(
 
                         is MessageContent.Announcement -> {
                             AnnouncementMessage(
-                                modifier = Modifier.align(Alignment.Center),
+                                modifier = Modifier.fillMaxWidth(),
                                 text = contents.localizedText
                             )
                         }

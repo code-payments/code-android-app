@@ -1,16 +1,17 @@
 package com.getcode.ui.components.chat.messagecontents
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import com.getcode.theme.BrandDark
+import androidx.compose.ui.text.style.TextAlign
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageNodeDefaults
 
@@ -19,11 +20,14 @@ internal fun AnnouncementMessage(
     modifier: Modifier = Modifier,
     text: String,
 ) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+    BoxWithConstraints(modifier = modifier) {
         Column(
             modifier = Modifier
-                .background(
-                    color = BrandDark,
+                .align(Alignment.Center)
+                .widthIn(max = maxWidth * 0.78f)
+                .border(
+                    width = CodeTheme.dimens.border,
+                    color = CodeTheme.colors.tertiary,
                     shape = MessageNodeDefaults.DefaultShape
                 )
                 .padding(CodeTheme.dimens.grid.x2),
@@ -31,6 +35,7 @@ internal fun AnnouncementMessage(
         ) {
             Text(
                 text = text,
+                textAlign = TextAlign.Center,
                 style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
             )
         }

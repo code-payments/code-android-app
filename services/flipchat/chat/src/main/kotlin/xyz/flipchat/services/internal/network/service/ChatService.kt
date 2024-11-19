@@ -308,6 +308,44 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun removeUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.removeUser(owner, chatId, userId))
+                .map { response ->
+                    when (response.result) {
+                        FlipchatService.RemoveUserResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        FlipchatService.RemoveUserResponse.Result.UNRECOGNIZED -> {
+                            val error = RemoveUserError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        FlipchatService.RemoveUserResponse.Result.DENIED -> {
+                            val error = RemoveUserError.Denied()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = RemoveUserError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = RemoveUserError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
@@ -462,5 +500,11 @@ internal class ChatService @Inject constructor(
         class Denied : CoverChargeError()
         class CantSet : CoverChargeError()
         data class Other(override val cause: Throwable? = null) : CoverChargeError()
+    }
+
+    sealed class RemoveUserError : Throwable() {
+        class Unrecognized : RemoveUserError()
+        class Denied : RemoveUserError()
+        data class Other(override val cause: Throwable? = null) : RemoveUserError()
     }
 }

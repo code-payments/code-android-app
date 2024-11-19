@@ -112,6 +112,10 @@ fun MessageList(
 
                     val (isPreviousGrouped, isNextGrouped) = handleMessagePointers(pointerRef)
 
+                    val spacingBefore = when {
+                        item.message is MessageContent.Announcement -> CodeTheme.dimens.grid.x1
+                        else -> 0.dp
+                    }
                     val spacingAfter = when {
                         index > messages.itemCount -> 0.dp
                         item.message is MessageContent.Announcement -> CodeTheme.dimens.inset
@@ -144,7 +148,7 @@ fun MessageList(
                     }
 
                     MessageNode(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = spacingAfter),
+                        modifier = Modifier.fillMaxWidth().padding(top = spacingBefore, bottom = spacingAfter),
                         contents = item.message,
                         contentStyle = contentStyle,
                         status = item.status,

@@ -10,9 +10,9 @@ operator fun MessageContent.Companion.invoke(
     isFromSelf: Boolean = false,
 ): MessageContent? {
     return when (proto.typeCase) {
-        Model.Content.TypeCase.LOCALIZED -> MessageContent.Localized(
+        Model.Content.TypeCase.LOCALIZED_ANNOUNCEMENT -> MessageContent.Announcement(
             isFromSelf = isFromSelf,
-            value = proto.localized.keyOrText
+            value = proto.localizedAnnouncement.keyOrText
         )
 
 //        Model.Content.TypeCase.EXCHANGE_DATA -> {

@@ -183,6 +183,23 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // RemoveUser removes a user from a chat
+    fun removeUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+    ): Flow<FlipchatService.RemoveUserResponse> {
+        val request = FlipchatService.RemoveUserRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setUserId(userId.toUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::removeUser
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
     // StreamChatEvents streams all chat events for the requesting user.
     //
     // Chat events will include any update to a chat, including:
