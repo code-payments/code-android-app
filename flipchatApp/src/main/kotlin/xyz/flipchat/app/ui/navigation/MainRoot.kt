@@ -113,8 +113,11 @@ internal object MainRoot : Screen {
                     if (entropy == null && userId == null) {
                         delay(500)
                         showLoading = true
+                        delay(1500)
+                        navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                         return@onEach
                     }
+
                     if (entropy != null) {
                         if (userId == null) {
                             navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
