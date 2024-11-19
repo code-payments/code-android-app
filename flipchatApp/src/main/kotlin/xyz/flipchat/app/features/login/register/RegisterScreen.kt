@@ -81,7 +81,7 @@ private fun RegisterScreenContent(
     val keyboardVisible by keyboardAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val composeScope = rememberCoroutineScope()
-    var isChecking by remember(state.checkingDisplayName) { mutableStateOf(false) }
+    var isChecking by remember(state.checkingDisplayName) { mutableStateOf(state.checkingDisplayName) }
 
     val register = {
         composeScope.launch {

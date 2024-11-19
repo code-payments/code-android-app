@@ -6,21 +6,18 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.text2.input.TextFieldState
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
-import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
 import javax.inject.Inject
 
 @HiltViewModel
 class RegisterDisplayNameViewModel @Inject constructor(
-    resources: ResourceHelper,
     authManager: AuthManager,
 ): BaseViewModel2<RegisterDisplayNameViewModel.State, RegisterDisplayNameViewModel.Event>(
     initialState = State(),
@@ -80,7 +77,7 @@ class RegisterDisplayNameViewModel @Inject constructor(
                     state.copy(checkingDisplayName = false)
                 }
                 Event.OnSuccess -> { state ->
-                    state.copy(checkingDisplayName = false, isValidDisplayName = true)
+                    state.copy(isValidDisplayName = true)
                 }
             }
         }
