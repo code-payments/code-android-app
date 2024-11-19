@@ -136,7 +136,10 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .padding(vertical = CodeTheme.dimens.grid.x2),
+                                    .padding(
+                                        top = CodeTheme.dimens.grid.x2,
+                                        bottom = 0.dp
+                                    ),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(
                                     CodeTheme.dimens.grid.x1,
@@ -144,7 +147,7 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
                                 )
                             ) {
                                 Image(
-                                    modifier = Modifier.size(16.dp),
+                                    modifier = Modifier.size(20.dp),
                                     painter = tab.options.icon!!,
                                     contentDescription = null,
                                 )
