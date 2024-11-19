@@ -98,6 +98,7 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         conversationPointersDao().clearMapping()
 
         instance?.close()
+        closeDb()
         if (dbName.isEmpty()) return
 
         val databases = File(context.applicationInfo.dataDir + "/databases")

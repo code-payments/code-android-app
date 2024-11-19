@@ -19,14 +19,14 @@ object Database {
         Timber.d("close")
         instances.onEach {
             it.closeDb()
+            instances -= it
         }
-
-        instances.clear()
     }
 
     suspend fun delete(context: Context) {
         instances.onEach {
             it.deleteDb(context)
+            instances -= it
         }
     }
 }
