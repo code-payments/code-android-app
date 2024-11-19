@@ -41,19 +41,22 @@ internal fun DateWithStatus(
     date: Instant,
     isFromSelf: Boolean,
     showStatus: Boolean = true,
+    showTimestamp: Boolean = true,
     status: MessageStatus,
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(DateWithStatusDefaults.Spacing),
     ) {
-        Text(
-            modifier = Modifier.weight(1f, fill = false),
-            text = date.formatTimeRelatively(),
-            style = DateWithStatusDefaults.DateTextStyle,
-            color = CodeTheme.colors.textSecondary,
-            maxLines = 1
-        )
+        if (showTimestamp) {
+            Text(
+                modifier = Modifier.weight(1f, fill = false),
+                text = date.formatTimeRelatively(),
+                style = DateWithStatusDefaults.DateTextStyle,
+                color = CodeTheme.colors.textSecondary,
+                maxLines = 1
+            )
+        }
         if (status.isValid() && isFromSelf && showStatus) {
             Icon(
                 modifier = Modifier

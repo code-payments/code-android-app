@@ -409,6 +409,8 @@ class ConversationViewModel @Inject constructor(
                     date = message.dateMillis.toInstantFromMillis(),
                     status = status,
                     isDeleted = message.isDeleted,
+                    showAsChatBubble = true,
+                    showTimestamp = false, // allow message list to show/hide wrt grouping
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },

@@ -64,6 +64,7 @@ internal fun MessageNodeScope.MessageText(
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
     showStatus: Boolean = true,
+    showTimestamp: Boolean = true,
     isInteractive: Boolean = false,
     showControls: () -> Unit,
 ) {
@@ -95,6 +96,7 @@ internal fun MessageNodeScope.MessageText(
                     status = status,
                     isFromSelf = isFromSelf,
                     showStatus = showStatus,
+                    showTimestamp = showTimestamp,
                     contentStyle = contentStyle,
                 )
             }
@@ -168,6 +170,7 @@ internal fun MessageContent(
     status: MessageStatus,
     isFromSelf: Boolean,
     showStatus: Boolean = true,
+    showTimestamp: Boolean = true,
     contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
 ) {
     val alignmentRule by rememberAlignmentRule(
@@ -191,6 +194,7 @@ internal fun MessageContent(
                     status = status,
                     isFromSelf = isFromSelf,
                     showStatus = showStatus,
+                    showTimestamp = showTimestamp,
                 )
             }
         }
@@ -207,7 +211,8 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus
+                    showStatus = showStatus,
+                    showTimestamp = showTimestamp,
                 )
             }
         }
@@ -224,7 +229,8 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus
+                    showStatus = showStatus,
+                    showTimestamp = showTimestamp,
                 )
             }
         }

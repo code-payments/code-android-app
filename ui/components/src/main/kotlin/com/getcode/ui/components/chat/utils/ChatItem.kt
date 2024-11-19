@@ -24,7 +24,9 @@ sealed class ChatItem(open val key: Any) {
         val isDeleted: Boolean = false,
         val status: MessageStatus,
         val showStatus: Boolean = true,
+        val showTimestamp: Boolean = true,
         val messageControls: MessageControls = MessageControls(),
+        val showAsChatBubble: Boolean = false,
         override val key: Any = id
     ) : ChatItem(key)
 

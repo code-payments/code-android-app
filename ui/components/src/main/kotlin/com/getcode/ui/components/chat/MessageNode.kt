@@ -144,6 +144,7 @@ fun MessageNode(
     sender: Sender,
     status: MessageStatus,
     showStatus: Boolean,
+    showTimestamp: Boolean,
     isPreviousGrouped: Boolean,
     isNextGrouped: Boolean,
     isInteractive: Boolean,
@@ -199,6 +200,7 @@ fun MessageNode(
                                     status = status,
                                     isFromSelf = sender.isSelf,
                                     showStatus = showStatus,
+                                    showTimestamp = showTimestamp,
                                     isInteractive = isInteractive,
                                     showControls = openMessageControls
                                 )
@@ -233,6 +235,7 @@ fun MessageNode(
                                     status = status,
                                     isFromSelf = sender.isSelf,
                                     showStatus = showStatus,
+                                    showTimestamp = showTimestamp,
                                     isInteractive = isInteractive,
                                     showControls = openMessageControls
                                 )
@@ -253,6 +256,7 @@ fun MessageNode(
                                     status = status,
                                     isFromSelf = sender.isSelf,
                                     showStatus = showStatus,
+                                    showTimestamp = showTimestamp,
                                     isInteractive = isInteractive,
                                     showControls = openMessageControls
                                 )

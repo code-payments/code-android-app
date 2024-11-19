@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
@@ -26,6 +28,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.util.formatDateRelatively
+import kotlin.time.Duration.Companion.minutes
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID): MessageListEvent
@@ -110,10 +113,34 @@ fun MessageList(
                     val (isPreviousGrouped, isNextGrouped) = handleMessagePointers(pointerRef)
 
                     val spacingAfter = when {
-                        index >= messages.itemCount -> 0.dp
+                        index > messages.itemCount -> 0.dp
                         item.message is MessageContent.Announcement -> CodeTheme.dimens.inset
                         isNextGrouped -> CodeTheme.dimens.grid.x1
                         else -> CodeTheme.dimens.grid.x3
+                    }
+
+                    val showTimestamp by remember(isPreviousGrouped, item, isNextGrouped) {
+                        derivedStateOf {
+                            // if the provided item requests the timestamp, then show it
+                            if (item.showTimestamp) return@derivedStateOf true
+                            // if not in a grouping, then always show a timestamp
+                            if (!isPreviousGrouped && !isNextGrouped) return@derivedStateOf true
+                            // If both previous and next are grouped, check minute boundary with next
+                            if (isPreviousGrouped && isNextGrouped) {
+                                val nextDate = next?.date
+                                if (nextDate != null && item.date.epochSeconds / 60 == nextDate.epochSeconds / 60) {
+                                    return@derivedStateOf false
+                                }
+                            }
+
+                            // Show timestamp only if this is the last message in the group
+                            val isLastInGroup = !isNextGrouped || next?.date?.let { nextDate ->
+                                nextDate.epochSeconds / 60 != item.date.epochSeconds / 60
+                            } ?: true
+
+                            // Show timestamp if it's the last in the group or breaks with the next
+                            return@derivedStateOf isLastInGroup
+                        }
                     }
 
                     MessageNode(
@@ -123,7 +150,8 @@ fun MessageList(
                         status = item.status,
                         isDeleted = item.isDeleted,
                         sender = item.sender,
-                        showStatus = item.showStatus,
+                        showStatus = item.showStatus && showTimestamp,
+                        showTimestamp = showTimestamp,
                         date = item.date,
                         isPreviousGrouped = isPreviousGrouped,
                         isNextGrouped = isNextGrouped,
