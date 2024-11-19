@@ -34,5 +34,5 @@ interface ConversationMemberDao {
     }
 
     @Query("DELETE FROM members")
-    fun clearConversations()
+    fun clearMembers()
 }

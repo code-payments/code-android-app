@@ -146,7 +146,7 @@ abstract class CodeAppDatabase : RoomDatabase(), ClosableDatabase {
         isInitSubject.onNext(false)
     }
 
-    override fun deleteDb(context: Context) {
+    override suspend fun deleteDb(context: Context) {
         instance?.close()
         if (dbName.isEmpty()) return
 

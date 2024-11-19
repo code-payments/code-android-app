@@ -311,7 +311,7 @@ class AuthManager @Inject constructor(
         sessionManager.clear()
         notificationCollectionHistory.reset()
         inMemoryDao.clear()
-        Database.delete(context)
+        launch { Database.delete(context) }
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

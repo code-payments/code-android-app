@@ -87,7 +87,16 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         isInitSubject.onNext(false)
     }
 
-    override fun deleteDb(context: Context) {
+    override suspend fun deleteDb(context: Context) {
+        prefIntDao().clear()
+        prefBoolDao().clear()
+        prefDoubleDao().clear()
+        prefStringDao().clear()
+        conversationDao().clearConversations()
+        conversationMembersDao().clearMembers()
+        conversationMessageDao().clearMessages()
+        conversationPointersDao().clearMapping()
+
         instance?.close()
         if (dbName.isEmpty()) return
 

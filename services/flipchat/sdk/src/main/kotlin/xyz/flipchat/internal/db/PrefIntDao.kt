@@ -17,4 +17,7 @@ internal interface PrefIntDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: PrefInt)
+
+    @Query("DELETE FROM PrefInt")
+    suspend fun clear()
 }

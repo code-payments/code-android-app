@@ -207,11 +207,9 @@ class AuthManager @Inject constructor(
 
     suspend fun logout(context: Context): Result<Unit> {
         return AccountUtils.removeAccounts(context).toFlowable()
-            .to {
-                runCatching { it.firstOrError().blockingGet() }
-            }.onSuccess {
-                clearToken()
-            }.map { Result.success(Unit) }
+            .to { runCatching { it.firstOrError().blockingGet() } }
+            .onSuccess { clearToken() }
+            .map { Result.success(Unit) }
     }
 
     private fun loginAnalytics() {
@@ -226,8 +224,7 @@ class AuthManager @Inject constructor(
     private fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
         userManager.clear()
-        Database.close()
-        Database.delete(context)
+        launch { Database.delete(context) }
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

@@ -18,4 +18,7 @@ internal interface PrefDoubleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: PrefDouble)
+
+    @Query("DELETE FROM PrefDouble")
+    suspend fun clear()
 }

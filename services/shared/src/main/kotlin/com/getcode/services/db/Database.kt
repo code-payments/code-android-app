@@ -5,7 +5,7 @@ import timber.log.Timber
 
 interface ClosableDatabase {
     fun closeDb()
-    fun deleteDb(context: Context)
+    suspend fun deleteDb(context: Context)
 }
 object Database {
 
@@ -24,7 +24,7 @@ object Database {
         instances.clear()
     }
 
-    fun delete(context: Context) {
+    suspend fun delete(context: Context) {
         instances.onEach {
             it.deleteDb(context)
         }

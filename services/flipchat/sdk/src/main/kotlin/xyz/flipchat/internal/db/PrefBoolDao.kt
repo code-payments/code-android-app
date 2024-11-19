@@ -16,4 +16,7 @@ internal interface PrefBoolDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(item: PrefBool)
+
+    @Query("DELETE FROM PrefBool")
+    suspend fun clear()
 }
