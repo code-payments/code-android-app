@@ -73,6 +73,17 @@ platform :android do
         }
       )
 
+      bundletool(
+        ks_path: "key/key",
+        ks_password: ENV["STORE_PASSWORD"],
+        ks_key_alias: ENV["KEY_ALIAS"],
+        ks_key_alias_password: ENV["KEY_PASSWORD"],
+        bundletool_version: '1.10.0',
+        aab_path: Actions.lane_context[SharedValues::GRADLE_AAB_OUTPUT_PATH],
+        apk_output_path: "flipchatApp/build/outputs/apk/release",
+        verbose: true,
+      )
+
       validate_play_store_json_key(
         json_key: ENV["SERVICE_ACCOUNT_KEY_JSON"]
       )

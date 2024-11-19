@@ -95,3 +95,4 @@ jobs:
           name: assets
           path: |
             ${{ github.workspace }}/flipchatApp/build/outputs/bundle/release
+            ${{ github.workspace }}/flipchatApp/build/outputs/apk/release
