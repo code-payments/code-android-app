@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.login.register
 
 import android.os.Parcelable
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,6 +47,7 @@ import com.getcode.ui.components.keyboardAsState
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeScaffold
+import io.grpc.Status.Code
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -127,27 +130,37 @@ private fun RegisterScreenContent(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            TextInput(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .padding(CodeTheme.dimens.inset)
-                    .focusRequester(focusRequester),
-                state = state.textFieldState,
-                colors = inputColors(
-                    backgroundColor = Color.Transparent,
-                    borderColor = Color.Transparent
-                ),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences
-                ),
-                maxLines = 1,
-                constraintMode = ConstraintMode.AutoSize(minimum = CodeTheme.typography.displaySmall.copy(textAlign = TextAlign.Center),),
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                style = CodeTheme.typography.displayMedium.copy(textAlign = TextAlign.Center),
-                placeholderStyle = CodeTheme.typography.displayMedium.copy(textAlign = TextAlign.Center),
-                placeholder = stringResource(R.string.subtitle_yourName),
-            )
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.CenterStart)
+                .padding(horizontal = CodeTheme.dimens.inset),
+                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+            ) {
+                TextInput(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                    state = state.textFieldState,
+                    colors = inputColors(
+                        backgroundColor = Color.Transparent,
+                        borderColor = Color.Transparent
+                    ),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences
+                    ),
+                    maxLines = 1,
+                    constraintMode = ConstraintMode.AutoSize(minimum = CodeTheme.typography.displaySmall),
+                    style = CodeTheme.typography.displayMedium,
+                    placeholderStyle = CodeTheme.typography.displayMedium,
+                    placeholder = stringResource(R.string.subtitle_yourName),
+                )
+
+                Text(
+                    text = "This is how you’ll show up in Chats",
+                    style = CodeTheme.typography.textMedium,
+                    color = Color.White.copy(0.4f)
+                )
+            }
         }
 
         LaunchedEffect(focusRequester) {
