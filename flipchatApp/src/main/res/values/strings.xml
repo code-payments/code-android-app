@@ -21,8 +21,8 @@
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
     <string name="error_description_failedToCreateRoom">You were unable to create a new room at this time. Please try again later.</string>
 
-    <string name="error_title_failedToGetRoom">Something Went Wrong</string>
-    <string name="error_description_failedToGetRoom">We were unable to locate Room #%1$s at this time. Please try again later.</string>
+    <string name="error_title_failedToGetRoom">Room Doesn\’t Exist Yet</string>
+    <string name="error_description_failedToGetRoom">Please try a different room number.</string>
 
     <string name="error_title_failedToChangeCover">Something Went Wrong</string>
     <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again.</string>
@@ -62,7 +62,7 @@
     <string name="action_joinRoomByName">Join %1$s</string>
 
     <string name="title_leaveRoom">Leave Room?</string>
-    <string name="subtitle_leaveRoom">We won\'t tell people you left.</string>
+    <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left.</string>
     <string name="action_leaveRoomByName">Leave %1$s</string>
 
     <string name="title_deleteMessage">Delete Message?</string>
