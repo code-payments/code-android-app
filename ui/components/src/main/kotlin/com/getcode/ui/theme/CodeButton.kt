@@ -91,20 +91,11 @@ fun CodeButton(
     val isSuccessful by remember(isSuccess) {
         derivedStateOf { isSuccess }
     }
-    val derivedState by remember(enabled, buttonState) {
-        derivedStateOf {
-            when {
-                enabled -> buttonState
-                buttonState == ButtonState.Subtle -> buttonState
-                else -> ButtonState.Bordered
-            }
-        }
-    }
 
-    val colors = getButtonColors(enabled, derivedState, contentColor)
-    val border = getButtonBorder(derivedState, isEnabled)
+    val colors = getButtonColors(enabled, buttonState, contentColor)
+    val border = getButtonBorder(buttonState, isEnabled)
     val ripple = getRipple(
-        buttonState = derivedState,
+        buttonState = buttonState,
         contentColor = colors.contentColor(enabled = isEnabled).value
     )
 
