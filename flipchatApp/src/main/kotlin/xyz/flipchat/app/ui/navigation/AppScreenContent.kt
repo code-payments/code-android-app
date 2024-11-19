@@ -9,6 +9,7 @@ import xyz.flipchat.app.features.home.TabbedHomeScreen
 import xyz.flipchat.app.features.login.LoginScreen
 import xyz.flipchat.app.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.ChatInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
 import xyz.flipchat.app.features.chat.lookup.confirm.JoinConfirmationScreen
@@ -64,6 +65,10 @@ fun AppScreenContent(content: @Composable () -> Unit) {
 
         register<NavScreenProvider.Chat.Info> {
             ChatInfoScreen(it.args)
+        }
+
+        register<NavScreenProvider.Chat.ChangeCover> {
+            CoverChargeScreen(it.id)
         }
 
         register<NavScreenProvider.Settings> {

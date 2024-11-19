@@ -14,10 +14,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.model.ID
+import com.getcode.navigation.NavScreenProvider
 import xyz.flipchat.app.features.home.TabbedHomeScreen
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -64,15 +67,16 @@ class ChatInfoScreen(private val info: RoomInfoArgs) : Screen, Parcelable {
                 backButton = true,
                 onBackIconClicked = { navigator.pop() }
             )
-            ChatInfoScreenContent(viewModel)
+            ChatInfoScreenContent(viewModel) {
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.ChangeCover(it)))
+            }
         }
     }
 }
 
 @Composable
-private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel) {
+private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel, onChangeCover: (ID) -> Unit) {
     val state by viewModel.stateFlow.collectAsState()
-
     CodeScaffold(
         bottomBar = {
             Column(
@@ -87,10 +91,9 @@ private fun ChatInfoScreenContent(viewModel: ChatInfoViewModel) {
                     CodeButton(
                         modifier = Modifier.fillMaxWidth(),
                         buttonState = ButtonState.Filled,
-                        enabled = false,
                         text = "Change Cover Charge",
                     ) {
-
+                        onChangeCover(state.roomInfo.id!!)
                     }
                 }
 

@@ -11,6 +11,7 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -39,6 +40,8 @@ class ChatInfoViewModel @Inject constructor(
         data class OnHostStatusChanged(val isHost: Boolean): Event
         data class OnInfoChanged(val args: RoomInfoArgs): Event
         data class OnRequestInFlight(val sending: Boolean): Event
+        data class OnMembersUpdated(val count: Int): Event
+        data class OnCoverChanged(val cover: Kin): Event
         data object LeaveRoom: Event
         data object OnLeaveRoomConfirmed: Event
         data object OnLeftRoom: Event
@@ -51,6 +54,17 @@ class ChatInfoViewModel @Inject constructor(
             .map { hostId -> userManager.userId == hostId }
             .onEach { isHost ->
                 dispatchEvent(Event.OnHostStatusChanged(isHost))
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnInfoChanged>()
+            .mapNotNull { it.args.roomId }
+            .flatMapLatest { roomController.observeConversation(it) }
+            .mapNotNull { it }
+            .map { it.members.count() to it.conversation.coverCharge }
+            .onEach { (members, cover) ->
+                dispatchEvent(Event.OnMembersUpdated(members))
+                dispatchEvent(Event.OnCoverChanged(cover))
             }.launchIn(viewModelScope)
 
         eventFlow
@@ -126,6 +140,20 @@ class ChatInfoViewModel @Inject constructor(
                 Event.OnLeftRoom -> { state -> state }
                 is Event.OnRequestInFlight -> { state -> state.copy(requestBeingSent = event.sending) }
                 is Event.OnHostStatusChanged -> { state -> state.copy(isHost = event.isHost) }
+                is Event.OnCoverChanged -> { state ->
+                    state.copy(
+                        roomInfo = state.roomInfo.copy(
+                            coverCharge = event.cover,
+                        )
+                    )
+                }
+                is Event.OnMembersUpdated -> { state ->
+                    state.copy(
+                        roomInfo = state.roomInfo.copy(
+                            memberCount = event.count,
+                        )
+                    )
+                }
             }
         }
     }

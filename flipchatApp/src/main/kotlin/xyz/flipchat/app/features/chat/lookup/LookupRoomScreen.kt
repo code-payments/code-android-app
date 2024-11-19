@@ -36,6 +36,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import xyz.flipchat.app.ui.AmountWithKeypad
 
 @Parcelize
 data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
@@ -77,40 +78,18 @@ data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
     private fun LookupRoomScreenContent(
         viewModel: LookupRoomViewModel,
     ) {
-        val networkObserver = LocalNetworkObserver.current
-        val networkState by networkObserver.state.collectAsState()
-
         val state by viewModel.stateFlow.collectAsState()
+
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
-            Box(
-                modifier = Modifier.weight(0.65f)
-            ) {
-                AmountArea(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = CodeTheme.dimens.inset),
-                    amountPrefix = "#",
-                    amountText = "",
-                    placeholder = " ",
-                    captionText = "Enter Room Number",
-                    isAltCaptionKinIcon = false,
-                    uiModel = state.amountAnimatedModel,
-                    isAnimated = true,
-                    isClickable = false,
-                    networkState = networkState,
-                    textStyle = CodeTheme.typography.displayLarge,
-                )
-            }
-
-            CodeKeyPad(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = CodeTheme.dimens.inset)
-                    .weight(1f),
-                onNumber = { viewModel.dispatchEvent(LookupRoomViewModel.Event.OnNumberPressed(it)) },
-                onClear = { viewModel.dispatchEvent(LookupRoomViewModel.Event.OnBackspace) },
+            AmountWithKeypad(
+                modifier = Modifier.weight(1f),
+                state.amountAnimatedModel,
+                prefix = "#",
+                hint = "Enter Room Number",
+                onNumberPressed = { viewModel.dispatchEvent(LookupRoomViewModel.Event.OnNumberPressed(it)) },
+                onBackspace = { viewModel.dispatchEvent(LookupRoomViewModel.Event.OnBackspace) },
             )
 
             Box(modifier = Modifier.fillMaxWidth()) {

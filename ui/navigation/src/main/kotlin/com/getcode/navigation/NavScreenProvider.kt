@@ -31,6 +31,10 @@ sealed class NavScreenProvider : ScreenProvider {
         data class Info(
             val args: RoomInfoArgs = RoomInfoArgs()
         ): NavScreenProvider()
+
+        data class ChangeCover(
+            val id: ID
+        ): NavScreenProvider()
     }
 
     data object Balance : NavScreenProvider()

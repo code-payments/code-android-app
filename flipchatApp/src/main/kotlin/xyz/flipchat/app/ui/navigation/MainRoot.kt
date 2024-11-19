@@ -31,6 +31,7 @@ import xyz.flipchat.app.ui.LocalUserManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator
+import com.getcode.utils.getPublicKeyBase58
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.delay
@@ -89,17 +90,21 @@ internal object MainRoot : Screen {
             Spacer(Modifier.weight(1f))
         }
 
-        LaunchedEffect(sessionState.userId) {
+        LaunchedEffect(sessionState.entropy, sessionState.userId) {
+            val entropy = sessionState.entropy
             val userId = sessionState.userId
-            if (userId == null) {
+            println("entropy=${entropy}")
+            if (entropy == null && sessionState.userId == null) {
                 delay(500)
                 showLoading = true
                 return@LaunchedEffect
             }
-            if (userId.isEmpty()) {
-                navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-            } else {
-                navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
+            if (entropy != null) {
+                if (userId == null) {
+                    navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                } else {
+                    navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
+                }
             }
         }
     }

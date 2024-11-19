@@ -24,6 +24,10 @@
     <string name="error_title_failedToGetRoom">Something Went Wrong</string>
     <string name="error_description_failedToGetRoom">We were unable to locate Room #%1$s at this time. Please try again later.</string>
 
+    <string name="error_title_failedToChangeCover">Something Went Wrong</string>
+    <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again.</string>
+
+
     <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
     <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later.</string>
 
@@ -53,6 +57,7 @@
     <string name="action_enterRoomNumber">Enter a Room Number</string>
     <string name="action_createNewRoom">Create a New Room</string>
     <string name="title_joinRoom">Join a Room</string>
+    <string name="title_changeCoverCharge">Change Cover Charge</string>
 
     <string name="action_joinRoomByName">Join %1$s</string>
 
@@ -75,11 +80,11 @@
     <string name="action_removeUser">Remove %1$s</string>
 
     <string name="title_roomCardHostedBy">Hosted by %1$s</string>
-    <string name="title_roomCardJoinCost">Cover Charge: %1$d Kin</string>
+    <string name="title_roomCardJoinCost">Cover Charge: ⬢ %1$d Kin</string>
 
-    <string name="title_roomCardMemberCountEmpty">0 people inside</string>
-    <string name="title_roomCardMemberCountSingle">1 person inside</string>
-    <string name="title_roomCardMemberCountMany">%d people inside</string>
+    <string name="title_roomCardMemberCountEmpty">0 People Inside</string>
+    <string name="title_roomCardMemberCountSingle">1 Person Inside</string>
+    <string name="title_roomCardMemberCountMany">%d People Inside</string>
     <plurals name="title_roomCardMemberCount">
         <item quantity="zero">@string/title_roomCardMemberCountEmpty</item>
         <item quantity="one">@string/title_roomCardMemberCountSingle</item>
@@ -88,5 +93,7 @@
         <item quantity="few">@string/title_roomCardMemberCountMany</item>
         <item quantity="other">@string/title_roomCardMemberCountMany</item>
     </plurals>
+
+    <string name="action_saveChanges">Save Changes</string>
 
 </resources>

@@ -85,7 +85,7 @@ class AuthManager @Inject constructor(
     suspend fun createAccount(
         displayName: String,
     ): Result<ID> {
-        val entropyB64 = setupAsNew()
+        val entropyB64 = userManager.entropy ?: setupAsNew()
         if (entropyB64.isEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
             userManager.clear()
@@ -140,12 +140,14 @@ class AuthManager @Inject constructor(
 
         if (!isSoftLogin) softLoginDisabled = true
 
-        // Add back once server persistence is in
         val ret = if (isSoftLogin) {
             val userId = AccountUtils.getUserId(context)
-            userId?.let {
-                Result.success(Base58.decode(it).toList())
-            } ?: Result.failure(Throwable("No user Id found"))
+            if (userId != null) {
+                Result.success(Base58.decode(userId).toList())
+            } else {
+                setupAsNew()
+                Result.failure(Throwable("No user Id found"))
+            }
         } else {
             authController.login()
         }
@@ -158,6 +160,7 @@ class AuthManager @Inject constructor(
             }
             .onSuccess {
                 userManager.set(userId = it)
+                userManager.establish(entropyB64)
                 savePrefs()
             }
             .onFailure {
@@ -223,6 +226,7 @@ class AuthManager @Inject constructor(
     private fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
         userManager.clear()
+        Database.close()
         Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
