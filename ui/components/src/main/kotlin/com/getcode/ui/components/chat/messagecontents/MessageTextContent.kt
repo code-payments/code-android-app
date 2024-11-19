@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageNodeDefaults
@@ -200,7 +201,9 @@ internal fun MessageContent(
         }
 
         AlignmentRule.ParagraphLastLine -> {
-            Column(verticalArrangement = Arrangement.spacedBy(-(CodeTheme.dimens.grid.x2))) {
+            Column(
+                modifier = Modifier.padding(CodeTheme.dimens.grid.x1),
+                verticalArrangement = Arrangement.spacedBy(-(CodeTheme.dimens.grid.x2))) {
                 Text(
                     text = message,
                     style = contentStyle,
@@ -225,7 +228,7 @@ internal fun MessageContent(
                 )
                 DateWithStatus(
                     modifier = Modifier
-                        .padding(top = CodeTheme.dimens.grid.x1),
+                        .padding(top = CodeTheme.dimens.grid.x1 + 2.dp),
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,

@@ -381,14 +381,14 @@ class ConversationViewModel @Inject constructor(
 
                 val selfDefenseActions = mutableListOf<MessageControlAction>().apply {
                     if (stateFlow.value.isHost) {
-                        add(
-                            MessageControlAction.Delete {
-                                confirmMessageDelete(
-                                    conversationId = message.conversationId,
-                                    messageId = message.id
-                                )
-                            }
-                        )
+//                        add(
+//                            MessageControlAction.Delete {
+//                                confirmMessageDelete(
+//                                    conversationId = message.conversationId,
+//                                    messageId = message.id
+//                                )
+//                            }
+//                        )
                         if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
                             add(
                                 MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
