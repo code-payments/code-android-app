@@ -239,7 +239,9 @@ private fun DecoratorBox(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = CodeTheme.dimens.staticGrid.x2),
+                .addIf(leadingIcon != null) {
+                    Modifier.padding(start = CodeTheme.dimens.staticGrid.x2)
+                },
             contentAlignment = Alignment.CenterStart
         ) {
             Box(modifier = Modifier.padding(contentPadding)) {
