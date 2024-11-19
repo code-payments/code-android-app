@@ -1,12 +1,15 @@
 package xyz.flipchat.app.ui.navigation
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -60,38 +64,42 @@ internal object MainRoot : Screen {
             deeplink = it
         }
 
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(CodeTheme.colors.secondary),
-
+            contentAlignment = Alignment.Center,
         ) {
-            Spacer(Modifier.weight(1f))
-
             Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
                     .fillMaxWidth(0.65f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.inset)
+                verticalArrangement = Arrangement.Center
             ) {
-                Image(
-                    painter = painterResource(R.drawable.flipchat_logo),
-                    contentDescription = "",
-                    modifier = Modifier
-                )
-                Text(
-                    text = stringResource(R.string.app_name_without_variant),
-                    style = CodeTheme.typography.displayMedium,
-                    color = White
-                )
-
-                if (showLoading) {
-                    CodeCircularProgressIndicator()
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.flipchat_logo),
+                        contentDescription = null,
+                        modifier = Modifier
+                    )
+                    Text(
+                        text = stringResource(R.string.app_name_without_variant),
+                        style = CodeTheme.typography.displayMedium,
+                        color = White
+                    )
                 }
-            }
 
-            Spacer(Modifier.weight(1f))
+                Spacer(modifier = Modifier.requiredHeight(CodeTheme.dimens.inset))
+                val loadingAlpha by animateFloatAsState(
+                    if (showLoading) 1f else 0f,
+                    label = "loading visibility"
+                )
+                CodeCircularProgressIndicator(
+                    modifier = Modifier.alpha(loadingAlpha)
+                )
+            }
         }
 
         LaunchedEffect(Unit) {
@@ -102,7 +110,6 @@ internal object MainRoot : Screen {
                 entropy to userId
             }.distinctUntilChanged()
                 .onEach { (entropy, userId) ->
-
                     if (entropy == null && userId == null) {
                         delay(500)
                         showLoading = true
