@@ -86,10 +86,7 @@ internal fun MessageNodeScope.MessageText(
         ) contents@{
             val maxWidthPx = with(LocalDensity.current) { maxWidth.roundToPx() }
             Column(
-                modifier = Modifier
-                    .background(color)
-                    // add top padding to accommodate ascents
-                    .padding(top = CodeTheme.dimens.grid.x1),
+                modifier = Modifier.background(color),
             ) {
                 MessageContent(
                     maxWidth = maxWidthPx,
