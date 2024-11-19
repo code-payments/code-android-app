@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -35,6 +36,9 @@ import com.getcode.utils.getPublicKeyBase58
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 internal object MainRoot : Screen {
 
@@ -90,22 +94,28 @@ internal object MainRoot : Screen {
             Spacer(Modifier.weight(1f))
         }
 
-        LaunchedEffect(sessionState.entropy, sessionState.userId) {
-            val entropy = sessionState.entropy
-            val userId = sessionState.userId
-            println("entropy=${entropy}")
-            if (entropy == null && sessionState.userId == null) {
-                delay(500)
-                showLoading = true
-                return@LaunchedEffect
-            }
-            if (entropy != null) {
-                if (userId == null) {
-                    navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                } else {
-                    navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
-                }
-            }
+        LaunchedEffect(Unit) {
+            snapshotFlow {
+                val entropy = sessionState.entropy
+                val userId = sessionState.userId
+
+                entropy to userId
+            }.distinctUntilChanged()
+                .onEach { (entropy, userId) ->
+
+                    if (entropy == null && userId == null) {
+                        delay(500)
+                        showLoading = true
+                        return@onEach
+                    }
+                    if (entropy != null) {
+                        if (userId == null) {
+                            navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        } else {
+                            navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
+                        }
+                    }
+                }.launchIn(this)
         }
     }
 }
