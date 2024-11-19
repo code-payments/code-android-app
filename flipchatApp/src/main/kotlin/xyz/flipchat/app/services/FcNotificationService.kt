@@ -157,7 +157,7 @@ class FcNotificationService : FirebaseMessagingService(),
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setStyle(style.addMessage(message))
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_flipchat_notification)
                 .setAutoCancel(true)
                 .setContentIntent(buildContentIntent(type))
 

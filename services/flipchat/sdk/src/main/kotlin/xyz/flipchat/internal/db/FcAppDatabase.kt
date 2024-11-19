@@ -23,10 +23,12 @@ import com.getcode.services.model.PrefString
 import com.getcode.utils.TraceType
 import com.getcode.utils.decodeBase64
 import com.getcode.utils.trace
+import com.getcode.vendor.Base58
 import io.reactivex.rxjava3.core.BackpressureStrategy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import net.sqlcipher.database.SupportFactory
 import org.kin.sdk.base.tools.subByteArray
+import timber.log.Timber
 import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.db.ConversationMemberDao
 import xyz.flipchat.services.internal.db.ConversationMessageDao
@@ -81,23 +83,18 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         }
     }
 
+    @Synchronized
     override fun closeDb() {
-        instance?.close()
-        instance = null
-        isInitSubject.onNext(false)
+        if (instance != null) {
+            Timber.d("close")
+            instance?.close()
+            instance = null
+        }
     }
 
-    override suspend fun deleteDb(context: Context) {
-        prefIntDao().clear()
-        prefBoolDao().clear()
-        prefDoubleDao().clear()
-        prefStringDao().clear()
-        conversationDao().clearConversations()
-        conversationMembersDao().clearMembers()
-        conversationMessageDao().clearMessages()
-        conversationPointersDao().clearMapping()
-
-        instance?.close()
+    @Synchronized
+    override fun deleteDb(context: Context) {
+        Timber.d("delete")
         closeDb()
         if (dbName.isEmpty()) return
 
@@ -112,35 +109,28 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         if (journal.exists()) journal.delete()
         if (shm.exists()) shm.delete()
         if (wal.exists()) shm.delete()
-        isInitSubject.onNext(false)
     }
 
     companion object {
         private var instance: FcAppDatabase? = null
-        private var isInitSubject: BehaviorSubject<Boolean> = BehaviorSubject.create()
-        var isInit = isInitSubject.toFlowable(BackpressureStrategy.DROP).filter { true }
-        fun isOpen() = instance?.isOpen == true
-        fun getInstance() = instance
-        fun requireInstance() = instance!!
+        fun requireInstance() = requireNotNull(instance)
         private var dbName: String = ""
 
         private const val dbNamePrefix = "FcAppDatabase"
-        private const val dbNameSuffix = ".db"
+
+        fun isOpen() = instance?.isOpen == true
 
         fun init(context: Context, entropyB64: String) {
-            trace("database init start", type = TraceType.Process)
+            val dbUniqueName = Base58.encode(entropyB64.toByteArray().subByteArray(0, 6))
+            trace("database init start $dbUniqueName", type = TraceType.Process)
             instance?.close()
-            val dbUniqueName =
-                com.getcode.vendor.Base58.encode(entropyB64.toByteArray().subByteArray(0, 3))
-            dbName = "$dbNamePrefix-$dbUniqueName$dbNameSuffix"
+            dbName = "$dbNamePrefix-$dbUniqueName.db"
 
             instance =
                 Room.databaseBuilder(context, FcAppDatabase::class.java, dbName)
-                    .openHelperFactory(SupportFactory(entropyB64.decodeBase64(), null, false))
                     .fallbackToDestructiveMigration()
                     .build()
 
-            isInitSubject.onNext(true)
             trace("database init end", type = TraceType.Process)
         }
     }

@@ -223,8 +223,9 @@ class AuthManager @Inject constructor(
 
     private fun clearToken() {
         FirebaseMessaging.getInstance().deleteToken()
+        Database.close()
         userManager.clear()
-        launch { Database.delete(context) }
+        Database.delete(context)
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

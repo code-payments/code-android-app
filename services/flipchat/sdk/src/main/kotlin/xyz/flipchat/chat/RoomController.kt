@@ -34,7 +34,8 @@ class RoomController @Inject constructor(
     private val conversationMemberMapper: ConversationMemberMapper,
     private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
 ) {
-    private val db: FcAppDatabase by lazy { FcAppDatabase.requireInstance() }
+    private val db: FcAppDatabase
+        get() = FcAppDatabase.requireInstance()
 
     fun observeConversation(id: ID): Flow<ConversationWithMembersAndLastPointers?> {
         return db.conversationDao().observeConversation(id)

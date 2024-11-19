@@ -8,7 +8,8 @@ import javax.inject.Inject
 
 internal class PreferenceStore @Inject constructor() {
 
-    val db by lazy { FcAppDatabase.requireInstance() }
+    private val db: FcAppDatabase
+        get() = FcAppDatabase.requireInstance()
 
     fun observe(pref: FcPref, default: Boolean): Flow<Boolean> {
         return db.prefBoolDao().observe(pref.key)

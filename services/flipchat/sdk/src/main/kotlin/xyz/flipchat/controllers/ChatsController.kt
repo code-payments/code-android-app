@@ -33,7 +33,8 @@ class ChatsController @Inject constructor(
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
 ) {
-    private val db by lazy { FcAppDatabase.requireInstance() }
+    private val db: FcAppDatabase
+        get() = FcAppDatabase.requireInstance()
 
     @OptIn(ExperimentalPagingApi::class)
     val chats: Pager<Int, ConversationWithMembersAndLastMessage> by lazy {
@@ -119,7 +120,8 @@ private class ChatsRemoteMediator(
     private val repository: ChatRepository,
     private val conversationMapper: RoomConversationMapper,
 ) : RemoteMediator<Int, ConversationWithMembersAndLastMessage>() {
-    private val db by lazy { FcAppDatabase.requireInstance() }
+    private val db: FcAppDatabase
+        get() = FcAppDatabase.requireInstance()
 
     override suspend fun initialize(): InitializeAction {
         return InitializeAction.LAUNCH_INITIAL_REFRESH
