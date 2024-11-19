@@ -51,7 +51,7 @@ internal fun PublicPaymentConfirmation(
                 state = state,
                 onApproved = onSend
             )
-            val enabled = !isSending && state !is ConfirmationState.Sent
+            val enabled = state !is ConfirmationState.Sending && state !is ConfirmationState.Sent
             val alpha by animateFloatAsState(targetValue = if (enabled) 1f else 0f, label = "alpha")
             CodeButton(
                 modifier = Modifier.fillMaxWidth().alpha(alpha),

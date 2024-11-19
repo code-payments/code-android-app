@@ -95,6 +95,7 @@ fun CodeButton(
         derivedStateOf {
             when {
                 enabled -> buttonState
+                buttonState == ButtonState.Subtle -> buttonState
                 else -> ButtonState.Bordered
             }
         }
@@ -221,7 +222,7 @@ fun getButtonColors(
             ButtonDefaults.outlinedButtonColors(
                 backgroundColor = Transparent,
                 disabledContentColor = Transparent,
-                contentColor = textColor.takeOrElse { CodeTheme.colors.brandLight },
+                contentColor = if (enabled) textColor.takeOrElse { CodeTheme.colors.brandLight } else Color.White.copy(0.30f)
             )
     }
 }
