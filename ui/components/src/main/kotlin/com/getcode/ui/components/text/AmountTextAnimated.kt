@@ -107,25 +107,27 @@ fun AnimatedPlaceholderDigit(
     placeholderExit: ExitTransition? = null,
     placeholderColor: Color = Color.White.copy(alpha = .2f))
 {
-    Box {
-        Row {
-            Digit(
-                isVisible = placeholderVisible,
-                text = placeholder,
-                fontSize = fontSize,
-                density = density,
-                enter = placeholderEnter,
-                exit = placeholderExit,
-                color = placeholderColor
-            )
-        }
-        Row {
-            Digit(
-                isVisible = digitVisible,
-                text = text,
-                fontSize = fontSize,
-                density = density,
-            )
+    if (placeholderVisible || digitVisible) {
+        Box {
+            Row {
+                Digit(
+                    isVisible = placeholderVisible,
+                    text = placeholder,
+                    fontSize = fontSize,
+                    density = density,
+                    enter = placeholderEnter,
+                    exit = placeholderExit,
+                    color = placeholderColor
+                )
+            }
+            Row {
+                Digit(
+                    isVisible = digitVisible,
+                    text = text,
+                    fontSize = fontSize,
+                    density = density,
+                )
+            }
         }
     }
 }
@@ -428,20 +430,22 @@ internal fun AmountTextAnimated(
                     }
                 }
 
-                Text(
-                    modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3),
-                    text = amountSuffix.ifEmpty { " " },
-                    fontSize = textSize,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                    softWrap = false,
-                    onTextLayout = { textLayoutResult ->
-                        if (textLayoutResult.hasVisualOverflow) {
-                            decreaseFont(length1)
+                if (amountSuffix.isNotEmpty()) {
+                    Text(
+                        modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3),
+                        text = amountSuffix,
+                        fontSize = textSize,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                        softWrap = false,
+                        onTextLayout = { textLayoutResult ->
+                            if (textLayoutResult.hasVisualOverflow) {
+                                decreaseFont(length1)
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 
