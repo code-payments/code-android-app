@@ -14,6 +14,7 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import xyz.flipchat.internal.db.FcAppDatabase
@@ -48,8 +49,17 @@ class RoomController @Inject constructor(
     suspend fun getChatMembers(identifier: ID) {
         chatRepository.getChatMembers(ChatIdentifier.Id(identifier))
             .onSuccess { members ->
-                val mapped = members.map { conversationMemberMapper.map(identifier to it) }
-                db.conversationMembersDao().refreshMembers(identifier, mapped)
+                if (members.none { it.isSelf }) {
+                    // we don't belong and were removed
+                    db.conversationMembersDao().removeMembersFrom(identifier)
+                    delay(500)
+                    db.conversationDao().deleteConversationById(identifier)
+                    db.conversationPointersDao().deletePointerForConversation(identifier)
+                    db.conversationMessageDao().removeForConversation(identifier)
+                } else {
+                    val mapped = members.map { conversationMemberMapper.map(identifier to it) }
+                    db.conversationMembersDao().refreshMembers(identifier, mapped)
+                }
             }
     }
 

@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.fastForEachIndexed
+import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import cafe.adriel.voyager.core.registry.ScreenRegistry
@@ -56,6 +57,7 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
+import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.ChatInput
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
@@ -132,6 +134,12 @@ data class ConversationScreen(
                 .onEach {
 //                    navigator.push(EnterTipModal(isInChat = true))
                 }.launchIn(this)
+        }
+
+        OnLifecycleEvent { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                vm.dispatchEvent(ConversationViewModel.Event.CheckIfMember)
+            }
         }
 
         val context = LocalContext.current

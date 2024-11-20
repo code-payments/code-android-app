@@ -2,6 +2,7 @@ package xyz.flipchat.services.internal.network.repository.chat
 
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
+import com.getcode.model.chat.MessageContent
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Member
 import xyz.flipchat.services.data.Room
@@ -160,7 +162,7 @@ internal class RealChatRepository @Inject constructor(
 
                     // handle last message update
                     val message = update.lastMessage?.let {
-                        val chatId = update.id ?: return@let null
+                        val chatId = update.id
                         val mapped = messageMapper.map(userId to it)
                         messageWithContentMapper.map(chatId to mapped)
                     }
