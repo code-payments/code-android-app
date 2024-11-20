@@ -51,9 +51,9 @@
     <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>
     <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>
     <string name="action_messageToConnect">Message %1$s to Connect</string>
-    <string name="title_kin">Kin</string>
-    <string name="title_chats">Chats</string>
-    <string name="title_settings">Settings</string>
+    <string name="title_cashTab">Balance</string>
+    <string name="title_chatsTab">Chats</string>
+    <string name="title_settingsTab">Settings</string>
     <string name="action_enterRoomNumber">Enter a Room Number</string>
     <string name="action_createNewRoom">Create a New Room</string>
     <string name="title_joinRoom">Join a Room</string>

@@ -62,7 +62,7 @@ internal object ChatTab : ChildNavTab {
     override val options: TabOptions
         @Composable get() = TabOptions(
             index = ordinal.toUShort(),
-            title = stringResource(R.string.title_chats),
+            title = stringResource(R.string.title_chatsTab),
             icon = painterResource(R.drawable.ic_fc_chats)
         )
 

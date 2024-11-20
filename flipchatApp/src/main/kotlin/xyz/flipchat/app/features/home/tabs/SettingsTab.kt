@@ -17,7 +17,7 @@ internal object SettingsTab : ChildNavTab {
     override val options: TabOptions
         @Composable get() = TabOptions(
             index = ordinal.toUShort(),
-            title = stringResource(R.string.title_settings),
+            title = stringResource(R.string.title_settingsTab),
             icon = painterResource(R.drawable.ic_settings_outline)
         )
 
