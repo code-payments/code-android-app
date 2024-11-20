@@ -414,7 +414,7 @@ class ConversationViewModel @Inject constructor(
                     sender = Sender(
                         id = message.senderId,
                         profileImage = member?.imageUri.takeIf { it.orEmpty().isNotEmpty() },
-                        displayName = member?.memberName,
+                        displayName = member?.memberName ?: "Deleted",
                         isSelf = contents.isFromSelf,
                         isHost = member?.id == stateFlow.value.hostId && !contents.isFromSelf,
                     ),

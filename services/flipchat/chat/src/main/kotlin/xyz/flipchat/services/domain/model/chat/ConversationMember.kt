@@ -13,9 +13,9 @@ import kotlinx.serialization.Serializable
     primaryKeys = ["memberIdBase58", "conversationIdBase58"]
 )
 data class ConversationMember(
-    val memberIdBase58: String, // Server-provided ID in base58 string format
-    val conversationIdBase58: String, // Foreign key to `Conversation`
-    val memberName: String?, // Other member-specific fields
+    val memberIdBase58: String,
+    val conversationIdBase58: String,
+    val memberName: String?,
     val imageUri: String?,
     @ColumnInfo(defaultValue = "false")
     val isHost: Boolean,
