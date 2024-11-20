@@ -89,7 +89,12 @@ fun ChatInput(
             keyboardOptions = KeyboardOptions.Default.copy(
                 capitalization = KeyboardCapitalization.Sentences
             ),
-            contentPadding = PaddingValues(8.dp),
+            contentPadding = PaddingValues(
+                start = 8.dp + CodeTheme.dimens.staticGrid.x2,
+                top = 8.dp,
+                end = 8.dp + CodeTheme.dimens.staticGrid.x2,
+                bottom = 8.dp
+            ),
             colors = inputColors(
                 backgroundColor = Color.White,
                 textColor = CodeTheme.colors.background,
