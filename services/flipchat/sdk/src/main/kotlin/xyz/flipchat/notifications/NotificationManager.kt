@@ -1,11 +1,11 @@
 package xyz.flipchat.notifications
 
-import android.app.NotificationManager
+import androidx.core.app.NotificationManagerCompat
 import com.getcode.model.ID
 import com.getcode.utils.base58
 
-fun NotificationManager.getRoomNotifications(roomId: ID, roomName: String): List<Int> {
-    val barNotifications = getActiveNotifications()
+fun NotificationManagerCompat.getRoomNotifications(roomId: ID, roomName: String): List<Int> {
+    val barNotifications = activeNotifications
     val roomNotifications = barNotifications.mapNotNull { notification ->
         val roomIdHash = roomId.base58.hashCode()
         val roomNameHash = roomName.hashCode()

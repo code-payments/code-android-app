@@ -1,6 +1,7 @@
 package xyz.flipchat.chat
 
 import android.app.NotificationManager
+import androidx.core.app.NotificationManagerCompat
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.Pager
@@ -36,7 +37,7 @@ class RoomController @Inject constructor(
     private val messagingRepository: MessagingRepository,
     private val conversationMemberMapper: ConversationMemberMapper,
     private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
-    private val notificationManager: NotificationManager,
+    private val notificationManager: NotificationManagerCompat,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()

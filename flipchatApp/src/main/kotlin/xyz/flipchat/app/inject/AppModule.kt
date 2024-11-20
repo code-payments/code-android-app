@@ -1,7 +1,6 @@
 package xyz.flipchat.app.inject
 
 import android.annotation.SuppressLint
-import android.app.NotificationManager
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.ConnectivityManager
