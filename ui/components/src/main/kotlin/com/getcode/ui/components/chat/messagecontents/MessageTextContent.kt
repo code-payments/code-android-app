@@ -20,7 +20,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageStatus
@@ -37,6 +36,7 @@ sealed interface MessageControlAction {
     data class Copy(override val onSelect: () -> Unit): MessageControlAction
     data class Delete(override val onSelect: () -> Unit): MessageControlAction
     data class RemoveUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
+    data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit): MessageControlAction
 }
 
 data class MessageControls(

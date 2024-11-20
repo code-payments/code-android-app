@@ -17,6 +17,7 @@ import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import xyz.flipchat.services.internal.network.extensions.toChatId
 import xyz.flipchat.services.internal.network.extensions.toIntentId
+import xyz.flipchat.services.internal.network.extensions.toMessageId
 import xyz.flipchat.services.internal.network.extensions.toPaymentAmount
 import xyz.flipchat.services.internal.network.extensions.toProto
 import xyz.flipchat.services.internal.network.extensions.toUserId
@@ -196,6 +197,23 @@ class ChatApi @Inject constructor(
             .build()
 
         return api::removeUser
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // ReportUser reports a user for a given message
+    fun reportUser(
+        owner: KeyPair,
+        userId: ID,
+        messageId: ID,
+    ): Flow<FlipchatService.ReportUserResponse> {
+        val request = FlipchatService.ReportUserRequest.newBuilder()
+            .setUserId(userId.toUserId())
+            .setMessageId(messageId.toMessageId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::reportUser
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

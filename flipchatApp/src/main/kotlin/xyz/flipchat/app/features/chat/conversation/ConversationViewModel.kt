@@ -55,6 +55,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.chat.RoomController
+import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.user.UserManager
 import java.util.UUID
@@ -145,6 +147,7 @@ class ConversationViewModel @Inject constructor(
         data class CopyMessage(val text: String) : Event
         data class DeleteMessage(val conversationId: ID, val messageId: ID) : Event
         data class RemoveUser(val conversationId: ID, val userId: ID) : Event
+        data class ReportUser(val userId: ID, val messageId: ID) : Event
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
@@ -355,6 +358,20 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.ReportUser>()
+            .map { (userId, messageId) ->
+                roomController.reportUserForMessage(userId, messageId)
+            }.onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        title = resources.getString(R.string.error_title_failedToReportUserForMessage),
+                        message = resources.getString(R.string.error_description_failedToReportUserForMessage)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.CopyMessage>()
             .map { it.text }
             .onEach {
@@ -406,30 +423,6 @@ class ConversationViewModel @Inject constructor(
                     fallback = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown
                 )
 
-                val selfDefenseActions = mutableListOf<MessageControlAction>().apply {
-                    if (stateFlow.value.isHost) {
-//                        add(
-//                            MessageControlAction.Delete {
-//                                confirmMessageDelete(
-//                                    conversationId = message.conversationId,
-//                                    messageId = message.id
-//                                )
-//                            }
-//                        )
-                        if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
-                            add(
-                                MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
-                                    confirmUserRemoval(
-                                        conversationId = message.conversationId,
-                                        user = member.memberName,
-                                        userId = message.senderId
-                                    )
-                                }
-                            )
-                        }
-                    }
-                }
-
                 ChatItem.Message(
                     chatMessageId = message.id,
                     message = contents,
@@ -457,12 +450,54 @@ class ConversationViewModel @Inject constructor(
                                     )
                                 )
                             }
-                        ) + selfDefenseActions,
+                        ) + buildSelfDefenseControls(message, member, contents),
                     ),
                     key = contents.hashCode() + message.id.hashCode()
                 )
             }
         }
+
+    private fun buildSelfDefenseControls(
+        message: ConversationMessage,
+        member: ConversationMember?,
+        contents: MessageContent
+    ): List<MessageControlAction> {
+        return mutableListOf<MessageControlAction>().apply {
+            if (stateFlow.value.isHost) {
+//                        add(
+//                            MessageControlAction.Delete {
+//                                confirmMessageDelete(
+//                                    conversationId = message.conversationId,
+//                                    messageId = message.id
+//                                )
+//                            }
+//                        )
+                if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
+                    add(
+                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
+                            confirmUserRemoval(
+                                conversationId = message.conversationId,
+                                user = member.memberName,
+                                userId = message.senderId,
+                            )
+                        }
+                    )
+                }
+            }
+
+            if (!contents.isFromSelf) {
+                add(
+                    MessageControlAction.ReportUserForMessage(member?.memberName.orEmpty()) {
+                        confirmUserReport(
+                            user = member?.memberName,
+                            userId = message.senderId,
+                            messageId = message.id
+                        )
+                    }
+                )
+            }
+        }.toList()
+    }
 
     private fun confirmMessageDelete(conversationId: ID, messageId: ID) {
         BottomBarManager.showMessage(
@@ -487,6 +522,22 @@ class ConversationViewModel @Inject constructor(
                 negativeText = "",
                 tertiaryText = resources.getString(R.string.action_cancel),
                 onPositive = { dispatchEvent(Event.RemoveUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
+    private fun confirmUserReport(user: String?, userId: ID, messageId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_reportUserForMessage, user ?: "User"),
+                subtitle = resources.getString(R.string.subtitle_reportUserForMessage),
+                positiveText = resources.getString(R.string.action_report),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.ReportUser(userId, messageId)) },
                 onNegative = { },
                 type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                 showScrim = true,
@@ -574,6 +625,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.DeleteMessage,
                 is Event.CopyMessage,
                 is Event.RemoveUser,
+                is Event.ReportUser,
                 is Event.ReopenStream,
                 is Event.CloseStream,
                 is Event.SendMessage -> { state -> state }

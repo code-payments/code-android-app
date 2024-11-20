@@ -34,4 +34,5 @@ interface ChatRepository {
 
     // Self Defense Room Controls
     suspend fun removeUser(conversationId: ID, userId: ID): Result<Unit>
+    suspend fun reportUserForMessage(userId: ID, messageId: ID): Result<Unit>
 }

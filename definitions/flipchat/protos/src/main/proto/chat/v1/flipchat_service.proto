@@ -42,6 +42,10 @@ service Chat {
     rpc SetCoverCharge(SetCoverChargeRequest) returns (SetCoverChargeResponse);
     // RemoveUser removes a user from a chat
     rpc RemoveUser(RemoveUserRequest) returns (RemoveUserResponse);
+    // ReportUser reports a user for a given message
+    //
+    // todo: might belong in a different service long-term
+    rpc ReportUser(ReportUserRequest) returns (ReportUserResponse);
 }
 message StreamChatEventsRequest {
     oneof type {
@@ -254,6 +258,17 @@ message RemoveUserResponse{
     enum Result {
         OK       = 0;
         DENIED   = 1;
+    }
+}
+message ReportUserRequest{
+    common.v1.UserId user_id = 1;
+    messaging.v1.MessageId message_id = 2;
+    common.v1.Auth auth = 3;
+}
+message ReportUserResponse{
+    Result result = 1;
+    enum Result {
+        OK       = 0;
     }
 }
 message Metadata {

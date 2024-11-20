@@ -288,6 +288,7 @@ private data class MessageActionContextSheet(val actions: List<MessageControlAct
                         is MessageControlAction.Copy -> stringResource(R.string.action_copyMessage)
                         is MessageControlAction.Delete -> stringResource(R.string.action_deleteMessage)
                         is MessageControlAction.RemoveUser -> stringResource(R.string.action_removeUser, action.name)
+                        is MessageControlAction.ReportUserForMessage -> stringResource(R.string.action_report)
                     },
                     style = CodeTheme.typography.textMedium,
                     modifier = Modifier

@@ -206,4 +206,13 @@ internal class RealChatRepository @Inject constructor(
         return service.removeUser(owner, conversationId, userId)
             .onFailure { ErrorUtils.handleError(it) }
     }
+
+    override suspend fun reportUserForMessage(
+        userId: ID,
+        messageId: ID
+    ): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        return service.reportUser(owner, userId, messageId)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
 }

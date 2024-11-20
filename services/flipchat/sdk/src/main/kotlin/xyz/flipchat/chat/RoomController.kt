@@ -192,6 +192,13 @@ class RoomController @Inject constructor(
             }
     }
 
+    suspend fun reportUserForMessage(
+        userId: ID,
+        messageId: ID,
+    ): Result<Unit> {
+        return chatRepository.reportUserForMessage(userId, messageId)
+    }
+
     suspend fun setCoverCharge(
         conversationId: ID,
         amount: KinAmount

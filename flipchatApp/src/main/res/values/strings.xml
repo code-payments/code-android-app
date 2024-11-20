@@ -38,11 +38,13 @@
     <string name="error_description_failedToLeaveRoom">You were unable to leave the room at this time. Please try again later.</string>
 
     <string name="error_title_failedToDeleteMessage">Something Went Wrong</string>
-    <string name="error_description_failedToDeleteMessage">This message could not be deleted. Please check your network connection and try again</string>
+    <string name="error_description_failedToDeleteMessage">This message could not be deleted. Please check your network connection and try again.</string>
 
     <string name="error_title_failedToRemoveUser">Something Went Wrong</string>
     <string name="error_description_failedToRemoveUser">This user could not be removed. Please check your network connection and try again</string>
 
+    <string name="error_title_failedToReportUserForMessage">Something Went Wrong</string>
+    <string name="error_description_failedToReportUserForMessage">This user\'s message could not be reported. Please check your network connection and try again</string>
 
     <string name="prompt_title_revealIdentity">Reveal your identity?</string>
     <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
@@ -73,11 +75,16 @@
     <string name="subtitle_removeUserFromRoom">They will be able to rejoin after waiting an hour, but will have to pay the cover charge again.</string>
     <string name="action_remove">Remove</string>
 
+    <string name="title_reportUserForMessage">Report %1$s?</string>
+    <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified.</string>
+    <string name="action_report">Report</string>
+
     <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
 
     <string name="action_copyMessage">Copy</string>
     <string name="action_deleteMessage">Delete</string>
     <string name="action_removeUser">Remove %1$s</string>
+    <string name="action_reportUser">Report %1$s</string>
 
     <string name="title_roomCardHostedBy">Hosted by %1$s</string>
     <string name="title_roomCardJoinCost">Cover Charge: ⬢ %1$d Kin</string>

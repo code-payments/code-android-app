@@ -346,6 +346,38 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun reportUser(
+        owner: KeyPair,
+        userId: ID,
+        messageId: ID
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.reportUser(owner, userId, messageId))
+                .map { response ->
+                    when (response.result) {
+                        FlipchatService.ReportUserResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        FlipchatService.ReportUserResponse.Result.UNRECOGNIZED -> {
+                            val error = ReportUserError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = ReportUserError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = ReportUserError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
@@ -505,6 +537,11 @@ internal class ChatService @Inject constructor(
     sealed class RemoveUserError : Throwable() {
         class Unrecognized : RemoveUserError()
         class Denied : RemoveUserError()
+        data class Other(override val cause: Throwable? = null) : RemoveUserError()
+    }
+
+    sealed class ReportUserError : Throwable() {
+        class Unrecognized : RemoveUserError()
         data class Other(override val cause: Throwable? = null) : RemoveUserError()
     }
 }
