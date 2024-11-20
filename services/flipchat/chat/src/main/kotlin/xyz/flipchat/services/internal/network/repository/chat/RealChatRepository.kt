@@ -132,7 +132,7 @@ internal class RealChatRepository @Inject constructor(
 
     override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatDbUpdate) -> Unit) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No keypair found for owner")
-        val userId = userManager.userId
+        val userId = userManager.userId ?: throw IllegalStateException("user not established")
         if (homeStreamReference == null) {
             homeStreamReference = service.openChatStream(coroutineScope, owner) { result ->
                 if (result.isSuccess) {
