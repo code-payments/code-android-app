@@ -95,5 +95,6 @@
     </plurals>
 
     <string name="action_saveChanges">Save Changes</string>
+    <string name="subtitle_displayNameHint">This is how you\’ll show up in chats</string>
 
 </resources>

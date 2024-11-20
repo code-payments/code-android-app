@@ -107,7 +107,9 @@ private fun RegisterScreenContent(
             .fillMaxSize()
             .imePadding(),
         bottomBar = {
-            Box(modifier = Modifier.fillMaxWidth().navigationBarsPadding()) {
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()) {
                 CodeButton(
                     enabled = state.canAdvance,
                     modifier = Modifier
@@ -156,7 +158,7 @@ private fun RegisterScreenContent(
                 )
 
                 Text(
-                    text = "This is how you’ll show up in Chats",
+                    text = stringResource(R.string.subtitle_displayNameHint),
                     style = CodeTheme.typography.textMedium,
                     color = Color.White.copy(0.4f)
                 )
