@@ -92,6 +92,19 @@ data class ConversationScreen(
 
         val goBack = { navigator.popUntil { it is TabbedHomeScreen } }
 
+        OnLifecycleEvent { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    vm.dispatchEvent(ConversationViewModel.Event.ReopenStream)
+                }
+                Lifecycle.Event.ON_STOP,
+                Lifecycle.Event.ON_DESTROY -> {
+                    vm.dispatchEvent(ConversationViewModel.Event.CloseStream)
+                }
+                else -> Unit
+            }
+        }
+
         Column {
             AppBarWithTitle(
                 title = {

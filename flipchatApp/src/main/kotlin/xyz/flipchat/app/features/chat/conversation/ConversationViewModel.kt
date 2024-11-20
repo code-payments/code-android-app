@@ -136,6 +136,9 @@ class ConversationViewModel @Inject constructor(
 
         data object PresentPaymentConfirmation : Event
 
+        data object ReopenStream : Event
+        data object CloseStream : Event
+
         data object OnTypingStarted : Event
         data object OnTypingStopped : Event
 
@@ -250,6 +253,24 @@ class ConversationViewModel @Inject constructor(
                         )
                     }
             }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.ReopenStream>()
+            .mapNotNull { stateFlow.value.conversationId }
+            .distinctUntilChanged()
+            .onEach {
+                runCatching {
+                    roomController.openMessageStream(viewModelScope, it)
+                }.onFailure {
+                    ErrorUtils.handleError(it)
+                }
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.CloseStream>()
+            .onEach { roomController.closeMessageStream() }
             .launchIn(viewModelScope)
 
         stateFlow
@@ -553,6 +574,8 @@ class ConversationViewModel @Inject constructor(
                 is Event.DeleteMessage,
                 is Event.CopyMessage,
                 is Event.RemoveUser,
+                is Event.ReopenStream,
+                is Event.CloseStream,
                 is Event.SendMessage -> { state -> state }
 
                 is Event.OnUserActivity -> { state ->

@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.CodeController
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 @HiltViewModel

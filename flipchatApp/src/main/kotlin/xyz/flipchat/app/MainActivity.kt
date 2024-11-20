@@ -26,6 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.RinkuInit
 import dev.theolm.rinku.compose.ext.Rinku
+import xyz.flipchat.app.features.home.HomeViewModel
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController

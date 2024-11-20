@@ -12,17 +12,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.transitions.SlideTransition
 import xyz.flipchat.app.features.payments.PaymentScaffold
 import com.getcode.navigation.core.BottomSheetNavigator
 import com.getcode.navigation.core.CombinedNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.transitions.SheetSlideTransition
 import xyz.flipchat.app.theme.FlipchatTheme
 import xyz.flipchat.app.ui.navigation.AppScreenContent
 import xyz.flipchat.app.ui.navigation.MainRoot
 import com.getcode.theme.LocalCodeColors
+import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.bars.BottomBarContainer
 import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.components.bars.rememberBarManager
@@ -30,11 +33,27 @@ import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
+import xyz.flipchat.app.features.home.HomeViewModel
 
 @Composable
 fun App(
     tipsEngine: TipsEngine,
 ) {
+    val homeViewModel = getActivityScopedViewModel<HomeViewModel>()
+    OnLifecycleEvent { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_RESUME -> {
+                homeViewModel.openStream()
+                homeViewModel.requestAirdrop()
+            }
+            Lifecycle.Event.ON_STOP,
+            Lifecycle.Event.ON_DESTROY -> {
+                homeViewModel.closeStream()
+            }
+            else -> Unit
+        }
+    }
+
     FlipchatTheme {
         AppScreenContent {
             val barManager = rememberBarManager()

@@ -80,22 +80,24 @@ internal class RealMessagingRepository @Inject constructor(
         val owner = userManager.keyPair ?: throw IllegalStateException("No ed25519 signature found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
 
-        messageStream = service.openMessageStream(
-            scope = coroutineScope,
-            owner = owner,
-            chatId = chatId,
-            lastMessageId = lastMessageId, // db.conversationMessageDao().getNewestMessage(chatId)?.id }
-        ) stream@{ result ->
-            if (result.isSuccess) {
-                userManager.roomOpened(roomId = chatId)
-                val data = result.getOrNull() ?: return@stream
-                val message = lastMessageMapper.map(userId to data)
+        if (messageStream == null) {
+            messageStream = service.openMessageStream(
+                scope = coroutineScope,
+                owner = owner,
+                chatId = chatId,
+                lastMessageId = lastMessageId,
+            ) stream@{ result ->
+                if (result.isSuccess) {
+                    userManager.roomOpened(roomId = chatId)
+                    val data = result.getOrNull() ?: return@stream
+                    val message = lastMessageMapper.map(userId to data)
 
-                val messageWithContents = messageWithContentMapper.map(chatId to message)
-                onMessageUpdate(messageWithContents)
-            } else {
-                result.exceptionOrNull()?.let {
-                    ErrorUtils.handleError(it)
+                    val messageWithContents = messageWithContentMapper.map(chatId to message)
+                    onMessageUpdate(messageWithContents)
+                } else {
+                    result.exceptionOrNull()?.let {
+                        ErrorUtils.handleError(it)
+                    }
                 }
             }
         }

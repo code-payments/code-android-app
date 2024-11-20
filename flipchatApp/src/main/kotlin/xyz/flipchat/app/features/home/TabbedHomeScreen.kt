@@ -41,6 +41,7 @@ import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
+import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.utils.withTopBorder
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
@@ -68,24 +69,12 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
         val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
         var currentTab: ChildNavTab? by remember { mutableStateOf(router.rootTabs.firstOrNull()) }
 
-        val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
-        DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event ->
-                when (event) {
-                    Lifecycle.Event.ON_START -> {
-                        viewModel.openStream()
-                        viewModel.requestAirdrop()
-                    }
-                    Lifecycle.Event.ON_STOP -> {
-                        viewModel.closeStream()
-                    }
-                    else -> { }
+        OnLifecycleEvent { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    viewModel.openStream()
                 }
-            }
-
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose {
-                lifecycleOwner.lifecycle.removeObserver(observer)
+                else -> Unit
             }
         }
 
