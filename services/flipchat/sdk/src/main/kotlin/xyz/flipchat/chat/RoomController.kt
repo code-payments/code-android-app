@@ -1,5 +1,6 @@
 package xyz.flipchat.chat
 
+import android.app.NotificationManager
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.Pager
@@ -18,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import xyz.flipchat.internal.db.FcAppDatabase
+import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
@@ -34,6 +36,7 @@ class RoomController @Inject constructor(
     private val messagingRepository: MessagingRepository,
     private val conversationMemberMapper: ConversationMemberMapper,
     private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
+    private val notificationManager: NotificationManager,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
@@ -51,6 +54,14 @@ class RoomController @Inject constructor(
     }
 
     fun openMessageStream(scope: CoroutineScope, identifier: ID) {
+        scope.launch {
+            val name = db.conversationDao().findConversation(identifier)?.conversation?.title
+            val notifications = notificationManager.getRoomNotifications(identifier, name.orEmpty())
+            notifications.onEach { notificationId ->
+                notificationManager.cancel(notificationId)
+            }
+        }
+
         runCatching {
             messagingRepository.openMessageStream(
                 coroutineScope = scope,

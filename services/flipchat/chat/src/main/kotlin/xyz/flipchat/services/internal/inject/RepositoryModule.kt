@@ -1,5 +1,6 @@
 package xyz.flipchat.services.internal.inject
 
+import android.app.NotificationManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

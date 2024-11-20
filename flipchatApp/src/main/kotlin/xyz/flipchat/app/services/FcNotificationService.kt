@@ -10,6 +10,7 @@ import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
+import com.getcode.model.ID
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
@@ -160,7 +161,12 @@ class FcNotificationService : FirebaseMessagingService(),
             person
         )
 
-        val style = notificationManager.getActiveNotification(title.hashCode())?.let {
+        val notificationId = when (type) {
+            is FcNotificationType.ChatMessage -> (type.id?.base58 ?: title).hashCode()
+            FcNotificationType.Unknown -> title.hashCode()
+        }
+
+        val style = notificationManager.getActiveNotification(notificationId)?.let {
             NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it)
         } ?: NotificationCompat.MessagingStyle(person)
 
@@ -194,6 +200,24 @@ private fun NotificationManager.getActiveNotification(notificationId: Int): Noti
         }
     }
     return null
+}
+
+fun NotificationManager.getRoomNotifications(roomId: ID, roomName: String): List<Notification> {
+    val barNotifications = getActiveNotifications()
+    val roomNotifications = barNotifications.mapNotNull { notification ->
+        val roomIdHash = roomId.base58.hashCode()
+        val roomNameHash = roomName.hashCode()
+
+        val isMatch = notification.id == roomIdHash || notification.id == roomNameHash
+
+        if (isMatch) {
+            notification.notification
+        } else {
+            null
+        }
+    }
+
+    return roomNotifications
 }
 
 private fun Context.buildContentIntent(type: FcNotificationType): PendingIntent {
