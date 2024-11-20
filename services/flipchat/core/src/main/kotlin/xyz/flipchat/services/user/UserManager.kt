@@ -40,6 +40,9 @@ class UserManager @Inject constructor(
     val userFlags: UserFlags?
         get() = _state.value.flags
 
+    val openRoom: ID?
+        get() = _state.value.openRoom
+
     data class State(
         val entropy: String? = null,
         val keyPair: KeyPair? = null,
@@ -47,6 +50,7 @@ class UserManager @Inject constructor(
         val displayName: String? = null,
         val organizer: Organizer? = null,
         val flags: UserFlags? = null,
+        val openRoom: ID? = null,
     )
 
     fun establish(entropy: String) {
@@ -82,9 +86,21 @@ class UserManager @Inject constructor(
         }
     }
 
+    fun roomOpened(roomId: ID) {
+        _state.update {
+            it.copy(openRoom = roomId)
+        }
+    }
+
+    fun roomClosed() {
+        _state.update {
+            it.copy(openRoom = null)
+        }
+    }
+
     fun clear() {
         _state.update {
-            it.copy(entropy = null, keyPair = null, userId = emptyList(), organizer = null, flags = null)
+            it.copy(entropy = null, keyPair = null, userId = emptyList(), organizer = null, flags = null, openRoom = null)
         }
     }
 }

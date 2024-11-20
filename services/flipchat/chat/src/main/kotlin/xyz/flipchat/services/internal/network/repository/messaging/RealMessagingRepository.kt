@@ -87,6 +87,7 @@ internal class RealMessagingRepository @Inject constructor(
             lastMessageId = lastMessageId, // db.conversationMessageDao().getNewestMessage(chatId)?.id }
         ) stream@{ result ->
             if (result.isSuccess) {
+                userManager.roomOpened(roomId = chatId)
                 val data = result.getOrNull() ?: return@stream
                 val message = lastMessageMapper.map(userId to data)
 
@@ -101,6 +102,7 @@ internal class RealMessagingRepository @Inject constructor(
     }
 
     override fun closeMessageStream() {
+        userManager.roomClosed()
         messageStream?.destroy()
         messageStream = null
     }

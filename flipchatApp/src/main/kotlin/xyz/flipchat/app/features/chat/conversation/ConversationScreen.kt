@@ -136,12 +136,6 @@ data class ConversationScreen(
                 }.launchIn(this)
         }
 
-        OnLifecycleEvent { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                vm.dispatchEvent(ConversationViewModel.Event.CheckIfMember)
-            }
-        }
-
         val context = LocalContext.current
         LaunchedEffect(vm) {
             vm.eventFlow

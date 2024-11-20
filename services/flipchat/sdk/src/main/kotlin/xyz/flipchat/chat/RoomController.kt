@@ -48,19 +48,6 @@ class RoomController @Inject constructor(
 
     suspend fun getChatMembers(identifier: ID) {
         chatRepository.getChatMembers(ChatIdentifier.Id(identifier))
-            .onSuccess { members ->
-                if (members.none { it.isSelf }) {
-                    // we don't belong and were removed
-                    db.conversationMembersDao().removeMembersFrom(identifier)
-                    delay(500)
-                    db.conversationDao().deleteConversationById(identifier)
-                    db.conversationPointersDao().deletePointerForConversation(identifier)
-                    db.conversationMessageDao().removeForConversation(identifier)
-                } else {
-                    val mapped = members.map { conversationMemberMapper.map(identifier to it) }
-                    db.conversationMembersDao().refreshMembers(identifier, mapped)
-                }
-            }
     }
 
     fun openMessageStream(scope: CoroutineScope, identifier: ID) {

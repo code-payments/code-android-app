@@ -124,7 +124,6 @@ class ConversationViewModel @Inject constructor(
             Event
 
         data class OnUserActivity(val activity: Instant) : Event
-        data object CheckIfMember : Event
         data object SendCash : Event
         data object SendMessage : Event
         data object RevealIdentity : Event
@@ -198,13 +197,6 @@ class ConversationViewModel @Inject constructor(
                 }
             }
             .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.CheckIfMember>()
-            .mapNotNull { stateFlow.value.conversationId }
-            .distinctUntilChanged()
-            .onEach { roomController.getChatMembers(it) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -561,7 +553,6 @@ class ConversationViewModel @Inject constructor(
                 is Event.DeleteMessage,
                 is Event.CopyMessage,
                 is Event.RemoveUser,
-                is Event.CheckIfMember,
                 is Event.SendMessage -> { state -> state }
 
                 is Event.OnUserActivity -> { state ->

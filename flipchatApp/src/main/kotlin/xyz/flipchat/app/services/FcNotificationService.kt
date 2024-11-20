@@ -80,7 +80,8 @@ class FcNotificationService : FirebaseMessagingService(),
     private fun handleMessage(remoteMessage: RemoteMessage) {
         trace("handling received message", type = TraceType.Silent)
         if (remoteMessage.data.isNotEmpty()) {
-            Timber.d("Message data payload: ${remoteMessage.data}")
+            // TODO: remove this for release
+            println("Message data payload: ${remoteMessage.data}")
             val notification = remoteMessage.parse()
 
             if (notification != null) {
@@ -91,7 +92,18 @@ class FcNotificationService : FirebaseMessagingService(),
                         resources = resources,
                         currencyUtils = currencyUtils
                     )
-                    notify(type, title, body)
+
+                    when (type) {
+                        is FcNotificationType.ChatMessage -> {
+                            if (type.id != userManager.openRoom) {
+                                // only notify when not for current room
+                                notify(type, title, body)
+                            }
+                        }
+                        FcNotificationType.Unknown -> {
+                            notify(type, title, body)
+                        }
+                    }
                 }
 
                 when (type) {
