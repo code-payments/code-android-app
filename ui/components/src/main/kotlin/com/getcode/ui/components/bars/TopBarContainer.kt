@@ -95,7 +95,7 @@ private fun TopBarView(
                     WARNING -> Warning
                     NOTIFICATION -> TopNotification
                     NEUTRAL -> TopNeutral
-                    SUCCESS -> TopSuccess
+                    SUCCESS -> CodeTheme.colors.brand
 
                 }
             )

@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
+import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
@@ -361,14 +362,25 @@ class ConversationViewModel @Inject constructor(
             .filterIsInstance<Event.ReportUser>()
             .map { (userId, messageId) ->
                 roomController.reportUserForMessage(userId, messageId)
-            }.onError {
-                TopBarManager.showMessage(
-                    TopBarManager.TopBarMessage(
-                        title = resources.getString(R.string.error_title_failedToReportUserForMessage),
-                        message = resources.getString(R.string.error_description_failedToReportUserForMessage)
+            }.onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToReportUserForMessage),
+                            message = resources.getString(R.string.error_description_failedToReportUserForMessage)
+                        )
                     )
-                )
-            }
+                },
+                onSuccess = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.success_title_reportUser),
+                            message = resources.getString(R.string.success_description_reportUser),
+                            type = TopBarManager.TopBarMessageType.SUCCESS
+                        )
+                    )
+                }
+            )
             .launchIn(viewModelScope)
 
         eventFlow

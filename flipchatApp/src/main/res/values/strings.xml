@@ -64,7 +64,7 @@
     <string name="action_joinRoomByName">Join %1$s</string>
 
     <string name="title_leaveRoom">Leave Room?</string>
-    <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left.</string>
+    <string name="subtitle_leaveRoom">You will need to pay to get back in, but we won\’t tell people you left</string>
     <string name="action_leaveRoomByName">Leave %1$s</string>
 
     <string name="title_deleteMessage">Delete Message?</string>
@@ -72,12 +72,15 @@
     <string name="action_delete">Delete</string>
 
     <string name="title_removeUserFromRoom">Remove %1$s?</string>
-    <string name="subtitle_removeUserFromRoom">They will be able to rejoin after waiting an hour, but will have to pay the cover charge again.</string>
+    <string name="subtitle_removeUserFromRoom">They will be able to rejoin after waiting an hour, but will have to pay the cover charge again</string>
     <string name="action_remove">Remove</string>
 
-    <string name="title_reportUserForMessage">Report %1$s?</string>
-    <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified.</string>
+    <string name="title_reportUserForMessage">Report</string>
+    <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified</string>
     <string name="action_report">Report</string>
+
+    <string name="success_title_reportUser">Report Sent</string>
+    <string name="success_description_reportUser">Your report was sent successfully</string>
 
     <string name="permissions_description_push_messages">Receive push notifications when people message you.</string>
 
