@@ -39,6 +39,7 @@ private val colors = ColorScheme(
     onSurface = White,
     error = Error,
     errorText = Alert,
+    success = FC_Accent,
     textMain = TextMain,
     textSecondary = FC_TextWithPrimary,
     divider = FC_Secondary,

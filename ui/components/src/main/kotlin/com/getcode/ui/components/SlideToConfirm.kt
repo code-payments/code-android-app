@@ -54,6 +54,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -224,6 +225,7 @@ fun SlideToConfirm(
             Image(
                 painter = painterResource(id = R.drawable.ic_check),
                 contentDescription = "",
+                colorFilter = ColorFilter.tint(CodeTheme.colors.success),
                 modifier = Modifier
                     .size(CodeTheme.dimens.grid.x4)
                     .align(Alignment.Center),

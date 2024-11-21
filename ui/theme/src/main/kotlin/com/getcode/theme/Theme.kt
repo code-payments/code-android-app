@@ -37,6 +37,7 @@ internal val CodeDefaultColorScheme = ColorScheme(
     onSurface = White,
     error = Error,
     errorText = TextError,
+    success = Success,
     textMain = TextMain,
     textSecondary = TextSecondary,
     divider = White10,
@@ -111,6 +112,7 @@ class ColorScheme(
     dividerVariant: Color,
     error: Color,
     errorText: Color,
+    success: Color,
     textMain: Color,
     textSecondary: Color,
     trackColor: Color,
@@ -142,6 +144,8 @@ class ColorScheme(
     var error by mutableStateOf(error)
         private set
     var errorText by mutableStateOf(errorText)
+        private set
+    var success by mutableStateOf(success)
         private set
     var textMain by mutableStateOf(textMain)
         private set
@@ -179,6 +183,7 @@ class ColorScheme(
         onSurface = other.onSurface
         error = other.error
         errorText = other.errorText
+        success = other.success
         textMain = other.textMain
         textSecondary = other.textSecondary
         secondary = other.secondary
@@ -206,6 +211,7 @@ class ColorScheme(
         onSurface = onSurface,
         error = error,
         errorText = errorText,
+        success = success,
         textMain = textMain,
         textSecondary = textSecondary,
         secondary = secondary,
