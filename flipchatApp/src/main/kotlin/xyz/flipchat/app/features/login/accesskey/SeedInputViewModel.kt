@@ -96,7 +96,7 @@ class SeedInputViewModel @Inject constructor(
         }
     }
 
-    fun logout(activity: Activity, onComplete: () -> Unit = {}) =
+    suspend fun logout(activity: Activity, onComplete: () -> Unit = {}) =
         authManager.logout(activity, onComplete)
 
     @SuppressLint("CheckResult")

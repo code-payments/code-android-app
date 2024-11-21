@@ -24,6 +24,7 @@ import com.ionspin.kotlin.crypto.LibsodiumInitializer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import xyz.flipchat.FlipchatServices
@@ -178,28 +179,32 @@ class AuthManager @Inject constructor(
             }
     }
 
-    fun deleteAndLogout(context: Context, onComplete: () -> Unit = {}) {
+    suspend fun deleteAndLogout(context: Context, onComplete: () -> Unit = {}) {
         //todo: add account deletion
         logout(context, onComplete)
     }
 
-    fun logout(context: Context, onComplete: () -> Unit = {}) {
-        launch {
+    suspend fun logout(context: Context, onComplete: () -> Unit = {}) {
+        coroutineScope {
             val token = AccountUtils.getToken(context)
             when (token) {
                 is TokenResult.Account -> {
                     AccountUtils.removeAccounts(context)
                         .doOnSuccess { res: Boolean ->
                             if (res) {
-                                clearToken()
-                                onComplete()
+                                launch {
+                                    clearToken()
+                                    onComplete()
+                                }
                             }
                         }
                         .subscribe()
                 }
+
                 is TokenResult.Code -> {
                     onComplete()
                 }
+
                 null -> Unit
             }
         }
@@ -221,8 +226,12 @@ class AuthManager @Inject constructor(
 //        )
     }
 
-    private fun clearToken() {
+    private suspend fun clearToken() {
+        val token = FirebaseMessaging.getInstance().token()
         FirebaseMessaging.getInstance().deleteToken()
+        if (token != null) {
+            pushController.deleteToken(token)
+        }
         Database.close()
         userManager.clear()
         Database.delete(context)

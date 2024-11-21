@@ -51,7 +51,27 @@ internal class PushService @Inject constructor(
         owner: KeyPair,
         token: String,
     ): Result<Unit> {
-        return Result.failure(NotImplementedError())
+        return try {
+            networkOracle.managedRequest(api.deleteToken(owner, token))
+                .map {
+                    when (it.result) {
+                        PushService.DeleteTokenResponse.Result.OK -> Result.success(Unit)
+                        PushService.DeleteTokenResponse.Result.UNRECOGNIZED -> {
+                            val error = DeleteTokenError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                        else -> {
+                            val error = DeleteTokenError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = DeleteTokenError.Other(cause = e)
+            Result.failure(error)
+        }
     }
 
     internal sealed class AddTokenError : Throwable() {

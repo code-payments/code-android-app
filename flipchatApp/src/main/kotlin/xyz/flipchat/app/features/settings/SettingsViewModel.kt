@@ -11,7 +11,7 @@ class SettingsViewModel @Inject constructor(
     private val authManager: AuthManager,
 ) : ViewModel() {
 
-    fun logout(activity: Activity, onComplete: () -> Unit) {
+    suspend fun logout(activity: Activity, onComplete: () -> Unit) {
         authManager.logout(activity, onComplete = onComplete)
     }
 }
