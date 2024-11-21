@@ -28,6 +28,8 @@ class PaymentRepository @Inject constructor(
         extendedMetadata: ExtendedMetadata
     ): ID {
         val organizer = userManager.organizer ?: throw PaymentError.OrganizerNotFound()
+        val currentBalance = balanceController.rawBalance
+        if (amount.kin.toKinValueDouble() > currentBalance) throw PaymentError.InsufficientBalance()
         return client.publicPayment(
             amount = amount,
             organizer = organizer,
@@ -45,18 +47,9 @@ class PaymentRepository @Inject constructor(
 sealed interface PaymentError {
     val message: String?
 
-    data class NoExchangeData(override val message: String? = "No exchange data") : PaymentError,
-        Throwable(message)
-
-    data class InvalidPayload(override val message: String? = "invalid payload") : PaymentError,
-        Throwable(message)
-
     data class OrganizerNotFound(override val message: String? = "Organizer not found") :
         PaymentError, Throwable(message)
 
-    data class ExchangeForCurrencyNotFound(override val message: String? = "exchange for currency not found") :
-        PaymentError, Throwable(message)
-
-    data class MessageForRendezvousNotFound(override val message: String? = "message for rendezvous not found") :
+    data class InsufficientBalance(override val message: String? = "Insufficient balance for payment") :
         PaymentError, Throwable(message)
 }

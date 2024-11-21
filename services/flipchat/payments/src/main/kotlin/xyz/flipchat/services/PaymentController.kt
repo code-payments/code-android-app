@@ -8,6 +8,7 @@ import com.getcode.model.KinAmount
 import com.getcode.models.BillState
 import com.getcode.models.ConfirmationState
 import com.getcode.models.PublicPaymentConfirmation
+import com.getcode.network.repository.PaymentError
 import com.getcode.network.repository.PaymentRepository
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
@@ -106,10 +107,16 @@ class PaymentController @Inject constructor(
                 _eventFlow.emit(PaymentEvent.OnPaymentSuccess(it, destination))
             }.onFailure {
                 onError(it)
-                TopBarManager.showMessage(
-                    resources.getString(R.string.error_title_payment_failed),
-                    resources.getString(R.string.error_description_payment_failed),
-                )
+                when {
+                    it is PaymentError -> {
+                        when (it) {
+                            is PaymentError.InsufficientBalance -> presentInsufficientFundsError()
+                            is PaymentError.OrganizerNotFound -> presentPaymentFailedError()
+                        }
+                    }
+                    else -> presentPaymentFailedError()
+                }
+
                 _eventFlow.emit(PaymentEvent.OnPaymentError(it))
 
                 billController.reset()
@@ -123,5 +130,19 @@ class PaymentController @Inject constructor(
                 _eventFlow.emit(PaymentEvent.OnPaymentCancelled)
             }
         }
+    }
+
+    private fun presentInsufficientFundsError() {
+        TopBarManager.showMessage(
+            resources.getString(R.string.error_title_paymentFailedDueToInsufficientFunds),
+            resources.getString(R.string.error_description_paymentFailedDueToInsufficientFunds),
+        )
+    }
+
+    private fun presentPaymentFailedError() {
+        TopBarManager.showMessage(
+            resources.getString(R.string.error_title_paymentFailed),
+            resources.getString(R.string.error_description_paymentFailed),
+        )
     }
 }
