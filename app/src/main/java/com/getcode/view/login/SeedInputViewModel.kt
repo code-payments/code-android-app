@@ -42,7 +42,7 @@ class SeedInputViewModel @Inject constructor(
     private val analyticsService: AnalyticsService,
     private val authManager: AuthManager,
     private val resources: ResourceHelper,
-    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
+    private val mnemonicManager: MnemonicManager,
     private val accountManager: AccountManager,
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(SeedInputUiModel())
