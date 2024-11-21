@@ -14,11 +14,13 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
+import xyz.flipchat.controllers.CodeController
 import javax.inject.Inject
 
 @HiltViewModel
 class RegisterDisplayNameViewModel @Inject constructor(
     authManager: AuthManager,
+    codeController: CodeController,
 ): BaseViewModel2<RegisterDisplayNameViewModel.State, RegisterDisplayNameViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -54,6 +56,14 @@ class RegisterDisplayNameViewModel @Inject constructor(
                 onSuccess = { dispatchEvent(Event.OnSuccess) }
             )
             .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnSuccess>()
+            .onEach {
+                codeController.fetchBalance()
+                    .onFailure { it.printStackTrace() }
+                    .onSuccess { codeController.requestAirdrop() }
+            }.launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnError>()
