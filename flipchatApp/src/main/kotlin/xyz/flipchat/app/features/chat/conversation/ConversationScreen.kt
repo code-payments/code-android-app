@@ -242,14 +242,7 @@ private fun ConversationScreenContent(
                 AnimatedContent(
                     targetState = state.chattableState,
                     transitionSpec = {
-                        (slideInVertically(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessLow
-                            )
-                        ) { it } + scaleIn() + fadeIn()).togetherWith(
-                            fadeOut() + scaleOut() + slideOutVertically { it }
-                        )
+                        (slideInVertically { it }).togetherWith(slideOutVertically { it })
                     },
                     label = "chat input area"
                 ) {
