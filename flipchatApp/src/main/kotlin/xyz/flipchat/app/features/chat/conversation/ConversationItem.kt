@@ -9,3 +9,9 @@ data class ConversationMessageIndice(
     val sender: ConversationMember?,
     val messageContent: MessageContent,
 )
+
+sealed interface ChattableState {
+    data object Unknown: ChattableState
+    data object Enabled: ChattableState
+    data object DisabledByMute: ChattableState
+}

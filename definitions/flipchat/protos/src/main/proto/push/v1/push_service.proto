@@ -37,4 +37,8 @@ message DeleteTokenRequest {
     common.v1.Auth auth = 3;
 }
 message DeleteTokenResponse {
+    Result result = 1;
+    enum Result {
+        OK = 0;
+    }
 }

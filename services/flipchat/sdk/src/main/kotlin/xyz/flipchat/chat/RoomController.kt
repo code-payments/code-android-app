@@ -199,6 +199,13 @@ class RoomController @Inject constructor(
         return chatRepository.reportUserForMessage(userId, messageId)
     }
 
+    suspend fun muteUser(
+        chatId: ID,
+        userId: ID,
+    ): Result<Unit> {
+        return chatRepository.muteUser(chatId, userId)
+    }
+
     suspend fun setCoverCharge(
         conversationId: ID,
         amount: KinAmount

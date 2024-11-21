@@ -9,6 +9,7 @@ data class Member(
     val id: ID,
     val isSelf: Boolean,
     val isHost: Boolean,
+    val isMuted: Boolean,
     val identity: MemberIdentity?,
     val pointers: List<Pointer>,
 )

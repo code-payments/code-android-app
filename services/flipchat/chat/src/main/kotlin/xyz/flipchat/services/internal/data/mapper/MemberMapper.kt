@@ -15,6 +15,7 @@ class MemberMapper @Inject constructor(
             id = memberId,
             isSelf = from.isSelf,
             isHost = from.isHost,
+            isMuted = from.isMuted,
             identity = identityMapper.map(from.identity),
             pointers = from.pointersList.mapNotNull { pointerModelMapper.map(memberId to it) }
         )

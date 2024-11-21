@@ -5,6 +5,7 @@ package xyz.flipchat.app.features.chat.conversation
 import android.os.Parcelable
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -14,6 +15,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,6 +34,7 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
@@ -67,7 +71,9 @@ import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.withTopBorder
 import com.getcode.util.formatDateRelatively
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -97,10 +103,12 @@ data class ConversationScreen(
                 Lifecycle.Event.ON_RESUME -> {
                     vm.dispatchEvent(ConversationViewModel.Event.ReopenStream)
                 }
+
                 Lifecycle.Event.ON_STOP,
                 Lifecycle.Event.ON_DESTROY -> {
                     vm.dispatchEvent(ConversationViewModel.Event.CloseStream)
                 }
+
                 else -> Unit
             }
         }
@@ -207,12 +215,12 @@ private fun ConversationScreenContent(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
+    val systemUiController = rememberSystemUiController()
     CodeScaffold(
         bottomBar = {
             Column(
                 modifier = Modifier
-                    .imePadding()
-                    .navigationBarsPadding(),
+                    .imePadding(),
                 verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x3),
             ) {
                 AnimatedVisibility(
@@ -230,12 +238,53 @@ private fun ConversationScreenContent(
                             .padding(horizontal = CodeTheme.dimens.grid.x2)
                     )
                 }
-                ChatInput(
-                    state = state.textFieldState,
-                    sendCashEnabled = false,
-                    onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
-                    onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
-                )
+
+                AnimatedContent(
+                    targetState = state.chattableState,
+                    transitionSpec = {
+                        (slideInVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessLow
+                            )
+                        ) { it } + scaleIn() + fadeIn()).togetherWith(
+                            fadeOut() + scaleOut() + slideOutVertically { it }
+                        )
+                    },
+                    label = "chat input area"
+                ) {
+                    when (it) {
+                        ChattableState.DisabledByMute -> {
+                            Text(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(CodeTheme.colors.secondary)
+                                    .withTopBorder(color = CodeTheme.colors.dividerVariant)
+                                    .padding(
+                                        top = CodeTheme.dimens.grid.x1,
+                                        bottom = CodeTheme.dimens.grid.x3
+                                    ).navigationBarsPadding(),
+                                textAlign = TextAlign.Center,
+                                text = stringResource(R.string.title_youHaveBeenMuted),
+                                style = CodeTheme.typography.textSmall,
+                                color = CodeTheme.colors.textSecondary
+                            )
+                        }
+
+                        ChattableState.Enabled -> {
+                            ChatInput(
+                                modifier = Modifier.navigationBarsPadding(),
+                                state = state.textFieldState,
+                                sendCashEnabled = false,
+                                onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
+                                onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                            )
+                        }
+
+                        ChattableState.Unknown -> Unit
+                    }
+
+                }
             }
         }
     ) { padding ->
@@ -287,8 +336,16 @@ private data class MessageActionContextSheet(val actions: List<MessageControlAct
                     text = when (action) {
                         is MessageControlAction.Copy -> stringResource(R.string.action_copyMessage)
                         is MessageControlAction.Delete -> stringResource(R.string.action_deleteMessage)
-                        is MessageControlAction.RemoveUser -> stringResource(R.string.action_removeUser, action.name)
+                        is MessageControlAction.RemoveUser -> stringResource(
+                            R.string.action_removeUser,
+                            action.name
+                        )
+
                         is MessageControlAction.ReportUserForMessage -> stringResource(R.string.action_report)
+                        is MessageControlAction.MuteUser -> stringResource(
+                            R.string.action_muteUser,
+                            action.name
+                        )
                     },
                     style = CodeTheme.typography.textMedium,
                     modifier = Modifier

@@ -19,32 +19,35 @@
     <string name="error_description_usernameNotFound">This X username isn\'t on Code yet. Please try a different username.</string>
 
     <string name="error_title_failedToCreateRoom">Something Went Wrong</string>
-    <string name="error_description_failedToCreateRoom">You were unable to create a new room at this time. Please try again later.</string>
+    <string name="error_description_failedToCreateRoom">You were unable to create a new room at this time. Please try again later</string>
 
     <string name="error_title_failedToGetRoom">Room Doesn\’t Exist Yet</string>
     <string name="error_description_failedToGetRoom">Please try a different room number.</string>
 
     <string name="error_title_failedToChangeCover">Something Went Wrong</string>
-    <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again.</string>
+    <string name="error_description_failedToChangeCover">Your new cover charge couldn\’t be saved. Please check your network connection and try again</string>
 
 
     <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
-    <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later.</string>
+    <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later</string>
 
     <string name="error_title_failedToLookupPaymentDestination">Something Went Wrong</string>
-    <string name="error_description_failedToLookupPaymentDestination">You were unable to get payment information at this time. Please try again later.</string>
+    <string name="error_description_failedToLookupPaymentDestination">You were unable to get payment information at this time. Please try again later</string>
 
     <string name="error_title_failedToLeaveRoom">Something Went Wrong</string>
-    <string name="error_description_failedToLeaveRoom">You were unable to leave the room at this time. Please try again later.</string>
+    <string name="error_description_failedToLeaveRoom">You were unable to leave the room at this time. Please try again later</string>
 
     <string name="error_title_failedToDeleteMessage">Something Went Wrong</string>
-    <string name="error_description_failedToDeleteMessage">This message could not be deleted. Please check your network connection and try again.</string>
+    <string name="error_description_failedToDeleteMessage">This message could not be deleted. Please check your network connection and try again</string>
 
     <string name="error_title_failedToRemoveUser">Something Went Wrong</string>
     <string name="error_description_failedToRemoveUser">This user could not be removed. Please check your network connection and try again</string>
 
     <string name="error_title_failedToReportUserForMessage">Something Went Wrong</string>
     <string name="error_description_failedToReportUserForMessage">This user\'s message could not be reported. Please check your network connection and try again</string>
+
+    <string name="error_title_failedToMuteUser">Something Went Wrong</string>
+    <string name="error_description_failedToMuteUser">This user\'s could not be muted. Please check your network connection and try again</string>
 
     <string name="prompt_title_revealIdentity">Reveal your identity?</string>
     <string name="prompt_subtitle_revealIdentity">%1$s will be able to see that you are %2$s.</string>
@@ -74,6 +77,11 @@
     <string name="title_removeUserFromRoom">Remove %1$s?</string>
     <string name="subtitle_removeUserFromRoom">They will be able to rejoin after waiting an hour, but will have to pay the cover charge again</string>
     <string name="action_remove">Remove</string>
+
+    <string name="title_muteUserInRoom">Mute %1$s?</string>
+    <string name="subtitle_muteUserInRoom">They will still remain in the room, but will lose the ability to chat</string>
+    <string name="action_mute">Mute</string>
+    <string name="action_muteUser">Mute %1$s</string>
 
     <string name="title_reportUserForMessage">Report</string>
     <string name="subtitle_reportUserForMessage">This message will be forwarded to Flipchat. This contact will not be notified</string>
@@ -106,5 +114,7 @@
 
     <string name="action_saveChanges">Save Changes</string>
     <string name="subtitle_displayNameHint">This is how you\’ll show up in chats</string>
+
+    <string name="title_youHaveBeenMuted">You\'ve been muted</string>
 
 </resources>

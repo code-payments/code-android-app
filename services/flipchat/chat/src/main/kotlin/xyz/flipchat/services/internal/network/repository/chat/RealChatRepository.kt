@@ -124,10 +124,10 @@ internal class RealChatRepository @Inject constructor(
             .onFailure { ErrorUtils.handleError(it) }
     }
 
-    override fun observeTyping(conversationId: ID): Flow<Boolean> {
+    override fun observeTyping(chatId: ID): Flow<Boolean> {
         return typingChats
-            .map { conversationId in it }
-            .onEach { isTyping -> println("observeTyping(${conversationId.base58}): isTyping = $isTyping") }
+            .map { chatId in it }
+            .onEach { isTyping -> println("observeTyping(${chatId.base58}): isTyping = $isTyping") }
     }
 
     override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatDbUpdate) -> Unit) {
@@ -201,9 +201,9 @@ internal class RealChatRepository @Inject constructor(
         homeStreamReference = null
     }
 
-    override suspend fun removeUser(conversationId: ID, userId: ID): Result<Unit> {
+    override suspend fun removeUser(chatId: ID, userId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
-        return service.removeUser(owner, conversationId, userId)
+        return service.removeUser(owner, chatId, userId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 
@@ -213,6 +213,12 @@ internal class RealChatRepository @Inject constructor(
     ): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         return service.reportUser(owner, userId, messageId)
+            .onFailure { ErrorUtils.handleError(it) }
+    }
+
+    override suspend fun muteUser(chatId: ID, userId: ID): Result<Unit> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        return service.muteUser(owner, chatId, userId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 }

@@ -218,6 +218,23 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
+    // MuteUser mutes a user in the chat and removes their ability to send messages
+    fun muteUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+    ): Flow<FlipchatService.MuteUserResponse> {
+        val request = FlipchatService.MuteUserRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .setUserId(userId.toUserId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::muteUser
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
     // StreamChatEvents streams all chat events for the requesting user.
     //
     // Chat events will include any update to a chat, including:

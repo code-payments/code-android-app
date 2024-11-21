@@ -86,10 +86,9 @@ class ConversationViewModel @Inject constructor(
         val selfName: String?,
         val hostId: ID?,
         val conversationId: ID?,
-        val costToChat: KinAmount,
         val reference: Reference.IntentId?,
+        val chattableState: ChattableState,
         val textFieldState: TextFieldState,
-        val identityAvailable: Boolean,
         val title: String,
         val lastSeen: Instant?,
         val members: Map<ID, Int>,
@@ -103,14 +102,13 @@ class ConversationViewModel @Inject constructor(
 
         companion object {
             val Default = State(
-                costToChat = KinAmount.Zero,
                 selfId = null,
                 selfName = null,
                 hostId = null,
                 conversationId = null,
                 reference = null,
+                chattableState = ChattableState.Unknown,
                 textFieldState = TextFieldState(),
-                identityAvailable = false,
                 title = "",
                 lastSeen = null,
                 pointers = emptyMap(),
@@ -124,7 +122,6 @@ class ConversationViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnSelfChanged(val id: ID?, val displayName: String?) : Event
-        data class OnCostToChatChanged(val cost: KinAmount) : Event
         data class OnChatIdChanged(val chatId: ID?) : Event
         data class OnConversationChanged(val conversationWithPointers: ConversationWithMembersAndLastPointers) :
             Event
@@ -134,8 +131,7 @@ class ConversationViewModel @Inject constructor(
         data object SendMessage : Event
         data object RevealIdentity : Event
 
-        data class OnIdentityAvailable(val available: Boolean) : Event
-
+        data class OnAbilityToChatChanged(val state: ChattableState): Event
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
         data class MarkRead(val messageId: ID) : Event
         data class MarkDelivered(val messageId: ID) : Event
@@ -152,6 +148,7 @@ class ConversationViewModel @Inject constructor(
         data class DeleteMessage(val conversationId: ID, val messageId: ID) : Event
         data class RemoveUser(val conversationId: ID, val userId: ID) : Event
         data class ReportUser(val userId: ID, val messageId: ID) : Event
+        data class MuteUser(val conversationId: ID, val userId: ID) : Event
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
@@ -201,10 +198,18 @@ class ConversationViewModel @Inject constructor(
             }.filterNotNull()
             .distinctUntilChanged()
             .onEach {
-                if (it.members.none { it.id == userManager.userId }) {
-                    // we are no longer a member
-                    dispatchEvent(Event.Error(fatal = true, show = false))
+                val selfMember = it.members.firstOrNull { it.id == userManager.userId }
+                val chattableState = if (selfMember != null) {
+                    val isMuted = selfMember.isMuted
+                    when {
+                        isMuted -> ChattableState.DisabledByMute
+                        else -> ChattableState.Enabled
+                    }
+                } else {
+                    ChattableState.Enabled
                 }
+
+                dispatchEvent(Event.OnAbilityToChatChanged(chattableState))
             }
             .onEach { dispatchEvent(Event.OnConversationChanged(it)) }
             .launchIn(viewModelScope)
@@ -387,6 +392,22 @@ class ConversationViewModel @Inject constructor(
             .launchIn(viewModelScope)
 
         eventFlow
+            .filterIsInstance<Event.MuteUser>()
+            .map { (chatId, userId) ->
+                roomController.muteUser(chatId, userId)
+            }.onResult(
+                onError = {
+                    TopBarManager.showMessage(
+                        TopBarManager.TopBarMessage(
+                            title = resources.getString(R.string.error_title_failedToMuteUser),
+                            message = resources.getString(R.string.error_description_failedToMuteUser)
+                        )
+                    )
+                }
+            )
+            .launchIn(viewModelScope)
+
+        eventFlow
             .filterIsInstance<Event.CopyMessage>()
             .map { it.text }
             .onEach {
@@ -499,9 +520,18 @@ class ConversationViewModel @Inject constructor(
 //                            }
 //                        )
                 if (member?.memberName?.isNotEmpty() == true && !contents.isFromSelf) {
+//                    add(
+//                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
+//                            confirmUserRemoval(
+//                                conversationId = message.conversationId,
+//                                user = member.memberName,
+//                                userId = message.senderId,
+//                            )
+//                        }
+//                    )
                     add(
-                        MessageControlAction.RemoveUser(member.memberName.orEmpty()) {
-                            confirmUserRemoval(
+                        MessageControlAction.MuteUser(member.memberName.orEmpty()) {
+                            confirmUserMute(
                                 conversationId = message.conversationId,
                                 user = member.memberName,
                                 userId = message.senderId,
@@ -555,6 +585,22 @@ class ConversationViewModel @Inject constructor(
         )
     }
 
+    private fun confirmUserMute(conversationId: ID, user: String?, userId: ID) {
+        BottomBarManager.showMessage(
+            BottomBarManager.BottomBarMessage(
+                title = resources.getString(R.string.title_muteUserInRoom, user.orEmpty().ifEmpty { "User" }),
+                subtitle = resources.getString(R.string.subtitle_muteUserInRoom),
+                positiveText = resources.getString(R.string.action_mute),
+                negativeText = "",
+                tertiaryText = resources.getString(R.string.action_cancel),
+                onPositive = { dispatchEvent(Event.MuteUser(conversationId, userId)) },
+                onNegative = { },
+                type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
+                showScrim = true,
+            )
+        )
+    }
+
     private fun confirmUserReport(user: String?, userId: ID, messageId: ID) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
@@ -594,7 +640,6 @@ class ConversationViewModel @Inject constructor(
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
                     val host = members.firstOrNull { it.isHost }
-
                     state.copy(
                         conversationId = conversation.id,
                         title = conversation.title,
@@ -613,16 +658,8 @@ class ConversationViewModel @Inject constructor(
                     )
                 }
 
-                is Event.OnCostToChatChanged -> { state ->
-                    state.copy(costToChat = event.cost)
-                }
-
                 is Event.OnPointersUpdated -> { state ->
                     state.copy(pointers = event.pointers)
-                }
-
-                is Event.OnIdentityAvailable -> { state ->
-                    state.copy(identityAvailable = event.available)
                 }
 
                 is Event.OnTypingStarted -> { state ->
@@ -652,6 +689,7 @@ class ConversationViewModel @Inject constructor(
                 is Event.CopyMessage,
                 is Event.RemoveUser,
                 is Event.ReportUser,
+                is Event.MuteUser,
                 is Event.ReopenStream,
                 is Event.CloseStream,
                 is Event.SendMessage -> { state -> state }
@@ -666,6 +704,8 @@ class ConversationViewModel @Inject constructor(
                         selfName = event.displayName
                     )
                 }
+
+                is Event.OnAbilityToChatChanged -> { state -> state.copy(chattableState = event.state) }
             }
         }
     }

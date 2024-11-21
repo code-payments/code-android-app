@@ -56,13 +56,13 @@ internal class MessagingService @Inject constructor(
                     }
 
                     GetMessagesResponse.Result.UNRECOGNIZED -> {
-                        val error = GetMessagesError.Unrecognized
+                        val error = GetMessagesError.Unrecognized()
                         Timber.e(t = error)
                         Result.failure(error)
                     }
 
                     GetMessagesResponse.Result.DENIED -> {
-                        val error = GetMessagesError.Denied
+                        val error = GetMessagesError.Denied()
                         Timber.e(t = error)
                         Result.failure(error)
                     }
@@ -108,19 +108,13 @@ internal class MessagingService @Inject constructor(
                             }
 
                             MessagingService.SendMessageResponse.Result.DENIED -> {
-                                val error = SendMessageError.Denied
-                                Timber.e(t = error)
-                                Result.failure(error)
-                            }
-
-                            MessagingService.SendMessageResponse.Result.INVALID_CONTENT_TYPE -> {
-                                val error = SendMessageError.InvalidContentType
+                                val error = SendMessageError.Denied()
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
 
                             MessagingService.SendMessageResponse.Result.UNRECOGNIZED -> {
-                                val error = SendMessageError.Unrecognized
+                                val error = SendMessageError.Unrecognized()
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
@@ -165,13 +159,13 @@ internal class MessagingService @Inject constructor(
                         }
 
                         AdvancePointerResponse.Result.UNRECOGNIZED -> {
-                            val error = AdvancePointerError.Unrecognized
+                            val error = AdvancePointerError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         AdvancePointerResponse.Result.DENIED -> {
-                            val error = AdvancePointerError.Denied
+                            val error = AdvancePointerError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -213,13 +207,13 @@ internal class MessagingService @Inject constructor(
                         val result = when (requestResult) {
                             MessagingService.NotifyIsTypingResponse.Result.OK -> Result.success(Unit)
                             MessagingService.NotifyIsTypingResponse.Result.DENIED -> {
-                                val error = TypingChangeError.Denied
+                                val error = TypingChangeError.Denied()
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
 
                             MessagingService.NotifyIsTypingResponse.Result.UNRECOGNIZED -> {
-                                val error = TypingChangeError.Unrecognized
+                                val error = TypingChangeError.Unrecognized()
                                 Timber.e(t = error)
                                 Result.failure(error)
                             }
@@ -378,27 +372,27 @@ internal class MessagingService @Inject constructor(
     }
 
     sealed class GetMessagesError : Throwable() {
-        data object Unrecognized : GetMessagesError()
-        data object Denied : GetMessagesError()
+        class Unrecognized : GetMessagesError()
+        class Denied : GetMessagesError()
         data class Other(override val cause: Throwable? = null) : GetMessagesError()
     }
 
     sealed class AdvancePointerError : Throwable() {
-        data object Unrecognized : AdvancePointerError()
-        data object Denied : AdvancePointerError()
+        class Unrecognized : AdvancePointerError()
+        class Denied : AdvancePointerError()
         data class Other(override val cause: Throwable? = null) : AdvancePointerError()
     }
 
     sealed class TypingChangeError : Throwable() {
-        data object Unrecognized : AdvancePointerError()
-        data object Denied : AdvancePointerError()
+        class Unrecognized : AdvancePointerError()
+        class Denied : AdvancePointerError()
         data class Other(override val cause: Throwable? = null) : AdvancePointerError()
     }
 
     sealed class SendMessageError : Throwable() {
-        data object Unrecognized : GetMessagesError()
-        data object Denied : GetMessagesError()
-        data object InvalidContentType : GetMessagesError()
+        class Unrecognized : GetMessagesError()
+        class Denied : GetMessagesError()
+        class InvalidContentType : GetMessagesError()
         data class Other(override val cause: Throwable? = null) : GetMessagesError()
     }
 }

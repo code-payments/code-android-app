@@ -51,7 +51,7 @@ internal class ChatService @Inject constructor(
                         }
 
                         FlipchatService.GetChatsResponse.Result.UNRECOGNIZED -> {
-                            val error = GetChatsError.Unrecognized
+                            val error = GetChatsError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -82,13 +82,13 @@ internal class ChatService @Inject constructor(
                         }
 
                         FlipchatService.GetChatResponse.Result.UNRECOGNIZED -> {
-                            val error = GetChatError.Unrecognized
+                            val error = GetChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         FlipchatService.GetChatResponse.Result.NOT_FOUND -> {
-                            val error = GetChatError.NotFound
+                            val error = GetChatError.NotFound()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -165,13 +165,13 @@ internal class ChatService @Inject constructor(
                         }
 
                         FlipchatService.JoinChatResponse.Result.UNRECOGNIZED -> {
-                            val error = JoinChatError.Unrecognized
+                            val error = JoinChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         FlipchatService.JoinChatResponse.Result.DENIED -> {
-                            val error = JoinChatError.Denied
+                            val error = JoinChatError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -202,7 +202,7 @@ internal class ChatService @Inject constructor(
                         }
 
                         FlipchatService.LeaveChatResponse.Result.UNRECOGNIZED -> {
-                            val error = LeaveChatError.Unrecognized
+                            val error = LeaveChatError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -234,19 +234,19 @@ internal class ChatService @Inject constructor(
                         }
 
                         FlipchatService.SetMuteStateResponse.Result.UNRECOGNIZED -> {
-                            val error = MuteStateError.Unrecognized
+                            val error = MuteStateError.Unrecognized()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         FlipchatService.SetMuteStateResponse.Result.DENIED -> {
-                            val error = MuteStateError.Denied
+                            val error = MuteStateError.Denied()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
 
                         FlipchatService.SetMuteStateResponse.Result.CANT_MUTE -> {
-                            val error = MuteStateError.CantMute
+                            val error = MuteStateError.CantMute()
                             Timber.e(t = error)
                             Result.failure(error)
                         }
@@ -378,6 +378,38 @@ internal class ChatService @Inject constructor(
         }
     }
 
+    suspend fun muteUser(
+        owner: KeyPair,
+        chatId: ID,
+        userId: ID,
+    ): Result<Unit> {
+        return try {
+            networkOracle.managedRequest(api.muteUser(owner, chatId, userId))
+                .map { response ->
+                    when (response.result) {
+                        FlipchatService.MuteUserResponse.Result.OK -> {
+                            Result.success(Unit)
+                        }
+
+                        FlipchatService.MuteUserResponse.Result.UNRECOGNIZED -> {
+                            val error = MuteUserError.Unrecognized()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+
+                        else -> {
+                            val error = MuteUserError.Other()
+                            Timber.e(t = error)
+                            Result.failure(error)
+                        }
+                    }
+                }.first()
+        } catch (e: Exception) {
+            val error = MuteUserError.Other(cause = e)
+            Result.failure(error)
+        }
+    }
+
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
@@ -499,31 +531,31 @@ internal class ChatService @Inject constructor(
     }
 
     sealed class GetChatsError : Throwable() {
-        data object Unrecognized : GetChatsError()
+        class Unrecognized : GetChatsError()
         data class Other(override val cause: Throwable? = null) : GetChatsError()
     }
 
     sealed class JoinChatError : Throwable() {
-        data object Unrecognized : JoinChatError()
-        data object Denied : JoinChatError()
+        class Unrecognized : JoinChatError()
+        class Denied : JoinChatError()
         data class Other(override val cause: Throwable? = null) : JoinChatError()
     }
 
     sealed class LeaveChatError : Throwable() {
-        data object Unrecognized : LeaveChatError()
+        class Unrecognized : LeaveChatError()
         data class Other(override val cause: Throwable? = null) : LeaveChatError()
     }
 
     sealed class MuteStateError : Throwable() {
-        data object Unrecognized : MuteStateError()
-        data object Denied : MuteStateError()
-        data object CantMute : MuteStateError()
+        class Unrecognized : MuteStateError()
+        class Denied : MuteStateError()
+        class CantMute : MuteStateError()
         data class Other(override val cause: Throwable? = null) : MuteStateError()
     }
 
     sealed class GetChatError : Throwable() {
-        data object NotFound : GetChatError()
-        data object Unrecognized : GetChatError()
+        class NotFound : GetChatError()
+        class Unrecognized : GetChatError()
         data class Other(override val cause: Throwable? = null) : GetChatError()
     }
 
@@ -538,6 +570,12 @@ internal class ChatService @Inject constructor(
         class Unrecognized : RemoveUserError()
         class Denied : RemoveUserError()
         data class Other(override val cause: Throwable? = null) : RemoveUserError()
+    }
+
+    sealed class MuteUserError : Throwable() {
+        class Unrecognized : MuteUserError()
+        class Denied : MuteUserError()
+        data class Other(override val cause: Throwable? = null) : MuteUserError()
     }
 
     sealed class ReportUserError : Throwable() {

@@ -19,6 +19,8 @@ data class ConversationMember(
     val imageUri: String?,
     @ColumnInfo(defaultValue = "false")
     val isHost: Boolean,
+    @ColumnInfo(defaultValue = "false")
+    val isMuted: Boolean,
 ) {
     @Ignore
     val id: ID = Base58.decode(memberIdBase58).toList()

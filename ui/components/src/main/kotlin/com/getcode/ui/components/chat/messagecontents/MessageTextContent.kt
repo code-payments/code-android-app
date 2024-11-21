@@ -36,6 +36,7 @@ sealed interface MessageControlAction {
     data class Copy(override val onSelect: () -> Unit): MessageControlAction
     data class Delete(override val onSelect: () -> Unit): MessageControlAction
     data class RemoveUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
+    data class MuteUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
     data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit): MessageControlAction
 }
 
