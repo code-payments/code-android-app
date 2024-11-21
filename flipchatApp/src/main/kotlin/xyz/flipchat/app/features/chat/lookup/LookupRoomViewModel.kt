@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.chat.lookup
 
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
+import com.getcode.model.ID
 import com.getcode.navigation.RoomInfoArgs
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.login.register.onResult
@@ -22,7 +23,7 @@ import javax.inject.Inject
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
     resources: ResourceHelper,
-): BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
+) : BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
@@ -38,14 +39,15 @@ class LookupRoomViewModel @Inject constructor(
     )
 
     sealed interface Event {
-        data class OnLookingUpRoom(val requesting: Boolean): Event
-        data class OnNumberPressed(val number: Int): Event
-        data object OnBackspace: Event
-        data class OnEnteredNumberChanged(val backspace: Boolean = false): Event
-        data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel): Event
-        data object OnLookupRoom: Event
-        data object OnRoomFound: Event
-        data class OnOpenConfirmation(val args: RoomInfoArgs): Event
+        data class OnLookingUpRoom(val requesting: Boolean) : Event
+        data class OnNumberPressed(val number: Int) : Event
+        data object OnBackspace : Event
+        data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
+        data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel) : Event
+        data object OnLookupRoom : Event
+        data object OnRoomFound : Event
+        data class OnOpenConfirmation(val args: RoomInfoArgs) : Event
+        data class OpenExistingRoom(val roomId: ID) : Event
     }
 
     init {
@@ -95,7 +97,10 @@ class LookupRoomViewModel @Inject constructor(
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
                             resources.getString(R.string.error_title_failedToGetRoom),
-                            resources.getString(R.string.error_description_failedToGetRoom, stateFlow.value.amountAnimatedModel.amountData.amount)
+                            resources.getString(
+                                R.string.error_description_failedToGetRoom,
+                                stateFlow.value.amountAnimatedModel.amountData.amount
+                            )
                         )
                     )
                 },
@@ -105,16 +110,21 @@ class LookupRoomViewModel @Inject constructor(
 
                     val host = it.members.firstOrNull { m -> m.isHost }
 
-                    val confirmJoinArgs = RoomInfoArgs(
-                        roomId = it.room.id,
-                        roomTitle = it.room.titleOrFallback(resources),
-                        roomNumber = it.room.roomNumber,
-                        memberCount = it.members.count(),
-                        hostId = host?.id,
-                        hostName = host?.identity?.displayName,
-                        coverChargeQuarks = it.room.coverCharge.quarks
-                    )
-                    dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
+                    val isExistingMember = it.members.any { m -> m.isSelf }
+                    if (isExistingMember) {
+                        dispatchEvent(Event.OpenExistingRoom(it.room.id))
+                    } else {
+                        val confirmJoinArgs = RoomInfoArgs(
+                            roomId = it.room.id,
+                            roomTitle = it.room.titleOrFallback(resources),
+                            roomNumber = it.room.roomNumber,
+                            memberCount = it.members.count(),
+                            hostId = host?.id,
+                            hostName = host?.identity?.displayName,
+                            coverChargeQuarks = it.room.coverCharge.quarks
+                        )
+                        dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
+                    }
                 }
             ).launchIn(viewModelScope)
     }
@@ -135,6 +145,7 @@ class LookupRoomViewModel @Inject constructor(
                 is Event.OnEnteredNumberChanged,
                 Event.OnLookupRoom,
                 is Event.OnOpenConfirmation,
+                is Event.OpenExistingRoom,
                 is Event.OnNumberPressed -> { state -> state }
 
                 is Event.OnRoomFound -> { state -> state.copy(success = true) }

@@ -66,6 +66,15 @@ data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
 
         LaunchedEffect(viewModel) {
             viewModel.eventFlow
+                .filterIsInstance<LookupRoomViewModel.Event.OpenExistingRoom>()
+                .map { it.roomId }
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
                 .filterIsInstance<LookupRoomViewModel.Event.OnOpenConfirmation>()
                 .map { it.args }
                 .onEach {
