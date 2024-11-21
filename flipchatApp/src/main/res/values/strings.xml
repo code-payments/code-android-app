@@ -90,7 +90,7 @@
     <string name="action_reportUser">Report %1$s</string>
 
     <string name="title_roomCardHostedBy">Hosted by %1$s</string>
-    <string name="title_roomCardJoinCost">Cover Charge: ⬢ %1$d Kin</string>
+    <string name="title_roomCardJoinCost">Cover Charge: ⬢ %1$s</string>
 
     <string name="title_roomCardMemberCountEmpty">0 People Inside</string>
     <string name="title_roomCardMemberCountSingle">1 Person Inside</string>

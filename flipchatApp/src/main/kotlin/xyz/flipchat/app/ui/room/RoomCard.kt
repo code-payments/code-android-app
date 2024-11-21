@@ -26,12 +26,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.getcode.model.Currency
 import xyz.flipchat.app.R
 import xyz.flipchat.app.theme.FlipchatTheme
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.dropShadow
 import com.getcode.ui.utils.Geometry
+import com.getcode.util.resources.LocalResources
+import com.getcode.utils.Kin
 import com.getcode.utils.decodeBase58
+import com.getcode.utils.formatAmountString
 import xyz.flipchat.app.data.RoomInfo
 
 
@@ -128,7 +132,14 @@ fun RoomCard(
                         color = Color.White.copy(0.80f)
                     )
                     Text(
-                        text = stringResource(R.string.title_roomCardJoinCost, roomInfo.coverCharge.quarks),
+                        text = stringResource(R.string.title_roomCardJoinCost,
+                            formatAmountString(
+                                resources = LocalResources.current!!,
+                                currency = Currency.Kin,
+                                amount = roomInfo.coverCharge.quarks.toDouble(),
+                                suffix = stringResource(R.string.core_kin)
+                            )
+                        ),
                         style = CodeTheme.typography.textSmall,
                         color = Color.White.copy(0.80f)
                     )
