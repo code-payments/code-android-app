@@ -11,6 +11,7 @@ import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.flatMap
+import androidx.paging.insertSeparators
 import androidx.paging.map
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
@@ -28,6 +29,7 @@ import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.util.formatDateRelatively
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.toInstantFromMillis
 import com.getcode.utils.CurrencyUtils
@@ -49,6 +51,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -466,6 +469,17 @@ class ConversationViewModel @Inject constructor(
                     ),
                     key = contents.hashCode() + message.id.hashCode()
                 )
+            }
+        }.mapLatest { page ->
+            page.insertSeparators { before: ChatItem.Message?, after: ChatItem.Message? ->
+                val beforeDate = before?.date?.formatDateRelatively()
+                val afterDate = after?.date?.formatDateRelatively()
+
+                if (beforeDate != afterDate) {
+                    beforeDate?.let { ChatItem.Date(it) }
+                } else {
+                    null
+                }
             }
         }
 
