@@ -7,6 +7,7 @@ import com.getcode.AppHomeScreen
 import com.getcode.analytics.Action
 import com.getcode.analytics.ActionSource
 import com.getcode.analytics.AnalyticsService
+import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.manager.AuthManager
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.media.MediaScanner
@@ -30,10 +31,11 @@ class AccessKeyViewModel @Inject constructor(
     private val authManager: AuthManager,
     private val analytics: AnalyticsService,
     private val permissions: PermissionChecker,
-    private val mnemonicManager: com.getcode.services.manager.MnemonicManager,
+    private val mnemonicManager: MnemonicManager,
     resources: ResourceHelper,
     mediaScanner: MediaScanner,
-) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
+    qrCodeGenerator: QRCodeGenerator,
+) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, qrCodeGenerator) {
     @SuppressLint("CheckResult")
     fun onSubmit(navigator: CodeNavigator, isSaveImage: Boolean, isDeepLink: Boolean = false) {
         val entropyB64 = uiFlow.value.entropyB64 ?: return

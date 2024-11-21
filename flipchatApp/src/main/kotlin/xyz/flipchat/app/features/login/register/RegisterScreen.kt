@@ -98,7 +98,7 @@ private fun RegisterScreenContent(
         viewModel.eventFlow
             .filterIsInstance<Event.OnSuccess>()
             .onEach {
-                navigator.push(ScreenRegistry.get(NavScreenProvider.NotificationPermission(true)))
+                navigator.push(ScreenRegistry.get(NavScreenProvider.Login.AccessKey))
             }.launchIn(this)
     }
 

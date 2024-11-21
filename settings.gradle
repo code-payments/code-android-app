@@ -33,6 +33,7 @@ include(
         ":libs:network:exchange",
         ':libs:network:connectivity',
         ":libs:permissions",
+        ":libs:quickresponse",
         ":libs:requests",
         ":libs:vibrator",
 

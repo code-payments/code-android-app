@@ -42,6 +42,7 @@ import com.getcode.ui.components.bars.TopBarContainer
 import com.getcode.ui.modals.ConfirmationModals
 import com.getcode.ui.utils.getActivity
 import com.getcode.navigation.extensions.getActivityScopedViewModel
+import com.getcode.ui.LocalTopBarPadding
 import com.getcode.ui.theme.CodeTheme
 import com.getcode.ui.utils.measured
 import com.getcode.ui.utils.rememberBiometricsState

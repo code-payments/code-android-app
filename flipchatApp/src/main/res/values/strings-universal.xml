@@ -5,6 +5,7 @@
     <string translatable="false" name="handle">\@flipchatapp</string>
     <string translatable="false" name="account_name_link">FlipchatAccount</string>
 
+    <string translatable="false" name="app_root_url">https://app.flipchat.xyz</string>
     <string translatable="false" name="app_tos">https://app.flipchat.xyz/tos</string>
     <string translatable="false" name="app_privacy_policy">https://app.flipchat.xyz/privacy-policy</string>
 </resources>

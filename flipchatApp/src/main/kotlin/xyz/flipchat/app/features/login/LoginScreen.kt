@@ -27,7 +27,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
         } else {
             LoginHome(
                 createAccount = {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Registration))
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Login.Registration))
                 },
                 login = {
                     navigator.push(ScreenRegistry.get(NavScreenProvider.Login.SeedInput))

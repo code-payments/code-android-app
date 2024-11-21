@@ -1,4 +1,4 @@
-package com.getcode.view.login
+package xyz.flipchat.app.features.accesskey
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -8,34 +8,42 @@ import android.os.Environment
 import androidx.core.graphics.applyCanvas
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.viewModelScope
-import com.getcode.R
 import com.getcode.libs.qr.QRCodeGenerator
-import com.getcode.services.manager.MnemonicManager
-import com.getcode.manager.SessionManager
 import com.getcode.manager.TopBarManager
-import com.getcode.media.MediaScanner
 import com.getcode.network.repository.DeniedReason
 import com.getcode.network.repository.ErrorSubmitIntent
 import com.getcode.network.repository.ErrorSubmitIntentException
+import com.getcode.services.manager.MnemonicManager
 import com.getcode.theme.Alert
-import com.getcode.theme.Brand
 import com.getcode.theme.White
 import com.getcode.ui.utils.toAGColor
 import com.getcode.util.resources.ResourceHelper
-import com.getcode.util.save
 import com.getcode.utils.decodeBase64
 import com.getcode.view.BaseViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.kin.sdk.base.tools.Base58
 import timber.log.Timber
+import xyz.flipchat.app.R
+import xyz.flipchat.app.theme.FC_Primary
+import xyz.flipchat.app.util.media.MediaScanner
+import xyz.flipchat.app.util.save
+import xyz.flipchat.services.user.UserManager
 import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 import com.getcode.theme.R as themeR
 
 
@@ -54,16 +62,19 @@ abstract class BaseAccessKeyViewModel(
     private val resources: ResourceHelper,
     private val mnemonicManager: MnemonicManager,
     private val mediaScanner: MediaScanner,
-    private val qrCodeGenerator: QRCodeGenerator,
+    userManager: UserManager,
+    private val qrCodeGenerator: QRCodeGenerator
 ) : BaseViewModel(resources) {
     val uiFlow = MutableStateFlow(AccessKeyUiModel())
 
-    fun init() {
-        viewModelScope.launch {
-            SessionManager.authState
-                .distinctUntilChangedBy { it.entropyB64 }
-                .collect { it.entropyB64?.let { e -> initWithEntropy(e) } }
-        }
+    init {
+        userManager.state
+            .distinctUntilChangedBy { it.entropy }
+            .map { it.entropy }
+            .filterNotNull()
+            .take(1)
+            .onEach { initWithEntropy(it) }
+            .launchIn(viewModelScope)
     }
 
     fun initWithEntropy(entropyB64: String) {
@@ -102,9 +113,9 @@ abstract class BaseAccessKeyViewModel(
     private val targetWidth = 1200
     private val targetHeight = 2500
 
-    private val logoWidth = 270
-    private val logoHeight = 88
-    private val qrCodeSize = 480
+    private val logoWidth = 92.4f
+    private val logoHeight = 132
+    private val qrCodeSize = 360
 
     private val bgTopOffset = 550
     private val logoTopOffset = 770
@@ -113,23 +124,33 @@ abstract class BaseAccessKeyViewModel(
     private val topTextTopOffset = 200
     private val bottomTextTopOffset = 2000
 
+    internal suspend fun saveBitmapToFile(): Result<Boolean> {
+        uiFlow.update { it.copy(isLoading = true) }
+        val bitmap = uiFlow.value.accessKeyBitmap
+            ?: return Result.failure(IllegalStateException("No access key?"))
+        val destination =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
 
-    internal fun saveBitmapToFile(): Boolean {
-        val bitmap = uiFlow.value.accessKeyBitmap ?: return false
-        val destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        val result = bitmap.save(
-            destination = destination,
-            name = {
-                val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
-                "Code-Recovery-${date.format(Date())}.png"
-            },
-        )
-
-        if (result) {
-            mediaScanner.scan(destination)
+        return withContext(Dispatchers.IO) {
+            runCatching {
+                val result = bitmap.save(
+                    destination = destination,
+                    name = {
+                        val date: DateFormat = SimpleDateFormat("yyy-MM-dd-h-mm", Locale.CANADA)
+                        "Flipchat-Recovery-${date.format(Date())}.png"
+                    }
+                )
+                if (result) {
+                    mediaScanner.scan(destination)
+                }
+                result
+            }
+        }.onFailure {
+            getAccessKeySaveError()
+            uiFlow.update { it.copy(isLoading = false, isSuccess = false) }
+        }.onSuccess {
+            uiFlow.update { it.copy(isLoading = false, isSuccess = true) }
         }
-
-        return result
     }
 
     private fun createBitmapForExport(
@@ -143,8 +164,8 @@ abstract class BaseAccessKeyViewModel(
             ?.toBitmap(812, 1353)!!
 
         val imageLogo =
-            resources.getDrawable(R.drawable.ic_code_logo_white)
-                ?.toBitmap(logoWidth, logoHeight)!!
+            resources.getDrawable(R.drawable.ic_flipchat_logo_access_key)
+                ?.toBitmap(logoWidth.roundToInt(), logoHeight)!!
 
         val imageOut = Bitmap.createBitmap(
             targetWidth, targetHeight,
@@ -155,7 +176,7 @@ abstract class BaseAccessKeyViewModel(
 
             if (drawBackground) {
                 val paintBackground = Paint()
-                paintBackground.color = Brand.toAGColor()
+                paintBackground.color = FC_Primary.toAGColor()
                 paintBackground.style = Paint.Style.FILL
                 drawPaint(paintBackground)
             }
@@ -236,7 +257,7 @@ abstract class BaseAccessKeyViewModel(
 
     private fun getQrCode(entropyB64: String): Bitmap? {
         val base58 = Base58.encode(entropyB64.decodeBase64())
-        val url = "${resources.getString(R.string.root_url_app)}/login?data=$base58"
+        val url = "${resources.getString(R.string.app_root_url)}/login?data=$base58"
 
         return qrCodeGenerator.generate(url, qrCodeSize)
     }
@@ -267,55 +288,4 @@ abstract class BaseAccessKeyViewModel(
         resources.getString(R.string.error_title_failedToSave),
         resources.getString(R.string.error_description_failedToSave),
     )
-
-    private fun getSomethingWentWrongError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_failedToCreateAccount),
-        resources.getString(R.string.error_description_failedToCreateAccount),
-    )
-
-    private fun getTooManyAccountsPerPhoneError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_tooManyAccountsPerPhone),
-        resources.getString(R.string.error_description_tooManyAccountsPerPhone)
-    )
-
-    private fun getTooManyAccountsPerDeviceError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_tooManyAccountsPerDevice),
-        resources.getString(R.string.error_description_tooManyAccountsPerDevice)
-    )
-
-    private fun getUnsupportedCountryError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_countryNotSupported),
-        resources.getString(R.string.error_description_countryNotSupported)
-    )
-
-    private fun getUnsupportedDeviceError() = TopBarManager.TopBarMessage(
-        resources.getString(R.string.error_title_deviceNotSupported),
-        resources.getString(R.string.error_description_deviceNotSupported)
-    )
-
-    internal fun onSubmitError(e: Throwable) {
-        when (e) {
-            is ErrorSubmitIntentException -> {
-                when (val intent = e.errorSubmitIntent) {
-                    is ErrorSubmitIntent.Denied -> {
-                        if (intent.reasons.isEmpty() || intent.reasons.first() == DeniedReason.Unspecified) {
-                            getSomethingWentWrongError()
-                        } else {
-                            val reason = intent.reasons.first()
-                            when (reason) {
-                                DeniedReason.Unspecified -> getSomethingWentWrongError()
-                                DeniedReason.TooManyFreeAccountsForPhoneNumber -> getTooManyAccountsPerPhoneError()
-                                DeniedReason.TooManyFreeAccountsForDevice -> getTooManyAccountsPerDeviceError()
-                                DeniedReason.UnsupportedCountry -> getUnsupportedCountryError()
-                                DeniedReason.UnsupportedDevice -> getUnsupportedDeviceError()
-                            }
-                        }
-                    }
-                    else -> getSomethingWentWrongError()
-                }
-            }
-            is IllegalStateException -> getAccessKeySaveError()
-            else -> getSomethingWentWrongError()
-        }.let { m -> TopBarManager.showMessage(m) }
-    }
 }

@@ -1,4 +1,4 @@
-package com.getcode.util
+package com.getcode.libs.qr
 
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -19,15 +19,18 @@ import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-fun generateQrCode(url: String, size: Int): Bitmap? {
-    return generateQr(
-        url = url,
-        size = size,
-        padding = 0,
-        contentColor = Color.WHITE,
-        spaceColor = Color.TRANSPARENT
-    )
+class QRCodeGenerator @Inject constructor() {
+    fun generate(url: String, size: Int): Bitmap? {
+        return generateQr(
+            url = url,
+            size = size,
+            padding = 0,
+            contentColor = Color.WHITE,
+            spaceColor = Color.TRANSPARENT
+        )
+    }
 }
 
 @Composable

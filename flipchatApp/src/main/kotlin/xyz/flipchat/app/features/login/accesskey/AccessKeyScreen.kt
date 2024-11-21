@@ -1,7 +1,8 @@
-package com.getcode.view.login
+package xyz.flipchat.app.features.login.accesskey
 
 import android.Manifest
 import android.os.Build
+import android.os.Parcelable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
@@ -28,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,45 +38,70 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.getcode.LocalTopBarPadding
-import com.getcode.R
+import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.Screen
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.screens.LoginArgs
+import com.getcode.navigation.screens.NamedScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
-import com.getcode.ui.LocalTopBarPadding
-import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.Cloudy
-import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.components.SelectionContainer
 import com.getcode.ui.components.rememberSelectionState
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
-import com.getcode.util.launchAppSettings
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
+import kotlinx.parcelize.IgnoredOnParcel
+import kotlinx.parcelize.Parcelize
+import xyz.flipchat.app.R
+import xyz.flipchat.app.util.launchAppSettings
 
-@Preview
+@Parcelize
+data object AccessKeyScreen: Screen, NamedScreen, Parcelable {
+
+    @IgnoredOnParcel
+    override val key: ScreenKey = uniqueScreenKey
+
+    override val name: String
+        @Composable get() = stringResource(R.string.title_accessKey)
+    @Composable
+    override fun Content() {
+        val viewModel = getViewModel<LoginAccessKeyViewModel>()
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            AppBarWithTitle(
+                title = name,
+            )
+            AccessKeyScreenContent(viewModel)
+        }
+
+        BackHandler { /* intercept */ }
+    }
+}
+
+
 @Composable
-fun AccessKey(
-    viewModel: AccessKeyViewModel = hiltViewModel(),
-    arguments: LoginArgs = LoginArgs(),
-) {
+private fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel) {
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val dataState by viewModel.uiFlow.collectAsState()
-    val keyboardController = LocalSoftwareKeyboardController.current
-    keyboardController?.hide()
 
     var isExportSeedRequested by remember { mutableStateOf(false) }
     var isStoragePermissionGranted by remember { mutableStateOf(false) }
@@ -99,9 +126,16 @@ fun AccessKey(
     val launcher = getPermissionLauncher(Manifest.permission.WRITE_EXTERNAL_STORAGE, onPermissionResult)
     val permissionChecker = rememberPermissionHandler()
 
-    if (isExportSeedRequested && isStoragePermissionGranted) {
-        viewModel.onSubmit(navigator, true)
-        isExportSeedRequested = false
+    LaunchedEffect(isExportSeedRequested, isStoragePermissionGranted) {
+        if (isExportSeedRequested && isStoragePermissionGranted) {
+            viewModel.saveImage()
+                .onSuccess {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true)))
+                }
+                .onFailure {
+                    isExportSeedRequested = false
+                }
+        }
     }
 
     val onExportClick = {
@@ -119,7 +153,7 @@ fun AccessKey(
 
     }
     val onSkipClick = {
-        viewModel.onSubmit(navigator, false)
+        navigator.push(ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true)))
     }
 
     var buttonHeight by remember {
@@ -172,7 +206,8 @@ fun AccessKey(
                                         .getString(R.string.prompt_description_wroteThemDown),
                                     positiveText = context
                                         .getString(R.string.action_yesWroteThemDown),
-                                    negativeText = context.getString(R.string.action_cancel),
+                                    negativeText = "",
+                                    tertiaryText = context.getString(R.string.action_cancel),
                                     onPositive = { onSkipClick() },
                                     onNegative = {}
                                 )
@@ -190,7 +225,6 @@ fun AccessKey(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxHeight()
-                .padding(LocalTopBarPadding.current)
                 .addIf(buttonHeight.isSpecified) { Modifier.padding(bottom = buttonHeight + CodeTheme.dimens.grid.x4) },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -250,16 +284,13 @@ fun AccessKey(
                     subtitle = context
                         .getString(R.string.prompt_description_exitAccountCreation),
                     positiveText = context.getString(R.string.action_exit),
-                    negativeText = context.getString(R.string.action_cancel),
-                    onPositive = { navigator.popAll() },
+                    negativeText = "",
+                    tertiaryText = context.getString(R.string.action_cancel),
+                    onPositive = { navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home())) },
+                    type = BottomBarManager.BottomBarMessageType.DESTRUCTIVE,
                     onNegative = {}
                 )
             )
-        }
-
-        LaunchedEffect(viewModel) {
-            arguments.signInEntropy
-                ?.let { viewModel.initWithEntropy(it) }
         }
 
         LaunchedEffect(dataState.accessKeyCroppedBitmap) {
@@ -267,4 +298,3 @@ fun AccessKey(
         }
     }
 }
-

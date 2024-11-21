@@ -13,6 +13,7 @@ import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.ChatInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
 import xyz.flipchat.app.features.chat.lookup.confirm.JoinConfirmationScreen
+import xyz.flipchat.app.features.login.accesskey.AccessKeyScreen
 import xyz.flipchat.app.features.login.accesskey.SeedInputScreen
 import xyz.flipchat.app.features.login.permissions.NotificationPermissionScreen
 import xyz.flipchat.app.features.login.register.RegisterScreen
@@ -20,16 +21,20 @@ import xyz.flipchat.app.features.login.register.RegisterScreen
 @Composable
 fun AppScreenContent(content: @Composable () -> Unit) {
     ScreenRegistry {
-        register<NavScreenProvider.Registration> {
+        register<NavScreenProvider.Login.Home> {
+            LoginScreen(it.seed)
+        }
+
+        register<NavScreenProvider.Login.Registration> {
             RegisterScreen
         }
 
-        register<NavScreenProvider.NotificationPermission> {
-            NotificationPermissionScreen(it.fromOnboarding)
+        register<NavScreenProvider.Login.AccessKey> {
+            AccessKeyScreen
         }
 
-        register<NavScreenProvider.Login.Home> {
-            LoginScreen(it.seed)
+        register<NavScreenProvider.Login.NotificationPermission> {
+            NotificationPermissionScreen(it.fromOnboarding)
         }
 
         register<NavScreenProvider.Login.SeedInput> {

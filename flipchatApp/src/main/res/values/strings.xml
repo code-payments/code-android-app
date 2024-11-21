@@ -79,7 +79,7 @@
     <string name="action_remove">Remove</string>
 
     <string name="title_muteUserInRoom">Mute %1$s?</string>
-    <string name="subtitle_muteUserInRoom">They will still remain in the room, but will lose the ability to chat</string>
+    <string name="subtitle_muteUserInRoom">They will no longer be able send messages in this room</string>
     <string name="action_mute">Mute</string>
     <string name="action_muteUser">Mute %1$s</string>
 
@@ -117,4 +117,7 @@
 
     <string name="title_youHaveBeenMuted">You\'ve been muted</string>
 
+    <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your account. Please keep it private and safe.</string>
+    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to all your messages in Flipchat. Do not share this image with anyone else. Keep it secure and safe.</string>
+    <string name="error_description_failedToSave">Please allow Flipchat access to Photos in Settings in order to save your Access Key.</string>
 </resources>

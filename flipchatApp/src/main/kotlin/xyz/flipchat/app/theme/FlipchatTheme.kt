@@ -13,7 +13,7 @@ import com.getcode.theme.Gray50
 import com.getcode.theme.TextMain
 import com.getcode.theme.White
 
-private val FC_Primary = Color(0xFF362774)
+val FC_Primary = Color(0xFF362774)
 private val FC_Secondary = Color(0xFF443091)
 private val FC_Tertiary = Color(0xFF7D6CC3)
 private val FC_TextWithPrimary = Color(0xFFD2C6FF)

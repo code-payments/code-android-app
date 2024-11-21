@@ -129,6 +129,7 @@ dependencies {
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
     implementation(project(":libs:permissions"))
+    implementation(project(":libs:quickresponse"))
     implementation(project(":libs:requests"))
     implementation(project(":ui:components"))
     implementation(project(":ui:navigation"))
@@ -207,14 +208,11 @@ dependencies {
     implementation(Libs.hilt_nav_compose)
     implementation(Libs.lib_phone_number_port)
     implementation(Libs.mp_android_chart)
-    implementation(Libs.zxing)
     implementation(Libs.mixpanel)
 
     implementation(Libs.retrofit)
     implementation(Libs.retrofit_converter)
     implementation(Libs.okhttp_logging_interceptor)
-
-    implementation(Libs.cloudy)
 
     androidTestImplementation(Libs.androidx_test_runner)
     androidTestImplementation(Libs.androidx_junit)

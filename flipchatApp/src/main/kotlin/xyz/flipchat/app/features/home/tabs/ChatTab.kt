@@ -84,7 +84,6 @@ internal object ChatTab : ChildNavTab {
                 }.launchIn(this)
         }
 
-        val composeScope = rememberCoroutineScope()
         Box {
             Column {
                 AppBarWithTitle(
@@ -92,10 +91,8 @@ internal object ChatTab : ChildNavTab {
                     startContent = {
                         HiddenLogoutButton(modifier = Modifier.padding(CodeTheme.dimens.grid.x1)) {
                             context.getActivity()?.let {
-                                composeScope.launch {
-                                    settingsVm.logout(it) {
-                                        navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                                    }
+                                settingsVm.logout(it) {
+                                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                                 }
                             }
                         }

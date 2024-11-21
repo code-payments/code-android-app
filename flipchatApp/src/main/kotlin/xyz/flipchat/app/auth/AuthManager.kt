@@ -194,8 +194,8 @@ class AuthManager @Inject constructor(
                             if (res) {
                                 launch {
                                     clearToken()
-                                    onComplete()
                                 }
+                                onComplete()
                             }
                         }
                         .subscribe()

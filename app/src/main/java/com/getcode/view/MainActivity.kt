@@ -29,7 +29,7 @@ import com.getcode.network.exchange.LocalExchange
 import com.getcode.ui.tips.DefinedTips
 import com.getcode.util.DeeplinkHandler
 import com.getcode.util.PhoneUtils
-import com.getcode.util.rememberQrBitmapPainter
+import com.getcode.libs.qr.rememberQrBitmapPainter
 import com.getcode.util.resources.LocalResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.LocalVibrator
@@ -121,7 +121,7 @@ class MainActivity : FragmentActivity() {
             BoxWithConstraints {
                 trace("set content")
 
-                val downloadQr = rememberQrBitmapPainter(
+                val downloadQr = com.getcode.libs.qr.rememberQrBitmapPainter(
                     content = stringResource(
                         R.string.app_download_link,
                         stringResource(id = R.string.app_download_link_qr_ref)

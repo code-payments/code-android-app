@@ -56,8 +56,11 @@ dependencies {
     implementation(project(":libs:network:exchange"))
     implementation(project(":libs:network:connectivity"))
     implementation(project(":libs:requests"))
+    implementation(project(":libs:vibrator"))
     implementation(project(":ui:theme"))
     implementation(project(":ui:resources"))
+
+    api(Libs.cloudy)
 
     implementation(Libs.coil3)
     implementation(Libs.coil3_network)

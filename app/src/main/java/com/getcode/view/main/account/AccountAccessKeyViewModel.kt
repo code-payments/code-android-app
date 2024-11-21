@@ -2,6 +2,7 @@ package com.getcode.view.main.account
 
 import android.annotation.SuppressLint
 import androidx.lifecycle.viewModelScope
+import com.getcode.libs.qr.QRCodeGenerator
 import com.getcode.media.MediaScanner
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.util.resources.ResourceHelper
@@ -20,9 +21,10 @@ import kotlin.time.Duration.Companion.seconds
 @HiltViewModel
 class AccountAccessKeyViewModel @Inject constructor(
     resources: ResourceHelper,
-    mnemonicManager: com.getcode.services.manager.MnemonicManager,
+    mnemonicManager: MnemonicManager,
     mediaScanner: MediaScanner,
-) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner) {
+    qrCodeGenerator: QRCodeGenerator,
+) : BaseAccessKeyViewModel(resources, mnemonicManager, mediaScanner, qrCodeGenerator) {
     @SuppressLint("CheckResult")
     fun onSubmit() {
         Completable.create {
