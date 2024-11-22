@@ -119,7 +119,7 @@ fun MessageList(
                     val spacingAfter = when {
                         index > messages.itemCount -> 0.dp
                         item.message is MessageContent.Announcement -> CodeTheme.dimens.inset
-                        isNextGrouped -> 1.5.dp
+                        isNextGrouped -> 3.dp
                         else -> CodeTheme.dimens.grid.x3
                     }
 
