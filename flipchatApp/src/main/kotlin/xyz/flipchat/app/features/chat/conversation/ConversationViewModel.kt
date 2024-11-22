@@ -107,7 +107,7 @@ class ConversationViewModel @Inject constructor(
                 hostId = null,
                 conversationId = null,
                 reference = null,
-                chattableState = ChattableState.Unknown,
+                chattableState = ChattableState.Enabled,
                 textFieldState = TextFieldState(),
                 title = "",
                 lastSeen = null,
