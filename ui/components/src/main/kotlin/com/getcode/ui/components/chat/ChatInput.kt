@@ -122,6 +122,7 @@ fun ChatInput(
             if (show) {
                 Box(
                     modifier = Modifier
+                        .padding(end = CodeTheme.dimens.grid.x2)
                         .size(ChatInput_Size)
                         .align(Alignment.Bottom)
                         .background(CodeTheme.colors.tertiary, shape = CircleShape)
