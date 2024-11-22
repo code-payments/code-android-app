@@ -50,6 +50,9 @@ class UserManager @Inject constructor(
     val openRoom: ID?
         get() = _state.value.openRoom
 
+    val authState: AuthState
+        get() = _state.value.authState
+
     data class State(
         val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,
