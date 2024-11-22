@@ -106,7 +106,7 @@ fun BalanceContent(
                 modifier = Modifier
                     .fillParentMaxWidth()
                     .padding(horizontal = CodeTheme.dimens.inset,)
-                    .padding(top = CodeTheme.dimens.grid.x7)
+                    .padding(top = CodeTheme.dimens.inset)
             ) {
                 BalanceTop(
                     state,

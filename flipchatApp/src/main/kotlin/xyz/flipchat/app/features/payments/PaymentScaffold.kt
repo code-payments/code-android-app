@@ -68,12 +68,7 @@ fun PaymentScaffold(content: @Composable () -> Unit) {
                     TipConfirmation(
                         confirmation = state.billState.socialUserPaymentConfirmation,
                         onSend = {
-                            payments.completePublicPayment(
-                                onSuccess = {
-                                    // TODO: fetch chats
-                                },
-                                onError = {}
-                            )
+                            payments.completePublicPayment()
                         },
                         onCancel = { payments.cancelPayment() }
                     )

@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.services.payments.R
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 data class PaymentState(
@@ -36,7 +35,8 @@ data class PaymentState(
 sealed interface PaymentEvent {
     data class OnPaymentSuccess(
         val intentId: ID,
-        val destination: PublicKey
+        val destination: PublicKey,
+        val acknowledge: (Boolean, () -> Unit) -> Unit // Caller returns true if they want to proceed as success, false as error
     ) : PaymentEvent
     data object OnPaymentCancelled : PaymentEvent
     data class OnPaymentError(val error: Throwable): PaymentEvent
@@ -62,7 +62,7 @@ class PaymentController @Inject constructor(
     fun presentPublicPaymentConfirmation(
         destination: PublicKey,
         amount: KinAmount,
-        metadata: ExtendedMetadata
+        metadata: ExtendedMetadata,
     ) {
         billController.update {
             it.copy(
@@ -76,7 +76,7 @@ class PaymentController @Inject constructor(
         }
     }
 
-    fun completePublicPayment(onSuccess: () -> Unit = { }, onError: (Throwable) -> Unit = { }) =
+    fun completePublicPayment() =
         scope.launch {
             val confirmation = billController.state.value.publicPaymentConfirmation ?: return@launch
             val destination = confirmation.destination
@@ -92,21 +92,31 @@ class PaymentController @Inject constructor(
             runCatching {
                 paymentRepository.payPublicly(amount, destination, metadata)
             }.onSuccess {
-                onSuccess()
+                _eventFlow.emit(PaymentEvent.OnPaymentSuccess(
+                    intentId = it,
+                    destination = destination,
+                    acknowledge = { isSuccess, after ->
+                        if (isSuccess) {
+                            scope.launch {
+                                billController.update { billState ->
+                                    val publicPaymentConfirmation =
+                                        billState.publicPaymentConfirmation ?: return@update billState
+                                    billState.copy(
+                                        publicPaymentConfirmation = publicPaymentConfirmation.copy(state = ConfirmationState.Sent),
+                                    )
+                                }
+                                delay(1.33.seconds)
+                                cancelPayment(fromUser = false)
+                                after()
+                            }
+                        } else {
+                            billController.reset()
+                            after()
 
-                billController.update { billState ->
-                    val publicPaymentConfirmation =
-                        billState.publicPaymentConfirmation ?: return@update billState
-                    billState.copy(
-                        publicPaymentConfirmation = publicPaymentConfirmation.copy(state = ConfirmationState.Sent),
-                    )
-                }
-                delay(1.seconds)
-                cancelPayment(fromUser = false)
-                delay(400.milliseconds)
-                _eventFlow.emit(PaymentEvent.OnPaymentSuccess(it, destination))
+                        }
+                    }
+                ))
             }.onFailure {
-                onError(it)
                 when {
                     it is PaymentError -> {
                         when (it) {

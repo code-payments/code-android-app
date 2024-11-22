@@ -82,14 +82,6 @@ class ChatListViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CreateRoomSelected>()
-            .onEach {
-                dispatchEvent(
-                    Event.ShowFullScreenSpinner(
-                        showScrim = true,
-                        showSpinner = false
-                    )
-                )
-            }
             .map { profileController.getUserFlags() }
             .mapNotNull {
                 it.exceptionOrNull()?.let {
@@ -120,69 +112,46 @@ class ChatListViewModel @Inject constructor(
                 }
             }.flatMapLatest {
                 paymentController.eventFlow.take(1)
-            }.mapNotNull {
-                when (it) {
-                    PaymentEvent.OnPaymentCancelled -> {
-                        dispatchEvent(
-                            Event.ShowFullScreenSpinner(
-                                showScrim = false,
-                                showSpinner = false
-                            )
-                        )
-                        return@mapNotNull null
-
-                    }
-
-                    is PaymentEvent.OnPaymentError -> {
-                        dispatchEvent(
-                            Event.ShowFullScreenSpinner(
-                                showScrim = false,
-                                showSpinner = false
-                            )
-                        )
-                        return@mapNotNull null
-                    }
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
 
                     is PaymentEvent.OnPaymentSuccess -> {
-                        dispatchEvent(
-                            Event.ShowFullScreenSpinner(
-                                showScrim = true,
-                                showSpinner = true
-                            )
-                        )
                         chatsController.createGroup(
                             title = null,
                             participants = emptyList(),
-                            it.intentId
-                        )
+                            paymentId = event.intentId
+                        ).onFailure {
+                            event.acknowledge(false) {
+                                dispatchEvent(
+                                    Event.ShowFullScreenSpinner(
+                                        showScrim = false,
+                                        showSpinner = false
+                                    )
+                                )
+                                TopBarManager.showMessage(
+                                    TopBarManager.TopBarMessage(
+                                        resources.getString(R.string.error_title_failedToCreateRoom),
+                                        resources.getString(R.string.error_description_failedToCreateRoom)
+                                    )
+                                )
+                            }
+                        }.onSuccess {
+                                event.acknowledge(true) {
+                                    dispatchEvent(
+                                        Event.ShowFullScreenSpinner(
+                                            showScrim = false,
+                                            showSpinner = false
+                                        )
+                                    )
+                                    dispatchEvent(Event.OpenRoom(it.id))
+                                    paymentController.cancelPayment(fromUser = false)
+                                }
+                        }
                     }
                 }
-            }.onResult(
-                onError = {
-                    dispatchEvent(
-                        Event.ShowFullScreenSpinner(
-                            showScrim = false,
-                            showSpinner = false
-                        )
-                    )
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            resources.getString(R.string.error_title_failedToCreateRoom),
-                            resources.getString(R.string.error_description_failedToCreateRoom)
-                        )
-                    )
-                },
-                onSuccess = {
-                    dispatchEvent(
-                        Event.ShowFullScreenSpinner(
-                            showScrim = false,
-                            showSpinner = false
-                        )
-                    )
-                    dispatchEvent(Event.OpenRoom(it.id))
-                    paymentController.cancelPayment(fromUser = false)
-                }
-            ).launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
     }
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>>

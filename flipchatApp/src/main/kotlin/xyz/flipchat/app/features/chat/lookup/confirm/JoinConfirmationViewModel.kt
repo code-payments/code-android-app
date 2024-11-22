@@ -12,11 +12,13 @@ import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
 import xyz.flipchat.app.data.RoomInfo
@@ -30,6 +32,7 @@ import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class JoinConfirmationViewModel @Inject constructor(
@@ -115,40 +118,42 @@ class JoinConfirmationViewModel @Inject constructor(
                 }
             }.flatMapLatest {
                 paymentController.eventFlow.take(1)
-            }.mapNotNull {
-                when (it) {
+            }.onEach { event ->
+                when (event) {
                     PaymentEvent.OnPaymentCancelled -> {
                         dispatchEvent(Event.OnJoiningChanged(false))
-                        return@mapNotNull null
                     }
+
                     is PaymentEvent.OnPaymentError -> {
                         dispatchEvent(Event.OnJoiningChanged(false))
-                        return@mapNotNull null
                     }
+
                     is PaymentEvent.OnPaymentSuccess -> {
                         val roomId = stateFlow.value.roomInfo.id.orEmpty()
-                        chatsController.joinRoom(roomId, it.intentId)
+                        chatsController.joinRoom(roomId, event.intentId)
+                            .onFailure {
+                                event.acknowledge(false) {
+                                    dispatchEvent(Event.OnJoiningChanged(false))
+                                    TopBarManager.showMessage(
+                                        TopBarManager.TopBarMessage(
+                                            resources.getString(R.string.error_title_failedToJoinRoom),
+                                            resources.getString(
+                                                R.string.error_description_failedToJoinRoom,
+                                                stateFlow.value.roomInfo.title
+                                            )
+                                        )
+                                    )
+                                }
+                            }
+                            .onSuccess {
+                                event.acknowledge(true) {
+                                    dispatchEvent(Event.OnJoiningChanged(false))
+                                    dispatchEvent(Event.OnJoinedSuccessfully(it.room.id))
+                                }
+                            }
                     }
                 }
-            }.onResult(
-                onError = {
-                    dispatchEvent(Event.OnJoiningChanged(false))
-                    TopBarManager.showMessage(
-                        TopBarManager.TopBarMessage(
-                            resources.getString(R.string.error_title_failedToJoinRoom),
-                            resources.getString(
-                                R.string.error_description_failedToJoinRoom,
-                                stateFlow.value.roomInfo.title
-                            )
-                        )
-                    )
-                },
-                onSuccess = {
-                    dispatchEvent(Event.OnJoiningChanged(false))
-                    dispatchEvent(Event.OnJoinedSuccessfully(it.room.id))
-                }
-            )
-            .launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
     }
 
     companion object {
