@@ -17,7 +17,7 @@ internal fun Bitmap.save(destination: File, name: () -> String): Boolean {
 
     return timedTrace("saving bitmap") {
         try {
-            FileOutputStream(dest).buffered().use { out ->
+            FileOutputStream(dest).use { out ->
                 compress(Bitmap.CompressFormat.PNG, 90, out)
             }
         } catch (e: Exception) {
