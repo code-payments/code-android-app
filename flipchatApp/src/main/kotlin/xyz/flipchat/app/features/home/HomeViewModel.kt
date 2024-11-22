@@ -5,6 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.controllers.ChatsController
@@ -16,8 +21,17 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val codeController: CodeController,
     private val chatsController: ChatsController,
-    val router: Router
+    private val userManager: UserManager,
+    val router: Router,
 ): ViewModel() {
+
+    init {
+        userManager.state
+            .mapNotNull { it.userId }
+            .distinctUntilChanged()
+            .onEach { requestAirdrop() }
+            .launchIn(viewModelScope)
+    }
 
     fun requestAirdrop() {
         viewModelScope.launch {

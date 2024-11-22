@@ -134,7 +134,6 @@ class AuthManager @Inject constructor(
         val originalEntropy = userManager.entropy
         userManager.establish(entropy = entropyB64)
 
-
         if (!isSoftLogin) {
             loginAnalytics()
         }
@@ -146,7 +145,6 @@ class AuthManager @Inject constructor(
             if (userId != null) {
                 Result.success(Base58.decode(userId).toList())
             } else {
-                setupAsNew()
                 Result.failure(Throwable("No user Id found"))
             }
         } else {
@@ -161,7 +159,6 @@ class AuthManager @Inject constructor(
             }
             .onSuccess {
                 userManager.set(userId = it)
-                userManager.establish(entropyB64)
                 savePrefs()
             }
             .onFailure {

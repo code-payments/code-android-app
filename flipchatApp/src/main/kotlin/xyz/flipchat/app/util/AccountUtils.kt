@@ -120,14 +120,20 @@ object AccountUtils {
     suspend fun getUserId(context: Context): String? {
         val accountManager = AccountManager.get(context)
         val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE)
-        val account = accounts.firstOrNull()
-        if (account != null) {
-            val pw = runCatching { accountManager.getPassword(account) }
-                .getOrNull()?.takeIf { it.isNotEmpty() }
-            if (pw != null) {
-                return pw
+
+        fun getPassword(a: Account?): String? {
+            if (a != null) {
+                val pw = runCatching { accountManager.getPassword(a) }
+                    .getOrNull()?.takeIf { it.isNotEmpty() }
+                if (pw != null) {
+                    return pw
+                }
             }
+            return null
         }
+
+        val account = accounts.firstOrNull()
+        getPassword(account)?.let { return it }
 
         val (_, acct) = retryable(
             call = { getAccountNoActivity(context) },
@@ -143,15 +149,7 @@ object AccountUtils {
             }
         ) ?: return null
 
-        if (acct != null) {
-            val pw = runCatching { accountManager.getPassword(acct) }
-                .getOrNull()?.takeIf { it.isNotEmpty() }
-            if (pw != null) {
-                return pw
-            }
-        }
-
-        return null
+        return getPassword(acct)
     }
 
     suspend fun getToken(context: Context): TokenResult? {

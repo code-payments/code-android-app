@@ -42,6 +42,7 @@ import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import timber.log.Timber
 import xyz.flipchat.services.user.AuthState
@@ -56,7 +57,6 @@ internal object MainRoot : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val userManager = LocalUserManager.currentOrThrow
-        val sessionState by userManager.authState.collectAsState()
         var showLoading by remember { mutableStateOf(false) }
 
         //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
@@ -104,24 +104,28 @@ internal object MainRoot : Screen {
             }
         }
 
-        LaunchedEffect(sessionState) {
-            Timber.d("sessionState=$sessionState")
-            when (sessionState) {
-                AuthState.AwaitingUser -> {
-                    delay(1_500) // wait at most 1.5s for account retrieval to fail
-                    navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                }
-                AuthState.LoggedIn -> {
-                    navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
-                }
-                AuthState.LoggedOut -> {
-                    navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                }
-                AuthState.Unknown -> {
-                    delay(500)
-                    showLoading = true
-                }
-            }
+        LaunchedEffect(userManager) {
+            userManager.state
+                .map { it.authState }
+                .distinctUntilChanged()
+                .onEach { state ->
+                    Timber.d("sessionState=$state")
+                    when (state) {
+                        AuthState.AwaitingUser -> {
+                            delay(500)
+                            showLoading = true
+                        }
+                        AuthState.LoggedIn -> {
+                            navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
+                        }
+                        AuthState.LoggedOut -> {
+                            navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        }
+                        AuthState.Unknown -> {
+                            navigator.replace(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                        }
+                    }
+                }.launchIn(this)
         }
     }
 }

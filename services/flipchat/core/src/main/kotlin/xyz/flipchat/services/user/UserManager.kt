@@ -14,10 +14,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 sealed interface AuthState {
-    data object Unknown: AuthState
-    data object AwaitingUser: AuthState
-    data object LoggedOut: AuthState
-    data object LoggedIn: AuthState
+    data object Unknown : AuthState
+    data object AwaitingUser : AuthState
+    data object LoggedOut : AuthState
+    data object LoggedIn : AuthState
 }
 
 @Singleton
@@ -50,11 +50,8 @@ class UserManager @Inject constructor(
     val openRoom: ID?
         get() = _state.value.openRoom
 
-    private val _authState: MutableStateFlow<AuthState> = MutableStateFlow(AuthState.Unknown)
-    val authState: StateFlow<AuthState>
-        get() = _authState
-
     data class State(
+        val authState: AuthState = AuthState.Unknown,
         val entropy: String? = null,
         val keyPair: KeyPair? = null,
         val userId: ID? = null,
@@ -69,17 +66,21 @@ class UserManager @Inject constructor(
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
         val organizer = organizerGenerator.generate(mnemonic)
         _state.update {
-            it.copy(entropy = entropy, keyPair = authority.keyPair, organizer = organizer)
+            it.copy(
+                authState = AuthState.AwaitingUser,
+                entropy = entropy,
+                keyPair = authority.keyPair,
+                organizer = organizer
+            )
         }
-        _authState.update { AuthState.AwaitingUser }
     }
 
     fun set(userId: ID) {
         _state.update {
-            it.copy(userId = userId)
+            it.copy(
+                authState = AuthState.LoggedIn,
+                userId = userId)
         }
-
-        _authState.update { AuthState.LoggedIn }
     }
 
     fun set(displayName: String) {
@@ -114,8 +115,16 @@ class UserManager @Inject constructor(
 
     fun clear() {
         _state.update {
-            it.copy(entropy = null, keyPair = null, userId = emptyList(), organizer = null, flags = null, openRoom = null)
+            it.copy(
+                authState = AuthState.LoggedOut,
+                entropy = null,
+                keyPair = null,
+                userId = emptyList(),
+                organizer = null,
+                flags = null,
+                openRoom = null
+            )
         }
-        _authState.update { AuthState.LoggedOut }
     }
+
 }

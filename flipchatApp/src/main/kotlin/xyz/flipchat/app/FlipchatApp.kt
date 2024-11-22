@@ -23,16 +23,6 @@ class FlipchatApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Firebase.initialize(this)
-        MnemonicCache.init(this)
-        authManager.init { trace("NaCl init") }
-
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-
-        RxJavaPlugins.setErrorHandler {
-            ErrorUtils.handleError(it)
-        }
-
         if (BuildConfig.DEBUG) {
             Timber.plant(object : Timber.DebugTree() {
                 override fun createStackElementTag(element: StackTraceElement): String {
@@ -59,6 +49,16 @@ class FlipchatApp : Application() {
         } else {
             Bugsnag.start(this)
         }
+
+        RxJavaPlugins.setErrorHandler {
+            ErrorUtils.handleError(it)
+        }
+
+        Firebase.initialize(this)
+        MnemonicCache.init(this)
+        authManager.init { trace("NaCl init") }
+
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         trace("app onCreate end")
     }
 }
