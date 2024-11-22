@@ -136,7 +136,7 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
                                 )
                             ) {
                                 Image(
-                                    modifier = Modifier.size(20.dp),
+                                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
                                     painter = tab.options.icon!!,
                                     contentDescription = null,
                                 )

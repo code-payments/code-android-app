@@ -19,7 +19,7 @@ internal object CashTab : ChildNavTab {
         @Composable get() = TabOptions(
             index = ordinal.toUShort(),
             title = stringResource(R.string.title_cashTab),
-            icon = painterResource(R.drawable.ic_kin_white_outline)
+            icon = painterResource(R.drawable.ic_fc_balance)
         )
 
     @Composable
