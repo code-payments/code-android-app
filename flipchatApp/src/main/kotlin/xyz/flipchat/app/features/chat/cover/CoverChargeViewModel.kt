@@ -35,9 +35,7 @@ class CoverChargeViewModel @Inject constructor(
         val roomId: ID? = null,
         val submitting: Boolean = false,
         val success: Boolean = false,
-        val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(
-            amountData = NumberInputHelper.AmountAnimatedData()
-        ),
+        val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(),
         val canChange: Boolean = false,
     )
 

@@ -21,6 +21,7 @@ fun AmountWithKeypad(
     modifier: Modifier = Modifier,
     amountAnimatedModel: AmountAnimatedInputUiModel,
     prefix: String = "",
+    placeholder: String = "",
     isKin: Boolean = false,
     hint: String = "",
     onNumberPressed: (Int) -> Unit,
@@ -33,15 +34,18 @@ fun AmountWithKeypad(
         modifier = modifier,
     ) {
         Box(
-            modifier = Modifier.weight(0.65f)
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.65f)
         ) {
             AmountArea(
                 modifier = Modifier
+                    .fillMaxWidth()
                     .align(Alignment.Center)
                     .padding(horizontal = CodeTheme.dimens.inset),
                 amountPrefix = prefix,
-                amountText = "",
-                placeholder = "",
+                amountText = "0",
+                placeholder = placeholder,
                 captionText = hint,
                 currencyResId = if (isKin) R.drawable.ic_currency_kin else null,
                 isAltCaptionKinIcon = false,

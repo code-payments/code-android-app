@@ -341,7 +341,8 @@ internal fun AmountTextAnimated(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center) {
 
-                Spacer(modifier = Modifier.width(CodeTheme.dimens.staticGrid.x1))
+                val prefixPadding = if (amountSuffix.isEmpty()) CodeTheme.dimens.staticGrid.x2 else CodeTheme.dimens.staticGrid.x1
+                Spacer(modifier = Modifier.width(prefixPadding))
 
                 if (currencyResId != null && currencyResId > 0) {
                     Image(
@@ -430,22 +431,20 @@ internal fun AmountTextAnimated(
                     }
                 }
 
-                if (amountSuffix.isNotEmpty()) {
-                    Text(
-                        modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3),
-                        text = amountSuffix,
-                        fontSize = textSize,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Clip,
-                        softWrap = false,
-                        onTextLayout = { textLayoutResult ->
-                            if (textLayoutResult.hasVisualOverflow) {
-                                decreaseFont(length1)
-                            }
+                Text(
+                    modifier = Modifier.padding(end = CodeTheme.dimens.grid.x3),
+                    text = amountSuffix.ifEmpty { " " },
+                    fontSize = textSize,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    softWrap = false,
+                    onTextLayout = { textLayoutResult ->
+                        if (textLayoutResult.hasVisualOverflow) {
+                            decreaseFont(length1)
                         }
-                    )
-                }
+                    }
+                )
             }
         }
 

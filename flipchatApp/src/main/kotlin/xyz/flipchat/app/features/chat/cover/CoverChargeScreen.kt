@@ -83,9 +83,12 @@ private fun ChangeCoverScreenContent(
         modifier = Modifier.fillMaxSize(),
     ) {
         AmountWithKeypad(
-            modifier = Modifier.weight(1f),
-            state.amountAnimatedModel,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            amountAnimatedModel = state.amountAnimatedModel,
             isKin = true,
+            placeholder = "0",
             onNumberPressed = { viewModel.dispatchEvent(CoverChargeViewModel.Event.OnNumberPressed(it)) },
             onBackspace = { viewModel.dispatchEvent(CoverChargeViewModel.Event.OnBackspace) },
         )
