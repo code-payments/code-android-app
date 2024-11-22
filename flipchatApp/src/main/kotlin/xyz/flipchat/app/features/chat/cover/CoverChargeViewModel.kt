@@ -36,7 +36,7 @@ class CoverChargeViewModel @Inject constructor(
         val submitting: Boolean = false,
         val success: Boolean = false,
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(
-            amountData = NumberInputHelper.AmountAnimatedData("")
+            amountData = NumberInputHelper.AmountAnimatedData()
         ),
         val canChange: Boolean = false,
     )
@@ -77,7 +77,7 @@ class CoverChargeViewModel @Inject constructor(
             .onEach { backspace ->
                 val current = stateFlow.value.amountAnimatedModel
                 val model = stateFlow.value.amountAnimatedModel
-                val amount = numberInputHelper.getFormattedStringForAnimation(includeCommas = false)
+                val amount = numberInputHelper.getFormattedStringForAnimation(includeCommas = true)
 
                 val updated = model.copy(
                     amountDataLast = current.amountData,
