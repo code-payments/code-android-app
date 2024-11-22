@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat.messagecontents
 
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -19,12 +21,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.chat.Markup
 import com.getcode.ui.components.chat.MessageNodeDefaults
+import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedLongClickable
@@ -60,14 +68,11 @@ data class MessageControls(
 internal fun MessageNodeScope.MessageText(
     modifier: Modifier = Modifier,
     content: String,
-    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
     shape: Shape = MessageNodeDefaults.DefaultShape,
+    options: MessageNodeOptions,
     isFromSelf: Boolean,
     date: Instant,
     status: MessageStatus = MessageStatus.Unknown,
-    showStatus: Boolean = true,
-    showTimestamp: Boolean = true,
-    isInteractive: Boolean = false,
     showControls: () -> Unit,
 ) {
     val alignment = if (isFromSelf) Alignment.CenterEnd else Alignment.CenterStart
@@ -80,7 +85,7 @@ internal fun MessageNodeScope.MessageText(
                     color = color,
                     shape = shape,
                 )
-                .addIf(isInteractive) {
+                .addIf(options.isInteractive) {
                     Modifier.rememberedLongClickable {
                         showControls()
                     }
@@ -97,9 +102,7 @@ internal fun MessageNodeScope.MessageText(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus,
-                    showTimestamp = showTimestamp,
-                    contentStyle = contentStyle,
+                    options = options
                 )
             }
         }
@@ -171,12 +174,10 @@ internal fun MessageContent(
     date: Instant,
     status: MessageStatus,
     isFromSelf: Boolean,
-    showStatus: Boolean = true,
-    showTimestamp: Boolean = true,
-    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
+    options: MessageNodeOptions,
 ) {
     val alignmentRule by rememberAlignmentRule(
-        contentTextStyle = contentStyle,
+        contentTextStyle = options.contentStyle,
         maxWidth = maxWidth,
         message = message,
         date = date,
@@ -185,9 +186,9 @@ internal fun MessageContent(
     when (alignmentRule) {
         AlignmentRule.Column -> {
             Column(verticalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)) {
-                Text(
+                MarkupTextHandler(
                     text = message,
-                    style = contentStyle,
+                    options = options,
                 )
                 DateWithStatus(
                     modifier = Modifier
@@ -195,8 +196,8 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus,
-                    showTimestamp = showTimestamp,
+                    showStatus = options.showStatus,
+                    showTimestamp = options.showTimestamp,
                 )
             }
         }
@@ -205,9 +206,9 @@ internal fun MessageContent(
             Column(
                 modifier = Modifier.padding(CodeTheme.dimens.grid.x1),
                 verticalArrangement = Arrangement.spacedBy(-(CodeTheme.dimens.grid.x2))) {
-                Text(
+                MarkupTextHandler(
                     text = message,
-                    style = contentStyle,
+                    options = options,
                 )
                 DateWithStatus(
                     modifier = Modifier
@@ -215,17 +216,17 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus,
-                    showTimestamp = showTimestamp,
+                    showStatus = options.showStatus,
+                    showTimestamp = options.showTimestamp,
                 )
             }
         }
 
         AlignmentRule.SingleLineEnd -> {
             Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
-                Text(
+                MarkupTextHandler(
                     text = message,
-                    style = contentStyle,
+                    options = options,
                 )
                 DateWithStatus(
                     modifier = Modifier
@@ -233,13 +234,84 @@ internal fun MessageContent(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    showStatus = showStatus,
-                    showTimestamp = showTimestamp,
+                    showStatus = options.showStatus,
+                    showTimestamp = options.showTimestamp,
                 )
             }
         }
 
         else -> Unit
+    }
+}
+
+@Composable
+private fun MarkupTextHandler(
+    text: String,
+    options: MessageNodeOptions,
+    modifier: Modifier = Modifier
+) {
+    if (options.onMarkupClicked != null) {
+        val handler = options.onMarkupClicked
+        val annotatedString = buildAnnotatedString {
+            val hashtagRegex = Regex("#\\d+")
+            val urlMatcher = Patterns.WEB_URL.matcher(text)
+
+            var lastIndex = 0
+
+            while (urlMatcher.find()) {
+                val urlStart = urlMatcher.start()
+                val urlEnd = urlMatcher.end()
+
+                append(text.substring(lastIndex, urlStart))
+
+                val url = urlMatcher.group()
+                pushStringAnnotation(tag = "URL", annotation = url)
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append(url)
+                }
+                pop()
+
+                lastIndex = urlEnd
+            }
+
+            val remainingText = text.substring(lastIndex)
+            hashtagRegex.findAll(remainingText).forEach { matchResult ->
+                val start = matchResult.range.first
+                val end = matchResult.range.last + 1
+
+                append(remainingText.substring(lastIndex, start))
+
+                val number = matchResult.value.removePrefix("#")
+
+                pushStringAnnotation(tag = "HASHTAG", annotation = number)
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append(matchResult.value)
+                }
+                pop()
+
+                lastIndex = end
+            }
+
+            append(remainingText.substring(lastIndex.coerceAtMost(remainingText.length)))
+        }
+
+        ClickableText(
+            text = annotatedString,
+            style = options.contentStyle.copy(color = CodeTheme.colors.textMain),
+            onClick = { offset ->
+                annotatedString.getStringAnnotations(tag = "HASHTAG", start = offset, end = offset)
+                    .firstOrNull()?.let { annotation ->
+                        handler.invoke(Markup.RoomNumber(annotation.item.toLong()))
+                    }
+
+                annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                    .firstOrNull()?.let { annotation ->
+                        handler.invoke(Markup.Url(annotation.item))
+                    }
+            }
+        )
+    } else {
+        Text(modifier = modifier, text = text, style = options.contentStyle)
     }
 }
 

@@ -113,7 +113,7 @@ fun ChatInput(
             )
         )
         AnimatedContent(
-            targetState = true, // TODO: animate in/out
+            targetState = true, // TODO: state.text.isNotEmpty(),
             label = "show/hide send button",
             transitionSpec = {
                 slideInHorizontally { it } togetherWith slideOutHorizontally { it }

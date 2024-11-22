@@ -58,9 +58,11 @@ import kotlinx.datetime.Instant
 import timber.log.Timber
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
+import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
+import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.UserManager
 import java.util.UUID
 import javax.inject.Inject
@@ -70,6 +72,7 @@ import kotlin.time.Duration.Companion.seconds
 class ConversationViewModel @Inject constructor(
     private val userManager: UserManager,
     private val roomController: RoomController,
+    private val chatsController: ChatsController,
     private val resources: ResourceHelper,
     clipboardManager: ClipboardManager,
     currencyUtils: CurrencyUtils,
@@ -132,7 +135,7 @@ class ConversationViewModel @Inject constructor(
         data object SendMessage : Event
         data object RevealIdentity : Event
 
-        data class OnAbilityToChatChanged(val state: ChattableState): Event
+        data class OnAbilityToChatChanged(val state: ChattableState) : Event
         data class OnPointersUpdated(val pointers: Map<UUID, MessageStatus>) : Event
         data class MarkRead(val messageId: ID) : Event
         data class MarkDelivered(val messageId: ID) : Event
@@ -153,6 +156,10 @@ class ConversationViewModel @Inject constructor(
 
         data object OnUserTypingStarted : Event
         data object OnUserTypingStopped : Event
+
+        data class LookupRoom(val number: Long) : Event
+        data class OpenJoinConfirmation(val roomInfoArgs: RoomInfoArgs) : Event
+        data class OpenRoom(val roomId: ID) : Event
 
         data class Error(val fatal: Boolean, val message: String = "", val show: Boolean = true) :
             Event
@@ -414,6 +421,42 @@ class ConversationViewModel @Inject constructor(
             .onEach {
                 clipboardManager.setPrimaryClip(ClipData.newPlainText("", it))
             }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.LookupRoom>()
+            .map { it.number }
+            .map { roomNumber ->
+                chatsController.lookupRoom(roomNumber)
+                    .onFailure {
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToGetRoom),
+                                resources.getString(
+                                    R.string.error_description_failedToGetRoom,
+                                    roomNumber
+                                )
+                            )
+                        )
+                    }.onSuccess { (room, members) ->
+                        val host = members.firstOrNull { it.isHost }
+                        val isMember = members.any { it.isSelf }
+                        if (isMember) {
+                            dispatchEvent(Event.OpenRoom(room.id))
+                        } else {
+                            val roomInfo = RoomInfoArgs(
+                                roomId = room.id,
+                                roomNumber = room.roomNumber,
+                                roomTitle = room.titleOrFallback(resources),
+                                memberCount = members.count(),
+                                hostId = host?.id,
+                                hostName = host?.identity?.displayName,
+                                coverChargeQuarks = room.coverCharge.quarks,
+                            )
+                            dispatchEvent(Event.OpenJoinConfirmation(roomInfo))
+                        }
+                    }
+            }.launchIn(viewModelScope)
+
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow
@@ -467,6 +510,7 @@ class ConversationViewModel @Inject constructor(
                     status = status,
                     isDeleted = message.isDeleted,
                     showAsChatBubble = true,
+                    enableMarkup = true,
                     showTimestamp = false, // allow message list to show/hide wrt grouping
                     sender = Sender(
                         id = message.senderId,
@@ -589,7 +633,9 @@ class ConversationViewModel @Inject constructor(
     private fun confirmUserMute(conversationId: ID, user: String?, userId: ID) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = resources.getString(R.string.title_muteUserInRoom, user.orEmpty().ifEmpty { "User" }),
+                title = resources.getString(
+                    R.string.title_muteUserInRoom,
+                    user.orEmpty().ifEmpty { "User" }),
                 subtitle = resources.getString(R.string.subtitle_muteUserInRoom),
                 positiveText = resources.getString(R.string.action_mute),
                 negativeText = "",
@@ -694,6 +740,9 @@ class ConversationViewModel @Inject constructor(
                 is Event.MuteUser,
                 is Event.ReopenStream,
                 is Event.CloseStream,
+                is Event.LookupRoom,
+                is Event.OpenJoinConfirmation,
+                is Event.OpenRoom,
                 is Event.SendMessage -> { state -> state }
 
                 is Event.OnUserActivity -> { state ->

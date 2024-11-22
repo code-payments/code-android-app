@@ -58,7 +58,7 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Chat.Lookup.Confirm> {
-            JoinConfirmationScreen(it.args)
+            JoinConfirmationScreen(it.args, it.returnToSender)
         }
 
         register<NavScreenProvider.Chat.Conversation> {

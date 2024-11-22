@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -74,6 +75,7 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.components.chat.Markup
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
@@ -90,6 +92,7 @@ import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
@@ -183,6 +186,28 @@ data class ConversationScreen(
                     if (it.fatal) {
                         navigator.popAll()
                     }
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ConversationViewModel.Event.OpenRoom>()
+                .map { it.roomId }
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it)))
+                }.launchIn(this)
+        }
+
+        LaunchedEffect(vm) {
+            vm.eventFlow
+                .filterIsInstance<ConversationViewModel.Event.OpenJoinConfirmation>()
+                .map { it.roomInfoArgs }
+                .onEach {
+                    navigator.push(
+                        ScreenRegistry.get(
+                            NavScreenProvider.Chat.Lookup.Confirm(args = it, returnToSender = true)
+                        )
+                    )
                 }.launchIn(this)
         }
 
@@ -315,6 +340,7 @@ private fun ConversationScreenContent(
         val keyboardVisible by keyboardAsState()
         val ime = LocalSoftwareKeyboardController.current
         val composeScope = rememberCoroutineScope()
+        val uriHandler = LocalUriHandler.current
 
         MessageList(
             modifier = Modifier
@@ -341,6 +367,17 @@ private fun ConversationScreenContent(
                                 delay(500)
                             }
                             navigator.show(MessageActionContextSheet(event.actions))
+                        }
+                    }
+
+                    is MessageListEvent.OnMarkupEvent -> {
+                        when (val markup = event.markup) {
+                            is Markup.RoomNumber -> {
+                                dispatchEvent(ConversationViewModel.Event.LookupRoom(markup.number))
+                            }
+                            is Markup.Url -> {
+                                uriHandler.openUri(markup.link)
+                            }
                         }
                     }
                 }

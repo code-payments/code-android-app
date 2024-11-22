@@ -33,6 +33,7 @@ import kotlin.time.Duration.Companion.minutes
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID): MessageListEvent
     data class OpenMessageActions(val actions: List<MessageControlAction>): MessageListEvent
+    data class OnMarkupEvent(val markup: Markup): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -150,16 +151,21 @@ fun MessageList(
                     MessageNode(
                         modifier = Modifier.fillMaxWidth().padding(top = spacingBefore, bottom = spacingAfter),
                         contents = item.message,
-                        contentStyle = contentStyle,
                         status = item.status,
                         isDeleted = item.isDeleted,
                         sender = item.sender,
-                        showStatus = item.showStatus && showTimestamp,
-                        showTimestamp = showTimestamp,
                         date = item.date,
-                        isPreviousGrouped = isPreviousGrouped,
-                        isNextGrouped = isNextGrouped,
-                        isInteractive = item.messageControls.hasAny,
+                        options = MessageNodeOptions(
+                            showStatus = item.showStatus && showTimestamp,
+                            showTimestamp = showTimestamp,
+                            isPreviousGrouped = isPreviousGrouped,
+                            isNextGrouped = isNextGrouped,
+                            isInteractive = item.messageControls.hasAny,
+                            onMarkupClicked = if (item.enableMarkup) { markup: Markup ->
+                                dispatch(MessageListEvent.OnMarkupEvent(markup))
+                            } else null,
+                            contentStyle = contentStyle,
+                        ),
                         openMessageControls = { dispatch(MessageListEvent.OpenMessageActions(item.messageControls.actions)) }
                     )
                 }

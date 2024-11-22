@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageNodeDefaults
+import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
 import kotlinx.datetime.Instant
 
@@ -44,6 +45,7 @@ internal fun MessageNodeScope.DeletedMessage(
                     date = date,
                     status = MessageStatus.Unknown,
                     isFromSelf = isFromSelf,
+                    options = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle)
                 )
             }
         }

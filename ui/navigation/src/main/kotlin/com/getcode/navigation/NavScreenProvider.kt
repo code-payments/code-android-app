@@ -16,7 +16,7 @@ sealed class NavScreenProvider : ScreenProvider {
         data class Home(val seed: String? = null) : NavScreenProvider()
         data object Registration : NavScreenProvider()
         data object SeedInput : NavScreenProvider()
-        data object AccessKey: NavScreenProvider()
+        data object AccessKey : NavScreenProvider()
         data class NotificationPermission(val fromOnboarding: Boolean = false) : NavScreenProvider()
     }
 
@@ -25,7 +25,10 @@ sealed class NavScreenProvider : ScreenProvider {
         data object List : NavScreenProvider()
         sealed class Lookup {
             data object Entry : NavScreenProvider()
-            data class Confirm(val args: RoomInfoArgs = RoomInfoArgs()) : NavScreenProvider()
+            data class Confirm(
+                val args: RoomInfoArgs = RoomInfoArgs(),
+                val returnToSender: Boolean = false
+            ) : NavScreenProvider()
         }
 
         data class Conversation(

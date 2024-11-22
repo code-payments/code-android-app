@@ -136,6 +136,21 @@ private fun rememberMessageNodeScope(
     }
 }
 
+sealed interface Markup {
+    data class RoomNumber(val number: Long): Markup
+    data class Url(val link: String): Markup
+}
+
+data class MessageNodeOptions(
+    val showStatus: Boolean = true,
+    val showTimestamp: Boolean = true,
+    val isPreviousGrouped: Boolean = false,
+    val isNextGrouped: Boolean = false,
+    val isInteractive: Boolean = false,
+    val onMarkupClicked: ((Markup) -> Unit)? = null,
+    val contentStyle: TextStyle,
+)
+
 @Composable
 fun MessageNode(
     contents: MessageContent,
@@ -143,13 +158,8 @@ fun MessageNode(
     date: Instant,
     sender: Sender,
     status: MessageStatus,
-    showStatus: Boolean,
-    showTimestamp: Boolean,
-    isPreviousGrouped: Boolean,
-    isNextGrouped: Boolean,
-    isInteractive: Boolean,
     modifier: Modifier = Modifier,
-    contentStyle: TextStyle = MessageNodeDefaults.ContentStyle,
+    options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
     openMessageControls: () -> Unit,
 ) {
     Box(
@@ -169,7 +179,7 @@ fun MessageNode(
                     val shape = when {
                         isAnnouncement -> MessageNodeDefaults.DefaultShape
                         else -> MessageNodeDefaults.messageShape(
-                            !sender.isSelf, isPreviousGrouped, isNextGrouped
+                            !sender.isSelf, options.isPreviousGrouped, options.isNextGrouped
                         )
                     }
 
@@ -190,18 +200,15 @@ fun MessageNode(
                             ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
                                 sender = sender,
-                                isFirstInSeries = !isPreviousGrouped
+                                isFirstInSeries = !options.isPreviousGrouped
                             ) {
                                 MessageText(
                                     content = contents.localizedText,
-                                    contentStyle = contentStyle,
                                     shape = shape,
                                     date = date,
                                     status = status,
                                     isFromSelf = sender.isSelf,
-                                    showStatus = showStatus,
-                                    showTimestamp = showTimestamp,
-                                    isInteractive = isInteractive,
+                                    options = options,
                                     showControls = openMessageControls
                                 )
                             }
@@ -225,18 +232,15 @@ fun MessageNode(
                             ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
                                 sender = sender,
-                                isFirstInSeries = !isPreviousGrouped
+                                isFirstInSeries = !options.isPreviousGrouped
                             ) {
                                 MessageText(
                                     content = contents.data,
-                                    contentStyle = contentStyle,
                                     shape = shape,
                                     date = date,
                                     status = status,
                                     isFromSelf = sender.isSelf,
-                                    showStatus = showStatus,
-                                    showTimestamp = showTimestamp,
-                                    isInteractive = isInteractive,
+                                    options = options,
                                     showControls = openMessageControls
                                 )
                             }
@@ -246,18 +250,15 @@ fun MessageNode(
                             ContentFromSender(
                                 modifier = Modifier.fillMaxWidth(),
                                 sender = sender,
-                                isFirstInSeries = !isPreviousGrouped
+                                isFirstInSeries = !options.isPreviousGrouped
                             ) {
                                 MessageText(
                                     content = contents.value,
-                                    contentStyle = contentStyle,
                                     shape = shape,
                                     date = date,
                                     status = status,
                                     isFromSelf = sender.isSelf,
-                                    showStatus = showStatus,
-                                    showTimestamp = showTimestamp,
-                                    isInteractive = isInteractive,
+                                    options = options,
                                     showControls = openMessageControls
                                 )
                             }

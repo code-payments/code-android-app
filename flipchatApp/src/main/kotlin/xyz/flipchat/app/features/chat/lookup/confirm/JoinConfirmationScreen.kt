@@ -38,7 +38,7 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data class JoinConfirmationScreen(val args: RoomInfoArgs) : Screen, Parcelable {
+data class JoinConfirmationScreen(val args: RoomInfoArgs, val returnToSender: Boolean = false) : Screen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -67,7 +67,13 @@ data class JoinConfirmationScreen(val args: RoomInfoArgs) : Screen, Parcelable {
         ) {
             AppBarWithTitle(
                 backButton = true,
-                onBackIconClicked = { navigator.popUntil { it is TabbedHomeScreen } }
+                onBackIconClicked = {
+                    if (returnToSender) {
+                        navigator.pop()
+                    } else {
+                        navigator.popUntil { it is TabbedHomeScreen }
+                    }
+                }
             )
             JoinRoomScreenContent(viewModel)
         }
