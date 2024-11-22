@@ -9,8 +9,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -65,12 +69,11 @@ private fun ChatListScreenContent(
     viewModel: ChatListViewModel,
     openChat: (ID) -> Unit,
 ) {
-    val state by viewModel.stateFlow.collectAsState()
     val navigator = LocalCodeNavigator.current
     val context = LocalContext.current
     val chats = viewModel.chats.collectAsLazyPagingItems()
     val isLoading = chats.loadState.refresh is LoadState.Loading
-    val isEmpty = chats.itemCount == 0 && chats.loadState.refresh is LoadState.NotLoading
+    var isInitialLoad by rememberSaveable { mutableStateOf(true) }
 
     CodeScaffold { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
@@ -85,7 +88,7 @@ private fun ChatListScreenContent(
             }
 
             when {
-                isLoading -> {
+                isLoading && isInitialLoad -> {
                     item {
                         Column(
                             modifier = Modifier.fillParentMaxSize(),
@@ -123,6 +126,12 @@ private fun ChatListScreenContent(
                     }
                 }
             }
+        }
+    }
+
+    LaunchedEffect(chats.loadState.refresh) {
+        if (chats.loadState.refresh !is LoadState.Loading || chats.itemCount == 0) {
+            isInitialLoad = false
         }
     }
 }

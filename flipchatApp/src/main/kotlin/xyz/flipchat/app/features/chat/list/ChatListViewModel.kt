@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.chat.list
 
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -53,8 +54,12 @@ class ChatListViewModel @Inject constructor(
 
     sealed interface Event {
         data class OnSelfIdChanged(val id: ID?) : Event
-        data class ShowFullScreenSpinner(val showScrim: Boolean = true, val showSpinner: Boolean = true) :
+        data class ShowFullScreenSpinner(
+            val showScrim: Boolean = true,
+            val showSpinner: Boolean = true
+        ) :
             Event
+
         data class OnNetworkChanged(val connected: Boolean) : Event
         data object OnOpen : Event
         data object CreateRoomSelected : Event
@@ -77,12 +82,14 @@ class ChatListViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CreateRoomSelected>()
-            .onEach { dispatchEvent(
-                Event.ShowFullScreenSpinner(
-                    showScrim = true,
-                    showSpinner = false
+            .onEach {
+                dispatchEvent(
+                    Event.ShowFullScreenSpinner(
+                        showScrim = true,
+                        showSpinner = false
+                    )
                 )
-            ) }
+            }
             .map { profileController.getUserFlags() }
             .mapNotNull {
                 it.exceptionOrNull()?.let {
@@ -100,7 +107,10 @@ class ChatListViewModel @Inject constructor(
                     )
 
                     val amount =
-                        KinAmount.newInstance(kin = flags.createCost.quarks.toInt(), rate = Rate.oneToOne)
+                        KinAmount.newInstance(
+                            kin = flags.createCost.quarks.toInt(),
+                            rate = Rate.oneToOne
+                        )
 
                     paymentController.presentPublicPaymentConfirmation(
                         amount = amount,
@@ -122,6 +132,7 @@ class ChatListViewModel @Inject constructor(
                         return@mapNotNull null
 
                     }
+
                     is PaymentEvent.OnPaymentError -> {
                         dispatchEvent(
                             Event.ShowFullScreenSpinner(
@@ -131,9 +142,19 @@ class ChatListViewModel @Inject constructor(
                         )
                         return@mapNotNull null
                     }
+
                     is PaymentEvent.OnPaymentSuccess -> {
-                        dispatchEvent(Event.ShowFullScreenSpinner(showScrim = true, showSpinner = true))
-                        chatsController.createGroup(title = null, participants = emptyList(), it.intentId)
+                        dispatchEvent(
+                            Event.ShowFullScreenSpinner(
+                                showScrim = true,
+                                showSpinner = true
+                            )
+                        )
+                        chatsController.createGroup(
+                            title = null,
+                            participants = emptyList(),
+                            it.intentId
+                        )
                     }
                 }
             }.onResult(
@@ -147,7 +168,7 @@ class ChatListViewModel @Inject constructor(
                     TopBarManager.showMessage(
                         TopBarManager.TopBarMessage(
                             resources.getString(R.string.error_title_failedToCreateRoom),
-                            resources.getString(R.string.error_description_failedToCreateRoom,)
+                            resources.getString(R.string.error_description_failedToCreateRoom)
                         )
                     )
                 },
@@ -159,11 +180,13 @@ class ChatListViewModel @Inject constructor(
                         )
                     )
                     dispatchEvent(Event.OpenRoom(it.id))
+                    paymentController.cancelPayment(fromUser = false)
                 }
             ).launchIn(viewModelScope)
     }
 
-    val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> get() = chatsController.chats.flow
+    val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>>
+    = chatsController.chats.flow.cachedIn(viewModelScope)
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
@@ -176,7 +199,13 @@ class ChatListViewModel @Inject constructor(
                 is Event.CreateRoomSelected -> { state -> state }
 
                 is Event.OpenRoom -> { state -> state }
-                is Event.ShowFullScreenSpinner -> { state -> state.copy(showFullscreenSpinner = event.showSpinner, showScrim = event.showScrim) }
+                is Event.ShowFullScreenSpinner -> { state ->
+                    state.copy(
+                        showFullscreenSpinner = event.showSpinner,
+                        showScrim = event.showScrim
+                    )
+                }
+
                 is Event.OnSelfIdChanged -> { state -> state.copy(selfId = event.id) }
             }
         }
