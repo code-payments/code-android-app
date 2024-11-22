@@ -37,10 +37,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.util.fastForEachIndexed
@@ -71,12 +73,15 @@ import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.withTopBorder
 import com.getcode.util.formatDateRelatively
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 
@@ -273,8 +278,6 @@ private fun ConversationScreenContent(
                                 onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
                             )
                         }
-
-                        ChattableState.Unknown -> Unit
                     }
 
                 }
@@ -282,6 +285,9 @@ private fun ConversationScreenContent(
         }
     ) { padding ->
         val lazyListState = rememberLazyListState()
+        val keyboardVisible by keyboardAsState()
+        val ime = LocalSoftwareKeyboardController.current
+        val composeScope = rememberCoroutineScope()
 
         MessageList(
             modifier = Modifier
@@ -302,7 +308,13 @@ private fun ConversationScreenContent(
                     }
 
                     is MessageListEvent.OpenMessageActions -> {
-                        navigator.show(MessageActionContextSheet(event.actions))
+                        composeScope.launch {
+                            if (keyboardVisible) {
+                                ime?.hide()
+                                delay(500)
+                            }
+                            navigator.show(MessageActionContextSheet(event.actions))
+                        }
                     }
                 }
             }
