@@ -16,7 +16,6 @@ import androidx.paging.map
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
-import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
@@ -90,6 +89,7 @@ class ConversationViewModel @Inject constructor(
         val chattableState: ChattableState,
         val textFieldState: TextFieldState,
         val title: String,
+        val imageUri: String?,
         val lastSeen: Instant?,
         val members: Map<ID, Int>,
         val pointers: Map<UUID, MessageStatus>,
@@ -105,6 +105,7 @@ class ConversationViewModel @Inject constructor(
                 selfId = null,
                 selfName = null,
                 hostId = null,
+                imageUri = null,
                 conversationId = null,
                 reference = null,
                 chattableState = ChattableState.Enabled,
@@ -642,6 +643,7 @@ class ConversationViewModel @Inject constructor(
                     val host = members.firstOrNull { it.isHost }
                     state.copy(
                         conversationId = conversation.id,
+                        imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,
                         members = event.conversationWithPointers.membersUnique,

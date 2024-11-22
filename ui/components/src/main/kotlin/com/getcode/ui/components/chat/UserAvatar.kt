@@ -3,6 +3,7 @@ package com.getcode.ui.components.chat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +23,7 @@ fun UserAvatar(
     data: Any?,
     modifier: Modifier = Modifier,
     anonymousRender: AnonymousRender = AnonymousRender.Gradient,
+    showEmptyWhenUnknownData: Boolean = true,
     overlay: @Composable BoxScope.() -> Unit = { },
 ) {
     Box(modifier = modifier) {
@@ -40,7 +42,7 @@ fun UserAvatar(
                 imgLoading = true
             },
             onSuccess = {
-                loadedSize = with (it.result.image) { Size(width.toFloat(), height.toFloat()) }
+                loadedSize = with(it.result.image) { Size(width.toFloat(), height.toFloat()) }
                 imgLoading = false
             }
         )
@@ -67,11 +69,15 @@ fun UserAvatar(
                     icon = overlay,
                 )
             } else {
-                Image(
-                    modifier = Modifier.matchParentSize(),
-                    painter = painterResource(id = R.drawable.ic_placeholder_user),
-                    contentDescription = null
-                )
+                if (!showEmptyWhenUnknownData) {
+                    Image(
+                        modifier = Modifier.matchParentSize(),
+                        painter = painterResource(id = R.drawable.ic_placeholder_user),
+                        contentDescription = null
+                    )
+                } else {
+                    Spacer(Modifier.matchParentSize())
+                }
             }
         }
     }

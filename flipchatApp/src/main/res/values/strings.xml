@@ -104,6 +104,18 @@
         <item quantity="other">@string/title_roomCardMemberCountMany</item>
     </plurals>
 
+    <string name="title_conversationMemberCountEmpty">0 people here</string>
+    <string name="title_conversationMemberCountSingle">1 person here</string>
+    <string name="title_conversationMemberCountMany">%d people here</string>
+    <plurals name="title_conversationMemberCount">
+        <item quantity="zero">@string/title_conversationMemberCountEmpty</item>
+        <item quantity="one">@string/title_conversationMemberCountSingle</item>
+        <item quantity="two">@string/title_conversationMemberCountMany</item>
+        <item quantity="many">@string/title_conversationMemberCountMany</item>
+        <item quantity="few">@string/title_conversationMemberCountMany</item>
+        <item quantity="other">@string/title_conversationMemberCountMany</item>
+    </plurals>
+
     <string name="action_saveChanges">Save Changes</string>
     <string name="subtitle_displayNameHint">This is how you\’ll show up in chats</string>
 

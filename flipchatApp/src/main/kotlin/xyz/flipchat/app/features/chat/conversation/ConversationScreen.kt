@@ -17,6 +17,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +30,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -37,14 +40,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
@@ -69,6 +78,7 @@ import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
 import com.getcode.ui.components.chat.TypingIndicator
+import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
@@ -196,19 +206,36 @@ private fun ConversationTitle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x2)
     ) {
-        Spacer(Modifier.requiredWidth(CodeTheme.dimens.grid.x2))
+        UserAvatar(
+            modifier = Modifier
+                .padding(start = CodeTheme.dimens.grid.x2)
+                .size(CodeTheme.dimens.staticGrid.x6)
+                .clip(CircleShape),
+            data = state.imageUri ?: state.conversationId,
+            overlay = {
+                Image(
+                    modifier = Modifier.padding(5.dp),
+                    painter = painterResource(R.drawable.ic_fc_chats),
+                    colorFilter = ColorFilter.tint(Color.White),
+                    contentDescription = null,
+                )
+            }
+        )
         Column {
             Text(
                 text = state.title,
                 style = CodeTheme.typography.screenTitle
             )
-            state.lastSeen?.let {
-                Text(
-                    text = "Last seen ${it.formatDateRelatively()}",
-                    style = CodeTheme.typography.caption,
-                    color = CodeTheme.colors.textSecondary,
-                )
+
+            val memberCount = remember(state.members) {
+                state.members.count()
             }
+
+            Text(
+                text = pluralStringResource(R.plurals.title_conversationMemberCount, memberCount, memberCount),
+                style = CodeTheme.typography.caption,
+                color = CodeTheme.colors.textSecondary,
+            )
         }
     }
 }
