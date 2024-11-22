@@ -118,9 +118,9 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
                         Box(
                             modifier = Modifier
                                 .background(backgroundColor)
-                                .navigationBarsPadding()
                                 .weight(1f)
-                                .clickable { tabNavigator.current = tab },
+                                .clickable { tabNavigator.current = tab }
+                                .navigationBarsPadding(),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
