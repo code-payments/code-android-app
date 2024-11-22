@@ -120,4 +120,12 @@
     <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your account. Please keep it private and safe.</string>
     <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to your Flipchat account. Do not share this image with anyone else. Keep it secure and safe.</string>
     <string name="error_description_failedToSave">Please allow Flipchat access to Photos in Settings in order to save your Access Key.</string>
+
+    <string name="error_title_timelockUnlocked">Access Key No Longer Usable in Flipchat</string>
+    <string name="error_description_timelockUnlocked">Your Access Key has initiated an unlock. As a result, you will no longer be able to use this Access Key in Flipchat.</string>
+    <string name="prompt_title_notFlipchatAccount">Not a Flipchat Account</string>
+    <string name="prompt_description_notFlipchatAccount">Only accounts created through Flipchat are currently supported.</string>
+    <string name="action_createNewFlipchatAccount">Create a New Flipchat Account</string>
+    <string name="action_tryDifferentFlipchatAccount">Try a Different Flipchat Account</string>
+
 </resources>

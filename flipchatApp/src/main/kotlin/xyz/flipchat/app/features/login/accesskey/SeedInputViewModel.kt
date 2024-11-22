@@ -150,10 +150,10 @@ class SeedInputViewModel @Inject constructor(
     private fun showError(navigator: CodeNavigator) {
         BottomBarManager.showMessage(
             BottomBarManager.BottomBarMessage(
-                title = resources.getString(R.string.prompt_title_notCodeAccount),
-                subtitle = resources.getString(R.string.prompt_description_notCodeAccount),
-                positiveText = resources.getString(R.string.action_createNewCodeAccount),
-                negativeText = resources.getString(R.string.action_tryDifferentCodeAccount),
+                title = resources.getString(R.string.prompt_title_notFlipchatAccount),
+                subtitle = resources.getString(R.string.prompt_description_notFlipchatAccount),
+                positiveText = resources.getString(R.string.action_createNewFlipchatAccount),
+                negativeText = resources.getString(R.string.action_tryDifferentFlipchatAccount),
                 onPositive = {
                     navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
                 }
