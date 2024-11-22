@@ -158,6 +158,14 @@ class AuthManager @Inject constructor(
                 id
             }
             .onSuccess {
+                if (!isSoftLogin) {
+                    AccountUtils.addAccount(
+                        context = context,
+                        name = userManager.displayName.orEmpty(),
+                        password = it.base58,
+                        token = entropyB64
+                    )
+                }
                 userManager.set(userId = it)
                 savePrefs()
             }
@@ -208,6 +216,7 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun logout(context: Context): Result<Unit> {
+        println("Logging out")
         return AccountUtils.removeAccounts(context).toFlowable()
             .to { runCatching { it.firstOrError().blockingGet() } }
             .onSuccess { clearToken() }
