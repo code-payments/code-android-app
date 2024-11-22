@@ -118,6 +118,6 @@
     <string name="title_youHaveBeenMuted">You\'ve been muted</string>
 
     <string name="subtitle_accessKeyDescription">Your Access Key is the only way to access your account. Please keep it private and safe.</string>
-    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to all your messages in Flipchat. Do not share this image with anyone else. Keep it secure and safe.</string>
+    <string name="subtitle_accessKeySnapshotWarning">Warning! This image gives access to your Flipchat account. Do not share this image with anyone else. Keep it secure and safe.</string>
     <string name="error_description_failedToSave">Please allow Flipchat access to Photos in Settings in order to save your Access Key.</string>
 </resources>
