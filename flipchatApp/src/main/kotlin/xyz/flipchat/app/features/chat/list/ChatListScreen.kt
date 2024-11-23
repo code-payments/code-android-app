@@ -27,6 +27,7 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
 import xyz.flipchat.app.R
 import com.getcode.navigation.NavScreenProvider
@@ -54,7 +55,7 @@ data object ChatListScreen : Screen, NamedScreen, Parcelable {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-        val viewModel = getActivityScopedViewModel<ChatListViewModel>()
+        val viewModel = getViewModel<ChatListViewModel>()
         ChatListScreenContent(
             viewModel = viewModel,
             openChat = {

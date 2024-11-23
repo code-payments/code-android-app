@@ -123,6 +123,7 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
     companion object {
         private var instance: FcAppDatabase? = null
         fun requireInstance() = requireNotNull(instance)
+        fun getInstance(): FcAppDatabase? = instance
         private var dbName: String = ""
 
         private const val dbNamePrefix = "FcAppDatabase"

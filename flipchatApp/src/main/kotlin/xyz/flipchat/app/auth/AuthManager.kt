@@ -98,15 +98,15 @@ class AuthManager @Inject constructor(
         FlipchatServices.openDatabase(context, entropyB64)
 
         return authController.register(displayName)
-            .onSuccess {
+            .onSuccess { userId ->
                 AccountUtils.addAccount(
                     context = context,
                     name = displayName,
-                    password = it.base58,
+                    password = userId.base58,
                     token = entropyB64
                 )
                 userManager.set(displayName = displayName)
-                userManager.set(userId = it)
+                userManager.set(userId = userId)
                 savePrefs()
             }
             .onFailure {
@@ -216,10 +216,9 @@ class AuthManager @Inject constructor(
     }
 
     suspend fun logout(context: Context): Result<Unit> {
-        println("Logging out")
         return AccountUtils.removeAccounts(context).toFlowable()
             .to { runCatching { it.firstOrError().blockingGet() } }
-            .onSuccess { clearToken() }
+            .map { clearToken() }
             .map { Result.success(Unit) }
     }
 
@@ -251,7 +250,6 @@ class AuthManager @Inject constructor(
     @SuppressLint("CheckResult")
     private suspend fun updateFcmToken() {
         val pushToken = Firebase.messaging.token() ?: return
-        println("pushToken=$pushToken")
         pushController.addToken(pushToken)
             .onSuccess {
                 trace("push token updated", type = TraceType.Silent)

@@ -14,6 +14,7 @@ import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
-import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
@@ -31,6 +31,7 @@ import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
 import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.user.AuthState
 import javax.inject.Inject
 
 @HiltViewModel
@@ -124,12 +125,6 @@ class ChatListViewModel @Inject constructor(
                             paymentId = event.intentId
                         ).onFailure {
                             event.acknowledge(false) {
-                                dispatchEvent(
-                                    Event.ShowFullScreenSpinner(
-                                        showScrim = false,
-                                        showSpinner = false
-                                    )
-                                )
                                 TopBarManager.showMessage(
                                     TopBarManager.TopBarMessage(
                                         resources.getString(R.string.error_title_failedToCreateRoom),
@@ -139,12 +134,6 @@ class ChatListViewModel @Inject constructor(
                             }
                         }.onSuccess {
                                 event.acknowledge(true) {
-                                    dispatchEvent(
-                                        Event.ShowFullScreenSpinner(
-                                            showScrim = false,
-                                            showSpinner = false
-                                        )
-                                    )
                                     dispatchEvent(Event.OpenRoom(it.id))
                                     paymentController.cancelPayment(fromUser = false)
                                 }
@@ -154,8 +143,8 @@ class ChatListViewModel @Inject constructor(
             }.launchIn(viewModelScope)
     }
 
-    val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>>
-    = chatsController.chats.flow.cachedIn(viewModelScope)
+    val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> =
+        chatsController.chats.flow.filter { userManager.authState is AuthState.LoggedIn }
 
     companion object {
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->

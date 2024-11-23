@@ -298,7 +298,6 @@ class ConversationViewModel @Inject constructor(
             .filterNotNull()
             .distinctUntilChanged()
             .flatMapLatest {
-                println("observing typing for ${it.base58}")
                 roomController.observeTyping(it)
             }
             .onEach { isOtherUserTyping ->

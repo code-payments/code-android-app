@@ -11,6 +11,7 @@ import io.grpc.ManagedChannel
 import io.grpc.android.AndroidChannelBuilder
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import xyz.flipchat.services.FcChatConfig
+import xyz.flipchat.services.chat.BuildConfig
 import xyz.flipchat.services.internal.annotations.ChatManagedChannel
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -37,7 +38,11 @@ internal object FcChatModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-            .intercept(LoggingClientInterceptor())
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    this.intercept(LoggingClientInterceptor())
+                }
+            }
             .build()
     }
 }

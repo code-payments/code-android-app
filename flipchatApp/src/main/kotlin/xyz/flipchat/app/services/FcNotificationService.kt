@@ -88,8 +88,7 @@ class FcNotificationService : FirebaseMessagingService(),
     private fun handleMessage(remoteMessage: RemoteMessage) {
         trace("handling received message", type = TraceType.Silent)
         if (remoteMessage.data.isNotEmpty()) {
-            // TODO: remove this for release
-            println("Message data payload: ${remoteMessage.data}")
+            Timber.d("Message data payload: ${remoteMessage.data}")
             val notification = remoteMessage.parse()
 
             if (notification != null) {

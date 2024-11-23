@@ -12,6 +12,7 @@ import io.grpc.android.AndroidChannelBuilder
 import org.kin.sdk.base.network.api.agora.OkHttpChannelBuilderForcedTls12
 import xyz.flipchat.services.FcPaymentsConfig
 import xyz.flipchat.services.internal.annotations.PaymentsManagedChannel
+import xyz.flipchat.services.payments.BuildConfig
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -37,7 +38,11 @@ internal object FcPaymentsModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-            .intercept(LoggingClientInterceptor())
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    this.intercept(LoggingClientInterceptor())
+                }
+            }
             .build()
     }
 }

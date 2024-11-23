@@ -5,6 +5,7 @@ import com.getcode.CodeServicesConfig
 import com.getcode.analytics.AnalyticsService
 import com.getcode.analytics.AnalyticsServiceNull
 import com.getcode.annotations.CodeManagedChannel
+import com.getcode.libs.logging.BuildConfig
 import com.getcode.network.BalanceController
 import com.getcode.network.PrivacyMigration
 import com.getcode.network.api.TransactionApiV2
@@ -68,7 +69,11 @@ internal object CodeApiModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-            .intercept(LoggingClientInterceptor())
+            .apply {
+                if (BuildConfig.DEBUG) {
+                    this.intercept(LoggingClientInterceptor())
+                }
+            }
             .build()
     }
 

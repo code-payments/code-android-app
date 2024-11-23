@@ -127,7 +127,6 @@ internal class RealChatRepository @Inject constructor(
     override fun observeTyping(chatId: ID): Flow<Boolean> {
         return typingChats
             .map { chatId in it }
-            .onEach { isTyping -> println("observeTyping(${chatId.base58}): isTyping = $isTyping") }
     }
 
     override fun openEventStream(coroutineScope: CoroutineScope, onEvent: (ChatDbUpdate) -> Unit) {

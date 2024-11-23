@@ -65,6 +65,7 @@ class UserManager @Inject constructor(
     )
 
     fun establish(entropy: String) {
+        println("user entropy => $entropy")
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
         val organizer = organizerGenerator.generate(mnemonic)
@@ -79,6 +80,7 @@ class UserManager @Inject constructor(
     }
 
     fun set(userId: ID) {
+        println("user id => $userId")
         _state.update {
             it.copy(
                 authState = AuthState.LoggedIn,
@@ -87,6 +89,7 @@ class UserManager @Inject constructor(
     }
 
     fun set(displayName: String) {
+        println("user name => $displayName")
         _state.update {
             it.copy(displayName = displayName)
         }
