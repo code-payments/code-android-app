@@ -94,17 +94,15 @@ class MainActivity : FragmentActivity() {
      * Invoking the navigation controller here will cause the intent to be fired
      * again we want to debounce this once when the activity is started with an intent.
      */
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent != null) {
-            val cachedIntent = deeplinkHandler.debounceIntent
-            if (cachedIntent != null && cachedIntent.data == intent.data) {
-                Timber.d("Debouncing Intent " + intent.data)
-                deeplinkHandler.debounceIntent = null
-                return
-            }
-            deeplinkHandler.debounceIntent = intent
+        val cachedIntent = deeplinkHandler.debounceIntent
+        if (cachedIntent != null && cachedIntent.data == intent.data) {
+            Timber.d("Debouncing Intent " + intent.data)
+            deeplinkHandler.debounceIntent = null
+            return
         }
+        deeplinkHandler.debounceIntent = intent
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -4,6 +4,8 @@
     <string name="action_nevermind">Nevermind</string>
     <string name="error_description_login_failed">This login request could not be completed at this time. Please try again later.</string>
     <string name="error_description_usdc_deposit_failure">Failed to create a USDC deposit account.</string>
+    <string name="error_title_payment_failed">Payment Failed</string>
+    <string name="error_description_payment_failed">This payment request could not be paid at this time. Please try again later.</string>
     <string name="error_title_login_failed">Login Failed</string>
     <string name="error_title_account_error">Account Error</string>
     <string name="subtitle_canOnlyRequestUpTo">You can only request up to %1$s</string>
