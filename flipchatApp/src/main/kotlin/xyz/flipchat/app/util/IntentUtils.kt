@@ -12,4 +12,9 @@ object IntentUtils {
         data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
         flags = Intent.FLAG_ACTIVITY_NEW_TASK
     }
+
+    fun dialNumber(number: String) = Intent(Intent.ACTION_DIAL).apply {
+        data = Uri.parse("tel:$number")
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+    }
 }

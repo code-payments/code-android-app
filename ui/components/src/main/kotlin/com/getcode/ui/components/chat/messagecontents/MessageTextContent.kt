@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat.messagecontents
 
+import android.telephony.PhoneNumberUtils
 import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -255,6 +256,8 @@ private fun MarkupTextHandler(
         val annotatedString = buildAnnotatedString {
             val hashtagRegex = Regex("#\\d+")
             val urlMatcher = Patterns.WEB_URL.matcher(text)
+            val phoneRegex = Regex("(\\+[0-9]+[ \\-.]*)?(\\([0-9]+\\)[ \\-.]*)?([0-9]+([ \\-.][0-9]+)*)")
+
 
             var lastIndex = 0
 
@@ -274,7 +277,25 @@ private fun MarkupTextHandler(
                 lastIndex = urlEnd
             }
 
-            val remainingText = text.substring(lastIndex)
+            var remainingText = text.substring(lastIndex)
+            phoneRegex.findAll(remainingText).forEach { matchResult ->
+                val start = matchResult.range.first
+                val end = matchResult.range.last + 1
+
+                append(remainingText.substring(lastIndex, start))
+
+                val number = matchResult.value
+
+                pushStringAnnotation(tag = "PHONE", annotation = number)
+                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
+                    append(matchResult.value)
+                }
+                pop()
+
+                lastIndex = end
+            }
+
+            remainingText = text.substring(lastIndex)
             hashtagRegex.findAll(remainingText).forEach { matchResult ->
                 val start = matchResult.range.first
                 val end = matchResult.range.last + 1
@@ -307,6 +328,11 @@ private fun MarkupTextHandler(
                 annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
                     .firstOrNull()?.let { annotation ->
                         handler.invoke(Markup.Url(annotation.item))
+                    }
+
+                annotatedString.getStringAnnotations(tag = "PHONE", start = offset, end = offset)
+                    .firstOrNull()?.let { annotation ->
+                        handler.invoke(Markup.Phone(annotation.item))
                     }
             }
         )

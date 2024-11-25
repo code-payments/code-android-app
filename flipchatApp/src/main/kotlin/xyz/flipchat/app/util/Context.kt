@@ -7,3 +7,8 @@ fun Context.launchAppSettings() {
     val intent = IntentUtils.appSettings()
     ContextCompat.startActivity(this, intent, null)
 }
+
+fun Context.dialNumber(number: String) {
+    val intent = IntentUtils.dialNumber(number)
+    ContextCompat.startActivity(this, intent, null)
+}

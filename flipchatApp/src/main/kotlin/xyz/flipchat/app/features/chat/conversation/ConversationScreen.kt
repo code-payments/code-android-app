@@ -93,6 +93,8 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.home.TabbedHomeScreen
+import xyz.flipchat.app.util.IntentUtils
+import xyz.flipchat.app.util.dialNumber
 
 @Parcelize
 data class ConversationScreen(
@@ -336,7 +338,7 @@ private fun ConversationScreenContent(
         val ime = LocalSoftwareKeyboardController.current
         val composeScope = rememberCoroutineScope()
         val uriHandler = LocalUriHandler.current
-
+        val context = LocalContext.current
         MessageList(
             modifier = Modifier
                 .fillMaxSize()
@@ -375,7 +377,7 @@ private fun ConversationScreenContent(
                             }
 
                             is Markup.Phone -> {
-                                uriHandler.openUri(markup.phoneNumber)
+                                context.dialNumber(markup.phoneNumber)
                             }
                         }
                     }

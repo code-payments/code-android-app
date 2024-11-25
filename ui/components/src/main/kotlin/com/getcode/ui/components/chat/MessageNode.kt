@@ -139,6 +139,7 @@ private fun rememberMessageNodeScope(
 sealed interface Markup {
     data class RoomNumber(val number: Long): Markup
     data class Url(val link: String): Markup
+    data class Phone(val phoneNumber: String): Markup
 }
 
 data class MessageNodeOptions(
