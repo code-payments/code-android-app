@@ -3,6 +3,7 @@ package xyz.flipchat.services.domain.model.chat
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import com.getcode.model.ID
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
@@ -10,7 +11,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 @Entity(
     tableName = "members",
-    primaryKeys = ["memberIdBase58", "conversationIdBase58"]
+    primaryKeys = ["memberIdBase58", "conversationIdBase58"],
+    indices = [
+        Index(value = ["memberIdBase58"]),       // For joining on member ID
+        Index(value = ["conversationIdBase58"]) // For joining on conversation ID
+    ]
 )
 data class ConversationMember(
     val memberIdBase58: String,

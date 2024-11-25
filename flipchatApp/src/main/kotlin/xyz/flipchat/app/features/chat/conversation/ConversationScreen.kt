@@ -82,7 +82,6 @@ import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.withTopBorder
-import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
@@ -93,7 +92,6 @@ import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.home.TabbedHomeScreen
-import xyz.flipchat.app.util.IntentUtils
 import xyz.flipchat.app.util.dialNumber
 
 @Parcelize
@@ -108,6 +106,15 @@ data class ConversationScreen(
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val vm = getViewModel<ConversationViewModel>()
+
+        LaunchedEffect(chatId) {
+            if (chatId != null) {
+                vm.dispatchEvent(
+                    ConversationViewModel.Event.OnChatIdChanged(chatId)
+                )
+            }
+        }
+
         val state by vm.stateFlow.collectAsState()
 
         val messages = vm.messages.collectAsLazyPagingItems()
@@ -207,14 +214,6 @@ data class ConversationScreen(
                     )
                 }.launchIn(this)
         }
-
-        LaunchedEffect(chatId) {
-            if (chatId != null) {
-                vm.dispatchEvent(
-                    ConversationViewModel.Event.OnChatIdChanged(chatId)
-                )
-            }
-        }
     }
 }
 
@@ -269,7 +268,6 @@ private fun ConversationScreenContent(
     messages: LazyPagingItems<ChatItem>,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
-    val systemUiController = rememberSystemUiController()
     CodeScaffold(
         bottomBar = {
             Column(
@@ -339,6 +337,7 @@ private fun ConversationScreenContent(
         val composeScope = rememberCoroutineScope()
         val uriHandler = LocalUriHandler.current
         val context = LocalContext.current
+
         MessageList(
             modifier = Modifier
                 .fillMaxSize()

@@ -58,8 +58,9 @@ import java.io.File
         AutoMigration(from = 8, to = 9),
         AutoMigration(from = 9, to = 10, spec = FcAppDatabase.Migration9To10::class),
         AutoMigration(from = 10, to = 11),
+        AutoMigration(from = 11, to = 12, spec = FcAppDatabase.Migration11To12::class),
     ],
-    version = 11,
+    version = 12,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -89,6 +90,22 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         override fun migrate(db: SupportSQLiteDatabase) {
             // drop messages to allow proper mapping for announcements
             db.execSQL("DELETE FROM messages")
+        }
+    }
+
+    class Migration11To12 : Migration(11, 12), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // Add indexes for messages
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_conversationIdBase58 ON messages(conversationIdBase58)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_senderIdBase58 ON messages(senderIdBase58)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_messages_dateMillis ON messages(dateMillis)")
+
+            // Add index for message_contents
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_message_contents_messageIdBase58 ON message_contents(messageIdBase58)")
+
+            // Add indexes for members
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_members_memberIdBase58 ON members(memberIdBase58)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_members_conversationIdBase58 ON members(conversationIdBase58)")
         }
     }
 

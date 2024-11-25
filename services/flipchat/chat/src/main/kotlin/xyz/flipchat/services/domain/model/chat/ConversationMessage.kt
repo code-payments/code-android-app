@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.getcode.model.ID
@@ -12,7 +13,14 @@ import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
 
 @Serializable
-@Entity(tableName = "messages")
+@Entity(
+    tableName = "messages",
+    indices = [
+        Index(value = ["conversationIdBase58"]), // For filtering by conversation ID
+        Index(value = ["senderIdBase58"]),       // For joining on sender ID
+        Index(value = ["dateMillis"])           // For ordering by date
+    ]
+)
 data class ConversationMessage(
     @PrimaryKey
     val idBase58: String,
@@ -36,7 +44,12 @@ data class ConversationMessage(
 }
 
 @Serializable
-@Entity(tableName = "message_contents", primaryKeys = ["messageIdBase58", "content"])
+@Entity(
+    tableName = "message_contents", primaryKeys = ["messageIdBase58", "content"],
+    indices = [
+        Index(value = ["messageIdBase58"]) // For joining on message ID
+    ]
+)
 data class ConversationMessageContent(
     val messageIdBase58: String,
     val content: MessageContent

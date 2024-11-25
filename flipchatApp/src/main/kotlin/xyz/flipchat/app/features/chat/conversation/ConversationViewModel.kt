@@ -10,6 +10,7 @@ import androidx.compose.foundation.text2.input.clearText
 import androidx.compose.foundation.text2.input.textAsFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import androidx.paging.flatMap
 import androidx.paging.insertSeparators
 import androidx.paging.map
@@ -161,8 +162,11 @@ class ConversationViewModel @Inject constructor(
         data class OpenJoinConfirmation(val roomInfoArgs: RoomInfoArgs) : Event
         data class OpenRoom(val roomId: ID) : Event
 
-        data class Error(val fatal: Boolean, val message: String = "", val show: Boolean = true) :
-            Event
+        data class Error(
+            val fatal: Boolean,
+            val message: String = "",
+            val show: Boolean = true
+        ) : Event
     }
 
     init {
@@ -725,8 +729,9 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
+                is Event.OnChatIdChanged -> { state -> state.copy(conversationId = event.chatId) }
+
                 is Event.PresentPaymentConfirmation,
-                is Event.OnChatIdChanged,
                 is Event.Error,
                 Event.RevealIdentity,
                 Event.SendCash,
