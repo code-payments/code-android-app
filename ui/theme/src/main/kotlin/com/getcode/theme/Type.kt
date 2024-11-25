@@ -58,7 +58,7 @@ fun ProvideTypography(
     CompositionLocalProvider(LocalCodeTypography provides typography, content = content)
 }
 
-internal val codeTypography = CodeTypography(
+val codeTypography = CodeTypography(
     displayLarge = TextStyle(
         fontFamily = Avenir,
         fontSize = 55.sp,

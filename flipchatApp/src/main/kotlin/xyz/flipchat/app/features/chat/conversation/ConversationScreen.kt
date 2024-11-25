@@ -52,6 +52,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastForEachIndexed
 import androidx.lifecycle.Lifecycle
 import androidx.paging.compose.LazyPagingItems
@@ -245,7 +246,7 @@ private fun ConversationTitle(
         Column {
             Text(
                 text = state.title,
-                style = CodeTheme.typography.screenTitle
+                style = CodeTheme.typography.screenTitle.copy(fontSize = 18.sp)
             )
 
             val memberCount = remember(state.members) {

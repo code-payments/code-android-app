@@ -2,16 +2,19 @@ package xyz.flipchat.app.theme
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import com.getcode.theme.Alert
 import com.getcode.theme.BrandLight
 import com.getcode.theme.BrandMuted
 import com.getcode.theme.BrandOverlay
+import com.getcode.theme.CodeTypography
 import com.getcode.theme.ColorScheme
 import com.getcode.theme.DesignSystem
 import com.getcode.theme.Error
 import com.getcode.theme.Gray50
 import com.getcode.theme.TextMain
 import com.getcode.theme.White
+import com.getcode.theme.codeTypography
 
 val FC_Primary = Color(0xFF362774)
 private val FC_Secondary = Color(0xFF443091)
@@ -49,5 +52,12 @@ private val colors = ColorScheme(
 
 @Composable
 fun FlipchatTheme(content: @Composable () -> Unit) {
-    DesignSystem(colorScheme = colors, content = content)
+    DesignSystem(
+        colorScheme = colors,
+        // override code type system to make screen title's slightly bigger
+        typography = codeTypography.copy(
+            screenTitle = codeTypography.displayExtraSmall.copy(fontWeight = FontWeight.W500)
+        ),
+        content = content
+    )
 }
