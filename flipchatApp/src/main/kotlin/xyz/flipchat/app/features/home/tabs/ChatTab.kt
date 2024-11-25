@@ -54,6 +54,7 @@ import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
+import xyz.flipchat.app.features.home.tabs.ChatTab.options
 import xyz.flipchat.app.features.settings.SettingsViewModel
 
 internal object ChatTab : ChildNavTab {
@@ -87,7 +88,19 @@ internal object ChatTab : ChildNavTab {
             Column {
                 AppBarWithTitle(
                     title = {
-                        AppBarDefaults.Title(text = options.title)
+                        LogOutTitle(
+                            state = state,
+                            onTitleClicked = {
+                                viewModel.dispatchEvent(ChatListViewModel.Event.OnChatsTapped)
+                            },
+                            onLogout = {
+                                context.getActivity()?.let {
+                                    settingsVm.logout(it) {
+                                        navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
+                                    }
+                                }
+                            }
+                        )
                     },
                     rightContents = {
                         Image(
@@ -134,25 +147,19 @@ internal object ChatTab : ChildNavTab {
 }
 
 @Composable
-private fun HiddenLogoutButton(modifier: Modifier = Modifier, onLogout: () -> Unit) {
+private fun LogOutTitle(
+    modifier: Modifier = Modifier,
+    state: ChatListViewModel.State,
+    onTitleClicked: () -> Unit,
+    onLogout: () -> Unit
+) {
     val context = LocalContext.current
-    var debugClickCount by remember { mutableIntStateOf(0) }
-    var enabledDebug by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(debugClickCount) {
-        if (debugClickCount >= 7) {
-            enabledDebug = true
-        }
-    }
-
-    Box(modifier = modifier
-        .size(CodeTheme.dimens.staticGrid.x5)
-        .addIf(!enabledDebug) {
+    AppBarDefaults.Title(
+        modifier = modifier.addIf(!state.isLogOutEnabled) {
             Modifier.noRippleClickable {
-                debugClickCount++
+                onTitleClicked()
             }
-        }
-        .addIf(enabledDebug) {
+        }.addIf(state.isLogOutEnabled) {
             Modifier.unboundedClickable {
                 BottomBarManager.showMessage(
                     BottomBarManager.BottomBarMessage(
@@ -165,6 +172,7 @@ private fun HiddenLogoutButton(modifier: Modifier = Modifier, onLogout: () -> Un
                     )
                 )
             }
-        }
+        },
+        text = options.title
     )
 }

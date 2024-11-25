@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -32,6 +34,7 @@ import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.user.AuthState
+import xyz.flipchat.services.user.UserCoroutineScopeManager
 import javax.inject.Inject
 
 @HiltViewModel
@@ -51,6 +54,8 @@ class ChatListViewModel @Inject constructor(
         val showScrim: Boolean = false,
         val showFullscreenSpinner: Boolean = false,
         val networkConnected: Boolean = true,
+        val chatTapCount: Int = 0,
+        val isLogOutEnabled: Boolean = false,
     )
 
     sealed interface Event {
@@ -65,6 +70,8 @@ class ChatListViewModel @Inject constructor(
         data object OnOpen : Event
         data object CreateRoomSelected : Event
         data class OpenRoom(val roomId: ID) : Event
+        data object OnChatsTapped: Event
+        data object OnLogOutUnlocked: Event
     }
 
     init {
@@ -79,6 +86,14 @@ class ChatListViewModel @Inject constructor(
             .map { it.connected }
             .distinctUntilChanged()
             .onEach { dispatchEvent(Event.OnNetworkChanged(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatsTapped>()
+            .map { stateFlow.value.chatTapCount }
+            .filter { it >= TAP_THRESHOLD }
+            .filterNot { stateFlow.value.isLogOutEnabled }
+            .onEach { dispatchEvent(Event.OnLogOutUnlocked) }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -147,6 +162,7 @@ class ChatListViewModel @Inject constructor(
         chatsController.chats.flow.filter { userManager.authState is AuthState.LoggedIn }
 
     companion object {
+        private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 is Event.OnOpen -> { state -> state }
@@ -156,6 +172,11 @@ class ChatListViewModel @Inject constructor(
 
                 is Event.CreateRoomSelected -> { state -> state }
 
+                is Event.OnChatsTapped -> { state ->
+                    if (state.chatTapCount >= TAP_THRESHOLD) state
+                    else state.copy(chatTapCount = state.chatTapCount + 1)
+                }
+                is Event.OnLogOutUnlocked -> { state -> state.copy(isLogOutEnabled = true) }
                 is Event.OpenRoom -> { state -> state }
                 is Event.ShowFullScreenSpinner -> { state ->
                     state.copy(
