@@ -2,7 +2,6 @@ package xyz.flipchat.app.features.chat.list
 
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
-import androidx.paging.cachedIn
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -17,7 +16,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -34,7 +32,6 @@ import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.user.AuthState
-import xyz.flipchat.services.user.UserCoroutineScopeManager
 import javax.inject.Inject
 
 @HiltViewModel
@@ -150,7 +147,6 @@ class ChatListViewModel @Inject constructor(
                         }.onSuccess {
                                 event.acknowledge(true) {
                                     dispatchEvent(Event.OpenRoom(it.id))
-                                    paymentController.cancelPayment(fromUser = false)
                                 }
                         }
                     }

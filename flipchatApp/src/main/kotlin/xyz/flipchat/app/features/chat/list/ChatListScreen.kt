@@ -10,7 +10,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,19 +28,21 @@ import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
-import xyz.flipchat.app.R
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.NamedScreen
-import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import xyz.flipchat.app.R
+import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
 
 @Parcelize
 data object ChatListScreen : Screen, NamedScreen, Parcelable {
@@ -62,6 +63,14 @@ data object ChatListScreen : Screen, NamedScreen, Parcelable {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(chatId = it)))
             }
         )
+
+        LaunchedEffect(viewModel) {
+            viewModel.eventFlow
+                .filterIsInstance<ChatListViewModel.Event.OpenRoom>()
+                .onEach {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it.roomId)))
+                }.launchIn(this)
+        }
     }
 }
 

@@ -13,14 +13,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -48,9 +43,6 @@ import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.unboundedClickable
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
@@ -72,17 +64,9 @@ internal object ChatTab : ChildNavTab {
     override fun Content() {
         val navigator = LocalCodeNavigator.current
         val context = LocalContext.current
-        val viewModel = getActivityScopedViewModel<ChatListViewModel>()
+        val viewModel = getViewModel<ChatListViewModel>()
         val settingsVm = getViewModel<SettingsViewModel>()
         val state by viewModel.stateFlow.collectAsState()
-
-        LaunchedEffect(viewModel) {
-            viewModel.eventFlow
-                .filterIsInstance<ChatListViewModel.Event.OpenRoom>()
-                .onEach {
-                    navigator.push(ScreenRegistry.get(NavScreenProvider.Chat.Conversation(it.roomId)))
-                }.launchIn(this)
-        }
 
         Box {
             Column {
