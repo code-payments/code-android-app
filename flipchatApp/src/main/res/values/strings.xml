@@ -132,4 +132,7 @@
     <string name="action_createNewFlipchatAccount">Create a New Flipchat Account</string>
     <string name="action_tryDifferentFlipchatAccount">Try a Different Flipchat Account</string>
 
+    <string name="prompt_title_logout">Log Out?</string>
+    <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
+
 </resources>
