@@ -19,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,6 +40,7 @@ import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
+import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.utils.addIf
@@ -51,7 +51,6 @@ import com.getcode.ui.utils.unboundedClickable
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
@@ -87,17 +86,10 @@ internal object ChatTab : ChildNavTab {
         Box {
             Column {
                 AppBarWithTitle(
-                    title = options.title,
-                    startContent = {
-                        HiddenLogoutButton(modifier = Modifier.padding(CodeTheme.dimens.grid.x1)) {
-                            context.getActivity()?.let {
-                                settingsVm.logout(it) {
-                                    navigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home()))
-                                }
-                            }
-                        }
+                    title = {
+                        AppBarDefaults.Title(text = options.title)
                     },
-                    endContent = {
+                    rightContents = {
                         Image(
                             modifier = Modifier
                                 .background(color = CodeTheme.colors.tertiary, shape = CircleShape)

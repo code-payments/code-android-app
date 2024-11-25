@@ -21,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.DesignSystem
+import com.getcode.ui.utils.calculateHorizontalPadding
 import com.getcode.ui.utils.unboundedClickable
 
 object AppBarDefaults {
@@ -68,10 +69,12 @@ object AppBarDefaults {
 
     @Composable
     fun Title(
+        modifier: Modifier = Modifier,
         text: String = "",
         style: TextStyle = CodeTheme.typography.screenTitle,
     ) {
         Text(
+            modifier = modifier,
             text = text,
             style = style,
             color = Color.White,
@@ -83,7 +86,7 @@ object AppBarDefaults {
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
     title: String = "",
-    titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    titleAlignment: Alignment.Horizontal = Alignment.Start,
     backButton: Boolean = false,
     onBackIconClicked: () -> Unit = {},
     endContent: @Composable () -> Unit = { },
@@ -96,7 +99,7 @@ fun AppBarWithTitle(
             }
         },
         titleRegion = {
-            AppBarDefaults.Title(title)
+            AppBarDefaults.Title(text = title)
         },
         titleAlignment = titleAlignment,
         rightContents = endContent
@@ -107,7 +110,7 @@ fun AppBarWithTitle(
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
     title: String = "",
-    titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    titleAlignment: Alignment.Horizontal = Alignment.Start,
     startContent: @Composable () -> Unit = { },
     endContent: @Composable () -> Unit = { },
 ) {
@@ -115,7 +118,7 @@ fun AppBarWithTitle(
         modifier = modifier.statusBarsPadding(),
         leftIcon =  startContent,
         titleRegion = {
-            AppBarDefaults.Title(title)
+            AppBarDefaults.Title(text = title)
         },
         titleAlignment = titleAlignment,
         rightContents = endContent
@@ -126,7 +129,7 @@ fun AppBarWithTitle(
 fun AppBarWithTitle(
     modifier: Modifier = Modifier,
     title: @Composable () -> Unit,
-    titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    titleAlignment: Alignment.Horizontal = Alignment.Start,
     contentPadding: PaddingValues = PaddingValues(horizontal = CodeTheme.dimens.grid.x2),
     leftIcon: @Composable () -> Unit = { },
     rightContents: @Composable () -> Unit = { }
@@ -150,6 +153,9 @@ private fun TopAppBarBase(
     rightContents: @Composable () -> Unit = { },
     titleAlignment: Alignment.Horizontal = Alignment.CenterHorizontally // New parameter
 ) {
+    val inset = CodeTheme.dimens.inset
+    val horizontal = contentPadding.calculateHorizontalPadding()
+
     SubcomposeLayout(modifier = modifier.height(56.dp)) { constraints ->
         // Measure left icon, if provided
         val leftIconPlaceable = subcompose("leftIcon", leftIcon).firstOrNull()?.measure(
@@ -181,12 +187,15 @@ private fun TopAppBarBase(
             // Place right contents, if present
             rightContentsPlaceable?.placeRelative(
                 x = constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(layoutDirection).roundToPx(),
-                y = (constraints.maxHeight - (rightContentsPlaceable?.height ?: 0)) / 2
+                y = (constraints.maxHeight - rightContentsPlaceable.height) / 2
             )
 
             // Place title region with configurable alignment
             val titleX = when (titleAlignment) {
-                Alignment.Start -> leftIconWidth + contentPadding.calculateLeftPadding(layoutDirection).roundToPx()
+                Alignment.Start -> {
+                    if (leftIconWidth == 0) inset.roundToPx()
+                    else leftIconWidth + horizontal.roundToPx()
+                }
                 Alignment.End -> constraints.maxWidth - rightContentsWidth - contentPadding.calculateRightPadding(layoutDirection).roundToPx() - (titleRegionPlaceable?.width ?: 0)
                 else -> (constraints.maxWidth - (titleRegionPlaceable?.width ?: 0)) / 2
             }

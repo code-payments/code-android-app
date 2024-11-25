@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -100,6 +101,7 @@ fun CodeApp(tipsEngine: TipsEngine) {
                                 AppBarWithTitle(
                                     modifier = Modifier.measured { topBarHeight = it.height },
                                     title = appState.currentTitle,
+                                    titleAlignment = Alignment.CenterHorizontally,
                                     backButton = isVisibleBackButton,
                                     onBackIconClicked = appState::upPress
                                 )

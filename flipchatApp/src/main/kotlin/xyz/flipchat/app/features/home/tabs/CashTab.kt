@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.home.tabs
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import cafe.adriel.voyager.core.registry.ScreenRegistry

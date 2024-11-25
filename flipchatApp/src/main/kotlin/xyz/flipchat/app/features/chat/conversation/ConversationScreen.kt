@@ -23,13 +23,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -37,7 +35,6 @@ import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -64,11 +61,9 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
-import xyz.flipchat.app.features.home.TabbedHomeScreen
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
-import xyz.flipchat.app.R
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White05
 import com.getcode.ui.components.AppBarDefaults
@@ -87,7 +82,6 @@ import com.getcode.ui.components.chat.utils.HandleMessageChanges
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.withTopBorder
-import com.getcode.util.formatDateRelatively
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
@@ -97,6 +91,8 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import xyz.flipchat.app.R
+import xyz.flipchat.app.features.home.TabbedHomeScreen
 
 @Parcelize
 data class ConversationScreen(
@@ -139,7 +135,6 @@ data class ConversationScreen(
                         state = state,
                     )
                 },
-                titleAlignment = Alignment.Start,
                 leftIcon = {
                     AppBarDefaults.UpNavigation { goBack() }
                 },
@@ -377,6 +372,10 @@ private fun ConversationScreenContent(
                             }
                             is Markup.Url -> {
                                 uriHandler.openUri(markup.link)
+                            }
+
+                            is Markup.Phone -> {
+                                uriHandler.openUri(markup.phoneNumber)
                             }
                         }
                     }
