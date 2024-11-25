@@ -141,6 +141,8 @@ internal fun AmountTextAnimated(
     amountSuffix: String,
     placeholder: String = "0",
     uiModel: AmountAnimatedInputUiModel?,
+    maxDigits: Int = 15,
+    totalDecimals: Int = 2,
     textStyle: TextStyle,
     isClickable: Boolean,
 ) {
@@ -150,16 +152,12 @@ internal fun AmountTextAnimated(
 
     val staticX8 = CodeTheme.dimens.staticGrid.x8
 
-    //Maximum possible values
-    val maxDigits = 10
-    val totalDecimal = 2
-
     //Visibility states
     var decimalPointVisibility by remember { mutableStateOf(false) }
     var zeroVisibility by remember { mutableStateOf(true) }
     val digitVisibility = remember { mutableStateListOf(*Array(maxDigits) { it == 0 }) }
-    val digitDecimalVisibility = remember { mutableStateListOf(*Array(totalDecimal) { false }) }
-    val digitDecimalZeroVisibility = remember { mutableStateListOf(*Array(totalDecimal) { false }) }
+    val digitDecimalVisibility = remember { mutableStateListOf(*Array(totalDecimals) { false }) }
+    val digitDecimalZeroVisibility = remember { mutableStateListOf(*Array(totalDecimals) { false }) }
     var firstDigit by remember { mutableStateOf("") }
 
     //Font states
@@ -383,52 +381,42 @@ internal fun AmountTextAnimated(
                     placeholderColor = Color.White
                 )
 
-                Row(
-                    modifier = Modifier
-                        /*.animateContentSize(
-                            animationSpec = tween(
-                                durationMillis = 100,
-                                easing = LinearOutSlowInEasing,
-                            ),
-                        )*/
-                ) {
-                    for (i in 1 until maxDigits) {
-                        Digit(
-                            getComma(i),
-                            GROUPING_SEPARATOR.toString(),
-                            textSize,
-                            density,
-                            enter = expandHorizontally() + fadeIn(),
-                            exit = shrinkHorizontally() + fadeOut(),
-                        )
-                        Digit(
-                            digitVisibility[i],
-                            getValue(0, i) ?: getLastValue(0, i) ?: "",
-                            textSize,
-                            density
-                        )
-                    }
-
+                for (i in 1 until maxDigits) {
                     Digit(
-                        isVisible = decimalPointVisibility,
-                        text = DECIMAL_SEPARATOR.toString(),
+                        getComma(i),
+                        GROUPING_SEPARATOR.toString(),
+                        textSize,
+                        density,
+                        enter = expandHorizontally() + fadeIn(),
+                        exit = shrinkHorizontally() + fadeOut(),
+                    )
+                    Digit(
+                        digitVisibility[i],
+                        getValue(0, i) ?: getLastValue(0, i) ?: "",
+                        textSize,
+                        density
+                    )
+                }
+
+                Digit(
+                    isVisible = decimalPointVisibility,
+                    text = DECIMAL_SEPARATOR.toString(),
+                    fontSize = textSize,
+                    density = density,
+                    enter = decimalEnter,
+                )
+
+                for (i in 0 until totalDecimals) {
+                    AnimatedPlaceholderDigit(
+                        text = getValue(1, i) ?: getLastValue(1, i) ?: "0",
+                        digitVisible = digitDecimalVisibility[i],
+                        placeholderVisible = digitDecimalZeroVisibility[i],
+                        placeholder = "0",
                         fontSize = textSize,
                         density = density,
-                        enter = decimalEnter,
+                        placeholderEnter = decimalZeroEnter,
+                        placeholderExit = decimalZeroExit,
                     )
-
-                    for (i in 0 until totalDecimal) {
-                        AnimatedPlaceholderDigit(
-                            text = getValue(1, i) ?: getLastValue(1, i) ?: "0",
-                            digitVisible = digitDecimalVisibility[i],
-                            placeholderVisible = digitDecimalZeroVisibility[i],
-                            placeholder = "0",
-                            fontSize = textSize,
-                            density = density,
-                            placeholderEnter = decimalZeroEnter,
-                            placeholderExit = decimalZeroExit,
-                        )
-                    }
                 }
 
                 Text(

@@ -26,9 +26,11 @@ data class KinAmount(
     companion object {
         val Zero = newInstance(0, Rate.oneToOne)
 
-        fun newInstance(kin: Int, rate: Rate): KinAmount {
+        fun newInstance(kin: Long, rate: Rate): KinAmount {
             return newInstance(fromKin(kin), rate)
         }
+
+        fun fromQuarks(quarks: Long): KinAmount = newInstance(quarks, Rate.oneToOne)
 
         fun newInstance(kin: Kin, rate: Rate): KinAmount {
             return KinAmount(

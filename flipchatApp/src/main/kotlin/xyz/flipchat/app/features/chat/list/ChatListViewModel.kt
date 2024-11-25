@@ -112,10 +112,7 @@ class ChatListViewModel @Inject constructor(
                     )
 
                     val amount =
-                        KinAmount.newInstance(
-                            kin = flags.createCost.quarks.toInt(),
-                            rate = Rate.oneToOne
-                        )
+                        KinAmount.fromQuarks(flags.createCost.quarks)
 
                     paymentController.presentPublicPaymentConfirmation(
                         amount = amount,

@@ -57,7 +57,7 @@ class CoverChargeViewModel @Inject constructor(
             .filterIsInstance<Event.OnNumberPressed>()
             .map { it.number }
             .onEach { number ->
-                numberInputHelper.maxLength = 9
+                numberInputHelper.maxLength = 10 // 1 billion Kin
                 numberInputHelper.onNumber(number)
                 dispatchEvent(Event.OnEnteredNumberChanged())
             }.launchIn(viewModelScope)
@@ -93,8 +93,7 @@ class CoverChargeViewModel @Inject constructor(
                 stateFlow.value.roomId ?: return@mapNotNull null
                 stateFlow.value.roomId!! to stateFlow.value.amountAnimatedModel.amountData.amount.toLong()
             }.map { (roomId, value) ->
-                val kin = Kin.fromKin(value).toKin().toInt()
-                roomController.setCoverCharge(roomId, KinAmount.newInstance(kin, Rate.oneToOne))
+                roomController.setCoverCharge(roomId, KinAmount.fromQuarks(value))
             }.onResult(
                 onError = {
                     dispatchEvent(Event.OnChangingCover(false))
@@ -123,7 +122,7 @@ class CoverChargeViewModel @Inject constructor(
                 is Event.OnNumberPressed -> { state -> state }
 
                 is Event.OnCoverChanged -> { state ->
-                    val cover = event.amountAnimatedModel.amountData.amount.toIntOrNull()
+                    val cover = event.amountAnimatedModel.amountData.amount.toLongOrNull()
                     state.copy(
                         amountAnimatedModel = event.amountAnimatedModel,
                         canChange = (cover ?: 0) > 0

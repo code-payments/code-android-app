@@ -92,7 +92,7 @@ class JoinConfirmationViewModel @Inject constructor(
             .mapNotNull {
                 val destination = stateFlow.value.paymentDestination ?: return@mapNotNull null
                 val amount =
-                    KinAmount.newInstance(kin = it.coverCharge.quarks.toInt(), rate = Rate.oneToOne)
+                    KinAmount.fromQuarks(it.coverCharge.quarks)
 
                 dispatchEvent(Event.OnJoiningChanged(true))
                 if (userManager.userId == it.hostId) {
