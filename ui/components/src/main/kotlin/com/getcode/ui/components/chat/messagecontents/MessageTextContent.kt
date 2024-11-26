@@ -1,7 +1,5 @@
 package com.getcode.ui.components.chat.messagecontents
 
-import android.telephony.PhoneNumberUtils
-import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,19 +20,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
-import com.getcode.ui.components.chat.Markup
 import com.getcode.ui.components.chat.MessageNodeDefaults
 import com.getcode.ui.components.chat.MessageNodeOptions
 import com.getcode.ui.components.chat.MessageNodeScope
+import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.components.text.markup.MarkupTextHelper
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.formatDateRelatively
@@ -253,84 +248,26 @@ private fun MarkupTextHandler(
 ) {
     if (options.onMarkupClicked != null) {
         val handler = options.onMarkupClicked
-        val annotatedString = buildAnnotatedString {
-            val hashtagRegex = Regex("#\\d+")
-            val urlMatcher = Patterns.WEB_URL.matcher(text)
-            val phoneRegex = Regex("(\\+[0-9]+[ \\-.]*)?(\\([0-9]+\\)[ \\-.]*)?([0-9]+([ \\-.][0-9]+)*)")
+        val markupTextHelper = remember { MarkupTextHelper() }
+        val markups = options.markupsToResolve.map { Markup.create(it) }
 
-
-            var lastIndex = 0
-
-            while (urlMatcher.find()) {
-                val urlStart = urlMatcher.start()
-                val urlEnd = urlMatcher.end()
-
-                append(text.substring(lastIndex, urlStart))
-
-                val url = urlMatcher.group()
-                pushStringAnnotation(tag = "URL", annotation = url)
-                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                    append(url)
-                }
-                pop()
-
-                lastIndex = urlEnd
-            }
-
-            var remainingText = text.substring(lastIndex)
-            phoneRegex.findAll(remainingText).forEach { matchResult ->
-                val start = matchResult.range.first
-                val end = matchResult.range.last + 1
-
-                append(remainingText.substring(lastIndex, start))
-
-                val number = matchResult.value
-
-                pushStringAnnotation(tag = "PHONE", annotation = number)
-                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                    append(matchResult.value)
-                }
-                pop()
-
-                lastIndex = end
-            }
-
-            remainingText = text.substring(lastIndex)
-            hashtagRegex.findAll(remainingText).forEach { matchResult ->
-                val start = matchResult.range.first
-                val end = matchResult.range.last + 1
-
-                append(remainingText.substring(lastIndex, start))
-
-                val number = matchResult.value.removePrefix("#")
-
-                pushStringAnnotation(tag = "HASHTAG", annotation = number)
-                withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                    append(matchResult.value)
-                }
-                pop()
-
-                lastIndex = end
-            }
-
-            append(remainingText.substring(lastIndex.coerceAtMost(remainingText.length)))
-        }
+        val annotatedString = markupTextHelper.annotate(text, markups)
 
         ClickableText(
             text = annotatedString,
             style = options.contentStyle.copy(color = CodeTheme.colors.textMain),
             onClick = { offset ->
-                annotatedString.getStringAnnotations(tag = "HASHTAG", start = offset, end = offset)
+                annotatedString.getStringAnnotations(tag = Markup.RoomNumber.TAG, start = offset, end = offset)
                     .firstOrNull()?.let { annotation ->
                         handler.invoke(Markup.RoomNumber(annotation.item.toLong()))
                     }
 
-                annotatedString.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                annotatedString.getStringAnnotations(tag = Markup.Url.TAG, start = offset, end = offset)
                     .firstOrNull()?.let { annotation ->
                         handler.invoke(Markup.Url(annotation.item))
                     }
 
-                annotatedString.getStringAnnotations(tag = "PHONE", start = offset, end = offset)
+                annotatedString.getStringAnnotations(tag = Markup.Phone.TAG, start = offset, end = offset)
                     .firstOrNull()?.let { annotation ->
                         handler.invoke(Markup.Phone(annotation.item))
                     }

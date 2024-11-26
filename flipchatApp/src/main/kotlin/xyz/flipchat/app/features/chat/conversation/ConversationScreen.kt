@@ -71,7 +71,6 @@ import com.getcode.ui.components.AppBarDefaults
 import com.getcode.ui.components.AppBarWithTitle
 import com.getcode.ui.components.OnLifecycleEvent
 import com.getcode.ui.components.chat.ChatInput
-import com.getcode.ui.components.chat.Markup
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
@@ -80,6 +79,7 @@ import com.getcode.ui.components.chat.UserAvatar
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.HandleMessageChanges
+import com.getcode.ui.components.text.markup.Markup
 import com.getcode.ui.theme.CodeScaffold
 import com.getcode.ui.utils.keyboardAsState
 import com.getcode.ui.utils.withTopBorder

@@ -1,6 +1,5 @@
 package com.getcode.ui.components.chat.messagecontents
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column

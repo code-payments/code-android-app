@@ -2,10 +2,8 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -27,8 +25,8 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
+import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
-import kotlin.time.Duration.Companion.minutes
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID): MessageListEvent

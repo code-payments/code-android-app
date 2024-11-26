@@ -45,7 +45,9 @@ import com.getcode.ui.components.chat.messagecontents.EncryptedContent
 import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.localizedText
+import com.getcode.ui.components.text.markup.Markup
 import kotlinx.datetime.Instant
+import kotlin.reflect.KClass
 
 object MessageNodeDefaults {
 
@@ -136,18 +138,17 @@ private fun rememberMessageNodeScope(
     }
 }
 
-sealed interface Markup {
-    data class RoomNumber(val number: Long): Markup
-    data class Url(val link: String): Markup
-    data class Phone(val phoneNumber: String): Markup
-}
-
 data class MessageNodeOptions(
     val showStatus: Boolean = true,
     val showTimestamp: Boolean = true,
     val isPreviousGrouped: Boolean = false,
     val isNextGrouped: Boolean = false,
     val isInteractive: Boolean = false,
+    val markupsToResolve: List<KClass<out Markup>> = listOf(
+        Markup.RoomNumber::class,
+        Markup.Url::class,
+        Markup.Phone::class
+    ),
     val onMarkupClicked: ((Markup) -> Unit)? = null,
     val contentStyle: TextStyle,
 )
