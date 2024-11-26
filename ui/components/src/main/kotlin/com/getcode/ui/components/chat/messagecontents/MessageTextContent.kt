@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat.messagecontents
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -15,11 +16,14 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -34,14 +38,19 @@ import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.rememberedLongClickable
 import com.getcode.util.formatDateRelatively
 import kotlinx.datetime.Instant
+import kotlin.math.roundToInt
 
 sealed interface MessageControlAction {
     val onSelect: () -> Unit
-    data class Copy(override val onSelect: () -> Unit): MessageControlAction
-    data class Delete(override val onSelect: () -> Unit): MessageControlAction
-    data class RemoveUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
-    data class MuteUser(val name: String, override val onSelect: () -> Unit): MessageControlAction
-    data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit): MessageControlAction
+
+    data class Copy(override val onSelect: () -> Unit) : MessageControlAction
+    data class Delete(override val onSelect: () -> Unit) : MessageControlAction
+    data class RemoveUser(val name: String, override val onSelect: () -> Unit) :
+        MessageControlAction
+
+    data class MuteUser(val name: String, override val onSelect: () -> Unit) : MessageControlAction
+    data class ReportUserForMessage(val name: String, override val onSelect: () -> Unit) :
+        MessageControlAction
 }
 
 data class MessageControls(
@@ -49,15 +58,6 @@ data class MessageControls(
 ) {
     val hasAny: Boolean
         get() = actions.isNotEmpty()
-
-    val canCopy: Boolean
-        get() = actions.any { it is MessageControlAction.Copy }
-
-    val canDelete: Boolean
-        get() = actions.any { it is MessageControlAction.Delete }
-
-    val canRemoveUser: Boolean
-        get() = actions.any { it is MessageControlAction.RemoveUser }
 }
 
 @Composable
@@ -98,7 +98,8 @@ internal fun MessageNodeScope.MessageText(
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
-                    options = options
+                    options = options,
+                    onLongPress = { showControls() }
                 )
             }
         }
@@ -165,12 +166,14 @@ private fun rememberAlignmentRule(
 
 @Composable
 internal fun MessageContent(
+    modifier: Modifier = Modifier,
     maxWidth: Int,
     message: String,
     date: Instant,
     status: MessageStatus,
     isFromSelf: Boolean,
     options: MessageNodeOptions,
+    onLongPress: () -> Unit = { },
 ) {
     val alignmentRule by rememberAlignmentRule(
         contentTextStyle = options.contentStyle,
@@ -185,10 +188,12 @@ internal fun MessageContent(
                 MarkupTextHandler(
                     text = message,
                     options = options,
+                    onLongPress = onLongPress,
                 )
                 DateWithStatus(
                     modifier = Modifier
-                        .align(Alignment.End),
+                        .align(Alignment.End)
+                        .pointerInput(Unit) { detectTapGestures {  }},
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
@@ -205,10 +210,12 @@ internal fun MessageContent(
                 MarkupTextHandler(
                     text = message,
                     options = options,
+                    onLongPress = onLongPress,
                 )
                 DateWithStatus(
                     modifier = Modifier
-                        .align(Alignment.End),
+                        .align(Alignment.End)
+                        .pointerInput(Unit) { detectTapGestures {  }},
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
@@ -219,14 +226,19 @@ internal fun MessageContent(
         }
 
         AlignmentRule.SingleLineEnd -> {
-            Row(horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)) {
+            Row(
+                modifier = modifier,
+                horizontalArrangement = Arrangement.spacedBy(CodeTheme.dimens.grid.x1)
+            ) {
                 MarkupTextHandler(
                     text = message,
                     options = options,
+                    onLongPress = onLongPress,
                 )
                 DateWithStatus(
                     modifier = Modifier
-                        .padding(top = CodeTheme.dimens.grid.x1 + 2.dp),
+                        .padding(top = CodeTheme.dimens.grid.x1 + 2.dp)
+                        .pointerInput(Unit) { detectTapGestures {  }},
                     date = date,
                     status = status,
                     isFromSelf = isFromSelf,
@@ -244,7 +256,8 @@ internal fun MessageContent(
 private fun MarkupTextHandler(
     text: String,
     options: MessageNodeOptions,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLongPress: () -> Unit = { },
 ) {
     if (options.onMarkupClicked != null) {
         val handler = options.onMarkupClicked
@@ -253,25 +266,51 @@ private fun MarkupTextHandler(
 
         val annotatedString = markupTextHelper.annotate(text, markups)
 
-        ClickableText(
+        val handleTouchedContent = { offset: Int ->
+            annotatedString.getStringAnnotations(
+                tag = Markup.RoomNumber.TAG,
+                start = offset,
+                end = offset
+            )
+                .firstOrNull()?.let { annotation ->
+                    handler.invoke(Markup.RoomNumber(annotation.item.toLong()))
+                }
+
+            annotatedString.getStringAnnotations(
+                tag = Markup.Url.TAG,
+                start = offset,
+                end = offset
+            )
+                .firstOrNull()?.let { annotation ->
+                    handler.invoke(Markup.Url(annotation.item))
+                }
+
+            annotatedString.getStringAnnotations(
+                tag = Markup.Phone.TAG,
+                start = offset,
+                end = offset
+            ).firstOrNull()?.let { annotation ->
+                handler.invoke(Markup.Phone(annotation.item))
+            }
+        }
+
+        var layoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+        Text(
             text = annotatedString,
             style = options.contentStyle.copy(color = CodeTheme.colors.textMain),
-            onClick = { offset ->
-                annotatedString.getStringAnnotations(tag = Markup.RoomNumber.TAG, start = offset, end = offset)
-                    .firstOrNull()?.let { annotation ->
-                        handler.invoke(Markup.RoomNumber(annotation.item.toLong()))
-                    }
-
-                annotatedString.getStringAnnotations(tag = Markup.Url.TAG, start = offset, end = offset)
-                    .firstOrNull()?.let { annotation ->
-                        handler.invoke(Markup.Url(annotation.item))
-                    }
-
-                annotatedString.getStringAnnotations(tag = Markup.Phone.TAG, start = offset, end = offset)
-                    .firstOrNull()?.let { annotation ->
-                        handler.invoke(Markup.Phone(annotation.item))
-                    }
-            }
+            modifier = modifier.pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { offset ->
+                        layoutResult?.let { layoutResult ->
+                            val position = layoutResult.getOffsetForPosition(offset)
+                            handleTouchedContent(position)
+                        }
+                    },
+                    onLongPress = if (!options.isInteractive) null else { { onLongPress() } },
+                )
+            },
+            onTextLayout = { layoutResult = it }
         )
     } else {
         Text(modifier = modifier, text = text, style = options.contentStyle)

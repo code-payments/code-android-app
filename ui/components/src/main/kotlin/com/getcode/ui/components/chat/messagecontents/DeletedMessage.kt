@@ -44,7 +44,7 @@ internal fun MessageNodeScope.DeletedMessage(
                     date = date,
                     status = MessageStatus.Unknown,
                     isFromSelf = isFromSelf,
-                    options = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle)
+                    options = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
                 )
             }
         }
