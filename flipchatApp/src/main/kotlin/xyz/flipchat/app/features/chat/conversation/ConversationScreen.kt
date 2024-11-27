@@ -355,8 +355,7 @@ private fun ConversationScreenContent(
             dispatch = { event ->
                 when (event) {
                     is MessageListEvent.AdvancePointer -> {
-                        // TODO: reenable when not spammy
-//                        dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
+                        dispatchEvent(ConversationViewModel.Event.MarkRead(event.messageId))
                     }
 
                     is MessageListEvent.OpenMessageActions -> {

@@ -66,7 +66,7 @@ fun MessageList(
             .collect { index ->
                 val closetChatMessage = messages.itemSnapshotList.toList().getClosestChat(index)
                 if (closetChatMessage != null) {
-                    val (id, isFromSelf, status) = closetChatMessage
+                    val (id, isFromSelf, _) = closetChatMessage
                     if (!isFromSelf) {
                         dispatch(MessageListEvent.AdvancePointer(id))
                     }
