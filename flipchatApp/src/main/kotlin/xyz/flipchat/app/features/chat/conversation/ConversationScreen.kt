@@ -62,6 +62,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.manager.TopBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.CodeNavigator
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -373,7 +374,16 @@ private fun ConversationScreenContent(
                                 dispatchEvent(ConversationViewModel.Event.LookupRoom(markup.number))
                             }
                             is Markup.Url -> {
-                                uriHandler.openUri(markup.link)
+                                runCatching {
+                                    uriHandler.openUri(markup.link)
+                                }.onFailure {
+                                    TopBarManager.showMessage(
+                                        TopBarManager.TopBarMessage(
+                                            title = context.getString(R.string.error_title_failedToOpenLink),
+                                            message = context.getString(R.string.error_description_failedToOpenLink)
+                                        )
+                                    )
+                                }
                             }
 
                             is Markup.Phone -> {

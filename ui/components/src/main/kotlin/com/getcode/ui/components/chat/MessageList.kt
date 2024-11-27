@@ -95,7 +95,7 @@ fun MessageList(
         ) { index ->
             when (val item = messages[index]) {
                 is ChatItem.Date -> DateBubble(
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2).animateItemPlacement(),
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
                     date = item.date
                 )
                 is ChatItem.Message -> {
@@ -150,8 +150,7 @@ fun MessageList(
 
                     MessageNode(
                         modifier = Modifier.fillMaxWidth()
-                            .padding(top = spacingBefore, bottom = spacingAfter)
-                            .animateItemPlacement(),
+                            .padding(top = spacingBefore, bottom = spacingAfter),
                         contents = item.message,
                         status = item.status,
                         isDeleted = item.isDeleted,

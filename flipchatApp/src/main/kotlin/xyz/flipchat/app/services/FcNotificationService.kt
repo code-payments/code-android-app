@@ -115,8 +115,10 @@ class FcNotificationService : FirebaseMessagingService(),
 
                 when (type) {
                     is FcNotificationType.ChatMessage -> {
-                        launch { chatsController.fetchLatestChatsAndMessage() }
-                        launch { codeController.fetchBalance() }
+                        val roomId = type.id
+                        if (roomId != null) {
+                            launch { chatsController.updateRoom(roomId) }
+                        }
                     }
 
                     FcNotificationType.Unknown -> Unit

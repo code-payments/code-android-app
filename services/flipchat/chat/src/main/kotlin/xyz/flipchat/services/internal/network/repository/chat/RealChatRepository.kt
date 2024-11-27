@@ -158,10 +158,14 @@ internal class RealChatRepository @Inject constructor(
                     val conversation = updatedChat?.let { conversationMapper.map(it) }
 
                     // handle last message update
-                    val message = update.lastMessage?.let {
-                        val chatId = update.id
-                        val mapped = messageMapper.map(userId to it)
-                        messageWithContentMapper.map(chatId to mapped)
+                    val message = if (userManager.openRoom != updatedChat?.id) {
+                        update.lastMessage?.let {
+                            val chatId = update.id
+                            val mapped = messageMapper.map(userId to it)
+                            messageWithContentMapper.map(chatId to mapped)
+                        }
+                    }  else {
+                        null
                     }
 
                     val members = when (memberUpdate) {

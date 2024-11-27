@@ -50,6 +50,11 @@
     <string name="error_title_failedToUnmuteChat">Something Went Wrong</string>
     <string name="error_description_failedToUnmuteChat">Please check your network connection and try again</string>
 
+
+    <string name="error_title_failedToOpenLink">Something Went Wrong</string>
+    <string name="error_description_failedToOpenLink">We were unable to open this link. Please try again</string>
+
+
     <string name="title_connectYourX">Connect Your X</string>
     <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>
     <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>

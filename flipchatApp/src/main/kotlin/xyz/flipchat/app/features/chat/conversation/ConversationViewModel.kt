@@ -466,7 +466,7 @@ class ConversationViewModel @Inject constructor(
         .map { it.conversationId }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest { roomController.messages(it).flow.cachedIn(viewModelScope) }
+        .flatMapLatest { roomController.messages(it).flow }
         .map { page ->
             page.flatMap { mwc ->
                 if (mwc.message.isDeleted) {
@@ -686,6 +686,12 @@ class ConversationViewModel @Inject constructor(
             }
 
             when (event) {
+                is Event.OnChatIdChanged -> { state ->
+                    state.copy(
+                        conversationId = event.chatId,
+                        textFieldState = TextFieldState()
+                    )
+                }
                 is Event.OnConversationChanged -> { state ->
                     val (conversation, _, _) = event.conversationWithPointers
                     val members = event.conversationWithPointers.members
@@ -694,7 +700,6 @@ class ConversationViewModel @Inject constructor(
                         conversationId = conversation.id,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
-                        textFieldState = TextFieldState(),
                         pointers = event.conversationWithPointers.pointers,
                         members = event.conversationWithPointers.membersUnique,
                         hostId = host?.id,
@@ -729,8 +734,6 @@ class ConversationViewModel @Inject constructor(
                 is Event.OnUserTypingStopped -> { state ->
                     state.copy(isSelfTyping = false)
                 }
-
-                is Event.OnChatIdChanged -> { state -> state.copy(conversationId = event.chatId) }
 
                 is Event.PresentPaymentConfirmation,
                 is Event.Error,

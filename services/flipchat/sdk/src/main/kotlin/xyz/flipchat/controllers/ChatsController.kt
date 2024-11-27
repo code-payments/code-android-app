@@ -49,16 +49,12 @@ class ChatsController @Inject constructor(
         }
     }
 
-    suspend fun fetchLatestChatsAndMessage() {
-        chatRepository.getChats(queryOptions = QueryOptions(limit = 10))
-            .map { rooms ->
-                rooms.onEach { room ->
-                    db.conversationDao().upsertConversations(conversationMapper.map(room))
-                    messagingRepository.getMessages(chatId = room.id, queryOptions = QueryOptions(limit = 10))
-                        .onSuccess { result ->
-                            val messages = result.map { conversationMessageWithContentMapper.map(room.id to it) }
-                            db.conversationMessageDao().upsertMessagesWithContent(messages)
-                        }
+    suspend fun updateRoom(roomId: ID) {
+        chatRepository.getChat(ChatIdentifier.Id(roomId))
+            .onSuccess { (room, members) ->
+                db.conversationDao().upsertConversations(conversationMapper.map(room))
+                members.map { conversationMemberMapper.map(room.id to it) }.onEach {
+                    db.conversationMembersDao().upsertMembers(it)
                 }
             }
     }
