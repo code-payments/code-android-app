@@ -487,7 +487,7 @@ class ConversationViewModel @Inject constructor(
                     }
                 }
             }
-        }
+        }.cachedIn(viewModelScope)
         .map { page ->
             page.map { indice ->
                 val (message, member, contents) = indice

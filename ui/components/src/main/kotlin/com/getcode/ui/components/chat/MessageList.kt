@@ -1,5 +1,6 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,6 +46,7 @@ data class MessageListPointerResult(
     val isNextGrouped: Boolean,
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageList(
     modifier: Modifier = Modifier,
@@ -93,7 +95,7 @@ fun MessageList(
         ) { index ->
             when (val item = messages[index]) {
                 is ChatItem.Date -> DateBubble(
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2).animateItemPlacement(),
                     date = item.date
                 )
                 is ChatItem.Message -> {
@@ -147,7 +149,9 @@ fun MessageList(
                     }
 
                     MessageNode(
-                        modifier = Modifier.fillMaxWidth().padding(top = spacingBefore, bottom = spacingAfter),
+                        modifier = Modifier.fillMaxWidth()
+                            .padding(top = spacingBefore, bottom = spacingAfter)
+                            .animateItemPlacement(),
                         contents = item.message,
                         status = item.status,
                         isDeleted = item.isDeleted,
