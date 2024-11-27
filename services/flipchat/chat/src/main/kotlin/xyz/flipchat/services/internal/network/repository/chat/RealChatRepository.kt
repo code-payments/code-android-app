@@ -106,14 +106,14 @@ internal class RealChatRepository @Inject constructor(
     override suspend fun mute(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.setMuteState(owner, chatId, true)
+        return service.muteChat(owner, chatId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 
     override suspend fun unmute(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.setMuteState(owner, chatId, false)
+        return service.unmuteChat(owner, chatId)
             .onFailure { ErrorUtils.handleError(it) }
     }
 

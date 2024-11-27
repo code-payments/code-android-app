@@ -24,8 +24,8 @@ data class Room(
     private val _title: String?,
     val ownerId: ID,
     val roomNumber: Long,
-    private val muted: Boolean,
-    val muteable: Boolean,
+    private val canDisablePush: Boolean,
+    private val isPushEnabled: Boolean,
     private val unread: Int,
     @Serializable(with = KinQuarksSerializer::class)
     val coverCharge: Kin,
@@ -50,9 +50,10 @@ data class Room(
             return unread
         }
 
+    val canMute: Boolean
+        get() = canDisablePush
+
     val isMuted: Boolean
-        get() {
-            return muted
-        }
+        get() = !isPushEnabled
 }
 

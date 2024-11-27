@@ -150,19 +150,32 @@ class ChatApi @Inject constructor(
             .flowOn(Dispatchers.IO)
     }
 
-    // SetMuteState configures a chat member's mute state.
-    fun setMuteState(
+    // MuteChat mutes a chat and disables push notifications
+    fun muteChat(
         owner: KeyPair,
         chatId: ID,
-        muted: Boolean
-    ): Flow<FlipchatService.SetMuteStateResponse> {
-        val request = FlipchatService.SetMuteStateRequest.newBuilder()
+    ): Flow<FlipchatService.MuteChatResponse> {
+        val request = FlipchatService.MuteChatRequest.newBuilder()
             .setChatId(chatId.toChatId())
-            .setIsMuted(muted)
             .apply { setAuth(authenticate(owner)) }
             .build()
 
-        return api::setMuteState
+        return api::muteChat
+            .callAsCancellableFlow(request)
+            .flowOn(Dispatchers.IO)
+    }
+
+    // UnmuteChat unmutes a chat and enables push notifications
+    fun unmuteChat(
+        owner: KeyPair,
+        chatId: ID,
+    ): Flow<FlipchatService.UnmuteChatResponse> {
+        val request = FlipchatService.UnmuteChatRequest.newBuilder()
+            .setChatId(chatId.toChatId())
+            .apply { setAuth(authenticate(owner)) }
+            .build()
+
+        return api::unmuteChat
             .callAsCancellableFlow(request)
             .flowOn(Dispatchers.IO)
     }

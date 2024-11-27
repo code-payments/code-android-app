@@ -7,6 +7,7 @@ import com.getcode.crypt.MnemonicCache
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.trace
 import com.google.firebase.Firebase
+import com.google.firebase.crashlytics.crashlytics
 import com.google.firebase.initialize
 import dagger.hilt.android.HiltAndroidApp
 import io.reactivex.rxjava3.plugins.RxJavaPlugins
@@ -55,6 +56,7 @@ class FlipchatApp : Application() {
         }
 
         Firebase.initialize(this)
+        Firebase.crashlytics.setCrashlyticsCollectionEnabled(BuildConfig.NOTIFY_ERRORS || !BuildConfig.DEBUG)
         MnemonicCache.init(this)
         authManager.init { trace("NaCl init") }
 

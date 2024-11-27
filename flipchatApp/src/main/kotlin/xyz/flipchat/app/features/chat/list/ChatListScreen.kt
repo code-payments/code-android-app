@@ -89,7 +89,16 @@ private fun ChatListScreenContent(
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(chats.itemCount) { index ->
                 chats[index]?.let {
-                    ChatNode(chat = it) { openChat(it.conversation.id) }
+                    ChatNode(
+                        chat = it,
+                        onSwipedToStart = {
+                            if (it.isMuted) {
+                                viewModel.dispatchEvent(ChatListViewModel.Event.UnmuteRoom(it.id))
+                            } else {
+                                viewModel.dispatchEvent(ChatListViewModel.Event.MuteRoom(it.id))
+                            }
+                        },
+                    ) { openChat(it.conversation.id) }
                     Divider(
                         modifier = Modifier.padding(start = CodeTheme.dimens.inset),
                         color = CodeTheme.colors.divider,
@@ -117,6 +126,7 @@ private fun ChatListScreenContent(
                         }
                     }
                 }
+
                 else -> {
                     item {
                         CodeButton(
@@ -128,7 +138,7 @@ private fun ChatListScreenContent(
                             text = stringResource(R.string.action_joinRoom)
                         ) {
                             openChatDirectiveBottomModal(
-                                context =  context,
+                                context = context,
                                 viewModel = viewModel,
                                 navigator = navigator
                             )

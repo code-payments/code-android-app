@@ -19,6 +19,7 @@ class RoomConversationMapper @Inject constructor(
             imageUri = from.imageData,
             unreadCount = from.unreadCount,
             isMuted = from.isMuted,
+            canMute = from.canMute,
             roomNumber = from.roomNumber,
             coverChargeQuarks = from.coverCharge.quarks,
             lastActivity = null, // TODO: ?

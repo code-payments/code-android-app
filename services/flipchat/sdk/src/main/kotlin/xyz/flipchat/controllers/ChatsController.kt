@@ -116,6 +116,16 @@ class ChatsController @Inject constructor(
                 db.conversationDao().upsertConversations(conversationMapper.map(it.room))
             }
     }
+
+    suspend fun muteRoom(roomId: ID): Result<Unit> {
+        return chatRepository.mute(roomId)
+            .onSuccess { db.conversationDao().muteChat(roomId) }
+    }
+
+    suspend fun unmuteRoom(roomId: ID): Result<Unit> {
+        return chatRepository.unmute(roomId)
+            .onSuccess { db.conversationDao().unmuteChat(roomId) }
+    }
 }
 
 @OptIn(ExperimentalPagingApi::class)
@@ -127,7 +137,7 @@ private class ChatsRemoteMediator(
         get() = FcAppDatabase.requireInstance()
 
     override suspend fun initialize(): InitializeAction {
-        return InitializeAction.LAUNCH_INITIAL_REFRESH
+        return InitializeAction.SKIP_INITIAL_REFRESH
     }
 
     private var lastFetchedItems: List<Room>? = null

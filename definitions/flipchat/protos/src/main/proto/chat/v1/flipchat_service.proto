@@ -36,14 +36,16 @@ service Chat {
     rpc JoinChat(JoinChatRequest) returns (JoinChatResponse);
     // LeaveChat leaves a given chat.
     rpc LeaveChat(LeaveChatRequest) returns (LeaveChatResponse);
-    // SetMuteState configures a chat member's mute state.
-    rpc SetMuteState(SetMuteStateRequest) returns (SetMuteStateResponse);
     // SetCoverCharge sets a chat's cover charge
     rpc SetCoverCharge(SetCoverChargeRequest) returns (SetCoverChargeResponse);
     // RemoveUser removes a user from a chat
     rpc RemoveUser(RemoveUserRequest) returns (RemoveUserResponse);
     // MuteUser mutes a user in the chat and removes their ability to send messages
     rpc MuteUser(MuteUserRequest) returns (MuteUserResponse);
+    // MuteChat mutes a chat and disables push notifications
+    rpc MuteChat(MuteChatRequest) returns (MuteChatResponse);
+    // UnmuteChat unmutes a chat and enables push notifications
+    rpc UnmuteChat(UnmuteChatRequest) returns (UnmuteChatResponse);
     // ReportUser reports a user for a given message
     //
     // todo: might belong in a different service long-term
@@ -224,19 +226,6 @@ message LeaveChatResponse {
         OK = 0;
     }
 }
-message SetMuteStateRequest {
-    common.v1.ChatId chat_id = 1;
-    bool is_muted = 2;
-    common.v1.Auth auth = 3;
-}
-message SetMuteStateResponse {
-    Result result = 1;
-    enum Result {
-        OK             = 0;
-        DENIED         = 1;
-        CANT_MUTE      = 2;
-    }
-}
 message SetCoverChargeRequest {
     common.v1.ChatId chat_id = 1;
     common.v1.PaymentAmount cover_charge = 2;
@@ -274,6 +263,28 @@ message MuteUserResponse{
         DENIED   = 1;
     }
 }
+message MuteChatRequest {
+    common.v1.ChatId chat_id = 1;
+    common.v1.Auth auth = 2;
+}
+message MuteChatResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+    }
+}
+message UnmuteChatRequest {
+    common.v1.ChatId chat_id = 1;
+    common.v1.Auth auth = 2;
+}
+message UnmuteChatResponse {
+    Result result = 1;
+    enum Result {
+        OK       = 0;
+        DENIED   = 1;
+    }
+}
 message ReportUserRequest{
     common.v1.UserId user_id = 1;
     messaging.v1.MessageId message_id = 2;
@@ -299,10 +310,10 @@ message Metadata {
     string title = 3 ;
     // If non-zero, the room number associated with the chat.
     uint64 room_number = 4;
-    // Whether or not the chat is muted (from the perspective of the caller).
-    bool is_muted = 5;
-    // Whether or not the chat is mutable (from the persective of the caller).
-    bool muteable = 6;
+    // Are push notifications enabled for this chat (from the perspective of the caller)?
+    bool is_push_enabled = 5;
+    // Can the user disable push notifications for this chat using MuteChat?
+    bool can_disable_push = 6;
     // Number of (estimated) unread message (from the perspective of the caller).
     uint32 num_unread = 7;
     // Owner is the owner/creator of the chat.

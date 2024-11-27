@@ -44,6 +44,12 @@
     <string name="error_title_failedToMuteUser">Something Went Wrong</string>
     <string name="error_description_failedToMuteUser">This user\'s could not be muted. Please check your network connection and try again</string>
 
+    <string name="error_title_failedToMuteChat">Something Went Wrong</string>
+    <string name="error_description_failedToMuteChat">Please check your network connection and try again</string>
+
+    <string name="error_title_failedToUnmuteChat">Something Went Wrong</string>
+    <string name="error_description_failedToUnmuteChat">Please check your network connection and try again</string>
+
     <string name="title_connectYourX">Connect Your X</string>
     <string name="subtitle_identityInApp">Identity in %1$s is based on your X identity.</string>
     <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>

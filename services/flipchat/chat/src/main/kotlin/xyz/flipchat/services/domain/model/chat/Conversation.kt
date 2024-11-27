@@ -29,6 +29,8 @@ data class Conversation(
     val imageUri: String?,
     val lastActivity: Long?,
     val isMuted: Boolean,
+    @ColumnInfo(defaultValue = "true")
+    val canMute: Boolean,
     val unreadCount: Int,
     val coverChargeQuarks: Long?,
 ) {
@@ -95,33 +97,6 @@ data class ConversationWithMembersAndLastPointers(
         }
 }
 
-data class ConversationWithMembers(
-    @Embedded val conversation: Conversation,
-    @Relation(
-        parentColumn = "idBase58",
-        entityColumn = "conversationIdBase58"
-    )
-    val members: List<ConversationMember>
-) {
-    val title: String
-        get() = conversation.title
-    val imageUri: String?
-        get() = conversation.imageUri
-
-    val lastActivity: Long?
-        get() = conversation.lastActivity
-
-    val isMuted: Boolean
-        get() = conversation.isMuted
-
-    val unreadCount: Int
-        get() = conversation.unreadCount
-
-    fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
-        return members.filterNot { it.memberIdBase58 != selfId?.base58 }
-    }
-}
-
 data class ConversationWithMembersAndLastMessage(
     @Embedded val conversation: Conversation,
     @Relation(
@@ -147,14 +122,12 @@ data class ConversationWithMembersAndLastMessage(
         get() = conversation.lastActivity
     val isMuted: Boolean
         get() = conversation.isMuted
+    val canChangeMuteState: Boolean
+        get() = conversation.canMute
     val unreadCount: Int
         get() = conversation.unreadCount
 
     val ownerId: ID?
         get() = conversation.ownerId
-
-    fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
-        return members.filterNot { it.memberIdBase58 != selfId?.base58 }
-    }
 }
 

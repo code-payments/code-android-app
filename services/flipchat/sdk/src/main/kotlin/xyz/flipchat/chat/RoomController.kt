@@ -226,7 +226,7 @@ private class MessagesRemoteMediator(
     private val db = FcAppDatabase.requireInstance()
 
     override suspend fun initialize(): InitializeAction {
-        return InitializeAction.LAUNCH_INITIAL_REFRESH
+        return InitializeAction.SKIP_INITIAL_REFRESH
     }
 
     private var lastFetchedItems: List<ChatMessage>? = null

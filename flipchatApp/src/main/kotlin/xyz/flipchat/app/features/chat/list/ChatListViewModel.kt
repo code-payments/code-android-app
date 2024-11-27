@@ -5,7 +5,6 @@ import androidx.paging.PagingData
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
-import com.getcode.model.Rate
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.network.NetworkConnectivityListener
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
+import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.PaymentController
@@ -68,6 +68,8 @@ class ChatListViewModel @Inject constructor(
         data object CreateRoomSelected : Event
         data class OpenRoom(val roomId: ID) : Event
         data object OnChatsTapped: Event
+        data class MuteRoom(val roomId: ID): Event
+        data class UnmuteRoom(val roomId: ID): Event
         data object OnLogOutUnlocked: Event
     }
 
@@ -91,6 +93,34 @@ class ChatListViewModel @Inject constructor(
             .filter { it >= TAP_THRESHOLD }
             .filterNot { stateFlow.value.isLogOutEnabled }
             .onEach { dispatchEvent(Event.OnLogOutUnlocked) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.MuteRoom>()
+            .map { it.roomId }
+            .map { chatsController.muteRoom(it) }
+            .onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        resources.getString(R.string.error_title_failedToMuteChat),
+                        resources.getString(R.string.error_description_failedToMuteChat)
+                    )
+                )
+            }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.UnmuteRoom>()
+            .map { it.roomId }
+            .map { chatsController.unmuteRoom(it) }
+            .onError {
+                TopBarManager.showMessage(
+                    TopBarManager.TopBarMessage(
+                        resources.getString(R.string.error_title_failedToUnmuteChat),
+                        resources.getString(R.string.error_description_failedToUnmuteChat)
+                    )
+                )
+            }
             .launchIn(viewModelScope)
 
         eventFlow
@@ -179,6 +209,8 @@ class ChatListViewModel @Inject constructor(
                 }
 
                 is Event.OnSelfIdChanged -> { state -> state.copy(selfId = event.id) }
+                is Event.MuteRoom -> { state -> state }
+                is Event.UnmuteRoom -> { state -> state }
             }
         }
     }
