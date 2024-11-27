@@ -1,5 +1,6 @@
 package xyz.flipchat.app.features.chat.list
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +37,9 @@ import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import xyz.flipchat.app.R
 import com.getcode.ui.components.chat.utils.localizedText
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.ui.LocalUserManager
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 
@@ -50,7 +53,7 @@ fun ChatNode(
 ) {
     val userManager = LocalUserManager.currentOrThrow
 
-    val dismissState = remember(chat) {
+    val dismissState = remember(chat.id) {
         DismissState(
             initialValue = DismissValue.Default,
             confirmStateChange = {
