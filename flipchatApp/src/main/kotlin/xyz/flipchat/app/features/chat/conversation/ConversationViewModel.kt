@@ -294,8 +294,10 @@ class ConversationViewModel @Inject constructor(
 
         eventFlow
             .filterIsInstance<Event.CloseStream>()
-            .onEach { roomController.closeMessageStream() }
-            .launchIn(viewModelScope)
+            .onEach {
+                roomController.closeMessageStream()
+                userManager.roomClosed()
+            }.launchIn(viewModelScope)
 
         stateFlow
             .map { it.conversationId }
