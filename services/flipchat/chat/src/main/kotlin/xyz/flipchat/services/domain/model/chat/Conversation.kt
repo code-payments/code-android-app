@@ -150,6 +150,9 @@ data class ConversationWithMembersAndLastMessage(
     val unreadCount: Int
         get() = conversation.unreadCount
 
+    val ownerId: ID?
+        get() = conversation.ownerId
+
     fun nonSelfMembers(selfId: ID?): List<ConversationMember> {
         return members.filterNot { it.memberIdBase58 != selfId?.base58 }
     }

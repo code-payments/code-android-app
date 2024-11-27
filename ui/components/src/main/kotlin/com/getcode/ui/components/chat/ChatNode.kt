@@ -1,10 +1,14 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -18,10 +22,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.Badge
+import com.getcode.ui.components.R
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.util.DateUtils
 import com.getcode.util.formatTimeRelatively
@@ -35,6 +44,7 @@ fun ChatNode(
     messagePreview: Pair<AnnotatedString, Map<String, InlineTextContent>>,
     timestamp: Long? = null,
     isMuted: Boolean = false,
+    isHost: Boolean = false,
     unreadCount: Int = 0,
     onClick: () -> Unit,
 ) {
@@ -53,7 +63,29 @@ fun ChatNode(
                 .size(CodeTheme.dimens.staticGrid.x10)
                 .clip(CircleShape)
 
-            UserAvatar(modifier = imageModifier, data = it, overlay = avatarIconWhenFallback)
+            Box(
+                modifier = Modifier
+                    .padding(top = CodeTheme.dimens.grid.x1)
+            ) {
+                UserAvatar(modifier = imageModifier, data = it, overlay = avatarIconWhenFallback)
+
+                if (isHost) {
+                    Image(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .offset(
+                                x = -(CodeTheme.dimens.grid.x1),
+                                y = -(CodeTheme.dimens.grid.x1)
+                            )
+                            .size(CodeTheme.dimens.staticGrid.x4)
+                            .background(color = Color(0xFFE9C432), shape = CircleShape)
+                            .padding(4.dp),
+                        painter = painterResource(R.drawable.ic_crown),
+                        contentDescription = null,
+                        colorFilter = ColorFilter.tint(CodeTheme.colors.brand)
+                    )
+                }
+            }
         }
 
         Column(

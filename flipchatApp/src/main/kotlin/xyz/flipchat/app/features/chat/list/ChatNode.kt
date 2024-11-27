@@ -10,9 +10,11 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.model.chat.MessageContent
 import xyz.flipchat.app.R
 import com.getcode.ui.components.chat.utils.localizedText
+import xyz.flipchat.app.ui.LocalUserManager
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 
 @Composable
@@ -21,6 +23,7 @@ fun ChatNode(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val userManager = LocalUserManager.currentOrThrow
     com.getcode.ui.components.chat.ChatNode(
         modifier = modifier,
         title = chat.title,
@@ -36,6 +39,7 @@ fun ChatNode(
         },
         timestamp = chat.lastMessage?.message?.dateMillis,
         isMuted = chat.isMuted,
+        isHost = chat.ownerId == userManager.userId,
         unreadCount = chat.unreadCount,
         onClick = onClick
     )
