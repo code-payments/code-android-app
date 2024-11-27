@@ -1,11 +1,13 @@
 package com.getcode.ui.components.text.markup
 
+import android.net.Uri
 import android.util.Patterns
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.core.net.toUri
 import kotlin.reflect.KClass
 
 sealed interface Markup {
@@ -65,10 +67,20 @@ sealed interface Markup {
 
                     append(text.substring(lastIndex, start))
 
-                    val url = matcher.group()
-                    pushStringAnnotation(tag = TAG, annotation = url)
+                    val rawUrl = matcher.group()
+                    val uri = rawUrl.toUri()
+                    val resolvedUrl = if (uri.scheme == null) {
+                        Uri.Builder()
+                            .scheme("https")
+                            .authority(uri.path)
+                            .build().toString()
+                    } else {
+                        rawUrl
+                    }
+
+                    pushStringAnnotation(tag = TAG, annotation = resolvedUrl)
                     withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                        append(url)
+                        append(rawUrl)
                     }
                     pop()
 
