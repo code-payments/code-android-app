@@ -466,7 +466,7 @@ class ConversationViewModel @Inject constructor(
         .map { it.conversationId }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest { roomController.messages(it).flow }
+        .flatMapLatest { roomController.messages(it).flow.cachedIn(viewModelScope) }
         .map { page ->
             page.flatMap { mwc ->
                 if (mwc.message.isDeleted) {
@@ -487,7 +487,7 @@ class ConversationViewModel @Inject constructor(
                     }
                 }
             }
-        }.cachedIn(viewModelScope)
+        }
         .map { page ->
             page.map { indice ->
                 val (message, member, contents) = indice
@@ -694,6 +694,7 @@ class ConversationViewModel @Inject constructor(
                         conversationId = conversation.id,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
+                        textFieldState = TextFieldState(),
                         pointers = event.conversationWithPointers.pointers,
                         members = event.conversationWithPointers.membersUnique,
                         hostId = host?.id,

@@ -205,8 +205,7 @@ internal fun MessageContent(
 
         AlignmentRule.ParagraphLastLine -> {
             Column(
-                modifier = Modifier.padding(CodeTheme.dimens.grid.x1),
-                verticalArrangement = Arrangement.spacedBy(-(CodeTheme.dimens.grid.x2))) {
+                modifier = Modifier.padding(CodeTheme.dimens.grid.x1)) {
                 MarkupTextHandler(
                     text = message,
                     options = options,
