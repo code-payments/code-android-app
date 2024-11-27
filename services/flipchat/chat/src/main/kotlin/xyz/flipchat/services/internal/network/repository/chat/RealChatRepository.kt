@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Member
@@ -151,14 +150,14 @@ internal class RealChatRepository @Inject constructor(
                         memberUpdateMapper.map(it)
                     }
 
-                    val updatedChat = update.chat?.let {
+                    val updatedRoom = update.metadata?.let {
                         roomMapper.map(it)
                     }
 
-                    val conversation = updatedChat?.let { conversationMapper.map(it) }
+                    val conversation = updatedRoom?.let { conversationMapper.map(it) }
 
                     // handle last message update
-                    val message = if (userManager.openRoom != updatedChat?.id) {
+                    val message = if (userManager.openRoom != updatedRoom?.id) {
                         update.lastMessage?.let {
                             val chatId = update.id
                             val mapped = messageMapper.map(userId to it)

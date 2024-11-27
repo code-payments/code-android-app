@@ -56,6 +56,14 @@ class ChatsController @Inject constructor(
                 members.map { conversationMemberMapper.map(room.id to it) }.onEach {
                     db.conversationMembersDao().upsertMembers(it)
                 }
+
+                messagingRepository.getMessages(room.id, queryOptions = QueryOptions(limit = 10, descending = false))
+                    .onSuccess { messages ->
+                        messages.onEach {
+                            val conversationMessage = conversationMessageWithContentMapper.map(room.id to it)
+                            db.conversationMessageDao().upsertMessagesWithContent(conversationMessage)
+                        }
+                    }
             }
     }
 

@@ -14,7 +14,7 @@ import com.getcode.model.ID
 
 data class ChatStreamUpdate(
     val id: ID,
-    val chat: FlipchatService.Metadata?,
+    val metadata: FlipchatService.Metadata?,
     val memberUpdate: MemberUpdate?,
     val lastMessage: Model.Message?,
     val lastPointer: PointerUpdate?,
@@ -24,7 +24,7 @@ data class ChatStreamUpdate(
         operator fun invoke(proto: FlipchatService.StreamChatEventsResponse.ChatUpdate?): ChatStreamUpdate? {
             proto ?: return null
             val chatId = proto.chatId.value.toByteArray().toList()
-            val chat = proto.metadataOrNull
+            val metadata = proto.metadataOrNull
             val memberUpdate = proto.memberUpdateOrNull
             val lastMessage = proto.lastMessageOrNull
             val lastPointer = proto.pointerOrNull?.let {
@@ -37,7 +37,7 @@ data class ChatStreamUpdate(
 
             return ChatStreamUpdate(
                 id = chatId,
-                chat = chat,
+                metadata = metadata,
                 lastMessage = lastMessage,
                 memberUpdate = memberUpdate,
                 lastPointer = lastPointer,
