@@ -88,7 +88,6 @@ internal class RealMessagingRepository @Inject constructor(
                 lastMessageId = lastMessageId,
             ) stream@{ result ->
                 if (result.isSuccess) {
-                    userManager.roomOpened(roomId = chatId)
                     val data = result.getOrNull() ?: return@stream
                     val message = lastMessageMapper.map(userId to data)
 
@@ -99,6 +98,10 @@ internal class RealMessagingRepository @Inject constructor(
                         ErrorUtils.handleError(it)
                     }
                 }
+            }
+
+            messageStream?.onConnect = {
+                userManager.roomOpened(roomId = chatId)
             }
         }
     }

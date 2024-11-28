@@ -235,6 +235,7 @@ private class MessagesRemoteMediator(
         loadType: LoadType,
         state: PagingState<Int, ConversationMessageWithContentAndMember>
     ): MediatorResult {
+        println("load type=${loadType.name}")
         return try {
             // The network load method takes an optional `after=<user.id>` parameter. For every
             // page after the first, we pass the last user ID to let it continue from where it

@@ -25,6 +25,8 @@ class BidirectionalStreamReference<Request, Response>(val scope: CoroutineScope)
 
     var timeoutHandler: (() -> Unit)? = null
 
+    var onConnect: (() -> Unit)? = null
+
     private var lastPing: Long? = null
 
     private var pingTimeout = 15_000L
@@ -38,6 +40,10 @@ class BidirectionalStreamReference<Request, Response>(val scope: CoroutineScope)
     }
 
     fun receivedPing(updatedTimeout: Long? = null) {
+        if (lastPing == null) {
+            onConnect?.invoke()
+        }
+
         lastPing = System.currentTimeMillis()
 
         // if the server provides a timeout, we'll update our local timeout accordingly.
@@ -74,7 +80,9 @@ class BidirectionalStreamReference<Request, Response>(val scope: CoroutineScope)
     }
 
     fun destroy() {
+        lastPing = null
         timeoutHandler = null
+        onConnect = null
         cancelTimeout()
         cancel()
         release()

@@ -11,6 +11,7 @@ import com.codeinc.flipchat.gen.chat.v1.pointerOrNull
 import com.codeinc.flipchat.gen.messaging.v1.Model
 import com.codeinc.flipchat.gen.messaging.v1.Model.Pointer
 import com.getcode.model.ID
+import com.getcode.utils.base58
 
 data class ChatStreamUpdate(
     val id: ID,
@@ -41,9 +42,19 @@ data class ChatStreamUpdate(
                 lastMessage = lastMessage,
                 memberUpdate = memberUpdate,
                 lastPointer = lastPointer,
-                isTyping = isTyping?.isTyping,
+                // TODO: reenable typing
+                isTyping = false // isTyping?.isTyping,
             )
         }
+    }
+
+    override fun toString(): String {
+        return "ID: ${id.base58}, " +
+                "metadata update=${metadata != null}, " +
+                "member update=${memberUpdate != null}, " +
+                "message update=${lastMessage != null}, " +
+                "pointer update=${lastPointer != null}"
+
     }
 }
 

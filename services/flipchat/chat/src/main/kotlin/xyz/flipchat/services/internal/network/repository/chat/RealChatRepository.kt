@@ -136,7 +136,7 @@ internal class RealChatRepository @Inject constructor(
                 if (result.isSuccess) {
                     val data = result.getOrNull()
                     val update = ChatStreamUpdate.invoke(data) ?: return@openChatStream
-
+                    println("update=$update")
                     // handle typing state changes
                     if (update.isTyping != null) {
                         if (update.isTyping) {

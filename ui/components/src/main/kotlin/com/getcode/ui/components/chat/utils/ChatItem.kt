@@ -28,6 +28,7 @@ sealed class ChatItem(open val key: Any) {
         val messageControls: MessageControls = MessageControls(),
         val showAsChatBubble: Boolean = false,
         val enableMarkup: Boolean = false,
+        val enableReply: Boolean = false,
         override val key: Any = id
     ) : ChatItem(key)
 

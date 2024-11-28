@@ -1,7 +1,23 @@
 package com.getcode.ui.components.chat
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.AnchoredDraggableState
+import androidx.compose.foundation.gestures.DraggableAnchors
+import androidx.compose.foundation.gestures.DraggableState
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.anchoredDraggable
+import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,11 +33,18 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +53,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +70,11 @@ import com.getcode.ui.components.chat.messagecontents.MessagePayment
 import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
+import com.getcode.ui.utils.addIf
+import com.getcode.ui.utils.debugBounds
+import com.getcode.util.vibration.LocalVibrator
 import kotlinx.datetime.Instant
+import kotlin.math.abs
 import kotlin.reflect.KClass
 
 object MessageNodeDefaults {
@@ -103,6 +131,9 @@ object MessageNodeDefaults {
 
     val ContentStyle: TextStyle
         @Composable get() = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W500)
+
+    val SwipeThreshold
+        @Composable get() = 25.dp
 }
 
 class MessageNodeScope(
@@ -144,6 +175,7 @@ data class MessageNodeOptions(
     val isPreviousGrouped: Boolean = false,
     val isNextGrouped: Boolean = false,
     val isInteractive: Boolean = false,
+    val canReplyTo: Boolean = false,
     val markupsToResolve: List<KClass<out Markup>> = listOf(
         Markup.RoomNumber::class,
         Markup.Url::class,
@@ -153,6 +185,11 @@ data class MessageNodeOptions(
     val contentStyle: TextStyle,
 )
 
+private enum class MessageNodeDragAnchors {
+    DEFAULT, REPLY
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageNode(
     contents: MessageContent,
@@ -163,117 +200,211 @@ fun MessageNode(
     modifier: Modifier = Modifier,
     options: MessageNodeOptions = MessageNodeOptions(contentStyle = MessageNodeDefaults.ContentStyle),
     openMessageControls: () -> Unit,
+    onReply: () -> Unit,
 ) {
-    Box(
-        modifier = modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen },
-    ) {
-        BoxWithConstraints(modifier = Modifier.padding(horizontal = CodeTheme.dimens.inset)) {
-            val scope = rememberMessageNodeScope(contents = contents, boxScope = this)
+    val vibrator = LocalVibrator.current
 
-            with(scope) {
-                if (isDeleted) {
-                    DeletedMessage(
-                        modifier = Modifier.fillMaxWidth(),
-                        isFromSelf = sender.isSelf,
-                        date = date,
-                    )
-                } else {
-                    val shape = when {
-                        isAnnouncement -> MessageNodeDefaults.DefaultShape
-                        else -> MessageNodeDefaults.messageShape(
-                            !sender.isSelf, options.isPreviousGrouped, options.isNextGrouped
-                        )
+    val enableReply = remember(contents, options) {
+        if (!options.canReplyTo) return@remember false
+        when (contents) {
+            is MessageContent.RawText -> true
+            else -> false
+        }
+    }
+
+    val density = LocalDensity.current
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val maxWidth = maxWidth
+        val swipeThreshold = with(density) { maxWidth.toPx() } * 0.15f
+        var hasTriggeredTick by remember { mutableStateOf(false) }
+        var hasFiredReply by remember { mutableStateOf(false) }
+
+        val anchors = remember(maxWidth) {
+            DraggableAnchors {
+                MessageNodeDragAnchors.DEFAULT at 0f
+                MessageNodeDragAnchors.REPLY at swipeThreshold
+            }
+        }
+
+        val replyDragState = remember(anchors) {
+            AnchoredDraggableState(
+                initialValue = MessageNodeDragAnchors.DEFAULT,
+                anchors = anchors,
+                positionalThreshold = { swipeThreshold },
+                confirmValueChange = { targetValue ->
+                    if (targetValue == MessageNodeDragAnchors.REPLY && !hasFiredReply) {
+                        hasFiredReply = true
+                        onReply()
                     }
+                    true
+                },
+                velocityThreshold = { with(density) { 20.dp.toPx() } },
+                animationSpec = tween(durationMillis = 250)
+            )
+        }
 
-                    when (contents) {
-                        is MessageContent.Exchange -> {
-                            MessagePayment(
-                                modifier = Modifier
-                                    .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
-                                    .sizeableWidth()
-                                    .background(color = color, shape = shape),
-                                contents = contents,
-                                status = status,
-                                date = date,
+        LaunchedEffect(replyDragState.currentValue) {
+            if (replyDragState.currentValue == MessageNodeDragAnchors.REPLY) {
+                // Reset drag state to allow future replies
+                replyDragState.animateTo(MessageNodeDragAnchors.DEFAULT)
+                hasFiredReply = false
+                hasTriggeredTick = false
+            }
+        }
+
+        LaunchedEffect(replyDragState.offset) {
+            if (replyDragState.offset >= swipeThreshold && !hasTriggeredTick) {
+                hasTriggeredTick = true
+                vibrator.tick()
+            }
+        }
+
+        Box(
+            modifier = modifier
+                .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+                .anchoredDraggable(
+                    state = replyDragState,
+                    enabled = enableReply,
+                    orientation = Orientation.Horizontal,
+                    reverseDirection = true
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = CodeTheme.dimens.inset)
+                    .offset(x = -(replyDragState.offset.coerceAtMost(swipeThreshold).dp))
+            ) {
+                val scope = rememberMessageNodeScope(
+                    contents = contents,
+                    boxScope = this@BoxWithConstraints
+                )
+
+                with(scope) {
+                    if (isDeleted) {
+                        DeletedMessage(
+                            modifier = Modifier.fillMaxWidth(),
+                            isFromSelf = sender.isSelf,
+                            date = date,
+                        )
+                    } else {
+                        val shape = when {
+                            isAnnouncement -> MessageNodeDefaults.DefaultShape
+                            else -> MessageNodeDefaults.messageShape(
+                                !sender.isSelf, options.isPreviousGrouped, options.isNextGrouped
                             )
                         }
 
-                        is MessageContent.Localized -> {
-                            ContentFromSender(
-                                modifier = Modifier.fillMaxWidth(),
-                                sender = sender,
-                                isFirstInSeries = !options.isPreviousGrouped
-                            ) {
-                                MessageText(
-                                    content = contents.localizedText,
-                                    shape = shape,
-                                    date = date,
+                        when (contents) {
+                            is MessageContent.Exchange -> {
+                                MessagePayment(
+                                    modifier = Modifier
+                                        .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
+                                        .sizeableWidth()
+                                        .background(color = color, shape = shape),
+                                    contents = contents,
                                     status = status,
-                                    isFromSelf = sender.isSelf,
-                                    options = options,
-                                    showControls = openMessageControls
+                                    date = date,
                                 )
                             }
-                        }
 
-                        is MessageContent.SodiumBox -> {
-                            EncryptedContent(
-                                modifier = Modifier
-                                    .align(if (status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
-                                    .sizeableWidth()
-                                    .background(
-                                        color = color,
+                            is MessageContent.Localized -> {
+                                ContentFromSender(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    sender = sender,
+                                    isFirstInSeries = !options.isPreviousGrouped
+                                ) {
+                                    MessageText(
+                                        content = contents.localizedText,
                                         shape = shape,
+                                        date = date,
+                                        status = status,
+                                        isFromSelf = sender.isSelf,
+                                        options = options,
+                                        showControls = openMessageControls
                                     )
-                                    .padding(CodeTheme.dimens.grid.x2),
-                                date = date
-                            )
-                        }
+                                }
+                            }
 
-                        is MessageContent.Decrypted -> {
-                            ContentFromSender(
-                                modifier = Modifier.fillMaxWidth(),
-                                sender = sender,
-                                isFirstInSeries = !options.isPreviousGrouped
-                            ) {
-                                MessageText(
-                                    content = contents.data,
-                                    shape = shape,
-                                    date = date,
-                                    status = status,
-                                    isFromSelf = sender.isSelf,
-                                    options = options,
-                                    showControls = openMessageControls
+                            is MessageContent.SodiumBox -> {
+                                EncryptedContent(
+                                    modifier = Modifier
+                                        .align(if (status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
+                                        .sizeableWidth()
+                                        .background(
+                                            color = color,
+                                            shape = shape,
+                                        )
+                                        .padding(CodeTheme.dimens.grid.x2),
+                                    date = date
                                 )
                             }
-                        }
 
-                        is MessageContent.RawText -> {
-                            ContentFromSender(
-                                modifier = Modifier.fillMaxWidth(),
-                                sender = sender,
-                                isFirstInSeries = !options.isPreviousGrouped
-                            ) {
-                                MessageText(
-                                    content = contents.value,
-                                    shape = shape,
-                                    date = date,
-                                    status = status,
-                                    isFromSelf = sender.isSelf,
-                                    options = options,
-                                    showControls = openMessageControls
+                            is MessageContent.Decrypted -> {
+                                ContentFromSender(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    sender = sender,
+                                    isFirstInSeries = !options.isPreviousGrouped
+                                ) {
+                                    MessageText(
+                                        content = contents.data,
+                                        shape = shape,
+                                        date = date,
+                                        status = status,
+                                        isFromSelf = sender.isSelf,
+                                        options = options,
+                                        showControls = openMessageControls
+                                    )
+                                }
+                            }
+
+                            is MessageContent.RawText -> {
+                                ContentFromSender(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    sender = sender,
+                                    isFirstInSeries = !options.isPreviousGrouped
+                                ) {
+                                    MessageText(
+                                        content = contents.value,
+                                        shape = shape,
+                                        date = date,
+                                        status = status,
+                                        isFromSelf = sender.isSelf,
+                                        options = options,
+                                        showControls = openMessageControls
+                                    )
+                                }
+                            }
+
+                            is MessageContent.Announcement -> {
+                                AnnouncementMessage(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    text = contents.localizedText
                                 )
                             }
-                        }
-
-                        is MessageContent.Announcement -> {
-                            AnnouncementMessage(
-                                modifier = Modifier.fillMaxWidth(),
-                                text = contents.localizedText
-                            )
                         }
                     }
                 }
+            }
+
+            AnimatedVisibility(
+                visible = replyDragState.offset > 0f,
+                enter = fadeIn() + scaleIn(),
+                exit = scaleOut() + fadeOut(),
+                modifier = Modifier.align(Alignment.CenterEnd)
+                    .offset(
+                        x = with(density) {
+                            -replyDragState.offset
+                                .coerceAtMost(maxWidth.toPx())
+                                .toDp()
+                        }
+                    )
+            ) {
+                Icon(
+                    modifier = Modifier,
+                    imageVector = Icons.AutoMirrored.Default.Reply,
+                    contentDescription = "Swipe to Reply",
+                )
             }
         }
     }

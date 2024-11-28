@@ -8,6 +8,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.DismissDirection
+import androidx.compose.material.DismissState
+import androidx.compose.material.DismissValue
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.FixedThreshold
+import androidx.compose.material.Icon
+import androidx.compose.material.SwipeToDismiss
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Reply
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -28,11 +38,14 @@ import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
+import kotlinx.coroutines.flow.filter
+import kotlinx.datetime.Instant
 
 sealed interface MessageListEvent {
     data class AdvancePointer(val messageId: ID): MessageListEvent
     data class OpenMessageActions(val actions: List<MessageControlAction>): MessageListEvent
     data class OnMarkupEvent(val markup: Markup): MessageListEvent
+    data class ReplyToMessage(val message: ChatItem.Message): MessageListEvent
 }
 
 data class MessageListPointer(
@@ -46,7 +59,6 @@ data class MessageListPointerResult(
     val isNextGrouped: Boolean,
 )
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageList(
     modifier: Modifier = Modifier,
@@ -60,15 +72,19 @@ fun MessageList(
     },
     dispatch: (MessageListEvent) -> Unit = { },
 ) {
-
     LaunchedEffect(messages.itemSnapshotList, listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
             .collect { index ->
-                val closetChatMessage = messages.itemSnapshotList.toList().getClosestChat(index)
+                val snapshot = messages.itemSnapshotList.toList()
+                val closetChatMessage = snapshot.getClosestChat(index)
+                val mostRecentRead = snapshot.filterIsInstance<ChatItem.Message>()
+                    .maxByOrNull { it.date }?.date
                 if (closetChatMessage != null) {
-                    val (id, isFromSelf, _) = closetChatMessage
-                    if (!isFromSelf) {
-                        dispatch(MessageListEvent.AdvancePointer(id))
+                    val (id, isFromSelf, date, status) = closetChatMessage
+                    if (!isFromSelf && status != MessageStatus.Read) {
+                        if (mostRecentRead != null && date >= mostRecentRead) {
+                            dispatch(MessageListEvent.AdvancePointer(id))
+                        }
                     }
                 }
             }
@@ -162,12 +178,20 @@ fun MessageList(
                             isPreviousGrouped = isPreviousGrouped,
                             isNextGrouped = isNextGrouped,
                             isInteractive = item.messageControls.hasAny,
+                            canReplyTo = item.enableReply,
                             onMarkupClicked = if (item.enableMarkup) { markup: Markup ->
                                 dispatch(MessageListEvent.OnMarkupEvent(markup))
                             } else null,
                             contentStyle = contentStyle,
                         ),
-                        openMessageControls = { dispatch(MessageListEvent.OpenMessageActions(item.messageControls.actions)) }
+                        openMessageControls = {
+                            dispatch(
+                                MessageListEvent.OpenMessageActions(
+                                    item.messageControls.actions
+                                )
+                            )
+                        },
+                        onReply = { dispatch(MessageListEvent.ReplyToMessage(item)) }
                     )
                 }
 
@@ -194,12 +218,19 @@ fun MessageList(
 }
 
 
-private fun List<ChatItem?>.getClosestChat(index: Int): Triple<ID, Boolean, MessageStatus>? {
+private fun List<ChatItem?>.getClosestChat(index: Int): Quad<ID, Boolean, Instant, MessageStatus>? {
     if (index !in indices) return null
     val item = this[index]
     return when {
-        item is ChatItem.Message -> Triple(item.chatMessageId, item.sender.isSelf, item.status)
+        item is ChatItem.Message -> Quad(item.chatMessageId, item.sender.isSelf, item.date, item.status)
         index > 0 -> getClosestChat(index - 1)
         else -> null
     }
 }
+
+private data class Quad<out A, out B, out C, out D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D
+)

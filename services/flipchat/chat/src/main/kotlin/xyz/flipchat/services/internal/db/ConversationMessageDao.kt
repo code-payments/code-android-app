@@ -54,11 +54,21 @@ interface ConversationMessageDao {
     @RewriteQueriesToDropUnusedColumns
     @Transaction
     @Query("""
-        SELECT DISTINCT * FROM messages
+        SELECT 
+            messages.idBase58 AS idBase58,
+            messages.senderIdBase58 AS senderIdBase58,
+            messages.dateMillis AS dateMillis,
+            messages.conversationIdBase58 AS conversationIdBase58,
+            message_contents.content AS content,
+            members.memberIdBase58 AS memberIdBase58,
+            members.memberName AS memberName
+        FROM messages
         LEFT JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58
-        LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 AND messages.conversationIdBase58 = members.conversationIdBase58
+        LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
+                           AND messages.conversationIdBase58 = members.conversationIdBase58
         WHERE messages.conversationIdBase58 = :id
-        ORDER BY dateMillis DESC
+        ORDER BY messages.dateMillis DESC
+
     """)
     fun observeConversationMessages(id: String): PagingSource<Int, ConversationMessageWithContentAndMember>
 
