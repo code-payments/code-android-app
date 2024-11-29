@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.chat.list
 
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
@@ -11,6 +12,7 @@ import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.login.register.onError
@@ -183,6 +186,12 @@ class ChatListViewModel @Inject constructor(
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> =
         chatsController.chats.flow.filter { userManager.authState is AuthState.LoggedIn }
+            .cachedIn(viewModelScope)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = PagingData.empty()
+            )
 
     companion object {
         private const val TAP_THRESHOLD = 6

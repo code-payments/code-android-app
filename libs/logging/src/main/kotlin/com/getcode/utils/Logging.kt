@@ -71,6 +71,7 @@ fun trace(
     metadata: MetadataBuilder.() -> Unit = {},
     error: Throwable? = null
 ) {
+    error?.printStackTrace()
     val tagBlock = tag?.let { "[$it] " }
     val tree = if (tagBlock == null) Timber else Timber.tag(tagBlock)
 

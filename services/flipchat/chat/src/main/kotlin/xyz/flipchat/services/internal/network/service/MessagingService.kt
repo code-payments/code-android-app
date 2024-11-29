@@ -44,7 +44,7 @@ internal class MessagingService @Inject constructor(
     suspend fun getMessages(
         owner: KeyPair,
         chatId: ID,
-        queryOptions: QueryOptions = QueryOptions(),
+        queryOptions: QueryOptions,
     ): Result<List<Model.Message>> {
         return try {
             networkOracle.managedRequest(
@@ -346,7 +346,7 @@ internal class MessagingService @Inject constructor(
                     }
                 })
 
-            reference.scope.launch {
+            reference.coroutineScope.launch {
                 val request = MessagingService.StreamMessagesRequest.newBuilder()
                     .setParams(
                         Params.newBuilder()

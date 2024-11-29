@@ -10,4 +10,6 @@ interface ChannelConfig {
     val userAgent: String
     val keepAlive: Duration
         get() = 4.minutes
+    val keepAliveTimeout: Duration
+        get() = 1.minutes
 }

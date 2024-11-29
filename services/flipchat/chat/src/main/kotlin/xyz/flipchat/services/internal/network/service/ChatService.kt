@@ -17,6 +17,7 @@ import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.StartChatRequestType
@@ -518,7 +519,7 @@ internal class ChatService @Inject constructor(
                                 onEvent
                             )
                         } else {
-                            t?.printStackTrace()
+                            trace("Chat Stream ${statusException?.status?.code?.name}", error = statusException?.status?.cause)
                         }
                     }
 
@@ -527,16 +528,21 @@ internal class ChatService @Inject constructor(
                     }
                 })
 
-            val request = FlipchatService.StreamChatEventsRequest.newBuilder()
-                .setParams(
-                    FlipchatService.StreamChatEventsRequest.Params.newBuilder()
-                        .setTs(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1_000))
-                        .apply { setAuth(authenticate(owner)) }
-                        .build()
-                ).build()
+            reference.coroutineScope.launch {
+                val request = FlipchatService.StreamChatEventsRequest.newBuilder()
+                    .setParams(
+                        FlipchatService.StreamChatEventsRequest.Params.newBuilder()
+                            .setTs(
+                                Timestamp.newBuilder()
+                                    .setSeconds(System.currentTimeMillis() / 1_000)
+                            )
+                            .apply { setAuth(authenticate(owner)) }
+                            .build()
+                    ).build()
 
-            reference.stream?.onNext(request)
-            trace("Chat Stream Initiating a connection...")
+                reference.stream?.onNext(request)
+                trace("Chat Stream Initiating a connection...")
+            }
         } catch (e: Exception) {
             if (e is IllegalStateException && e.message == "call already half-closed") {
                 // ignore

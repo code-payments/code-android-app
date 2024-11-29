@@ -5,13 +5,17 @@ import com.getcode.utils.trace
 import io.grpc.stub.StreamObserver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 
-class BidirectionalStreamReference<Request, Response>(val scope: CoroutineScope) : AutoCloseable {
+class BidirectionalStreamReference<Request, Response>(private val scope: CoroutineScope) : AutoCloseable {
+
+    private val supervisorJob = SupervisorJob()
+    val coroutineScope = CoroutineScope(supervisorJob + scope.coroutineContext)
 
     var stream: StreamObserver<Request>? = null
         set(value) {
@@ -69,7 +73,7 @@ class BidirectionalStreamReference<Request, Response>(val scope: CoroutineScope)
 
     fun postponeTimeout() {
         cancelTimeout()
-        timeoutTask = scope.launch {
+        timeoutTask = coroutineScope.launch {
             if (!isActive) return@launch
 
             delay(pingTimeout)

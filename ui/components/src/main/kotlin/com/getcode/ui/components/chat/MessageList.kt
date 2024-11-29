@@ -1,23 +1,13 @@
 package com.getcode.ui.components.chat
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.DismissDirection
-import androidx.compose.material.DismissState
-import androidx.compose.material.DismissValue
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.FixedThreshold
-import androidx.compose.material.Icon
-import androidx.compose.material.SwipeToDismiss
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Reply
-import androidx.compose.material.icons.filled.Reply
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -38,7 +28,6 @@ import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
-import kotlinx.coroutines.flow.filter
 import kotlinx.datetime.Instant
 
 sealed interface MessageListEvent {
@@ -114,6 +103,7 @@ fun MessageList(
                     modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
                     date = item.date
                 )
+
                 is ChatItem.Message -> {
                     // reverse layout so +1 to get previous
                     val prev = runCatching { messages[index + 1] }

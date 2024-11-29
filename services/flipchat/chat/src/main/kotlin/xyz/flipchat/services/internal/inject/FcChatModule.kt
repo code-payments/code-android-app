@@ -38,6 +38,7 @@ internal object FcChatModule {
             .context(context)
             .userAgent(config.userAgent)
             .keepAliveTime(config.keepAlive.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+            .keepAliveTimeout(config.keepAliveTimeout.inWholeMilliseconds, TimeUnit.MILLISECONDS)
             .apply {
                 if (BuildConfig.DEBUG) {
                     this.intercept(LoggingClientInterceptor())

@@ -1,15 +1,17 @@
 package xyz.flipchat.controllers
 
+import android.annotation.SuppressLint
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.LoadType
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
-import androidx.paging.PagingData
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
+import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
+import com.getcode.utils.base58
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.data.RoomWithMembers
@@ -21,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
@@ -39,13 +42,14 @@ class ChatsController @Inject constructor(
         get() = FcAppDatabase.requireInstance()
 
 
+    private val pagingConfig = PagingConfig(pageSize = 20)
     @OptIn(ExperimentalPagingApi::class)
     val chats: Pager<Int, ConversationWithMembersAndLastMessage> by lazy {
         Pager(
-            config = PagingConfig(pageSize = 20),
+            config = pagingConfig,
             remoteMediator = ChatsRemoteMediator(chatRepository, conversationMapper)
         ) {
-            db.conversationDao().observeConversations()
+            ChatsPagingSource(db)
         }
     }
 
@@ -57,13 +61,22 @@ class ChatsController @Inject constructor(
                     db.conversationMembersDao().upsertMembers(it)
                 }
 
-                messagingRepository.getMessages(room.id, queryOptions = QueryOptions(limit = 10, descending = false))
-                    .onSuccess { messages ->
-                        messages.onEach {
-                            val conversationMessage = conversationMessageWithContentMapper.map(room.id to it)
-                            db.conversationMessageDao().upsertMessagesWithContent(conversationMessage)
-                        }
+                val newestMessageInRoom = db.conversationMessageDao().getNewestMessage(roomId)?.id
+                messagingRepository.getMessages(
+                    room.id,
+                    queryOptions = QueryOptions(
+                        limit = 1,
+                        token = newestMessageInRoom
+                    )
+                ).onSuccess { messages ->
+                    val newest = messages.maxByOrNull { it.dateMillis }
+                    if (newest != null) {
+                        val conversationMessage =
+                            conversationMessageWithContentMapper.map(room.id to newest)
+                        db.conversationMessageDao()
+                            .upsertMessagesWithContent(conversationMessage)
                     }
+                }
             }
     }
 
@@ -71,9 +84,18 @@ class ChatsController @Inject constructor(
         runCatching {
             chatRepository.openEventStream(coroutineScope) { event ->
                 coroutineScope.launch {
-                    db.conversationDao().upsertConversations(*event.conversations.toTypedArray())
-                    db.conversationMessageDao().upsertMessagesWithContent(*event.messages.toTypedArray())
-                    db.conversationMembersDao().upsertMembers(*event.members.toTypedArray())
+                    if (event.conversations.isNotEmpty()) {
+                        db.conversationDao()
+                            .upsertConversations(*event.conversations.toTypedArray())
+                    }
+                    if (event.messages.isNotEmpty()) {
+                        db.conversationMessageDao()
+                            .upsertMessagesWithContent(*event.messages.toTypedArray())
+                    }
+
+                    if (event.members.isNotEmpty()) {
+                        db.conversationMembersDao().upsertMembers(*event.members.toTypedArray())
+                    }
                 }
             }
         }
@@ -131,71 +153,151 @@ class ChatsController @Inject constructor(
             .onSuccess { db.conversationDao().unmuteChat(roomId) }
     }
 }
+//
+//private class ChatPagingSource(
+//    private val dao: ConversationDao,
+//    private val pageSize: Int
+//) : PagingSource<Int, ConversationWithMembersAndLastMessage>() {
+//
+//    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationWithMembersAndLastMessage> {
+//        try {
+//            // Calculate the offset for the current page
+//            val page = params.key ?: 0 // Default to the first page
+//            val offset = page * pageSize
+//
+//            // Fetch data from the DAO
+//            val conversations = dao.observeConversations(limit = pageSize, offset = offset)
+//
+//            println("PAGING::: page=$page, offset=$offset")
+//
+//            // Determine next and previous keys
+//            val nextKey = if (conversations.size < pageSize) null else page + 1
+//            val prevKey = if (page == 0) null else page - 1
+//
+//            println("PAGING::: nextKey=$nextKey, prevKey=$prevKey, data=${conversations.count()}")
+//
+//            return LoadResult.Page(
+//                data = conversations,
+//                prevKey = prevKey,
+//                nextKey = nextKey
+//            )
+//        } catch (e: Exception) {
+//            return LoadResult.Error(e)
+//        }
+//    }
+//
+//    override fun getRefreshKey(state: PagingState<Int, ConversationWithMembersAndLastMessage>): Int? {
+//        // Attempt to find the page index of the first item in the currently displayed list
+//        return state.anchorPosition?.let { position ->
+//            val closestPage = state.closestPageToPosition(position)
+//            closestPage?.prevKey?.plus(1) ?: closestPage?.nextKey?.minus(1)
+//        }
+//    }
+//}
+
+private class ChatsPagingSource(
+    private val db: FcAppDatabase
+): PagingSource<Int, ConversationWithMembersAndLastMessage>() {
+
+    @SuppressLint("RestrictedApi")
+    private val observer = ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
+        invalidate()
+    }
+
+    override fun getRefreshKey(state: PagingState<Int, ConversationWithMembersAndLastMessage>): Int? {
+        return state.anchorPosition?.let { anchorPosition ->
+            val anchorPage = state.closestPageToPosition(anchorPosition)
+            anchorPage?.prevKey?.plus(1) ?: anchorPage?.nextKey?.minus(1)
+        }
+    }
+
+    @SuppressLint("RestrictedApi")
+    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationWithMembersAndLastMessage> {
+        observer.registerIfNecessary(db)
+        val currentPage = params.key ?: 0
+        val pageSize = params.loadSize
+        val offset = currentPage * pageSize
+
+        return try {
+            val conversations = db.conversationDao().getPagedConversations(pageSize, offset)
+            val prevKey = null
+            val nextKey = if (conversations.size < pageSize) null else currentPage + 1
+
+
+            LoadResult.Page(conversations, prevKey, nextKey)
+        } catch (e: Exception) {
+            LoadResult.Error(e)
+        }
+    }
+}
 
 @OptIn(ExperimentalPagingApi::class)
 private class ChatsRemoteMediator(
     private val repository: ChatRepository,
     private val conversationMapper: RoomConversationMapper,
 ) : RemoteMediator<Int, ConversationWithMembersAndLastMessage>() {
-    private val db: FcAppDatabase
-        get() = FcAppDatabase.requireInstance()
+
+    private val db = FcAppDatabase.requireInstance()
 
     override suspend fun initialize(): InitializeAction {
         return InitializeAction.SKIP_INITIAL_REFRESH
     }
-
-    private var lastFetchedItems: List<Room>? = null
 
     override suspend fun load(
         loadType: LoadType,
         state: PagingState<Int, ConversationWithMembersAndLastMessage>
     ): MediatorResult {
         return try {
-            // The network load method takes an optional `after=<user.id>` parameter. For every
-            // page after the first, we pass the last user ID to let it continue from where it
-            // left off. For REFRESH, pass `null` to load the first page.
             val loadKey = when (loadType) {
-                LoadType.REFRESH -> null
-                // In this example, we never need to prepend, since REFRESH will always load the
-                // first page in the list. Immediately return, reporting end of pagination.
-                LoadType.PREPEND -> return MediatorResult.Success(endOfPaginationReached = true)
+                LoadType.REFRESH -> {
+                    null
+                }
+                LoadType.PREPEND -> {
+                    return MediatorResult.Success(true)  // Don't load newer messages
+                }
                 LoadType.APPEND -> {
+                    // Get the last item from our data
                     val lastItem = state.lastItemOrNull()
-                        ?: return MediatorResult.Success(endOfPaginationReached = true)
-
-                    // We must explicitly check if the last item is `null` when appending,
-                    // since passing `null` to networkService is only valid for initial load.
-                    // If lastItem is `null` it means no items were loaded after the initial
-                    // REFRESH and there are no more items to load.
+                        ?: return MediatorResult.Success(
+                            // If we don't have any items, only signal end of pagination
+                            // if we've had a refresh
+                            endOfPaginationReached = state.pages.isNotEmpty()
+                        )
 
                     lastItem.conversation.id
                 }
             }
+
+            val limit = state.config.pageSize
+
             val query = QueryOptions(
-                limit = 20,
+                limit = limit,
                 token = loadKey,
-                descending = true,
+                descending = true
             )
 
             val response = repository.getChats(query)
             val rooms = response.getOrNull().orEmpty()
-            if (rooms == lastFetchedItems) {
-                return MediatorResult.Success(endOfPaginationReached = true)
+
+            if (rooms.isEmpty()) {
+                return MediatorResult.Success(true)
             }
 
-            lastFetchedItems = rooms
-
+            // Map the rooms to your Room entities
             val conversations = rooms.map { conversationMapper.map(it) }
 
+            // Update the database with the new data (upsert)
             db.withTransaction {
                 if (loadType == LoadType.REFRESH) {
+                    // Clear all conversations before loading the fresh data
                     db.conversationDao().clearConversations()
                 }
 
+                // Insert or update the conversations
                 db.conversationDao().upsertConversations(*conversations.toTypedArray())
             }
 
-            MediatorResult.Success(endOfPaginationReached = rooms.isEmpty())
+            MediatorResult.Success(endOfPaginationReached = rooms.size < limit)
         } catch (e: Exception) {
             MediatorResult.Error(e)
         }

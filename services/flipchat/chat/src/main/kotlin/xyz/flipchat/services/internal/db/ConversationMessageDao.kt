@@ -76,6 +76,18 @@ interface ConversationMessageDao {
         return observeConversationMessages(id.base58)
     }
 
+    @RewriteQueriesToDropUnusedColumns
+    @Query("""
+    SELECT * FROM messages 
+    WHERE messages.conversationIdBase58 = :id
+    ORDER BY messages.dateMillis DESC
+    LIMIT :limit OFFSET :offset
+""")
+    suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember>
+    suspend fun getPagedMessages(id: ID, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember> {
+        return getPagedMessages(id.base58, limit, offset)
+    }
+
     @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId")
     suspend fun queryMessages(conversationId: String): List<ConversationMessage>
 

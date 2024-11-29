@@ -19,6 +19,9 @@ val List<Byte>.base58: String
 val ByteArray.base58: String
     get() = Base58.encode(this)
 
+val List<Byte>.base64: String
+    get() = Base64.encodeToString(toByteArray(), Base64.NO_WRAP)
+
 fun String.decodeBase58(): ByteArray {
     return Base58.decode(this)
 }

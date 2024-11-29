@@ -45,6 +45,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
@@ -55,6 +56,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
@@ -481,9 +483,14 @@ class ConversationViewModel @Inject constructor(
         .map { it.conversationId }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest {
-            println("flow collect of ${it.base58}")
-            roomController.messages(it).flow.distinctUntilChanged().cachedIn(viewModelScope) }
+        .flatMapLatest { roomController.messages(it).flow
+            .cachedIn(viewModelScope)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = PagingData.empty()
+            )
+        }
         .map { page ->
             page.flatMap { mwc ->
                 if (mwc.message.isDeleted) {
