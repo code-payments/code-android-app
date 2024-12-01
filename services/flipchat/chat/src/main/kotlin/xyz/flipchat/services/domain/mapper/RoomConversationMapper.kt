@@ -22,7 +22,7 @@ class RoomConversationMapper @Inject constructor(
             canMute = from.canMute,
             roomNumber = from.roomNumber,
             coverChargeQuarks = from.coverCharge.quarks,
-            lastActivity = null, // TODO: ?
+            lastActivity = from.lastActivity?.toEpochMilliseconds()
         )
     }
 }
