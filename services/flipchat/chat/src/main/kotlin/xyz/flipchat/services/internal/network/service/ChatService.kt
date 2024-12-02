@@ -438,7 +438,7 @@ internal class ChatService @Inject constructor(
     fun openChatStream(
         scope: CoroutineScope,
         owner: KeyPair,
-        onEvent: (Result<FlipchatService.StreamChatEventsResponse.ChatUpdate>) -> Unit
+        onEvent: (Result<List<FlipchatService.StreamChatEventsResponse.ChatUpdate>>) -> Unit
     ): ChatHomeStreamReference {
         trace("Chat Opening stream.")
         val streamReference = ChatHomeStreamReference(scope)
@@ -460,7 +460,7 @@ internal class ChatService @Inject constructor(
     private fun openChatStream(
         owner: KeyPair,
         reference: ChatHomeStreamReference,
-        onEvent: (Result<FlipchatService.StreamChatEventsResponse.ChatUpdate>) -> Unit
+        onEvent: (Result<List<FlipchatService.StreamChatEventsResponse.ChatUpdate>>) -> Unit
     ) {
         try {
             reference.cancel()
@@ -478,9 +478,7 @@ internal class ChatService @Inject constructor(
 
                         when (result) {
                             FlipchatService.StreamChatEventsResponse.TypeCase.EVENTS -> {
-                                value.events.updatesList.onEach { update ->
-                                    onEvent(Result.success(update))
-                                }
+                                onEvent(Result.success(value.events.updatesList))
                             }
 
                             FlipchatService.StreamChatEventsResponse.TypeCase.PING -> {

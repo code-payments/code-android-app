@@ -54,31 +54,18 @@ interface ConversationMessageDao {
     @RewriteQueriesToDropUnusedColumns
     @Transaction
     @Query("""
-        SELECT 
-            messages.idBase58 AS idBase58,
-            messages.senderIdBase58 AS senderIdBase58,
-            messages.dateMillis AS dateMillis,
-            messages.conversationIdBase58 AS conversationIdBase58,
-            message_contents.content AS content,
-            members.memberIdBase58 AS memberIdBase58,
-            members.memberName AS memberName
-        FROM messages
-        LEFT JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58
-        LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
-                           AND messages.conversationIdBase58 = members.conversationIdBase58
-        WHERE messages.conversationIdBase58 = :id
-        ORDER BY messages.dateMillis DESC
-
-    """)
-    fun observeConversationMessages(id: String): PagingSource<Int, ConversationMessageWithContentAndMember>
-
-    fun observeConversationMessages(id: ID): PagingSource<Int, ConversationMessageWithContentAndMember> {
-        return observeConversationMessages(id.base58)
-    }
-
-    @RewriteQueriesToDropUnusedColumns
-    @Query("""
-    SELECT * FROM messages 
+    SELECT 
+        messages.idBase58 AS idBase58,
+        messages.senderIdBase58 AS senderIdBase58,
+        messages.dateMillis AS dateMillis,
+        messages.conversationIdBase58 AS conversationIdBase58,
+        message_contents.content AS content,
+        members.memberIdBase58 AS memberIdBase58,
+        members.memberName AS memberName
+    FROM messages
+    LEFT JOIN message_contents ON messages.idBase58 = message_contents.messageIdBase58
+    LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
+                       AND messages.conversationIdBase58 = members.conversationIdBase58
     WHERE messages.conversationIdBase58 = :id
     ORDER BY messages.dateMillis DESC
     LIMIT :limit OFFSET :offset
@@ -86,6 +73,12 @@ interface ConversationMessageDao {
     suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember>
     suspend fun getPagedMessages(id: ID, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember> {
         return getPagedMessages(id.base58, limit, offset)
+    }
+
+    @Query("SELECT COUNT(*) FROM messages WHERE conversationIdBase58 = :conversationId")
+    suspend fun getTotalMessageCountFor(conversationId: String): Int
+    suspend fun getTotalMessageCountFor(conversationId: ID): Int {
+        return getTotalMessageCountFor(conversationId.base58)
     }
 
     @Query("SELECT * FROM messages WHERE conversationIdBase58 = :conversationId")

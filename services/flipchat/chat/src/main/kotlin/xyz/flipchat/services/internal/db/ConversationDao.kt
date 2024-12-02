@@ -26,21 +26,6 @@ interface ConversationDao {
     @Query(
         """
     SELECT * FROM conversations
-    LEFT JOIN (
-        SELECT conversationIdBase58, MAX(dateMillis) as lastMessageTimestamp 
-        FROM messages 
-        GROUP BY conversationIdBase58
-    ) AS lastMessages ON conversations.idBase58 = lastMessages.conversationIdBase58
-    WHERE roomNumber > 0
-    ORDER BY COALESCE(lastMessageTimestamp, 0) DESC
-    """
-    )
-    fun observeConversations(): PagingSource<Int, ConversationWithMembersAndLastMessage>
-
-    @RewriteQueriesToDropUnusedColumns
-    @Query(
-        """
-    SELECT * FROM conversations
     WHERE roomNumber > 0
     ORDER BY lastActivity DESC
     LIMIT :limit OFFSET :offset

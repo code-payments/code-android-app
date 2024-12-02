@@ -6,6 +6,8 @@ import com.getcode.model.chat.MessageStatus
 import com.getcode.services.model.chat.OutgoingMessageContent
 import com.getcode.utils.ErrorUtils
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -32,18 +34,22 @@ internal class RealMessagingRepository @Inject constructor(
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.getMessages(owner, chatId, queryOptions)
-            .map { it.map { meta -> messageMapper.map(userId to meta) } }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.getMessages(owner, chatId, queryOptions)
+                .map { it.map { meta -> messageMapper.map(userId to meta) } }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun sendMessage(chatId: ID, content: OutgoingMessageContent): Result<ChatMessage> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
         val userId = userManager.userId ?: return Result.failure(IllegalStateException("No userId found for owner"))
 
-        return service.sendMessage(owner, chatId, content)
-            .map { lastMessageMapper.map(userId to it) }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.sendMessage(owner, chatId, content)
+                .map { lastMessageMapper.map(userId to it) }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun deleteMessage(chatId: ID, messageId: ID): Result<Unit> {
@@ -53,29 +59,35 @@ internal class RealMessagingRepository @Inject constructor(
     override suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.advancePointer(owner, chatId, messageId, status)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.advancePointer(owner, chatId, messageId, status)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun onStartedTyping(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.notifyIsTyping(owner, chatId, true)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.notifyIsTyping(owner, chatId, true)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun onStoppedTyping(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.notifyIsTyping(owner, chatId, false)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.notifyIsTyping(owner, chatId, false)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override fun openMessageStream(
         coroutineScope: CoroutineScope,
         chatId: ID,
         lastMessageId: suspend () -> ID?,
-        onMessageUpdate: (ConversationMessageWithContent) -> Unit
+        onMessagesUpdated: (List<ConversationMessageWithContent>) -> Unit
     ) {
         val owner = userManager.keyPair ?: throw IllegalStateException("No ed25519 signature found for owner")
         val userId = userManager.userId ?: throw IllegalStateException("No userId found for owner")
@@ -89,10 +101,9 @@ internal class RealMessagingRepository @Inject constructor(
             ) stream@{ result ->
                 if (result.isSuccess) {
                     val data = result.getOrNull() ?: return@stream
-                    val message = lastMessageMapper.map(userId to data)
-
-                    val messageWithContents = messageWithContentMapper.map(chatId to message)
-                    onMessageUpdate(messageWithContents)
+                    val messages = data.map { lastMessageMapper.map(userId to it) }
+                    val messagesWithContents = messages.map { messageWithContentMapper.map(chatId to it) }
+                    onMessagesUpdated(messagesWithContents)
                 } else {
                     result.exceptionOrNull()?.let {
                         ErrorUtils.handleError(it)

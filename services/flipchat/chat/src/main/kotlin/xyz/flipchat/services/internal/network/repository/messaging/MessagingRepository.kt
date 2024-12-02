@@ -17,7 +17,7 @@ interface MessagingRepository {
     suspend fun advancePointer(chatId: ID, messageId: ID, status: MessageStatus): Result<Unit>
     suspend fun onStartedTyping(chatId: ID): Result<Unit>
     suspend fun onStoppedTyping(chatId: ID): Result<Unit>
-    fun openMessageStream(coroutineScope: CoroutineScope, chatId: ID, lastMessageId: suspend () -> ID?, onMessageUpdate: (ConversationMessageWithContent) -> Unit)
+    fun openMessageStream(coroutineScope: CoroutineScope, chatId: ID, lastMessageId: suspend () -> ID?, onMessagesUpdated: (List<ConversationMessageWithContent>) -> Unit)
     fun closeMessageStream()
 
     // Self Defense Room Controls

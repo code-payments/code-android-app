@@ -20,11 +20,14 @@ import xyz.flipchat.services.domain.mapper.RoomConversationMapper
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
+import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
 import javax.inject.Inject
@@ -43,6 +46,7 @@ class ChatsController @Inject constructor(
 
 
     private val pagingConfig = PagingConfig(pageSize = 20)
+
     @OptIn(ExperimentalPagingApi::class)
     val chats: Pager<Int, ConversationWithMembersAndLastMessage> by lazy {
         Pager(
@@ -153,47 +157,6 @@ class ChatsController @Inject constructor(
             .onSuccess { db.conversationDao().unmuteChat(roomId) }
     }
 }
-//
-//private class ChatPagingSource(
-//    private val dao: ConversationDao,
-//    private val pageSize: Int
-//) : PagingSource<Int, ConversationWithMembersAndLastMessage>() {
-//
-//    override suspend fun load(params: LoadParams<Int>): LoadResult<Int, ConversationWithMembersAndLastMessage> {
-//        try {
-//            // Calculate the offset for the current page
-//            val page = params.key ?: 0 // Default to the first page
-//            val offset = page * pageSize
-//
-//            // Fetch data from the DAO
-//            val conversations = dao.observeConversations(limit = pageSize, offset = offset)
-//
-//            println("PAGING::: page=$page, offset=$offset")
-//
-//            // Determine next and previous keys
-//            val nextKey = if (conversations.size < pageSize) null else page + 1
-//            val prevKey = if (page == 0) null else page - 1
-//
-//            println("PAGING::: nextKey=$nextKey, prevKey=$prevKey, data=${conversations.count()}")
-//
-//            return LoadResult.Page(
-//                data = conversations,
-//                prevKey = prevKey,
-//                nextKey = nextKey
-//            )
-//        } catch (e: Exception) {
-//            return LoadResult.Error(e)
-//        }
-//    }
-//
-//    override fun getRefreshKey(state: PagingState<Int, ConversationWithMembersAndLastMessage>): Int? {
-//        // Attempt to find the page index of the first item in the currently displayed list
-//        return state.anchorPosition?.let { position ->
-//            val closestPage = state.closestPageToPosition(position)
-//            closestPage?.prevKey?.plus(1) ?: closestPage?.nextKey?.minus(1)
-//        }
-//    }
-//}
 
 private class ChatsPagingSource(
     private val db: FcAppDatabase
@@ -218,15 +181,17 @@ private class ChatsPagingSource(
         val pageSize = params.loadSize
         val offset = currentPage * pageSize
 
-        return try {
-            val conversations = db.conversationDao().getPagedConversations(pageSize, offset)
-            val prevKey = null
-            val nextKey = if (conversations.size < pageSize) null else currentPage + 1
+        return withContext(Dispatchers.IO) {
+            try {
+                val conversations = db.conversationDao().getPagedConversations(pageSize, offset)
+                val prevKey = null
+                val nextKey = if (conversations.size < pageSize) null else currentPage + 1
 
 
-            LoadResult.Page(conversations, prevKey, nextKey)
-        } catch (e: Exception) {
-            LoadResult.Error(e)
+                LoadResult.Page(conversations, prevKey, nextKey)
+            } catch (e: Exception) {
+                LoadResult.Error(e)
+            }
         }
     }
 }
@@ -287,7 +252,7 @@ private class ChatsRemoteMediator(
             val conversations = rooms.map { conversationMapper.map(it) }
 
             // Update the database with the new data (upsert)
-            db.withTransaction {
+            withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
                     // Clear all conversations before loading the fresh data
                     db.conversationDao().clearConversations()

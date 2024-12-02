@@ -10,21 +10,20 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
-import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
-import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
@@ -69,7 +68,7 @@ class RoomController @Inject constructor(
                 coroutineScope = scope,
                 chatId = identifier,
                 lastMessageId = { db.conversationMessageDao().getNewestMessage(identifier)?.id },
-                onMessageUpdate = {
+                onMessagesUpdated = {
                     scope.launch { db.conversationMessageDao().upsertMessagesWithContent(it) }
                 }
             )
@@ -124,15 +123,15 @@ class RoomController @Inject constructor(
             .map { it.id }
     }
 
-    private val pagingConfig = PagingConfig(pageSize = 500) // TODO: decrease once this pager stops auto paging
+    private val pagingConfig = PagingConfig(pageSize = 100) // TODO: decrease once this pager stops auto paging
 
     @OptIn(ExperimentalPagingApi::class)
     fun messages(conversationId: ID): Pager<Int, ConversationMessageWithContentAndMember> = Pager(
         config = pagingConfig,
         remoteMediator = MessagesRemoteMediator(
-            conversationId,
-            messagingRepository,
-            conversationMessageWithContentMapper
+            chatId = conversationId,
+            repository = messagingRepository,
+            conversationMessageWithContentMapper = conversationMessageWithContentMapper
         )
     ) {
         MessagingPagingSource(conversationId, db)
@@ -207,12 +206,13 @@ class RoomController @Inject constructor(
 private class MessagingPagingSource(
     private val chatId: ID,
     private val db: FcAppDatabase
-): PagingSource<Int, ConversationMessageWithContentAndMember>() {
+) : PagingSource<Int, ConversationMessageWithContentAndMember>() {
 
     @SuppressLint("RestrictedApi")
-    private val observer = ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
-        invalidate()
-    }
+    private val observer =
+        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
+            invalidate()
+        }
 
     override fun getRefreshKey(state: PagingState<Int, ConversationMessageWithContentAndMember>): Int? {
         return state.anchorPosition?.let { anchorPosition ->
@@ -228,15 +228,21 @@ private class MessagingPagingSource(
         val pageSize = params.loadSize
         val offset = currentPage * pageSize
 
-        return try {
-            val messages = db.conversationMessageDao().getPagedMessages(chatId, pageSize, offset)
-            val prevKey = null
-            val nextKey = if (messages.size < pageSize) null else currentPage + 1
+        return withContext(Dispatchers.IO) {
+            try {
+                val messages =
+                    db.conversationMessageDao().getPagedMessages(chatId, pageSize, offset)
+                val prevKey = null
+                val nextKey = if (messages.size < pageSize) null else currentPage + 1
 
-
-            LoadResult.Page(messages, prevKey, nextKey)
-        } catch (e: Exception) {
-            LoadResult.Error(e)
+                LoadResult.Page(
+                    data = messages,
+                    prevKey = prevKey,
+                    nextKey = nextKey,
+                )
+            } catch (e: Exception) {
+                LoadResult.Error(e)
+            }
         }
     }
 }
@@ -263,9 +269,11 @@ private class MessagesRemoteMediator(
                 LoadType.REFRESH -> {
                     null
                 }
+
                 LoadType.PREPEND -> {
                     return MediatorResult.Success(true)  // Don't load newer messages
                 }
+
                 LoadType.APPEND -> {
                     // Get the last item from our data
                     val lastItem = state.lastItemOrNull()
@@ -297,7 +305,7 @@ private class MessagesRemoteMediator(
             val conversationMessagesWithContent =
                 messages.map { conversationMessageWithContentMapper.map(chatId to it) }
 
-            db.withTransaction {
+            withContext(Dispatchers.IO) {
                 if (loadType == LoadType.REFRESH) {
                     db.conversationMessageDao().clearMessagesForChat(chatId)
                 }

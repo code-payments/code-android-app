@@ -329,7 +329,6 @@ class ConversationViewModel @Inject constructor(
                 }
             }.launchIn(viewModelScope)
 
-
         stateFlow
             .map { it.textFieldState }
             .flatMapLatest { it.textAsFlow() }
@@ -476,7 +475,6 @@ class ConversationViewModel @Inject constructor(
                         }
                     }
             }.launchIn(viewModelScope)
-
     }
 
     val messages: Flow<PagingData<ChatItem>> = stateFlow

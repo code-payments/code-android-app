@@ -3,14 +3,15 @@ package xyz.flipchat.services.internal.network.repository.chat
 import com.getcode.model.ID
 import com.getcode.model.KinAmount
 import com.getcode.utils.ErrorUtils
-import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Member
 import xyz.flipchat.services.data.Room
@@ -57,70 +58,88 @@ internal class RealChatRepository @Inject constructor(
     ): Result<List<Room>> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.getChats(owner, queryOptions)
-            .map { it.map { meta -> roomMapper.map(meta) } }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.getChats(owner, queryOptions)
+                .map { it.map { meta -> roomMapper.map(meta) } }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.getChat(owner, identifier)
-            .map { roomWithMembersMapper.map(it) }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.getChat(owner, identifier)
+                .map { roomWithMembersMapper.map(it) }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun getChatMembers(identifier: ChatIdentifier): Result<List<Member>> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.getChat(owner, identifier)
-            .map { roomWithMembersMapper.map(it) }
-            .map { it.members }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.getChat(owner, identifier)
+                .map { roomWithMembersMapper.map(it) }
+                .map { it.members }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun startChat(type: StartChatRequestType): Result<Room> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.startChat(owner, type)
-            .map { roomMapper.map(it) }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.startChat(owner, type)
+                .map { roomMapper.map(it) }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID?): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.joinChat(owner, identifier, paymentId)
-            .map { roomWithMembersMapper.map(it) }
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.joinChat(owner, identifier, paymentId)
+                .map { roomWithMembersMapper.map(it) }
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun leaveChat(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.leaveChat(owner, chatId)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.leaveChat(owner, chatId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun mute(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.muteChat(owner, chatId)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.muteChat(owner, chatId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun unmute(chatId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.unmuteChat(owner, chatId)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.unmuteChat(owner, chatId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun setCoverCharge(chatId: ID, amount: KinAmount): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
-        return service.setCoverCharge(owner, chatId, amount)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.setCoverCharge(owner, chatId, amount)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override fun observeTyping(chatId: ID): Flow<Boolean> {
@@ -134,59 +153,65 @@ internal class RealChatRepository @Inject constructor(
         if (homeStreamReference == null) {
             homeStreamReference = service.openChatStream(coroutineScope, owner) { result ->
                 if (result.isSuccess) {
-                    val data = result.getOrNull()
-                    val update = ChatStreamUpdate.invoke(data) ?: return@openChatStream
-                    println("update=$update")
-                    // handle typing state changes
-                    if (update.isTyping != null) {
-                        if (update.isTyping) {
-                            _typingChats.update { it + listOf(update.id).toSet() }
-                        } else {
-                            _typingChats.update { it - listOf(update.id).toSet() }
-                        }
-                    }
+                    val data = result.getOrNull() ?: return@openChatStream
+                    val updates = data.mapNotNull { ChatStreamUpdate.invoke(it) }
 
-                    val memberUpdate = update.memberUpdate?.let {
-                        memberUpdateMapper.map(it)
-                    }
+                    val changes = updates.map { update ->
+                        println("update=$update")
 
-                    val updatedRoom = update.metadata?.let {
-                        roomMapper.map(it)
-                    }
-
-                    val conversation = updatedRoom?.let { conversationMapper.map(it) }
-
-                    // handle last message update
-                    val message = if (userManager.openRoom != updatedRoom?.id) {
-                        update.lastMessage?.let {
-                            val chatId = update.id
-                            val mapped = messageMapper.map(userId to it)
-                            messageWithContentMapper.map(chatId to mapped)
-                        }
-                    }  else {
-                        null
-                    }
-
-                    val members = when (memberUpdate) {
-                        is MemberUpdate.Refresh -> {
-                            memberUpdate.members.map {
-                                conversationMemberMapper.map(
-                                    Pair(
-                                        update.id,
-                                        it
-                                    )
-                                )
+                        // handle typing state changes
+                        if (update.isTyping != null) {
+                            if (update.isTyping) {
+                                _typingChats.update { it + listOf(update.id).toSet() }
+                            } else {
+                                _typingChats.update { it - listOf(update.id).toSet() }
                             }
                         }
 
-                        null -> emptyList()
+                        val memberUpdate = update.memberUpdate?.let {
+                            memberUpdateMapper.map(it)
+                        }
+
+                        val updatedRoom = update.metadata?.let {
+                            roomMapper.map(it)
+                        }
+
+                        val conversation = updatedRoom?.let { conversationMapper.map(it) }
+
+                        // handle last message update
+                        val message = if (userManager.openRoom != updatedRoom?.id) {
+                            update.lastMessage?.let {
+                                val chatId = update.id
+                                val mapped = messageMapper.map(userId to it)
+                                messageWithContentMapper.map(chatId to mapped)
+                            }
+                        }  else {
+                            null
+                        }
+
+                        val members = when (memberUpdate) {
+                            is MemberUpdate.Refresh -> {
+                                memberUpdate.members.map {
+                                    conversationMemberMapper.map(
+                                        Pair(
+                                            update.id,
+                                            it
+                                        )
+                                    )
+                                }
+                            }
+
+                            null -> emptyList()
+                        }
+
+                        Triple(conversation, members, message)
                     }
 
                     onEvent(
                         ChatDbUpdate(
-                            conversation?.let { listOf(it) }.orEmpty(),
-                            message?.let { listOf(it) }.orEmpty(),
-                            members,
+                            conversations = changes.mapNotNull { it.first },
+                            members = changes.map { it.second }.flatten(),
+                            messages = changes.mapNotNull { it.third }
                         )
                     )
                 } else {
@@ -205,8 +230,10 @@ internal class RealChatRepository @Inject constructor(
 
     override suspend fun removeUser(chatId: ID, userId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
-        return service.removeUser(owner, chatId, userId)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.removeUser(owner, chatId, userId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun reportUserForMessage(
@@ -214,13 +241,17 @@ internal class RealChatRepository @Inject constructor(
         messageId: ID
     ): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
-        return service.reportUser(owner, userId, messageId)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.reportUser(owner, userId, messageId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 
     override suspend fun muteUser(chatId: ID, userId: ID): Result<Unit> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
-        return service.muteUser(owner, chatId, userId)
-            .onFailure { ErrorUtils.handleError(it) }
+        return withContext(Dispatchers.IO) {
+            service.muteUser(owner, chatId, userId)
+                .onFailure { ErrorUtils.handleError(it) }
+        }
     }
 }

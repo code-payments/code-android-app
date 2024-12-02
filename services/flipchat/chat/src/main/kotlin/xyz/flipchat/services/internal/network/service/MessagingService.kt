@@ -249,7 +249,7 @@ internal class MessagingService @Inject constructor(
         owner: KeyPair,
         chatId: ID,
         lastMessageId: suspend () -> ID?,
-        onEvent: (Result<Model.Message>) -> Unit
+        onEvent: (Result<List<Model.Message>>) -> Unit
     ): ChatMessageStreamReference {
         trace("Message Opening stream.")
         val streamReference = ChatMessageStreamReference(scope)
@@ -275,7 +275,7 @@ internal class MessagingService @Inject constructor(
         chatId: ID,
         lastMessageId: suspend () -> ID?,
         reference: ChatMessageStreamReference,
-        onEvent: (Result<Model.Message>) -> Unit
+        onEvent: (Result<List<Model.Message>>) -> Unit
     ) {
         try {
             reference.cancel()
@@ -293,9 +293,7 @@ internal class MessagingService @Inject constructor(
 
                         when (result) {
                             MessagingService.StreamMessagesResponse.TypeCase.MESSAGES -> {
-                                value.messages.messagesList.onEach { update ->
-                                    onEvent(Result.success(update))
-                                }
+                                onEvent(Result.success(value.messages.messagesList))
                             }
 
                             MessagingService.StreamMessagesResponse.TypeCase.PING -> {
