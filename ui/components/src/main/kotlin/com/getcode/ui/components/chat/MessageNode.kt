@@ -297,15 +297,17 @@ fun MessageNode(
 
                         when (contents) {
                             is MessageContent.Exchange -> {
-                                MessagePayment(
-                                    modifier = Modifier
-                                        .align(if (contents.isFromSelf) Alignment.CenterEnd else Alignment.CenterStart)
-                                        .sizeableWidth()
-                                        .background(color = color, shape = shape),
-                                    contents = contents,
-                                    status = status,
-                                    date = date,
-                                )
+                                val alignment = if (sender.isSelf) Alignment.CenterEnd else Alignment.CenterStart
+                                Box(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+                                    MessagePayment(
+                                        modifier = Modifier
+                                            .sizeableWidth()
+                                            .background(color = color, shape = shape),
+                                        contents = contents,
+                                        status = status,
+                                        date = date,
+                                    )
+                                }
                             }
 
                             is MessageContent.Localized -> {
@@ -327,17 +329,19 @@ fun MessageNode(
                             }
 
                             is MessageContent.SodiumBox -> {
-                                EncryptedContent(
-                                    modifier = Modifier
-                                        .align(if (status.isOutgoing()) Alignment.CenterEnd else Alignment.CenterStart)
-                                        .sizeableWidth()
-                                        .background(
-                                            color = color,
-                                            shape = shape,
-                                        )
-                                        .padding(CodeTheme.dimens.grid.x2),
-                                    date = date
-                                )
+                                val alignment = if (sender.isSelf) Alignment.CenterEnd else Alignment.CenterStart
+                                Box(modifier = modifier.fillMaxWidth(), contentAlignment = alignment) {
+                                    EncryptedContent(
+                                        modifier = Modifier
+                                            .sizeableWidth()
+                                            .background(
+                                                color = color,
+                                                shape = shape,
+                                            )
+                                            .padding(CodeTheme.dimens.grid.x2),
+                                        date = date
+                                    )
+                                }
                             }
 
                             is MessageContent.Decrypted -> {

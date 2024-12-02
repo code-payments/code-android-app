@@ -163,13 +163,13 @@ class NotificationCollectionViewModel @Inject constructor(
                     chatMessageId = message.id,
                     message = contents,
                     date = message.dateMillis.toInstantFromMillis(),
-                    status = if (message.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
+                    status = if (contents.isFromSelf) MessageStatus.Sent else MessageStatus.Unknown,
                     sender = Sender(
                         id = null,
                         displayName = null,
                         profileImage = null,
                         isHost = false,
-                        isSelf = message.isFromSelf,
+                        isSelf = contents.isFromSelf,
 
                     )
                 )
