@@ -1,19 +1,48 @@
 package xyz.flipchat.app.features.chat.conversation
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Surface
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.MessageList
 import com.getcode.ui.components.chat.MessageListEvent
 import com.getcode.ui.components.chat.MessageListPointerResult
@@ -26,6 +55,7 @@ import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 import xyz.flipchat.app.util.dialNumber
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun ConversationMessages(
     modifier: Modifier = Modifier,
@@ -102,6 +132,39 @@ internal fun ConversationMessages(
                 }
             }
         )
+
+
+        val canJumpToBottom by remember(lazyListState) {
+            derivedStateOf { lazyListState.canScrollBackward }
+
+        }
+
+        val alpha by animateFloatAsState(if (canJumpToBottom) 1f else 0f)
+
+        Surface(
+            modifier = Modifier
+                .alpha(alpha)
+                .padding(bottom = CodeTheme.dimens.grid.x2)
+                .align(Alignment.BottomCenter),
+            shape = CircleShape,
+            color = CodeTheme.colors.brandDark,
+            onClick = {
+                composeScope.launch {
+                    if (lazyListState.firstVisibleItemIndex > 100) {
+                        lazyListState.scrollToItem(0)
+                    } else {
+                        lazyListState.animateScrollToItem(0)
+                    }
+                }
+            }
+        ) {
+            Image(
+                modifier = Modifier.padding(CodeTheme.dimens.grid.x1),
+                imageVector = Icons.Outlined.ArrowDownward,
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(CodeTheme.colors.onSurface)
+            )
+        }
     }
 
     HandleMessageChanges(listState = lazyListState, items = messages) { message ->
