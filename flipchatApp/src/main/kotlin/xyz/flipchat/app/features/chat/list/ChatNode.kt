@@ -1,27 +1,26 @@
 package xyz.flipchat.app.features.chat.list
 
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.material.DismissDirection
 import androidx.compose.material.DismissState
 import androidx.compose.material.DismissValue
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.FixedThreshold
-import androidx.compose.material.Icon
 import androidx.compose.material.SwipeToDismiss
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.asFloatState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,13 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.navigator.currentOrThrow
 import com.getcode.model.chat.MessageContent
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
-import xyz.flipchat.app.R
 import com.getcode.ui.components.chat.utils.localizedText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.onEach
+import xyz.flipchat.app.R
 import xyz.flipchat.app.ui.LocalUserManager
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 
@@ -48,38 +45,34 @@ import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMes
 fun ChatNode(
     chat: ConversationWithMembersAndLastMessage,
     modifier: Modifier = Modifier,
-    onSwipedToStart: () -> Unit = { },
+    onToggleMute: (mute: Boolean) -> Unit = { },
     onClick: () -> Unit,
 ) {
     val userManager = LocalUserManager.currentOrThrow
 
-    val dismissState = remember(chat.id) {
-        DismissState(
-            initialValue = DismissValue.Default,
-            confirmStateChange = {
-                if (it == DismissValue.DismissedToStart) {
-                    onSwipedToStart()
-                    true
-                } else false
-            }
-        )
-    }
+    val dismissState = rememberChatDismissState({ chat.isMuted }, onToggleMute)
 
     LaunchedEffect(dismissState) {
         snapshotFlow { dismissState.currentValue }
             .filter { it == DismissValue.DismissedToStart }
             .collect {
-                dismissState.reset()
+                dismissState.animateTo(DismissValue.Default)
             }
     }
 
+    var muteContentState by remember { mutableStateOf(chat.isMuted) }
+
+    LaunchedEffect(chat.id, chat.isMuted) {
+        delay(400)
+        muteContentState = chat.isMuted
+    }
     SwipeToDismiss(
         state = dismissState,
         dismissThresholds = { FixedThreshold(150.dp) },
         directions = if (chat.canChangeMuteState) setOf(DismissDirection.EndToStart) else emptySet(),
         background = {
             if (chat.canChangeMuteState) {
-                DismissBackground(dismissState, chat.isMuted)
+                DismissBackground(dismissState, muteContentState)
             }
         }
     ) {
@@ -129,6 +122,23 @@ private fun DismissBackground(dismissState: DismissState, isMuted: Boolean) {
                 style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700)
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun rememberChatDismissState(isChatMuted: () -> Boolean, onToggleMute: (mute: Boolean) -> Unit): DismissState {
+    val mutedState by rememberUpdatedState(isChatMuted())
+    return remember {
+        DismissState(
+            initialValue = DismissValue.Default,
+            confirmStateChange = {
+                if (it == DismissValue.DismissedToStart) {
+                    onToggleMute(!mutedState)
+                    true
+                } else false
+            }
+        )
     }
 }
 

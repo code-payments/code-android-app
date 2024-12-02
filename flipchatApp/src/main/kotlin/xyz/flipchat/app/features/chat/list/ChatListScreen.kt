@@ -22,6 +22,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -87,15 +89,19 @@ private fun ChatListScreenContent(
 
     CodeScaffold { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
-            items(chats.itemCount) { index ->
+            items(
+                count = chats.itemCount,
+                key = chats.itemKey { it.id },
+                contentType = chats.itemContentType { "chat" }
+            ) { index ->
                 chats[index]?.let {
                     ChatNode(
                         chat = it,
-                        onSwipedToStart = {
-                            if (it.isMuted) {
-                                viewModel.dispatchEvent(ChatListViewModel.Event.UnmuteRoom(it.id))
-                            } else {
+                        onToggleMute = { mute ->
+                            if (mute) {
                                 viewModel.dispatchEvent(ChatListViewModel.Event.MuteRoom(it.id))
+                            } else {
+                                viewModel.dispatchEvent(ChatListViewModel.Event.UnmuteRoom(it.id))
                             }
                         },
                     ) { openChat(it.conversation.id) }
