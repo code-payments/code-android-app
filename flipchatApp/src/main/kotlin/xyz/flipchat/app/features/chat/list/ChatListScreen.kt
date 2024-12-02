@@ -1,17 +1,23 @@
 package xyz.flipchat.app.features.chat.list
 
 import android.os.Parcelable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
@@ -38,9 +44,11 @@ import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.isScrolledToStart
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
@@ -76,6 +84,7 @@ data object ChatListScreen : Screen, NamedScreen, Parcelable {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ChatListScreenContent(
     viewModel: ChatListViewModel,
@@ -86,29 +95,43 @@ private fun ChatListScreenContent(
     val chats = viewModel.chats.collectAsLazyPagingItems()
     val isLoading = chats.loadState.refresh is LoadState.Loading
     var isInitialLoad by rememberSaveable { mutableStateOf(true) }
-
+    val listState = rememberLazyListState()
+    val composeScope = rememberCoroutineScope()
     CodeScaffold { padding ->
-        LazyColumn(modifier = Modifier.padding(padding)) {
+
+        SideEffect {
+            if (!listState.canScrollBackward) {
+                composeScope.launch {
+                    listState.scrollToItem(0)
+                }
+            }
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            state = listState
+        ) {
             items(
                 count = chats.itemCount,
                 key = chats.itemKey { it.id },
                 contentType = chats.itemContentType { "chat" }
             ) { index ->
                 chats[index]?.let {
-                    ChatNode(
-                        chat = it,
-                        onToggleMute = { mute ->
-                            if (mute) {
-                                viewModel.dispatchEvent(ChatListViewModel.Event.MuteRoom(it.id))
-                            } else {
-                                viewModel.dispatchEvent(ChatListViewModel.Event.UnmuteRoom(it.id))
-                            }
-                        },
-                    ) { openChat(it.conversation.id) }
-                    Divider(
-                        modifier = Modifier.padding(start = CodeTheme.dimens.inset),
-                        color = CodeTheme.colors.divider,
-                    )
+                    Column(modifier = Modifier.animateItemPlacement()) {
+                        ChatNode(
+                            chat = it,
+                            onToggleMute = { mute ->
+                                if (mute) {
+                                    viewModel.dispatchEvent(ChatListViewModel.Event.MuteRoom(it.id))
+                                } else {
+                                    viewModel.dispatchEvent(ChatListViewModel.Event.UnmuteRoom(it.id))
+                                }
+                            },
+                        ) { openChat(it.conversation.id) }
+                        Divider(
+                            modifier = Modifier.padding(start = CodeTheme.dimens.inset),
+                            color = CodeTheme.colors.divider,
+                        )
+                    }
                 }
             }
 
