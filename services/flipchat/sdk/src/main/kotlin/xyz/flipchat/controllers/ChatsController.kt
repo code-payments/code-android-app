@@ -11,7 +11,9 @@ import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import androidx.room.withTransaction
 import com.getcode.model.ID
+import com.getcode.utils.TraceType
 import com.getcode.utils.base58
+import com.getcode.utils.trace
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.data.RoomWithMembers
@@ -88,17 +90,43 @@ class ChatsController @Inject constructor(
         runCatching {
             chatRepository.openEventStream(coroutineScope) { event ->
                 coroutineScope.launch {
-                    if (event.conversations.isNotEmpty()) {
-                        db.conversationDao()
-                            .upsertConversations(*event.conversations.toTypedArray())
-                    }
-                    if (event.messages.isNotEmpty()) {
-                        db.conversationMessageDao()
-                            .upsertMessagesWithContent(*event.messages.toTypedArray())
+                    event.conversation?.let {
+                        db.conversationDao().upsertConversations(it)
                     }
 
                     if (event.members.isNotEmpty()) {
                         db.conversationMembersDao().upsertMembers(*event.members.toTypedArray())
+                    }
+
+                    event.message?.let { newMessage ->
+                        val (message, _) = newMessage
+                        val conversationId = message.conversationId
+                        // sync between last in DB and this message
+                        val newestInDb =
+                            db.conversationMessageDao().getNewestMessage(conversationId)
+                        if (newestInDb?.id == message.id) {
+                            db.conversationMessageDao()
+                                .upsertMessagesWithContent(newMessage)
+                            return@let
+                        }
+
+                        val query = QueryOptions(token = newestInDb?.id, descending = false)
+                        messagingRepository.getMessages(conversationId, query)
+                            .onSuccess {
+                                val syncedMessages = it.filterNot { m -> m.id == message.id }
+                                trace("synced ${syncedMessages.count()} missing messages for ${conversationId.base58}", type = TraceType.Silent)
+                                val messagesWithContent = syncedMessages.map {
+                                    conversationMessageWithContentMapper.map(conversationId to it)
+                                }
+                                db.conversationMessageDao().upsertMessagesWithContent(
+                                    *(messagesWithContent + newMessage).toTypedArray()
+                                )
+                            }
+                            .onFailure {
+                                trace("Failed to sync messages after chat update", type = TraceType.Error, error = it)
+                                db.conversationMessageDao()
+                                    .upsertMessagesWithContent(newMessage)
+                            }
                     }
                 }
             }
@@ -160,12 +188,13 @@ class ChatsController @Inject constructor(
 
 private class ChatsPagingSource(
     private val db: FcAppDatabase
-): PagingSource<Int, ConversationWithMembersAndLastMessage>() {
+) : PagingSource<Int, ConversationWithMembersAndLastMessage>() {
 
     @SuppressLint("RestrictedApi")
-    private val observer = ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
-        invalidate()
-    }
+    private val observer =
+        ThreadSafeInvalidationObserver(arrayOf("conversations", "messages", "members")) {
+            invalidate()
+        }
 
     override fun getRefreshKey(state: PagingState<Int, ConversationWithMembersAndLastMessage>): Int? {
         return state.anchorPosition?.let { anchorPosition ->
@@ -217,9 +246,11 @@ private class ChatsRemoteMediator(
                 LoadType.REFRESH -> {
                     null
                 }
+
                 LoadType.PREPEND -> {
                     return MediatorResult.Success(true)  // Don't load newer messages
                 }
+
                 LoadType.APPEND -> {
                     // Get the last item from our data
                     val lastItem = state.lastItemOrNull()

@@ -5,7 +5,7 @@ import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
 
 data class ChatDbUpdate(
-    val conversations: List<Conversation> = emptyList(),
-    val messages: List<ConversationMessageWithContent> = emptyList(),
+    val conversation: Conversation?,
+    val message: ConversationMessageWithContent?,
     val members: List<ConversationMember> = emptyList(),
 )

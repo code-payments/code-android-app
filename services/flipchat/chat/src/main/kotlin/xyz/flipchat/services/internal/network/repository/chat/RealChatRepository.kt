@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Member
@@ -156,9 +157,7 @@ internal class RealChatRepository @Inject constructor(
                     val data = result.getOrNull() ?: return@openChatStream
                     val updates = data.mapNotNull { ChatStreamUpdate.invoke(it) }
 
-                    val changes = updates.map { update ->
-                        println("update=$update")
-
+                    updates.onEach { update ->
                         // handle typing state changes
                         if (update.isTyping != null) {
                             if (update.isTyping) {
@@ -204,16 +203,14 @@ internal class RealChatRepository @Inject constructor(
                             null -> emptyList()
                         }
 
-                        Triple(conversation, members, message)
-                    }
-
-                    onEvent(
-                        ChatDbUpdate(
-                            conversations = changes.mapNotNull { it.first },
-                            members = changes.map { it.second }.flatten(),
-                            messages = changes.mapNotNull { it.third }
+                        onEvent(
+                            ChatDbUpdate(
+                                conversation = conversation,
+                                members = members,
+                                message = message
+                            )
                         )
-                    )
+                    }
                 } else {
                     result.exceptionOrNull()?.let {
                         ErrorUtils.handleError(it)
