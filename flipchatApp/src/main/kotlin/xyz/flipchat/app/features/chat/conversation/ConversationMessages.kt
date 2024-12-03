@@ -1,22 +1,10 @@
 package xyz.flipchat.app.features.chat.conversation
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.ExperimentalMaterialApi
@@ -31,14 +19,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.unit.dp
 import androidx.paging.compose.LazyPagingItems
 import com.getcode.manager.TopBarManager
 import com.getcode.navigation.core.LocalCodeNavigator
@@ -53,6 +38,7 @@ import com.getcode.ui.utils.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
+import xyz.flipchat.app.ui.LocalBetaFeatures
 import xyz.flipchat.app.util.dialNumber
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -134,12 +120,15 @@ internal fun ConversationMessages(
         )
 
 
-        val canJumpToBottom by remember(lazyListState) {
-            derivedStateOf { lazyListState.canScrollBackward }
-
+        val betaFeatures = LocalBetaFeatures.current
+        val canJumpToBottom by remember(lazyListState, betaFeatures) {
+            derivedStateOf { lazyListState.canScrollBackward &&  betaFeatures.jumpToBottom }
         }
 
-        val alpha by animateFloatAsState(if (canJumpToBottom) 1f else 0f)
+        val alpha by animateFloatAsState(
+            targetValue = if (canJumpToBottom) 1f else 0f,
+            label = "show/hide jump-to-bottom"
+        )
 
         Surface(
             modifier = Modifier

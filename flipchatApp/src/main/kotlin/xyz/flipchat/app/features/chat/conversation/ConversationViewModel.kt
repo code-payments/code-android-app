@@ -60,6 +60,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
+import xyz.flipchat.app.data.BetaFeatures
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.controllers.ChatsController
@@ -81,6 +82,7 @@ class ConversationViewModel @Inject constructor(
     private val resources: ResourceHelper,
     clipboardManager: ClipboardManager,
     currencyUtils: CurrencyUtils,
+    betaFeatures: BetaFeatures,
 ) : BaseViewModel2<ConversationViewModel.State, ConversationViewModel.Event>(
     initialState = State.Default,
     updateStateForEvent = updateStateForEvent
@@ -274,8 +276,14 @@ class ConversationViewModel @Inject constructor(
                 val replyingTo = it.replyMessage
                 // TODO: handle replies in the future
 
+                val message = if (replyingTo != null) {
+                    replyingTo.sender.displayName?.let { name -> "@$name: $text" } ?: text
+                } else {
+                    text
+                }
+
                 dispatchEvent(Event.CancelReply)
-                roomController.sendMessage(it.conversationId!!, text)
+                roomController.sendMessage(it.conversationId!!, message)
                     .onSuccess {
                         trace(
                             tag = "Conversation",
@@ -536,7 +544,7 @@ class ConversationViewModel @Inject constructor(
                     isDeleted = message.isDeleted,
                     showAsChatBubble = true,
                     enableMarkup = true,
-                    enableReply = false, // TODO: put behind beta flags
+                    enableReply = betaFeatures.replyToMessage && stateFlow.value.chattableState is ChattableState.Enabled,
                     showTimestamp = false, // allow message list to show/hide wrt grouping
                     sender = Sender(
                         id = message.senderId,

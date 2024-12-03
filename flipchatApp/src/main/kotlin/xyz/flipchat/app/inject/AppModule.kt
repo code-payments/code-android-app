@@ -29,6 +29,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import xyz.flipchat.app.BuildConfig
+import xyz.flipchat.app.data.BetaFeatures
 import xyz.flipchat.app.features.home.tabs.CashTab
 import xyz.flipchat.app.features.home.tabs.ChatTab
 import xyz.flipchat.app.util.FcTab
@@ -134,5 +136,11 @@ object AppModule {
             }
         },
         indexTabResolver = { index -> FcTab.entries[index] }
+    )
+
+    @Provides
+    fun providesBetaFeatures(): BetaFeatures = BetaFeatures(
+        replyToMessage = BuildConfig.DEBUG,
+        jumpToBottom = true
     )
 }

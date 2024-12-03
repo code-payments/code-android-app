@@ -26,7 +26,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.RinkuInit
 import dev.theolm.rinku.compose.ext.Rinku
+import xyz.flipchat.app.data.BetaFeatures
 import xyz.flipchat.app.features.home.HomeViewModel
+import xyz.flipchat.app.ui.LocalBetaFeatures
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.services.LocalPaymentController
 import xyz.flipchat.services.PaymentController
@@ -60,6 +62,9 @@ class MainActivity : FragmentActivity() {
     @Inject
     lateinit var paymentController: PaymentController
 
+    @Inject
+    lateinit var betaFeatures: BetaFeatures
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleUncaughtException()
@@ -73,7 +78,8 @@ class MainActivity : FragmentActivity() {
                 LocalCurrencyUtils provides currencyUtils,
                 LocalVibrator provides vibrator,
                 LocalUserManager provides userManager,
-                LocalPaymentController provides paymentController
+                LocalPaymentController provides paymentController,
+                LocalBetaFeatures provides betaFeatures
             ) {
                 Rinku {
                     App(tipsEngine = tipsEngine)
