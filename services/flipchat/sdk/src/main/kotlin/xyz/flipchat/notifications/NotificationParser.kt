@@ -15,8 +15,11 @@ fun RemoteMessage.parse(): FcNotification? {
 
     if (!type.isNotifiable()) return FcNotification(type, "", MessageContent.Localized("", false))
 
-    return FcNotification(type,
-        this.notification?.title.orEmpty(),
-        MessageContent.RawText(this.notification?.body.orEmpty(), false)
+    val title = data["title"] ?: notification?.title.orEmpty()
+    val body = data["body"] ?: notification?.body.orEmpty()
+    return FcNotification(
+        type,
+        title,
+        MessageContent.RawText(body, false)
     )
 }

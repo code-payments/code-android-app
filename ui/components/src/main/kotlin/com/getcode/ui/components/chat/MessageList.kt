@@ -27,6 +27,7 @@ import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.formatDateRelatively
+import kotlinx.coroutines.flow.debounce
 import kotlinx.datetime.Instant
 
 sealed interface MessageListEvent {
@@ -62,15 +63,18 @@ fun MessageList(
 ) {
     LaunchedEffect(messages.itemSnapshotList, listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
+            .debounce(300)
             .collect { index ->
                 val snapshot = messages.itemSnapshotList.toList()
                 val closetChatMessage = snapshot.getClosestChat(index)
                 val mostRecentRead = snapshot.filterIsInstance<ChatItem.Message>()
+                    .filter { it.status == MessageStatus.Read }
                     .maxByOrNull { it.date }?.date
+
                 if (closetChatMessage != null) {
                     val (id, isFromSelf, date, status) = closetChatMessage
                     if (!isFromSelf && status != MessageStatus.Read) {
-                        if (mostRecentRead != null && date >= mostRecentRead) {
+                        if ((mostRecentRead != null && date >= mostRecentRead) || mostRecentRead == null) {
                             dispatch(MessageListEvent.AdvancePointer(id))
                         }
                     }

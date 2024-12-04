@@ -104,8 +104,8 @@ class AuthManager @Inject constructor(
 
     @Deprecated("Being replaced with a delayed account creation flow")
     suspend fun register(displayName: String): Result<ID> {
-        val entropyB64 = userManager.entropy
-        if (entropyB64.isNullOrEmpty()) {
+        val entropyB64 = userManager.entropy ?: setupAsNew()
+        if (entropyB64.isEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
             userManager.clear()
             return Result.failure(Throwable("Provided entropy was empty"))
