@@ -9,27 +9,23 @@ import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
-import androidx.room.withTransaction
 import com.getcode.model.ID
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
 import com.getcode.utils.trace
-import xyz.flipchat.services.data.ChatIdentifier
-import xyz.flipchat.services.data.Room
-import xyz.flipchat.services.data.RoomWithMembers
-import xyz.flipchat.services.data.StartChatRequestType
-import xyz.flipchat.services.domain.mapper.RoomConversationMapper
-import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
-import xyz.flipchat.services.domain.model.query.QueryOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.internal.db.FcAppDatabase
+import xyz.flipchat.services.data.ChatIdentifier
+import xyz.flipchat.services.data.RoomWithMembers
+import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
+import xyz.flipchat.services.domain.mapper.RoomConversationMapper
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
+import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
-import xyz.flipchat.services.internal.db.ConversationDao
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
 import javax.inject.Inject
@@ -110,7 +106,7 @@ class ChatsController @Inject constructor(
                             return@let
                         }
 
-                        val query = QueryOptions(token = newestInDb?.id, descending = false)
+                        val query = QueryOptions(token = newestInDb?.id, descending = false, limit = 1000)
                         messagingRepository.getMessages(conversationId, query)
                             .onSuccess {
                                 val syncedMessages = it.filterNot { m -> m.id == message.id }
@@ -143,10 +139,12 @@ class ChatsController @Inject constructor(
         return chatRepository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
     }
 
-    suspend fun createDirectMessage(recipient: ID): Result<Room> {
+    suspend fun createDirectMessage(recipient: ID): Result<RoomWithMembers> {
         return chatRepository.startChat(StartChatRequestType.TwoWay(recipient))
-            .onSuccess {
-                db.conversationDao().upsertConversations(conversationMapper.map(it))
+            .onSuccess { result ->
+                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
+                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
             }
     }
 
@@ -154,24 +152,30 @@ class ChatsController @Inject constructor(
         title: String? = null,
         participants: List<ID> = emptyList(),
         paymentId: ID,
-    ): Result<Room> {
+    ): Result<RoomWithMembers> {
         return chatRepository.startChat(StartChatRequestType.Group(title, participants, paymentId))
-            .onSuccess {
-                db.conversationDao().upsertConversations(conversationMapper.map(it))
+            .onSuccess { result ->
+                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
+                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
             }
     }
 
-    suspend fun joinRoom(roomId: ID, paymentId: ID?): Result<RoomWithMembers> {
+    suspend fun joinRoomAsSpectator(roomId: ID): Result<RoomWithMembers> {
+        return chatRepository.joinChat(ChatIdentifier.Id(roomId))
+            .onSuccess { result ->
+                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
+                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
+            }
+    }
+
+    suspend fun joinRoomAsFullMember(roomId: ID, paymentId: ID?): Result<RoomWithMembers> {
         return chatRepository.joinChat(ChatIdentifier.Id(roomId), paymentId)
-            .onSuccess {
-                db.conversationDao().upsertConversations(conversationMapper.map(it.room))
-            }
-    }
-
-    suspend fun joinRoom(roomNumber: Long, paymentId: ID): Result<RoomWithMembers> {
-        return chatRepository.joinChat(ChatIdentifier.RoomNumber(roomNumber), paymentId)
-            .onSuccess {
-                db.conversationDao().upsertConversations(conversationMapper.map(it.room))
+            .onSuccess { result ->
+                db.conversationDao().upsertConversations(conversationMapper.map(result.room))
+                val members = result.members.map { conversationMemberMapper.map(result.room.id to it) }
+                db.conversationMembersDao().upsertMembers(*members.toTypedArray())
             }
     }
 

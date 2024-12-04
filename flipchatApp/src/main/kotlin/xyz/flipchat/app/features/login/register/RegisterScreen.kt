@@ -97,6 +97,7 @@ private fun RegisterScreenContent(
     LaunchedEffect(viewModel) {
         viewModel.eventFlow
             .filterIsInstance<Event.OnSuccess>()
+            .onEach { delay(400) }
             .onEach {
                 navigator.push(ScreenRegistry.get(NavScreenProvider.Login.AccessKey))
             }.launchIn(this)

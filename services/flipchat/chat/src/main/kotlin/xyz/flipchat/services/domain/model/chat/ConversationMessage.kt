@@ -1,6 +1,7 @@
 package xyz.flipchat.services.domain.model.chat
 
 import androidx.room.ColumnInfo
+import androidx.room.DatabaseView
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.Ignore

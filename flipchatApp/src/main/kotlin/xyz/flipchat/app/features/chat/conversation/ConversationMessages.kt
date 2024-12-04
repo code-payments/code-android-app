@@ -11,6 +11,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -133,10 +134,12 @@ internal fun ConversationMessages(
         Surface(
             modifier = Modifier
                 .alpha(alpha)
-                .padding(bottom = CodeTheme.dimens.grid.x2)
-                .align(Alignment.BottomCenter),
+                .padding(
+                    end = CodeTheme.dimens.inset,
+                    bottom = CodeTheme.dimens.inset
+                ).align(Alignment.BottomEnd),
             shape = CircleShape,
-            color = CodeTheme.colors.brandDark,
+            color = CodeTheme.colors.tertiary,
             onClick = {
                 composeScope.launch {
                     if (lazyListState.firstVisibleItemIndex > 100) {
@@ -148,8 +151,8 @@ internal fun ConversationMessages(
             }
         ) {
             Image(
-                modifier = Modifier.padding(CodeTheme.dimens.grid.x1),
-                imageVector = Icons.Outlined.ArrowDownward,
+                modifier = Modifier.padding(CodeTheme.dimens.grid.x2),
+                imageVector = Icons.Outlined.KeyboardArrowDown,
                 contentDescription = null,
                 colorFilter = ColorFilter.tint(CodeTheme.colors.onSurface)
             )

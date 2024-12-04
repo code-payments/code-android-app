@@ -176,7 +176,7 @@ class ChatListViewModel @Inject constructor(
                             }
                         }.onSuccess {
                                 event.acknowledge(true) {
-                                    dispatchEvent(Event.OpenRoom(it.id))
+                                    dispatchEvent(Event.OpenRoom(it.room.id))
                                 }
                         }
                     }

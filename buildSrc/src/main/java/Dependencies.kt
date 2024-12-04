@@ -1,7 +1,5 @@
 @file:Suppress("ConstPropertyName")
 
-import kotlin.math.min
-
 
 object Android {
     const val codeNamespace = "com.getcode"
@@ -36,11 +34,11 @@ sealed class Packaging(
 
 object Versions {
     const val java = "17"
-    const val kotlin = "1.9.23"
+    const val kotlin = "1.9.25"
     const val kotlinx_coroutines = "1.7.3"
     const val kotlinx_serialization = "1.6.2"
     const val kotlinx_datetime = "0.5.0"
-    const val android_gradle_build_tools = "8.4.0"
+    const val android_gradle_build_tools = "8.6.0"
     const val google_services = "4.3.15"
 
     const val androidx_appcompat = "1.7.0"
@@ -57,20 +55,20 @@ object Versions {
     const val androidx_room = "2.6.1"
     const val sqlcipher = "4.5.1@aar"
 
-    const val compose = "2024.05.00"
+    const val compose = "2024.10.01"
 
     // compose compiler is tied to [Versions.kotlin]
     // See compatibility mapping here:
     // https://developer.android.com/jetpack/androidx/releases/compose-compiler
-    const val compose_compiler = "1.5.11"
+    const val compose_compiler = "1.5.15"
     const val compose_activities: String = "1.8.2"
     const val compose_view_models: String = "2.6.2"
     const val compose_navigation: String = "2.7.3"
     const val compose_paging = "3.3.0-alpha02"
     const val compose_webview = "0.33.6"
 
-    const val hilt = "2.50"
-    const val hilt_jetpack = "1.1.0-beta01"
+    const val hilt = "2.52"
+    const val hilt_jetpack = "1.2.0"
     const val okhttp = "4.9.3"
     const val retrofit = "2.6.0"
     const val rxjava: String = "3.1.3"
@@ -94,7 +92,6 @@ object Versions {
     const val mp_android_chart: String = "v3.1.0"
     const val lib_phone_number_port: String = "8.12.43"
     const val lib_phone_number_google: String = "8.12.54"
-    const val hilt_nav_compose: String = "1.1.0-alpha02"
     const val zxing: String = "3.3.2"
 
     const val androidx_test_runner = "1.4.0"
@@ -105,7 +102,7 @@ object Versions {
 
     const val markwon = "4.6.2"
     const val timber = "5.0.1"
-    const val voyager = "1.0.0"
+    const val voyager = "1.1.0-beta02"
     const val protobuf_plugin = "0.9.4"
 
     const val sodium_bindings = "0.9.0"
@@ -230,6 +227,7 @@ object Libs {
         "androidx.compose.ui:ui-tooling-preview"
     const val compose_foundation = "androidx.compose.foundation:foundation"
     const val compose_material = "androidx.compose.material:material"
+    const val compose_materialIconsCore = "androidx.compose.material:material-icons-core"
     const val compose_materialIconsExtended =
         "androidx.compose.material:material-icons-extended-android"
     const val compose_activities =
@@ -287,7 +285,7 @@ object Libs {
         "io.michaelrocks:libphonenumber-android:${Versions.lib_phone_number_port}"
     const val lib_phone_number_google =
         "com.googlecode.libphonenumber:libphonenumber:${Versions.lib_phone_number_google}"
-    const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:1.1.0-alpha01"
+    const val hilt_nav_compose = "androidx.hilt:hilt-navigation-compose:${Versions.hilt_jetpack}"
     const val zxing = "com.google.zxing:core:${Versions.zxing}"
 
     const val retrofit = "com.squareup.retrofit2:retrofit:${Versions.retrofit}"

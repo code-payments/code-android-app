@@ -9,7 +9,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.material.ripple.rememberRipple
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
-import com.getcode.theme.BrandLight
 import com.getcode.theme.CodeTheme
 
 inline fun Modifier.addIf(
@@ -76,7 +75,7 @@ fun Modifier.unboundedClickable(
         enabled = enabled,
         role = role,
         interactionSource = interaction,
-        indication = rememberRipple(bounded = false, radius = rippleRadius),
+        indication = ripple(bounded = false, radius = rippleRadius),
     )
 }
 

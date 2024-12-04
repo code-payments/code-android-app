@@ -5,10 +5,9 @@ package xyz.flipchat.app.features.chat.conversation
 import android.content.ClipData
 import android.content.ClipboardManager
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.text2.input.TextFieldState
-import androidx.compose.foundation.text2.input.clearText
-import androidx.compose.foundation.text2.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.foundation.text2.input.textAsFlow
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
@@ -18,14 +17,15 @@ import androidx.paging.map
 import com.getcode.manager.BottomBarManager
 import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
+import com.getcode.model.KinAmount
+import com.getcode.model.Rate
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.chat.Reference
 import com.getcode.model.chat.Sender
 import com.getcode.model.uuid
 import com.getcode.navigation.RoomInfoArgs
-import xyz.flipchat.app.R
-import xyz.flipchat.app.features.login.register.onError
+import com.getcode.services.model.ExtendedMetadata
 import com.getcode.ui.components.chat.messagecontents.MessageControlAction
 import com.getcode.ui.components.chat.messagecontents.MessageControls
 import com.getcode.ui.components.chat.utils.ChatItem
@@ -57,16 +57,24 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import timber.log.Timber
+import xyz.flipchat.app.R
 import xyz.flipchat.app.data.BetaFeatures
+import xyz.flipchat.app.features.login.register.onError
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.chat.RoomController
 import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.controllers.ProfileController
+import xyz.flipchat.services.PaymentController
+import xyz.flipchat.services.PaymentEvent
+import xyz.flipchat.services.data.JoinChatPaymentMetadata
+import xyz.flipchat.services.data.erased
+import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
-import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.extensions.titleOrFallback
 import xyz.flipchat.services.user.UserManager
@@ -79,6 +87,8 @@ class ConversationViewModel @Inject constructor(
     private val userManager: UserManager,
     private val roomController: RoomController,
     private val chatsController: ChatsController,
+    private val paymentController: PaymentController,
+    private val profileController: ProfileController,
     private val resources: ResourceHelper,
     clipboardManager: ClipboardManager,
     currencyUtils: CurrencyUtils,
@@ -107,7 +117,7 @@ class ConversationViewModel @Inject constructor(
         val showTypingIndicator: Boolean,
         val isSelfTyping: Boolean,
         val roomInfoArgs: RoomInfoArgs,
-    ) {
+        ) {
         val isHost: Boolean
             get() = selfId != null && hostId != null && selfId == hostId
 
@@ -152,7 +162,7 @@ class ConversationViewModel @Inject constructor(
         data class ReplyTo(val message: ChatItem.Message): Event
         data object CancelReply: Event
 
-        data object PresentPaymentConfirmation : Event
+        data object OnJoinRequestedFromSpectating : Event
 
         data object ReopenStream : Event
         data object CloseStream : Event
@@ -196,14 +206,19 @@ class ConversationViewModel @Inject constructor(
             // TODO: HACK
             //  remove this once home stream is returning member updates
             .onEach { roomController.getChatMembers(it) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnChatIdChanged>()
+            .map { it.chatId }
+            .filterNotNull()
             .mapNotNull {
                 retryable(
                     maxRetries = 5,
                     delayDuration = 3.seconds,
                 ) { roomController.getConversation(it) }
-            }.onEach {
-                dispatchEvent(Event.OnConversationChanged(it))
-            }.launchIn(viewModelScope)
+            }.onEach { dispatchEvent(Event.OnConversationChanged(it)) }
+            .launchIn(viewModelScope)
 
         stateFlow
             .mapNotNull { it.conversationId }
@@ -224,7 +239,9 @@ class ConversationViewModel @Inject constructor(
                 val selfMember = it.members.firstOrNull { it.id == userManager.userId }
                 val chattableState = if (selfMember != null) {
                     val isMuted = selfMember.isMuted
+                    val isSpectator = !selfMember.isFullMember
                     when {
+                        isSpectator -> ChattableState.Spectator(KinAmount.newInstance(it.conversation.coverCharge, Rate.oneToOne))
                         isMuted -> ChattableState.DisabledByMute
                         else -> ChattableState.Enabled
                     }
@@ -339,7 +356,7 @@ class ConversationViewModel @Inject constructor(
 
         stateFlow
             .map { it.textFieldState }
-            .flatMapLatest { it.textAsFlow() }
+            .flatMapLatest { ts -> snapshotFlow { ts.text } }
             .distinctUntilChanged()
             .onEach { text ->
                 typingJob?.cancel()
@@ -465,7 +482,7 @@ class ConversationViewModel @Inject constructor(
                             )
                         )
                     }.onSuccess { (room, members) ->
-                        val host = members.firstOrNull { it.isHost }
+                        val moderator = members.firstOrNull { it.isModerator }
                         val isMember = members.any { it.isSelf }
                         if (isMember) {
                             dispatchEvent(Event.OpenRoom(room.id))
@@ -475,13 +492,74 @@ class ConversationViewModel @Inject constructor(
                                 roomNumber = room.roomNumber,
                                 roomTitle = room.titleOrFallback(resources),
                                 memberCount = members.count(),
-                                hostId = host?.id,
-                                hostName = host?.identity?.displayName,
+                                ownerId = room.ownerId,
+                                hostName = moderator?.identity?.displayName,
                                 coverChargeQuarks = room.coverCharge.quarks,
                             )
                             dispatchEvent(Event.OpenJoinConfirmation(roomInfo))
                         }
                     }
+            }.launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnJoinRequestedFromSpectating>()
+            .map { stateFlow.value.roomInfoArgs }
+            .filter { it.ownerId != null }
+            .map { profileController.getPaymentDestinationForUser(it.ownerId!!) }
+            .mapNotNull {
+                if (it.isSuccess) {
+                    val paymentDestination = it.getOrNull() ?: return@mapNotNull null
+                    val joinChatMetadata = JoinChatPaymentMetadata(
+                        userId = userManager.userId!!,
+                        chatId = stateFlow.value.conversationId!!
+                    )
+
+                    val metadata = ExtendedMetadata.Any(
+                        data = joinChatMetadata.erased(),
+                        typeUrl = joinChatMetadata.typeUrl
+                    )
+
+                    val amount =
+                        KinAmount.fromQuarks(stateFlow.value.roomInfoArgs.coverChargeQuarks)
+
+                    paymentController.presentPublicPaymentConfirmation(
+                        amount = amount,
+                        destination = paymentDestination,
+                        metadata = metadata,
+                    )
+                } else {
+                    return@mapNotNull null
+                }
+            }.flatMapLatest {
+                paymentController.eventFlow.take(1)
+            }.onEach { event ->
+                when (event) {
+                    PaymentEvent.OnPaymentCancelled -> Unit
+                    is PaymentEvent.OnPaymentError -> Unit
+
+                    is PaymentEvent.OnPaymentSuccess -> {
+                        val roomId = stateFlow.value.conversationId.orEmpty()
+                        chatsController.joinRoomAsFullMember(roomId, event.intentId)
+                            .onFailure {
+                                event.acknowledge(false) {
+                                    TopBarManager.showMessage(
+                                        TopBarManager.TopBarMessage(
+                                            resources.getString(R.string.error_title_failedToJoinRoom),
+                                            resources.getString(
+                                                R.string.error_description_failedToJoinRoom,
+                                                stateFlow.value.roomInfoArgs.roomTitle.orEmpty()
+                                            )
+                                        )
+                                    )
+                                }
+                            }
+                            .onSuccess {
+                                event.acknowledge(true) {
+
+                                }
+                            }
+                    }
+                }
             }.launchIn(viewModelScope)
     }
 
@@ -745,7 +823,7 @@ class ConversationViewModel @Inject constructor(
                             roomId = conversation.id,
                             roomNumber = conversation.roomNumber,
                             roomTitle = conversation.title,
-                            hostId = host?.id,
+                            ownerId = conversation.ownerId,
                             hostName = host?.memberName,
                             memberCount = members.count(),
                             coverChargeQuarks = conversation.coverChargeQuarks ?: 0,
@@ -773,7 +851,7 @@ class ConversationViewModel @Inject constructor(
                     state.copy(isSelfTyping = false)
                 }
 
-                is Event.PresentPaymentConfirmation,
+                is Event.OnJoinRequestedFromSpectating,
                 is Event.Error,
                 Event.RevealIdentity,
                 Event.SendCash,

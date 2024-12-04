@@ -1,9 +1,6 @@
-@file:OptIn(ExperimentalFoundationApi::class)
-
 package xyz.flipchat.app.features.login.register
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.text2.input.TextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.view.BaseViewModel2
@@ -25,7 +22,6 @@ class RegisterDisplayNameViewModel @Inject constructor(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
-
     data class State(
         val checkingDisplayName: Boolean = false,
         val isValidDisplayName: Boolean = false,

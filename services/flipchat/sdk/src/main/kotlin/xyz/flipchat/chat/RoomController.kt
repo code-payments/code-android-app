@@ -52,6 +52,10 @@ class RoomController @Inject constructor(
 
     suspend fun getChatMembers(identifier: ID) {
         chatRepository.getChatMembers(ChatIdentifier.Id(identifier))
+            .onSuccess {
+                val dbMembers = it.map { m -> conversationMemberMapper.map(identifier to m) }
+                db.conversationMembersDao().upsertMembers(*dbMembers.toTypedArray())
+            }
     }
 
     fun openMessageStream(scope: CoroutineScope, identifier: ID) {
@@ -215,10 +219,7 @@ private class MessagingPagingSource(
         }
 
     override fun getRefreshKey(state: PagingState<Int, ConversationMessageWithContentAndMember>): Int? {
-        return state.anchorPosition?.let { anchorPosition ->
-            val anchorPage = state.closestPageToPosition(anchorPosition)
-            anchorPage?.prevKey?.plus(1) ?: anchorPage?.nextKey?.minus(1)
-        }
+        return null
     }
 
     @SuppressLint("RestrictedApi")

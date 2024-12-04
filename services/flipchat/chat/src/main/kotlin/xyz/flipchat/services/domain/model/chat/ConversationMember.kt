@@ -13,8 +13,8 @@ import kotlinx.serialization.Serializable
     tableName = "members",
     primaryKeys = ["memberIdBase58", "conversationIdBase58"],
     indices = [
-        Index(value = ["memberIdBase58"]),       // For joining on member ID
-        Index(value = ["conversationIdBase58"]) // For joining on conversation ID
+        Index(value = ["memberIdBase58"]),
+        Index(value = ["conversationIdBase58"])
     ]
 )
 data class ConversationMember(
@@ -23,9 +23,11 @@ data class ConversationMember(
     val memberName: String?,
     val imageUri: String?,
     @ColumnInfo(defaultValue = "false")
-    val isHost: Boolean,
+    val isHost: Boolean, // isModerator
     @ColumnInfo(defaultValue = "false")
     val isMuted: Boolean,
+    @ColumnInfo(defaultValue = "false")
+    val isFullMember: Boolean
 ) {
     @Ignore
     val id: ID = Base58.decode(memberIdBase58).toList()

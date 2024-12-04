@@ -4,23 +4,27 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text2.input.TextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import com.getcode.model.Currency
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.components.chat.ChatInput
+import com.getcode.ui.theme.ButtonState
+import com.getcode.ui.theme.CodeButton
+import com.getcode.util.resources.LocalResources
+import com.getcode.utils.Kin
+import com.getcode.utils.formatAmountString
 import xyz.flipchat.app.R
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ConversationChatInput(
     chattableState: ChattableState,
@@ -61,6 +65,25 @@ fun ConversationChatInput(
                     onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
                     onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
                 )
+            }
+
+            is ChattableState.Spectator -> {
+                CodeButton(
+                    modifier = Modifier.fillMaxWidth()
+                        .padding(
+                            start = CodeTheme.dimens.inset,
+                            end = CodeTheme.dimens.inset
+                        ).navigationBarsPadding(),
+                    buttonState = ButtonState.Filled,
+                    text = stringResource(R.string.joinRoomFromSpectating,
+                        formatAmountString(
+                            resources = LocalResources.current!!,
+                            currency = Currency.Kin,
+                            amount = it.cover.kin.quarks.toDouble(),
+                            suffix = stringResource(R.string.core_kin)
+                        )
+                    ),
+                ) { dispatchEvent(ConversationViewModel.Event.OnJoinRequestedFromSpectating) }
             }
         }
 

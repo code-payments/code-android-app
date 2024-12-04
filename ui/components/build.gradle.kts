@@ -68,6 +68,7 @@ dependencies {
     implementation(Libs.kotlinx_datetime)
 
     implementation(platform(Libs.compose_bom))
+    implementation(Libs.compose_foundation)
     implementation(Libs.compose_ui)
     implementation(Libs.compose_activities)
     debugApi(Libs.compose_ui_tools)

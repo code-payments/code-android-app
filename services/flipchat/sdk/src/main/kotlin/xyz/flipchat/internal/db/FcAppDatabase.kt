@@ -60,8 +60,9 @@ import java.io.File
         AutoMigration(from = 10, to = 11),
         AutoMigration(from = 11, to = 12, spec = FcAppDatabase.Migration11To12::class),
         AutoMigration(from = 12, to = 13),
+        AutoMigration(from = 13, to = 14, spec = FcAppDatabase.Migration13To14::class),
     ],
-    version = 13,
+    version = 14,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -107,6 +108,13 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
             // Add indexes for members
             db.execSQL("CREATE INDEX IF NOT EXISTS index_members_memberIdBase58 ON members(memberIdBase58)")
             db.execSQL("CREATE INDEX IF NOT EXISTS index_members_conversationIdBase58 ON members(conversationIdBase58)")
+        }
+    }
+
+    class Migration13To14 : Migration(13, 14), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE members ADD COLUMN isFullMember INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE members SET isFullMember = 1")
         }
     }
 

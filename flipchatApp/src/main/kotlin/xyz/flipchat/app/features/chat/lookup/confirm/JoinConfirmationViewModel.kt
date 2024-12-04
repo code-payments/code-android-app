@@ -5,14 +5,12 @@ import com.getcode.manager.TopBarManager
 import com.getcode.model.ID
 import com.getcode.model.Kin
 import com.getcode.model.KinAmount
-import com.getcode.model.Rate
 import com.getcode.navigation.RoomInfoArgs
 import com.getcode.services.model.ExtendedMetadata
 import com.getcode.solana.keys.PublicKey
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
@@ -32,7 +30,6 @@ import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.seconds
 
 @HiltViewModel
 class JoinConfirmationViewModel @Inject constructor(
@@ -66,7 +63,7 @@ class JoinConfirmationViewModel @Inject constructor(
     init {
         eventFlow
             .filterIsInstance<Event.OnJoinArgsChanged>()
-            .mapNotNull { it.args.hostId }
+            .mapNotNull { it.args.ownerId }
             .map { profileController.getPaymentDestinationForUser(it) }
             .onResult(
                 onError = {
@@ -98,7 +95,7 @@ class JoinConfirmationViewModel @Inject constructor(
                 if (userManager.userId == it.hostId) {
                     // we are the host; just allow join
                     val roomId = stateFlow.value.roomInfo.id.orEmpty()
-                    chatsController.joinRoom(roomId, paymentId = null)
+                    chatsController.joinRoomAsFullMember(roomId, paymentId = null)
                 } else {
                     val joinChatMetadata = JoinChatPaymentMetadata(
                         userId = userManager.userId!!,
@@ -130,7 +127,7 @@ class JoinConfirmationViewModel @Inject constructor(
 
                     is PaymentEvent.OnPaymentSuccess -> {
                         val roomId = stateFlow.value.roomInfo.id.orEmpty()
-                        chatsController.joinRoom(roomId, event.intentId)
+                        chatsController.joinRoomAsFullMember(roomId, event.intentId)
                             .onFailure {
                                 event.acknowledge(false) {
                                     dispatchEvent(Event.OnJoiningChanged(false))
@@ -167,7 +164,7 @@ class JoinConfirmationViewModel @Inject constructor(
                             title = args.roomTitle.orEmpty(),
                             number = args.roomNumber,
                             memberCount = args.memberCount,
-                            hostId = args.hostId,
+                            hostId = args.ownerId,
                             hostName = args.hostName,
                             coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
                         ),

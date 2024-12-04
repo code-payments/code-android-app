@@ -8,13 +8,10 @@ import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.getcode.model.ID
 import com.getcode.model.Kin
-import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
-import com.getcode.utils.base58
 import com.getcode.utils.serializer.KinQuarksSerializer
 import com.getcode.vendor.Base58
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import java.util.UUID
 
 @Serializable

@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.data.Member
@@ -87,12 +86,12 @@ internal class RealChatRepository @Inject constructor(
         }
     }
 
-    override suspend fun startChat(type: StartChatRequestType): Result<Room> {
+    override suspend fun startChat(type: StartChatRequestType): Result<RoomWithMembers> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
 
         return withContext(Dispatchers.IO) {
             service.startChat(owner, type)
-                .map { roomMapper.map(it) }
+                .map { roomWithMembersMapper.map(it) }
                 .onFailure { ErrorUtils.handleError(it) }
         }
     }

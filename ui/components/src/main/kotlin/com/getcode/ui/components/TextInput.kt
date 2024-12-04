@@ -14,12 +14,10 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text2.BasicTextField2
-import androidx.compose.foundation.text2.input.TextFieldLineLimits
-import androidx.compose.foundation.text2.input.TextFieldState
-import androidx.compose.foundation.text2.input.textAsFlow
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldColors
 import androidx.compose.runtime.Composable
@@ -31,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.neverEqualPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -68,7 +67,6 @@ sealed interface ConstraintMode {
     data class AutoSize(val minimum: TextStyle) : ConstraintMode
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TextInput(
     modifier: Modifier = Modifier,
@@ -79,7 +77,6 @@ fun TextInput(
     minHeight: Dp = 56.dp,
     contentPadding: PaddingValues = PaddingValues(),
     onStateChanged: () -> Unit = { },
-    keyboardActions: KeyboardActions = KeyboardActions(),
     keyboardOptions: KeyboardOptions = KeyboardOptions(),
     style: TextStyle = CodeTheme.typography.textMedium,
     placeholderStyle: TextStyle = CodeTheme.typography.textMedium,
@@ -107,7 +104,7 @@ fun TextInput(
     var textFieldSize by remember { mutableStateOf(DpSize.Zero) }
 
     Box(modifier = modifier.measured { textFieldSize = it }) {
-        BasicTextField2(
+        BasicTextField(
             modifier = Modifier
                 .background(backgroundColor, shape)
                 .defaultMinSize(minHeight = minHeight)
@@ -127,7 +124,6 @@ fun TextInput(
             state = state,
             cursorBrush = SolidColor(colors.cursorColor(isError = false).value),
             keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
             textStyle = style.copy(color = textColor, fontSize = textSize),
             lineLimits = if (maxLines == 1) {
                 TextFieldLineLimits.SingleLine
@@ -156,7 +152,7 @@ fun TextInput(
     }
 
     LaunchedEffect(Unit) {
-        state.textAsFlow()
+        snapshotFlow { state.text }
             .onEach { onStateChanged() }
             .launchIn(this)
     }

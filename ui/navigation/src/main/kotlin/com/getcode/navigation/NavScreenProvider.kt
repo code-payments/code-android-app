@@ -63,7 +63,7 @@ data class RoomInfoArgs(
     val roomNumber: Long = 0,
     val roomTitle: String? = null,
     val memberCount: Int = 0,
-    val hostId: ID? = null,
+    val ownerId: ID? = null,
     val hostName: String? = null,
     val coverChargeQuarks: Long = 0,
     val gradientColors: GradientColors = GradientColors(

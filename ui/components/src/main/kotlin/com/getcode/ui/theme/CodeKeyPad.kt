@@ -5,6 +5,7 @@ import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,9 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.Text
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -35,10 +34,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.getcode.theme.Brand
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.Transparent
-import com.getcode.theme.White
 import com.getcode.theme.White10
 import com.getcode.ui.components.R
 import com.getcode.ui.utils.rememberedClickable
@@ -128,7 +125,8 @@ private fun KeyBoardButton(
         if (!isSelected) Transparent else White10
     }
 
-    CompositionLocalProvider(LocalRippleTheme provides RippleCustomTheme) {
+    val ripple = remember { ripple(bounded = false, color = Color.White) }
+    CompositionLocalProvider(LocalIndication provides ripple) {
         Box(
             modifier = modifier
                 .background(bgColor)
@@ -183,20 +181,4 @@ private fun KeyBoardButton(
             }
         }
     }
-}
-
-private object RippleCustomTheme : RippleTheme {
-    @Composable
-    override fun defaultColor() =
-        RippleTheme.defaultRippleColor(
-            White,
-            lightTheme = true
-        )
-
-    @Composable
-    override fun rippleAlpha(): RippleAlpha =
-        RippleTheme.defaultRippleAlpha(
-            Brand,
-            lightTheme = true
-        )
 }

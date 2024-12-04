@@ -20,8 +20,11 @@ interface ChatRepository {
 
     suspend fun getChat(identifier: ChatIdentifier): Result<RoomWithMembers>
     suspend fun getChatMembers(identifier: ChatIdentifier): Result<List<Member>>
-    suspend fun startChat(type: StartChatRequestType): Result<Room>
-    suspend fun joinChat(identifier: ChatIdentifier, paymentId: ID?): Result<RoomWithMembers>
+    suspend fun startChat(type: StartChatRequestType): Result<RoomWithMembers>
+    suspend fun joinChat(
+        identifier: ChatIdentifier,
+        paymentId: ID? = null,
+    ): Result<RoomWithMembers>
     suspend fun leaveChat(chatId: ID): Result<Unit>
     suspend fun mute(chatId: ID): Result<Unit>
     suspend fun unmute(chatId: ID): Result<Unit>

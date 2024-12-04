@@ -38,7 +38,7 @@ class ChatApi @Inject constructor(
     ): Flow<FlipchatService.StartChatResponse> {
         val builder = FlipchatService.StartChatRequest.newBuilder()
 
-        with (builder) {
+        with(builder) {
             when (type) {
                 is StartChatRequestType.TwoWay -> setTwoWayChat(
                     FlipchatService.StartChatRequest.StartTwoWayChatParameters.newBuilder()
@@ -46,8 +46,9 @@ class ChatApi @Inject constructor(
                 )
 
                 is StartChatRequestType.Group -> {
-                    val groupBuilder = FlipchatService.StartChatRequest.StartGroupChatParameters.newBuilder()
-                    with (groupBuilder) {
+                    val groupBuilder =
+                        FlipchatService.StartChatRequest.StartGroupChatParameters.newBuilder()
+                    with(groupBuilder) {
                         if (type.title != null) {
                             setTitle(type.title)
                         }
@@ -118,7 +119,10 @@ class ChatApi @Inject constructor(
         val builder = FlipchatService.JoinChatRequest.newBuilder()
 
         if (paymentId != null) {
+            builder.setWithoutSendPermission(false)
             builder.setPaymentIntent(paymentId.toIntentId())
+        } else {
+            builder.setWithoutSendPermission(true)
         }
 
         when (identifier) {

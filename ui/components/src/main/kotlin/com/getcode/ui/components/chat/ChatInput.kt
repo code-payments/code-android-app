@@ -1,9 +1,6 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -15,17 +12,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text2.input.TextFieldState
-import androidx.compose.foundation.text2.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.Icon
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
@@ -47,11 +41,8 @@ import com.getcode.theme.extraLarge
 import com.getcode.theme.inputColors
 import com.getcode.ui.components.R
 import com.getcode.ui.components.TextInput
-import com.getcode.ui.utils.debugBounds
 import com.getcode.ui.utils.rememberedClickable
-import com.getcode.ui.utils.withTopBorder
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatInput(
     modifier: Modifier = Modifier,

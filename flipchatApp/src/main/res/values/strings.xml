@@ -148,4 +148,6 @@
     <string name="prompt_title_logout">Log Out?</string>
     <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
 
+    <string name="joinRoomFromSpectating">Join Room: ⬢ %1$s</string>
+
 </resources>

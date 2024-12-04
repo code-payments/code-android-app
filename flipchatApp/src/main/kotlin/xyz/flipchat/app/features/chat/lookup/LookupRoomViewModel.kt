@@ -11,11 +11,14 @@ import com.getcode.ui.components.text.NumberInputHelper
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import xyz.flipchat.controllers.ChatsController
+import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.extensions.titleOrFallback
 import javax.inject.Inject
 
@@ -46,6 +49,7 @@ class LookupRoomViewModel @Inject constructor(
         data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel) : Event
         data object OnLookupRoom : Event
         data object OnRoomFound : Event
+        data class JoinAsSpectator(val room: Room) : Event
         data class OnOpenConfirmation(val args: RoomInfoArgs) : Event
         data class OpenExistingRoom(val roomId: ID) : Event
     }
@@ -105,28 +109,45 @@ class LookupRoomViewModel @Inject constructor(
                     )
                 },
                 onSuccess = {
-                    dispatchEvent(Event.OnLookingUpRoom(false))
-                    dispatchEvent(Event.OnRoomFound)
-
-                    val host = it.members.firstOrNull { m -> m.isHost }
-
                     val isExistingMember = it.members.any { m -> m.isSelf }
                     if (isExistingMember) {
-                        dispatchEvent(Event.OpenExistingRoom(it.room.id))
+                        dispatchEvent(Event.OnLookingUpRoom(false))
+                        dispatchEvent(Event.OnRoomFound)
+                        viewModelScope.launch {
+                            delay(400)
+                            dispatchEvent(Event.OpenExistingRoom(it.room.id))
+                        }
                     } else {
-                        val confirmJoinArgs = RoomInfoArgs(
-                            roomId = it.room.id,
-                            roomTitle = it.room.titleOrFallback(resources),
-                            roomNumber = it.room.roomNumber,
-                            memberCount = it.members.count(),
-                            hostId = host?.id,
-                            hostName = host?.identity?.displayName,
-                            coverChargeQuarks = it.room.coverCharge.quarks
-                        )
-                        dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
+                        dispatchEvent(Event.JoinAsSpectator(it.room))
                     }
                 }
             ).launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.JoinAsSpectator>()
+            .map { it.room }
+            .onEach { room ->
+                chatsController.joinRoomAsSpectator(room.id)
+                    .onFailure {
+                        dispatchEvent(Event.OnLookingUpRoom(false))
+                        TopBarManager.showMessage(
+                            TopBarManager.TopBarMessage(
+                                resources.getString(R.string.error_title_failedToJoinRoom),
+                                resources.getString(
+                                    R.string.error_description_failedToJoinRoom,
+                                    room.titleOrFallback(resources)
+                                )
+                            )
+                        )
+                    }.onSuccess {
+                        dispatchEvent(Event.OnLookingUpRoom(false))
+                        dispatchEvent(Event.OnRoomFound)
+                        viewModelScope.launch {
+                            delay(400)
+                            dispatchEvent(Event.OpenExistingRoom(it.room.id))
+                        }
+                    }
+            }.launchIn(viewModelScope)
     }
 
 
@@ -146,6 +167,7 @@ class LookupRoomViewModel @Inject constructor(
                 Event.OnLookupRoom,
                 is Event.OnOpenConfirmation,
                 is Event.OpenExistingRoom,
+                is Event.JoinAsSpectator,
                 is Event.OnNumberPressed -> { state -> state }
 
                 is Event.OnRoomFound -> { state -> state.copy(success = true) }

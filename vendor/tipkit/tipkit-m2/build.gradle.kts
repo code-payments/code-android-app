@@ -52,4 +52,5 @@ dependencies {
     implementation(Libs.compose_ui)
     implementation(Libs.compose_ui_graphics)
     implementation(Libs.compose_material)
+    implementation(Libs.compose_materialIconsCore)
 }

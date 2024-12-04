@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.getcode.model.ID
 import com.getcode.utils.base58
+import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 
 @Dao

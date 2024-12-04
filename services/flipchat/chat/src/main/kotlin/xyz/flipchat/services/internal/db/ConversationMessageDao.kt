@@ -67,7 +67,7 @@ interface ConversationMessageDao {
     LEFT JOIN members ON messages.senderIdBase58 = members.memberIdBase58 
                        AND messages.conversationIdBase58 = members.conversationIdBase58
     WHERE messages.conversationIdBase58 = :id
-    ORDER BY messages.dateMillis DESC
+    ORDER BY messages.idBase58 DESC
     LIMIT :limit OFFSET :offset
 """)
     suspend fun getPagedMessages(id: String, limit: Int, offset: Int): List<ConversationMessageWithContentAndMember>

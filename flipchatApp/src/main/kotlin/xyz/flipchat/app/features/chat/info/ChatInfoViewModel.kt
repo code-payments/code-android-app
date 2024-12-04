@@ -50,7 +50,7 @@ class ChatInfoViewModel @Inject constructor(
     init {
         eventFlow
             .filterIsInstance<Event.OnInfoChanged>()
-            .map { it.args.hostId }
+            .map { it.args.ownerId }
             .map { hostId -> userManager.userId == hostId }
             .onEach { isHost ->
                 dispatchEvent(Event.OnHostStatusChanged(isHost))
@@ -130,7 +130,7 @@ class ChatInfoViewModel @Inject constructor(
                             number = args.roomNumber,
                             title = args.roomTitle.orEmpty(),
                             memberCount = args.memberCount,
-                            hostId = args.hostId,
+                            hostId = args.ownerId,
                             hostName = args.hostName,
                             coverCharge = Kin.fromQuarks(args.coverChargeQuarks)
                         )

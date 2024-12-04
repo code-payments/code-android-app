@@ -65,6 +65,7 @@ import com.getcode.ui.utils.measured
 import com.getcode.util.permissions.PermissionResult
 import com.getcode.util.permissions.getPermissionLauncher
 import com.getcode.util.permissions.rememberPermissionHandler
+import kotlinx.coroutines.delay
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.R
@@ -130,6 +131,7 @@ private fun AccessKeyScreenContent(viewModel: LoginAccessKeyViewModel) {
         if (isExportSeedRequested && isStoragePermissionGranted) {
             viewModel.saveImage()
                 .onSuccess {
+                    delay(400)
                     navigator.push(ScreenRegistry.get(NavScreenProvider.Login.NotificationPermission(true)))
                 }
                 .onFailure {

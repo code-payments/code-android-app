@@ -1,6 +1,7 @@
 package xyz.flipchat.app.features.chat.conversation
 
 import androidx.compose.runtime.Stable
+import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageContent
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessage
@@ -15,4 +16,5 @@ data class ConversationMessageIndice(
 sealed interface ChattableState {
     data object Enabled: ChattableState
     data object DisabledByMute: ChattableState
+    data class Spectator(val cover: KinAmount): ChattableState
 }

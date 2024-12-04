@@ -1,12 +1,21 @@
 package com.getcode.ui.theme
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonColors
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.ButtonDefaults.elevation
-import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.Icon
+import androidx.compose.material.LocalMinimumInteractiveComponentEnforcement
+import androidx.compose.material.ProvideTextStyle
+import androidx.compose.material.Text
+import androidx.compose.material.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
@@ -17,14 +26,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.isUnspecified
-import com.getcode.theme.*
+import com.getcode.theme.CodeTheme
+import com.getcode.theme.Transparent
+import com.getcode.theme.White
+import com.getcode.theme.White10
+import com.getcode.theme.White20
+import com.getcode.theme.White50
 import com.getcode.ui.components.R
 import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.measured
@@ -94,14 +107,11 @@ fun CodeButton(
 
     val colors = getButtonColors(enabled, buttonState, contentColor)
     val border = getButtonBorder(buttonState, isEnabled)
-    val ripple = getRipple(
-        buttonState = buttonState,
-        contentColor = colors.contentColor(enabled = isEnabled).value
-    )
+    val ripple = getRipple(buttonState = buttonState)
 
     CompositionLocalProvider(
         LocalMinimumInteractiveComponentEnforcement provides false,
-        LocalRippleTheme provides ripple
+        LocalIndication provides ripple
     ) {
 
         var size by remember {
@@ -156,30 +166,15 @@ fun CodeButton(
 @Composable
 fun getRipple(
     buttonState: ButtonState,
-    contentColor: Color
-): RippleTheme {
-    return remember(buttonState, contentColor) {
-        object : RippleTheme {
-            @Composable
-            override fun defaultColor(): Color {
-                return when (buttonState) {
-                    ButtonState.Bordered -> White
-                    ButtonState.Filled -> CodeTheme.colors.brandLight
-                    ButtonState.Filled10 -> White50
-                    ButtonState.Subtle -> White
-                }
-            }
-
-            @Composable
-            override fun rippleAlpha(): RippleAlpha {
-                return RippleTheme.defaultRippleAlpha(
-                    contentColor,
-                    lightTheme = true
-                )
-            }
-        }
+) = ripple(
+    bounded = true,
+    color = when (buttonState) {
+        ButtonState.Bordered -> White
+        ButtonState.Filled -> CodeTheme.colors.brandLight
+        ButtonState.Filled10 -> White50
+        ButtonState.Subtle -> White
     }
-}
+)
 
 @Composable
 fun getButtonColors(

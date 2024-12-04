@@ -182,8 +182,10 @@ message StartChatResponse {
         // USER_NOT_FOUND indicates that (one of) the target user's was not found.
         USER_NOT_FOUND = 2;
     }
-    // The chat to use if the RPC was successful.
+    // The chat to use, if result == OK.
     Metadata chat = 2;
+    // Members contains the chat members, if result == OK.
+    repeated Member members = 3;
 }
 message StartGroupChatPaymentMetadata {
     // The user creating the group chat, who will be the initial owner
@@ -194,8 +196,13 @@ message JoinChatRequest {
         common.v1.ChatId chat_id = 1;
         uint64 room_id = 2;
     }
-    // The payment for joining a chat, which is required when the user isn't
-    // the chat owner
+    // Does the user want to join without the ability to send messages in the chat?
+    // If so, then payment_intent is not required? Otherwise, it is.
+    bool without_send_permission = 8;
+    // The payment for joining a chat, which is required for sending messages in
+    // the chat.
+    //
+    // Note: The chat owner can always bypass payment.
     common.v1.IntentId payment_intent = 9;
     common.v1.Auth auth = 10;
 }
@@ -325,6 +332,9 @@ message Metadata {
     common.v1.PaymentAmount cover_charge = 9;
     // The timestamp of the last activity in this chat
     google.protobuf.Timestamp last_activity = 10;
+    // If there are more unread messages than indicated by num_unread. If this is
+    // true, client should show num_unread+ as the unread count.
+    bool has_more_unread = 11;
 }
 message Member {
     common.v1.UserId user_id = 1;
@@ -343,10 +353,15 @@ message Member {
     repeated messaging.v1.Pointer pointers = 3 ;
     // If the member is the caller (where applicable), will be set to true.
     bool is_self = 4;
-    // NOTE: We may switch to 'roles' in the future.
-    bool is_host = 5;
-    // Cant this user send messages in the chat?
+    // Does the chat member have permission to perform moderation actions in
+    // the chat?
+    bool has_moderator_permission = 5;
+    // Has the chat member been muted by a moderator? If so, they cannot send
+    // messages, even if they paid for the permission.
     bool is_muted = 6;
+    // Does the chat member have permission to send messages in the chat? If
+    // not, the user is considered to be a spectator.
+    bool has_send_permission = 7;
 }
 message MemberIdentity {
     // If present, the display name of the user.

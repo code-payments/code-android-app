@@ -111,13 +111,13 @@ internal class ChatService @Inject constructor(
     suspend fun startChat(
         owner: KeyPair,
         type: StartChatRequestType,
-    ): Result<FlipchatService.Metadata> {
+    ): Result<GetOrJoinChatResponse> {
         return try {
             networkOracle.managedRequest(api.startChat(owner, type))
                 .map { response ->
                     when (response.result) {
                         FlipchatService.StartChatResponse.Result.OK -> {
-                            Result.success(response.chat)
+                            Result.success(GetOrJoinChatResponse(response.chat, response.membersList))
                         }
 
                         FlipchatService.StartChatResponse.Result.DENIED -> {

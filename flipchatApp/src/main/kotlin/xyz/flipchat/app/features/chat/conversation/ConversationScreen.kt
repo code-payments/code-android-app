@@ -33,7 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -64,6 +64,7 @@ import com.getcode.ui.components.chat.TypingIndicator
 import com.getcode.ui.components.chat.utils.ChatItem
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.theme.CodeScaffold
+import com.getcode.ui.utils.addIf
 import com.getcode.ui.utils.generateComplementaryColorPalette
 import com.getcode.ui.utils.unboundedClickable
 import com.getcode.ui.utils.withTopBorder
@@ -230,7 +231,9 @@ private fun ConversationScreenContent(
 
                 Column(
                     modifier = Modifier
-                        .withTopBorder(color = CodeTheme.colors.dividerVariant)
+                        .addIf(state.chattableState !is ChattableState.Spectator) {
+                            Modifier.withTopBorder(color = CodeTheme.colors.dividerVariant)
+                        }
                 ) {
                     AnimatedContent(
                         targetState = state.replyMessage,
@@ -282,7 +285,7 @@ private fun ConversationScreenContent(
                                         .unboundedClickable {
                                             dispatchEvent(ConversationViewModel.Event.CancelReply)
                                         },
-                                    imageVector = Icons.Outlined.Cancel,
+                                    imageVector = Icons.Outlined.Close,
                                     colorFilter = ColorFilter.tint(Color.White),
                                     contentDescription = null
                                 )

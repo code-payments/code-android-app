@@ -8,8 +8,9 @@ import kotlinx.serialization.Serializable
 data class Member(
     val id: ID,
     val isSelf: Boolean,
-    val isHost: Boolean,
+    val isModerator: Boolean,
     val isMuted: Boolean,
+    val isSpectator: Boolean,
     val identity: MemberIdentity?,
     val pointers: List<Pointer>,
 )
