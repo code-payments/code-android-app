@@ -2,6 +2,8 @@ package xyz.flipchat.app.features.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.getcode.manager.BottomBarManager
+import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import xyz.flipchat.app.R
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.CodeController
@@ -25,6 +28,7 @@ class HomeViewModel @Inject constructor(
     private val chatsController: ChatsController,
     private val userManager: UserManager,
     val router: Router,
+    val resources: ResourceHelper,
 ) : ViewModel() {
 
     init {
@@ -47,13 +51,28 @@ class HomeViewModel @Inject constructor(
     }
 
     fun openStream() {
-        if (userManager.authState is AuthState.LoggedIn) {
+        if (userManager.authState.canOpenChatStream()) {
             chatsController.openEventStream(viewModelScope)
         }
     }
 
     fun closeStream() {
         chatsController.closeEventStream()
+    }
+
+    fun handleLoginEntropy(entropy: String, onSwitchAccounts: () -> Unit, onCancel: () -> Unit) {
+        if (entropy != userManager.entropy) {
+            BottomBarManager.showMessage(
+                BottomBarManager.BottomBarMessage(
+                    title = resources.getString(R.string.subtitle_logoutAndLoginConfirmation),
+                    positiveText = resources.getString(R.string.action_logIn),
+                    tertiaryText = resources.getString(R.string.action_cancel),
+                    isDismissible = false,
+                    onPositive = onSwitchAccounts,
+                    onTertiary = onCancel,
+                )
+            )
+        }
     }
 
     override fun onCleared() {

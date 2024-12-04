@@ -25,6 +25,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.registry.ScreenRegistry
+import cafe.adriel.voyager.core.screen.ScreenKey
+import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.Navigator
 import cafe.adriel.voyager.navigator.tab.TabOptions
@@ -50,6 +52,8 @@ import xyz.flipchat.app.features.home.tabs.ChatTab.options
 import xyz.flipchat.app.features.settings.SettingsViewModel
 
 internal object ChatTab : ChildNavTab {
+
+    override val key: ScreenKey = uniqueScreenKey
 
     override val ordinal: Int = 0
 

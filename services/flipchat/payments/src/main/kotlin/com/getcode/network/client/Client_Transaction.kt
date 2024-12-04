@@ -1,7 +1,6 @@
 package com.getcode.network.client
 
 import android.annotation.SuppressLint
-import com.codeinc.gen.user.v1.user
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.model.AccountInfo
 import com.getcode.model.Domain
@@ -49,10 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.min
 
-fun Client.createAccounts(organizer: Organizer): Completable {
-    return transactionRepository.createAccounts(organizer)
-        .ignoreElement()
-}
 
 fun Client.transfer(
     amount: KinAmount,

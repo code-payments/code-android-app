@@ -54,6 +54,7 @@ import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
 import cafe.adriel.voyager.hilt.getViewModel
+import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.theme.CodeTheme
@@ -78,8 +79,8 @@ import xyz.flipchat.app.features.home.TabbedHomeScreen
 
 @Parcelize
 data class ConversationScreen(
-    val chatId: com.getcode.model.ID? = null,
-    val intentId: com.getcode.model.ID? = null
+    val chatId: ID? = null,
+    val intentId: ID? = null
 ) : Screen, Parcelable {
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey

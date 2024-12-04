@@ -9,12 +9,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
-import com.getcode.model.ID
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
@@ -76,7 +76,6 @@ class FcNotificationService : FirebaseMessagingService(),
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        println("token=$token")
         authenticateIfNeeded {
             launch {
                 pushController.addToken(token)
@@ -173,12 +172,14 @@ class FcNotificationService : FirebaseMessagingService(),
 
         val style = notificationManager.getActiveNotification(notificationId)?.let {
             NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it)
-        } ?: NotificationCompat.MessagingStyle(person)
+        } ?: NotificationCompat.MessagingStyle(person).setConversationTitle(title)
+
+        val updatedStyle = style.addMessage(message)
 
         val notificationBuilder: NotificationCompat.Builder =
             NotificationCompat.Builder(this, type.name)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setStyle(style.addMessage(message))
+                .setStyle(updatedStyle)
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setSmallIcon(R.drawable.ic_flipchat_notification)
                 .setAutoCancel(true)
@@ -223,7 +224,9 @@ private fun NotificationManagerCompat.getActiveNotification(notificationId: Int)
 
 private fun Context.buildContentIntent(type: FcNotificationType): PendingIntent {
     val launchIntent = when (type) {
-        is FcNotificationType.ChatMessage -> Intent("https://app.flipchat.xyz/chat/${type.id?.base58}")
+        is FcNotificationType.ChatMessage -> Intent(Intent.ACTION_VIEW).apply {
+            data = Uri.parse("https://app.flipchat.xyz/room?r=${type.id?.base58}")
+        }
         FcNotificationType.Unknown -> Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }

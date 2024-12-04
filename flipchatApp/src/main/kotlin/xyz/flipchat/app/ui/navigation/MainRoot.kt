@@ -13,12 +13,10 @@ import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -36,7 +34,6 @@ import xyz.flipchat.app.ui.LocalUserManager
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.CodeCircularProgressIndicator
-import com.getcode.utils.getPublicKeyBase58
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.coroutines.delay
@@ -111,10 +108,11 @@ internal object MainRoot : Screen {
                 .onEach { state ->
                     Timber.d("sessionState=$state")
                     when (state) {
-                        AuthState.AwaitingUser -> {
+                        AuthState.LoggedInAwaitingUser -> {
                             delay(500)
                             showLoading = true
                         }
+                        AuthState.Unregistered,
                         AuthState.LoggedIn -> {
                             navigator.replace(ScreenRegistry.get(NavScreenProvider.AppHomeScreen(deeplink)))
                         }

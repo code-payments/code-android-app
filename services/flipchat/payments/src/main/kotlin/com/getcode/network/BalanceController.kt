@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
+import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -66,7 +68,10 @@ open class BalanceController @Inject constructor(
             .stateIn(scope, SharingStarted.Eagerly, BalanceDisplay())
 
     init {
-        networkObserver.state
+        userManager.state
+            .map { it.authState }
+            .filterIsInstance<AuthState.LoggedIn>()
+            .flatMapLatest { networkObserver.state }
             .map { it.connected }
             .onEach { connected ->
                 if (connected) {

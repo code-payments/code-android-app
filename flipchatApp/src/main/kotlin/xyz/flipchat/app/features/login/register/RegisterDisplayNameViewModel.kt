@@ -45,7 +45,7 @@ class RegisterDisplayNameViewModel @Inject constructor(
                 val textFieldState = it.textFieldState
                 val text = textFieldState.text.toString()
 
-                authManager.createAccount(text)
+                authManager.register(text)
             }
             .onResult(
                 onError = { dispatchEvent(Event.OnError(it.message ?: "Something went wrong")) },

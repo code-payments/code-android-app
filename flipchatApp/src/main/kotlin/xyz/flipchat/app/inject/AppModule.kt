@@ -141,6 +141,7 @@ object AppModule {
     @Provides
     fun providesBetaFeatures(): BetaFeatures = BetaFeatures(
         replyToMessage = BuildConfig.DEBUG,
-        jumpToBottom = true
+        jumpToBottom = true,
+        joinAsSpectator = false
     )
 }

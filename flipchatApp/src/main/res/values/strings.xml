@@ -4,6 +4,8 @@
 
     <string name="action_nevermind">Nevermind</string>
 
+    <string name="action_startChatting">Start Chatting</string>
+
     <string name="login_description_byTapping">By tapping \"Create an Account\" you</string>
 
     <string name="action_payToChat">Send %1$s to Start Chatting</string>

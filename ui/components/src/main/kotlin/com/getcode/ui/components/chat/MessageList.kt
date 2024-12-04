@@ -2,7 +2,6 @@ package com.getcode.ui.components.chat
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -100,7 +99,7 @@ fun MessageList(
         ) { index ->
             when (val item = messages[index]) {
                 is ChatItem.Date -> DateBubble(
-                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2).animateItem(),
+                    modifier = Modifier.padding(vertical = CodeTheme.dimens.grid.x2),
                     date = item.date
                 )
 
@@ -199,7 +198,7 @@ fun MessageList(
                         date.formatDateRelatively()
                     }
                     DateBubble(
-                        modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2).animateItem(),
+                        modifier = Modifier.padding(bottom = CodeTheme.dimens.grid.x2),
                         date = dateString
                     )
                 }

@@ -10,8 +10,11 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import com.getcode.model.ID
+import com.getcode.model.chat.ChatMessage
+import com.getcode.model.uuid
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
+import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +26,7 @@ import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.data.StartChatRequestType
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
 import xyz.flipchat.services.domain.mapper.RoomConversationMapper
+import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContent
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
@@ -63,22 +67,7 @@ class ChatsController @Inject constructor(
                     db.conversationMembersDao().upsertMembers(it)
                 }
 
-                val newestMessageInRoom = db.conversationMessageDao().getNewestMessage(roomId)?.id
-                messagingRepository.getMessages(
-                    room.id,
-                    queryOptions = QueryOptions(
-                        limit = 1,
-                        token = newestMessageInRoom
-                    )
-                ).onSuccess { messages ->
-                    val newest = messages.maxByOrNull { it.dateMillis }
-                    if (newest != null) {
-                        val conversationMessage =
-                            conversationMessageWithContentMapper.map(room.id to newest)
-                        db.conversationMessageDao()
-                            .upsertMessagesWithContent(conversationMessage)
-                    }
-                }
+                syncMessagesFromLast(conversationId = roomId)
             }
     }
 
@@ -95,37 +84,57 @@ class ChatsController @Inject constructor(
                     }
 
                     event.message?.let { newMessage ->
-                        val (message, _) = newMessage
-                        val conversationId = message.conversationId
-                        // sync between last in DB and this message
-                        val newestInDb =
-                            db.conversationMessageDao().getNewestMessage(conversationId)
-                        if (newestInDb?.id == message.id) {
-                            db.conversationMessageDao()
-                                .upsertMessagesWithContent(newMessage)
-                            return@let
-                        }
-
-                        val query = QueryOptions(token = newestInDb?.id, descending = false, limit = 1000)
-                        messagingRepository.getMessages(conversationId, query)
-                            .onSuccess {
-                                val syncedMessages = it.filterNot { m -> m.id == message.id }
-                                trace("synced ${syncedMessages.count()} missing messages for ${conversationId.base58}", type = TraceType.Silent)
-                                val messagesWithContent = syncedMessages.map {
-                                    conversationMessageWithContentMapper.map(conversationId to it)
-                                }
-                                db.conversationMessageDao().upsertMessagesWithContent(
-                                    *(messagesWithContent + newMessage).toTypedArray()
-                                )
-                            }
-                            .onFailure {
-                                trace("Failed to sync messages after chat update", type = TraceType.Error, error = it)
-                                db.conversationMessageDao()
-                                    .upsertMessagesWithContent(newMessage)
-                            }
+                        syncMessagesFromLast(newMessage.message.conversationId, newMessage)
                     }
                 }
             }
+        }
+    }
+
+    private suspend fun syncMessagesFromLast(conversationId: ID, newMessage: ConversationMessageWithContent? = null) {
+        var token: ID?
+        if (newMessage != null) {
+            val (message, _) = newMessage
+            // sync between last in DB and this message
+            val newestInDb =
+                db.conversationMessageDao().getNewestMessage(conversationId)
+            if (newestInDb?.id == message.id) {
+                db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                return
+            }
+
+            token = newestInDb?.id
+        } else {
+            val newestInDb =
+                db.conversationMessageDao().getNewestMessage(conversationId)
+            token = newestInDb?.id
+        }
+
+        while (true) {
+            val query = QueryOptions(token = token, descending = false, limit = 1_000)
+            messagingRepository.getMessages(conversationId, query)
+                .onSuccess { syncedMessages ->
+                    trace("synced ${syncedMessages.count()} missing messages for ${conversationId.base58}", type = TraceType.Silent)
+                    val messagesWithContent = syncedMessages.map {
+                        conversationMessageWithContentMapper.map(conversationId to it)
+                    }
+                    db.conversationMessageDao().upsertMessagesWithContent(
+                        *(messagesWithContent).toTypedArray()
+                    )
+
+                    val nextToken = db.conversationMessageDao().getNewestMessage(conversationId)?.id
+                    if (nextToken == token || messagesWithContent.isEmpty()) {
+                        return
+                    }
+
+                    token = nextToken
+                }
+                .onFailure {
+                    if (newMessage != null) {
+                        db.conversationMessageDao().upsertMessagesWithContent(newMessage)
+                    }
+                    return
+                }
         }
     }
 

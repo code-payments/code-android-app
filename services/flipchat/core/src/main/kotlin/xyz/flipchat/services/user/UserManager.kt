@@ -15,9 +15,12 @@ import javax.inject.Singleton
 
 sealed interface AuthState {
     data object Unknown : AuthState
-    data object AwaitingUser : AuthState
-    data object LoggedOut : AuthState
+    data object Unregistered : AuthState
+    data object LoggedInAwaitingUser: AuthState
     data object LoggedIn : AuthState
+    data object LoggedOut : AuthState
+
+    fun canOpenChatStream() = this is Unregistered || this is LoggedIn
 }
 
 @Singleton
@@ -64,14 +67,13 @@ class UserManager @Inject constructor(
         val openRoom: ID? = null,
     )
 
-    fun establish(entropy: String) {
-        println("user entropy => $entropy")
+    fun establish(entropy: String, isNew: Boolean) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
         val organizer = organizerGenerator.generate(mnemonic)
         _state.update {
             it.copy(
-                authState = AuthState.AwaitingUser,
+                authState = if (isNew) AuthState.Unregistered else AuthState.LoggedInAwaitingUser,
                 entropy = entropy,
                 keyPair = authority.keyPair,
                 organizer = organizer
@@ -80,18 +82,16 @@ class UserManager @Inject constructor(
     }
 
     fun set(userId: ID) {
-        println("user id => $userId")
         _state.update {
-            it.copy(
-                authState = AuthState.LoggedIn,
-                userId = userId)
+            it.copy(userId = userId)
         }
     }
 
     fun set(displayName: String) {
-        println("user name => $displayName")
         _state.update {
-            it.copy(displayName = displayName)
+            it.copy(
+                displayName = displayName
+            )
         }
     }
 
@@ -105,6 +105,10 @@ class UserManager @Inject constructor(
         _state.update {
             it.copy(flags = userFlags)
         }
+    }
+
+    fun set(authState: AuthState) {
+        _state.update { it.copy(authState = authState) }
     }
 
     fun roomOpened(roomId: ID) {

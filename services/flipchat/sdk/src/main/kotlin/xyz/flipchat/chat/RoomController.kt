@@ -15,6 +15,7 @@ import com.getcode.model.KinAmount
 import com.getcode.model.chat.MessageStatus
 import com.getcode.model.uuid
 import com.getcode.services.model.chat.OutgoingMessageContent
+import com.getcode.utils.base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -54,6 +55,8 @@ class RoomController @Inject constructor(
         chatRepository.getChatMembers(ChatIdentifier.Id(identifier))
             .onSuccess {
                 val dbMembers = it.map { m -> conversationMemberMapper.map(identifier to m) }
+                val memberIds = dbMembers.map { member -> member.id.base58 }
+                db.conversationMembersDao().purgeMembersNotIn(identifier, memberIds)
                 db.conversationMembersDao().upsertMembers(*dbMembers.toTypedArray())
             }
     }

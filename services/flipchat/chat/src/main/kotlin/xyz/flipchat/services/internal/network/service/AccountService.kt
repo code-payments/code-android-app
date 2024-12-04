@@ -19,7 +19,7 @@ internal class AccountService @Inject constructor(
     private val api: AccountApi,
     private val networkOracle: NetworkOracle,
 ) {
-    suspend fun register(owner: KeyPair, displayName: String): Result<ID> {
+    suspend fun register(owner: KeyPair, displayName: String?): Result<ID> {
         return try {
             networkOracle.managedRequest(api.register(owner, displayName))
                 .map { response ->

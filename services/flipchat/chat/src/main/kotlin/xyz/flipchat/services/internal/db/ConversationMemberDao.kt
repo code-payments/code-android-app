@@ -6,7 +6,6 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.getcode.model.ID
 import com.getcode.utils.base58
-import xyz.flipchat.services.domain.model.chat.Conversation
 import xyz.flipchat.services.domain.model.chat.ConversationMember
 
 @Dao
@@ -27,7 +26,11 @@ interface ConversationMemberDao {
     }
 
     @Query("DELETE FROM members WHERE memberIdBase58 NOT IN (:memberIds) AND conversationIdBase58 = :conversationId")
-    suspend fun purgeMembersNotInByString(conversationId: String, memberIds: List<String>)
+    suspend fun purgeMembersNotIn(conversationId: String, memberIds: List<String>)
+
+    suspend fun purgeMembersNotIn(conversationId: ID, memberIds: List<String>) {
+        purgeMembersNotIn(conversationId.base58, memberIds)
+    }
 
     suspend fun refreshMembers(conversationId: ID, members: List<ConversationMember>) {
         removeMembersFrom(conversationId)

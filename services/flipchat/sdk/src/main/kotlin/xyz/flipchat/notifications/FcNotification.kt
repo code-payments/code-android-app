@@ -2,6 +2,7 @@ package xyz.flipchat.notifications
 
 import com.getcode.model.ID
 import com.getcode.model.chat.MessageContent
+import com.getcode.utils.base58
 import com.getcode.utils.decodeBase64
 
 data class FcNotification(

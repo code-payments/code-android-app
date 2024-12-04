@@ -19,22 +19,26 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.datetime.Clock
 import xyz.flipchat.app.BuildConfig
+import java.util.Optional
 import kotlin.coroutines.resume
 
 
 object AccountUtils {
     private const val ACCOUNT_TYPE = BuildConfig.APPLICATION_ID
+    private const val ACCOUNT_REGISTERED = "fc_account_registered"
+    private const val ACCOUNT_UNREGISTERED = "fc_account_unregistered"
 
     fun addAccount(
         context: Context,
         name: String,
         password: String,
-        token: String
+        token: String,
+        isUnregistered: Boolean,
     ) {
         val accountManager: AccountManager = AccountManager.get(context)
         val account = Account(name, ACCOUNT_TYPE)
 
-        val data = bundleOf(AccountManager.KEY_AUTH_TOKEN_LABEL to "entropy")
+        val data = bundleOf(AccountManager.KEY_AUTH_TOKEN_LABEL to if (isUnregistered) ACCOUNT_UNREGISTERED else ACCOUNT_REGISTERED)
         accountManager.addAccountExplicitly(account, password, data)
         accountManager.setAuthToken(account, ACCOUNT_TYPE, token)
     }
@@ -46,6 +50,37 @@ object AccountUtils {
                 val am: AccountManager = AccountManager.get(context)
                 am.removeAccountExplicitly(it.second)
             }
+    }
+
+    suspend fun updateAccount(context: Context, name: String, password: String): Result<Unit> {
+        return runCatching {
+            val account = getAccount(context)
+                .mapOptional {
+                    Optional.ofNullable(it.second)
+                }.blockingGet() ?: throw Throwable("Unable to get account")
+            val am: AccountManager = AccountManager.get(context)
+            am.setPassword(account, password)
+
+            suspendCancellableCoroutine { cont ->
+                am.renameAccount(/* account = */ account,
+                    /* newName = */ name,
+                    /* callback = */ { future ->
+                        try {
+                            val bundle = future?.result
+                            val updated = bundle?.name == name
+                            if (updated) {
+                                cont.resume(Unit)
+                            } else {
+                                cont.resumeWith(Result.failure(Throwable("Failed to update name")))
+                            }
+                        } catch (e: AuthenticatorException) {
+                            cont.resumeWith(Result.failure(e))
+                        }
+                    },
+                    /* handler = */ handler
+                )
+            }
+        }
     }
 
     private suspend fun getAccount(context: Context): @NonNull Single<Pair<String?, Account?>> {
@@ -117,10 +152,9 @@ object AccountUtils {
         )
     }
 
-    suspend fun getUserId(context: Context): String? {
+    suspend fun getUserId(context: Context): UserIdResult? {
         val accountManager = AccountManager.get(context)
         val accounts = accountManager.getAccountsByType(ACCOUNT_TYPE)
-
         fun getPassword(a: Account?): String? {
             if (a != null) {
                 val pw = runCatching { accountManager.getPassword(a) }
@@ -133,7 +167,14 @@ object AccountUtils {
         }
 
         val account = accounts.firstOrNull()
-        getPassword(account)?.let { return it }
+        if (account != null) {
+            val label = accountManager.getUserData(account, AccountManager.KEY_AUTH_TOKEN_LABEL)
+            if (label == ACCOUNT_UNREGISTERED) {
+                return UserIdResult.Unregistered
+            }
+        }
+
+        getPassword(account)?.let { return UserIdResult.Registered(it) }
 
         val (_, acct) = retryable(
             call = { getAccountNoActivity(context) },
@@ -149,7 +190,7 @@ object AccountUtils {
             }
         ) ?: return null
 
-        return getPassword(acct)
+        return getPassword(acct)?.let { UserIdResult.Registered(it) }
     }
 
     suspend fun getToken(context: Context): TokenResult? {
@@ -185,6 +226,12 @@ object AccountUtils {
 
 sealed interface TokenResult {
     val token: String
-    data class Account(override val token: String): TokenResult
-    data class Code(override val token: String): TokenResult
+
+    data class Account(override val token: String) : TokenResult
+    data class Code(override val token: String) : TokenResult
+}
+
+sealed interface UserIdResult {
+    data class Registered(val userId: String): UserIdResult
+    data object Unregistered: UserIdResult
 }

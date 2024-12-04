@@ -17,6 +17,16 @@ internal class RealAccountRepository @Inject constructor(
     private val service: AccountService,
     private val userFlagsMapper: UserFlagsMapper,
 ) : AccountRepository {
+
+    override suspend fun createAccount(): Result<ID> {
+        val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))
+        return service.register(
+            owner = owner,
+            displayName = null
+        ).onFailure { ErrorUtils.handleError(it) }
+    }
+
+    @Deprecated("Being replaced with a delayed account creation flow")
     @Throws(AccountService.RegisterError::class, IllegalStateException::class)
     override suspend fun register(displayName: String): Result<ID> {
         val owner = userManager.keyPair ?: return Result.failure(IllegalStateException("No ed25519 signature found for owner"))

@@ -24,30 +24,38 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
+import cafe.adriel.voyager.hilt.getViewModel
 import cafe.adriel.voyager.navigator.tab.CurrentTab
 import cafe.adriel.voyager.navigator.tab.TabDisposable
 import cafe.adriel.voyager.navigator.tab.TabNavigator
+import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.components.OnLifecycleEvent
+import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.withTopBorder
 import dev.theolm.rinku.DeepLink
 import dev.theolm.rinku.compose.ext.DeepLinkListener
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.RawValue
+import xyz.flipchat.app.features.settings.SettingsViewModel
+import xyz.flipchat.app.util.DeeplinkType
+import kotlin.math.log
 
 @Parcelize
 class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parcelable {
@@ -56,18 +64,47 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
 
     @Composable
     override fun Content() {
+        val context = LocalContext.current
         val viewModel = getActivityScopedViewModel<HomeViewModel>()
+        val settingsViewModel = getViewModel<SettingsViewModel>()
         val router = viewModel.router
+
+        val codeNavigator = LocalCodeNavigator.current
 
         //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
         //authenticated. Currently we will require authentication to see anything, but can be changed in future.
-        var deepLink by remember(deeplink) { mutableStateOf<DeepLink?>(deeplink) }
+        var deepLink by remember(deeplink) { mutableStateOf(deeplink) }
+        var loginRequest by remember { mutableStateOf<String?>(null) }
+
         DeepLinkListener {
+            val type = router.processType(it)
+            if (type is DeeplinkType.Login) {
+                loginRequest = type.entropy
+                return@DeepLinkListener
+            }
             deepLink = it
         }
 
+        LaunchedEffect(loginRequest) {
+            loginRequest?.let { entropy ->
+                viewModel.handleLoginEntropy(
+                    entropy,
+                    onSwitchAccounts = {
+                        loginRequest = null
+                        context.getActivity()?.let {
+                            settingsViewModel.logout(it) {
+                                codeNavigator.replaceAll(ScreenRegistry.get(NavScreenProvider.Login.Home(entropy)))
+                            }
+                        }
+                    },
+                    onCancel = {
+                        loginRequest = null
+                    }
+                )
+            }
+        }
+
         val initialTab = remember(deepLink) { router.getInitialTabIndex(deepLink) }
-        var currentTab: ChildNavTab? by remember { mutableStateOf(router.rootTabs.firstOrNull()) }
 
         OnLifecycleEvent { _, event ->
             when (event) {
@@ -87,7 +124,6 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
                 )
             }
         ) { tabNavigator ->
-            val codeNavigator = LocalCodeNavigator.current
             LaunchedEffect(deepLink) {
                 if (deepLink != null) {
                     val screenSet = router.processDestination(deepLink)

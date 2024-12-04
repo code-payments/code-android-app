@@ -3,6 +3,7 @@ package com.getcode.network.client
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
+import com.codeinc.gen.user.v1.user
 import com.getcode.network.BalanceController
 import com.getcode.network.exchange.Exchange
 import com.getcode.network.repository.AccountRepository
@@ -11,11 +12,13 @@ import com.getcode.network.repository.TransactionRepository
 import com.getcode.services.analytics.AnalyticsService
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.network.NetworkConnectivityListener
+import com.getcode.vendor.Base58
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import java.util.Timer
 import javax.inject.Inject
@@ -35,8 +38,7 @@ class Client @Inject constructor(
     internal val exchange: Exchange,
     internal val transactionReceiver: TransactionReceiver,
     internal val networkObserver: NetworkConnectivityListener,
-) : LifecycleObserver {
-
+) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private var pollTimer: Timer? = null
@@ -45,10 +47,11 @@ class Client @Inject constructor(
     private fun startPollTimerWhenAuthenticated() {
         Timber.tag(TAG).i("Creating poll timer")
         scope.launch {
-            while(userManager.userId == null) {
+            while(userManager.authState !is AuthState.LoggedIn) {
                 delay(1.seconds)
-                if (userManager.userId != null) {
+                if (userManager.authState is AuthState.LoggedIn) {
                     startPollTimer()
+                    break
                 }
             }
         }
@@ -58,12 +61,11 @@ class Client @Inject constructor(
         pollTimer?.cancel()
         pollTimer = fixedRateTimer("pollTimer", false, 0, 1000 * 10) {
             scope.launch {
-                Timber.tag(TAG).i("Timer Polling")
-
                 val time = System.currentTimeMillis()
                 val isPastThrottle = time - lastPoll > 1000 * 30 || lastPoll == 0L
 
-                if (userManager.userId != null && isPastThrottle) {
+                if (userManager.authState is AuthState.LoggedIn && isPastThrottle) {
+                    Timber.tag(TAG).i("Timer Polling")
                     poll()
                     lastPoll = time
                 }
@@ -83,12 +85,10 @@ class Client @Inject constructor(
         }
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_RESUME)
     fun startTimer() {
         startPollTimerWhenAuthenticated()
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun stopTimer() {
         Timber.tag(TAG).i("Cancelling Poller")
         pollTimer?.cancel()

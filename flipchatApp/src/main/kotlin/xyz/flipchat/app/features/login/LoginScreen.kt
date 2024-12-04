@@ -10,7 +10,6 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import xyz.flipchat.app.features.login.LoginHome
 
 @Parcelize
 data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
@@ -20,8 +19,7 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-//        val analytics = LocalAnalytics.current
-//
+
         if (seed != null) {
 //            SeedDeepLink(getViewModel(), seed)
         } else {

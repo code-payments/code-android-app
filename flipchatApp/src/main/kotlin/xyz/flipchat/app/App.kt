@@ -33,6 +33,8 @@ import com.getcode.ui.decor.ScrimSupport
 import com.getcode.ui.theme.CodeScaffold
 import dev.bmcreations.tipkit.TipScaffold
 import dev.bmcreations.tipkit.engines.TipsEngine
+import dev.theolm.rinku.DeepLink
+import dev.theolm.rinku.compose.ext.DeepLinkListener
 import xyz.flipchat.app.features.home.HomeViewModel
 
 @Composable

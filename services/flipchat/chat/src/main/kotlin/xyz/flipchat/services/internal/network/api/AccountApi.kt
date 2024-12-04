@@ -29,10 +29,14 @@ class AccountApi @Inject constructor(
      * Register registers a new user, bound to the provided PublicKey.
      * If the PublicKey is already in use, the previous user account is returned.
      */
-    fun register(owner: KeyPair, displayName: String): Flow<AccountService.RegisterResponse> {
+    fun register(owner: KeyPair, displayName: String?): Flow<AccountService.RegisterResponse> {
         val request = AccountService.RegisterRequest.newBuilder()
             .setPublicKey(owner.asPublicKey())
-            .setDisplayName(displayName)
+            .apply {
+                if (displayName != null) {
+                    setDisplayName(displayName)
+                }
+            }
             .apply { setSignature(sign(owner)) }
             .build()
 

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import xyz.flipchat.app.data.BetaFeatures
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.services.data.Room
 import xyz.flipchat.services.extensions.titleOrFallback
@@ -26,6 +27,7 @@ import javax.inject.Inject
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
     resources: ResourceHelper,
+    betaFeatures: BetaFeatures,
 ) : BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -118,7 +120,22 @@ class LookupRoomViewModel @Inject constructor(
                             dispatchEvent(Event.OpenExistingRoom(it.room.id))
                         }
                     } else {
-                        dispatchEvent(Event.JoinAsSpectator(it.room))
+                        if (betaFeatures.joinAsSpectator) {
+                            dispatchEvent(Event.JoinAsSpectator(it.room))
+                        } else {
+                            val host = it.members.firstOrNull { m -> m.isModerator }
+
+                            val confirmJoinArgs = RoomInfoArgs(
+                                roomId = it.room.id,
+                                roomTitle = it.room.titleOrFallback(resources),
+                                roomNumber = it.room.roomNumber,
+                                memberCount = it.members.count(),
+                                ownerId = it.room.ownerId,
+                                hostName = host?.identity?.displayName,
+                                coverChargeQuarks = it.room.coverCharge.quarks
+                            )
+                            dispatchEvent(Event.OnOpenConfirmation(confirmJoinArgs))
+                        }
                     }
                 }
             ).launchIn(viewModelScope)

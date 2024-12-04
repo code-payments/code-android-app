@@ -198,20 +198,11 @@ class ConversationViewModel @Inject constructor(
                 dispatchEvent(Event.OnSelfChanged(id, displayName))
             }.launchIn(viewModelScope)
 
-        // this is an existing conversation so we fetch the chat directly
         eventFlow
             .filterIsInstance<Event.OnChatIdChanged>()
             .map { it.chatId }
             .filterNotNull()
-            // TODO: HACK
-            //  remove this once home stream is returning member updates
             .onEach { roomController.getChatMembers(it) }
-            .launchIn(viewModelScope)
-
-        eventFlow
-            .filterIsInstance<Event.OnChatIdChanged>()
-            .map { it.chatId }
-            .filterNotNull()
             .mapNotNull {
                 retryable(
                     maxRetries = 5,

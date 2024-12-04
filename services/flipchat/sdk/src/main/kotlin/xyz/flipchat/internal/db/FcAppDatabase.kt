@@ -61,8 +61,9 @@ import java.io.File
         AutoMigration(from = 11, to = 12, spec = FcAppDatabase.Migration11To12::class),
         AutoMigration(from = 12, to = 13),
         AutoMigration(from = 13, to = 14, spec = FcAppDatabase.Migration13To14::class),
+        AutoMigration(from = 14, to = 15, spec = FcAppDatabase.Migration14To15::class),
     ],
-    version = 14,
+    version = 15,
 )
 @TypeConverters(SharedConverters::class, Converters::class)
 internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
@@ -115,6 +116,13 @@ internal abstract class FcAppDatabase : RoomDatabase(), ClosableDatabase {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL("ALTER TABLE members ADD COLUMN isFullMember INTEGER NOT NULL DEFAULT 0")
             db.execSQL("UPDATE members SET isFullMember = 1")
+        }
+    }
+
+    class Migration14To15 : Migration(14, 15), AutoMigrationSpec {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            // drop messages to allow proper use of message ID as the timestamp
+            db.execSQL("DELETE FROM messages")
         }
     }
 

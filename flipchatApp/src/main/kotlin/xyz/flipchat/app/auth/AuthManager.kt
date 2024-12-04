@@ -5,10 +5,10 @@ import android.content.Context
 import com.bugsnag.android.Bugsnag
 import com.getcode.ed25519.Ed25519
 import com.getcode.model.ID
+import com.getcode.network.repository.PaymentError
 import xyz.flipchat.app.util.AccountUtils
 import xyz.flipchat.app.util.TokenResult
 import com.getcode.services.db.Database
-import com.getcode.services.utils.installationId
 import com.getcode.services.utils.token
 import com.getcode.utils.ErrorUtils
 import com.getcode.utils.TraceType
@@ -17,7 +17,6 @@ import com.getcode.utils.encodeBase64
 import com.getcode.utils.trace
 import com.getcode.vendor.Base58
 import com.google.firebase.Firebase
-import com.google.firebase.installations.installations
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.messaging
 import com.ionspin.kotlin.crypto.LibsodiumInitializer
@@ -26,13 +25,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import xyz.flipchat.FlipchatServices
 import xyz.flipchat.app.BuildConfig
+import xyz.flipchat.app.util.UserIdResult
 import xyz.flipchat.controllers.AuthController
 import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.controllers.PushController
+import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -76,18 +77,35 @@ class AuthManager @Inject constructor(
         val entropyB64 = userManager.entropy
         return if (entropyB64 == null) {
             val seedB64 = Ed25519.createSeed16().encodeBase64()
-            userManager.establish(seedB64)
+            userManager.establish(seedB64, isNew = true)
             return seedB64
         } else {
             entropyB64
         }
     }
 
-    suspend fun createAccount(
-        displayName: String,
-    ): Result<ID> {
-        val entropyB64 = userManager.entropy ?: setupAsNew()
-        if (entropyB64.isEmpty()) {
+    suspend fun createAccount(): Result<ID> {
+        val entropy = setupAsNew()
+        FlipchatServices.openDatabase(context, entropy)
+        return authController.createAccount()
+            .onSuccess { userId ->
+                AccountUtils.addAccount(
+                    context = context,
+                    name = "Flipchat User",
+                    password = userId.base58,
+                    token = entropy,
+                    isUnregistered = true
+                )
+            }.onFailure {
+                it.printStackTrace()
+                clearToken()
+            }
+    }
+
+    @Deprecated("Being replaced with a delayed account creation flow")
+    suspend fun register(displayName: String): Result<ID> {
+        val entropyB64 = userManager.entropy
+        if (entropyB64.isNullOrEmpty()) {
             taggedTrace("provided entropy was empty", type = TraceType.Error)
             userManager.clear()
             return Result.failure(Throwable("Provided entropy was empty"))
@@ -99,14 +117,14 @@ class AuthManager @Inject constructor(
 
         return authController.register(displayName)
             .onSuccess { userId ->
-                AccountUtils.addAccount(
+                AccountUtils.updateAccount(
                     context = context,
                     name = displayName,
                     password = userId.base58,
-                    token = entropyB64
                 )
-                userManager.set(displayName = displayName)
                 userManager.set(userId = userId)
+                userManager.set(displayName = displayName)
+                userManager.set(AuthState.LoggedIn)
                 savePrefs()
             }
             .onFailure {
@@ -132,7 +150,7 @@ class AuthManager @Inject constructor(
         FlipchatServices.openDatabase(context, entropyB64)
 
         val originalEntropy = userManager.entropy
-        userManager.establish(entropy = entropyB64)
+        userManager.establish(entropy = entropyB64, isNew = false)
 
         if (!isSoftLogin) {
             loginAnalytics()
@@ -140,12 +158,13 @@ class AuthManager @Inject constructor(
 
         if (!isSoftLogin) softLoginDisabled = true
 
+        val lookup = AccountUtils.getUserId(context)
+
         val ret = if (isSoftLogin) {
-            val userId = AccountUtils.getUserId(context)
-            if (userId != null) {
-                Result.success(Base58.decode(userId).toList())
-            } else {
-                Result.failure(Throwable("No user Id found"))
+            when (lookup) {
+                is UserIdResult.Registered -> Result.success(Base58.decode(lookup.userId).toList())
+                UserIdResult.Unregistered -> Result.success(emptyList())
+                null -> Result.failure(Throwable("No user Id found"))
             }
         } else {
             authController.login()
@@ -154,19 +173,23 @@ class AuthManager @Inject constructor(
         return ret
             .map { it to profileController.getProfile(it) }
             .map { (id, profileResult) ->
-                profileResult.onSuccess { userManager.set(displayName = it.displayName) }
-                id
+                id to profileResult.getOrNull()?.displayName
             }
-            .onSuccess {
+            .onSuccess { (userId, displayName) ->
                 if (!isSoftLogin) {
                     AccountUtils.addAccount(
                         context = context,
                         name = userManager.displayName.orEmpty(),
-                        password = it.base58,
-                        token = entropyB64
+                        password = userId.base58,
+                        token = entropyB64,
+                        isUnregistered = false,
                     )
                 }
-                userManager.set(userId = it)
+                userManager.set(userId = userId)
+                if (displayName != null) {
+                    userManager.set(displayName = displayName)
+                }
+                userManager.set(AuthState.LoggedIn)
                 savePrefs()
             }
             .onFailure {
@@ -181,7 +204,7 @@ class AuthManager @Inject constructor(
                     logout(context)
                     clearToken()
                 }
-            }
+            }.map { it.first }
     }
 
     suspend fun deleteAndLogout(context: Context, onComplete: () -> Unit = {}) {

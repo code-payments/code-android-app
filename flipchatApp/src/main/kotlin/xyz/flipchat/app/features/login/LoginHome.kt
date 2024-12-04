@@ -30,13 +30,16 @@ import com.getcode.theme.CodeTheme
 import com.getcode.theme.White
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
+import xyz.flipchat.app.ui.LocalBetaFeatures
 import xyz.flipchat.app.util.ChromeTabsUtils
 
 @Composable
 fun LoginHome(
+    isCreatingAccount: Boolean = false,
     createAccount: () -> Unit,
     login: () -> Unit,
 ) {
+    val betaFeatures = LocalBetaFeatures.current
     val context = LocalContext.current
 
     Column(
@@ -73,7 +76,12 @@ fun LoginHome(
                 .fillMaxWidth()
                 .padding(horizontal = CodeTheme.dimens.inset),
             onClick = createAccount,
-            text = stringResource(R.string.action_createAccount),
+            isLoading = isCreatingAccount,
+            text = if (betaFeatures.joinAsSpectator) {
+                stringResource(R.string.action_startChatting)
+            } else {
+                stringResource(R.string.action_createAccount)
+            },
             buttonState = ButtonState.Filled,
         )
         CodeButton(
