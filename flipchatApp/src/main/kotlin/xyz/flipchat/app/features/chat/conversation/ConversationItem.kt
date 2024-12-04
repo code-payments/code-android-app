@@ -14,6 +14,7 @@ data class ConversationMessageIndice(
 )
 
 sealed interface ChattableState {
+    data object Unknown: ChattableState
     data object Enabled: ChattableState
     data object DisabledByMute: ChattableState
     data class Spectator(val cover: KinAmount): ChattableState

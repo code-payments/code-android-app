@@ -163,7 +163,7 @@ class AuthManager @Inject constructor(
         val ret = if (isSoftLogin) {
             when (lookup) {
                 is UserIdResult.Registered -> Result.success(Base58.decode(lookup.userId).toList())
-                UserIdResult.Unregistered -> Result.success(emptyList())
+                is UserIdResult.Unregistered -> Result.success(Base58.decode(lookup.userId).toList())
                 null -> Result.failure(Throwable("No user Id found"))
             }
         } else {
@@ -179,7 +179,7 @@ class AuthManager @Inject constructor(
                 if (!isSoftLogin) {
                     AccountUtils.addAccount(
                         context = context,
-                        name = userManager.displayName.orEmpty(),
+                        name = displayName.orEmpty(),
                         password = userId.base58,
                         token = entropyB64,
                         isUnregistered = false,
@@ -189,7 +189,13 @@ class AuthManager @Inject constructor(
                 if (displayName != null) {
                     userManager.set(displayName = displayName)
                 }
-                userManager.set(AuthState.LoggedIn)
+                userManager.set(
+                    authState = if (lookup is UserIdResult.Unregistered) {
+                        AuthState.Unregistered
+                    } else {
+                        AuthState.LoggedIn
+                    }
+                )
                 savePrefs()
             }
             .onFailure {

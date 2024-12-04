@@ -167,14 +167,16 @@ object AccountUtils {
         }
 
         val account = accounts.firstOrNull()
-        if (account != null) {
-            val label = accountManager.getUserData(account, AccountManager.KEY_AUTH_TOKEN_LABEL)
+
+        val label = account?.let { accountManager.getUserData(it, AccountManager.KEY_AUTH_TOKEN_LABEL) }
+
+        getPassword(account)?.let {
             if (label == ACCOUNT_UNREGISTERED) {
-                return UserIdResult.Unregistered
+                return UserIdResult.Unregistered(it)
+            } else {
+                return UserIdResult.Registered(it)
             }
         }
-
-        getPassword(account)?.let { return UserIdResult.Registered(it) }
 
         val (_, acct) = retryable(
             call = { getAccountNoActivity(context) },
@@ -190,7 +192,13 @@ object AccountUtils {
             }
         ) ?: return null
 
-        return getPassword(acct)?.let { UserIdResult.Registered(it) }
+        return getPassword(acct)?.let {
+            if (label == ACCOUNT_UNREGISTERED) {
+                UserIdResult.Unregistered(it)
+            } else {
+                UserIdResult.Registered(it)
+            }
+        }
     }
 
     suspend fun getToken(context: Context): TokenResult? {
@@ -233,5 +241,5 @@ sealed interface TokenResult {
 
 sealed interface UserIdResult {
     data class Registered(val userId: String): UserIdResult
-    data object Unregistered: UserIdResult
+    data class Unregistered(val userId: String): UserIdResult
 }

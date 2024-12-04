@@ -31,7 +31,7 @@ message RegisterRequest {
 	common.v1.PublicKey public_key = 1;
 	// Signature of this message (without the signature), using the provided keypaid.
 	common.v1.Signature signature = 2;
-	// DisplayName of the new user.
+	// Optional DisplayName of the new user
 	//
 	// If the user already exists, this is not used.
 	string display_name = 3 ;

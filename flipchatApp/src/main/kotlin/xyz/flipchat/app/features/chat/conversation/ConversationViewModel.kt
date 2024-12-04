@@ -129,7 +129,7 @@ class ConversationViewModel @Inject constructor(
                 imageUri = null,
                 conversationId = null,
                 reference = null,
-                chattableState = ChattableState.Enabled,
+                chattableState = ChattableState.Unknown,
                 textFieldState = TextFieldState(),
                 replyMessage = null,
                 title = "",
@@ -558,13 +558,8 @@ class ConversationViewModel @Inject constructor(
         .map { it.conversationId }
         .filterNotNull()
         .distinctUntilChanged()
-        .flatMapLatest { roomController.messages(it).flow
-            .cachedIn(viewModelScope)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = PagingData.empty()
-            )
+        .flatMapLatest {
+            roomController.messages(it).flow
         }
         .map { page ->
             page.flatMap { mwc ->

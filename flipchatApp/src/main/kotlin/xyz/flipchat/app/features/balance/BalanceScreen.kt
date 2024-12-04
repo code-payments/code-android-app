@@ -2,6 +2,7 @@ package xyz.flipchat.app.features.balance
 
 import android.os.Parcelable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -16,6 +17,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Alignment.Companion.CenterVertically
 import androidx.compose.ui.Modifier
@@ -44,6 +46,7 @@ import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.utils.Kin
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
+import xyz.flipchat.services.user.AuthState
 
 @Parcelize
 data object BalanceScreen : Screen, Parcelable {
@@ -115,17 +118,17 @@ fun BalanceContent(
             }
         }
 
-        item {
-            Column(
-                modifier = Modifier
-                    .fillParentMaxWidth()
-                    .padding(horizontal = CodeTheme.dimens.inset)
-            ) {
-                if (!chatsEmpty && !state.chatsLoading && !state.isKinSelected) {
-                    KinValueHint(faqOpen)
-                }
-            }
-        }
+//        item {
+//            Column(
+//                modifier = Modifier
+//                    .fillParentMaxWidth()
+//                    .padding(horizontal = CodeTheme.dimens.inset)
+//            ) {
+//                if (!chatsEmpty && !state.chatsLoading && !state.isKinSelected) {
+//                    KinValueHint(faqOpen)
+//                }
+//            }
+//        }
 
 //        itemsIndexed(
 //            state.chats,
@@ -175,8 +178,11 @@ fun BalanceTop(
     isClickable: Boolean,
     onClick: () -> Unit = {}
 ) {
-    if (state.amountText.isEmpty()) {
-        CodeCircularProgressIndicator()
+    if (state.amountText.isEmpty() && state.authState is AuthState.LoggedIn) {
+
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            CodeCircularProgressIndicator()
+        }
     } else {
         AmountArea(
             amountText = state.amountText,

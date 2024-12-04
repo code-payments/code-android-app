@@ -5,24 +5,31 @@ import com.getcode.model.Currency
 import com.getcode.model.Rate
 import com.getcode.network.BalanceController
 import com.getcode.utils.Kin
+import com.getcode.utils.network.NetworkConnectivityListener
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import xyz.flipchat.services.user.AuthState
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 @HiltViewModel
 class BalanceSheetViewModel @Inject constructor(
+    userManager: UserManager,
     balanceController: BalanceController,
-    networkObserver: com.getcode.utils.network.NetworkConnectivityListener,
+    networkObserver: NetworkConnectivityListener,
 ) : BaseViewModel2<BalanceSheetViewModel.State, BalanceSheetViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
     data class State(
+        val authState: AuthState = AuthState.Unknown,
         val amountText: String = "",
         val marketValue: Double = 0.0,
         val selectedRate: Rate? = null,
@@ -34,6 +41,7 @@ class BalanceSheetViewModel @Inject constructor(
     )
 
     sealed interface Event {
+        data class OnAuthStateChanged(val authState: AuthState): Event
         data class OnDebugBucketsEnabled(val enabled: Boolean) : Event
         data class OnDebugBucketsVisible(val show: Boolean) : Event
         data class OnLatestRateChanged(val rate: Rate) : Event
@@ -51,6 +59,11 @@ class BalanceSheetViewModel @Inject constructor(
     }
 
     init {
+        userManager.state
+            .map { it.authState }
+            .onEach { dispatchEvent(Event.OnAuthStateChanged(it)) }
+            .launchIn(viewModelScope)
+
         balanceController.formattedBalance
             .filterNotNull()
             .distinctUntilChanged()
@@ -99,6 +112,7 @@ class BalanceSheetViewModel @Inject constructor(
 //                }
 
                 Event.OnOpened -> { state -> state }
+                is Event.OnAuthStateChanged -> { state -> state.copy(authState = event.authState) }
             }
         }
     }

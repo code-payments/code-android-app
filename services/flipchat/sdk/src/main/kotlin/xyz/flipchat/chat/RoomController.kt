@@ -281,13 +281,7 @@ private class MessagesRemoteMediator(
                 LoadType.APPEND -> {
                     // Get the last item from our data
                     val lastItem = state.lastItemOrNull()
-                        ?: return MediatorResult.Success(
-                            // If we don't have any items, only signal end of pagination
-                            // if we've had a refresh
-                            endOfPaginationReached = state.pages.isNotEmpty()
-                        )
-
-                    lastItem.message.id
+                    lastItem?.message?.id
                 }
             }
 

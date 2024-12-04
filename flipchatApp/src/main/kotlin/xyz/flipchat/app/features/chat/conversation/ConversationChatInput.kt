@@ -32,60 +32,64 @@ fun ConversationChatInput(
     focusRequester: FocusRequester,
     dispatchEvent: (ConversationViewModel.Event) -> Unit,
 ) {
-    AnimatedContent(
-        targetState = chattableState,
-        transitionSpec = {
-            (slideInVertically { it }).togetherWith(slideOutVertically { it })
-        },
-        label = "chat input area"
-    ) {
-        when (it) {
-            ChattableState.DisabledByMute -> {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(CodeTheme.colors.secondary)
-                        .padding(
-                            top = CodeTheme.dimens.grid.x1,
-                            bottom = CodeTheme.dimens.grid.x3
-                        ).navigationBarsPadding(),
-                    textAlign = TextAlign.Center,
-                    text = stringResource(R.string.title_youHaveBeenMuted),
-                    style = CodeTheme.typography.textSmall,
-                    color = CodeTheme.colors.textSecondary
+    if (chattableState is ChattableState.Spectator) {
+        CodeButton(
+            modifier = Modifier.fillMaxWidth()
+                .padding(
+                    start = CodeTheme.dimens.inset,
+                    end = CodeTheme.dimens.inset
+                ).navigationBarsPadding(),
+            buttonState = ButtonState.Filled,
+            text = stringResource(R.string.joinRoomFromSpectating,
+                formatAmountString(
+                    resources = LocalResources.current!!,
+                    currency = Currency.Kin,
+                    amount = chattableState.cover.kin.quarks.toDouble(),
+                    suffix = stringResource(R.string.core_kin)
                 )
-            }
+            ),
+        ) { dispatchEvent(ConversationViewModel.Event.OnJoinRequestedFromSpectating) }
+    } else if (chattableState is ChattableState.Unknown) {
+        // stub
+    } else {
+        AnimatedContent(
+            targetState = chattableState,
+            transitionSpec = {
+                (slideInVertically { it }).togetherWith(slideOutVertically { it })
+            },
+            label = "chat input area"
+        ) {
+            when (it) {
+                ChattableState.DisabledByMute -> {
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(CodeTheme.colors.secondary)
+                            .padding(
+                                top = CodeTheme.dimens.grid.x1,
+                                bottom = CodeTheme.dimens.grid.x3
+                            ).navigationBarsPadding(),
+                        textAlign = TextAlign.Center,
+                        text = stringResource(R.string.title_youHaveBeenMuted),
+                        style = CodeTheme.typography.textSmall,
+                        color = CodeTheme.colors.textSecondary
+                    )
+                }
 
-            ChattableState.Enabled -> {
-                ChatInput(
-                    modifier = Modifier.navigationBarsPadding(),
-                    state = textFieldState,
-                    sendCashEnabled = false,
-                    focusRequester = focusRequester,
-                    onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
-                    onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
-                )
-            }
+                ChattableState.Enabled -> {
+                    ChatInput(
+                        modifier = Modifier.navigationBarsPadding(),
+                        state = textFieldState,
+                        sendCashEnabled = false,
+                        focusRequester = focusRequester,
+                        onSendMessage = { dispatchEvent(ConversationViewModel.Event.SendMessage) },
+                        onSendCash = { dispatchEvent(ConversationViewModel.Event.SendCash) }
+                    )
+                }
 
-            is ChattableState.Spectator -> {
-                CodeButton(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(
-                            start = CodeTheme.dimens.inset,
-                            end = CodeTheme.dimens.inset
-                        ).navigationBarsPadding(),
-                    buttonState = ButtonState.Filled,
-                    text = stringResource(R.string.joinRoomFromSpectating,
-                        formatAmountString(
-                            resources = LocalResources.current!!,
-                            currency = Currency.Kin,
-                            amount = it.cover.kin.quarks.toDouble(),
-                            suffix = stringResource(R.string.core_kin)
-                        )
-                    ),
-                ) { dispatchEvent(ConversationViewModel.Event.OnJoinRequestedFromSpectating) }
+                is ChattableState.Spectator -> Unit
+                ChattableState.Unknown -> Unit
             }
         }
-
     }
 }

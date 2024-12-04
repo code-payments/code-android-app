@@ -185,7 +185,7 @@ class ChatListViewModel @Inject constructor(
     }
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> =
-        chatsController.chats.flow.filter { userManager.authState is AuthState.LoggedIn }
+        chatsController.chats.flow.filter { userManager.authState.canOpenChatStream() }
             .cachedIn(viewModelScope)
             .stateIn(
                 scope = viewModelScope,
