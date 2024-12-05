@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
@@ -25,6 +26,7 @@ fun Badge(
     count: Int,
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
+    textStyle: TextStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700),
     enterTransition: EnterTransition = scaleIn(tween(durationMillis = 300)) + fadeIn(),
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
@@ -38,7 +40,7 @@ fun Badge(
         Text(
             text = text,
             color = contentColor,
-            style = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700),
+            style = textStyle,
             modifier = Modifier
                 .drawBehind {
                     drawCircle(

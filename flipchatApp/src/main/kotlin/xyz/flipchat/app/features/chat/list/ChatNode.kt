@@ -81,6 +81,7 @@ fun ChatNode(
             modifier = modifier.background(CodeTheme.colors.background),
             title = chat.title,
             messagePreview = chat.messagePreview,
+            messageTextStyle = CodeTheme.typography.textSmall,
             avatar = chat.imageUri ?: chat.id,
             avatarIconWhenFallback = {
                 Image(

@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
@@ -44,6 +45,8 @@ fun ChatNode(
     avatar: Any? = null,
     avatarIconWhenFallback: @Composable BoxScope.() -> Unit = { },
     messagePreview: Pair<AnnotatedString, Map<String, InlineTextContent>>,
+    titleTextStyle: TextStyle = CodeTheme.typography.textMedium,
+    messageTextStyle: TextStyle = CodeTheme.typography.textMedium,
     timestamp: Long? = null,
     isMuted: Boolean = false,
     showMuteByTitle: Boolean = false,
@@ -107,7 +110,7 @@ fun ChatNode(
                 Text(
                     text = title,
                     maxLines = 1,
-                    style = CodeTheme.typography.textMedium
+                    style = titleTextStyle
                 )
                 if (isMuted && showMuteByTitle) {
                     Icon(
@@ -148,7 +151,7 @@ fun ChatNode(
                     modifier = Modifier.weight(1f),
                     text = preview,
                     inlineContent = inlineContent,
-                    style = CodeTheme.typography.textMedium,
+                    style = messageTextStyle,
                     color = CodeTheme.colors.textSecondary,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
