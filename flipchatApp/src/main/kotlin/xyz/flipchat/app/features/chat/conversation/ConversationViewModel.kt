@@ -105,7 +105,7 @@ class ConversationViewModel @Inject constructor(
         val selfName: String?,
         val hostId: ID?,
         val conversationId: ID?,
-        val reference: Reference.IntentId?,
+        val unreadCount: Int,
         val chattableState: ChattableState,
         val textFieldState: TextFieldState,
         val replyMessage: ChatItem.Message?,
@@ -128,7 +128,7 @@ class ConversationViewModel @Inject constructor(
                 hostId = null,
                 imageUri = null,
                 conversationId = null,
-                reference = null,
+                unreadCount = 0,
                 chattableState = ChattableState.Unknown,
                 textFieldState = TextFieldState(),
                 replyMessage = null,
@@ -279,34 +279,36 @@ class ConversationViewModel @Inject constructor(
             .onEach {
                 val textFieldState = it.textFieldState
                 val text = textFieldState.text.toString()
-                textFieldState.clearText()
+                if (text.isNotEmpty()) {
+                    textFieldState.clearText()
 
-                val replyingTo = it.replyMessage
-                // TODO: handle replies in the future
+                    val replyingTo = it.replyMessage
+                    // TODO: handle replies in the future
 
-                val message = if (replyingTo != null) {
-                    replyingTo.sender.displayName?.let { name -> "@$name: $text" } ?: text
-                } else {
-                    text
+                    val message = if (replyingTo != null) {
+                        replyingTo.sender.displayName?.let { name -> "@$name: $text" } ?: text
+                    } else {
+                        text
+                    }
+
+                    dispatchEvent(Event.CancelReply)
+                    roomController.sendMessage(it.conversationId!!, message)
+                        .onSuccess {
+                            trace(
+                                tag = "Conversation",
+                                message = "message sent successfully",
+                                type = TraceType.Silent
+                            )
+                        }
+                        .onFailure { error ->
+                            trace(
+                                tag = "Conversation",
+                                message = "message failed to send",
+                                type = TraceType.Error,
+                                error = error
+                            )
+                        }
                 }
-
-                dispatchEvent(Event.CancelReply)
-                roomController.sendMessage(it.conversationId!!, message)
-                    .onSuccess {
-                        trace(
-                            tag = "Conversation",
-                            message = "message sent successfully",
-                            type = TraceType.Silent
-                        )
-                    }
-                    .onFailure { error ->
-                        trace(
-                            tag = "Conversation",
-                            message = "message failed to send",
-                            type = TraceType.Error,
-                            error = error
-                        )
-                    }
             }
             .launchIn(viewModelScope)
 
@@ -800,6 +802,7 @@ class ConversationViewModel @Inject constructor(
                     val host = members.firstOrNull { it.isHost }
                     state.copy(
                         conversationId = conversation.id,
+                        unreadCount = conversation.unreadCount,
                         imageUri = conversation.imageUri.orEmpty().takeIf { it.isNotEmpty() },
                         title = conversation.title,
                         pointers = event.conversationWithPointers.pointers,

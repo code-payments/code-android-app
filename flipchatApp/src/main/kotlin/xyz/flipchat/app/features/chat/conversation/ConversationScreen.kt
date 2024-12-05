@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -286,7 +287,7 @@ private fun ConversationScreenContent(
                                         .unboundedClickable {
                                             dispatchEvent(ConversationViewModel.Event.CancelReply)
                                         },
-                                    imageVector = Icons.Outlined.Close,
+                                    imageVector = Icons.Outlined.Clear,
                                     colorFilter = ColorFilter.tint(Color.White),
                                     contentDescription = null
                                 )
