@@ -129,7 +129,7 @@ class ConversationViewModel @Inject constructor(
                 imageUri = null,
                 conversationId = null,
                 unreadCount = 0,
-                chattableState = ChattableState.Unknown,
+                chattableState = ChattableState.Enabled,
                 textFieldState = TextFieldState(),
                 replyMessage = null,
                 title = "",
@@ -278,7 +278,7 @@ class ConversationViewModel @Inject constructor(
             .map { stateFlow.value }
             .onEach {
                 val textFieldState = it.textFieldState
-                val text = textFieldState.text.toString()
+                val text = textFieldState.text.toString().trim()
                 if (text.isNotEmpty()) {
                     textFieldState.clearText()
 
