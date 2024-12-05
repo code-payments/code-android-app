@@ -1,6 +1,7 @@
 package com.getcode.ui.components.chat
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,6 +16,7 @@ import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.gestures.snapTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -67,7 +69,9 @@ import com.getcode.ui.components.chat.messagecontents.MessageText
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.ui.components.text.markup.Markup
 import com.getcode.util.vibration.LocalVibrator
+import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.reflect.KClass
 
 object MessageNodeDefaults {
@@ -220,13 +224,12 @@ fun MessageNode(
             }
         }
 
-        val decay = rememberSplineBasedDecay<Float>()
         val replyDragState = remember(anchors) {
             AnchoredDraggableState(
                 initialValue = MessageNodeDragAnchors.DEFAULT,
                 anchors = anchors,
                 positionalThreshold = { swipeThreshold },
-                velocityThreshold = { with(density) { 20.dp.toPx() } },
+                velocityThreshold = { with(density) { 50.dp.toPx() } },
                 confirmValueChange = { targetValue ->
                     if (targetValue == MessageNodeDragAnchors.REPLY && !hasFiredReply) {
                         hasFiredReply = true
@@ -234,15 +237,23 @@ fun MessageNode(
                     }
                     true
                 },
-                snapAnimationSpec = tween(durationMillis = 250),
-                decayAnimationSpec = decay
+                snapAnimationSpec = tween(durationMillis = 400),
+                decayAnimationSpec = exponentialDecay()
             )
         }
 
         LaunchedEffect(replyDragState.currentValue) {
+            println("drag=${replyDragState.currentValue}")
             if (replyDragState.currentValue == MessageNodeDragAnchors.REPLY) {
                 // Reset drag state to allow future replies
-                replyDragState.animateTo(MessageNodeDragAnchors.DEFAULT)
+                delay(200)
+                try {
+                    replyDragState.snapTo(MessageNodeDragAnchors.DEFAULT)
+                    println("Animation completed")
+                } catch (e: CancellationException) {
+                    println("Animation canceled: ${e.message}")
+                }
+
                 hasFiredReply = false
                 hasTriggeredTick = false
             }
