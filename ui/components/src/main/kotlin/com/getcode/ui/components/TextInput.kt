@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.KeyboardActionHandler
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material.Text
@@ -78,6 +79,7 @@ fun TextInput(
     contentPadding: PaddingValues = PaddingValues(),
     onStateChanged: () -> Unit = { },
     keyboardOptions: KeyboardOptions = KeyboardOptions(),
+    onKeyboardAction: KeyboardActionHandler? = null,
     style: TextStyle = CodeTheme.typography.textMedium,
     placeholderStyle: TextStyle = CodeTheme.typography.textMedium,
     shape: Shape = CodeTheme.shapes.extraSmall,
@@ -124,6 +126,7 @@ fun TextInput(
             state = state,
             cursorBrush = SolidColor(colors.cursorColor(isError = false).value),
             keyboardOptions = keyboardOptions,
+            onKeyboardAction = onKeyboardAction,
             textStyle = style.copy(color = textColor, fontSize = textSize),
             lineLimits = if (maxLines == 1) {
                 TextFieldLineLimits.SingleLine
