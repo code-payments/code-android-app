@@ -46,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
@@ -55,6 +56,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.getcode.model.chat.MessageContent
 import com.getcode.model.chat.MessageStatus
@@ -72,6 +74,7 @@ import com.getcode.util.vibration.LocalVibrator
 import kotlinx.coroutines.delay
 import kotlinx.datetime.Instant
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.math.roundToInt
 import kotlin.reflect.KClass
 
 object MessageNodeDefaults {
@@ -243,7 +246,6 @@ fun MessageNode(
         }
 
         LaunchedEffect(replyDragState.currentValue) {
-            println("drag=${replyDragState.currentValue}")
             if (replyDragState.currentValue == MessageNodeDragAnchors.REPLY) {
                 // Reset drag state to allow future replies
                 delay(200)
@@ -279,7 +281,7 @@ fun MessageNode(
             Box(
                 modifier = Modifier
                     .padding(horizontal = CodeTheme.dimens.inset)
-                    .offset(x = -(replyDragState.offset.coerceAtMost(swipeThreshold).dp))
+                    .offset { IntOffset(x = -(replyDragState.offset.coerceAtMost(swipeThreshold).roundToInt()), y = 0) }
             ) {
                 val scope = rememberMessageNodeScope(
                     contents = contents,
@@ -402,13 +404,9 @@ fun MessageNode(
                 enter = fadeIn() + scaleIn(),
                 exit = scaleOut() + fadeOut(),
                 modifier = Modifier.align(Alignment.CenterEnd)
-                    .offset(
-                        x = with(density) {
-                            -replyDragState.offset
-                                .coerceAtMost(maxWidth.toPx())
-                                .toDp()
-                        }
-                    )
+                    .offset {
+                        IntOffset(x = -replyDragState.offset.coerceAtMost(maxWidth.toPx()).roundToInt(), y = 0)
+                    }
             ) {
                 Icon(
                     modifier = Modifier,
