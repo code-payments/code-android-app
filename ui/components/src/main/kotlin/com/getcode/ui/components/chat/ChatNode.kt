@@ -47,6 +47,7 @@ fun ChatNode(
     messagePreview: Pair<AnnotatedString, Map<String, InlineTextContent>>,
     titleTextStyle: TextStyle = CodeTheme.typography.textMedium,
     messageTextStyle: TextStyle = CodeTheme.typography.textMedium,
+    messageMinLines: Int = 2,
     timestamp: Long? = null,
     isMuted: Boolean = false,
     showMuteByTitle: Boolean = false,
@@ -153,6 +154,7 @@ fun ChatNode(
                     inlineContent = inlineContent,
                     style = messageTextStyle,
                     color = CodeTheme.colors.textSecondary,
+                    minLines = messageMinLines.coerceAtMost(2),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )

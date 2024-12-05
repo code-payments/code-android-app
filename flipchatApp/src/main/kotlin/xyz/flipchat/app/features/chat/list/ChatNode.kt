@@ -82,6 +82,7 @@ fun ChatNode(
             title = chat.title,
             messagePreview = chat.messagePreview,
             messageTextStyle = CodeTheme.typography.textSmall,
+            messageMinLines = 2,
             avatar = chat.imageUri ?: chat.id,
             avatarIconWhenFallback = {
                 Image(
