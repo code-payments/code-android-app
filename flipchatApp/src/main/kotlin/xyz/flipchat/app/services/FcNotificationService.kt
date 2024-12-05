@@ -11,10 +11,13 @@ import android.content.pm.PackageManager
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
+import com.getcode.model.ID
 import com.getcode.ui.components.chat.utils.localizedText
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.resources.ResourceType
@@ -33,17 +36,26 @@ import timber.log.Timber
 import xyz.flipchat.app.MainActivity
 import xyz.flipchat.app.R
 import xyz.flipchat.app.auth.AuthManager
+import xyz.flipchat.app.theme.FC_Primary
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.CodeController
 import xyz.flipchat.controllers.PushController
 import xyz.flipchat.notifications.FcNotificationType
 import xyz.flipchat.notifications.parse
 import xyz.flipchat.services.user.UserManager
+import java.security.SecureRandom
 import javax.inject.Inject
+import kotlin.random.Random
 
 @AndroidEntryPoint
 class FcNotificationService : FirebaseMessagingService(),
     CoroutineScope by CoroutineScope(Dispatchers.IO) {
+
+    companion object {
+        const val KEY_NOTIFICATION_ID = "key_notification_id"
+        const val KEY_TEXT_REPLY = "key_text_reply"
+        const val KEY_ROOM_ID = "key_room_id"
+    }
 
     @Inject
     lateinit var authManager: AuthManager
@@ -99,16 +111,9 @@ class FcNotificationService : FirebaseMessagingService(),
                         currencyUtils = currencyUtils
                     )
 
-                    when (type) {
-                        is FcNotificationType.ChatMessage -> {
-                            if (type.id != userManager.openRoom) {
-                                // only notify when not for current room
-                                notify(type, title, body)
-                            }
-                        }
-                        FcNotificationType.Unknown -> {
-                            notify(type, title, body)
-                        }
+                    val result = buildNotification(type, title, body)
+                    if (result != null) {
+                        notify(result.first, result.second, type)
                     }
                 }
 
@@ -123,11 +128,14 @@ class FcNotificationService : FirebaseMessagingService(),
                     FcNotificationType.Unknown -> Unit
                 }
             } else {
-                notify(
+                val result = buildNotification(
                     FcNotificationType.Unknown,
                     resources.getString(R.string.app_name),
                     "You have a new message."
                 )
+                if (result != null) {
+                    notify(result.first, result.second, FcNotificationType.Unknown)
+                }
             }
         }
     }
@@ -140,11 +148,11 @@ class FcNotificationService : FirebaseMessagingService(),
         }
     }
 
-    private fun notify(
+    private fun buildNotification(
         type: FcNotificationType,
         title: String,
         content: String,
-    ) {
+    ): Pair<Int, Notification>? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notificationManager.createNotificationChannel(
                 NotificationChannel(
@@ -155,6 +163,23 @@ class FcNotificationService : FirebaseMessagingService(),
             )
         }
 
+        if (type is FcNotificationType.ChatMessage && type.id == userManager.openRoom) {
+            return null
+        }
+
+        val (id, notification) = when (type) {
+            is FcNotificationType.ChatMessage -> buildChatNotification(type, title, content)
+            FcNotificationType.Unknown -> buildMiscNotification(type, title, content)
+        }
+
+        return id to notification.build()
+    }
+
+    private fun buildChatNotification(
+        type: FcNotificationType.ChatMessage,
+        title: String,
+        content: String
+    ): Pair<Int, NotificationCompat.Builder> {
         val sender = content.substringBefore(":")
         val messageBody = content.substringAfter(":")
         val person = Person.Builder()
@@ -167,10 +192,7 @@ class FcNotificationService : FirebaseMessagingService(),
             person
         )
 
-        val notificationId = when (type) {
-            is FcNotificationType.ChatMessage -> (type.id?.base58).hashCode()
-            FcNotificationType.Unknown -> title.hashCode()
-        }
+        val notificationId = type.id?.base58.hashCode()
 
         val style = notificationManager.getActiveNotification(notificationId)?.let {
             NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it)
@@ -180,21 +202,86 @@ class FcNotificationService : FirebaseMessagingService(),
 
         val updatedStyle = style.addMessage(message)
 
+        val replyAction = if (type.id != null) {
+            // build direct reply action
+            val replyLabel: String = resources.getString(R.string.action_reply)
+            val remoteInput: RemoteInput = RemoteInput.Builder(KEY_TEXT_REPLY).run {
+                setLabel(replyLabel)
+                build()
+            }
+
+            val resultIntent = Intent(applicationContext, FcNotificationReceiver::class.java).apply {
+                putExtra(KEY_ROOM_ID, type.id!!.base58)
+                putExtra(KEY_NOTIFICATION_ID, notificationId)
+            }
+
+            val replyPendingIntent: PendingIntent =
+                PendingIntent.getBroadcast(
+                    applicationContext,
+                    type.id.hashCode(),
+                    resultIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                )
+
+            NotificationCompat.Action.Builder(
+                R.drawable.ic_reply,
+                getString(R.string.action_reply),
+                replyPendingIntent
+            ).addRemoteInput(remoteInput).build()
+        } else {
+            null
+        }
+
         val notificationBuilder: NotificationCompat.Builder =
             NotificationCompat.Builder(this, type.name)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setStyle(updatedStyle)
                 .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
                 .setSmallIcon(R.drawable.ic_flipchat_notification)
+                .setColor(FC_Primary.toArgb())
                 .setAutoCancel(true)
                 .setContentIntent(buildContentIntent(type))
 
+        if (replyAction != null) {
+            notificationBuilder.addAction(replyAction)
+        }
+
+        return notificationId to notificationBuilder
+    }
+
+    private fun buildMiscNotification(
+        type: FcNotificationType,
+        title: String,
+        content: String
+    ): Pair<Int, NotificationCompat.Builder> {
+        val notificationBuilder: NotificationCompat.Builder =
+            NotificationCompat.Builder(this, type.name)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+                .setSmallIcon(R.drawable.ic_flipchat_notification)
+                .setColor(FC_Primary.toArgb())
+                .setAutoCancel(true)
+                .setContentTitle(title)
+                .setContentText(content)
+                .setContentIntent(buildContentIntent(type))
+
+        val random = SecureRandom()
+        val notificationId = random.nextInt(256)
+
+        return notificationId to notificationBuilder
+    }
+
+    private fun notify(
+        id: Int,
+        notification: Notification,
+        type: FcNotificationType,
+    ) {
         if (ActivityCompat.checkSelfPermission(
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            notificationManager.notify(notificationId, notificationBuilder.build())
+            notificationManager.notify(id, notification)
             trace(
                 tag = "Push",
                 message = "Push notification shown",
@@ -231,6 +318,7 @@ private fun Context.buildContentIntent(type: FcNotificationType): PendingIntent 
         is FcNotificationType.ChatMessage -> Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse("https://app.flipchat.xyz/room?r=${type.id?.base58}")
         }
+
         FcNotificationType.Unknown -> Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }

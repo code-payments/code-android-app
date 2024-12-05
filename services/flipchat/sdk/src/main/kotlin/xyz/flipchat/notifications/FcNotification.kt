@@ -19,17 +19,18 @@ sealed interface FcNotificationType {
     val ordinal: Int
     val name: String
 
-    data object Unknown: FcNotificationType {
+    sealed interface Notifiable
+    data object Unknown: FcNotificationType, Notifiable {
         override val ordinal: Int = 99
         override val name: String = "Misc"
     }
 
-    data class ChatMessage(val id: ID?): FcNotificationType {
+    data class ChatMessage(val id: ID?): FcNotificationType, Notifiable {
         override val ordinal: Int = 1
         override val name: String = "Chat Messages"
     }
 
-    fun isNotifiable() = true
+    fun isNotifiable() = this is Notifiable
 
     companion object {
         private const val TYPE = "type"

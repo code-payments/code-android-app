@@ -11,7 +11,7 @@
     <string name="action_payToChat">Send %1$s to Start Chatting</string>
     <string name="subtitle_loadingBalanceAndTransactions">Loading your balance and transaction history</string>
     <string name="subtitle_loadingChats">Loading your chats</string>
-    <string name="action_joinRoom">Join a Room</string>
+    <string name="action_joinRoom">Join Room</string>
 
     <string name="title_chat">Chat</string>
 
@@ -64,9 +64,9 @@
     <string name="title_cashTab">Balance</string>
     <string name="title_chatsTab">Chats</string>
     <string name="title_settingsTab">Settings</string>
-    <string name="action_enterRoomNumber">Enter a Room Number</string>
-    <string name="action_createNewRoom">Create a New Room</string>
-    <string name="title_joinRoom">Join a Room</string>
+    <string name="action_enterRoomNumber">Enter Room Number</string>
+    <string name="action_createNewRoom">Create New Room</string>
+    <string name="title_joinRoom">Join Room</string>
     <string name="title_changeCoverCharge">Change Cover Charge</string>
 
     <string name="action_joinRoomByName">Join %1$s</string>
@@ -151,5 +151,6 @@
     <string name="prompt_description_logout">You will need to enter your Access Key to get back into this account</string>
 
     <string name="joinRoomFromSpectating">Join Room: ⬢ %1$s</string>
+    <string name="action_reply">Reply</string>
 
 </resources>

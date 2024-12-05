@@ -116,6 +116,11 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name=".services.FcNotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_launcher_foreground" />
