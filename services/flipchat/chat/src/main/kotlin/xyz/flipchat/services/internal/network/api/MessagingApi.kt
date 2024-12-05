@@ -90,9 +90,6 @@ class MessagingApi @Inject constructor(
         val contentProto = when (content) {
             is OutgoingMessageContent.Text -> Model.Content.newBuilder()
                 .setText(Model.TextContent.newBuilder().setText(content.text))
-
-            is OutgoingMessageContent.Encrypted -> TODO()
-            is OutgoingMessageContent.LocalizedText -> TODO()
         }
 
         val request = MessagingService.SendMessageRequest.newBuilder()
