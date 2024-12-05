@@ -1,22 +1,29 @@
 package xyz.flipchat.services.user
 
+import com.bugsnag.android.Bugsnag
+import com.codeinc.gen.user.v1.user
 import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.generator.OrganizerGenerator
 import com.getcode.model.ID
+import com.getcode.model.uuid
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.solana.organizer.Organizer
+import com.getcode.utils.FormatUtils
+import com.getcode.utils.base58
+import com.getcode.utils.formatAmountString
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import xyz.flipchat.services.core.BuildConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
 sealed interface AuthState {
     data object Unknown : AuthState
     data object Unregistered : AuthState
-    data object LoggedInAwaitingUser: AuthState
+    data object LoggedInAwaitingUser : AuthState
     data object LoggedIn : AuthState
     data object LoggedOut : AuthState
 
@@ -85,6 +92,7 @@ class UserManager @Inject constructor(
         _state.update {
             it.copy(userId = userId)
         }
+        associate()
     }
 
     fun set(displayName: String) {
@@ -93,6 +101,7 @@ class UserManager @Inject constructor(
                 displayName = displayName
             )
         }
+        associate()
     }
 
     fun set(organizer: Organizer) {
@@ -105,6 +114,7 @@ class UserManager @Inject constructor(
         _state.update {
             it.copy(flags = userFlags)
         }
+        associate()
     }
 
     fun set(authState: AuthState) {
@@ -120,6 +130,21 @@ class UserManager @Inject constructor(
     fun roomClosed() {
         _state.update {
             it.copy(openRoom = null)
+        }
+    }
+
+    private fun associate() {
+        if (Bugsnag.isStarted() && !BuildConfig.DEBUG) {
+            Bugsnag.setUser(userId?.uuid?.toString(), null, displayName)
+            userFlags?.let { flags ->
+                Bugsnag.addMetadata(
+                    /* section = */ "userflags",
+                    /* value = */ mapOf(
+                        "isStaff" to flags.isStaff,
+                        "createCost" to FormatUtils.formatWholeRoundDown(flags.createCost.toKinValueDouble())
+                    )
+                )
+            }
         }
     }
 
