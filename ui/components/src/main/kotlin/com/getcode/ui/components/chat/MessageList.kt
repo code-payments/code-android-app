@@ -133,28 +133,26 @@ fun MessageList(
                         else -> CodeTheme.dimens.grid.x3
                     }
 
-                    val showTimestamp by remember(isPreviousGrouped, item, isNextGrouped) {
-                        derivedStateOf {
-                            // if the provided item requests the timestamp, then show it
-                            if (item.showTimestamp) return@derivedStateOf true
-                            // if not in a grouping, then always show a timestamp
-                            if (!isPreviousGrouped && !isNextGrouped) return@derivedStateOf true
-                            // If both previous and next are grouped, check minute boundary with next
-                            if (isPreviousGrouped && isNextGrouped) {
-                                val nextDate = next?.date
-                                if (nextDate != null && item.date.epochSeconds / 60 == nextDate.epochSeconds / 60) {
-                                    return@derivedStateOf false
-                                }
+                    val showTimestamp = remember(isPreviousGrouped, item, isNextGrouped) {
+                        // if the provided item requests the timestamp, then show it
+                        if (item.showTimestamp) return@remember true
+                        // if not in a grouping, then always show a timestamp
+                        if (!isPreviousGrouped && !isNextGrouped) return@remember true
+                        // If both previous and next are grouped, check minute boundary with next
+                        if (isPreviousGrouped && isNextGrouped) {
+                            val nextDate = next?.date
+                            if (nextDate != null && item.date.epochSeconds / 60 == nextDate.epochSeconds / 60) {
+                                return@remember false
                             }
-
-                            // Show timestamp only if this is the last message in the group
-                            val isLastInGroup = !isNextGrouped || next?.date?.let { nextDate ->
-                                nextDate.epochSeconds / 60 != item.date.epochSeconds / 60
-                            } ?: true
-
-                            // Show timestamp if it's the last in the group or breaks with the next
-                            return@derivedStateOf isLastInGroup
                         }
+
+                        // Show timestamp only if this is the last message in the group
+                        val isLastInGroup = !isNextGrouped || next?.date?.let { nextDate ->
+                            nextDate.epochSeconds / 60 != item.date.epochSeconds / 60
+                        } ?: true
+
+                        // Show timestamp if it's the last in the group or breaks with the next
+                        isLastInGroup
                     }
 
                     MessageNode(
