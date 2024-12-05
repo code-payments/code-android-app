@@ -21,12 +21,12 @@ sealed interface FcNotificationType {
 
     data object Unknown: FcNotificationType {
         override val ordinal: Int = 99
-        override val name: String = Unknown::class.simpleName!!
+        override val name: String = "Misc"
     }
 
     data class ChatMessage(val id: ID?): FcNotificationType {
         override val ordinal: Int = 1
-        override val name: String = ChatMessage::class.simpleName!!
+        override val name: String = "Chat Messages"
     }
 
     fun isNotifiable() = true

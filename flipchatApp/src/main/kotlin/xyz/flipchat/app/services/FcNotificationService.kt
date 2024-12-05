@@ -155,24 +155,28 @@ class FcNotificationService : FirebaseMessagingService(),
             )
         }
 
+        val sender = content.substringBefore(":")
+        val messageBody = content.substringAfter(":")
         val person = Person.Builder()
-            .setName(title)
+            .setName(sender)
             .build()
 
         val message = NotificationCompat.MessagingStyle.Message(
-            content,
+            messageBody,
             Clock.System.now().toEpochMilliseconds(),
             person
         )
 
         val notificationId = when (type) {
-            is FcNotificationType.ChatMessage -> (type.id?.base58 ?: title).hashCode()
+            is FcNotificationType.ChatMessage -> (type.id?.base58).hashCode()
             FcNotificationType.Unknown -> title.hashCode()
         }
 
         val style = notificationManager.getActiveNotification(notificationId)?.let {
             NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it)
-        } ?: NotificationCompat.MessagingStyle(person).setConversationTitle(title)
+        } ?: NotificationCompat.MessagingStyle(person)
+            .setConversationTitle(title)
+            .setGroupConversation(true)
 
         val updatedStyle = style.addMessage(message)
 
@@ -190,7 +194,7 @@ class FcNotificationService : FirebaseMessagingService(),
                 Manifest.permission.POST_NOTIFICATIONS
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            notificationManager.notify(title.hashCode(), notificationBuilder.build())
+            notificationManager.notify(notificationId, notificationBuilder.build())
             trace(
                 tag = "Push",
                 message = "Push notification shown",
