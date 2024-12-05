@@ -66,6 +66,7 @@ fun ChatNode(
         delay(400)
         muteContentState = chat.isMuted
     }
+
     SwipeToDismiss(
         state = dismissState,
         dismissThresholds = { FixedThreshold(150.dp) },
@@ -90,7 +91,8 @@ fun ChatNode(
                 )
             },
             timestamp = chat.lastMessage?.message?.dateMillis,
-            isMuted = false,
+            isMuted = muteContentState,
+            showMuteByTitle = true,
             isHost = chat.ownerId == userManager.userId,
             unreadCount = chat.unreadCount,
             onClick = onClick

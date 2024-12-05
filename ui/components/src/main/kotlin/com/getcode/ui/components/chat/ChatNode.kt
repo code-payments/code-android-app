@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.getcode.theme.CodeTheme
+import com.getcode.theme.White10
 import com.getcode.ui.components.Badge
 import com.getcode.ui.components.R
 import com.getcode.ui.utils.rememberedClickable
@@ -44,6 +46,7 @@ fun ChatNode(
     messagePreview: Pair<AnnotatedString, Map<String, InlineTextContent>>,
     timestamp: Long? = null,
     isMuted: Boolean = false,
+    showMuteByTitle: Boolean = false,
     isHost: Boolean = false,
     unreadCount: Int = 0,
     onClick: () -> Unit,
@@ -99,13 +102,24 @@ fun ChatNode(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = title,
                     maxLines = 1,
                     style = CodeTheme.typography.textMedium
                 )
+                if (isMuted && showMuteByTitle) {
+                    Icon(
+                        modifier = Modifier
+                            .padding(start = CodeTheme.dimens.grid.x1)
+                            .size(CodeTheme.dimens.staticGrid.x3),
+                        imageVector = Icons.AutoMirrored.Filled.VolumeOff,
+                        contentDescription = "chat is muted",
+                        tint = CodeTheme.colors.textSecondary
+                    )
+                }
+                Spacer(Modifier.weight(1f))
                 timestamp?.let {
                     val isToday = DateUtils.isToday(it)
                     Text(
@@ -115,7 +129,11 @@ fun ChatNode(
                             DateUtils.getDateRelatively(it)
                         },
                         style = CodeTheme.typography.textSmall,
-                        color = if (hasUnreadMessages) CodeTheme.colors.indicator else CodeTheme.colors.textSecondary,
+                        color = when {
+                            isMuted && showMuteByTitle -> CodeTheme.colors.textSecondary
+                            hasUnreadMessages -> CodeTheme.colors.indicator
+                            else -> CodeTheme.colors.textSecondary
+                        },
                     )
                 }
             }
@@ -135,7 +153,7 @@ fun ChatNode(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (isMuted) {
+                if (isMuted && !showMuteByTitle) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.VolumeOff,
                         contentDescription = "chat is muted",
@@ -146,7 +164,14 @@ fun ChatNode(
                         Modifier
                             .padding(end = CodeTheme.dimens.grid.x1),
                         count = unreadCount,
-                        color = CodeTheme.colors.indicator,
+                        color = when {
+                            isMuted -> White10
+                            else -> CodeTheme.colors.indicator
+                        },
+                        contentColor = when {
+                            isMuted -> CodeTheme.colors.background
+                            else -> Color.White
+                        }
                     )
                 }
             }
