@@ -53,6 +53,7 @@ fun ChatNode(
     showMuteByTitle: Boolean = false,
     isHost: Boolean = false,
     unreadCount: Int = 0,
+    showMoreUnread: Boolean = unreadCount > 99,
     onClick: () -> Unit,
 ) {
     Row(
@@ -169,6 +170,7 @@ fun ChatNode(
                         Modifier
                             .padding(end = CodeTheme.dimens.grid.x1),
                         count = unreadCount,
+                        showMoreUnread = showMoreUnread,
                         color = when {
                             isMuted -> White10
                             else -> CodeTheme.colors.indicator

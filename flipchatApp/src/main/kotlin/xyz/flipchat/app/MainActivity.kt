@@ -26,7 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.bmcreations.tipkit.engines.TipsEngine
 import dev.theolm.rinku.RinkuInit
 import dev.theolm.rinku.compose.ext.Rinku
-import xyz.flipchat.app.data.BetaFeatures
+import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.app.features.home.HomeViewModel
 import xyz.flipchat.app.ui.LocalBetaFeatures
 import xyz.flipchat.app.util.Router
@@ -63,7 +63,7 @@ class MainActivity : FragmentActivity() {
     lateinit var paymentController: PaymentController
 
     @Inject
-    lateinit var betaFeatures: BetaFeatures
+    lateinit var betaFeatures: BetaFlags
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

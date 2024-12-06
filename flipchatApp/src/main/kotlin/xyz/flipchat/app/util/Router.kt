@@ -8,8 +8,19 @@ import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.vendor.Base58
 import dev.theolm.rinku.DeepLink
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import xyz.flipchat.app.features.home.tabs.CashTab
+import xyz.flipchat.app.features.home.tabs.ChatTab
+import xyz.flipchat.app.features.home.tabs.SettingsTab
+import xyz.flipchat.services.user.UserManager
 
 interface Router {
+    fun checkTabs()
     val rootTabs: List<ChildNavTab>
     fun getInitialTabIndex(deeplink: DeepLink?): Int
     fun processDestination(deeplink: DeepLink?): List<Screen>
@@ -27,10 +38,10 @@ sealed interface DeeplinkType {
 }
 
 class RouterImpl(
-    override val rootTabs: List<ChildNavTab>,
+    private val userManager: UserManager,
     private val tabIndexResolver: (FcTab) -> Int,
     private val indexTabResolver: (Int) -> FcTab,
-) : Router {
+) : Router, CoroutineScope by CoroutineScope(Dispatchers.IO) {
     companion object {
         val chats = listOf("chats")
         val cash = listOf("cash")
@@ -41,6 +52,26 @@ class RouterImpl(
     }
 
     override fun tabForIndex(index: Int) = indexTabResolver(index)
+
+    private val commonTabs = listOf(ChatTab, CashTab)
+    private val tabs = MutableStateFlow(commonTabs)
+
+    override fun checkTabs() {
+        launch {
+            tabs.value = userManager.state
+                .map { it.flags }
+                .map {
+                    if (it?.isStaff == true) {
+                        commonTabs + SettingsTab
+                    } else {
+                        commonTabs
+                    }
+                }.firstOrNull() ?: commonTabs
+        }
+    }
+
+    override val rootTabs: List<ChildNavTab>
+        get() = tabs.value
 
     override fun getInitialTabIndex(deeplink: DeepLink?): Int {
         return deeplink?.let {

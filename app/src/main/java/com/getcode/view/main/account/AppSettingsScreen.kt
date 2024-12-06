@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.getcode.services.model.PrefsBool
-import com.getcode.ui.components.SettingsRow
+import com.getcode.ui.components.SettingsSwitchRow
 import com.getcode.util.Biometrics
 import kotlinx.coroutines.launch
 
@@ -27,7 +27,7 @@ fun AppSettingsScreen(
     LazyColumn {
         items(state.settings) { option ->
             if (option.visible) {
-                SettingsRow(
+                SettingsSwitchRow(
                     modifier = Modifier.animateItemPlacement(),
                     enabled = option.available,
                     title = stringResource(id = option.name),

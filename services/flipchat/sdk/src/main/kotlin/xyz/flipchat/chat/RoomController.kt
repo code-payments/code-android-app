@@ -25,12 +25,14 @@ import xyz.flipchat.internal.db.FcAppDatabase
 import xyz.flipchat.notifications.getRoomNotifications
 import xyz.flipchat.services.data.ChatIdentifier
 import xyz.flipchat.services.domain.mapper.ConversationMessageWithContentMapper
+import xyz.flipchat.services.domain.model.chat.ConversationMember
 import xyz.flipchat.services.domain.model.chat.ConversationMessageWithContentAndMember
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 
 class RoomController @Inject constructor(
@@ -39,12 +41,17 @@ class RoomController @Inject constructor(
     private val conversationMemberMapper: ConversationMemberMapper,
     private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
     private val notificationManager: NotificationManagerCompat,
+    private val userManager: UserManager,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
 
     fun observeConversation(id: ID): Flow<ConversationWithMembersAndLastPointers?> {
         return db.conversationDao().observeConversation(id)
+    }
+
+    fun observeMembersIn(id: ID): Flow<List<ConversationMember>> {
+        return db.conversationMembersDao().observeMembersIn(id)
     }
 
     suspend fun getConversation(identifier: ID): ConversationWithMembersAndLastPointers? {
@@ -154,6 +161,17 @@ class RoomController @Inject constructor(
 
     suspend fun onUserStoppedTypingIn(conversationId: ID) {
         messagingRepository.onStoppedTyping(conversationId)
+    }
+
+    suspend fun endPreviewIfLurking(conversationId: ID) {
+        userManager.userId?.let {
+            val isMember = db.conversationDao().isUserMemberIn(it, conversationId)
+            if (!isMember) {
+                db.conversationDao().deleteConversationById(conversationId)
+                db.conversationMembersDao().removeMembersFrom(conversationId)
+                db.conversationMessageDao().removeForConversation(conversationId)
+            }
+        }
     }
 
     suspend fun leaveRoom(conversationId: ID): Result<Unit> {

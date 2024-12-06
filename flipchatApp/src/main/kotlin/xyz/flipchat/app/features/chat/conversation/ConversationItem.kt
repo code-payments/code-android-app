@@ -16,5 +16,9 @@ data class ConversationMessageIndice(
 sealed interface ChattableState {
     data object Enabled: ChattableState
     data object DisabledByMute: ChattableState
+    data object Lurker: ChattableState
     data class Spectator(val cover: KinAmount): ChattableState
+
+    fun isMember() = this !is Lurker
+    fun isActiveMember() = this is Enabled || this is DisabledByMute
 }

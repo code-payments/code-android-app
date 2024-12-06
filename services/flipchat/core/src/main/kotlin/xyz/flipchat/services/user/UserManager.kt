@@ -1,7 +1,6 @@
 package xyz.flipchat.services.user
 
 import com.bugsnag.android.Bugsnag
-import com.codeinc.gen.user.v1.user
 import com.getcode.crypt.DerivedKey
 import com.getcode.ed25519.Ed25519.KeyPair
 import com.getcode.generator.OrganizerGenerator
@@ -10,8 +9,6 @@ import com.getcode.model.uuid
 import com.getcode.services.manager.MnemonicManager
 import com.getcode.solana.organizer.Organizer
 import com.getcode.utils.FormatUtils
-import com.getcode.utils.base58
-import com.getcode.utils.formatAmountString
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,13 +71,12 @@ class UserManager @Inject constructor(
         val openRoom: ID? = null,
     )
 
-    fun establish(entropy: String, isNew: Boolean) {
+    fun establish(entropy: String) {
         val mnemonic = mnemonicManager.fromEntropyBase64(entropy)
         val authority = DerivedKey.derive(com.getcode.crypt.DerivePath.primary, mnemonic)
         val organizer = organizerGenerator.generate(mnemonic)
         _state.update {
             it.copy(
-                authState = if (isNew) AuthState.Unregistered else AuthState.LoggedInAwaitingUser,
                 entropy = entropy,
                 keyPair = authority.keyPair,
                 organizer = organizer

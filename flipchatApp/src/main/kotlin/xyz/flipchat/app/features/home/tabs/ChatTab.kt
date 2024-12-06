@@ -33,7 +33,6 @@ import cafe.adriel.voyager.navigator.tab.TabOptions
 import com.getcode.manager.BottomBarManager
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
-import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.ChildNavTab
 import com.getcode.theme.Black40
 import com.getcode.theme.CodeTheme
@@ -45,6 +44,7 @@ import com.getcode.ui.utils.getActivity
 import com.getcode.ui.utils.noRippleClickable
 import com.getcode.ui.utils.rememberedClickable
 import com.getcode.ui.utils.unboundedClickable
+import kotlinx.parcelize.IgnoredOnParcel
 import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.list.ChatListViewModel
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
@@ -53,6 +53,7 @@ import xyz.flipchat.app.features.settings.SettingsViewModel
 
 internal object ChatTab : ChildNavTab {
 
+    @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     override val ordinal: Int = 0

@@ -228,6 +228,8 @@ dependencies {
     implementation(Libs.androidx_room_paging)
     kapt(Libs.androidx_room_compiler)
 
+    implementation(Libs.androidx_datastore)
+
     implementation(Libs.markwon_core)
     implementation(Libs.markwon_linkify)
     implementation(Libs.markwon_ext_strikethrough)

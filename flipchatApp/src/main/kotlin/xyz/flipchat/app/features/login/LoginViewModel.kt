@@ -4,32 +4,55 @@ import androidx.lifecycle.viewModelScope
 import com.getcode.manager.TopBarManager
 import com.getcode.view.BaseViewModel2
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import xyz.flipchat.app.auth.AuthManager
+import xyz.flipchat.app.beta.BetaFlag
+import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.app.features.login.register.onResult
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authManager: AuthManager,
+    betaFlags: BetaFlags,
 ) : BaseViewModel2<LoginViewModel.State, LoginViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
 ) {
-
     data class State(
+        val followerModeEnabled: Boolean = false,
         val creatingAccount: Boolean = false,
+        val logoTapCount: Int = 0,
+        val betaOptionsVisible: Boolean = false,
     )
 
     sealed interface Event {
+        data object OnLogoTapped: Event
+        data object BetaOptionsUnlocked: Event
+        data class OnFollowerModeEnabled(val enabled: Boolean): Event
         data object CreateAccount: Event
         data object OnAccountCreated: Event
         data object CreateFailed: Event
     }
 
     init {
+        betaFlags.observe(BetaFlag.FollowerMode)
+            .onEach { dispatchEvent(Event.OnFollowerModeEnabled(it)) }
+            .launchIn(viewModelScope)
+
+        eventFlow
+            .filterIsInstance<Event.OnLogoTapped>()
+            .map { stateFlow.value.logoTapCount }
+            .filter { it >= TAP_THRESHOLD }
+            .filterNot { stateFlow.value.betaOptionsVisible }
+            .onEach { dispatchEvent(Event.BetaOptionsUnlocked) }
+            .launchIn(viewModelScope)
+
         eventFlow
             .filterIsInstance<Event.CreateAccount>()
             .map { authManager.createAccount() }
@@ -51,11 +74,18 @@ class LoginViewModel @Inject constructor(
     }
 
     internal companion object {
+        private const val TAP_THRESHOLD = 6
         val updateStateForEvent: (Event) -> ((State) -> State) = { event ->
             when (event) {
                 Event.CreateAccount -> { state -> state.copy(creatingAccount = true) }
                 Event.OnAccountCreated -> { state -> state.copy(creatingAccount = false) }
                 Event.CreateFailed -> { state -> state.copy(creatingAccount = false) }
+                is Event.OnFollowerModeEnabled -> { state -> state.copy(followerModeEnabled = event.enabled) }
+                is Event.BetaOptionsUnlocked -> { state -> state.copy(betaOptionsVisible = true) }
+                is Event.OnLogoTapped -> { state ->
+                    if (state.logoTapCount >= TAP_THRESHOLD) state
+                    else state.copy(logoTapCount = state.logoTapCount + 1)
+                }
             }
         }
     }

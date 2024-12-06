@@ -4,7 +4,7 @@
 
     <string name="action_nevermind">Nevermind</string>
 
-    <string name="action_startChatting">Start Chatting</string>
+    <string name="action_getStarted">Get Started</string>
 
     <string name="login_description_byTapping">By tapping \"Create an Account\" you</string>
 
@@ -27,6 +27,9 @@
 
     <string name="error_title_failedToJoinRoom">Something Went Wrong</string>
     <string name="error_description_failedToJoinRoom">You were unable to join %1$s at this time. Please try again later</string>
+
+    <string name="error_title_failedToFollowRoom">Something Went Wrong</string>
+    <string name="error_description_failedToFollowRoom">You were unable to follow %1$s at this time. Please try again later</string>
 
     <string name="error_title_failedToLookupPaymentDestination">Something Went Wrong</string>
     <string name="error_description_failedToLookupPaymentDestination">You were unable to get payment information at this time. Please try again later</string>
@@ -62,10 +65,11 @@
     <string name="subtitle_linkingTwitterToLogin">%1$s I’d like to connect my X</string>
     <string name="action_messageToConnect">Message %1$s to Connect</string>
     <string name="title_cashTab">Balance</string>
-    <string name="title_chatsTab">Chats</string>
+    <string name="title_chatsTab">Rooms</string>
     <string name="title_settingsTab">Settings</string>
     <string name="action_enterRoomNumber">Enter Room Number</string>
     <string name="action_createNewRoom">Create New Room</string>
+    <string name="title_lookupRoom">Enter Room Number</string>
     <string name="title_joinRoom">Join Room</string>
     <string name="title_changeCoverCharge">Change Cover Charge</string>
 
@@ -153,4 +157,5 @@
     <string name="joinRoomFromSpectating">Join Room: ⬢ %1$s</string>
     <string name="action_reply">Reply</string>
 
+    <string name="title_betaFlags">Beta Flags</string>
 </resources>

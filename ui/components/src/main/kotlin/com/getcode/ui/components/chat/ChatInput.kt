@@ -46,6 +46,8 @@ import com.getcode.ui.utils.rememberedClickable
 @Composable
 fun ChatInput(
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    hint: String = "",
     state: TextFieldState = rememberTextFieldState(),
     focusRequester: FocusRequester = remember { FocusRequester() },
     sendCashEnabled: Boolean = false,
@@ -90,7 +92,9 @@ fun ChatInput(
                 .weight(1f)
                 .focusRequester(focusRequester),
             minHeight = 40.dp,
+            enabled = enabled,
             state = state,
+            placeholder = hint,
             shape = CodeTheme.shapes.extraLarge,
             keyboardOptions = KeyboardOptions.Default.copy(
                 capitalization = KeyboardCapitalization.Sentences

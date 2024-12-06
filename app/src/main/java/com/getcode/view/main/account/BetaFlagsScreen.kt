@@ -19,7 +19,7 @@ import com.getcode.network.repository.BetaOptions
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
-import com.getcode.ui.components.SettingsRow
+import com.getcode.ui.components.SettingsSwitchRow
 import dev.bmcreations.tipkit.engines.LocalTipsEngine
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -148,7 +148,7 @@ fun BetaFlagsScreen(
 
     LazyColumn {
         items(options) { option ->
-            SettingsRow(
+            SettingsSwitchRow(
                 modifier = Modifier.animateItemPlacement(),
                 title = stringResource(id = option.titleResId),
                 subtitle = option.subtitleText,

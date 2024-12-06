@@ -30,6 +30,8 @@ data class Conversation(
     val canMute: Boolean,
     val unreadCount: Int,
     val coverChargeQuarks: Long?,
+    @ColumnInfo(defaultValue = "false")
+    val hasMoreUnread: Boolean,
 ) {
     @Ignore
     val id: ID = Base58.decode(idBase58).toList()
@@ -95,6 +97,8 @@ data class ConversationWithMembersAndLastMessage(
         get() = conversation.canMute
     val unreadCount: Int
         get() = conversation.unreadCount
+    val hasMoreUnread: Boolean
+        get() = conversation.hasMoreUnread
 
     val ownerId: ID?
         get() = conversation.ownerId

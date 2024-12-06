@@ -1,6 +1,5 @@
 package xyz.flipchat.services.internal.db
 
-import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
@@ -59,6 +58,34 @@ interface ConversationDao {
 
     @Query("SELECT * FROM conversations")
     suspend fun queryConversations(): List<Conversation>
+
+    @Query("""
+        DELETE FROM conversations 
+        WHERE idBase58 NOT IN (
+            SELECT conversationIdBase58
+            FROM members 
+            WHERE idBase58 = :id
+)
+    """)
+    suspend fun removeConversationsWhereNotMember(id: String)
+    suspend fun removeConversationsWhereNotMember(id: ID) {
+        removeConversationsWhereNotMember(id.base58)
+    }
+
+    @Query("""
+    SELECT EXISTS (
+        SELECT 1 FROM conversations 
+        WHERE idBase58 NOT IN (
+            SELECT conversationIdBase58
+            FROM members 
+            WHERE idBase58 = :userId
+        ) AND idBase58 = :conversationId
+    )
+    """)
+    suspend fun isUserMemberIn(userId: String, conversationId: String): Boolean
+    suspend fun isUserMemberIn(userId: ID, conversationId: ID): Boolean {
+        return isUserMemberIn(userId.base58, conversationId.base58)
+    }
 
     @Delete
     fun deleteConversation(conversation: Conversation)

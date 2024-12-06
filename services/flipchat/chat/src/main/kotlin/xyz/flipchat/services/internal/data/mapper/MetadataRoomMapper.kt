@@ -18,6 +18,7 @@ class MetadataRoomMapper @Inject constructor(
             roomNumber = from.roomNumber,
             type = ChatType.entries[from.type.ordinal],
             unread = from.numUnread,
+            moreUnread = from.hasMoreUnread,
             canDisablePush = from.canDisablePush,
             isPushEnabled = from.isPushEnabled,
             coverCharge = Kin.fromQuarks(from.coverCharge.quarks.ifZeroOrElse(200) { it / 100_000 }),

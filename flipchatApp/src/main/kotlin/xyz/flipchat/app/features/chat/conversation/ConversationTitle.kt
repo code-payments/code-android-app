@@ -58,8 +58,17 @@ internal fun ConversationTitle(
                 state.members
             }
 
+
             Text(
-                text = pluralStringResource(R.plurals.title_conversationMemberCount, memberCount, memberCount),
+                text = if (memberCount != null) {
+                    pluralStringResource(
+                        R.plurals.title_conversationMemberCount,
+                        memberCount,
+                        memberCount
+                    )
+                } else {
+                    ""
+                },
                 style = CodeTheme.typography.caption,
                 color = CodeTheme.colors.textSecondary,
             )

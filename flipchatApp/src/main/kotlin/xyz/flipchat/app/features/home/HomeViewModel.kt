@@ -7,17 +7,20 @@ import com.getcode.util.resources.ResourceHelper
 import com.getcode.utils.TraceType
 import com.getcode.utils.trace
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.controllers.CodeController
+import xyz.flipchat.controllers.ProfileController
 import xyz.flipchat.services.user.AuthState
 import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
@@ -26,10 +29,15 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val codeController: CodeController,
     private val chatsController: ChatsController,
+    private val profileController: ProfileController,
     private val userManager: UserManager,
     val router: Router,
     val resources: ResourceHelper,
 ) : ViewModel() {
+
+    val isLoggedIn = userManager.state.map { it.authState }.filterIsInstance<AuthState.LoggedIn>()
+        .map { true }
+        .stateIn(viewModelScope, started = SharingStarted.Eagerly, false)
 
     init {
         userManager.state
@@ -40,7 +48,19 @@ class HomeViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    fun requestAirdrop() {
+    fun onAppOpen() {
+        getUpdatedUserFlags()
+        openStream()
+        requestAirdrop()
+    }
+
+    private fun getUpdatedUserFlags() {
+        viewModelScope.launch {
+            profileController.getUserFlags()
+        }
+    }
+
+    private fun requestAirdrop() {
         if (userManager.authState is AuthState.LoggedIn) {
             viewModelScope.launch {
                 codeController.fetchBalance()

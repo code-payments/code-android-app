@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.take
 import xyz.flipchat.app.R
-import xyz.flipchat.app.data.BetaFeatures
 import xyz.flipchat.app.data.RoomInfo
 import xyz.flipchat.app.features.login.register.onResult
 import xyz.flipchat.controllers.ChatsController

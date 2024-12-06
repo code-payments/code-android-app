@@ -31,11 +31,9 @@ class ProfileController @Inject constructor(
 
     suspend fun getUserFlags(): Result<UserFlags?> {
         return accountRepository.getUserFlags()
-            .recoverCatching { userManager.userFlags }
             .onSuccess {
-                if (it != null) {
-                    userManager.set(userFlags = it)
-                }
+                println(it)
+                userManager.set(userFlags = it)
             }
     }
 }

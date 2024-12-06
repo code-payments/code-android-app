@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalFoundationApi::class)
-
 package xyz.flipchat.app.features.chat.conversation
 
 import android.os.Parcelable
@@ -16,7 +14,6 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +31,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Clear
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -103,7 +99,11 @@ data class ConversationScreen(
 
         val messages = vm.messages.collectAsLazyPagingItems()
 
-        val goBack = { navigator.popUntil { it is TabbedHomeScreen } }
+        val goBack = {
+            navigator.popUntil { it is TabbedHomeScreen }
+        }
+
+        BackHandler { goBack() }
 
         OnLifecycleEvent { _, event ->
             when (event) {
@@ -132,14 +132,16 @@ data class ConversationScreen(
                     AppBarDefaults.UpNavigation { goBack() }
                 },
                 rightContents = {
-                    AppBarDefaults.Overflow {
-                        navigator.push(
-                            ScreenRegistry.get(
-                                NavScreenProvider.Chat.Info(
-                                    state.roomInfoArgs
+                    if (state.chattableState.isMember()) {
+                        AppBarDefaults.Overflow {
+                            navigator.push(
+                                ScreenRegistry.get(
+                                    NavScreenProvider.Chat.Info(
+                                        state.roomInfoArgs
+                                    )
                                 )
                             )
-                        )
+                        }
                     }
                 }
             )
@@ -148,10 +150,6 @@ data class ConversationScreen(
                 messages = messages,
                 dispatchEvent = vm::dispatchEvent
             )
-        }
-
-        BackHandler {
-            goBack()
         }
 
         LaunchedEffect(vm) {
@@ -233,7 +231,7 @@ private fun ConversationScreenContent(
 
                 Column(
                     modifier = Modifier
-                        .addIf(state.chattableState !is ChattableState.Spectator) {
+                        .addIf(state.chattableState.isActiveMember()) {
                             Modifier.withTopBorder(color = CodeTheme.colors.dividerVariant)
                         }
                 ) {
@@ -296,10 +294,9 @@ private fun ConversationScreenContent(
                     }
 
                     ConversationChatInput(
-                        state.chattableState,
-                        state.textFieldState,
-                        focusRequester,
-                        dispatchEvent
+                        state = state,
+                        focusRequester = focusRequester,
+                        dispatchEvent = dispatchEvent
                     )
                 }
             }

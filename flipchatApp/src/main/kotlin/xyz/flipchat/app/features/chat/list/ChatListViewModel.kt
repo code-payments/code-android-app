@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
@@ -34,7 +35,6 @@ import xyz.flipchat.services.data.StartGroupChatPaymentMetadata
 import xyz.flipchat.services.data.erased
 import xyz.flipchat.services.data.typeUrl
 import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastMessage
-import xyz.flipchat.services.user.AuthState
 import javax.inject.Inject
 
 @HiltViewModel
@@ -185,11 +185,21 @@ class ChatListViewModel @Inject constructor(
     }
 
     val chats: Flow<PagingData<ConversationWithMembersAndLastMessage>> =
-        chatsController.chats.flow.filter { userManager.authState.canOpenChatStream() }
+        userManager.state
+            .map { it.authState }
+            .map { it.canOpenChatStream() }
+            .distinctUntilChanged()
+            .flatMapLatest { canOpen ->
+                if (canOpen) {
+                    chatsController.chats.flow
+                } else {
+                    flowOf(PagingData.empty())
+                }
+            }
             .cachedIn(viewModelScope)
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
+                started = SharingStarted.Eagerly,
                 initialValue = PagingData.empty()
             )
 

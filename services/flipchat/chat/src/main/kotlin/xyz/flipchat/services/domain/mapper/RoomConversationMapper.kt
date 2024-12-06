@@ -18,6 +18,7 @@ class RoomConversationMapper @Inject constructor(
             title = from.titleOrFallback(resources),
             imageUri = from.imageData,
             unreadCount = from.unreadCount,
+            hasMoreUnread = from.hasMoreUnread,
             isMuted = from.isMuted,
             canMute = from.canMute,
             roomNumber = from.roomNumber,

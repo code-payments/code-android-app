@@ -10,11 +10,8 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.paging.util.ThreadSafeInvalidationObserver
 import com.getcode.model.ID
-import com.getcode.model.chat.ChatMessage
-import com.getcode.model.uuid
 import com.getcode.utils.TraceType
 import com.getcode.utils.base58
-import com.getcode.utils.timestamp
 import com.getcode.utils.trace
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +29,7 @@ import xyz.flipchat.services.domain.model.query.QueryOptions
 import xyz.flipchat.services.internal.data.mapper.ConversationMemberMapper
 import xyz.flipchat.services.internal.network.repository.chat.ChatRepository
 import xyz.flipchat.services.internal.network.repository.messaging.MessagingRepository
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,6 +40,7 @@ class ChatsController @Inject constructor(
     private val conversationMessageWithContentMapper: ConversationMessageWithContentMapper,
     private val chatRepository: ChatRepository,
     private val messagingRepository: MessagingRepository,
+    private val userManager: UserManager,
 ) {
     private val db: FcAppDatabase
         get() = FcAppDatabase.requireInstance()
@@ -146,6 +145,13 @@ class ChatsController @Inject constructor(
 
     suspend fun lookupRoom(roomNumber: Long): Result<RoomWithMembers> {
         return chatRepository.getChat(identifier = ChatIdentifier.RoomNumber(roomNumber))
+    }
+
+    suspend fun previewRoom(room: RoomWithMembers) {
+        db.conversationDao().upsertConversations(conversationMapper.map(room.room))
+        val members = room.members.map { conversationMemberMapper.map(room.room.id to it) }
+        db.conversationMessageDao().clearMessagesForChat(room.room.id)
+        db.conversationMembersDao().upsertMembers(*members.toTypedArray())
     }
 
     suspend fun createDirectMessage(recipient: ID): Result<RoomWithMembers> {

@@ -38,7 +38,6 @@ import com.getcode.ui.utils.keyboardAsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.flipchat.app.R
-import xyz.flipchat.app.ui.LocalBetaFeatures
 import xyz.flipchat.app.util.dialNumber
 
 @OptIn(ExperimentalMaterialApi::class)
@@ -120,9 +119,8 @@ internal fun ConversationMessages(
         )
 
 
-        val betaFeatures = LocalBetaFeatures.current
-        val canJumpToBottom by remember(lazyListState, betaFeatures) {
-            derivedStateOf { lazyListState.canScrollBackward &&  betaFeatures.jumpToBottom }
+        val canJumpToBottom by remember(lazyListState) {
+            derivedStateOf { lazyListState.canScrollBackward }
         }
 
         val alpha by animateFloatAsState(

@@ -28,6 +28,7 @@ data class Room(
     private val canDisablePush: Boolean,
     private val isPushEnabled: Boolean,
     private val unread: Int,
+    private val moreUnread: Boolean,
     @Serializable(with = KinQuarksSerializer::class)
     val coverCharge: Kin,
     private val lastActive: Long?,
@@ -50,6 +51,11 @@ data class Room(
     val unreadCount: Int
         get() {
             return unread
+        }
+
+    val hasMoreUnread: Boolean
+        get() {
+            return moreUnread
         }
 
     val canMute: Boolean

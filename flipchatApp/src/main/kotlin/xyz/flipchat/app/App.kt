@@ -45,8 +45,7 @@ fun App(
     OnLifecycleEvent { _, event ->
         when (event) {
             Lifecycle.Event.ON_RESUME -> {
-                homeViewModel.openStream()
-                homeViewModel.requestAirdrop()
+                homeViewModel.onAppOpen()
             }
             Lifecycle.Event.ON_STOP,
             Lifecycle.Event.ON_DESTROY -> {

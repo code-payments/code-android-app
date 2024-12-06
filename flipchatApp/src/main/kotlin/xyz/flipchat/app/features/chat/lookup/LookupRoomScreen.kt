@@ -39,13 +39,13 @@ import kotlinx.parcelize.Parcelize
 import xyz.flipchat.app.ui.AmountWithKeypad
 
 @Parcelize
-data object LookupRoomScreen : Screen, NamedScreen, Parcelable {
+class LookupRoomScreen : Screen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
 
     override val name: String
-        @Composable get() = stringResource(R.string.title_joinRoom)
+        @Composable get() = stringResource(R.string.title_lookupRoom)
 
     @Composable
     override fun Content() {

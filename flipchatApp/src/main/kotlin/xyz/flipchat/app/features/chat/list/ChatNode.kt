@@ -97,6 +97,7 @@ fun ChatNode(
             showMuteByTitle = true,
             isHost = chat.ownerId == userManager.userId,
             unreadCount = chat.unreadCount,
+            showMoreUnread = chat.hasMoreUnread,
             onClick = onClick
         )
     }

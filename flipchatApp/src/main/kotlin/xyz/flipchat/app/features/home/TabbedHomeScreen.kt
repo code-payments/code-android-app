@@ -18,6 +18,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,6 +72,8 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
 
         val codeNavigator = LocalCodeNavigator.current
 
+        val isLoggedIn by viewModel.isLoggedIn.collectAsState()
+
         //We are obtaining deep link here, in case we want to allow for some amount of deep linking when not
         //authenticated. Currently we will require authentication to see anything, but can be changed in future.
         var deepLink by remember(deeplink) { mutableStateOf(deeplink) }
@@ -109,6 +112,7 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
         OnLifecycleEvent { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
+                    router.checkTabs()
                     viewModel.openStream()
                 }
                 else -> Unit
@@ -141,47 +145,49 @@ class TabbedHomeScreen(private val deeplink: @RawValue DeepLink?) : Screen, Parc
                 ) {
                     CurrentTab()
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .withTopBorder()
-                ) {
-                    router.rootTabs.fastForEach { tab ->
-                        val backgroundColor by animateColorAsState(
-                            if (tabNavigator.current.options.index == tab.options.index) CodeTheme.colors.brandSubtle else CodeTheme.colors.surface,
-                            label = "selected tab color"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .background(backgroundColor)
-                                .weight(1f)
-                                .clickable { tabNavigator.current = tab }
-                                .navigationBarsPadding(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
+                if (isLoggedIn) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .withTopBorder()
+                    ) {
+                        router.rootTabs.fastForEach { tab ->
+                            val backgroundColor by animateColorAsState(
+                                if (tabNavigator.current.options.index == tab.options.index) CodeTheme.colors.brandSubtle else CodeTheme.colors.surface,
+                                label = "selected tab color"
+                            )
+                            Box(
                                 modifier = Modifier
-                                    .padding(
-                                        top = CodeTheme.dimens.grid.x2,
-                                        bottom = 0.dp
-                                    ),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(
-                                    CodeTheme.dimens.grid.x1,
-                                    Alignment.CenterVertically
-                                )
+                                    .background(backgroundColor)
+                                    .weight(1f)
+                                    .clickable { tabNavigator.current = tab }
+                                    .navigationBarsPadding(),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Image(
-                                    modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
-                                    painter = tab.options.icon!!,
-                                    contentDescription = null,
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .padding(
+                                            top = CodeTheme.dimens.grid.x2,
+                                            bottom = 0.dp
+                                        ),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(
+                                        CodeTheme.dimens.grid.x1,
+                                        Alignment.CenterVertically
+                                    )
+                                ) {
+                                    Image(
+                                        modifier = Modifier.size(CodeTheme.dimens.staticGrid.x6),
+                                        painter = tab.options.icon!!,
+                                        contentDescription = null,
+                                    )
 
-                                Text(
-                                    text = tab.options.title,
-                                    style = CodeTheme.typography.textSmall,
-                                    color = White
-                                )
+                                    Text(
+                                        text = tab.options.title,
+                                        style = CodeTheme.typography.textSmall,
+                                        color = White
+                                    )
+                                }
                             }
                         }
                     }

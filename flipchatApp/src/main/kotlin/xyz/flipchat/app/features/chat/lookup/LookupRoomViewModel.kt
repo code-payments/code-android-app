@@ -17,9 +17,11 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import xyz.flipchat.app.data.BetaFeatures
+import xyz.flipchat.app.beta.BetaFlag
+import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.controllers.ChatsController
 import xyz.flipchat.services.data.Room
+import xyz.flipchat.services.data.RoomWithMembers
 import xyz.flipchat.services.extensions.titleOrFallback
 import javax.inject.Inject
 
@@ -27,7 +29,7 @@ import javax.inject.Inject
 class LookupRoomViewModel @Inject constructor(
     chatsController: ChatsController,
     resources: ResourceHelper,
-    betaFeatures: BetaFeatures,
+    betaFeatures: BetaFlags,
 ) : BaseViewModel2<LookupRoomViewModel.State, LookupRoomViewModel.Event>(
     initialState = State(),
     updateStateForEvent = updateStateForEvent
@@ -40,6 +42,7 @@ class LookupRoomViewModel @Inject constructor(
         val amountAnimatedModel: AmountAnimatedInputUiModel = AmountAnimatedInputUiModel(
             amountData = NumberInputHelper.AmountAnimatedData("")
         ),
+        val joinAsFollower: Boolean = false,
         val canLookup: Boolean = false,
     )
 
@@ -49,15 +52,20 @@ class LookupRoomViewModel @Inject constructor(
         data object OnBackspace : Event
         data class OnEnteredNumberChanged(val backspace: Boolean = false) : Event
         data class OnRoomNumberChanged(val animatedInputUiModel: AmountAnimatedInputUiModel) : Event
+        data class OnFollowerFlagChanged(val enabled: Boolean): Event
         data object OnLookupRoom : Event
         data object OnRoomFound : Event
-        data class JoinAsSpectator(val room: Room) : Event
+        data class PreviewRoom(val room: RoomWithMembers) : Event
         data class OnOpenConfirmation(val args: RoomInfoArgs) : Event
         data class OpenExistingRoom(val roomId: ID) : Event
     }
 
     init {
         numberInputHelper.reset()
+
+        betaFeatures.observe(BetaFlag.FollowerMode)
+            .onEach { dispatchEvent(Event.OnFollowerFlagChanged(it)) }
+            .launchIn(viewModelScope)
 
         eventFlow
             .filterIsInstance<Event.OnNumberPressed>()
@@ -120,8 +128,8 @@ class LookupRoomViewModel @Inject constructor(
                             dispatchEvent(Event.OpenExistingRoom(it.room.id))
                         }
                     } else {
-                        if (betaFeatures.joinAsSpectator) {
-                            dispatchEvent(Event.JoinAsSpectator(it.room))
+                        if (stateFlow.value.joinAsFollower) {
+                            dispatchEvent(Event.PreviewRoom(it))
                         } else {
                             val host = it.members.firstOrNull { m -> m.isModerator }
 
@@ -141,29 +149,11 @@ class LookupRoomViewModel @Inject constructor(
             ).launchIn(viewModelScope)
 
         eventFlow
-            .filterIsInstance<Event.JoinAsSpectator>()
+            .filterIsInstance<Event.PreviewRoom>()
             .map { it.room }
-            .onEach { room ->
-                chatsController.joinRoomAsSpectator(room.id)
-                    .onFailure {
-                        dispatchEvent(Event.OnLookingUpRoom(false))
-                        TopBarManager.showMessage(
-                            TopBarManager.TopBarMessage(
-                                resources.getString(R.string.error_title_failedToJoinRoom),
-                                resources.getString(
-                                    R.string.error_description_failedToJoinRoom,
-                                    room.titleOrFallback(resources)
-                                )
-                            )
-                        )
-                    }.onSuccess {
-                        dispatchEvent(Event.OnLookingUpRoom(false))
-                        dispatchEvent(Event.OnRoomFound)
-                        viewModelScope.launch {
-                            delay(400)
-                            dispatchEvent(Event.OpenExistingRoom(it.room.id))
-                        }
-                    }
+            .onEach { roomWithMembers ->
+                chatsController.previewRoom(roomWithMembers)
+                dispatchEvent(Event.OpenExistingRoom(roomWithMembers.room.id))
             }.launchIn(viewModelScope)
     }
 
@@ -184,11 +174,12 @@ class LookupRoomViewModel @Inject constructor(
                 Event.OnLookupRoom,
                 is Event.OnOpenConfirmation,
                 is Event.OpenExistingRoom,
-                is Event.JoinAsSpectator,
+                is Event.PreviewRoom,
                 is Event.OnNumberPressed -> { state -> state }
 
                 is Event.OnRoomFound -> { state -> state.copy(success = true) }
                 is Event.OnLookingUpRoom -> { state -> state.copy(lookingUp = event.requesting) }
+                is Event.OnFollowerFlagChanged -> { state -> state.copy(joinAsFollower = event.enabled) }
             }
         }
     }

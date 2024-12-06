@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
@@ -18,8 +17,6 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.parcelize.IgnoredOnParcel
 import kotlinx.parcelize.Parcelize
-import xyz.flipchat.app.features.login.LoginHome
-import xyz.flipchat.app.ui.LocalBetaFeatures
 
 @Parcelize
 data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
@@ -28,7 +25,6 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
 
     @Composable
     override fun Content() {
-        val betaFeatures = LocalBetaFeatures.current
         val vm = getViewModel<LoginViewModel>()
         val state by vm.stateFlow.collectAsState()
         val navigator = LocalCodeNavigator.current
@@ -45,8 +41,14 @@ data class LoginScreen(val seed: String? = null) : Screen, Parcelable {
         } else {
             LoginHome(
                 isCreatingAccount = state.creatingAccount,
+                betaFlagsVisible = state.betaOptionsVisible,
+                isSpectatorJoinEnabled = state.followerModeEnabled,
+                onLogoTapped = { vm.dispatchEvent(LoginViewModel.Event.OnLogoTapped) },
+                openBetaFlags = {
+                    navigator.push(ScreenRegistry.get(NavScreenProvider.BetaFlags))
+                },
                 createAccount = {
-                    if (betaFeatures.joinAsSpectator) {
+                    if (state.followerModeEnabled) {
                         vm.dispatchEvent(LoginViewModel.Event.CreateAccount)
                     } else {
                         navigator.push(ScreenRegistry.get(NavScreenProvider.Login.Registration))

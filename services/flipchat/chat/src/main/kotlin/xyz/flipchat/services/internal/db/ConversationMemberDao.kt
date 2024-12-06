@@ -4,14 +4,32 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RewriteQueriesToDropUnusedColumns
+import androidx.room.Transaction
 import com.getcode.model.ID
 import com.getcode.utils.base58
+import kotlinx.coroutines.flow.Flow
 import xyz.flipchat.services.domain.model.chat.ConversationMember
+import xyz.flipchat.services.domain.model.chat.ConversationWithMembersAndLastPointers
 
 @Dao
 interface ConversationMemberDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertMembers(vararg members: ConversationMember)
+
+    @RewriteQueriesToDropUnusedColumns
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM members
+        WHERE conversationIdBase58 = :id
+    """
+    )
+    fun observeMembersIn(id: String): Flow<List<ConversationMember>>
+
+    fun observeMembersIn(id: ID): Flow<List<ConversationMember>> {
+        return observeMembersIn(id.base58)
+    }
 
     @Query("DELETE FROM members WHERE conversationIdBase58 = :conversationId")
     suspend fun removeMembersFrom(conversationId: String)

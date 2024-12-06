@@ -9,11 +9,10 @@ import android.os.Build
 import android.os.VibratorManager
 import android.telephony.TelephonyManager
 import androidx.core.app.NotificationManagerCompat
-import xyz.flipchat.app.util.AndroidLocale
 import com.getcode.services.analytics.AnalyticsService
 import com.getcode.services.analytics.AnalyticsServiceNull
-import com.getcode.util.resources.AndroidResources
 import com.getcode.util.locale.LocaleHelper
+import com.getcode.util.resources.AndroidResources
 import com.getcode.util.resources.ResourceHelper
 import com.getcode.util.vibration.Api25Vibrator
 import com.getcode.util.vibration.Api26Vibrator
@@ -29,13 +28,13 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import xyz.flipchat.app.BuildConfig
-import xyz.flipchat.app.data.BetaFeatures
-import xyz.flipchat.app.features.home.tabs.CashTab
-import xyz.flipchat.app.features.home.tabs.ChatTab
+import xyz.flipchat.app.beta.BetaFlagController
+import xyz.flipchat.app.beta.BetaFlags
+import xyz.flipchat.app.util.AndroidLocale
 import xyz.flipchat.app.util.FcTab
 import xyz.flipchat.app.util.Router
 import xyz.flipchat.app.util.RouterImpl
+import xyz.flipchat.services.user.UserManager
 import javax.inject.Singleton
 
 @Module
@@ -123,25 +122,23 @@ object AppModule {
     ): AnalyticsService = AnalyticsServiceNull()
 
     @Provides
-    fun providesDeeplinkRouter(): Router = RouterImpl(
-        rootTabs = listOf(
-            ChatTab,
-            CashTab
-        ).sortedBy { it.ordinal },
-        tabIndexResolver = { resolved ->
-            when (resolved) {
-                FcTab.Chat -> FcTab.Chat.ordinal
-                FcTab.Cash -> FcTab.Cash.ordinal
-                FcTab.Settings -> FcTab.Settings.ordinal
-            }
-        },
-        indexTabResolver = { index -> FcTab.entries[index] }
-    )
+    fun providesDeeplinkRouter(
+        userManager: UserManager
+    ): Router = RouterImpl(
+            userManager = userManager,
+            tabIndexResolver = { resolved ->
+                when (resolved) {
+                    FcTab.Chat -> FcTab.Chat.ordinal
+                    FcTab.Cash -> FcTab.Cash.ordinal
+                    FcTab.Settings -> FcTab.Settings.ordinal
+                }
+            },
+            indexTabResolver = { index -> FcTab.entries[index] }
+        )
 
+    @Singleton
     @Provides
-    fun providesBetaFeatures(): BetaFeatures = BetaFeatures(
-        replyToMessage = BuildConfig.DEBUG,
-        jumpToBottom = true,
-        joinAsSpectator = BuildConfig.DEBUG
-    )
+    fun providesBetaController(
+        @ApplicationContext context: Context
+    ): BetaFlags = BetaFlagController(context)
 }

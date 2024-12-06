@@ -9,6 +9,7 @@ import xyz.flipchat.app.features.home.TabbedHomeScreen
 import xyz.flipchat.app.features.login.LoginScreen
 import xyz.flipchat.app.features.settings.SettingsScreen
 import com.getcode.navigation.NavScreenProvider
+import xyz.flipchat.app.features.beta.BetaFlagsScreen
 import xyz.flipchat.app.features.chat.cover.CoverChargeScreen
 import xyz.flipchat.app.features.chat.info.ChatInfoScreen
 import xyz.flipchat.app.features.chat.lookup.LookupRoomScreen
@@ -50,11 +51,11 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Chat.List> {
-            ChatListScreen
+            ChatListScreen()
         }
 
         register<NavScreenProvider.Chat.Lookup.Entry> {
-            LookupRoomScreen
+            LookupRoomScreen()
         }
 
         register<NavScreenProvider.Chat.Lookup.Confirm> {
@@ -77,7 +78,11 @@ fun AppScreenContent(content: @Composable () -> Unit) {
         }
 
         register<NavScreenProvider.Settings> {
-            SettingsScreen
+            SettingsScreen()
+        }
+
+        register<NavScreenProvider.BetaFlags> {
+            BetaFlagsScreen()
         }
     }
     content()

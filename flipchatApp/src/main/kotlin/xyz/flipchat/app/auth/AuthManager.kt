@@ -27,6 +27,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import xyz.flipchat.FlipchatServices
 import xyz.flipchat.app.BuildConfig
+import xyz.flipchat.app.beta.BetaFlags
 import xyz.flipchat.app.util.UserIdResult
 import xyz.flipchat.controllers.AuthController
 import xyz.flipchat.controllers.ProfileController
@@ -44,6 +45,7 @@ class AuthManager @Inject constructor(
     private val profileController: ProfileController,
     private val userManager: UserManager,
     private val pushController: PushController,
+    private val betaFlags: BetaFlags,
 //    private val balanceController: BalanceController,
 //    private val notificationCollectionHistory: NotificationCollectionHistoryController,
 //    private val analytics: AnalyticsService,
@@ -77,7 +79,7 @@ class AuthManager @Inject constructor(
         val entropyB64 = userManager.entropy
         return if (entropyB64 == null) {
             val seedB64 = Ed25519.createSeed16().encodeBase64()
-            userManager.establish(seedB64, isNew = true)
+            userManager.establish(seedB64)
             return seedB64
         } else {
             entropyB64
@@ -96,6 +98,8 @@ class AuthManager @Inject constructor(
                     token = entropy,
                     isUnregistered = true
                 )
+                userManager.set(AuthState.Unregistered)
+                profileController.getUserFlags()
             }.onFailure {
                 it.printStackTrace()
                 clearToken()
@@ -150,7 +154,8 @@ class AuthManager @Inject constructor(
         FlipchatServices.openDatabase(context, entropyB64)
 
         val originalEntropy = userManager.entropy
-        userManager.establish(entropy = entropyB64, isNew = false)
+        userManager.establish(entropy = entropyB64)
+        userManager.set(AuthState.LoggedInAwaitingUser)
 
         if (!isSoftLogin) {
             loginAnalytics()
@@ -189,6 +194,7 @@ class AuthManager @Inject constructor(
                 if (displayName != null) {
                     userManager.set(displayName = displayName)
                 }
+                profileController.getUserFlags()
                 userManager.set(
                     authState = if (lookup is UserIdResult.Unregistered) {
                         AuthState.Unregistered
@@ -269,6 +275,7 @@ class AuthManager @Inject constructor(
         Database.close()
         userManager.clear()
         Database.delete(context)
+        betaFlags.reset()
         if (!BuildConfig.DEBUG) Bugsnag.setUser(null, null, null)
     }
 

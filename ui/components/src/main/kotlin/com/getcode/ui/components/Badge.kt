@@ -24,6 +24,7 @@ import com.getcode.theme.CodeTheme
 fun Badge(
     modifier: Modifier = Modifier,
     count: Int,
+    showMoreUnread: Boolean = count > 99,
     color: Color = CodeTheme.colors.brand,
     contentColor: Color = Color.White,
     textStyle: TextStyle = CodeTheme.typography.textMedium.copy(fontWeight = FontWeight.W700),
@@ -31,10 +32,10 @@ fun Badge(
     exitTransition: ExitTransition = fadeOut() + scaleOut(tween(durationMillis = 300))
 ) {
     AnimatedVisibility(modifier = modifier, visible = count > 0, enter = enterTransition, exit = exitTransition) {
-        val text = when (count) {
-            0 -> ""
-            in 1..99 -> "$count"
-            else -> "99+"
+        val text = when  {
+            count == 0 -> ""
+            showMoreUnread -> "$count+"
+            else -> "$count"
         }
 
         Text(

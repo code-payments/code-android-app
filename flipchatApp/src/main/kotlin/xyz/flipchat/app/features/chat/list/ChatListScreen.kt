@@ -4,6 +4,7 @@ import android.os.Parcelable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -34,17 +34,17 @@ import cafe.adriel.voyager.core.registry.ScreenRegistry
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.core.screen.ScreenKey
 import cafe.adriel.voyager.core.screen.uniqueScreenKey
-import cafe.adriel.voyager.hilt.getViewModel
 import com.getcode.model.ID
 import com.getcode.navigation.NavScreenProvider
 import com.getcode.navigation.core.LocalCodeNavigator
+import com.getcode.navigation.extensions.getActivityScopedViewModel
 import com.getcode.navigation.screens.NamedScreen
 import com.getcode.theme.CodeTheme
 import com.getcode.ui.theme.ButtonState
 import com.getcode.ui.theme.CodeButton
 import com.getcode.ui.theme.CodeCircularProgressIndicator
 import com.getcode.ui.theme.CodeScaffold
-import com.getcode.ui.utils.isScrolledToStart
+import io.grpc.Status.Code
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -55,7 +55,7 @@ import xyz.flipchat.app.R
 import xyz.flipchat.app.features.chat.openChatDirectiveBottomModal
 
 @Parcelize
-data object ChatListScreen : Screen, NamedScreen, Parcelable {
+class ChatListScreen : Screen, NamedScreen, Parcelable {
 
     @IgnoredOnParcel
     override val key: ScreenKey = uniqueScreenKey
@@ -66,7 +66,7 @@ data object ChatListScreen : Screen, NamedScreen, Parcelable {
     @Composable
     override fun Content() {
         val navigator = LocalCodeNavigator.current
-        val viewModel = getViewModel<ChatListViewModel>()
+        val viewModel = getActivityScopedViewModel<ChatListViewModel>()
         ChatListScreenContent(
             viewModel = viewModel,
             openChat = {
@@ -97,8 +97,8 @@ private fun ChatListScreenContent(
     var isInitialLoad by rememberSaveable { mutableStateOf(true) }
     val listState = rememberLazyListState()
     val composeScope = rememberCoroutineScope()
-    CodeScaffold { padding ->
 
+    CodeScaffold { padding ->
         SideEffect {
             if (!listState.canScrollBackward) {
                 composeScope.launch {
@@ -106,8 +106,10 @@ private fun ChatListScreenContent(
                 }
             }
         }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(bottom = CodeTheme.dimens.inset),
             state = listState
         ) {
             items(
